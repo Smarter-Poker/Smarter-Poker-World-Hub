@@ -433,7 +433,12 @@ async function edgeHandler(req: Request) {
       // price (derived from the market) for unders — an honest, price-shop-free
       // number reflecting only model-vs-market edge.
       const overPrice = p.best_price != null ? Number(p.best_price) : null;
-      const price = isOver ? overPrice : fairAmericanFromProb(pMarket);
+      // Unders have no stored offered price; estimate one from the no-vig market
+      // PLUS a typical per-side hold (~2.3 pts) so the score reflects a realistic
+      // (slightly worse than fair) price, never an optimistic no-vig one.
+      const price = isOver
+        ? overPrice
+        : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
       const priceIsReal = isOver && overPrice != null;
 
       // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
@@ -487,6 +492,7 @@ async function edgeHandler(req: Request) {
         best_book: isOver ? p.best_book : null,
         best_lines: isOver ? p.best_lines : null,
         price_estimated: !priceIsReal,
+        was_bet: /^BET/i.test(String(p.rec || '')),
         // Graded outcome — present on closed/stale slates.
         result: (p.result as string) ?? null,
         pnl: p.pnl != null ? Number(p.pnl) : null,
@@ -524,13 +530,16 @@ async function edgeHandler(req: Request) {
       topLock: scored.reduce((m, p) => Math.max(m, p.win_confidence ?? 0), 0),
     };
 
-    // Graded recap — only meaningful on a closed/stale slate (games resolved).
-    const graded = mappedProps.filter((p) => p.result === 'win' || p.result === 'loss');
+    // Graded recap — the ENGINE'S ACTUAL BETS only (rec = "BET ..."), not every
+    // priced prop, so the record/units reflect real model performance.
+    const bets = mappedProps.filter(
+      (p) => p.was_bet && (p.result === 'win' || p.result === 'loss')
+    );
     const results = {
-      graded: graded.length,
-      wins: graded.filter((p) => p.result === 'win').length,
-      losses: graded.filter((p) => p.result === 'loss').length,
-      units: Math.round(mappedProps.reduce((s, p) => s + (p.pnl ?? 0), 0) * 100) / 100,
+      graded: bets.length,
+      wins: bets.filter((p) => p.result === 'win').length,
+      losses: bets.filter((p) => p.result === 'loss').length,
+      units: Math.round(bets.reduce((s, p) => s + (p.pnl ?? 0), 0) * 100) / 100,
     };
 
     return new Response(

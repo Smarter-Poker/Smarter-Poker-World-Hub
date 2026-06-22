@@ -632,6 +632,13 @@ const nextConfig = {
         destination: '/hub/MLB-ANALYTICS/:path*',
         permanent: true,
       },
+      // Team detail alias: legacy singular /team/<id> links resolve to the real
+      // /teams/[team_id] route (prevents the 404 when older links use the singular path).
+      {
+        source: '/hub/MLB-ANALYTICS/team/:id',
+        destination: '/hub/MLB-ANALYTICS/teams/:id',
+        permanent: false,
+      },
     ];
   },
 

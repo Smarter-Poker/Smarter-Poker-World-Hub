@@ -13,7 +13,6 @@ export default function MlbSubNav() {
         { label: 'Tracker', href: '/hub/MLB-ANALYTICS/tracker' },
         { label: 'Players', href: '/hub/MLB-ANALYTICS/players' },
         { label: 'Teams', href: '/hub/MLB-ANALYTICS/teams' },
-        { label: 'Accuracy', href: '/hub/MLB-ANALYTICS/accuracy' },
         { label: 'Backtest', href: '/hub/MLB-ANALYTICS/backtest' },
         { label: 'Status', href: '/hub/MLB-ANALYTICS/status' },
         { label: 'Portfolio', href: '/hub/MLB-ANALYTICS/portfolio' },
@@ -25,10 +24,13 @@ export default function MlbSubNav() {
             {links.map(l => {
                 // Slate is exact-match only; all others use startsWith so nested routes stay highlighted.
                 // Teams is special: match both /teams (list) and /team/ (singular detail page).
+                // Model Intel also catches the old /accuracy route since it redirects here.
                 const isActive = l.label === 'Slate'
                     ? (router.pathname === l.href || router.pathname === '/hub/MLB-ANALYTICS')
                     : l.label === 'Teams'
                     ? (router.pathname.startsWith('/hub/MLB-ANALYTICS/teams') || router.pathname.startsWith('/hub/MLB-ANALYTICS/team/'))
+                    : l.label === 'Model Intel'
+                    ? (router.pathname.startsWith('/hub/MLB-ANALYTICS/model-intel') || router.pathname.startsWith('/hub/MLB-ANALYTICS/accuracy'))
                     : router.pathname.startsWith(l.href);
                 return (
                     <Link key={l.label} href={l.href} className={`pb-1 text-[11px] font-extrabold uppercase tracking-widest transition-all touch-manipulation flex-shrink-0 ${

@@ -75,11 +75,11 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     const roi = payload[0].value;
     return (
       <div className="bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-        <p className="text-slate-400 text-[10px] font-extrabold tracking-[1px] mb-1 uppercase">
+        <p className="text-slate-400 text-[13px] font-extrabold tracking-[1px] mb-1 capitalize">
           {label} EDGE
         </p>
         <p
-          className={`text-lg font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(roi) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
+          className={`text-[23px] font-extrabold ${Number(roi) > 0 ? 'text-[#00D4FF]' : Number(roi) < 0 ? 'text-[#FF0055]' : 'text-slate-300'}`}
           style={{
             textShadow:
               Number(roi) > 0
@@ -92,7 +92,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
           {Number(roi) > 0 ? '+' : ''}
           {Number(roi).toFixed(2)}% ROI
         </p>
-        <p className="text-slate-500 text-xs mt-1">{payload[0].payload.n} bets graded</p>
+        <p className="text-slate-500 text-[16px] mt-1">{payload[0].payload.n} bets graded</p>
       </div>
     );
   }
@@ -139,13 +139,13 @@ export default function ValidationPage() {
               style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
             />
             <h2
-              className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+              className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               System Error
             </h2>
             <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
-              Failed to load data. Please try again later.
+              Failed To Load Data. Please Try Again Later.
             </p>
           </div>
         </main>
@@ -182,23 +182,23 @@ export default function ValidationPage() {
           <div>
             <Link
               href="/hub/MLB-ANALYTICS"
-              className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-bold no-underline tracking-[1px] hover:text-white transition-colors uppercase"
+              className="inline-flex items-center gap-1 text-[#00D4FF] text-[17px] font-bold no-underline tracking-[1px] hover:text-white transition-colors capitalize"
               style={{ textShadow: '0 0 10px rgba(0,212,255,0.4)' }}
             >
               <ArrowLeft size={16} /> Dashboard
             </Link>
             <h1
-              className="mt-2 mb-0.5 text-2xl md:text-[28px] font-extrabold text-white uppercase"
+              className="mt-2 mb-0.5 text-[31px] md:text-[36px] font-extrabold text-white capitalize"
               style={{ fontFamily: '"Rajdhani", sans-serif', letterSpacing: '0.05em' }}
             >
               Model <span className="text-[#00D4FF]">Validation</span>
             </h1>
-            <p className="m-0 text-[13px] text-slate-400">
+            <p className="m-0 text-[17px] text-slate-400">
               Does it beat the market? — graded backtest history
             </p>
           </div>
           <div className="text-right hidden sm:block">
-            <div className="text-[#00D4FF] text-[11px] font-extrabold tracking-[1px]">MLB EDGE</div>
+            <div className="text-[#00D4FF] text-[14px] font-extrabold tracking-[1px]">Mlb Edge</div>
           </div>
         </div>
 
@@ -206,21 +206,21 @@ export default function ValidationPage() {
         <div className="flex gap-1 mb-6 p-1 bg-[#0d1117] border border-[#3d4f5f] rounded-lg w-fit shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => setDays(7)}
-            className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ease-in-out ${currentDays === 7 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            className={`px-4 py-2 rounded-md text-[14px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 7 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
-            7 DAYS
+            7 Days
           </button>
           <button
             onClick={() => setDays(30)}
-            className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ease-in-out ${currentDays === 30 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            className={`px-4 py-2 rounded-md text-[14px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === 30 ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
-            30 DAYS
+            30 Days
           </button>
           <button
             onClick={() => setDays(null)}
-            className={`px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ease-in-out ${currentDays === null ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
+            className={`px-4 py-2 rounded-md text-[14px] font-bold capitalize tracking-wider transition-all duration-200 ease-in-out ${currentDays === null ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'bg-transparent text-slate-400 hover:text-white border border-transparent'}`}
           >
-            SEASON
+            Season
           </button>
         </div>
 
@@ -228,12 +228,12 @@ export default function ValidationPage() {
         <div className="bg-[#1a170a] border border-[#d97706]/50 rounded-lg p-4 mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-[#d97706]"></div>
           <div
-            className="text-[#d97706] text-[13px] font-extrabold tracking-[1px] mb-2 uppercase"
+            className="text-[#d97706] text-[17px] font-extrabold tracking-[1px] mb-2 capitalize"
             style={{ textShadow: '0 0 8px rgba(217,119,6,0.5)' }}
           >
-            READ THIS FIRST
+            Read This First
           </div>
-          <div className="text-[#fcd34d] text-xs leading-relaxed opacity-90">
+          <div className="text-[#fcd34d] text-[16px] leading-relaxed opacity-90">
             These are <strong className="text-white">historical</strong> graded results, mostly from
             the <strong className="text-white">pre-fix</strong> model. They show promise, not proof.
             CLV (closing-line value) is{' '}
@@ -246,41 +246,41 @@ export default function ValidationPage() {
         {isLoading && !data ? (
           <div className="flex flex-col items-center justify-center py-20 bg-[#0d1117] border border-[#3d4f5f] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
             <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mb-4" />
-            <div className="text-[13px] font-extrabold text-[#00D4FF] tracking-[1px] mb-1 animate-pulse">
-              CALCULATING MATRICES...
+            <div className="text-[17px] font-extrabold text-[#00D4FF] tracking-[1px] mb-1 animate-pulse">
+              Calculating Matrices...
             </div>
           </div>
         ) : stats ? (
           <>
             {/* FLAGGED BETS */}
             <div
-              className="text-[11px] font-extrabold text-[#00D4FF] tracking-[1px] mb-2 uppercase flex items-center justify-between"
+              className="text-[14px] font-extrabold text-[#00D4FF] tracking-[1px] mb-2 capitalize flex items-center justify-between"
               style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}
             >
               <span>ENGINE'S FLAGGED BETS (BET-RATED)</span>
-              <span className="bg-[#1a2332] text-slate-300 border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+              <span className="bg-[#1a2332] text-slate-300 border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                 {stats.flagged.count} GRADED
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 px-4 md:px-0">
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
-                  WIN RATE
+                <div className="text-[13px] font-bold text-slate-400 tracking-[1px] mb-2 capitalize">
+                  Win Rate
                 </div>
                 <div
-                  className="text-2xl font-extrabold text-[#00D4FF]"
+                  className="text-[31px] font-extrabold text-[#00D4FF]"
                   style={{ textShadow: '0 0 10px rgba(0,212,255,0.5)' }}
                 >
                   {Number(stats.flagged.winRate).toFixed(1)}%
                 </div>
               </div>
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
-                  FLAT-STAKE ROI
+                <div className="text-[13px] font-bold text-slate-400 tracking-[1px] mb-2 capitalize">
+                  Flat-Stake Roi
                 </div>
                 <div
-                  className={`text-2xl font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.roi) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
+                  className={`text-[31px] font-extrabold ${Number(stats.flagged.roi) > 0 ? 'text-[#00D4FF]' : Number(stats.flagged.roi) < 0 ? 'text-[#FF0055]' : 'text-white'}`}
                   style={{
                     textShadow:
                       Number(stats.flagged.roi) > 0
@@ -295,13 +295,13 @@ export default function ValidationPage() {
                 </div>
               </div>
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
-                  MODEL VS MKT BRIER
+                <div className="text-[13px] font-bold text-slate-400 tracking-[1px] mb-2 capitalize">
+                  Model Vs Mkt Brier
                 </div>
-                <div className="text-2xl font-extrabold text-white">
+                <div className="text-[31px] font-extrabold text-white">
                   {Number(stats.flagged.modelBrier).toFixed(3)}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1 font-medium">
+                <div className="text-[13px] text-slate-500 mt-1 font-medium">
                   mkt{' '}
                   {stats.flagged.mktBrier !== null
                     ? Number(stats.flagged.mktBrier).toFixed(3)
@@ -313,51 +313,51 @@ export default function ValidationPage() {
 
             {/* ALL GRADED OUTCOMES */}
             <div
-              className="text-[11px] font-extrabold text-[#00D4FF] tracking-[1px] mb-2 uppercase flex items-center justify-between"
+              className="text-[14px] font-extrabold text-[#00D4FF] tracking-[1px] mb-2 capitalize flex items-center justify-between"
               style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}
             >
-              <span>ALL GRADED OUTCOMES</span>
-              <span className="bg-[#1a2332] text-slate-300 border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+              <span>All Graded Outcomes</span>
+              <span className="bg-[#1a2332] text-slate-300 border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                 {stats.all.count} GRADED
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 px-4 md:px-0">
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
-                  MODEL BRIER
+                <div className="text-[13px] font-bold text-slate-400 tracking-[1px] mb-2 capitalize">
+                  Model Brier
                 </div>
-                <div className="text-2xl font-extrabold text-white">
+                <div className="text-[31px] font-extrabold text-white">
                   {Number(stats.all.modelBrier).toFixed(4)}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 font-medium">
+                <div className="text-[14px] text-slate-500 mt-1 font-medium">
                   prediction accuracy (0.25 = coinflip)
                 </div>
               </div>
               <div className="relative bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                <div className="text-[10px] font-bold text-slate-400 tracking-[1px] mb-2 uppercase">
-                  MARKET BRIER
+                <div className="text-[13px] font-bold text-slate-400 tracking-[1px] mb-2 capitalize">
+                  Market Brier
                 </div>
-                <div className="text-2xl font-extrabold text-white opacity-80">
+                <div className="text-[31px] font-extrabold text-white opacity-80">
                   {stats.all.mktBrier !== null ? Number(stats.all.mktBrier).toFixed(4) : 'N/A'}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 font-medium">
+                <div className="text-[14px] text-slate-500 mt-1 font-medium">
                   the no-vig closing line
                 </div>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400 mb-8 border-l-[3px] border-[#00D4FF] bg-[#1a2332] p-3 rounded-r-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] leading-relaxed">
+            <div className="text-[14px] text-slate-400 mb-8 border-l-[3px] border-[#00D4FF] bg-[#1a2332] p-3 rounded-r-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] leading-relaxed">
               The model's probabilities are more accurate than the no-vig market here (lower Brier)
               — a real skill signal.
             </div>
 
             {/* ROI BY EDGE SIZE - VISUALIZATION */}
             <div
-              className="text-[11px] font-extrabold text-[#00D4FF] tracking-[1px] mb-3 uppercase flex items-center justify-between"
+              className="text-[14px] font-extrabold text-[#00D4FF] tracking-[1px] mb-3 capitalize flex items-center justify-between"
               style={{ textShadow: '0 0 5px rgba(0,212,255,0.4)' }}
             >
-              <span>ROI BY EDGE SIZE</span>
-              <span className="text-[10px] text-slate-400 lowercase font-bold border border-[#3d4f5f] bg-[#0d1117] px-2 py-0.5 rounded shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+              <span>Roi By Edge Size</span>
+              <span className="text-[13px] text-slate-400 lowercase font-bold border border-[#3d4f5f] bg-[#0d1117] px-2 py-0.5 rounded shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                 Flat-stake ROI %
               </span>
             </div>
@@ -371,8 +371,8 @@ export default function ValidationPage() {
 
               <div className="h-[220px] w-full relative z-10">
                 {!stats.edgeData || stats.edgeData.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[11px] uppercase">
-                    NO EDGE DATA AVAILABLE
+                  <div className="flex items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[14px] capitalize">
+                    No Edge Data Available
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
@@ -422,16 +422,16 @@ export default function ValidationPage() {
             <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden mb-4 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
               <div className="overflow-x-auto">
                 <div className="w-full min-w-[320px]">
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 border-b-2 border-[#3d4f5f] bg-[#1a2332] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <div>EDGE THRESHOLD</div>
-                    <div className="text-right">BETS</div>
-                    <div className="text-right">WIN%</div>
-                    <div className="text-right">ROI</div>
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 border-b-2 border-[#3d4f5f] bg-[#1a2332] text-[13px] font-bold text-slate-400 capitalize tracking-wider">
+                    <div>Edge Threshold</div>
+                    <div className="text-right">Bets</div>
+                    <div className="text-right">Win%</div>
+                    <div className="text-right">Roi</div>
                   </div>
                   {stats.edgeData.map((row, idx) => (
                     <div
                       key={row.edge}
-                      className={`grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 text-[12px] hover:bg-[#1a2332] transition-colors ${idx < stats.edgeData.length - 1 ? 'border-b border-[#1a2332]' : ''}`}
+                      className={`grid grid-cols-[2fr_1fr_1fr_1.5fr] py-3 px-4 text-[16px] hover:bg-[#1a2332] transition-colors ${idx < stats.edgeData.length - 1 ? 'border-b border-[#1a2332]' : ''}`}
                     >
                       <div className="font-bold text-white flex items-center gap-2">
                         <div
@@ -461,8 +461,8 @@ export default function ValidationPage() {
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400 leading-relaxed mb-8 bg-[#1a2332] p-3 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
-              <strong className="text-[#00D4FF] uppercase tracking-[1px] text-[10px] block mb-1">
+            <div className="text-[14px] text-slate-400 leading-relaxed mb-8 bg-[#1a2332] p-3 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+              <strong className="text-[#00D4FF] capitalize tracking-[1px] text-[13px] block mb-1">
                 Analytical Note
               </strong>
               The edge size represents the difference between the model's projected win probability
@@ -471,23 +471,23 @@ export default function ValidationPage() {
               across different edge buckets.
             </div>
 
-            <div className="text-[10px] text-slate-500 text-center leading-relaxed max-w-[400px] mx-auto border-t border-[#3d4f5f] pt-6 pb-2">
+            <div className="text-[13px] text-slate-500 text-center leading-relaxed max-w-[400px] mx-auto border-t border-[#3d4f5f] pt-6 pb-2">
               Win-rate breakeven at -110 is ~52.4%.
               <br />
               Brier score represents squared error of the probability vs outcome — lower is sharper,
               0.25 is a coin-flip.
               <br />
-              <span className="mt-2 block font-extrabold text-[#00D4FF] uppercase tracking-[1px]">
+              <span className="mt-2 block font-extrabold text-[#00D4FF] capitalize tracking-[1px]">
                 Analysis only — not betting advice.
               </span>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-[#0d1117] border border-[#3d4f5f] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-            <div className="text-[13px] font-extrabold text-slate-400 tracking-[1px] mb-1">
-              NO DATA FOUND
+            <div className="text-[17px] font-extrabold text-slate-400 tracking-[1px] mb-1">
+              No Data Found
             </div>
-            <div className="text-xs text-slate-500 max-w-[250px] text-center">
+            <div className="text-[16px] text-slate-500 max-w-[250px] text-center">
               No graded validation data is available for this timeframe. Try selecting a broader
               date range.
             </div>

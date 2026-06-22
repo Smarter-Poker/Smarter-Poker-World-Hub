@@ -30,7 +30,7 @@ function MlbSubNav() {
                 : l.label === 'Teams'
                     ? (router.pathname.startsWith('/hub/MLB-ANALYTICS/teams') || router.pathname.startsWith('/hub/MLB-ANALYTICS/team/'))
                     : router.pathname.startsWith(l.href);
-            return (<link_1.default key={l.label} href={l.href} className={"pb-1 text-[11px] font-extrabold uppercase tracking-widest transition-all touch-manipulation flex-shrink-0 ".concat(isActive
+            return (<link_1.default key={l.label} href={l.href} className={"pb-1 text-[14px] font-extrabold capitalize tracking-widest transition-all touch-manipulation flex-shrink-0 ".concat(isActive
                     ? 'text-[#00D4FF] border-b-[2px] border-[#00D4FF] shadow-[0_4px_10px_-2px_rgba(0,212,255,0.4)]'
                     : 'text-slate-500 border-b-[2px] border-transparent hover:text-slate-300 hover:border-slate-600')} style={{ textDecoration: 'none' }}>
                         {l.label}

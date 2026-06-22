@@ -87,13 +87,13 @@ const MetricTile = ({
     title={tip}
   >
     <div className="flex items-center gap-1 mb-1">
-      <span className="text-[10px] font-extrabold text-slate-400 tracking-widest uppercase">
+      <span className="text-[13px] font-extrabold text-slate-400 tracking-widest capitalize">
         {label}
       </span>
       {tip ? <Info size={10} className="text-slate-600 shrink-0" aria-hidden="true" /> : null}
     </div>
     <div
-      className={`text-lg font-extrabold ${accent ? 'text-[#00D4FF]' : 'text-white'}`}
+      className={`text-[23px] font-extrabold ${accent ? 'text-[#00D4FF]' : 'text-white'}`}
       style={{ fontFamily: '"Rajdhani", sans-serif' }}
     >
       {value}
@@ -135,12 +135,12 @@ export default function PlayerProfilePage() {
         <MlbSubNav />
         <div className="p-8 text-center mt-10">
           <div
-            className="text-slate-300 font-extrabold text-2xl uppercase tracking-widest"
+            className="text-slate-300 font-extrabold text-[31px] capitalize tracking-widest"
             style={{ fontFamily: '"Rajdhani", sans-serif' }}
           >
             {isNotFound ? 'Player Not Found' : 'Error Loading Player'}
           </div>
-          <p className="text-slate-500 text-sm font-bold tracking-wide mt-2">
+          <p className="text-slate-500 text-[18px] font-bold tracking-wide mt-2">
             {isNotFound
               ? 'No profile exists for this player ID.'
               : 'Something went wrong loading this profile. Please try again.'}
@@ -205,7 +205,7 @@ export default function PlayerProfilePage() {
         <div className="mb-6">
           <Link
             href="/hub/MLB-ANALYTICS/players"
-            className="inline-flex items-center gap-1 text-[#00D4FF] text-[10px] font-extrabold tracking-widest uppercase hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-extrabold tracking-widest capitalize hover:text-white transition-colors mb-4"
           >
             <ArrowLeft size={14} /> Back to Database
           </Link>
@@ -246,11 +246,11 @@ export default function PlayerProfilePage() {
               </div>
 
               <div className="flex-1 text-center md:text-left z-10">
-                <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[10px] font-extrabold text-[#00D4FF] tracking-widest uppercase mb-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[13px] font-extrabold text-[#00D4FF] tracking-widest capitalize mb-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                   {type === 'pitcher' ? 'Pitcher Profile' : 'Hitter Profile'}
                 </div>
                 <h1
-                  className="m-0 text-3xl md:text-5xl font-extrabold text-white tracking-widest uppercase"
+                  className="m-0 text-[39px] md:text-5xl font-extrabold text-white tracking-widest capitalize"
                   style={{
                     fontFamily: '"Rajdhani", sans-serif',
                     textShadow: '0 2px 4px rgba(0,0,0,0.8)',
@@ -260,22 +260,22 @@ export default function PlayerProfilePage() {
                 </h1>
                 <div className="flex items-center justify-center md:justify-start gap-2 mt-3 flex-wrap">
                   {teamName && (
-                    <span className="text-slate-300 font-bold text-[12px] tracking-widest uppercase">
+                    <span className="text-slate-300 font-bold text-[16px] tracking-widest capitalize">
                       {teamName}
                     </span>
                   )}
                   {(type === 'pitcher' ? profile.role : profile.position) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-300 tracking-widest uppercase">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-300 tracking-widest capitalize">
                       {type === 'pitcher' ? profile.role : profile.position}
                     </span>
                   )}
                   {(profile.bats || profile.throws) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-400 tracking-widest uppercase">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest capitalize">
                       B/T {profile.bats || '—'}/{profile.throws || '—'}
                     </span>
                   )}
                   {age != null && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-400 tracking-widest uppercase">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest capitalize">
                       Age {age}
                     </span>
                   )}
@@ -296,11 +296,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
                       <Target size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
                       wRC+
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-[#00D4FF]"
+                      className="text-[39px] font-extrabold text-[#00D4FF]"
                       style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         textShadow: '0 0 10px rgba(0,212,255,0.3)',
@@ -316,11 +316,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
                       <Activity size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
                       wOBA
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-[#00D4FF]"
+                      className="text-[39px] font-extrabold text-[#00D4FF]"
                       style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         textShadow: '0 0 10px rgba(0,212,255,0.3)',
@@ -336,11 +336,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400">
                       <User size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
                       Plate Appearances
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-white"
+                      className="text-[39px] font-extrabold text-white"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {profile.pa != null ? dec0(profile.pa) : '—'}
@@ -356,11 +356,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
                       <Shield size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
-                      FIP
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
+                      Fip
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-[#00D4FF]"
+                      className="text-[39px] font-extrabold text-[#00D4FF]"
                       style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         textShadow: '0 0 10px rgba(0,212,255,0.3)',
@@ -376,11 +376,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]">
                       <Activity size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
-                      SIERA
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
+                      Siera
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-[#00D4FF]"
+                      className="text-[39px] font-extrabold text-[#00D4FF]"
                       style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         textShadow: '0 0 10px rgba(0,212,255,0.3)',
@@ -396,11 +396,11 @@ export default function PlayerProfilePage() {
                     <div className="absolute top-0 right-0 p-2 opacity-10 text-slate-400">
                       <User size={40} />
                     </div>
-                    <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-1 uppercase">
+                    <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-1 capitalize">
                       Batters Faced
                     </div>
                     <div
-                      className="text-3xl font-extrabold text-white"
+                      className="text-[39px] font-extrabold text-white"
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {profile.bf != null ? dec0(profile.bf) : '—'}
@@ -424,7 +424,7 @@ export default function PlayerProfilePage() {
                       accent
                     />
                     <MetricTile
-                      label="ISO"
+                      label="Iso"
                       value={dec3(profile.iso)}
                       tip="Isolated Power — extra bases per at-bat (SLG minus AVG)."
                     />
@@ -453,12 +453,12 @@ export default function PlayerProfilePage() {
                       tip="Pitch-quality model (100 = average, higher is better)."
                     />
                     <MetricTile
-                      label="SIERA"
+                      label="Siera"
                       value={dec2(profile.siera)}
                       tip="Skill-Interactive ERA (lower is better)."
                     />
                     <MetricTile
-                      label="FIP"
+                      label="Fip"
                       value={dec2(profile.fip)}
                       tip="Fielding Independent Pitching (lower is better)."
                     />
@@ -471,7 +471,7 @@ export default function PlayerProfilePage() {
             {sim && (
               <>
                 <SectionHeader icon={Target} label="Model Projection" />
-                <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-4 px-4 md:px-0">
+                <p className="text-slate-400 text-[13px] font-bold tracking-widest capitalize mb-4 px-4 md:px-0">
                   {type === 'pitcher' ? '(per batter faced)' : '(per plate appearance)'}
                 </p>
                 <MetalFrame className="p-4 sm:p-6 mb-8">
@@ -498,12 +498,12 @@ export default function PlayerProfilePage() {
                       tip="Projected hit-by-pitch rate."
                     />
                     <MetricTile
-                      label="BABIP"
+                      label="Babip"
                       value={dec3(sim.babip)}
                       tip="Projected batting average on balls in play."
                     />
                   </div>
-                  <p className="text-slate-600 text-[10px] font-bold tracking-wide mt-3">
+                  <p className="text-slate-600 text-[13px] font-bold tracking-wide mt-3">
                     Projected outcome rates from the Smarter.Poker simulation engine, regressed for
                     sample size.
                   </p>
@@ -519,7 +519,7 @@ export default function PlayerProfilePage() {
                   {hotCold && (
                     <div className="mb-4">
                       <span
-                        className="inline-block text-[11px] font-extrabold px-3 py-1 rounded-full tracking-widest uppercase"
+                        className="inline-block text-[14px] font-extrabold px-3 py-1 rounded-full tracking-widest capitalize"
                         style={{
                           fontFamily: '"Rajdhani", sans-serif',
                           background:
@@ -599,19 +599,19 @@ export default function PlayerProfilePage() {
                   {/* Hitter: last 5 games table */}
                   {type === 'hitter' && last5.length > 0 && (
                     <div className="mt-5">
-                      <div className="text-[10px] font-extrabold text-slate-500 tracking-widest uppercase mb-2">
+                      <div className="text-[13px] font-extrabold text-slate-500 tracking-widest capitalize mb-2">
                         Last 5 Games
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="text-slate-500 text-[10px] font-extrabold tracking-widest uppercase">
+                            <tr className="text-slate-500 text-[13px] font-extrabold tracking-widest capitalize">
                               <th className="py-1 pr-3 font-extrabold">Date</th>
-                              <th className="py-1 px-2 text-center">AB</th>
+                              <th className="py-1 px-2 text-center">Ab</th>
                               <th className="py-1 px-2 text-center">H</th>
-                              <th className="py-1 px-2 text-center">HR</th>
-                              <th className="py-1 px-2 text-center">RBI</th>
-                              <th className="py-1 px-2 text-center">BB</th>
+                              <th className="py-1 px-2 text-center">Hr</th>
+                              <th className="py-1 px-2 text-center">Rbi</th>
+                              <th className="py-1 px-2 text-center">Bb</th>
                               <th className="py-1 px-2 text-center">K</th>
                             </tr>
                           </thead>
@@ -619,7 +619,7 @@ export default function PlayerProfilePage() {
                             {last5.map((g: any, i: number) => (
                               <tr
                                 key={g.date || i}
-                                className="border-t border-[#1e2d3d] text-slate-300 text-[12px] font-bold"
+                                className="border-t border-[#1e2d3d] text-slate-300 text-[16px] font-bold"
                               >
                                 <td className="py-1.5 pr-3 text-slate-400">{g.date || '—'}</td>
                                 <td className="py-1.5 px-2 text-center">{g.AB ?? '—'}</td>
@@ -643,12 +643,12 @@ export default function PlayerProfilePage() {
                     streaks.last_start_line &&
                     typeof streaks.last_start_line === 'object' && (
                       <div className="mt-5">
-                        <div className="text-[10px] font-extrabold text-slate-500 tracking-widest uppercase mb-2">
+                        <div className="text-[13px] font-extrabold text-slate-500 tracking-widest capitalize mb-2">
                           Last Start{streaks.last_start_date ? ` — ${streaks.last_start_date}` : ''}
                         </div>
                         <div className="flex items-center gap-3 flex-wrap">
                           <MetricTile
-                            label="IP"
+                            label="Ip"
                             value={
                               streaks.last_start_line.IP != null
                                 ? String(streaks.last_start_line.IP)
@@ -656,8 +656,8 @@ export default function PlayerProfilePage() {
                             }
                           />
                           <MetricTile label="K" value={dec0(streaks.last_start_line.K)} />
-                          <MetricTile label="BB" value={dec0(streaks.last_start_line.BB)} />
-                          <MetricTile label="ER" value={dec0(streaks.last_start_line.ER)} />
+                          <MetricTile label="Bb" value={dec0(streaks.last_start_line.BB)} />
+                          <MetricTile label="Er" value={dec0(streaks.last_start_line.ER)} />
                         </div>
                       </div>
                     )}

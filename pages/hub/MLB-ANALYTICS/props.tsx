@@ -46,17 +46,17 @@ const fetcher = async (url: string) => {
 
 // ── Market filters — matched against the exact pred_props.prop vocabulary ───────
 const FILTERS: { label: string; match: (prop: string) => boolean }[] = [
-  { label: 'ALL', match: () => true },
-  { label: 'STRIKEOUTS', match: (p) => p === 'pitcher_strikeouts' },
-  { label: 'HITS', match: (p) => p === 'hits' },
-  { label: 'HOME RUNS', match: (p) => p === 'home_run' },
-  { label: 'TOTAL BASES', match: (p) => p === 'total_bases' },
+  { label: 'All', match: () => true },
+  { label: 'Strikeouts', match: (p) => p === 'pitcher_strikeouts' },
+  { label: 'Hits', match: (p) => p === 'hits' },
+  { label: 'Home Runs', match: (p) => p === 'home_run' },
+  { label: 'Total Bases', match: (p) => p === 'total_bases' },
   { label: 'RBI', match: (p) => p === 'rbi' },
-  { label: 'RUNS', match: (p) => p === 'runs' },
-  { label: 'WALKS', match: (p) => p === 'walks' || p === 'pitcher_walks' },
-  { label: 'STOLEN BASES', match: (p) => p === 'stolen_bases' },
+  { label: 'Runs', match: (p) => p === 'runs' },
+  { label: 'Walks', match: (p) => p === 'walks' || p === 'pitcher_walks' },
+  { label: 'Stolen Bases', match: (p) => p === 'stolen_bases' },
   { label: 'H+R+RBI', match: (p) => p === 'hrr' },
-  { label: 'EARNED RUNS', match: (p) => p === 'earned_runs' },
+  { label: 'Earned Runs', match: (p) => p === 'earned_runs' },
 ];
 
 // ── Sort options (client-side reorder of the already-ranked slate) ──────────────
@@ -113,7 +113,7 @@ const PITCHER_PROPS = new Set([
 function formatProp(raw: string): string {
   if (!raw) return '';
   if (raw === 'hrr') return 'H+R+RBI';
-  return raw.replace(/_/g, ' ').toUpperCase();
+  return raw.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
 }
 
 function formatOdds(n: any): string {
@@ -241,10 +241,10 @@ function StatPill({
 }) {
   return (
     <div className="flex flex-col items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm px-2 py-1 min-w-[44px]">
-      <span className="text-[10px] font-black text-[#4a5a6a] tracking-widest uppercase leading-none mb-0.5">
+      <span className="text-[13px] font-black text-[#4a5a6a] tracking-widest capitalize leading-none mb-0.5">
         {label}
       </span>
-      <span className="text-[17px] font-black leading-none" style={{ color }}>
+      <span className="text-[22px] font-black leading-none" style={{ color }}>
         {value}
       </span>
     </div>
@@ -277,13 +277,13 @@ function HeaderStat({
       }}
     >
       <span
-        className="text-[10px] font-black tracking-widest uppercase leading-none mb-0.5"
+        className="text-[13px] font-black tracking-widest capitalize leading-none mb-0.5"
         style={{ color }}
       >
         {label}
       </span>
       <span
-        className="text-[20px] font-black leading-none"
+        className="text-[26px] font-black leading-none"
         style={{
           fontFamily: "'Rajdhani', sans-serif",
           color,
@@ -301,7 +301,7 @@ function ResultBadge({ result, pnl }: { result: string; pnl: number | null }) {
   const r = (result || '').toLowerCase();
   const win = r === 'win';
   const loss = r === 'loss';
-  const label = win ? 'WON' : loss ? 'LOST' : 'PUSH';
+  const label = win ? 'Won' : loss ? 'Lost' : 'Push';
   const color = win ? '#34D399' : loss ? '#FF6B6B' : '#8a9ba8';
   const u = pnl != null ? `${Number(pnl) > 0 ? '+' : ''}${Number(pnl).toFixed(2)}u` : '';
   return (
@@ -309,8 +309,8 @@ function ResultBadge({ result, pnl }: { result: string; pnl: number | null }) {
       className="inline-flex items-baseline gap-1.5 rounded-[5px] border px-2 py-0.5"
       style={{ color, borderColor: color, background: '#0d1117' }}
     >
-      <span className="text-[15px] font-black leading-none">{label}</span>
-      {u && <span className="text-[11px] font-bold opacity-80">{u}</span>}
+      <span className="text-[20px] font-black leading-none">{label}</span>
+      {u && <span className="text-[14px] font-bold opacity-80">{u}</span>}
     </span>
   );
 }
@@ -363,7 +363,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
           className="sticky top-0 z-10 flex justify-between items-center px-4 py-3 border-b border-[#2a3a4a]"
           style={{ background: 'rgba(13,17,23,0.97)', backdropFilter: 'blur(10px)' }}
         >
-          <div className="text-[10px] font-black text-[#5a6a7a] uppercase tracking-widest">
+          <div className="text-[13px] font-black text-[#5a6a7a] capitalize tracking-widest">
             Prop Details
           </div>
           <button
@@ -390,7 +390,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
               tierColor={ts.color}
             />
             <div
-              className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-sm text-[9px] font-black tracking-widest uppercase"
+              className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-sm text-[12px] font-black tracking-widest capitalize"
               style={{ background: ts.color, color: '#000' }}
             >
               {prop.bet_tier || 'PASS'}
@@ -398,7 +398,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
           </div>
           <div className="text-center mt-1">
             <div
-              className="text-[22px] font-black text-white uppercase tracking-wider mb-0.5"
+              className="text-[29px] font-black text-white capitalize tracking-wider mb-0.5"
               style={{ fontFamily: "'Rajdhani', sans-serif" }}
             >
               {prop.player_name}
@@ -406,19 +406,19 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             <div className="inline-flex items-center gap-1.5 bg-[#0d1117] border border-[#3d4f5f] px-3 py-1 rounded-sm mt-1">
               <div className="w-2 h-2 rounded-full" style={{ background: ts.color }} />
               <span
-                className="text-[12px] font-black tracking-wider uppercase"
+                className="text-[16px] font-black tracking-wider capitalize"
                 style={{ color: '#00D4FF' }}
               >
                 {formatProp(prop.prop_type || prop.prop)}
               </span>
               {prop.line != null && (
-                <span className="text-[12px] font-black text-slate-300">
+                <span className="text-[16px] font-black text-slate-300">
                   {isOver ? 'OVER' : 'UNDER'} {prop.line}
                 </span>
               )}
             </div>
             {prop.team_abbr && (
-              <div className="text-[11px] font-black text-[#5a6a7a] mt-2 tracking-widest uppercase">
+              <div className="text-[14px] font-black text-[#5a6a7a] mt-2 tracking-widest capitalize">
                 {prop.team_abbr}
               </div>
             )}
@@ -427,28 +427,28 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 
         {/* Key metrics */}
         <div className="px-4 py-3 border-b border-[#2a3a4a]">
-          <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest">
+          <div className="text-[12px] font-black text-[#00D4FF] mb-2 capitalize tracking-widest">
             Key Metrics
           </div>
           <div className="grid grid-cols-3 gap-2 mb-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
+              <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                 Bet Score
               </div>
               <div
-                className="text-[24px] font-black"
+                className="text-[31px] font-black"
                 style={{ fontFamily: "'Rajdhani', sans-serif", color: ts.color }}
               >
                 {prop.bet_score ?? '—'}
               </div>
-              <div className="text-[8px] text-[#3d4f5f] uppercase tracking-widest">/100</div>
+              <div className="text-[11px] text-[#3d4f5f] capitalize tracking-widest">/100</div>
             </div>
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
+              <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                 Win%
               </div>
               <div
-                className="text-[20px] font-black text-white"
+                className="text-[26px] font-black text-white"
                 style={{ fontFamily: "'Rajdhani', sans-serif" }}
               >
                 {prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'}
@@ -456,11 +456,11 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             </div>
             {prop.ev_pct != null && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
-                  EV%
+                <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
+                  Ev%
                 </div>
                 <div
-                  className="text-[20px] font-black"
+                  className="text-[26px] font-black"
                   style={{
                     fontFamily: "'Rajdhani', sans-serif",
                     color: Number(prop.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B',
@@ -474,28 +474,28 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
           </div>
           <div className="grid grid-cols-3 gap-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-              <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
+              <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                 Best Odds
               </div>
               <div
-                className="text-[16px] font-black text-white"
+                className="text-[21px] font-black text-white"
                 style={{ fontFamily: "'Rajdhani', sans-serif" }}
               >
                 {formatOdds(prop.odds ?? prop.price)}
               </div>
               {prop.best_book && (
-                <div className="text-[8px] text-[#00D4FF] uppercase tracking-widest mt-0.5">
+                <div className="text-[11px] text-[#00D4FF] capitalize tracking-widest mt-0.5">
                   {prop.best_book}
                 </div>
               )}
             </div>
             {prop.p_market != null && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
+                <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                   Mkt No-Vig
                 </div>
                 <div
-                  className="text-[16px] font-black text-slate-300"
+                  className="text-[21px] font-black text-slate-300"
                   style={{ fontFamily: "'Rajdhani', sans-serif" }}
                 >
                   {formatPct(prop.p_market)}
@@ -504,11 +504,11 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             )}
             {prop.kelly_pct != null && prop.kelly_pct > 0 && (
               <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
-                <div className="text-[9px] font-black text-[#5a6a7a] uppercase tracking-widest mb-0.5">
+                <div className="text-[12px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                   Kelly
                 </div>
                 <div
-                  className="text-[16px] font-black text-[#FFD700]"
+                  className="text-[21px] font-black text-[#FFD700]"
                   style={{ fontFamily: "'Rajdhani', sans-serif" }}
                 >
                   {Number(prop.kelly_pct).toFixed(2)}%
@@ -521,7 +521,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
         {/* Rationale */}
         {factors.length > 0 && (
           <div className="px-4 py-3 border-b border-[#2a3a4a]">
-            <div className="text-[9px] font-black text-[#00D4FF] mb-2 uppercase tracking-widest">
+            <div className="text-[12px] font-black text-[#00D4FF] mb-2 capitalize tracking-widest">
               {prop.score_verdict || 'Analysis'}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -538,7 +538,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
                     {factor?.dir === 'info' && <Info size={10} className="text-slate-400" />}
                     {factor?.dir === 'flat' && <Minus size={10} className="text-slate-400" />}
                   </div>
-                  <div className="text-[12px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1">
+                  <div className="text-[16px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1">
                     {factor?.text}
                   </div>
                 </div>
@@ -549,7 +549,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 
         {/* Player profile */}
         <div className="px-4 py-3 border-b border-[#2a3a4a]">
-          <div className="text-[9px] font-black text-[#FFD700] mb-2 uppercase tracking-widest flex items-center gap-1.5">
+          <div className="text-[12px] font-black text-[#FFD700] mb-2 capitalize tracking-widest flex items-center gap-1.5">
             {isPitcher ? (
               <>
                 <Zap size={10} /> Pitcher Profile
@@ -564,19 +564,19 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             {isPitcher ? (
               <>
                 {stats.era != null && (
-                  <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
+                  <StatPill label="Era" value={fmtStat(stats.era, 2)} color="#00D4FF" />
                 )}
                 {stats.whip != null && (
-                  <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
+                  <StatPill label="Whip" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
                 )}
                 {stats.fip != null && (
-                  <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
+                  <StatPill label="Fip" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
                 )}
                 {stats.siera != null && (
-                  <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
+                  <StatPill label="Siera" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
                 )}
                 {stats.so != null && (
-                  <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
+                  <StatPill label="So" value={String(Math.round(stats.so))} color="#22C55E" />
                 )}
                 {stats.w != null && stats.l != null && (
                   <StatPill
@@ -589,19 +589,19 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
             ) : (
               <>
                 {stats.avg != null && (
-                  <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
+                  <StatPill label="Avg" value={fmtAvg(stats.avg)} color="#00D4FF" />
                 )}
                 {stats.hr != null && (
-                  <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
+                  <StatPill label="Hr" value={String(Math.round(stats.hr))} color="#FFD700" />
                 )}
                 {stats.rbi != null && (
-                  <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
+                  <StatPill label="Rbi" value={String(Math.round(stats.rbi))} color="#22C55E" />
                 )}
                 {stats.obp != null && (
-                  <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
+                  <StatPill label="Obp" value={fmtAvg(stats.obp)} color="#8a9ba8" />
                 )}
                 {stats.slg != null && (
-                  <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
+                  <StatPill label="Slg" value={fmtAvg(stats.slg)} color="#8a9ba8" />
                 )}
                 {stats.wrc_plus != null && (
                   <StatPill
@@ -619,7 +619,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
         </div>
 
         <div className="px-4 py-4 mt-auto">
-          <div className="text-[9px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide uppercase">
+          <div className="text-[12px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide capitalize">
             Analysis Only — Not Betting Advice.
             <br />
             <span className="text-[#8a9ba8]">
@@ -677,12 +677,12 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {prop.team_abbr && (
-                <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase bg-[#0a0a15] border border-[#2a3a4a] px-1.5 py-0 rounded-sm leading-5">
+                <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize bg-[#0a0a15] border border-[#2a3a4a] px-1.5 py-0 rounded-sm leading-5">
                   {prop.team_abbr}
                 </span>
               )}
               <span
-                className="text-[20px] font-black text-white tracking-wide uppercase leading-tight"
+                className="text-[26px] font-black text-white tracking-wide capitalize leading-tight"
                 style={{ fontFamily: "'Rajdhani', sans-serif" }}
               >
                 {prop.player_name}
@@ -690,27 +690,27 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span
-                className="text-[13px] font-black tracking-wider uppercase"
+                className="text-[17px] font-black tracking-wider capitalize"
                 style={{ color: '#00D4FF', textShadow: '0 0 6px rgba(0,212,255,0.4)' }}
               >
                 {formatProp(prop.prop_type || prop.prop)}
               </span>
               {prop.line != null && (
-                <span className="text-[13px] font-black text-[#8a9ba8]">
+                <span className="text-[17px] font-black text-[#8a9ba8]">
                   {isOver ? 'O' : 'U'} {prop.line}
                 </span>
               )}
               {prop.kelly_pct != null && prop.kelly_pct > 0 && (
-                <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[10px] font-black text-[#FFD700]">
+                <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
                   {Number(prop.kelly_pct).toFixed(2)}% K
                 </span>
               )}
-              <span className="text-[10px] font-black text-[#3d4f5f] ml-auto">#{idx + 1}</span>
+              <span className="text-[13px] font-black text-[#3d4f5f] ml-auto">#{idx + 1}</span>
             </div>
 
             {/* Pitcher record inline */}
             {isPitcher && (stats.w != null || stats.l != null || stats.era != null) && (
-              <div className="mt-1 text-[11px] font-black text-[#8a9ba8] tracking-wider">
+              <div className="mt-1 text-[14px] font-black text-[#8a9ba8] tracking-wider">
                 {stats.w != null && stats.l != null
                   ? `${Math.round(stats.w)}-${Math.round(stats.l)}`
                   : ''}
@@ -733,22 +733,22 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
         {/* ── Model Stats Row ── */}
         <div className="flex gap-1.5 flex-wrap mb-2.5">
           <StatPill
-            label={prop.price_estimated ? 'FAIR' : 'ODDS'}
+            label={prop.price_estimated ? 'EST' : 'ODDS'}
             value={formatOdds(prop.odds ?? prop.price)}
             color="#ffffff"
           />
           {prop.model_proj != null && (
-            <StatPill label="PROJ" value={fmtStat(prop.model_proj, 1)} color="#00D4FF" />
+            <StatPill label="Proj" value={fmtStat(prop.model_proj, 1)} color="#00D4FF" />
           )}
           {ev != null && (
             <StatPill
-              label="EV%"
+              label="Ev%"
               value={`${ev > 0 ? '+' : ''}${ev.toFixed(1)}`}
               color={ev > 0 ? '#22C55E' : '#8a9ba8'}
             />
           )}
           <StatPill
-            label="WIN%"
+            label="Win%"
             value={
               prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'
             }
@@ -761,26 +761,26 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           className="flex items-center gap-2 mb-3 bg-[#0a0a15] border border-[#2a3a4a] rounded px-3 py-1.5 overflow-x-auto"
           style={{ scrollbarWidth: 'none' }}
         >
-          <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase whitespace-nowrap shrink-0">
-            MKT LINE
+          <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
+            Mkt Line
           </span>
-          <span className="text-[13px] font-black text-[#FFD700] shrink-0 mr-2">
+          <span className="text-[17px] font-black text-[#FFD700] shrink-0 mr-2">
             {probToAmericanOdds(prop.p_market)}
           </span>
 
           {Array.isArray(prop.best_lines) && prop.best_lines.length > 0 && (
             <>
               <div className="w-px h-4 bg-[#2a3a4a] mx-1 shrink-0" />
-              <span className="text-[10px] font-black text-[#5a6a7a] tracking-widest uppercase whitespace-nowrap shrink-0">
+              <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
                 BEST:
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 {prop.best_lines.slice(0, 3).map((bk: any, i: number) => (
                   <div key={i} className="flex items-center gap-1">
-                    <span className="text-[11px] font-bold text-[#8a9ba8]">
+                    <span className="text-[14px] font-bold text-[#8a9ba8]">
                       {bk.sportsbook || bk.book}
                     </span>
-                    <span className="text-[11px] font-black text-white">
+                    <span className="text-[14px] font-black text-white">
                       {formatOdds(bk.price)}
                     </span>
                   </div>
@@ -799,19 +799,19 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
           {isPitcher ? (
             <div className="flex gap-1.5 flex-wrap">
               {stats.era != null && (
-                <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
+                <StatPill label="Era" value={fmtStat(stats.era, 2)} color="#00D4FF" />
               )}
               {stats.whip != null && (
-                <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
+                <StatPill label="Whip" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
               )}
               {stats.fip != null && (
-                <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
+                <StatPill label="Fip" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
               )}
               {stats.siera != null && (
-                <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
+                <StatPill label="Siera" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
               )}
               {stats.so != null && (
-                <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
+                <StatPill label="So" value={String(Math.round(stats.so))} color="#22C55E" />
               )}
               {stats.w != null && stats.l != null && (
                 <StatPill
@@ -821,27 +821,27 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
                 />
               )}
               {stats.era == null && stats.fip == null && stats.whip == null && (
-                <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase self-center">
-                  STATS PENDING
+                <span className="text-[13px] font-black text-[#3d4f5f] tracking-widest capitalize self-center">
+                  Stats Pending
                 </span>
               )}
             </div>
           ) : (
             <div className="flex gap-1.5 flex-wrap">
               {stats.avg != null && (
-                <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
+                <StatPill label="Avg" value={fmtAvg(stats.avg)} color="#00D4FF" />
               )}
               {stats.hr != null && (
-                <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
+                <StatPill label="Hr" value={String(Math.round(stats.hr))} color="#FFD700" />
               )}
               {stats.rbi != null && (
-                <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
+                <StatPill label="Rbi" value={String(Math.round(stats.rbi))} color="#22C55E" />
               )}
               {stats.obp != null && (
-                <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
+                <StatPill label="Obp" value={fmtAvg(stats.obp)} color="#8a9ba8" />
               )}
               {stats.slg != null && (
-                <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
+                <StatPill label="Slg" value={fmtAvg(stats.slg)} color="#8a9ba8" />
               )}
               {stats.wrc_plus != null && (
                 <StatPill label="wRC+" value={String(Math.round(stats.wrc_plus))} color="#e2e8f0" />
@@ -854,8 +854,8 @@ const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: a
                 stats.rbi == null &&
                 stats.wrc_plus == null &&
                 stats.woba == null && (
-                  <span className="text-[10px] font-black text-[#3d4f5f] tracking-widest uppercase self-center">
-                    STATS PENDING
+                  <span className="text-[13px] font-black text-[#3d4f5f] tracking-widest capitalize self-center">
+                    Stats Pending
                   </span>
                 )}
             </div>
@@ -871,7 +871,7 @@ const PAGE_SIZE = 60;
 
 export default function PropsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState('ALL');
+  const [filter, setFilter] = useState('All');
   const [minScore, setMinScore] = useState(0);
   const [sort, setSort] = useState('SCORE');
   const [todayStr, setTodayStr] = useState<string>('');
@@ -983,12 +983,12 @@ export default function PropsPage() {
           <div className="min-w-0">
             <Link
               href="/hub/MLB-ANALYTICS"
-              className="inline-flex items-center gap-1 text-[#5a6a7a] text-[11px] font-black no-underline tracking-widest uppercase hover:text-[#00D4FF] transition-colors mb-1.5"
+              className="inline-flex items-center gap-1 text-[#5a6a7a] text-[14px] font-black no-underline tracking-widest capitalize hover:text-[#00D4FF] transition-colors mb-1.5"
             >
               ← DASHBOARD
             </Link>
             <h1
-              className="text-[30px] font-black tracking-[0.15em] uppercase text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] m-0 leading-none"
+              className="text-[39px] font-black tracking-[0.15em] capitalize text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] m-0 leading-none"
               style={{ fontFamily: "'Rajdhani', sans-serif" }}
             >
               PLAYER{' '}
@@ -996,10 +996,10 @@ export default function PropsPage() {
                 className="text-[#00D4FF]"
                 style={{ textShadow: '0 0 12px rgba(0,212,255,0.7)' }}
               >
-                PROPS
+                Props
               </span>
             </h1>
-            <p className="m-0 text-[12px] font-black text-[#5a6a7a] tracking-widest uppercase mt-1 flex items-center gap-2 flex-wrap">
+            <p className="m-0 text-[16px] font-black text-[#5a6a7a] tracking-widest capitalize mt-1 flex items-center gap-2 flex-wrap">
               <span>
                 Ranked By {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'} •{' '}
                 {data?.official_date || todayStr || '...'}
@@ -1007,7 +1007,7 @@ export default function PropsPage() {
               {isValidating && data && (
                 <span className="inline-flex items-center gap-1 text-[#00D4FF]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
-                  SYNCING
+                  Syncing
                 </span>
               )}
             </p>
@@ -1022,14 +1022,14 @@ export default function PropsPage() {
           {isStale && data?.results ? (
             <>
               <HeaderStat
-                label="GRADED"
+                label="Graded"
                 value={isLoading && !data ? '—' : data.results.graded}
                 color="#ffffff"
                 border="#3d4f5f"
                 bg="#0a0a15"
               />
               <HeaderStat
-                label="RECORD"
+                label="Record"
                 value={`${data.results.wins}-${data.results.losses}`}
                 color="#00D4FF"
                 border="rgba(0,212,255,0.5)"
@@ -1037,7 +1037,7 @@ export default function PropsPage() {
                 glow
               />
               <HeaderStat
-                label="UNITS"
+                label="Units"
                 value={`${data.results.units > 0 ? '+' : ''}${Number(data.results.units).toFixed(1)}`}
                 color={data.results.units >= 0 ? '#34D399' : '#FF6B6B'}
                 border={data.results.units >= 0 ? 'rgba(52,211,153,0.5)' : 'rgba(255,107,107,0.5)'}
@@ -1047,14 +1047,14 @@ export default function PropsPage() {
           ) : (
             <>
               <HeaderStat
-                label="TOTAL"
+                label="Total"
                 value={isLoading && !data ? '—' : slateStats.total}
                 color="#ffffff"
                 border="#3d4f5f"
                 bg="#0a0a15"
               />
               <HeaderStat
-                label="ELITE"
+                label="Elite"
                 value={isLoading && !data ? '—' : slateStats.elite}
                 color="#00D4FF"
                 border="rgba(0,212,255,0.5)"
@@ -1062,7 +1062,7 @@ export default function PropsPage() {
                 glow
               />
               <HeaderStat
-                label="STRONG"
+                label="Strong"
                 value={isLoading && !data ? '—' : slateStats.strong}
                 color="#34D399"
                 border="rgba(52,211,153,0.5)"
@@ -1070,7 +1070,7 @@ export default function PropsPage() {
               />
               {slateStats.topScore > 0 && (
                 <HeaderStat
-                  label="TOP"
+                  label="Top"
                   value={slateStats.topScore}
                   color="#FFD700"
                   border="rgba(255,215,0,0.5)"
@@ -1079,7 +1079,7 @@ export default function PropsPage() {
               )}
               {slateStats.topLock > 0 && (
                 <HeaderStat
-                  label="LOCK"
+                  label="Lock"
                   value={`${Math.round(slateStats.topLock)}%`}
                   color="#A78BFA"
                   border="rgba(167,139,250,0.5)"
@@ -1103,7 +1103,7 @@ export default function PropsPage() {
             <button
               key={f.label}
               onClick={() => setFilter(f.label)}
-              className={`px-3 py-1.5 border-2 text-[11px] font-black tracking-widest whitespace-nowrap cursor-pointer transition-all uppercase rounded-sm ${
+              className={`px-3 py-1.5 border-2 text-[14px] font-black tracking-widest whitespace-nowrap cursor-pointer transition-all capitalize rounded-sm ${
                 filter === f.label
                   ? 'bg-[#001a2a] text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.25)]'
                   : 'bg-[#0d1117] text-[#5a6a7a] border-[#2a3a4a] hover:border-[#3d4f5f] hover:text-slate-300'
@@ -1115,13 +1115,13 @@ export default function PropsPage() {
         </div>
         <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
           <div className="flex items-center gap-1.5 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2.5 py-1.5 hover:border-[#3d4f5f] transition-colors">
-            <span className="text-[11px] font-black uppercase tracking-widest text-[#5a6a7a]">
+            <span className="text-[14px] font-black capitalize tracking-widest text-[#5a6a7a]">
               SORT:
             </span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="bg-transparent border-none text-[13px] font-black text-[#00D4FF] outline-none cursor-pointer uppercase tracking-wider"
+              className="bg-transparent border-none text-[17px] font-black text-[#00D4FF] outline-none cursor-pointer capitalize tracking-wider"
             >
               {SORTS.map((s) => (
                 <option key={s.key} value={s.key} className="bg-[#0d1117]">
@@ -1131,25 +1131,25 @@ export default function PropsPage() {
             </select>
           </div>
           <div className="flex items-center gap-1.5 bg-[#0d1117] border-2 border-[#2a3a4a] rounded-sm px-2.5 py-1.5 hover:border-[#3d4f5f] transition-colors">
-            <span className="text-[11px] font-black uppercase tracking-widest text-[#5a6a7a]">
+            <span className="text-[14px] font-black capitalize tracking-widest text-[#5a6a7a]">
               MIN GRADE:
             </span>
             <select
               value={minScore}
               onChange={(e) => setMinScore(parseInt(e.target.value, 10))}
-              className="bg-transparent border-none text-[13px] font-black text-[#00D4FF] outline-none cursor-pointer uppercase tracking-wider"
+              className="bg-transparent border-none text-[17px] font-black text-[#00D4FF] outline-none cursor-pointer capitalize tracking-wider"
             >
               <option value="0" className="bg-[#0d1117]">
-                ANY
+                Any
               </option>
               <option value="52" className="bg-[#0d1117]">
-                LEAN+
+                Lean+
               </option>
               <option value="68" className="bg-[#0d1117]">
-                STRONG+
+                Strong+
               </option>
               <option value="82" className="bg-[#0d1117]">
-                ELITE
+                Elite
               </option>
             </select>
           </div>
@@ -1163,10 +1163,10 @@ export default function PropsPage() {
           <div className="flex items-center gap-2">
             <CalendarX size={15} className="text-amber-500 flex-shrink-0" />
             <div>
-              <p className="text-[12px] font-black tracking-widest uppercase text-amber-500 m-0">
-                LAST GRADED SLATE · RESULTS
+              <p className="text-[16px] font-black tracking-widest capitalize text-amber-500 m-0">
+                Last Graded Slate · Results
               </p>
-              <p className="text-[10px] text-amber-600/70 font-bold uppercase tracking-wider m-0 mt-0.5">
+              <p className="text-[13px] text-amber-600/70 font-bold capitalize tracking-wider m-0 mt-0.5">
                 Showing {data?.official_date || 'a previous date'} — games already played. Today's lines aren't posted yet, so these are graded outcomes, not live bets.
               </p>
             </div>
@@ -1181,7 +1181,7 @@ export default function PropsPage() {
         {isLoading && !data && (
           <div className="flex flex-col items-center justify-center mt-20 gap-4">
             <div className="w-10 h-10 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin" />
-            <span className="text-[#5a6a7a] font-black tracking-widest text-[12px] uppercase">
+            <span className="text-[#5a6a7a] font-black tracking-widest text-[16px] capitalize">
               Scanning Props Vault...
             </span>
           </div>
@@ -1191,11 +1191,11 @@ export default function PropsPage() {
         {error && !isLoading && (
           <div className="mt-4 rounded-sm border-2 border-red-500/50 bg-[#1a0a0a] px-4 py-3 relative">
             <div className="absolute left-0 top-0 w-1 h-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
-            <p className="text-[13px] font-black tracking-widest uppercase text-red-500">
+            <p className="text-[17px] font-black tracking-widest capitalize text-red-500">
               System Error
             </p>
-            <p className="text-[11px] text-red-400 mt-1 font-bold tracking-wider">
-              Failed to load props data. Retrying...
+            <p className="text-[14px] text-red-400 mt-1 font-bold tracking-wider">
+              Failed To Load Props Data. Retrying...
             </p>
           </div>
         )}
@@ -1208,12 +1208,12 @@ export default function PropsPage() {
             ) : (
               <SearchX size={40} className="text-[#3d4f5f] mb-4" />
             )}
-            <p className="text-[15px] font-black tracking-widest uppercase text-[#5a6a7a] text-center">
+            <p className="text-[20px] font-black tracking-widest capitalize text-[#5a6a7a] text-center">
               {filter === 'ALL' && minScore === 0
                 ? 'No Props Available — Awaiting Model Output'
                 : 'No Props Match This Filter'}
             </p>
-            <p className="text-[11px] text-[#3d4f5f] font-bold tracking-widest uppercase text-center mt-1.5">
+            <p className="text-[14px] text-[#3d4f5f] font-bold tracking-widest capitalize text-center mt-1.5">
               {filter === 'ALL' && minScore === 0
                 ? 'Props release 3–4 hours before first pitch'
                 : 'Try a broader grade or market'}
@@ -1240,7 +1240,7 @@ export default function PropsPage() {
           <div className="mt-4 flex justify-center">
             <button
               onClick={() => setVisible((v) => v + PAGE_SIZE)}
-              className="px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[11px] font-black text-[#5a6a7a] tracking-widest uppercase hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
+              className="px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[14px] font-black text-[#5a6a7a] tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
             >
               Load More ({filtered.length - visible} remaining)
             </button>
@@ -1250,7 +1250,7 @@ export default function PropsPage() {
         {/* Result count */}
         {!isLoading && filtered.length > 0 && (
           <div className="mt-5 text-center">
-            <span className="text-[11px] font-black text-[#3d4f5f] tracking-widest uppercase">
+            <span className="text-[14px] font-black text-[#3d4f5f] tracking-widest capitalize">
               SHOWING {shown.length} OF {filtered.length} PROPS · RANKED BY{' '}
               {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'}
             </span>
@@ -1258,8 +1258,8 @@ export default function PropsPage() {
         )}
 
         {/* Footer */}
-        <div className="mt-6 px-4 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-[11px] font-black tracking-wide text-[#4a5a6a] text-center leading-relaxed">
-          <span className="text-[#00D4FF]">ANALYSIS ONLY</span> — NOT BETTING ADVICE. BET SCORE
+        <div className="mt-6 px-4 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-[14px] font-black tracking-wide text-[#4a5a6a] text-center leading-relaxed">
+          <span className="text-[#00D4FF]">Analysis Only</span> — NOT BETTING ADVICE. BET SCORE
           (0–100) RANKS VALUE = EV + CONFIDENCE.
         </div>
       </main>

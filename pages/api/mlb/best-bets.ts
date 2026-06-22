@@ -232,18 +232,14 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
       ),
-      fetchAllRows(() =>
-        mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')
-      ),
+      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')),
       fetchAllRows(() =>
         mlbDb
           .from('fact_games')
           .select('game_pk, first_pitch_utc, home_team_id, away_team_id')
           .in('game_pk', gamePks.length ? gamePks : [-1])
       ),
-      fetchAllRows(() =>
-        mlbDb.from('v_mlb_standings').select('*')
-      ),
+      fetchAllRows(() => mlbDb.from('v_mlb_standings').select('*')),
     ]);
   } catch (e: any) {
     console.warn('[MLB Best Bets] enrichment fetch error:', e?.message || e);
@@ -275,7 +271,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   slates?.forEach((s: any) => {
     if (s.game_pk) slateMap.set(s.game_pk, s);
   });
-  
+
   games?.forEach((g: any) => {
     if (g.game_pk) {
       const slate = slateMap.get(g.game_pk) || {};
@@ -458,7 +454,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         let betOnHome = false;
         let betOnAway = false;
         const selLow = enriched.selection?.toLowerCase() || '';
-        
+
         if (selLow === 'home' || selLow.startsWith('home_')) {
           betOnHome = true;
         } else if (selLow === 'away' || selLow.startsWith('away_')) {
@@ -470,7 +466,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             if (enriched.team_name.toLowerCase() === parts[0].toLowerCase()) betOnAway = true;
           }
         }
-        
+
         // Find the team's pitcher and opposing pitcher
         if (betOnHome) {
           const homeP = pitcherMap.get(normName(slate.home_pitcher || ''));
@@ -489,7 +485,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     if (pitcherToEvaluateId) {
       const aggP = aggPitcherMap.get(pitcherToEvaluateId);
       const vP = pitcherMapById.get(pitcherToEvaluateId);
-      
+
       // Inject pitcher stats for Team Bets so UI isn't blank
       if (isTeamBet) {
         if (aggP) {
@@ -512,10 +508,12 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
         penaltyApplied = true;
         enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
-        
+
         let factors: any[] = [];
         if (typeof enriched.score_factors === 'string') {
-          try { factors = JSON.parse(enriched.score_factors); } catch {}
+          try {
+            factors = JSON.parse(enriched.score_factors);
+          } catch {}
         } else if (Array.isArray(enriched.score_factors)) {
           factors = [...enriched.score_factors];
         }
@@ -523,28 +521,30 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         enriched.score_factors = factors;
       }
     }
-    
+
     // Penalize if opposing pitcher is a proven superstar with elite ERA and our pitcher is not
     if (opposingPitcherToEvaluateId && !penaltyApplied) {
       const oppP = aggPitcherMap.get(opposingPitcherToEvaluateId);
       const ourP = pitcherToEvaluateId ? aggPitcherMap.get(pitcherToEvaluateId) : null;
-      if (oppP && oppP.era < 3.00 && Number(oppP.ip) > 50) {
-        if (!ourP || ourP.era > 4.50 || Number(ourP.ip) < 25) {
-           enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
-           enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
-           
-           let factors: any[] = [];
-           if (typeof enriched.score_factors === 'string') {
-             try { factors = JSON.parse(enriched.score_factors); } catch {}
-           } else if (Array.isArray(enriched.score_factors)) {
-             factors = [...enriched.score_factors];
-           }
-           factors.push({ dir: 'down', text: enriched.penalty_reason });
-           enriched.score_factors = factors;
+      if (oppP && oppP.era < 3.0 && Number(oppP.ip) > 50) {
+        if (!ourP || ourP.era > 4.5 || Number(ourP.ip) < 25) {
+          enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
+          enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
+
+          let factors: any[] = [];
+          if (typeof enriched.score_factors === 'string') {
+            try {
+              factors = JSON.parse(enriched.score_factors);
+            } catch {}
+          } else if (Array.isArray(enriched.score_factors)) {
+            factors = [...enriched.score_factors];
+          }
+          factors.push({ dir: 'down', text: enriched.penalty_reason });
+          enriched.score_factors = factors;
         }
       }
     }
-    
+
     if (enriched.team_id) {
       const ts = teamStatMap.get(enriched.team_id);
       if (ts) {
@@ -558,7 +558,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         if (isTeamBet) {
           let factors: any[] = [];
           if (typeof enriched.score_factors === 'string') {
-            try { factors = JSON.parse(enriched.score_factors); } catch {}
+            try {
+              factors = JSON.parse(enriched.score_factors);
+            } catch {}
           } else if (Array.isArray(enriched.score_factors)) {
             factors = [...enriched.score_factors];
           }
@@ -569,28 +571,40 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           const teamName = ts.name || enriched.team_name || 'Team';
 
           if (winStreak >= 3) {
-             factors.push({ dir: 'up', text: `${teamName} are on a hot ${winStreak}-game win streak.` });
+            factors.push({
+              dir: 'up',
+              text: `${teamName} are on a hot ${winStreak}-game win streak.`,
+            });
           } else if (winStreak <= -3) {
-             factors.push({ dir: 'down', text: `${teamName} are struggling on a ${Math.abs(winStreak)}-game losing streak.` });
+            factors.push({
+              dir: 'down',
+              text: `${teamName} are struggling on a ${Math.abs(winStreak)}-game losing streak.`,
+            });
           }
           const runDiff = runsScored - runsAllowed;
           if (runDiff > 40) {
-             factors.push({ dir: 'up', text: `Strong run differential (+${runDiff}).` });
+            factors.push({ dir: 'up', text: `Strong run differential (+${runDiff}).` });
           } else if (runDiff < -40) {
-             factors.push({ dir: 'down', text: `Poor run differential (${runDiff}).` });
+            factors.push({ dir: 'down', text: `Poor run differential (${runDiff}).` });
           }
-          if (ts.era && ts.era < 3.80) {
-             factors.push({ dir: 'up', text: `Strong team pitching (ERA: ${ts.era.toFixed(2)}).` });
-          } else if (ts.era && ts.era > 4.50) {
-             factors.push({ dir: 'down', text: `Vulnerable team pitching (ERA: ${ts.era.toFixed(2)}).` });
+          if (ts.era && ts.era < 3.8) {
+            factors.push({ dir: 'up', text: `Strong team pitching (ERA: ${ts.era.toFixed(2)}).` });
+          } else if (ts.era && ts.era > 4.5) {
+            factors.push({
+              dir: 'down',
+              text: `Vulnerable team pitching (ERA: ${ts.era.toFixed(2)}).`,
+            });
           }
-          
+
           enriched.score_factors = factors;
         }
       }
     }
-    
-    if (typeof enriched.best_book === 'string' && enriched.best_book.toUpperCase() === 'MODEL ONLY') {
+
+    if (
+      typeof enriched.best_book === 'string' &&
+      enriched.best_book.toUpperCase() === 'MODEL ONLY'
+    ) {
       enriched.best_book = 'CONSENSUS';
     }
 

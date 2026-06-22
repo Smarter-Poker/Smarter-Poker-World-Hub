@@ -76,7 +76,7 @@ function fmtThrough(d?: string | null): string {
 }
 
 function teamHref(teamId: number): string {
-  return `/hub/MLB-ANALYTICS/team/${teamId}`;
+  return `/hub/MLB-ANALYTICS/teams/${teamId}`;
 }
 
 // Keyboard activation for clickable table rows (accessibility): Enter / Space.
@@ -94,14 +94,14 @@ function accentClass(playoff: PlayoffStatus): string {
 }
 
 function gamesBetween(a: TeamStanding, b: TeamStanding): number {
-  return ((a.w - b.w) + (b.l - a.l)) / 2;
+  return (a.w - b.w + (b.l - a.l)) / 2;
 }
 
 function TeamLogo({ teamId, abbr }: { teamId: number; abbr: string }) {
   const [imgError, setImgError] = useState(false);
   if (imgError || !teamId) {
     return (
-      <div className="w-7 h-7 rounded-full bg-[#1a2332] border border-[#3d4f5f] flex items-center justify-center text-[10px] font-black text-[#00D4FF] shrink-0">
+      <div className="w-7 h-7 rounded-full bg-[#1a2332] border border-[#3d4f5f] flex items-center justify-center text-[13px] font-black text-[#00D4FF] shrink-0">
         {(abbr || '?').slice(0, 3)}
       </div>
     );
@@ -135,22 +135,25 @@ function DiffCell({ diff }: { diff: number }) {
 function HeaderRow({ showDivision }: { showDivision?: boolean }) {
   return (
     <thead>
-      <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/60">
+      <tr className="text-[13px] font-bold text-slate-500 capitalize tracking-widest border-b border-slate-800/60">
         <th className="py-2 pl-3 pr-1 text-left w-8">#</th>
         <th className="py-2 px-2 text-left">Team</th>
         {showDivision && <th className="py-2 px-2 text-left hidden sm:table-cell">Div</th>}
         <th className="py-2 px-2 text-center w-9">W</th>
         <th className="py-2 px-2 text-center w-9">L</th>
-        <th className="py-2 px-2 text-center w-12">PCT</th>
-        <th className="py-2 px-2 text-center w-12">GB</th>
+        <th className="py-2 px-2 text-center w-12">Pct</th>
+        <th className="py-2 px-2 text-center w-12">Gb</th>
         <th className="py-2 px-2 text-center w-14 hidden sm:table-cell">L10</th>
-        <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
-        <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
-        <th className="py-2 px-2 text-center w-16 hidden xl:table-cell" title="Pythagorean expected record">
-          EXP
+        <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">Strk</th>
+        <th className="py-2 px-2 text-center w-14 hidden md:table-cell">Diff</th>
+        <th
+          className="py-2 px-2 text-center w-16 hidden xl:table-cell"
+          title="Pythagorean expected record"
+        >
+          Exp
         </th>
-        <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">HOME</th>
-        <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">AWAY</th>
+        <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">Home</th>
+        <th className="py-2 px-2 text-center w-16 hidden lg:table-cell">Away</th>
         <th className="py-2 px-2 pr-3 text-right">Grade</th>
       </tr>
     </thead>
@@ -181,7 +184,7 @@ function TeamRow({
       aria-label={`${team.name}, ${team.w} and ${team.l}. View team profile.`}
       onClick={go}
       onKeyDown={(e) => handleRowKey(e, go)}
-      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
+      className={`text-[18px] cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${leader ? 'bg-[#00D4FF]/[0.04]' : ''}`}
     >
       <td
         className={`py-2.5 pl-3 pr-1 text-left w-8 font-bold border-l-[3px] ${accentClass(playoff)} ${leader ? 'text-[#00D4FF]' : 'text-slate-500'}`}
@@ -196,7 +199,7 @@ function TeamRow({
         </div>
       </td>
       {showDivision && (
-        <td className="py-2.5 px-2 text-left text-[11px] text-slate-500 hidden sm:table-cell">
+        <td className="py-2.5 px-2 text-left text-[14px] text-slate-500 hidden sm:table-cell">
           {team.division}
         </td>
       )}
@@ -234,7 +237,15 @@ function TeamRow({
   );
 }
 
-function DivisionCard({ division, teams, playoffOf }: { division: string; teams: TeamStanding[]; playoffOf: (id: number) => PlayoffStatus }) {
+function DivisionCard({
+  division,
+  teams,
+  playoffOf,
+}: {
+  division: string;
+  teams: TeamStanding[];
+  playoffOf: (id: number) => PlayoffStatus;
+}) {
   return (
     <div className="mb-4">
       <SectionHeader icon={Trophy} label={division} />
@@ -244,7 +255,13 @@ function DivisionCard({ division, teams, playoffOf }: { division: string; teams:
             <HeaderRow />
             <tbody className="divide-y divide-slate-800/40">
               {teams.map((team, i) => (
-                <TeamRow key={team.team_id} team={team} rank={i + 1} leader={i === 0} playoff={playoffOf(team.team_id)} />
+                <TeamRow
+                  key={team.team_id}
+                  team={team}
+                  rank={i + 1}
+                  leader={i === 0}
+                  playoff={playoffOf(team.team_id)}
+                />
               ))}
             </tbody>
           </table>
@@ -276,10 +293,12 @@ function WildCardRow({
       aria-label={`${team.name}, ${team.w} and ${team.l}, ${label}. View team profile.`}
       onClick={go}
       onKeyDown={(e) => handleRowKey(e, go)}
-      className={`text-sm cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${inLine ? 'bg-emerald-500/[0.05]' : ''}`}
+      className={`text-[18px] cursor-pointer hover:bg-slate-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-inset ${inLine ? 'bg-emerald-500/[0.05]' : ''}`}
     >
       <td className="py-2.5 pl-3 pr-1 w-12">
-        <span className={`text-[9px] font-black uppercase tracking-wider ${labelClass}`}>{label}</span>
+        <span className={`text-[12px] font-black capitalize tracking-wider ${labelClass}`}>
+          {label}
+        </span>
       </td>
       <td className="py-2.5 px-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -316,20 +335,23 @@ function WildCardLeagueCard({
 }) {
   return (
     <div className="mb-4">
-      <SectionHeader icon={Trophy} label={`${league === 'AL' ? 'American League' : 'National League'} — Playoff Picture`} />
+      <SectionHeader
+        icon={Trophy}
+        label={`${league === 'AL' ? 'American League' : 'National League'} — Playoff Picture`}
+      />
       <MetalFrame className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/60">
+              <tr className="text-[13px] font-bold text-slate-500 capitalize tracking-widest border-b border-slate-800/60">
                 <th className="py-2 pl-3 pr-1 text-left w-12">Seed</th>
                 <th className="py-2 px-2 text-left">Team</th>
                 <th className="py-2 px-2 text-center w-9">W</th>
                 <th className="py-2 px-2 text-center w-9">L</th>
-                <th className="py-2 px-2 text-center w-12">PCT</th>
-                <th className="py-2 px-2 text-center w-14">GB/+</th>
-                <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">STRK</th>
-                <th className="py-2 px-2 text-center w-14 hidden md:table-cell">DIFF</th>
+                <th className="py-2 px-2 text-center w-12">Pct</th>
+                <th className="py-2 px-2 text-center w-14">Gb/+</th>
+                <th className="py-2 px-2 text-center w-12 hidden sm:table-cell">Strk</th>
+                <th className="py-2 px-2 text-center w-14 hidden md:table-cell">Diff</th>
                 <th className="py-2 px-2 pr-3 text-right">Grade</th>
               </tr>
             </thead>
@@ -357,7 +379,7 @@ function WildCardLeagueCard({
                     <tr aria-hidden="true">
                       <td colSpan={9} className="p-0">
                         <div className="h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent" />
-                        <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
+                        <div className="px-3 py-1 text-[12px] font-bold capitalize tracking-[0.2em] text-emerald-500/80 bg-emerald-500/[0.03]">
                           Wild Card cut line
                         </div>
                       </td>
@@ -375,7 +397,7 @@ function WildCardLeagueCard({
 
 function GradeLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-bold uppercase tracking-wider">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] font-bold capitalize tracking-wider">
       <span className="text-slate-500">Grade = league-relative power rating:</span>
       {TIER_FLOORS.map((t) => (
         <span key={t} className={`inline-flex items-center gap-1 ${TIER_STYLE[t].text}`}>
@@ -385,10 +407,12 @@ function GradeLegend() {
       ))}
       <span className="text-slate-700">|</span>
       <span className="inline-flex items-center gap-1 text-[#00D4FF]">
-        <span className="w-2 h-2 rounded-[1px] bg-current" />Division leader
+        <span className="w-2 h-2 rounded-[1px] bg-current" />
+        Division leader
       </span>
       <span className="inline-flex items-center gap-1 text-emerald-400">
-        <span className="w-2 h-2 rounded-[1px] bg-current" />Wild card
+        <span className="w-2 h-2 rounded-[1px] bg-current" />
+        Wild card
       </span>
     </div>
   );
@@ -396,7 +420,11 @@ function GradeLegend() {
 
 function StandingsSkeleton() {
   return (
-    <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 overflow-hidden" aria-busy="true" aria-label="Loading standings">
+    <div
+      className="bg-[#0d1117] rounded-xl border border-slate-800/60 overflow-hidden"
+      aria-busy="true"
+      aria-label="Loading standings"
+    >
       <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/40">
         <div className="h-4 w-32 rounded bg-slate-800 animate-pulse" />
       </div>
@@ -517,7 +545,11 @@ export default function StandingsPage() {
           description:
             'MLB standings augmented with AI power ratings, advanced metrics (wRC+, FIP, WAR), team momentum scores, and betting edge indicators.',
           url: 'https://smarter.poker/hub/MLB-ANALYTICS/standings',
-          provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+          provider: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker',
+          },
         }}
       />
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
@@ -527,14 +559,15 @@ export default function StandingsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h1
-              className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider flex items-center gap-3"
+              className="text-[39px] md:text-[47px] font-black text-white capitalize tracking-wider flex items-center gap-3"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              <span className="text-[#00D4FF] font-bold">|</span> LEAGUE STANDINGS
+              <span className="text-[#00D4FF] font-bold">|</span> League Standings
             </h1>
-            <p className="text-slate-400 mt-2 tracking-wide text-xs uppercase">
+            <p className="text-slate-400 mt-2 tracking-wide text-[16px] capitalize">
               {season ? `${season} SEASON · ` : ''}
-              {through ? `THROUGH ${through.toUpperCase()} · ` : ''}LIVE W/L, RUN DIFFERENTIAL, POWER RANKINGS
+              {through ? `THROUGH ${through.toUpperCase()} · ` : ''}LIVE W/L, RUN DIFFERENTIAL,
+              POWER RANKINGS
             </p>
           </div>
 
@@ -549,7 +582,7 @@ export default function StandingsPage() {
                 role="tab"
                 aria-selected={view === key}
                 onClick={() => setView(key)}
-                className={`px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${
+                className={`px-3 py-1.5 text-[14px] font-extrabold capitalize tracking-wider rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] ${
                   view === key
                     ? 'bg-[#00D4FF] text-black shadow-[0_0_12px_rgba(0,212,255,0.4)]'
                     : 'text-slate-400 hover:text-slate-200'
@@ -568,11 +601,11 @@ export default function StandingsPage() {
         {loading ? (
           <StandingsSkeleton />
         ) : error ? (
-          <div className="bg-[#0d1117] rounded-xl border border-red-900/40 p-12 text-center text-red-400 text-xs uppercase tracking-widest">
+          <div className="bg-[#0d1117] rounded-xl border border-red-900/40 p-12 text-center text-red-400 text-[16px] capitalize tracking-widest">
             Standings temporarily unavailable. Retrying automatically...
           </div>
         ) : teams.length === 0 ? (
-          <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 p-12 text-center text-slate-500 text-xs uppercase tracking-widest">
+          <div className="bg-[#0d1117] rounded-xl border border-slate-800/60 p-12 text-center text-slate-500 text-[16px] capitalize tracking-widest">
             Standings unavailable
           </div>
         ) : view === 'division' ? (
@@ -580,7 +613,7 @@ export default function StandingsPage() {
             {(['AL', 'NL'] as const).map((lg) => (
               <div key={lg}>
                 <h2
-                  className="text-lg font-black text-slate-300 uppercase tracking-[0.2em] mb-3 pl-1"
+                  className="text-[23px] font-black text-slate-300 capitalize tracking-[0.2em] mb-3 pl-1"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   {lg === 'AL' ? 'American League' : 'National League'}
@@ -589,7 +622,12 @@ export default function StandingsPage() {
                   {LEAGUE_DIVISIONS[lg]
                     .filter((d) => byDivision.has(d))
                     .map((d) => (
-                      <DivisionCard key={d} division={d} teams={byDivision.get(d) || []} playoffOf={playoffOf} />
+                      <DivisionCard
+                        key={d}
+                        division={d}
+                        teams={byDivision.get(d) || []}
+                        playoffOf={playoffOf}
+                      />
                     ))}
                 </div>
               </div>
@@ -599,8 +637,9 @@ export default function StandingsPage() {
           <div className="space-y-6">
             <WildCardLeagueCard league="AL" leaders={wildcard.AL.leaders} race={wildcard.AL.race} />
             <WildCardLeagueCard league="NL" leaders={wildcard.NL.leaders} race={wildcard.NL.race} />
-            <p className="text-slate-600 text-[10px] uppercase tracking-wider">
-              DIV = division leader (auto-berth). WC1-3 = wild-card spots. GB/+ shows games ahead of the cut (+) for in-teams, games behind for the rest.
+            <p className="text-slate-600 text-[13px] capitalize tracking-wider">
+              DIV = division leader (auto-berth). WC1-3 = wild-card spots. GB/+ shows games ahead of
+              the cut (+) for in-teams, games behind for the rest.
             </p>
           </div>
         ) : (
@@ -628,8 +667,11 @@ export default function StandingsPage() {
           </div>
         )}
 
-        <p className="text-slate-600 text-[10px] mt-6 uppercase tracking-wider">
-          Computed from final game results. GB = games behind division leader. EXP = Pythagorean expected record from run differential. Cyan bar = division leader, green bar = wild-card position. Grade is a league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS scale used across Smarter Poker MLB. Tap any team for its full profile.
+        <p className="text-slate-600 text-[13px] mt-6 capitalize tracking-wider">
+          Computed from final game results. GB = games behind division leader. EXP = Pythagorean
+          expected record from run differential. Cyan bar = division leader, green bar = wild-card
+          position. Grade is a league-relative power rating on the same ELITE/STRONG/LEAN/THIN/PASS
+          scale used across Smarter Poker MLB. Tap any team for its full profile.
         </p>
       </main>
       <BottomNavBar />

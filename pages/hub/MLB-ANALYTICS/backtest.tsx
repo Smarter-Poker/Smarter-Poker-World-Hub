@@ -41,8 +41,8 @@ export default function BacktestPage() {
                     <div className="text-center bg-[#0d1117] p-8 rounded-xl border-[2px] border-[#00D4FF]/50 shadow-[0_0_20px_rgba(0,212,255,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[50px] opacity-20"></div>
                         <Target className="w-12 h-12 text-[#00D4FF] mx-auto mb-4 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
-                        <h2 className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
-                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed to load data. Please try again later.</p>
+                        <h2 className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>System Error</h2>
+                        <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">Failed To Load Data. Please Try Again Later.</p>
                     </div>
                 </main>
                 <BottomNavBar />
@@ -72,8 +72,8 @@ export default function BacktestPage() {
     const GateCard = ({ label, target, value, passed, isPct = false, isBrier = false }: any) => (
         <div className={`relative bg-[#0d1117] border-[2px] ${passed ? 'border-[#00D4FF]' : 'border-[#00D4FF]/50'} rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] transition-all`}>
             {passed && <div className="absolute top-0 right-0 w-8 h-8 bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[15px] opacity-20"></div>}
-            <div className="text-[9px] font-bold text-slate-400 tracking-widest uppercase mb-1">{label} ({target})</div>
-            <div className={`text-xl font-extrabold ${passed ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={passed ? { textShadow: '0 0 5px rgba(0,212,255,0.4)', fontFamily: '"Rajdhani", sans-serif' } : { fontFamily: '"Rajdhani", sans-serif' }}>
+            <div className="text-[12px] font-bold text-slate-400 tracking-widest capitalize mb-1">{label} ({target})</div>
+            <div className={`text-[26px] font-extrabold ${passed ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={passed ? { textShadow: '0 0 5px rgba(0,212,255,0.4)', fontFamily: '"Rajdhani", sans-serif' } : { fontFamily: '"Rajdhani", sans-serif' }}>
                 {isPct ? formatPct(value) : (isBrier ? (value != null ? Number(value).toFixed(4) : '0.0000') : formatNum(value))}
             </div>
         </div>
@@ -109,15 +109,15 @@ export default function BacktestPage() {
 
                {/* Header Section */}
                <div className="mb-6">
-                   <Link href="/hub/MLB-ANALYTICS/accuracy" className="inline-flex items-center gap-1 text-[#00D4FF] text-[10px] font-extrabold tracking-widest uppercase hover:text-white transition-colors mb-2">
+                   <Link href="/hub/MLB-ANALYTICS/accuracy" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-extrabold tracking-widest capitalize hover:text-white transition-colors mb-2">
                        <ArrowLeft size={14} /> Accuracy
                    </Link>
                    <div className="flex justify-between items-center bg-[#0d1117] border border-[#3d4f5f] p-5 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                        <div>
-                           <h1 className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Backtest Results</h1>
-                           <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Live Market Evaluation</div>
+                           <h1 className="m-0 text-[31px] md:text-[39px] font-extrabold text-white tracking-widest capitalize" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>Backtest Results</h1>
+                           <div className="text-[14px] font-bold text-slate-400 mt-1 capitalize tracking-widest">Live Market Evaluation</div>
                        </div>
-                       <Link href="/hub/MLB-ANALYTICS/accuracy" className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/30 hover:border-[#00D4FF] px-4 py-2 rounded-sm text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(0,212,255,0.3)]">
+                       <Link href="/hub/MLB-ANALYTICS/accuracy" className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/30 hover:border-[#00D4FF] px-4 py-2 rounded-sm text-[14px] font-extrabold capitalize tracking-widest flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(0,212,255,0.3)]">
                            Live Accuracy <ArrowRight size={14} />
                        </Link>
                    </div>
@@ -126,13 +126,13 @@ export default function BacktestPage() {
                 {isLoading && !data ? (
                     <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
                         <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF] mx-auto mb-4" />
-                        <div className="text-[14px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">CALCULATING MATRICES...</div>
+                        <div className="text-[18px] font-extrabold text-[#00D4FF] tracking-widest capitalize animate-pulse">Calculating Matrices...</div>
                     </div>
                 ) : (error || data?.error) ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-[#131420] border-[3px] border-[#ef4444]/50 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)] mb-8">
-                        <div className="text-[13px] font-extrabold text-[#ef4444] tracking-[1px] mb-2 uppercase">System Error Detected</div>
-                        <div className="text-sm text-slate-400 max-w-[300px] text-center">
-                            Failed to load backtest evaluation data. The database connection might be unavailable.
+                        <div className="text-[17px] font-extrabold text-[#ef4444] tracking-[1px] mb-2 capitalize">System Error Detected</div>
+                        <div className="text-[14px] text-slate-400 max-w-[300px] text-center">
+                            Failed To Load Backtest Evaluation Data. The Database Connection Might Be Unavailable.
                         </div>
                     </div>
                 ) : (
@@ -141,29 +141,29 @@ export default function BacktestPage() {
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-4 md:px-0">
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><Target size={40} /></div>
-                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">TOTAL PREDICTIONS</div>
-                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatNum(stats.totalPredictions)}</div>
-                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">resolved bets</div>
+                               <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Total Predictions</div>
+                               <div className="text-[31px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatNum(stats.totalPredictions)}</div>
+                               <div className="text-[13px] font-bold text-slate-500 mt-1 capitalize tracking-widest">resolved bets</div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-white"><TrendingUp size={40} /></div>
-                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">OVERALL WIN RATE</div>
-                               <div className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate != null ? Number(stats.winRate).toFixed(1) : '0.0'}%</div>
-                               <div className="text-[10px] font-bold text-[#00D4FF] mt-1 uppercase tracking-widest">{stats.wonBets || 0} W / {stats.lostBets || 0} L</div>
+                               <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Overall Win Rate</div>
+                               <div className="text-[31px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{stats.winRate != null ? Number(stats.winRate).toFixed(1) : '0.0'}%</div>
+                               <div className="text-[13px] font-bold text-[#00D4FF] mt-1 capitalize tracking-widest">{stats.wonBets || 0} W / {stats.lostBets || 0} L</div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><BarChart3 size={40} /></div>
-                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">AVG BRIER (0.25)</div>
-                               <div className="text-2xl font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{hasData && stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '—'}</div>
-                               <div className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${hasData && Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
+                               <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">AVG BRIER (0.25)</div>
+                               <div className="text-[31px] font-extrabold text-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 5px rgba(0,212,255,0.3)' }}>{hasData && stats.avgBrier != null ? Number(stats.avgBrier).toFixed(4) : '—'}</div>
+                               <div className={`text-[13px] font-bold mt-1 capitalize tracking-widest ${hasData && Number(stats.brierVsBaseline) < 0 ? 'text-[#00D4FF]' : 'text-slate-500'}`}>
                                    {hasData ? `${Number(stats.brierVsBaseline) >= 0 ? '+' : ''}${stats.brierVsBaseline != null ? Number(stats.brierVsBaseline).toFixed(4) : '0.0000'} vs base` : '—'}
                                </div>
                            </div>
                            <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                                <div className="absolute top-0 right-0 p-2 opacity-10 text-[#00D4FF]"><DollarSign size={40} /></div>
-                               <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2 uppercase">CUMULATIVE ML ROI</div>
-                               <div className={`text-2xl font-extrabold ${hasData && Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{hasData ? formatPct(stats.cumulativeRoi) : '—'}</div>
-                               <div className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{hasData ? `${Number(stats.unitsWon) > 0 ? '+' : ''}${stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit` : '—'}</div>
+                               <div className="text-[13px] font-extrabold text-slate-400 tracking-widest mb-2 capitalize">Cumulative Ml Roi</div>
+                               <div className={`text-[31px] font-extrabold ${hasData && Number(stats.cumulativeRoi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-300'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{hasData ? formatPct(stats.cumulativeRoi) : '—'}</div>
+                               <div className="text-[13px] font-bold text-slate-500 mt-1 capitalize tracking-widest">{hasData ? `${Number(stats.unitsWon) > 0 ? '+' : ''}${stats.unitsWon != null ? Number(stats.unitsWon).toFixed(2) : '0.00'}u profit` : '—'}</div>
                            </div>
                        </div>
 
@@ -171,59 +171,59 @@ export default function BacktestPage() {
                        <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-5 mb-8 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
                            <div className="flex justify-between items-center mb-4 pb-3 border-b border-[#3d4f5f]">
                                <div className="flex items-center gap-3">
-                                   <h2 className="m-0 text-base md:text-lg font-extrabold text-white tracking-widest uppercase" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
-                                   <span className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 text-[9px] font-extrabold px-2 py-0.5 rounded-sm tracking-widest uppercase shadow-[0_0_5px_rgba(255,215,0,0.2)]">EVALUATING</span>
+                                   <h2 className="m-0 text-[21px] md:text-[23px] font-extrabold text-white tracking-widest capitalize" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Lock-In Gate</h2>
+                                   <span className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 text-[12px] font-extrabold px-2 py-0.5 rounded-sm tracking-widest capitalize shadow-[0_0_5px_rgba(255,215,0,0.2)]">Evaluating</span>
                                </div>
-                               <div className="text-[9px] font-bold text-slate-500 tracking-widest uppercase hidden md:block">
-                                   REQUIRED BEFORE REAL-MONEY PLAY
+                               <div className="text-[12px] font-bold text-slate-500 tracking-widest capitalize hidden md:block">
+                                   Required Before Real-Money Play
                                </div>
                            </div>
                            
                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 md:px-0">
                                <GateCard label="Sample Size" target="n≥500" value={stats.totalPredictions} passed={sampleSizePassed} />
                                <GateCard label="Brier Score" target="<0.23" value={stats.avgBrier} passed={brierPassed} isBrier={true} />
-                               <GateCard label="ML ROI" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />
+                               <GateCard label="Ml Roi" target=">-3%" value={stats.cumulativeRoi} passed={roiPassed} isPct={true} />
                                <GateCard label="Avg CLV" target=">0 pts" value={stats.avgClv} passed={clvPassed} />
                                
                                <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] flex flex-col justify-center items-center text-center">
-                                   <div className="text-[10px] font-extrabold text-slate-400 tracking-widest uppercase mb-1">All Gates</div>
-                                   <div className={`text-xl font-extrabold ${gatesPassed === 4 ? 'text-[#00D4FF]' : 'text-[#FFD700]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                                   <div className="text-[13px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">All Gates</div>
+                                   <div className={`text-[26px] font-extrabold ${gatesPassed === 4 ? 'text-[#00D4FF]' : 'text-[#FFD700]'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                                        {gatesPassed === 4 ? 'PASSED' : 'PENDING'}
                                    </div>
-                                   <div className="text-[10px] font-bold text-slate-500 mt-1 tracking-widest uppercase">{gatesPassed}/4 passed</div>
+                                   <div className="text-[13px] font-bold text-slate-500 mt-1 tracking-widest capitalize">{gatesPassed}/4 passed</div>
                                </div>
                            </div>
                        </div>
 
                        {/* Market Breakdown */}
                        <div className="mb-8">
-                           <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Market Breakdown</h2>
+                           <h2 className="text-[21px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Market Breakdown</h2>
                            <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                                <table className="w-full min-w-[600px] text-left border-collapse">
                                    <thead>
                                        <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Market</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">n</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Win Rate</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Avg Brier</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">ROI%</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest">Market</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">n</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Win Rate</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Avg Brier</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-right">Roi%</th>
                                        </tr>
                                    </thead>
                                    <tbody>
                                        {marketBreakdown.map((row: any, idx: number) => (
                                            <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
                                                <td className="p-4">
-                                                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[11px] font-extrabold text-slate-300 uppercase tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">{row.market}</span>
+                                                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[14px] font-extrabold text-slate-300 capitalize tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">{row.market}</span>
                                                </td>
-                                               <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.n}</td>
-                                               <td className="p-4 text-center font-bold text-white text-sm">{row.winRate != null ? Number(row.winRate).toFixed(1) : '0.0'}%</td>
-                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? Number(row.avgBrier).toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-right font-extrabold text-sm ${Number(row.roi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
+                                               <td className="p-4 text-center font-bold text-slate-400 text-[18px]">{row.n}</td>
+                                               <td className="p-4 text-center font-bold text-white text-[18px]">{row.winRate != null ? Number(row.winRate).toFixed(1) : '0.0'}%</td>
+                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-[18px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.avgBrier ? Number(row.avgBrier).toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-right font-extrabold text-[18px] ${Number(row.roi) >= 0 ? 'text-[#00D4FF]' : 'text-slate-400'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi)}</td>
                                            </tr>
                                        ))}
                                        {marketBreakdown.length === 0 && (
                                            <tr>
-                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-xs uppercase tracking-widest">No market data available</td>
+                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-[16px] capitalize tracking-widest">No market data available</td>
                                            </tr>
                                        )}
                                    </tbody>
@@ -233,31 +233,31 @@ export default function BacktestPage() {
 
                        {/* Daily Trend */}
                        <div className="mb-4">
-                           <h2 className="text-base font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Daily Trend — Last 14 Days</h2>
+                           <h2 className="text-[21px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#00D4FF]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>Daily Trend — Last 14 Days</h2>
                            <div className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                                <table className="w-full min-w-[600px] text-left border-collapse">
                                    <thead>
                                        <tr className="bg-[#1a2332] border-b border-[#3d4f5f]">
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Date</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Games</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Brier (ML)</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center">ML ROI%</th>
-                                           <th className="p-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">Props ROI%</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest">Date</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Games</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Brier (ML)</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-center">Ml Roi%</th>
+                                           <th className="p-4 text-[13px] font-extrabold text-slate-400 capitalize tracking-widest text-right">Props ROI%</th>
                                        </tr>
                                    </thead>
                                    <tbody>
                                        {dailyTrend.map((row: any, idx: number) => (
                                            <tr key={idx} className="border-b border-[#3d4f5f] hover:bg-[#1a2332]/50 transition-colors">
-                                               <td className="p-4 font-bold text-slate-300 text-sm tracking-widest">{row.backtest_date}</td>
-                                               <td className="p-4 text-center font-bold text-slate-400 text-sm">{row.games_evaluated}</td>
-                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-sm" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? Number(row.brier_score_ml).toFixed(4) : '—'}</td>
-                                               <td className={`p-4 text-center font-extrabold text-sm ${Number(row.roi_ml) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_ml) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
-                                               <td className={`p-4 text-right font-extrabold text-sm ${Number(row.roi_props) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_props) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
+                                               <td className="p-4 font-bold text-slate-300 text-[18px] tracking-widest">{row.backtest_date}</td>
+                                               <td className="p-4 text-center font-bold text-slate-400 text-[18px]">{row.games_evaluated}</td>
+                                               <td className="p-4 text-center font-extrabold text-[#00D4FF] text-[18px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>{row.brier_score_ml ? Number(row.brier_score_ml).toFixed(4) : '—'}</td>
+                                               <td className={`p-4 text-center font-extrabold text-[18px] ${Number(row.roi_ml) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_ml) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_ml)}</td>
+                                               <td className={`p-4 text-right font-extrabold text-[18px] ${Number(row.roi_props) >= 0 ? 'text-[#00D4FF]' : (Number(row.roi_props) < 0 ? 'text-slate-500' : 'text-slate-400')}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>{formatPct(row.roi_props)}</td>
                                            </tr>
                                        ))}
                                        {dailyTrend.length === 0 && (
                                            <tr>
-                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-xs uppercase tracking-widest">No daily trend data available</td>
+                                               <td colSpan={5} className="p-8 text-center text-slate-500 font-bold text-[16px] capitalize tracking-widest">No daily trend data available</td>
                                            </tr>
                                        )}
                                    </tbody>

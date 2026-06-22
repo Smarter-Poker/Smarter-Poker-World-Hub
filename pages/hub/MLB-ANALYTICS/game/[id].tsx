@@ -100,7 +100,7 @@ export default function GameMatchupDashboard() {
         <MlbSubNav />
         <div className="flex flex-col items-center justify-center py-20 text-[#00D4FF]">
           <Loader2 className="w-12 h-12 animate-spin mb-4" />
-          <p className="tracking-widest uppercase font-bold text-sm">Loading Matchup...</p>
+          <p className="tracking-widest capitalize font-bold text-[18px]">Loading Matchup...</p>
         </div>
         <BottomNavBar />
       </div>
@@ -143,7 +143,7 @@ export default function GameMatchupDashboard() {
         {/* BACK BUTTON */}
         <Link
           href="/hub/MLB-ANALYTICS"
-          className="inline-flex items-center text-[#00D4FF] hover:text-[#FF4444] transition-colors text-sm font-bold uppercase tracking-wider"
+          className="inline-flex items-center text-[#00D4FF] hover:text-[#FF4444] transition-colors text-[18px] font-bold capitalize tracking-wider"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
@@ -152,11 +152,11 @@ export default function GameMatchupDashboard() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-[#00D4FF]">
             <Loader2 className="w-12 h-12 animate-spin mb-4" />
-            <p className="tracking-widest uppercase font-['Rajdhani']">Loading Matchup Data...</p>
+            <p className="tracking-widest capitalize font-['Rajdhani']">Loading Matchup Data...</p>
           </div>
         ) : !game ? (
           <div className="text-center py-20">
-            <p className="text-[#FF4444] font-['Rajdhani'] text-xl">
+            <p className="text-[#FF4444] font-['Rajdhani'] text-[26px]">
               Game not found on today's slate.
             </p>
           </div>
@@ -181,15 +181,15 @@ export default function GameMatchupDashboard() {
                       className="w-full h-full object-contain" loading="lazy"
                     />
                   </div>
-                  <h2 className="text-2xl font-extrabold font-['Rajdhani'] tracking-widest uppercase font-['Rajdhani'] text-white">
+                  <h2 className="text-[31px] font-extrabold font-['Rajdhani'] tracking-widest capitalize font-['Rajdhani'] text-white">
                     {game.away}
                   </h2>
-                  <p className="text-sm text-[#8BA4D5] uppercase tracking-wider mt-1">
+                  <p className="text-[18px] text-[#8BA4D5] capitalize tracking-wider mt-1">
                     {game.awayRecord ? `${game.awayRecord.wins}-${game.awayRecord.losses}` : ''}
                     {game.awayStreak ? ` [${game.awayStreak}]` : ''}
                   </p>
                   {game.awayStarter && (
-                    <p className="text-sm font-['Rajdhani'] mt-2 text-[#00D4FF]">
+                    <p className="text-[18px] font-['Rajdhani'] mt-2 text-[#00D4FF]">
                       P: {game.awayStarter.name}{' '}
                       {game.awayStarter.wins != null
                         ? `(${game.awayStarter.wins}-${game.awayStarter.losses}, ${game.awayStarter.era})`
@@ -200,8 +200,8 @@ export default function GameMatchupDashboard() {
 
                 {/* VS BADGE */}
                 <div className="flex flex-col items-center">
-                  <div className="text-[#1A2436] font-black text-4xl italic px-4">VS</div>
-                  <div className="mt-4 px-3 py-1 bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 rounded text-xs font-bold tracking-widest font-['Rajdhani'] whitespace-nowrap">
+                  <div className="text-[#1A2436] font-black text-[47px] italic px-4">Vs</div>
+                  <div className="mt-4 px-3 py-1 bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 rounded text-[16px] font-bold tracking-widest font-['Rajdhani'] whitespace-nowrap">
                     {game.firstPitch
                       ? new Date(game.firstPitch).toLocaleTimeString('en-US', {
                           hour: 'numeric',
@@ -211,7 +211,7 @@ export default function GameMatchupDashboard() {
                       : 'TBD'}
                   </div>
                   {game.lineupState === 'confirmed' && (
-                    <div className="mt-2 text-xs font-bold text-[#00FF88] uppercase tracking-widest font-['Rajdhani'] bg-[#00FF88]/10 px-2 py-0.5 rounded border border-[#00FF88]/20">
+                    <div className="mt-2 text-[16px] font-bold text-[#00FF88] capitalize tracking-widest font-['Rajdhani'] bg-[#00FF88]/10 px-2 py-0.5 rounded border border-[#00FF88]/20">
                       Confirmed Lineups
                     </div>
                   )}
@@ -227,15 +227,15 @@ export default function GameMatchupDashboard() {
                       className="w-full h-full object-contain" loading="lazy"
                     />
                   </div>
-                  <h2 className="text-2xl font-extrabold font-['Rajdhani'] tracking-widest uppercase font-['Rajdhani'] text-white">
+                  <h2 className="text-[31px] font-extrabold font-['Rajdhani'] tracking-widest capitalize font-['Rajdhani'] text-white">
                     {game.home}
                   </h2>
-                  <p className="text-sm text-[#8BA4D5] uppercase tracking-wider mt-1">
+                  <p className="text-[18px] text-[#8BA4D5] capitalize tracking-wider mt-1">
                     {game.homeRecord ? `${game.homeRecord.wins}-${game.homeRecord.losses}` : ''}
                     {game.homeStreak ? ` [${game.homeStreak}]` : ''}
                   </p>
                   {game.homeStarter && (
-                    <p className="text-sm font-['Rajdhani'] mt-2 text-[#00D4FF]">
+                    <p className="text-[18px] font-['Rajdhani'] mt-2 text-[#00D4FF]">
                       P: {game.homeStarter.name}{' '}
                       {game.homeStarter.wins != null
                         ? `(${game.homeStarter.wins}-${game.homeStarter.losses}, ${game.homeStarter.era})`
@@ -248,9 +248,9 @@ export default function GameMatchupDashboard() {
               {/* ODDS STRIP */}
               <div className="mt-8 pt-6 border-t border-[#1A2436] grid grid-cols-3 gap-4 px-4 md:px-0">
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-xs text-[#8BA4D5] uppercase tracking-widest mb-1">Moneyline</p>
+                  <p className="text-[16px] text-[#8BA4D5] capitalize tracking-widest mb-1">Moneyline</p>
                   <div className="flex justify-around">
-                    <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                    <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgAwayLine
                         ? game.avgAwayLine > 0
                           ? `+${game.avgAwayLine}`
@@ -258,7 +258,7 @@ export default function GameMatchupDashboard() {
                         : '-'}
                     </span>
                     <span className="text-[#1A2436] mx-2">|</span>
-                    <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                    <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgHomeLine
                         ? game.avgHomeLine > 0
                           ? `+${game.avgHomeLine}`
@@ -268,9 +268,9 @@ export default function GameMatchupDashboard() {
                   </div>
                 </div>
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-xs text-[#8BA4D5] uppercase tracking-widest mb-1">Spread</p>
+                  <p className="text-[16px] text-[#8BA4D5] capitalize tracking-widest mb-1">Spread</p>
                   <div className="flex justify-around">
-                    <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                    <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgAwaySpreadLine
                         ? game.avgAwaySpreadLine > 0
                           ? `+${game.avgAwaySpreadLine}`
@@ -278,7 +278,7 @@ export default function GameMatchupDashboard() {
                         : '-'}
                     </span>
                     <span className="text-[#1A2436] mx-2">|</span>
-                    <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                    <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgHomeSpreadLine
                         ? game.avgHomeSpreadLine > 0
                           ? `+${game.avgHomeSpreadLine}`
@@ -288,8 +288,8 @@ export default function GameMatchupDashboard() {
                   </div>
                 </div>
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-xs text-[#8BA4D5] uppercase tracking-widest mb-1">Total</p>
-                  <div className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                  <p className="text-[16px] text-[#8BA4D5] capitalize tracking-widest mb-1">Total</p>
+                  <div className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                     {game.avgTotalLine ? `O/U ${game.avgTotalLine}` : '-'}
                   </div>
                 </div>
@@ -302,7 +302,7 @@ export default function GameMatchupDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="w-5 h-5 text-[#00D4FF]" />
-                  <h3 className="text-xl font-extrabold font-['Rajdhani'] uppercase tracking-widest font-['Rajdhani'] text-white">
+                  <h3 className="text-[26px] font-extrabold font-['Rajdhani'] capitalize tracking-widest font-['Rajdhani'] text-white">
                     Top Game Bets
                   </h3>
                 </div>
@@ -319,27 +319,27 @@ export default function GameMatchupDashboard() {
                       className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/30 transition-colors"
                     >
                       <div className="flex flex-col">
-                        <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                        <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                           {bet.team_name || bet.selection}{' '}
                           {bet.market && (
-                            <span className="text-[#8BA4D5] text-sm ml-1">
+                            <span className="text-[#8BA4D5] text-[18px] ml-1">
                               {bet.market.replace(/_/g, ' ').toUpperCase()}
                             </span>
                           )}
                         </span>
-                        <span className="text-xs text-[#8BA4D5] uppercase tracking-wider">
+                        <span className="text-[16px] text-[#8BA4D5] capitalize tracking-wider">
                           {bet.bet_type}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div
-                          className={`font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] ${bet.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
+                          className={`font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] ${bet.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
                         >
                           {bet.ev_pct > 0 ? '+' : ''}
                           {(Number(bet.ev_pct) || 0).toFixed(1)}% EV
                         </div>
                         <span
-                          className="text-xs font-['Rajdhani'] px-2 rounded font-bold"
+                          className="text-[16px] font-['Rajdhani'] px-2 rounded font-bold"
                           style={{
                             color: TIER_HEX[bet.bet_tier] || '#00D4FF',
                             background: `${TIER_HEX[bet.bet_tier] || '#00D4FF'}1a`,
@@ -359,7 +359,7 @@ export default function GameMatchupDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="w-5 h-5 text-[#00D4FF]" />
-                  <h3 className="text-xl font-extrabold font-['Rajdhani'] uppercase tracking-widest font-['Rajdhani'] text-white">
+                  <h3 className="text-[26px] font-extrabold font-['Rajdhani'] capitalize tracking-widest font-['Rajdhani'] text-white">
                     Top Player Props
                   </h3>
                 </div>
@@ -376,21 +376,21 @@ export default function GameMatchupDashboard() {
                       className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/30 transition-colors"
                     >
                       <div className="flex flex-col">
-                        <span className="font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] text-white">
+                        <span className="font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] text-white">
                           {prop.player_name}
                         </span>
-                        <span className="text-xs text-[#8BA4D5] uppercase tracking-wider">
+                        <span className="text-[16px] text-[#8BA4D5] capitalize tracking-wider">
                           {prop.selection} {prop.line} | {prop.market}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div
-                          className={`font-['Rajdhani'] text-lg font-extrabold font-['Rajdhani'] ${prop.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
+                          className={`font-['Rajdhani'] text-[23px] font-extrabold font-['Rajdhani'] ${prop.ev_pct > 0 ? 'text-[#00FF88]' : 'text-white'}`}
                         >
                           {prop.ev_pct > 0 ? '+' : ''}
                           {(Number(prop.ev_pct) || 0).toFixed(1)}% EV
                         </div>
-                        <span className="text-xs font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
+                        <span className="text-[16px] font-['Rajdhani'] text-[#00D4FF] bg-[#00D4FF]/10 px-2 rounded">
                           Odds:{' '}
                           {(() => {
                             const o = prop.odds ?? prop.price;

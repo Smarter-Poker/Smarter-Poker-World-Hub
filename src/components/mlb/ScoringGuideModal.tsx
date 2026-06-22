@@ -39,7 +39,7 @@ export function ScoringGuideModal({
         <div className="flex justify-between items-center mb-4 pb-3 border-b border-[#2a3a4a]">
           <div className="flex items-center gap-2">
             <Info className="text-[#00D4FF]" size={20} />
-            <h2 className="text-[20px] font-black text-white uppercase tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+            <h2 className="text-[26px] font-black text-white capitalize tracking-widest" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
               Scoring System
             </h2>
           </div>
@@ -53,7 +53,7 @@ export function ScoringGuideModal({
 
         <div className="space-y-5">
           <div>
-            <p className="text-[13px] text-slate-300 mb-3 leading-relaxed">
+            <p className="text-[17px] text-slate-300 mb-3 leading-relaxed">
               Our MLB model generates a <span className="font-bold text-white">0-100 Bet Score</span> that perfectly balances the <span className="text-[#00D4FF] font-semibold">Expected Value (EV)</span> against <span className="text-emerald-400 font-semibold">Confidence Factors</span>. The higher the score, the stronger the bet.
             </p>
             
@@ -61,33 +61,33 @@ export function ScoringGuideModal({
               <div className="flex items-start gap-3">
                 <TrendingUp size={16} className="text-[#00D4FF] mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-[11px] font-black uppercase text-white tracking-wider">Expected Value (EV)</div>
-                  <div className="text-[11px] text-slate-400">The true mathematical advantage based on the odds offered.</div>
+                  <div className="text-[14px] font-black capitalize text-white tracking-wider">Expected Value (EV)</div>
+                  <div className="text-[14px] text-slate-400">The true mathematical advantage based on the odds offered.</div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <ShieldCheck size={16} className="text-emerald-400 mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-[11px] font-black uppercase text-white tracking-wider">Confidence Factors</div>
-                  <div className="text-[11px] text-slate-400">We haircut edges if lineups aren't confirmed, if it's a high-variance spot, or if it strays too far from sharp market consensus.</div>
+                  <div className="text-[14px] font-black capitalize text-white tracking-wider">Confidence Factors</div>
+                  <div className="text-[14px] text-slate-400">We haircut edges if lineups aren't confirmed, if it's a high-variance spot, or if it strays too far from sharp market consensus.</div>
                 </div>
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="text-[14px] font-black text-[#7a8a9a] uppercase tracking-widest mb-3 flex items-center gap-2">
+            <h3 className="text-[18px] font-black text-[#7a8a9a] capitalize tracking-widest mb-3 flex items-center gap-2">
               <Scale size={16} /> Tier Scale
             </h3>
             <div className="space-y-2">
               {tiers.map((t) => (
                 <div key={t.name} className={`flex items-center justify-between bg-[#0a0a15] border border-[#1a2530] rounded-sm p-2.5 ${t.border}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`text-[20px] font-black leading-none ${t.color}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                    <div className={`text-[26px] font-black leading-none ${t.color}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                       {t.name}
                     </div>
                   </div>
-                  <div className="text-[14px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+                  <div className="text-[18px] font-black text-slate-300" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                     {t.range}
                   </div>
                 </div>
@@ -99,7 +99,7 @@ export function ScoringGuideModal({
 
         <button
           onClick={onClose}
-          className="w-full mt-6 bg-[#1a2332] hover:bg-[#2a3a4a] border border-[#3d4f5f] rounded-sm py-2 text-[14px] font-black text-white uppercase tracking-widest transition-colors"
+          className="w-full mt-6 bg-[#1a2332] hover:bg-[#2a3a4a] border border-[#3d4f5f] rounded-sm py-2 text-[18px] font-black text-white capitalize tracking-widest transition-colors"
         >
           Got it
         </button>

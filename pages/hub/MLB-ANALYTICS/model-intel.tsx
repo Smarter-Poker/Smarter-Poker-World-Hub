@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import dynamic from 'next/dynamic';
@@ -104,6 +104,15 @@ const marketLabel = (m: string): string => {
     .join(' ');
 };
 
+// Map a raw market to its display category (matches filter buttons).
+const categoryOf = (market: string) => {
+  const m = (market || '').toLowerCase();
+  if (m === 'h2h' || m === 'f5_moneyline') return 'Moneyline';
+  if (m === 'total' || m === 'team_total') return 'Totals';
+  if (m === 'run_line') return 'Run Line';
+  return 'Props';
+};
+
 /* --------------------------------- sub-views --------------------------------- */
 
 interface MetricBoxProps {
@@ -205,11 +214,61 @@ const fetcher = async (url: string) => {
 
 export default function ModelIntelPage() {
   const router = useRouter();
+
+  // Model intel data
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/mlb/model-intel', fetcher, {
     refreshInterval: 300000,
     revalidateOnFocus: false,
     keepPreviousData: true,
   });
+
+  // Accuracy / daily performance data (merged from Accuracy page)
+  const { data: accData, isLoading: accLoading } = useSWR('/api/mlb/accuracy', fetcher, {
+    refreshInterval: 300000,
+    revalidateOnFocus: false,
+    keepPreviousData: true,
+  });
+
+  // Filter state for the daily performance table
+  const [accFilter, setAccFilter] = useState('All');
+
+  const accTableData = accData?.tableData || [];
+  const accKpi = accData?.kpi || { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
+  const isGatePassed =
+    accKpi.n >= 300 && Number(accKpi.roi) > -3.0 && Number(accKpi.brier) < 0.23;
+
+  // Aggregate daily performance table (n-weighted Brier/CLV, true ROI per date)
+  const filteredTable = useMemo(() => {
+    const rows = (accTableData as any[]).filter(
+      (r) => accFilter === 'All' || categoryOf(r.market) === accFilter
+    );
+    const byDate: Record<string, any> = {};
+    for (const r of rows) {
+      const n = Number(r.n) || 0;
+      if (n <= 0) continue;
+      const d = r.date;
+      if (!byDate[d]) {
+        byDate[d] = { date: d, n: 0, brierNum: 0, brierW: 0, clvNum: 0, clvW: 0, profit: 0, bets: 0 };
+      }
+      const g = byDate[d];
+      g.n += n;
+      g.profit += Number(r.sum_unit_profit) || 0;
+      g.bets += Number(r.bet_count) || 0;
+      if (r.brier != null) { g.brierNum += Number(r.brier) * n; g.brierW += n; }
+      if (r.avg_clv != null) { g.clvNum += Number(r.avg_clv) * n; g.clvW += n; }
+    }
+    const label = accFilter === 'All' ? 'All' : accFilter;
+    return Object.values(byDate)
+      .map((g: any) => ({
+        date: g.date,
+        market: label,
+        n: g.n,
+        brier: g.brierW > 0 ? g.brierNum / g.brierW : null,
+        avg_clv: g.clvW > 0 ? g.clvNum / g.clvW : null,
+        roi: g.bets > 0 ? (g.profit / g.bets) * 100 : null,
+      }))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }, [accTableData, accFilter]);
 
   const pageShell = (children: React.ReactNode) => (
     <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
@@ -222,7 +281,7 @@ export default function ModelIntelPage() {
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Dataset',
-          name: 'MLB Model Intelligence - Calibration, CLV & ROI by Market',
+          name: 'MLB Model Intelligence - Calibration, CLV & ROI By Market',
           description:
             'Diagnostics for the Smarter.Poker MLB model: n-weighted Brier calibration, closing-line value (CLV), portfolio ROI by market, per-bet-type reliability gating, and cumulative unit P&L.',
           url: 'https://smarter.poker/hub/MLB-ANALYTICS/model-intel',
@@ -257,7 +316,7 @@ export default function ModelIntelPage() {
             System Error
           </h2>
           <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10 mb-5">
-            Failed to load intel data. Please try again.
+            Failed To Load Intel Data. Please Try Again.
           </p>
           <button
             onClick={() => mutate()}
@@ -315,7 +374,7 @@ export default function ModelIntelPage() {
                 </span>
               </h1>
               <p className="m-0 mt-1 text-[#00D4FF] font-bold uppercase tracking-wider text-[11px]">
-                Calibration, edge &amp; backtesting intelligence
+                Calibration, Edge &amp; Backtesting Intelligence
               </p>
             </div>
           </div>
@@ -333,10 +392,10 @@ export default function ModelIntelPage() {
         {/* As-of line */}
         <div className="mb-6 text-[11px] text-slate-500 font-bold uppercase tracking-widest relative z-10">
           {isLoading ? (
-            'Loading model diagnostics...'
+            'Loading Model Diagnostics...'
           ) : (
             <>
-              Data through{' '}
+              Data Through{' '}
               <span className="text-slate-300">
                 {intel.data_through
                   ? new Date(intel.data_through).toLocaleDateString('en-US', {
@@ -357,56 +416,56 @@ export default function ModelIntelPage() {
           <MetricBox
             title="Graded Predictions"
             value={fmtInt(intel.graded_predictions)}
-            sub="probabilities scored"
+            sub="Probabilities Scored"
             valueColor="#FFFFFF"
             isLoading={isLoading}
           />
           <MetricBox
             title="Bets Tracked"
             value={fmtInt(intel.total_bets_tracked)}
-            sub="value bets placed"
+            sub="Value Bets Placed"
             valueColor="#FFFFFF"
             isLoading={isLoading}
           />
           <MetricBox
             title="Overall ROI"
             value={fmtPct(intel.overall_roi)}
-            sub="all-time portfolio"
+            sub="All-Time Portfolio"
             valueColor={roiColor(intel.overall_roi)}
             isLoading={isLoading}
           />
           <MetricBox
             title="Recent ROI"
             value={fmtPct(intel.recent_roi)}
-            sub="last 14 dates"
+            sub="Last 14 Dates"
             valueColor={roiColor(intel.recent_roi)}
             isLoading={isLoading}
           />
           <MetricBox
             title="Avg Brier"
             value={fmtBrier(intel.avg_brier)}
-            sub="lower is better"
+            sub="Lower Is Better"
             valueColor="#00D4FF"
             isLoading={isLoading}
           />
           <MetricBox
             title="Avg CLV"
             value={fmtClv(intel.avg_clv)}
-            sub="closing line value"
+            sub="Closing Line Value"
             valueColor={roiColor(intel.avg_clv)}
             isLoading={isLoading}
           />
           <MetricBox
             title="Markets"
             value={fmtInt(intel.markets_tracked)}
-            sub="tracked"
+            sub="Tracked"
             valueColor="#FFFFFF"
             isLoading={isLoading}
           />
           <MetricBox
             title="Model Version"
             value={intel.model_version || '--'}
-            sub="engine build"
+            sub="Engine Build"
             valueColor="#00D4FF"
             isLoading={isLoading}
           />
@@ -488,8 +547,252 @@ export default function ModelIntelPage() {
           )}
         </div>
 
+        {/* ─── LOCK-IN GATE (merged from Accuracy page) ─── */}
+        <SectionTitle>Lock-In Gate</SectionTitle>
+        <div className="relative bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-4 md:p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden z-10">
+          {/* Metal Frame Details */}
+          <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+            <span className="text-[6px] text-[#1a2a3a]">+</span>
+          </div>
+          <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+            <span className="text-[6px] text-[#1a2a3a]">+</span>
+          </div>
+          <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+            <span className="text-[6px] text-[#1a2a3a]">+</span>
+          </div>
+          <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-b from-[#5a6a7a] to-[#3a4a5a] border border-[#2a3a4a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center">
+            <span className="text-[6px] text-[#1a2a3a]">+</span>
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
+              <div className="flex items-center gap-3">
+                <h3
+                  className="m-0 text-base font-extrabold uppercase text-white tracking-wider"
+                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                >
+                  Lock-In Gate
+                </h3>
+                {accLoading && !accData ? (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-[#1a2332] text-slate-400 border border-[#3d4f5f] flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" /> Loading
+                  </span>
+                ) : (
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider border ${
+                      isGatePassed
+                        ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
+                        : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
+                    }`}
+                  >
+                    {isGatePassed ? 'Passed' : 'Evaluating'}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] font-bold text-[#00D4FF] tracking-widest hidden sm:block">
+                Required For Real-Money Play
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-0">
+              {/* Sample Size */}
+              <div
+                className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${accKpi.n >= 300 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+              >
+                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                  Sample Size (N≥300)
+                </div>
+                <div
+                  className={`text-2xl font-extrabold ${accKpi.n >= 300 ? 'text-[#00D4FF]' : 'text-white'}`}
+                  style={{ textShadow: accKpi.n >= 300 ? '0 0 10px rgba(0,212,255,0.5)' : 'none' }}
+                >
+                  {accLoading && !accData ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                  ) : (
+                    accKpi.n
+                  )}
+                </div>
+              </div>
+              {/* Avg CLV */}
+              <div
+                className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.clv) > 0 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+              >
+                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                  Avg CLV ({'>'}0 Pts)
+                </div>
+                <div
+                  className={`text-2xl font-extrabold ${Number(accKpi.clv) > 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                  style={{
+                    textShadow: Number(accKpi.clv) > 0 ? '0 0 10px rgba(0,212,255,0.5)' : 'none',
+                  }}
+                >
+                  {accLoading && !accData ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                  ) : (
+                    accKpi.clv
+                  )}
+                </div>
+              </div>
+              {/* Expected ROI */}
+              <div
+                className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.roi) > -3 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+              >
+                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                  Expected ROI ({'>'}&#x2011;3%)
+                </div>
+                <div
+                  className={`text-2xl font-extrabold ${Number(accKpi.roi) > -3 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                  style={{
+                    textShadow:
+                      Number(accKpi.roi) > -3
+                        ? '0 0 10px rgba(0,212,255,0.5)'
+                        : '0 0 10px rgba(255,68,68,0.5)',
+                  }}
+                >
+                  {accLoading && !accData ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                  ) : (
+                    `${Number(accKpi.roi) > 0 ? '+' : ''}${accKpi.roi}%`
+                  )}
+                </div>
+              </div>
+              {/* Brier Score */}
+              <div
+                className={`bg-[#1a2332] rounded-lg p-3 md:p-4 border shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] ${Number(accKpi.brier) < 0.23 ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'}`}
+              >
+                <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
+                  Brier Score ({'<'}0.23)
+                </div>
+                <div
+                  className={`text-2xl font-extrabold ${Number(accKpi.brier) < 0.23 ? 'text-[#00D4FF]' : 'text-[#FF4444]'}`}
+                  style={{
+                    textShadow:
+                      Number(accKpi.brier) < 0.23
+                        ? '0 0 10px rgba(0,212,255,0.5)'
+                        : '0 0 10px rgba(255,68,68,0.5)',
+                  }}
+                >
+                  {accLoading && !accData ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#00D4FF]" />
+                  ) : (
+                    accKpi.brier
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── DAILY PERFORMANCE TABLE (merged from Accuracy page) ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 relative z-10">
+          <SectionTitle>Daily Performance Log</SectionTitle>
+          <div className="flex flex-wrap gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#3d4f5f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] mb-4">
+            {['All', 'Moneyline', 'Totals', 'Run Line', 'Props'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setAccFilter(f)}
+                aria-label={`Filter By ${f}`}
+                className={`px-3 py-1.5 rounded-md text-[13px] font-bold transition-all uppercase tracking-wider ${
+                  accFilter === f
+                    ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3)]'
+                    : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 mb-8">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px] whitespace-nowrap">
+              <thead>
+                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="px-4 py-4">Date</th>
+                  <th className="px-4 py-4">Market</th>
+                  <th className="px-4 py-4 text-right">N</th>
+                  <th className="px-4 py-4 text-right">Brier</th>
+                  <th className="px-4 py-4 text-right">Avg CLV</th>
+                  <th className="px-4 py-4 text-right">ROI</th>
+                </tr>
+              </thead>
+              <tbody className="bg-[#0a0a15]">
+                {accLoading && !accData ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mx-auto mb-2" />
+                        <span className="text-[13px] font-extrabold text-[#00D4FF] tracking-widest uppercase animate-pulse">
+                          Scanning Database...
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredTable.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-12 text-center text-slate-500 font-medium border-t border-[#1a2332]"
+                    >
+                      No Data Available For The Selected Filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTable.map((row: any, i: number) => {
+                    const roiNum = row.roi != null ? Number(row.roi) : null;
+                    const roiCls =
+                      roiNum == null
+                        ? 'text-white'
+                        : roiNum > 0
+                          ? 'text-[#00D4FF]'
+                          : roiNum < 0
+                            ? 'text-[#FF4444]'
+                            : 'text-white';
+                    const roiShadow =
+                      roiNum == null
+                        ? 'none'
+                        : roiNum > 0
+                          ? '0 0 5px rgba(0,212,255,0.5)'
+                          : roiNum < 0
+                            ? '0 0 5px rgba(255,68,68,0.5)'
+                            : 'none';
+                    return (
+                      <tr
+                        key={`${row.date}-${row.market}-${i}`}
+                        className="border-b border-[#1a2332] last:border-b-0 hover:bg-[#1a2332] transition-colors"
+                      >
+                        <td className="px-4 py-3.5 font-bold text-slate-300">{row.date}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                            {row.market}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-400 text-right font-medium">
+                          {row.n}
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                          {row.brier !== null ? Number(row.brier).toFixed(3) : '—'}
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-300 text-right font-bold">
+                          {row.avg_clv !== null ? Number(row.avg_clv).toFixed(2) : '—'}
+                        </td>
+                        <td
+                          className={`px-4 py-3.5 text-right font-extrabold ${roiCls}`}
+                          style={{ textShadow: roiShadow }}
+                        >
+                          {roiNum != null ? `${roiNum > 0 ? '+' : ''}${roiNum.toFixed(1)}%` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Market breakdown */}
-        <SectionTitle>Performance by Market</SectionTitle>
+        <SectionTitle>Performance By Market</SectionTitle>
         <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden">
           {isLoading ? (
             <div className="p-8 flex justify-center">
@@ -561,9 +864,9 @@ export default function ModelIntelPage() {
         {/* Bet-type trust ledger */}
         <SectionTitle>Bet-Type Trust Ledger</SectionTitle>
         <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
-          The model self-grades every bet type from its realized sample. Suppressed types are
-          auto-removed from recommendations; cautioned types are stake-scaled by the trust
-          multiplier.
+          The Model Self-Grades Every Bet Type From Its Realized Sample. Suppressed Types Are
+          Auto-Removed From Recommendations; Cautioned Types Are Stake-Scaled By The Trust
+          Multiplier.
         </p>
         <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden">
           {isLoading ? (
@@ -637,23 +940,28 @@ export default function ModelIntelPage() {
         <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 mb-4 relative z-10 text-[12px] leading-relaxed text-slate-400 space-y-2">
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Brier</span> &mdash;
-            mean squared error of probability forecasts (0 = perfect, 0.25 = a coin flip). Lower is
-            better; n-weighted across every graded prediction.
+            Mean Squared Error Of Probability Forecasts (0 = Perfect, 0.25 = A Coin Flip). Lower Is
+            Better; N-Weighted Across Every Graded Prediction.
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">CLV</span> &mdash;
-            closing-line value, how much the model beat the market&apos;s closing price.
-            Persistently positive CLV is the strongest signal of a genuine edge.
+            Closing-Line Value, How Much The Model Beat The Market&apos;s Closing Price.
+            Persistently Positive CLV Is The Strongest Signal Of A Genuine Edge.
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">ROI</span> &mdash;
-            true portfolio return (total unit profit divided by bets placed), not a
-            prediction-weighted average.
+            True Portfolio Return (Total Unit Profit Divided By Bets Placed), Not A
+            Prediction-Weighted Average.
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trust</span> &mdash;
-            self-assessed reliability per bet type from realized results. Allow = full stake,
-            Caution = scaled stake, Suppress = removed from recommendations.
+            Self-Assessed Reliability Per Bet Type From Realized Results. Allow = Full Stake,
+            Caution = Scaled Stake, Suppress = Removed From Recommendations.
+          </p>
+          <p>
+            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Lock-In Gate</span>{' '}
+            &mdash; The Model Must Pass All Four Thresholds (N≥300, CLV{'>'} 0, ROI{'>'}&#x2011;3%,
+            Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
           </p>
         </div>
       </div>

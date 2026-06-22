@@ -19,23 +19,90 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { logError } from '@/utils/logger';
 
+// ── Stat Tooltip Definitions ────────────────────────────────────────────────
+const STAT_META: Record<string, { full: string; desc: string }> = {
+  'Run Diff':  { full: 'Run Differential', desc: 'Runs Scored minus Runs Allowed. #1 predictor of true team quality.' },
+  'W-L':       { full: 'Win-Loss Record', desc: 'Season record — the bottom line that everything else drives toward.' },
+  'ERA':       { full: 'Earned Run Average', desc: 'Earned runs allowed per 9 innings. Core pitching quality indicator.' },
+  'OPS':       { full: 'On-Base + Slugging %', desc: 'Combined OBP + SLG. Captures total offensive efficiency in one number.' },
+  'wRC+':      { full: 'Weighted Runs Created Plus', desc: 'Park & league-adjusted offense. 100 = average. Higher is better.' },
+  'FIP':       { full: 'Fielding Independent Pitching', desc: 'ERA-like stat using only K, BB, HBP, HR — removes defense from the equation.' },
+  'xFIP':      { full: 'Expected FIP', desc: 'Like FIP but normalizes home run rate. Best for true pitcher skill assessment.' },
+  'SIERA':     { full: 'Skill-Interactive ERA', desc: 'Most predictive ERA estimator. Accounts for batted ball type and swing-miss rates.' },
+  'OPS+':      { full: 'OPS Plus (Adjusted)', desc: 'OPS adjusted for park and league. 100 = average. Above 100 = above average.' },
+  'WHIP':      { full: 'Walks + Hits Per Inning Pitched', desc: 'Baserunner prevention. Lower is better. Measures pitcher command and efficiency.' },
+  'BB%':       { full: 'Walk Rate (Offense)', desc: 'Team walk rate — plate discipline. Strongly correlates with run scoring.' },
+  'K%':        { full: 'Strikeout Rate (Pitching)', desc: 'Team K rate allowed. Most defense-independent pitching metric available.' },
+  'RS':        { full: 'Runs Scored', desc: 'Total runs scored this season. Raw offensive output.' },
+  'RA':        { full: 'Runs Allowed', desc: 'Total runs allowed. Combines pitching + defense quality.' },
+  'OBP':       { full: 'On-Base Percentage', desc: 'Rate batters reach base. Getting on base is the engine of scoring runs.' },
+  'SLG':       { full: 'Slugging Percentage', desc: 'Total bases per at-bat. Measures power and extra-base hit production.' },
+  'HR':        { full: 'Home Runs', desc: 'Total team home runs. The most reliable run-scoring vehicle in modern MLB.' },
+  'LOB%':      { full: 'Left on Base % (Pitching)', desc: 'Rate pitchers strand baserunners. High % = good; partially luck-driven. League avg ~72%.' },
+  'BABIP':     { full: 'Batting Avg on Balls In Play', desc: 'Reveals luck vs. skill. League avg ≈ .300. Major outliers tend to regress to the mean.' },
+  'DRS':       { full: 'Defensive Runs Saved', desc: 'Defensive value in runs above average. Positive = above-average defense.' },
+  'Bullpen':   { full: 'Bullpen ERA', desc: 'Relief pitcher ERA. Modern MLB games are routinely won or lost in the bullpen.' },
+  'SB%':       { full: 'Stolen Base Success Rate', desc: 'Stolen base efficiency. Raw SB totals are less meaningful than success rate.' },
+  'wOBA':      { full: 'Weighted On-Base Average', desc: 'Combines all offensive events into one number. Better than OPS for run prediction.' },
+  'AVG':       { full: 'Batting Average', desc: 'Hits per at-bat. Traditional hitting metric. Less predictive than OBP or wRC+.' },
+  'SB':        { full: 'Stolen Bases', desc: 'Total stolen bases this season. Context-dependent without success rate.' },
+  'Home':      { full: 'Home Record', desc: 'Win-loss record at home. Teams typically win ~54% at home due to crowd advantage.' },
+  'Away':      { full: 'Away Record', desc: 'Win-loss record on the road. A strong road record signals genuine team quality.' },
+  'Last 10':   { full: 'Last 10 Games', desc: 'Recent form over the last 10 games. Best indicator of current momentum.' },
+  'Pyth W%':   { full: 'Pythagorean Win %', desc: 'Expected win% based on run differential. Strips out clutch variance — predicts future wins better than actual W%.' },
+  'vs .500+':  { full: 'Record vs .500+ Teams', desc: 'Win-loss vs teams with winning records. Separates legit contenders from teams beating up on weak opponents.' },
+  '1-Run W%':  { full: 'One-Run Game Win %', desc: 'Win rate in games decided by 1 run. Tests bullpen and clutch performance under pressure.' },
+};
+
+// ── Tooltip Component ────────────────────────────────────────────────────────
+const StatLabel = ({
+  label,
+  color = 'rgba(255,255,255,0.55)',
+}: {
+  label: string;
+  color?: string;
+}) => {
+  const meta = STAT_META[label];
+  if (!meta) {
+    return (
+      <span className="stat-label" style={{ color }}>
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span className="stat-tooltip-wrap">
+      <span className="stat-label" style={{ color }}>
+        {label}
+        <span className="tooltip-dot">?</span>
+      </span>
+      <span className="stat-tooltip-box">
+        <span className="stat-tooltip-title">{meta.full}</span>
+        <span className="stat-tooltip-desc">{meta.desc}</span>
+      </span>
+    </span>
+  );
+};
+
+// ── Team Logo Component ──────────────────────────────────────────────────────
 const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) => {
   const [imgError, setImgError] = useState(false);
   if (imgError) {
     return (
       <div
         style={{
-          width: 40,
-          height: 40,
+          width: 60,
+          height: 60,
           borderRadius: '50%',
           background: '#1a2332',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 16,
+          fontSize: 22,
           fontWeight: 700,
           color: '#00D4FF',
           border: '2px solid #3d4f5f',
+          flexShrink: 0,
         }}
       >
         {teamName.substring(0, 1).toUpperCase()}
@@ -46,8 +113,8 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) =>
     <div
       style={{
         position: 'relative',
-        width: 40,
-        height: 40,
+        width: 60,
+        height: 60,
         borderRadius: '50%',
         background: '#0d1117',
         border: '2px solid #3d4f5f',
@@ -55,12 +122,14 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) =>
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
+        flexShrink: 0,
+        boxShadow: '0 0 12px rgba(0,0,0,0.5)',
       }}
     >
       <Image
         unoptimized
-        width={28}
-        height={28}
+        width={42}
+        height={42}
         src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
         alt={teamName}
         className="shrink-0"
@@ -71,12 +140,11 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) =>
   );
 };
 
+// ── Data Fetcher ─────────────────────────────────────────────────────────────
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return await res.json();
   } catch (err) {
     logError('SWR Fetch', err);
@@ -84,17 +152,69 @@ const fetcher = async (url: string) => {
   }
 };
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function winPct(record: string): number {
+  const [w, l] = (record || '0-0').split('-').map(Number);
+  const total = (w || 0) + (l || 0);
+  return total > 0 ? (w || 0) / total : 0;
+}
+
+function fmtOps(v: number | null | undefined): string {
+  if (v == null) return '-';
+  return Number(v).toFixed(3).replace(/^0/, '');
+}
+
+function fmtEra(v: number | null | undefined): string {
+  if (v == null) return '-';
+  return Number(v).toFixed(2);
+}
+
+function fmtInt(v: number | null | undefined): string {
+  if (v == null) return '-';
+  return String(Math.round(Number(v)));
+}
+
+function fmtRunDiff(v: number | null | undefined): string {
+  if (v == null) return '-';
+  const n = Math.round(Number(v));
+  return n >= 0 ? `+${n}` : String(n);
+}
+
+// ── Division Config ───────────────────────────────────────────────────────────
+const DIVISION_ORDER = ['AL East', 'AL Central', 'AL West', 'NL East', 'NL Central', 'NL West'];
+const DIVISION_ABBR: Record<string, string> = {
+  'AL East': 'AL EAST',
+  'AL Central': 'AL CENTRAL',
+  'AL West': 'AL WEST',
+  'NL East': 'NL EAST',
+  'NL Central': 'NL CENTRAL',
+  'NL West': 'NL WEST',
+};
+
+// ── Team Card ─────────────────────────────────────────────────────────────────
 const TeamCardComponent = ({ team }: { team: any }) => {
   const [expanded, setExpanded] = useState(false);
 
   const record = team.streaks?.record || '0-0';
   const last10 = team.streaks?.last10_record || '0-0';
+  const homeRec = team.splits?.home || '-';
+  const awayRec = team.splits?.road || team.splits?.away || '-';
   let isHot = false;
   if (last10) {
     const [w] = last10.split('-').map(Number);
     if (w >= 7) isHot = true;
   }
   const divStr = team.division || '??';
+
+  // Run differential from profile fields (v_team_profile select *)
+  const runDiff =
+    team.run_diff != null
+      ? team.run_diff
+      : team.runs_scored != null && team.runs_allowed != null
+        ? team.runs_scored - team.runs_allowed
+        : null;
+
+  const adv = team.adv_stats || {};
 
   return (
     <div
@@ -109,9 +229,10 @@ const TeamCardComponent = ({ team }: { team: any }) => {
 
       <div style={{ display: 'block', padding: '20px', textDecoration: 'none', color: 'inherit' }}>
         <Link
-          href={`/hub/MLB-ANALYTICS/team/${team.team_id}`}
+          href={`/hub/MLB-ANALYTICS/teams/${team.team_id}`}
           style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
         >
+          {/* Header Row: Logo + Name + Badge */}
           <div
             style={{
               display: 'flex',
@@ -126,7 +247,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
               <div>
                 <h3
                   style={{
-                    margin: '0 0 4px',
+                    margin: '0 0 5px',
                     fontSize: 18,
                     fontWeight: 800,
                     color: 'white',
@@ -151,7 +272,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                   </span>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 700,
                       color: '#94A3B8',
                       letterSpacing: '0.04em',
@@ -172,7 +293,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                         background: 'rgba(245,158,11,0.1)',
                       }}
                     >
-                      HOT
+                      Hot
                     </span>
                   )}
                 </div>
@@ -211,7 +332,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                   fontWeight: 700,
                   color: '#475569',
                   letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
+                  textTransform: 'capitalize',
                   flexShrink: 0,
                   paddingTop: 4,
                 }}
@@ -221,62 +342,44 @@ const TeamCardComponent = ({ team }: { team: any }) => {
             )}
           </div>
 
-          {/* Advanced Stats Panel */}
+          {/* ── 5 Basic Stats Always Visible ── */}
           {team.adv_stats && (
-            <div className="stats-panel" style={{ marginTop: 8, background: '#0a0a15' }}>
+            <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
-                <div className="stat-label" style={{ color: '#F472B6' }}>
-                  wRC+
-                </div>
-                <div
-                  className="stat-value"
-                  style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}
-                >
-                  {team.adv_stats.wrc_plus != null
-                    ? Number(team.adv_stats.wrc_plus).toFixed(0)
-                    : '-'}
+                <StatLabel label="Era" color="#60A5FA" />
+                <div className="stat-value">
+                  {fmtEra(adv.era)}
                 </div>
               </div>
               <div className="stat-segment">
-                <div className="stat-label" style={{ color: '#60A5FA' }}>
-                  ERA
-                </div>
-                <div
-                  className="stat-value"
-                  style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}
-                >
-                  {team.adv_stats.era != null ? Number(team.adv_stats.era).toFixed(2) : '-'}
+                <StatLabel label="Ops" color="#34D399" />
+                <div className="stat-value">
+                  {fmtOps(adv.ops)}
                 </div>
               </div>
               <div className="stat-segment">
-                <div className="stat-label" style={{ color: '#34D399' }}>
-                  OPS
-                </div>
-                <div
-                  className="stat-value"
-                  style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}
-                >
-                  {team.adv_stats.ops != null
-                    ? Number(team.adv_stats.ops).toFixed(3).replace(/^0/, '')
-                    : '-'}
+                <StatLabel label="wRC+" color="#F472B6" />
+                <div className="stat-value">
+                  {fmtInt(adv.wrc_plus)}
                 </div>
               </div>
               <div className="stat-segment">
-                <div className="stat-label" style={{ color: '#A78BFA' }}>
-                  FIP
+                <StatLabel label="Fip" color="#A78BFA" />
+                <div className="stat-value">
+                  {fmtEra(adv.fip)}
                 </div>
-                <div
-                  className="stat-value"
-                  style={{ fontSize: '0.9rem', color: 'white', textShadow: 'none' }}
-                >
-                  {team.adv_stats.fip != null ? Number(team.adv_stats.fip).toFixed(2) : '-'}
+              </div>
+              <div className="stat-segment">
+                <StatLabel label="Run Diff" color="#00D4FF" />
+                <div className="stat-value" style={{ color: runDiff == null ? undefined : runDiff >= 0 ? '#34D399' : '#EF4444' }}>
+                  {fmtRunDiff(runDiff)}
                 </div>
               </div>
             </div>
           )}
         </Link>
 
-        {/* Expanded Telemetry Drawer */}
+        {/* ── Expandable Drawer — All 20 Stats ── */}
         {team.adv_stats && (
           <div style={{ marginTop: 12 }}>
             <button
@@ -305,102 +408,173 @@ const TeamCardComponent = ({ team }: { team: any }) => {
               <div
                 style={{
                   marginTop: 12,
-                  padding: '12px 16px',
+                  padding: '16px',
                   background: '#05050A',
                   borderRadius: 8,
                   border: '1px solid var(--metal-highlight)',
                   animation: 'fadeIn 0.2s ease',
                 }}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748B',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: '0.1em',
-                        marginBottom: 8,
-                        borderBottom: '1px solid #1a2332',
-                        paddingBottom: 4,
-                      }}
-                    >
-                      PITCHING
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>ERA</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.era != null ? Number(team.adv_stats.era).toFixed(2) : '-'}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>xFIP</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.xfip != null ? Number(team.adv_stats.xfip).toFixed(2) : '-'}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>SIERA</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.siera != null
-                          ? Number(team.adv_stats.siera).toFixed(2)
-                          : '-'}
-                      </span>
-                    </div>
+                {/* TIER 1 - Win Predictors */}
+                <div className="drawer-section-header">🏆 WIN PREDICTORS</div>
+                <div className="drawer-grid">
+                  <div className="drawer-row">
+                    <span className="drawer-label">
+                      <StatLabel label="W-L" color="#94A3B8" />
+                    </span>
+                    <span className="drawer-value">{record}</span>
                   </div>
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748B',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: '0.1em',
-                        marginBottom: 8,
-                        borderBottom: '1px solid #1a2332',
-                        paddingBottom: 4,
-                      }}
+                  <div className="drawer-row">
+                    <span className="drawer-label">
+                      <StatLabel label="Run Diff" color="#94A3B8" />
+                    </span>
+                    <span
+                      className="drawer-value"
+                      style={{ color: runDiff == null ? 'white' : runDiff >= 0 ? '#34D399' : '#EF4444' }}
                     >
-                      OFFENSE
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>AVG</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.avg != null
-                          ? Number(team.adv_stats.avg).toFixed(3).replace(/^0/, '')
-                          : '-'}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>HR / SB</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.hr != null ? Number(team.adv_stats.hr).toFixed(0) : '-'} /{' '}
-                        {team.adv_stats.sb != null ? Number(team.adv_stats.sb).toFixed(0) : '-'}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}
-                    >
-                      <span style={{ fontSize: 11, color: '#94A3B8' }}>OBP / SLG</span>
-                      <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>
-                        {team.adv_stats.obp != null
-                          ? Number(team.adv_stats.obp).toFixed(3).replace(/^0/, '')
-                          : '-'}{' '}
-                        /{' '}
-                        {team.adv_stats.slg != null
-                          ? Number(team.adv_stats.slg).toFixed(3).replace(/^0/, '')
-                          : '-'}
-                      </span>
-                    </div>
+                      {fmtRunDiff(runDiff)}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label">
+                      <StatLabel label="Pyth W%" color="#94A3B8" />
+                    </span>
+                    <span className="drawer-value">
+                      {team.pyth_wpct != null ? Number(team.pyth_wpct).toFixed(3) : '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label">
+                      <StatLabel label="wRC+" color="#94A3B8" />
+                    </span>
+                    <span className="drawer-value">{fmtInt(adv.wrc_plus)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label">
+                      <StatLabel label="wOBA" color="#94A3B8" />
+                    </span>
+                    <span className="drawer-value">{fmtOps(adv.woba)}</span>
+                  </div>
+                </div>
+
+                {/* TIER 2 - Pitching */}
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>🔥 PITCHING</div>
+                <div className="drawer-grid">
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Era" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtEra(adv.era)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Fip" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtEra(adv.fip)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="xFIP" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtEra(adv.xfip)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Siera" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtEra(adv.siera)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Whip" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.whip != null ? Number(adv.whip).toFixed(2) : '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="K%" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.k_pct != null ? `${Number(adv.k_pct).toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* TIER 3 - Offense */}
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>⚙️ OFFENSE</div>
+                <div className="drawer-grid">
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Ops" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtOps(adv.ops)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Obp" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtOps(adv.obp)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Slg" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtOps(adv.slg)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Avg" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtOps(adv.avg)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Hr" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtInt(adv.hr)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Sb" color="#94A3B8" /></span>
+                    <span className="drawer-value">{fmtInt(adv.sb)}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Bb%" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.bb_pct != null ? `${Number(adv.bb_pct).toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* TIER 4 - Situational */}
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ SITUATIONAL</div>
+                <div className="drawer-grid">
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Home" color="#94A3B8" /></span>
+                    <span className="drawer-value">{homeRec}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Away" color="#94A3B8" /></span>
+                    <span className="drawer-value">{awayRec}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Last 10" color="#94A3B8" /></span>
+                    <span className="drawer-value">{last10}</span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="vs .500+" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {team.splits?.vs_500_plus || team.streaks?.vs_500_record || '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="1-Run W%" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {team.streaks?.one_run_record || '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Drs" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.drs != null ? (Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)) : '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Lob%" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Babip" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.babip != null ? fmtOps(adv.babip) : '-'}
+                    </span>
+                  </div>
+                  <div className="drawer-row">
+                    <span className="drawer-label"><StatLabel label="Bullpen" color="#94A3B8" /></span>
+                    <span className="drawer-value">
+                      {adv.bullpen_era != null ? fmtEra(adv.bullpen_era) : '-'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -412,6 +586,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
   );
 };
 
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function TeamsPage({
   teams: fallbackTeams,
   todayStr: fallbackToday,
@@ -421,7 +596,6 @@ export default function TeamsPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLeague, setFilterLeague] = useState<'ALL' | 'AL' | 'NL'>('ALL');
   const [filterDivision, setFilterDivision] = useState<'ALL' | 'East' | 'Central' | 'West'>('ALL');
-  const [sortBy, setSortBy] = useState<'SCORE' | 'NAME' | 'WRC' | 'OPS' | 'FIP'>('SCORE');
   const [todayStr, setTodayStr] = useState<string>(fallbackToday || '');
 
   React.useEffect(() => {
@@ -460,13 +634,13 @@ export default function TeamsPage({
               style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
             />
             <h2
-              className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+              className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               System Error
             </h2>
             <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
-              Failed to load Teams Database. Please try again later.
+              Failed To Load Teams Database. Please Try Again Later.
             </p>
           </div>
         </main>
@@ -478,13 +652,11 @@ export default function TeamsPage({
   const activeTeams = data?.teams || fallbackTeams || [];
   const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
   const summary = data?.summary || { gradedCount: 0, eliteCount: 0, strongCount: 0 };
-  // First paint has no SWR data yet (client-rendered, no getServerSideProps
-  // fallback). Distinguish that from a genuinely empty result so we show a
-  // loading skeleton instead of flashing "NO TARGETS ACQUIRED".
   const isInitialLoading = !data && !error;
 
+  // Filter teams by search/league/division
   const filteredTeams = useMemo(() => {
-    let result = activeTeams.filter((team: any) => {
+    return activeTeams.filter((team: any) => {
       const teamName = team.name || '';
       const teamLeague = team.league || '';
       const teamDivision = team.division || '';
@@ -497,24 +669,40 @@ export default function TeamsPage({
         teamLeague === filterLeague ||
         (filterLeague === 'AL' && teamLeague.includes('American')) ||
         (filterLeague === 'NL' && teamLeague.includes('National'));
-
       const matchDivision = filterDivision === 'ALL' || teamDivision.includes(filterDivision);
 
       return matchSearch && matchLeague && matchDivision;
     });
+  }, [activeTeams, searchQuery, filterLeague, filterDivision]);
 
-    return result.sort((a: any, b: any) => {
-      if (sortBy === 'SCORE')
-        return (
-          (b.grade?.score || 0) - (a.grade?.score || 0) ||
-          (a.name || '').localeCompare(b.name || '')
-        );
-      if (sortBy === 'WRC') return (b.adv_stats?.wrc_plus || 0) - (a.adv_stats?.wrc_plus || 0);
-      if (sortBy === 'OPS') return (b.adv_stats?.ops || 0) - (a.adv_stats?.ops || 0);
-      if (sortBy === 'FIP') return (a.adv_stats?.fip || 99) - (b.adv_stats?.fip || 99);
-      return (a.name || '').localeCompare(b.name || '');
+  // Group by division, sorted by win% within each division
+  const divisionGroups = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    DIVISION_ORDER.forEach((div) => {
+      groups[div] = [];
     });
-  }, [activeTeams, searchQuery, filterLeague, filterDivision, sortBy]);
+    filteredTeams.forEach((team: any) => {
+      const div = team.division || '';
+      // Normalize division name
+      const divKey = DIVISION_ORDER.find((d) => div.includes(d) || d.includes(div)) || div;
+      if (!groups[divKey]) groups[divKey] = [];
+      groups[divKey].push(team);
+    });
+    // Sort each division by win pct (best first)
+    Object.keys(groups).forEach((div) => {
+      groups[div].sort((a: any, b: any) => {
+        return winPct(b.streaks?.record) - winPct(a.streaks?.record);
+      });
+    });
+    return DIVISION_ORDER.map((div) => ({
+      div,
+      label: DIVISION_ABBR[div] || div,
+      teams: groups[div] || [],
+    })).filter((g) => g.teams.length > 0);
+  }, [filteredTeams]);
+
+  // When searching, use flat list for simplicity
+  const isGrouped = searchQuery.trim() === '';
 
   return (
     <>
@@ -557,80 +745,260 @@ export default function TeamsPage({
                 border: 1px solid #2a3a4a;
                 box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
             }
-            .neon-strip {
-                position: absolute;
-                width: 3px;
-                top: 20%;
-                bottom: 20%;
-                background: var(--neon-cyan);
-                box-shadow: var(--glow-cyan);
-                border-radius: 2px;
-            }
+            /* ── Stats Panel (always-visible 5 stats) ── */
             .stats-panel {
                 display: flex;
-                background: #05050A;
+                background: #050A10;
                 border: 2px solid var(--metal-highlight);
                 border-radius: 6px;
-                overflow: hidden;
+                overflow: visible;
             }
             .stat-segment {
                 flex: 1;
-                padding: 6px 12px;
+                padding: 8px 10px;
                 text-align: center;
                 border-right: 1px solid var(--metal-highlight);
+                position: relative;
             }
             .stat-segment:last-child {
                 border-right: none;
             }
             .stat-label {
-                font-size: 0.65rem;
+                display: block;
+                font-size: 0.7rem;
                 color: rgba(255,255,255,0.5);
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                margin-bottom: 2px;
+                text-transform: capitalize;
+                letter-spacing: 0.08em;
+                margin-bottom: 3px;
                 font-family: 'Rajdhani', sans-serif;
+                line-height: 1.2;
             }
             .stat-value {
-                font-size: 1.1rem;
+                display: block;
+                font-size: 1.35rem;
                 font-weight: 700;
                 color: var(--neon-cyan);
                 text-shadow: 0 0 8px var(--neon-cyan-glow);
                 font-family: 'Rajdhani', sans-serif;
+                line-height: 1.1;
             }
-            .metal-input {
-                background: linear-gradient(180deg, #05050A 0%, #0d1117 100%);
-                border: 2px solid var(--metal-highlight);
+            /* ── Tooltip System ── */
+            .stat-tooltip-wrap {
+                position: relative;
+                display: inline-flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+            }
+            .tooltip-dot {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: rgba(0, 212, 255, 0.2);
+                border: 1px solid rgba(0, 212, 255, 0.4);
+                color: #00D4FF;
+                font-size: 8px;
+                font-weight: 800;
+                margin-left: 4px;
+                cursor: help;
+                vertical-align: middle;
+                font-family: 'Rajdhani', sans-serif;
+            }
+            .stat-tooltip-box {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                position: absolute;
+                bottom: calc(100% + 10px);
+                left: 50%;
+                transform: translateX(-50%);
+                background: #08101A;
+                border: 1px solid rgba(0, 212, 255, 0.5);
                 border-radius: 8px;
+                padding: 10px 12px;
+                min-width: 200px;
+                max-width: 270px;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                z-index: 9999;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.6), 0 0 12px rgba(0,212,255,0.15);
+                transition: opacity 0.15s ease, visibility 0.15s ease;
+                white-space: normal;
+                text-align: left;
+            }
+            .stat-tooltip-box::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 6px solid transparent;
+                border-top-color: rgba(0, 212, 255, 0.5);
+            }
+            .stat-tooltip-title {
+                display: block;
+                font-size: 11px;
+                font-weight: 800;
+                color: #00D4FF;
+                letter-spacing: 0.05em;
+                font-family: 'Rajdhani', sans-serif;
+            }
+            .stat-tooltip-desc {
+                display: block;
+                font-size: 10px;
+                color: #94A3B8;
+                line-height: 1.4;
+                font-family: inherit;
+            }
+            .stat-tooltip-wrap:hover .stat-tooltip-box,
+            .stat-tooltip-wrap:focus-within .stat-tooltip-box {
+                opacity: 1;
+                visibility: visible;
+            }
+            /* ── Expanded Drawer ── */
+            .drawer-section-header {
+                font-size: 9px;
+                font-weight: 800;
+                letter-spacing: 0.15em;
+                color: #64748B;
+                text-transform: capitalize;
+                border-bottom: 1px solid #1a2332;
+                padding-bottom: 6px;
+                margin-bottom: 10px;
+            }
+            .drawer-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px 16px;
+            }
+            .drawer-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 3px 0;
+            }
+            .drawer-label {
+                font-size: 11px;
+                color: #94A3B8;
+            }
+            .drawer-value {
+                font-size: 12px;
+                font-weight: 700;
+                color: white;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-6px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            /* ── Search Bar ── */
+            .search-container {
+                position: relative;
+                margin-bottom: 16px;
+            }
+            .search-icon-wrap {
+                position: absolute;
+                left: 16px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--neon-cyan);
+                pointer-events: none;
+                z-index: 2;
+            }
+            .metal-search {
+                width: 100%;
+                background: linear-gradient(180deg, #03030A 0%, #0d1117 100%);
+                border: 1.5px solid var(--metal-highlight);
+                border-radius: 10px;
                 color: white;
                 font-family: 'Rajdhani', sans-serif;
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-                transition: all 0.3s ease;
-            }
-            .metal-input:focus {
-                border-color: var(--neon-cyan);
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 10px var(--neon-cyan-glow);
+                font-size: 15px;
+                font-weight: 600;
+                letter-spacing: 0.06em;
+                padding: 14px 14px 14px 48px;
+                box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 0 0 0 transparent;
+                transition: border-color 0.25s ease, box-shadow 0.25s ease;
+                box-sizing: border-box;
                 outline: none;
             }
+            .metal-search::placeholder {
+                color: #3d4f5f;
+                font-size: 13px;
+            }
+            .metal-search:focus {
+                border-color: var(--neon-cyan);
+                box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.2), 0 0 20px rgba(0,212,255,0.1);
+            }
+            /* ── Filter Pills ── */
+            .filter-row {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 10px;
+            }
+            .filter-row-label {
+                font-size: 9px;
+                font-weight: 800;
+                color: #475569;
+                letter-spacing: 0.15em;
+                text-transform: capitalize;
+                align-self: center;
+                margin-right: 2px;
+            }
             .filter-pill {
-                padding: 6px 16px;
+                padding: 7px 16px;
                 border-radius: 20px;
-                font-size: 0.75rem;
+                font-size: 0.72rem;
                 font-weight: 700;
                 letter-spacing: 0.1em;
-                text-transform: uppercase;
+                text-transform: capitalize;
                 cursor: pointer;
-                border: 1px solid var(--metal-highlight);
+                border: 1.5px solid var(--metal-highlight);
                 background: #0d1117;
                 color: #94A3B8;
                 transition: all 0.2s ease;
                 white-space: nowrap;
+                font-family: 'Rajdhani', sans-serif;
             }
             .filter-pill.active {
                 background: var(--neon-cyan-dim);
                 border-color: var(--neon-cyan);
                 color: var(--neon-cyan);
-                box-shadow: 0 0 8px var(--neon-cyan-dim);
+                box-shadow: 0 0 10px var(--neon-cyan-dim);
             }
+            .filter-pill:hover:not(.active) {
+                border-color: #5a6a7a;
+                color: #CBD5E1;
+            }
+            /* ── Division Header ── */
+            .division-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 24px 0 12px;
+                padding: 0 4px;
+            }
+            .division-header-line {
+                flex: 1;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, var(--metal-highlight));
+            }
+            .division-header-line.left {
+                background: linear-gradient(90deg, var(--metal-highlight), transparent);
+            }
+            .division-header-label {
+                font-size: 10px;
+                font-weight: 800;
+                color: #475569;
+                letter-spacing: 0.18em;
+                text-transform: capitalize;
+                font-family: 'Rajdhani', sans-serif;
+                white-space: nowrap;
+            }
+            /* ── Pipe Connectors ── */
             .pipe-connector {
                 height: 12px;
                 background: linear-gradient(90deg, var(--metal-highlight) 0%, var(--metal-light) 50%, var(--metal-highlight) 100%);
@@ -651,77 +1019,16 @@ export default function TeamsPage({
                 transform: translateY(-50%);
                 box-shadow: 0 2px 4px rgba(0,0,0,0.5);
             }
-            .scroll-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
+            /* ── Skeleton ── */
+            @keyframes shimmer {
+                0% { opacity: 0.3; }
+                50% { opacity: 0.6; }
+                100% { opacity: 0.3; }
             }
-            .filters-container {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                padding-bottom: 4px;
+            .skeleton-card {
+                animation: shimmer 1.5s ease-in-out infinite;
             }
-            @media (min-width: 768px) {
-                .filters-container {
-                    flex-direction: row;
-                    align-items: center;
-                    overflow-x: auto;
-                }
-            }
-            .filter-group {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            @media (min-width: 768px) {
-                .filter-group {
-                    flex-wrap: nowrap;
-                    padding-right: 16px;
-                    border-right: 1px solid var(--metal-highlight);
-                }
-                .filter-group.sort-group {
-                    border-right: none;
-                    padding-right: 0;
-                }
-            }
-            .metal-select {
-                background: #0d1117;
-                border: 1px solid var(--metal-highlight);
-                color: var(--neon-cyan);
-                padding: 10px 16px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 800;
-                outline: none;
-                flex: 1;
-                appearance: none;
-                background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300D4FF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-                background-repeat: no-repeat;
-                background-position: right 12px top 50%;
-                background-size: 10px auto;
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-            }
-            .metal-select:focus {
-                border-color: var(--neon-cyan);
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 10px var(--neon-cyan-glow);
-            }
-            @media (min-width: 768px) {
-                .metal-select {
-                    width: auto;
-                    flex: none;
-                    padding: 4px 28px 4px 8px;
-                    font-size: 11px;
-                }
-                .filter-pill {
-                    flex: none;
-                }
-            }
-            .filter-pill {
-                flex: 1;
-                text-align: center;
-                min-width: 60px;
-            }
-        `,
+          `,
         }}
       />
 
@@ -749,7 +1056,6 @@ export default function TeamsPage({
         <MlbSubNav />
 
         <main
-          className="feed-layout"
           style={{
             display: 'flex',
             gap: 0,
@@ -759,7 +1065,6 @@ export default function TeamsPage({
           }}
         >
           <div
-            className="feed-column"
             style={{ width: '100%', maxWidth: 680, margin: '0 auto', boxSizing: 'border-box' }}
           >
             {/* HUD Terminal Header */}
@@ -791,7 +1096,7 @@ export default function TeamsPage({
                       fontWeight: 800,
                       textDecoration: 'none',
                       letterSpacing: '0.15em',
-                      textTransform: 'uppercase',
+                      textTransform: 'capitalize',
                       marginBottom: 12,
                     }}
                   >
@@ -804,7 +1109,7 @@ export default function TeamsPage({
                       fontWeight: 900,
                       fontFamily: "'Rajdhani', sans-serif",
                       letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
+                      textTransform: 'capitalize',
                     }}
                   >
                     CLUB{' '}
@@ -814,7 +1119,7 @@ export default function TeamsPage({
                         textShadow: '0 0 15px var(--neon-cyan-glow)',
                       }}
                     >
-                      TERMINAL
+                      Terminal
                     </span>
                   </h1>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -847,7 +1152,7 @@ export default function TeamsPage({
                           opacity: 0.8,
                         }}
                       >
-                        SYNCING
+                        Syncing
                       </span>
                     )}
                   </div>
@@ -869,7 +1174,7 @@ export default function TeamsPage({
                       border: `1px solid ${globalEdgeActive ? 'var(--neon-cyan)' : '#3d4f5f'}`,
                     }}
                   >
-                    MLB EDGE
+                    Mlb Edge
                     <div
                       role="img"
                       aria-label={globalEdgeActive ? 'MLB edge active' : 'No active MLB edge'}
@@ -934,13 +1239,12 @@ export default function TeamsPage({
               </div>
             </div>
 
-            {/* Pipe Connectors connecting Header to Body */}
+            {/* Pipe Connectors */}
             <div style={{ position: 'relative', height: 24, marginTop: -6 }}>
               <div className="pipe-connector">
                 <div className="pipe-joint" style={{ left: '-2px' }}></div>
                 <div className="pipe-joint" style={{ right: '-2px' }}></div>
               </div>
-              {/* Vertical feed lines */}
               <div
                 style={{
                   position: 'absolute',
@@ -969,113 +1273,54 @@ export default function TeamsPage({
               {/* Tactical Search Console */}
               <div
                 style={{
-                  background: 'var(--metal-base)',
-                  padding: 16,
+                  background: 'linear-gradient(180deg, #0d1117 0%, #080d14 100%)',
+                  padding: '16px',
                   borderRadius: 12,
-                  border: '1px solid var(--metal-highlight)',
+                  border: '1.5px solid var(--metal-highlight)',
                   marginBottom: 24,
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                 }}
               >
-                <div style={{ position: 'relative', marginBottom: 16 }}>
-                  <div
-                    style={{ position: 'absolute', left: 14, top: 12, color: 'var(--neon-cyan)' }}
-                  >
-                    <Search size={18} />
+                {/* Search Input */}
+                <div className="search-container">
+                  <div className="search-icon-wrap">
+                    <Search size={20} />
                   </div>
                   <input
                     type="text"
+                    id="team-search"
                     aria-label="Search teams by name"
-                    placeholder="INITIATE SEARCH PROTOCOL..."
+                    placeholder="SEARCH TEAMS..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="metal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 12px 12px 42px',
-                      fontSize: 14,
-                      boxSizing: 'border-box',
-                    }}
+                    className="metal-search"
                   />
                 </div>
 
-                {/* Filters and Sorting */}
-                <div className="filters-container scroll-hide">
-                  <div className="filter-group">
+                {/* League Filter */}
+                <div className="filter-row">
+                  <span className="filter-row-label">LEAGUE:</span>
+                  {(['ALL', 'AL', 'NL'] as const).map((l) => (
                     <button
-                      onClick={() => setFilterLeague('ALL')}
-                      className={`filter-pill ${filterLeague === 'ALL' ? 'active' : ''}`}
+                      key={l}
+                      onClick={() => setFilterLeague(l)}
+                      className={`filter-pill ${filterLeague === l ? 'active' : ''}`}
                     >
-                      ALL
+                      {l}
                     </button>
-                    <button
-                      onClick={() => setFilterLeague('AL')}
-                      className={`filter-pill ${filterLeague === 'AL' ? 'active' : ''}`}
-                    >
-                      AL
-                    </button>
-                    <button
-                      onClick={() => setFilterLeague('NL')}
-                      className={`filter-pill ${filterLeague === 'NL' ? 'active' : ''}`}
-                    >
-                      NL
-                    </button>
+                  ))}
+                  <div style={{ marginLeft: 8, borderLeft: '1px solid var(--metal-highlight)', paddingLeft: 12 }}>
+                    <span className="filter-row-label">DIV:</span>
                   </div>
-                  <div className="filter-group">
+                  {(['ALL', 'East', 'Central', 'West'] as const).map((d) => (
                     <button
-                      onClick={() => setFilterDivision('ALL')}
-                      className={`filter-pill ${filterDivision === 'ALL' ? 'active' : ''}`}
+                      key={d}
+                      onClick={() => setFilterDivision(d)}
+                      className={`filter-pill ${filterDivision === d ? 'active' : ''}`}
                     >
-                      ALL
+                      {d === 'ALL' ? 'ALL' : d === 'Central' ? 'CEN' : d.toUpperCase()}
                     </button>
-                    <button
-                      onClick={() => setFilterDivision('East')}
-                      className={`filter-pill ${filterDivision === 'East' ? 'active' : ''}`}
-                    >
-                      EAST
-                    </button>
-                    <button
-                      onClick={() => setFilterDivision('Central')}
-                      className={`filter-pill ${filterDivision === 'Central' ? 'active' : ''}`}
-                    >
-                      CEN
-                    </button>
-                    <button
-                      onClick={() => setFilterDivision('West')}
-                      className={`filter-pill ${filterDivision === 'West' ? 'active' : ''}`}
-                    >
-                      WEST
-                    </button>
-                  </div>
-                  <div
-                    className="filter-group sort-group"
-                    style={{ alignItems: 'center', width: '100%' }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        color: '#64748B',
-                        display: 'flex',
-                        alignItems: 'center',
-                        letterSpacing: '0.1em',
-                      }}
-                    >
-                      SORT:
-                    </span>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="metal-select"
-                      aria-label="Sort teams by"
-                    >
-                      <option value="SCORE">BET SCORE</option>
-                      <option value="NAME">NAME</option>
-                      <option value="WRC">wRC+</option>
-                      <option value="OPS">OPS</option>
-                      <option value="FIP">FIP</option>
-                    </select>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -1089,8 +1334,8 @@ export default function TeamsPage({
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div
                       key={i}
-                      className="metal-frame animate-pulse"
-                      style={{ height: 120, borderRadius: 12, opacity: 0.4 }}
+                      className="metal-frame skeleton-card"
+                      style={{ height: 140, borderRadius: 12, opacity: 0.4 }}
                     />
                   ))}
                 </div>
@@ -1124,13 +1369,33 @@ export default function TeamsPage({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    NO TARGETS ACQUIRED
+                    No Targets Acquired
                   </div>
                   <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
-                    ADJUST FILTER PARAMETERS TO LOCATE SQUADRONS.
+                    Adjust Filter Parameters To Locate Squadrons.
                   </div>
                 </div>
+              ) : isGrouped ? (
+                // Division-grouped layout
+                <div>
+                  {divisionGroups.map(({ div, label, teams }) => (
+                    <div key={div}>
+                      {/* Division Header */}
+                      <div className="division-header">
+                        <div className="division-header-line left" />
+                        <span className="division-header-label">{label}</span>
+                        <div className="division-header-line" />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {teams.map((team: any) => (
+                          <TeamCardComponent key={team.team_id} team={team} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
+                // Flat list when searching
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {filteredTeams.map((team: any) => (
                     <TeamCardComponent key={team.team_id} team={team} />

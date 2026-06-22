@@ -78,35 +78,35 @@ const GameCard = ({ game }: any) => {
           <div className="flex flex-col gap-2 w-full">
             <div className="flex justify-between items-center w-full">
               <span
-                className="text-[14px] font-extrabold text-white tracking-wider"
+                className="text-[18px] font-extrabold text-white tracking-wider"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 {game.away_team_abbr || getTeamAbbr(game.away_team) || 'Away'}
               </span>
-              <span className="text-[16px] font-extrabold text-white">
+              <span className="text-[21px] font-extrabold text-white">
                 {game.away_score != null ? game.away_score : '-'}
               </span>
             </div>
             <div className="flex justify-between items-center w-full">
               <span
-                className="text-[14px] font-extrabold text-white tracking-wider"
+                className="text-[18px] font-extrabold text-white tracking-wider"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 {game.home_team_abbr || getTeamAbbr(game.home_team) || 'Home'}
               </span>
-              <span className="text-[16px] font-extrabold text-white">
+              <span className="text-[21px] font-extrabold text-white">
                 {game.home_score != null ? game.home_score : '-'}
               </span>
             </div>
           </div>
           <div className="flex flex-col items-end justify-center w-[25%] bg-[#0f1520] border-l border-[#2a3a4a] px-3">
             <div
-              className={`text-[11px] font-bold tracking-widest uppercase mb-1 ${isLive ? 'text-[#00D4FF]' : isFinal ? 'text-slate-400' : 'text-[#00D4FF]'}`}
+              className={`text-[14px] font-bold tracking-widest capitalize mb-1 ${isLive ? 'text-[#00D4FF]' : isFinal ? 'text-slate-400' : 'text-[#00D4FF]'}`}
             >
               {game.status || 'Scheduled'}
             </div>
             <div
-              className="text-[14px] font-extrabold text-white"
+              className="text-[18px] font-extrabold text-white"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {isLive
@@ -127,7 +127,7 @@ const GameCard = ({ game }: any) => {
           <div className="flex gap-4 flex-wrap w-full items-center justify-between">
             <div className="flex flex-col">
               <span
-                className={`text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-1 ${statusColor}`}
+                className={`text-[14px] font-extrabold capitalize tracking-widest flex items-center gap-1 ${statusColor}`}
               >
                 {isLive && <Radio size={10} className="animate-pulse" />}
                 {game.status || 'Scheduled'}
@@ -137,7 +137,7 @@ const GameCard = ({ game }: any) => {
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                 Inning / Time
               </span>
-              <span className="text-[11px] font-extrabold text-slate-300 tracking-wider">
+              <span className="text-[14px] font-extrabold text-slate-300 tracking-wider">
                 {isLive
                   ? `${game.inning_state || ''} ${game.inning || ''}`
                   : isFinal
@@ -191,13 +191,13 @@ export default function TrackerPage() {
               style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
             />
             <h2
-              className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+              className="text-[31px] font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               System Error
             </h2>
             <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
-              Failed to load live data. Please try again later.
+              Failed To Load Live Data. Please Try Again Later.
             </p>
           </div>
         </main>
@@ -247,12 +247,12 @@ export default function TrackerPage() {
         <div>
           <Link
             href="/hub/MLB-ANALYTICS"
-            className="inline-flex items-center gap-1 text-[#22C55E] text-[10px] font-extrabold no-underline tracking-widest uppercase hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 text-[#22C55E] text-[13px] font-extrabold no-underline tracking-widest capitalize hover:text-white transition-colors"
           >
-            <ArrowLeft size={14} /> DASHBOARD
+            <ArrowLeft size={14} /> Dashboard
           </Link>
           <h1
-            className="m-0 mt-2 mb-0.5 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase"
+            className="m-0 mt-2 mb-0.5 text-[31px] md:text-[39px] font-extrabold text-white tracking-widest capitalize"
             style={{
               fontFamily: '"Rajdhani", sans-serif',
               textShadow: '0 0 10px rgba(255,255,255,0.2)',
@@ -274,7 +274,7 @@ export default function TrackerPage() {
           <div
             className={`text-[10px] font-extrabold tracking-widest uppercase ${liveCount > 0 ? 'text-[#22C55E]' : 'text-slate-500'}`}
           >
-            {liveCount > 0 ? 'GAMES LIVE' : 'NO GAMES LIVE'}
+            {liveCount > 0 ? 'Games Live' : 'No Games Live'}
           </div>
         </div>
       </div>
@@ -306,7 +306,7 @@ export default function TrackerPage() {
                     navigator.vibrate(15);
                   } catch (e) {}
               }}
-              className={`px-5 py-2 rounded-sm border-[2px] text-[10px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all uppercase ${
+              className={`px-5 py-2 rounded-sm border-[2px] text-[13px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all capitalize ${
                 filter === f
                   ? 'bg-[#1a2332] text-[#22C55E] border-[#22C55E] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
                   : 'bg-[#0d1117] text-slate-400 border-[#3d4f5f] hover:border-[#5a6a7a] hover:text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
@@ -321,7 +321,7 @@ export default function TrackerPage() {
           <div className="text-center py-20 bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
             <Loader2 className="w-10 h-10 animate-spin text-[#22C55E] mx-auto mb-4" />
             <div className="text-[13px] font-extrabold text-[#22C55E] tracking-widest uppercase animate-pulse">
-              CONNECTING TO FEED...
+              Connecting To Feed...
             </div>
           </div>
         ) : filteredGames.length === 0 ? (
@@ -347,7 +347,7 @@ export default function TrackerPage() {
         <div className="mt-8 mb-4 p-4 bg-[#1a2332] border border-[#3d4f5f] rounded-sm text-[10px] font-bold tracking-wide text-slate-400 text-center leading-relaxed shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
           <strong className="text-[#22C55E]">Live Auto-Refresh Active.</strong>
           <br />
-          <span className="uppercase text-slate-300">Data Feed</span> provided by MLB Stats API via
+          <span className="uppercase text-slate-300">Data Feed</span> Provided By MLB Stats API Via
           Supabase `raw_games`.
         </div>
       </div>
