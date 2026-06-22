@@ -1,4 +1,3 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
 const CURRENT_SEASON = new Date().getFullYear();
@@ -11,20 +10,25 @@ const getMainSupabase = () =>
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: Request) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const sortBy = (req.query.sort as string) || 'due_score';
-  const filterStatus = req.query.status as string | undefined;
-  const limit = Math.min(parseInt((req.query.limit as string) || '500', 10), 1000);
+  const url = new URL(req.url);
+  const sortBy = url.searchParams.get('sort') || 'due_score';
+  const filterStatus = url.searchParams.get('status');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '500', 10), 1000);
 
   try {
     const supabase = getMainSupabase();
     // Exclude 'ghost' players who are no longer active/refreshed
     const FORTY_EIGHT_HOURS_AGO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    let query = supabase.from('mlb_hr_cache').select('*').eq('season', CURRENT_SEASON).gte('refreshed_at', FORTY_EIGHT_HOURS_AGO);
+    let query = supabase
+      .from('mlb_hr_cache')
+      .select('player_id, full_name, team, status, hr, games_played, games_since_hr, games_per_hr, due_score, matchup_due_score, refreshed_at, season')
+      .eq('season', CURRENT_SEASON)
+      .gte('refreshed_at', FORTY_EIGHT_HOURS_AGO);
 
     if (filterStatus && filterStatus !== 'ALL') {
       query = query.eq('status', filterStatus.toUpperCase());
@@ -79,19 +83,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const STALE_AFTER_MS = 36 * 60 * 60 * 1000; // 36h (daily cron + buffer)
     const stale = updatedAt ? Date.now() - new Date(updatedAt).getTime() > STALE_AFTER_MS : true;
 
-    return res.status(200).json({
-      players: rows,
-      total: rows.length,
-      season: CURRENT_SEASON,
-      updatedAt,
-      stale,
-      source: 'cache',
-    });
+    return new Response(
+      JSON.stringify({
+        players: rows,
+        total: rows.length,
+        season: CURRENT_SEASON,
+        updatedAt,
+        stale,
+        source: 'cache',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (err: any) {
     console.error('[hr-tracker] Fatal error:', err);
-    return res.status(500).json({
-      error: 'Failed to fetch HR tracker data',
-      players: [],
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to fetch HR tracker data',
+        players: [],
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
+
+export const config = {
+  runtime: 'edge',
+};
