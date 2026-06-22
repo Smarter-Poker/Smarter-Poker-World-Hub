@@ -29,6 +29,8 @@ export interface PlayerProfile {
   player_id: number;
   full_name: string;
   team_id?: number;
+  player_class?: string;
+  position?: string;
   // hitter
   avg?: number;
   hr?: number;
@@ -173,6 +175,40 @@ const CardStat = ({ label, value, lead }: { label: string; value: string; lead?:
   </span>
 );
 
+// Sort options per tab. asc=true for "lower is better" stats (ERA/WHIP).
+const SORT_FIELDS: Record<string, { field: string; asc: boolean; label: string }> = {
+  wrc_plus: { field: 'wrc_plus', asc: false, label: 'wRC+' },
+  avg: { field: 'avg', asc: false, label: 'AVG' },
+  hr: { field: 'hr', asc: false, label: 'HR' },
+  rbi: { field: 'rbi', asc: false, label: 'RBI' },
+  ops: { field: 'ops', asc: false, label: 'OPS' },
+  sb: { field: 'sb', asc: false, label: 'SB' },
+  k: { field: 'k', asc: false, label: 'Strikeouts' },
+  era: { field: 'era', asc: true, label: 'ERA' },
+  w: { field: 'w', asc: false, label: 'Wins' },
+  sv: { field: 'sv', asc: false, label: 'Saves' },
+  whip: { field: 'whip', asc: true, label: 'WHIP' },
+  ip: { field: 'ip', asc: false, label: 'Innings' },
+};
+const HITTER_SORTS = ['wrc_plus', 'avg', 'hr', 'rbi', 'ops', 'sb'];
+const PITCHER_SORTS = ['k', 'era', 'w', 'sv', 'whip', 'ip'];
+const POSITIONS = ['All', 'C', '1B', '2B', '3B', 'SS', 'OF', 'DH'];
+
+// Compact role chip shown on each card.
+const cardRole = (player: PlayerProfile, type: 'hitters' | 'pitchers'): string | null => {
+  if (type === 'pitchers') {
+    const gs = Number(player.gs) || 0;
+    const g = Number(player.g) || 0;
+    const sv = Number(player.sv) || 0;
+    if (g > 0 && gs / g >= 0.5) return 'SP';
+    if (sv >= 10) return 'CL';
+    return 'RP';
+  }
+  if (player.player_class === 'regular') return 'Starter';
+  if (player.player_class === 'bench') return 'Backup';
+  return null;
+};
+
 const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
   const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
   const [imgSrc, setImgSrc] = useState(headshotUrl);
@@ -225,6 +261,16 @@ const PlayerCard = ({ player, type }: { player: PlayerProfile; type: 'hitters' |
             >
               {player.full_name}
             </span>
+            {cardRole(player, type) && (
+              <span
+                className="inline-block w-fit mt-0.5 bg-[#00D4FF]/10 border border-[#00D4FF]/40 text-[#00D4FF] text-[11px] font-extrabold tracking-widest px-1.5 py-0.5 rounded"
+                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                title={type === 'pitchers' ? 'Pitching role' : 'Lineup role'}
+              >
+                {cardRole(player, type)}
+                {type !== 'pitchers' && player.position ? ` · ${player.position}` : ''}
+              </span>
+            )}
             {type === 'pitchers' ? (
               <>
                 <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
@@ -398,6 +444,18 @@ export default function PlayersPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState('Regular Hitters');
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState('default');
+  const [posFilter, setPosFilter] = useState('All');
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // Reset paging + sort when the view changes.
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [activeTab, selectedTeam, searchQuery, sortKey, posFilter]);
+  useEffect(() => {
+    setSortKey('default');
+    setPosFilter('All');
+  }, [activeTab]);
 
   // Build a map of teamId -> TeamStanding for quick lookup
   const standingsMap = useMemo<Map<number, TeamStanding>>(() => {
@@ -428,6 +486,14 @@ export default function PlayersPage() {
       list = list.filter((p: PlayerProfile) => p.team_id === selectedTeam);
     }
 
+    // Position filter (hitter tabs only; OF groups LF/CF/RF/OF).
+    if (activeTab !== 'Pitchers' && posFilter !== 'All') {
+      list = list.filter((p: PlayerProfile) => {
+        const pos = (p.position || '').toUpperCase();
+        return posFilter === 'OF' ? ['LF', 'CF', 'RF', 'OF'].includes(pos) : pos === posFilter;
+      });
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.trim();
       const lowerQuery = query.toLowerCase();
@@ -446,12 +512,23 @@ export default function PlayersPage() {
       });
     }
 
-    return list;
-  }, [hitters, pitchers, activeTab, searchQuery, selectedTeam]);
+    // Explicit sort overrides the tab's default ranking.
+    if (sortKey !== 'default' && SORT_FIELDS[sortKey]) {
+      const { field, asc } = SORT_FIELDS[sortKey];
+      list = list.slice().sort((a, b) => {
+        const av = (a as any)[field];
+        const bv = (b as any)[field];
+        const an = av == null || isNaN(Number(av)) ? (asc ? Infinity : -Infinity) : Number(av);
+        const bn = bv == null || isNaN(Number(bv)) ? (asc ? Infinity : -Infinity) : Number(bv);
+        return asc ? an - bn : bn - an;
+      });
+    }
 
-  const DISPLAY_LIMIT = 50;
-  const isCapped = !selectedTeam && filteredPlayers.length > DISPLAY_LIMIT;
-  const visiblePlayers = isCapped ? filteredPlayers.slice(0, DISPLAY_LIMIT) : filteredPlayers;
+    return list;
+  }, [hitters, pitchers, activeTab, searchQuery, selectedTeam, posFilter, sortKey]);
+
+  const visiblePlayers = filteredPlayers.slice(0, visibleCount);
+  const canLoadMore = filteredPlayers.length > visibleCount;
   const suggestions = searchQuery.length >= 3 ? filteredPlayers.slice(0, 5) : [];
   // Distinct "feed returned nothing" state: data loaded successfully but both directories
   // are empty. Without this the user is silently dropped into the team selector and then
@@ -767,6 +844,53 @@ export default function PlayersPage() {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Sort + position controls */}
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <label
+                  className="text-slate-500 text-[12px] font-extrabold tracking-widest"
+                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                >
+                  Sort
+                </label>
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                  aria-label="Sort players"
+                  className="bg-[#0d1117] border border-[#3d4f5f] text-slate-200 text-[13px] font-bold rounded px-2 py-1 focus:outline-none focus:border-[#00D4FF]"
+                >
+                  <option value="default">Default</option>
+                  {(activeTab === 'Pitchers' ? PITCHER_SORTS : HITTER_SORTS).map((k) => (
+                    <option key={k} value={k}>
+                      {SORT_FIELDS[k].label}
+                    </option>
+                  ))}
+                </select>
+                {activeTab !== 'Pitchers' && (
+                  <>
+                    <label
+                      className="text-slate-500 text-[12px] font-extrabold tracking-widest ml-2"
+                      style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                    >
+                      Pos
+                    </label>
+                    <select
+                      value={posFilter}
+                      onChange={(e) => setPosFilter(e.target.value)}
+                      aria-label="Filter by position"
+                      className="bg-[#0d1117] border border-[#3d4f5f] text-slate-200 text-[13px] font-bold rounded px-2 py-1 focus:outline-none focus:border-[#00D4FF]"
+                    >
+                      {POSITIONS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                <span className="ml-auto text-slate-600 text-[12px] font-bold">
+                  {filteredPlayers.length} players
+                </span>
+              </div>
               {/* Selected team header always shows when a team is selected */}
               {selectedTeam && (
                 <div className="flex items-center gap-3 mb-4">
@@ -809,12 +933,15 @@ export default function PlayersPage() {
                     />
                   ))}
 
-                  {isCapped && (
-                    <div
-                      className="text-center py-6 pb-8 text-slate-500 font-extrabold text-[14px] tracking-widest"
-                      style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                    >
-                      Showing Top {DISPLAY_LIMIT} Results. Keep Typing To Refine Your Search.
+                  {canLoadMore && (
+                    <div className="text-center py-6 pb-8">
+                      <button
+                        onClick={() => setVisibleCount((c) => c + 50)}
+                        className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF]/50 px-6 py-2 rounded text-[14px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors"
+                        style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                      >
+                        Load More ({filteredPlayers.length - visibleCount} more)
+                      </button>
                     </div>
                   )}
                 </>

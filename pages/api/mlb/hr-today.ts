@@ -49,7 +49,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .select('player_id, full_name, team_id')
         .in('player_id', ids);
       if (dimErr) throw dimErr;
-      for (const d of dims || []) nameMap[(d as any).player_id] = { full_name: (d as any).full_name, team_id: (d as any).team_id };
+      for (const d of dims || [])
+        nameMap[(d as any).player_id] = {
+          full_name: (d as any).full_name,
+          team_id: (d as any).team_id,
+        };
     }
 
     const leaders = rows.map((r: any) => ({
