@@ -115,7 +115,7 @@ async function edgeHandler(req: Request) {
     const propsRes = await mlbDb
       .from('pred_props')
       .select(
-        'game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, rec, kelly_pct, result, pnl'
+        'game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, best_price_under, best_book_under, best_lines_under, rec, kelly_pct, result, pnl'
       )
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
@@ -433,13 +433,16 @@ async function edgeHandler(req: Request) {
       // price (derived from the market) for unders — an honest, price-shop-free
       // number reflecting only model-vs-market edge.
       const overPrice = p.best_price != null ? Number(p.best_price) : null;
-      // Unders have no stored offered price; estimate one from the no-vig market
-      // PLUS a typical per-side hold (~2.3 pts) so the score reflects a realistic
-      // (slightly worse than fair) price, never an optimistic no-vig one.
+      const underPrice = p.best_price_under != null ? Number(p.best_price_under) : null;
+      // Use the side-correct REAL offered price now that the engine stores both
+      // sides. Unders fall back to a vig-adjusted no-vig estimate only when a real
+      // under price is missing — so the displayed price/EV is honest either way.
       const price = isOver
         ? overPrice
-        : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
-      const priceIsReal = isOver && overPrice != null;
+        : underPrice != null
+          ? underPrice
+          : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
+      const priceIsReal = isOver ? overPrice != null : underPrice != null;
 
       // Canonical Bet Score (0-100) + tier — identical scale to every other surface.
       let bet_score: number | null = null;
@@ -489,8 +492,8 @@ async function edgeHandler(req: Request) {
         implied_prob: pWin,
         model_proj: p.proj_mean,
         market_novig_over: p.market_novig_over,
-        best_book: isOver ? p.best_book : null,
-        best_lines: isOver ? p.best_lines : null,
+        best_book: isOver ? p.best_book : (p.best_book_under ?? null),
+        best_lines: isOver ? p.best_lines : (p.best_lines_under ?? null),
         price_estimated: !priceIsReal,
         was_bet: /^BET/i.test(String(p.rec || '')),
         // Graded outcome — present on closed/stale slates.
