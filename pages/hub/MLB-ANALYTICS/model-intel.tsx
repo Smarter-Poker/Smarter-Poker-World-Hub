@@ -37,6 +37,25 @@ const PnLChart = dynamic(() => import('../../../src/components/mlb/PnLChart'), {
   ),
 });
 
+const ClvTrendChart = dynamic(() => import('../../../src/components/mlb/ClvTrendChart'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-[#00D4FF]" />
+    </div>
+  ),
+});
+
+const CalibrationChart = dynamic(() => import('../../../src/components/mlb/CalibrationChart'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-[#00D4FF]" />
+    </div>
+  ),
+});
+
+
 /* ─── formatting helpers ────────────────────────────────────────────────────── */
 
 const fmtInt = (v: any): string => {
@@ -355,6 +374,8 @@ export default function ModelIntelPage() {
   const markets = Array.isArray(data?.markets) ? data.markets : [];
   const betTypes = Array.isArray(data?.betTypes) ? data.betTypes : [];
   const tableData: any[] = data?.tableData || [];
+  const clvTrend: any[] = data?.clvTrend || [];
+  const calibration: any[] = data?.calibration || [];
 
   // ── Gate pass logic — all 4 thresholds required
   const isGatePassed =
@@ -993,6 +1014,7 @@ export default function ModelIntelPage() {
                     <th className="text-right font-bold px-3 py-3">Win%</th>
                     <th className="text-right font-bold px-3 py-3">ROI</th>
                     <th className="text-right font-bold px-3 py-3">CLV</th>
+                    <th className="text-right font-bold px-3 py-3">Trend</th>
                     <th className="text-right font-bold px-4 py-3">Trust</th>
                   </tr>
                 </thead>
@@ -1030,6 +1052,41 @@ export default function ModelIntelPage() {
                       >
                         {fmtClv(b.avg_clv)}
                       </td>
+                      {/* Trend sparkline */}
+                      <td className="text-right px-3 py-3">
+                        {Array.isArray(b.sparkline) && b.sparkline.length > 1 ? (
+                          <div style={{ width: 56, height: 24, display: 'inline-block' }}>
+                            <svg viewBox={`0 0 56 24`} width={56} height={24} style={{ overflow: 'visible' }}>
+                              {(() => {
+                                const pts = b.sparkline;
+                                const vals = pts.map((p: any) => p.clv);
+                                const minV = Math.min(...vals);
+                                const maxV = Math.max(...vals);
+                                const range = maxV - minV || 1;
+                                const last = vals[vals.length - 1];
+                                const color = last >= 0 ? '#00D4FF' : '#FF4444';
+                                const coords = pts.map((p: any, idx: number) => {
+                                  const x = (idx / (pts.length - 1)) * 54 + 1;
+                                  const y = 23 - ((p.clv - minV) / range) * 20;
+                                  return `${x},${y}`;
+                                });
+                                return (
+                                  <polyline
+                                    points={coords.join(' ')}
+                                    fill="none"
+                                    stroke={color}
+                                    strokeWidth="1.8"
+                                    strokeLinejoin="round"
+                                    strokeLinecap="round"
+                                  />
+                                );
+                              })()}
+                            </svg>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 text-[10px]">—</span>
+                        )}
+                      </td>
                       <td className="text-right px-4 py-3">
                         <TrustBadge status={b.status} scoreMult={b.score_mult} />
                       </td>
@@ -1044,6 +1101,37 @@ export default function ModelIntelPage() {
             </div>
           )}
         </div>
+
+        {/* ── CLV Trend ── */}
+        {clvTrend.length > 0 && (
+          <>
+            <SectionTitle>14-Day Rolling CLV Trend</SectionTitle>
+            <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
+              Rolling 14-Day Average Closing-Line Value. Sustained Positive Values Confirm Persistent
+              Edge; A Downtrend Is An Early Warning Signal Before ROI Catches Up.
+            </p>
+            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[240px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
+              role="img" aria-label="Rolling 14-day average closing-line value trend">
+              <ClvTrendChart data={clvTrend} />
+            </div>
+          </>
+        )}
+
+        {/* ── Calibration Curve ── */}
+        {calibration.length > 2 && (
+          <>
+            <SectionTitle>Calibration Curve</SectionTitle>
+            <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
+              Predicted Win Probability Vs. Actual Win Rate By Bucket. Dots On The Dashed Diagonal =
+              Perfect Calibration. Dot Size = Sample Volume. Cyan = Within 4%, Green =
+              Overperforming, Red = Underperforming.
+            </p>
+            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[300px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
+              role="img" aria-label="Model calibration curve: predicted probability vs actual win rate">
+              <CalibrationChart data={calibration} />
+            </div>
+          </>
+        )}
 
         {/* ── Methodology Glossary ── */}
         <SectionTitle>How To Read This</SectionTitle>
@@ -1067,6 +1155,17 @@ export default function ModelIntelPage() {
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Win Rate</span>{' '}
             &mdash; Percentage Of Graded Bets That Resulted In A Win. A Positive-EV Model Can Have A
             Win Rate Below 50% If Average Odds Are Long Enough.
+          </p>
+          <p>
+            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trend Sparkline</span>{' '}
+            &mdash; Mini Chart Showing The Last 8 Rolling-CLV Data Points For Each Bet Type.
+            Cyan = Trending Positive, Red = Trending Negative.
+          </p>
+          <p>
+            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Calibration Curve</span>{' '}
+            &mdash; Gold-Standard Model Evaluation. If The Model Is Well-Calibrated, A Bet Predicted
+            At 60% Wins Roughly 60% Of The Time. Systematic Deviation Reveals Overconfidence Or
+            Underconfidence In A Probability Range.
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trust</span> &mdash;
