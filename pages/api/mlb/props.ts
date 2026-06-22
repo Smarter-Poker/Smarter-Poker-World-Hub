@@ -64,7 +64,7 @@ function fairAmericanFromProb(prob: number | null): number | null {
     : Math.round((100 * (1 - prob)) / prob);
 }
 
-async function edgeHandler(req: Request) {
+export default async function edgeHandler(req: Request) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       status: 405,
@@ -584,5 +584,3 @@ async function edgeHandler(req: Request) {
 export const config = {
   runtime: 'edge',
 };
-
-export default edgeHandler;
