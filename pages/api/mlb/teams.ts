@@ -83,7 +83,7 @@ async function edgeHandler(req: Request) {
       aggFloor = d.toISOString().slice(0, 10);
     }
 
-    const [profRes, dimRes, aggRes, propsRes, hittersRes, pitchersRes] = await Promise.all([
+    const [profRes, dimRes, aggRes, propsRes, hittersRes, pitchersRes, defRes] = await Promise.all([
       mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
       mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
       aggFloor
@@ -106,6 +106,10 @@ async function edgeHandler(req: Request) {
         .gt('edge_pts', 0),
       mlbDb.from('v_hitter_profile').select('player_id, team_id'),
       mlbDb.from('v_pitcher_profile').select('player_id, team_id'),
+      // Team defense (OAA/DRS/Def) + bullpen ERA/WHIP — one row per team_id.
+      mlbDb
+        .from('v_mlb_team_defense_bullpen')
+        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip'),
     ]);
 
     if (profRes.error) {
@@ -138,6 +142,7 @@ async function edgeHandler(req: Request) {
       ['pred_props', propsRes],
       ['v_hitter_profile', hittersRes],
       ['v_pitcher_profile', pitchersRes],
+      ['v_mlb_team_defense_bullpen', defRes],
     ] as const) {
       if ((r as any)?.error)
         console.warn(`[API/MLB/Teams] ${label} query error:`, (r as any).error.message);
@@ -152,6 +157,12 @@ async function edgeHandler(req: Request) {
     const dimMap = new Map<string, any>();
     dimData.forEach((d: any) => {
       if (d.team_id != null) dimMap.set(String(d.team_id), d);
+    });
+
+    // Team defense + bullpen lookup (one row per team) from v_mlb_team_defense_bullpen.
+    const defMap = new Map<string, any>();
+    (defRes.data || []).forEach((r: any) => {
+      if (r.team_id != null) defMap.set(String(r.team_id), r);
     });
 
     // Advanced team stats are split across window_kinds: pitching rate stats live
@@ -172,7 +183,10 @@ async function edgeHandler(req: Request) {
       const season = aggByTeamWindow.get(`${teamId}|season`);
       const hit = aggByTeamWindow.get(`${teamId}|fg_hitting`);
       const pit = aggByTeamWindow.get(`${teamId}|fg_pitching`);
-      if (!season && !hit && !pit) return null;
+      const def = defMap.get(teamId) || {};
+      const hasDef =
+        def.oaa != null || def.def != null || def.drs != null || def.bullpen_era != null;
+      if (!season && !hit && !pit && !hasDef) return null;
       return {
         era: aggNum(pit?.era),
         fip: aggNum(pit?.fip),
@@ -188,10 +202,13 @@ async function edgeHandler(req: Request) {
         woba: aggNum(season?.woba ?? hit?.woba),
         hitting_war: aggNum(season?.hitting_war ?? hit?.hitting_war),
         pitching_war: aggNum(pit?.pitching_war),
-        def: aggNum(season?.def),
+        // Defense + bullpen now sourced from v_mlb_team_defense_bullpen (agg_team cols are NULL).
+        def: aggNum(def.def) ?? null,
         uzr: aggNum(season?.uzr),
-        drs: aggNum(season?.drs),
-        oaa: aggNum(season?.oaa),
+        drs: aggNum(def.drs) ?? null,
+        oaa: aggNum(def.oaa) ?? null,
+        bullpen_era: aggNum(def.bullpen_era) ?? null,
+        bullpen_whip: aggNum(def.bullpen_whip) ?? null,
         as_of: season?.as_of || pit?.as_of || hit?.as_of || null,
       };
     };
