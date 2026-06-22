@@ -594,7 +594,7 @@ export default function HRTrackerPage() {
               >
                 Most Due for a Home Run
               </h2>
-              <div className="flex flex-nowrap overflow-x-auto snap-x md:grid md:grid-cols-5 gap-3 px-4 md:px-0 pb-4 md:pb-0">
+              <div className="flex flex-nowrap overflow-x-auto snap-x md:grid md:grid-cols-5 gap-3 -mx-4 px-4 md:mx-0 md:px-0 pb-4 md:pb-0">
                 {spotlight.map((p, idx) => {
                   const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.RECENT;
                   return (
