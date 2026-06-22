@@ -40,14 +40,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const mlbDb = getMlbSupabase();
 
-    // Timeout protection for the RPC
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Database Timeout')), 8000)
-    );
+    let timeoutId: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
+    });
 
     const rpcPromise = mlbDb.rpc('get_status_dashboard').maybeSingle();
 
-    const { data, error: rpcError } = (await Promise.race([rpcPromise, timeoutPromise])) as any;
+    let data, rpcError;
+    try {
+      const result = (await Promise.race([rpcPromise, timeoutPromise])) as any;
+      data = result?.data;
+      rpcError = result?.error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
 
     if (rpcError) throw rpcError;
 

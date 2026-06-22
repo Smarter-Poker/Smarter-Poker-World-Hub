@@ -37,12 +37,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Only fetch alerts from the last 2 hours to avoid spamming historical alerts
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
-    const { data: alerts, error: alertsError } = await mlbDb
+    let timeoutId: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
+    });
+
+    const queryPromise = mlbDb
       .from('alert_log')
       .select('id, alert_type, message, created_at')
       .eq('resolved', false)
       .gte('created_at', twoHoursAgo)
       .limit(100);
+
+    let alerts, alertsError;
+    try {
+      const result = (await Promise.race([queryPromise, timeoutPromise])) as any;
+      alerts = result?.data;
+      alertsError = result?.error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
 
     if (alertsError) throw alertsError;
     if (!alerts || alerts.length === 0) {
@@ -58,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .select('data')
       .eq('user_id', localUser.id)
       .eq('type', 'system')
-      .in('data->>alert_id', alertIds);
+      .in('data->>alert_id', alertIds.map(String));
 
     if (notifError) throw notifError;
 

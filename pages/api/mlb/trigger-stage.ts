@@ -18,6 +18,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Stage is required' });
   }
 
+  const STAGE_ORDER = ['predict', 'push', 'grade', 'grade_props', 'track', 'alert', 'export'];
+  if (!STAGE_ORDER.includes(stage)) {
+    return res.status(400).json({ error: 'Invalid stage' });
+  }
+
   try {
     const mainDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { user: localUser } = await getServerUserWithFallback(req, mainDb);
@@ -36,12 +41,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const mlbDb = getMlbSupabase();
     
+    let timeoutId: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
+    });
+
     // 1. Check for existing pending or running stage
-    const { data: existingRuns, error: checkError } = await mlbDb
+    const checkPromise = mlbDb
       .from('pipeline_runs')
       .select('id, status')
       .eq('stage', stage)
       .in('status', ['pending', 'running']);
+
+    let existingRuns, checkError;
+    try {
+      const result = (await Promise.race([checkPromise, timeoutPromise])) as any;
+      existingRuns = result?.data;
+      checkError = result?.error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
 
     if (checkError) {
       console.error('Trigger Stage DB Check Error:', checkError);
@@ -53,13 +72,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 2. Insert new pending run
-    const { error: insertError } = await mlbDb.from('pipeline_runs').insert({
+    let insertTimeoutId: NodeJS.Timeout | undefined;
+    const insertTimeoutPromise = new Promise((_, reject) => {
+      insertTimeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
+    });
+    
+    const insertPromise = mlbDb.from('pipeline_runs').insert({
       stage: stage,
       step: stage,
       status: 'pending',
       run_ts: new Date().toISOString(),
       notes: `Manually triggered by user ${localUser.id}`
     });
+
+    let insertError;
+    try {
+      const result = (await Promise.race([insertPromise, insertTimeoutPromise])) as any;
+      insertError = result?.error;
+    } finally {
+      if (insertTimeoutId) clearTimeout(insertTimeoutId);
+    }
 
     if (insertError) {
       console.error(`[API/MLB/Trigger] Database Error triggering stage ${stage}:`, insertError);
