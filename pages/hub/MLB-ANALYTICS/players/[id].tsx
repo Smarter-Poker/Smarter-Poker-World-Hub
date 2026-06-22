@@ -427,8 +427,12 @@ export default function PlayerProfilePage() {
     ['Worst Park', 'worst_park_woba'],
   ];
   // Show only splits with a real, non-zero wOBA — a 0 means no/tiny sample, not a skill signal.
-  const sitTiles = situational ? SIT_KEYS.filter(([, k]) => situational[k] != null && Number(situational[k]) > 0) : [];
-  const tendTiles = tendencies ? TEND_KEYS.filter(([, k]) => tendencies[k] != null && Number(tendencies[k]) > 0) : [];
+  const sitTiles = situational
+    ? SIT_KEYS.filter(([, k]) => situational[k] != null && Number(situational[k]) > 0)
+    : [];
+  const tendTiles = tendencies
+    ? TEND_KEYS.filter(([, k]) => tendencies[k] != null && Number(tendencies[k]) > 0)
+    : [];
 
   const roleLabel: string | null = (() => {
     if (!player) return null;

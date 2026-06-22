@@ -952,30 +952,28 @@ export default function PlayersPage() {
                   )}
                 </>
               ) : (
-                (
-                  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center mt-4">
-                    <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
-                      <Search size={28} className="text-[#3d4f5f]" />
-                    </div>
-                    <div
-                      className="text-slate-400 font-extrabold text-[18px] tracking-widest mb-4"
-                      style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                    >
-                      {searchQuery
-                        ? `No Players Found Matching "${searchQuery}"`
-                        : 'No Players Found for This Team'}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSelectedTeam(null);
-                      }}
-                      className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[16px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
-                    >
-                      Clear Filters
-                    </button>
+                <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center flex flex-col items-center mt-4">
+                  <div className="w-16 h-16 rounded-full bg-[#0d1117] border-[2px] border-[#3d4f5f] flex items-center justify-center mb-4 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+                    <Search size={28} className="text-[#3d4f5f]" />
                   </div>
-                )
+                  <div
+                    className="text-slate-400 font-extrabold text-[18px] tracking-widest mb-4"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {searchQuery
+                      ? `No Players Found Matching "${searchQuery}"`
+                      : 'No Players Found for This Team'}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedTeam(null);
+                    }}
+                    className="bg-[#1a2332] text-[#00D4FF] border border-[#00D4FF] px-6 py-2 rounded-sm text-[16px] font-extrabold tracking-widest hover:bg-[#00D4FF]/10 transition-colors shadow-[0_0_10px_rgba(0,212,255,0.2)]"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               )}
             </div>
           )}
