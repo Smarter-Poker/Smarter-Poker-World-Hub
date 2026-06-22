@@ -9,6 +9,11 @@ Description=Smarter Poker Open Claw Cron Dispatcher
 After=network-online.target
 Wants=network-online.target
 Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub
+# Never stop trying to restart — this dispatcher must be 100% self-healing with
+# zero human intervention. StartLimitIntervalSec=0 disables the start-rate
+# limiter so systemd always brings it back (throttled by RestartSec), even after
+# repeated failures or a reboot.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -16,10 +21,9 @@ User=openclaw
 WorkingDirectory=/opt/openclaw
 EnvironmentFile=-/etc/openclaw.env
 ExecStart=/usr/bin/python3 /opt/openclaw/dispatcher.py
-Restart=on-failure
+# Restart on ANY exit (crash or clean exit), always.
+Restart=always
 RestartSec=15
-StartLimitBurst=5
-StartLimitIntervalSec=300
 MemoryMax=512M
 StandardOutput=journal
 StandardError=journal
