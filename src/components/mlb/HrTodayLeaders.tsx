@@ -128,11 +128,11 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
           </div>
         ) : failed ? (
           <div className="text-slate-500 text-[14px] font-bold text-center py-3">
-            Could not load today&apos;s home-run projections. Please try again shortly.
+            Could Not Load Today&apos;s Home-Run Projections. Please Try Again Shortly.
           </div>
         ) : leaders.length === 0 ? (
           <div className="text-slate-500 text-[14px] font-bold text-center py-3">
-            No home-run projections posted yet for today&apos;s slate.
+            No Home-Run Projections Posted Yet For Today&apos;s Slate.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

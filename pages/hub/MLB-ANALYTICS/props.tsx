@@ -113,25 +113,28 @@ const PITCHER_PROPS = new Set([
   'earned_runs',
   'outs_recorded',
   'runs_allowed',
-  'hits_allowed'
+  'hits_allowed',
 ]);
 
 function formatProp(raw: any): string {
   if (!raw || typeof raw !== 'string') return '';
   const r = raw.trim().toLowerCase();
   if (r === 'hrr') return 'H+R+RBI';
-  const val = r.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
-  return val.replace(/\bRbi\b/g, 'RBI')
-            .replace(/\bHr\b/g, 'HR')
-            .replace(/\bAvg\b/g, 'AVG')
-            .replace(/\bObp\b/g, 'OBP')
-            .replace(/\bSlg\b/g, 'SLG')
-            .replace(/\bEra\b/g, 'ERA')
-            .replace(/\bWhip\b/g, 'WHIP')
-            .replace(/\bFip\b/g, 'FIP')
-            .replace(/\bSo\b/g, 'SO')
-            .replace(/\bWrc\+\b/i, 'wRC+')
-            .replace(/\bWoba\b/i, 'wOBA');
+  const val = r
+    .replace(/_/g, ' ')
+    .replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+  return val
+    .replace(/\bRbi\b/g, 'RBI')
+    .replace(/\bHr\b/g, 'HR')
+    .replace(/\bAvg\b/g, 'AVG')
+    .replace(/\bObp\b/g, 'OBP')
+    .replace(/\bSlg\b/g, 'SLG')
+    .replace(/\bEra\b/g, 'ERA')
+    .replace(/\bWhip\b/g, 'WHIP')
+    .replace(/\bFip\b/g, 'FIP')
+    .replace(/\bSo\b/g, 'SO')
+    .replace(/\bWrc\+\b/i, 'wRC+')
+    .replace(/\bWoba\b/i, 'wOBA');
 }
 
 function formatOdds(n: any): string {
@@ -270,49 +273,51 @@ function StatPill({
 }
 
 // ── Header stat chip (slate-level totals) ──────────────────────────────────────
-const HeaderStat = React.memo(({
-  label,
-  value,
-  color,
-  border,
-  bg,
-  glow = false,
-}: {
-  label: string;
-  value: string | number;
-  color: string;
-  border: string;
-  bg: string;
-  glow?: boolean;
-}) => {
-  return (
-    <div
-      className="flex flex-col items-center justify-center px-3 py-1.5 rounded-sm border flex-shrink-0 min-w-[64px]"
-      style={{
-        background: bg,
-        borderColor: border,
-        boxShadow: glow ? `0 0 8px ${color}26` : undefined,
-      }}
-    >
-      <span
-        className="text-[13px] font-black tracking-widest uppercase leading-none mb-0.5"
-        style={{ color }}
-      >
-        {label}
-      </span>
-      <span
-        className="text-[26px] font-black leading-none"
+const HeaderStat = React.memo(
+  ({
+    label,
+    value,
+    color,
+    border,
+    bg,
+    glow = false,
+  }: {
+    label: string;
+    value: string | number;
+    color: string;
+    border: string;
+    bg: string;
+    glow?: boolean;
+  }) => {
+    return (
+      <div
+        className="flex flex-col items-center justify-center px-3 py-1.5 rounded-sm border flex-shrink-0 min-w-[64px]"
         style={{
-          fontFamily: "'Rajdhani', sans-serif",
-          color,
-          textShadow: glow ? `0 0 6px ${color}80` : undefined,
+          background: bg,
+          borderColor: border,
+          boxShadow: glow ? `0 0 8px ${color}26` : undefined,
         }}
       >
-        {value}
-      </span>
-    </div>
-  );
-});
+        <span
+          className="text-[13px] font-black tracking-widest uppercase leading-none mb-0.5"
+          style={{ color }}
+        >
+          {label}
+        </span>
+        <span
+          className="text-[26px] font-black leading-none"
+          style={{
+            fontFamily: "'Rajdhani', sans-serif",
+            color,
+            textShadow: glow ? `0 0 6px ${color}80` : undefined,
+          }}
+        >
+          {value}
+        </span>
+      </div>
+    );
+  }
+);
 
 // ── Result badge (closed/graded slates) ────────────────────────────────────────
 const ResultBadge = React.memo(({ result, pnl }: { result: string; pnl: number | null }) => {
@@ -387,7 +392,9 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {}
               }
               onClose();
             }}
@@ -656,243 +663,265 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 }
 
 // ── Prop Card ────────────────────────────────────────────────────────────────
-const PropCard = React.memo(({ prop, idx, isStale, onOpen }: { prop: any; idx: number; isStale?: boolean; onOpen: (p: any) => void }) => {
-  const ts = tierStyle(prop.bet_tier);
-  const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
-  const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
-  const isPitcher = isPitcherProp(prop);
-  const stats = prop.stats || {};
+const PropCard = React.memo(
+  ({
+    prop,
+    idx,
+    isStale,
+    onOpen,
+  }: {
+    prop: any;
+    idx: number;
+    isStale?: boolean;
+    onOpen: (p: any) => void;
+  }) => {
+    const ts = tierStyle(prop.bet_tier);
+    const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
+    const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
+    const isPitcher = isPitcherProp(prop);
+    const stats = prop.stats || {};
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(prop)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen(prop);
-        }
-      }}
-      className="relative bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-lg overflow-hidden transition-all hover:border-[#00D4FF] focus:border-[#00D4FF] focus:outline-none cursor-pointer group"
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.6)' }}
-    >
-      {/* Left tier accent bar */}
+    return (
       <div
-        className="absolute top-0 left-0 w-[3px] h-full rounded-r-sm opacity-60 group-hover:opacity-100 transition-opacity"
-        style={{ background: ts.color, boxShadow: `0 0 10px ${ts.glow}` }}
-      />
-      {/* Corner screws */}
-      <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] opacity-40" />
-      <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] opacity-40" />
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(prop)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(prop);
+          }
+        }}
+        className="relative bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-lg overflow-hidden transition-all hover:border-[#00D4FF] focus:border-[#00D4FF] focus:outline-none cursor-pointer group"
+        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.6)' }}
+      >
+        {/* Left tier accent bar */}
+        <div
+          className="absolute top-0 left-0 w-[3px] h-full rounded-r-sm opacity-60 group-hover:opacity-100 transition-opacity"
+          style={{ background: ts.color, boxShadow: `0 0 10px ${ts.glow}` }}
+        />
+        {/* Corner screws */}
+        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] opacity-40" />
+        <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#2a3a4a] border border-[#0a0a15] opacity-40" />
 
-      <div className="pl-4 pr-3 pt-3 pb-3">
-        {/* ── Top Row: Avatar + Name/Prop + Bet Score Badge ── */}
-        <div className="flex items-start gap-3 mb-3">
-          <PlayerAvatar
-            playerId={prop.player_id}
-            teamId={prop.team_id}
-            size={60}
-            tierColor={ts.color}
-          />
+        <div className="pl-4 pr-3 pt-3 pb-3">
+          {/* ── Top Row: Avatar + Name/Prop + Bet Score Badge ── */}
+          <div className="flex items-start gap-3 mb-3">
+            <PlayerAvatar
+              playerId={prop.player_id}
+              teamId={prop.team_id}
+              size={60}
+              tierColor={ts.color}
+            />
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              {prop.team_abbr && (
-                <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize bg-[#0a0a15] border border-[#2a3a4a] px-1.5 py-0 rounded-sm leading-5">
-                  {prop.team_abbr}
-                </span>
-              )}
-              <span
-                className="text-[26px] font-black text-white tracking-wide capitalize leading-tight"
-                style={{ fontFamily: "'Rajdhani', sans-serif" }}
-              >
-                {prop.player_name}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span
-                className="text-[17px] font-black tracking-wider uppercase"
-                style={{ color: '#00D4FF', textShadow: '0 0 6px rgba(0,212,255,0.4)' }}
-              >
-                {prop.line != null && (
-                  <span className="text-[#8a9ba8] mr-1.5">
-                    {isOver ? 'OVER' : 'UNDER'} {prop.line}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                {prop.team_abbr && (
+                  <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize bg-[#0a0a15] border border-[#2a3a4a] px-1.5 py-0 rounded-sm leading-5">
+                    {prop.team_abbr}
                   </span>
                 )}
-                {formatProp(prop.prop)}
-              </span>
-              {prop.kelly_pct != null && prop.kelly_pct > 0 && (
-                <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
-                  Kelly: {Number(prop.kelly_pct).toFixed(1)}%
+                <span
+                  className="text-[26px] font-black text-white tracking-wide capitalize leading-tight"
+                  style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                >
+                  {prop.player_name}
                 </span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span
+                  className="text-[17px] font-black tracking-wider uppercase"
+                  style={{ color: '#00D4FF', textShadow: '0 0 6px rgba(0,212,255,0.4)' }}
+                >
+                  {prop.line != null && (
+                    <span className="text-[#8a9ba8] mr-1.5">
+                      {isOver ? 'OVER' : 'UNDER'} {prop.line}
+                    </span>
+                  )}
+                  {formatProp(prop.prop)}
+                </span>
+                {prop.kelly_pct != null && prop.kelly_pct > 0 && (
+                  <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
+                    Kelly: {Number(prop.kelly_pct).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+
+              {/* Pitcher record inline */}
+              {isPitcher && (stats.w != null || stats.l != null || stats.era != null) && (
+                <div className="mt-1 text-[14px] font-black text-[#8a9ba8] tracking-wider">
+                  {stats.w != null && stats.l != null
+                    ? `${Math.round(stats.w)}-${Math.round(stats.l)}`
+                    : ''}
+                  {stats.era != null ? ` • ERA ${fmtStat(stats.era, 2)}` : ''}
+                  {stats.whip != null ? ` • WHIP ${fmtStat(stats.whip, 2)}` : ''}
+                </div>
               )}
             </div>
 
-            {/* Pitcher record inline */}
-            {isPitcher && (stats.w != null || stats.l != null || stats.era != null) && (
-              <div className="mt-1 text-[14px] font-black text-[#8a9ba8] tracking-wider">
-                {stats.w != null && stats.l != null
-                  ? `${Math.round(stats.w)}-${Math.round(stats.l)}`
-                  : ''}
-                {stats.era != null ? ` • ERA ${fmtStat(stats.era, 2)}` : ''}
-                {stats.whip != null ? ` • WHIP ${fmtStat(stats.whip, 2)}` : ''}
-              </div>
-            )}
-          </div>
-
-          {/* Canonical Bet Score badge — or the graded result on a closed slate */}
-          <div className="flex-shrink-0 ml-auto flex items-center gap-2.5">
-            <span className="text-[22px] font-black text-white leading-none tracking-tight">#{idx + 1}</span>
-            {prop.result ? (
-              <ResultBadge result={prop.result} pnl={prop.pnl} />
-            ) : isStale ? (
-              <span
-                className="inline-flex items-baseline gap-1.5 rounded-[5px] border px-2 py-0.5 border-[#3d4f5f] bg-[#0d1117] text-[#8a9ba8]"
-              >
-                <span className="text-[20px] font-black leading-none">Pending</span>
+            {/* Canonical Bet Score badge — or the graded result on a closed slate */}
+            <div className="flex-shrink-0 ml-auto flex items-center gap-2.5">
+              <span className="text-[22px] font-black text-white leading-none tracking-tight">
+                #{idx + 1}
               </span>
-            ) : (
-              <BetScoreBadge score={prop.bet_score} tierName={prop.bet_tier} pWin={prop.p_win} price={prop.price} pMarket={prop.p_market} />
-            )}
-          </div>
-        </div>
-
-        {/* ── Model Stats Row ── */}
-        <div className="flex gap-1.5 flex-wrap mb-2.5">
-          <StatPill
-            label={prop.price_estimated ? 'EST' : 'ODDS'}
-            value={formatOdds(prop.odds ?? prop.price)}
-            color="#ffffff"
-          />
-          {prop.model_proj != null && (
-            <StatPill label="Proj" value={fmtStat(prop.model_proj, 1)} color="#00D4FF" />
-          )}
-          {ev != null && (
-            <StatPill
-              label="EV%"
-              value={`${ev > 0 ? '+' : ''}${ev.toFixed(1)}`}
-              color={ev > 0 ? '#22C55E' : '#8a9ba8'}
-            />
-          )}
-          <StatPill
-            label="Win%"
-            value={
-              prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'
-            }
-            color="#e2e8f0"
-          />
-        </div>
-
-        {/* ── Odds Market Row ── */}
-        <div
-          className="flex items-center gap-2 mb-3 bg-[#0a0a15] border border-[#2a3a4a] rounded px-3 py-1.5 overflow-x-auto"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
-            Mkt Line
-          </span>
-          <span className="text-[17px] font-black text-[#FFD700] shrink-0 mr-2">
-            {probToAmericanOdds(prop.p_market)}
-          </span>
-
-          {Array.isArray(prop.best_lines) && prop.best_lines.length > 0 && (
-            <>
-              <div className="w-px h-4 bg-[#2a3a4a] mx-1 shrink-0" />
-              <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
-                BEST:
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
-                {prop.best_lines.slice(0, 3).map((bk: any, i: number) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <span className="text-[14px] font-bold text-[#8a9ba8]">
-                      {bk.sportsbook || bk.book}
-                    </span>
-                    <span className="text-[14px] font-black text-white">
-                      {formatOdds(bk.price)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-          <ChevronRight
-            size={13}
-            className="text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors ml-auto shrink-0"
-          />
-        </div>
-
-        {/* ── Player Stats Row ── */}
-        <div className="border-t border-[#2a3a4a] pt-2.5">
-          {isPitcher ? (
-            <div className="flex gap-1.5 flex-wrap">
-              {stats.era != null && (
-                <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
-              )}
-              {stats.whip != null && (
-                <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
-              )}
-              {stats.fip != null && (
-                <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
-              )}
-              {stats.siera != null && (
-                <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
-              )}
-              {stats.so != null && (
-                <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
-              )}
-              {stats.w != null && stats.l != null && (
-                <StatPill
-                  label="W-L"
-                  value={`${Math.round(stats.w)}-${Math.round(stats.l)}`}
-                  color="#e2e8f0"
+              {prop.result ? (
+                <ResultBadge result={prop.result} pnl={prop.pnl} />
+              ) : isStale ? (
+                <span className="inline-flex items-baseline gap-1.5 rounded-[5px] border px-2 py-0.5 border-[#3d4f5f] bg-[#0d1117] text-[#8a9ba8]">
+                  <span className="text-[20px] font-black leading-none">Pending</span>
+                </span>
+              ) : (
+                <BetScoreBadge
+                  score={prop.bet_score}
+                  tierName={prop.bet_tier}
+                  pWin={prop.p_win}
+                  price={prop.price}
+                  pMarket={prop.p_market}
                 />
               )}
-              {stats.era == null && stats.fip == null && stats.whip == null && (
-                <span className="text-[13px] font-black text-[#3d4f5f] tracking-widest capitalize self-center">
-                  Stats Pending
-                </span>
-              )}
             </div>
-          ) : (
-            <div className="flex gap-1.5 flex-wrap">
-              {stats.avg != null && (
-                <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
-              )}
-              {stats.hr != null && (
-                <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
-              )}
-              {stats.rbi != null && (
-                <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
-              )}
-              {stats.obp != null && (
-                <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
-              )}
-              {stats.slg != null && (
-                <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
-              )}
-              {stats.wrc_plus != null && (
-                <StatPill label="wRC+" value={String(Math.round(stats.wrc_plus))} color="#e2e8f0" />
-              )}
-              {stats.woba != null && (
-                <StatPill label="wOBA" value={fmtAvg(stats.woba)} color="#8a9ba8" />
-              )}
-              {stats.avg == null &&
-                stats.hr == null &&
-                stats.rbi == null &&
-                stats.wrc_plus == null &&
-                stats.woba == null && (
+          </div>
+
+          {/* ── Model Stats Row ── */}
+          <div className="flex gap-1.5 flex-wrap mb-2.5">
+            <StatPill
+              label={prop.price_estimated ? 'EST' : 'ODDS'}
+              value={formatOdds(prop.odds ?? prop.price)}
+              color="#ffffff"
+            />
+            {prop.model_proj != null && (
+              <StatPill label="Proj" value={fmtStat(prop.model_proj, 1)} color="#00D4FF" />
+            )}
+            {ev != null && (
+              <StatPill
+                label="EV%"
+                value={`${ev > 0 ? '+' : ''}${ev.toFixed(1)}`}
+                color={ev > 0 ? '#22C55E' : '#8a9ba8'}
+              />
+            )}
+            <StatPill
+              label="Win%"
+              value={
+                prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'
+              }
+              color="#e2e8f0"
+            />
+          </div>
+
+          {/* ── Odds Market Row ── */}
+          <div
+            className="flex items-center gap-2 mb-3 bg-[#0a0a15] border border-[#2a3a4a] rounded px-3 py-1.5 overflow-x-auto"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
+              Mkt Line
+            </span>
+            <span className="text-[17px] font-black text-[#FFD700] shrink-0 mr-2">
+              {probToAmericanOdds(prop.p_market)}
+            </span>
+
+            {Array.isArray(prop.best_lines) && prop.best_lines.length > 0 && (
+              <>
+                <div className="w-px h-4 bg-[#2a3a4a] mx-1 shrink-0" />
+                <span className="text-[13px] font-black text-[#5a6a7a] tracking-widest capitalize whitespace-nowrap shrink-0">
+                  BEST:
+                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {prop.best_lines.slice(0, 3).map((bk: any, i: number) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <span className="text-[14px] font-bold text-[#8a9ba8]">
+                        {bk.sportsbook || bk.book}
+                      </span>
+                      <span className="text-[14px] font-black text-white">
+                        {formatOdds(bk.price)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <ChevronRight
+              size={13}
+              className="text-[#3d4f5f] group-hover:text-[#00D4FF] transition-colors ml-auto shrink-0"
+            />
+          </div>
+
+          {/* ── Player Stats Row ── */}
+          <div className="border-t border-[#2a3a4a] pt-2.5">
+            {isPitcher ? (
+              <div className="flex gap-1.5 flex-wrap">
+                {stats.era != null && (
+                  <StatPill label="ERA" value={fmtStat(stats.era, 2)} color="#00D4FF" />
+                )}
+                {stats.whip != null && (
+                  <StatPill label="WHIP" value={fmtStat(stats.whip, 2)} color="#e2e8f0" />
+                )}
+                {stats.fip != null && (
+                  <StatPill label="FIP" value={fmtStat(stats.fip, 2)} color="#8a9ba8" />
+                )}
+                {stats.siera != null && (
+                  <StatPill label="SIERA" value={fmtStat(stats.siera, 2)} color="#8a9ba8" />
+                )}
+                {stats.so != null && (
+                  <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
+                )}
+                {stats.w != null && stats.l != null && (
+                  <StatPill
+                    label="W-L"
+                    value={`${Math.round(stats.w)}-${Math.round(stats.l)}`}
+                    color="#e2e8f0"
+                  />
+                )}
+                {stats.era == null && stats.fip == null && stats.whip == null && (
                   <span className="text-[13px] font-black text-[#3d4f5f] tracking-widest capitalize self-center">
                     Stats Pending
                   </span>
                 )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="flex gap-1.5 flex-wrap">
+                {stats.avg != null && (
+                  <StatPill label="AVG" value={fmtAvg(stats.avg)} color="#00D4FF" />
+                )}
+                {stats.hr != null && (
+                  <StatPill label="HR" value={String(Math.round(stats.hr))} color="#FFD700" />
+                )}
+                {stats.rbi != null && (
+                  <StatPill label="RBI" value={String(Math.round(stats.rbi))} color="#22C55E" />
+                )}
+                {stats.obp != null && (
+                  <StatPill label="OBP" value={fmtAvg(stats.obp)} color="#8a9ba8" />
+                )}
+                {stats.slg != null && (
+                  <StatPill label="SLG" value={fmtAvg(stats.slg)} color="#8a9ba8" />
+                )}
+                {stats.wrc_plus != null && (
+                  <StatPill
+                    label="wRC+"
+                    value={String(Math.round(stats.wrc_plus))}
+                    color="#e2e8f0"
+                  />
+                )}
+                {stats.woba != null && (
+                  <StatPill label="wOBA" value={fmtAvg(stats.woba)} color="#8a9ba8" />
+                )}
+                {stats.avg == null &&
+                  stats.hr == null &&
+                  stats.rbi == null &&
+                  stats.wrc_plus == null &&
+                  stats.woba == null && (
+                    <span className="text-[13px] font-black text-[#3d4f5f] tracking-widest capitalize self-center">
+                      Stats Pending
+                    </span>
+                  )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 60;
@@ -1150,7 +1179,9 @@ export default function PropsPage() {
               key={f.label}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                  try { navigator.vibrate(15); } catch (e) {}
+                  try {
+                    navigator.vibrate(15);
+                  } catch (e) {}
                 }
                 setFilter(f.label);
               }}
@@ -1294,7 +1325,9 @@ export default function PropsPage() {
               <button
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    try { navigator.vibrate(15); } catch (e) {}
+                    try {
+                      navigator.vibrate(15);
+                    } catch (e) {}
                   }
                   setVisible((v) => v + PAGE_SIZE);
                 }}

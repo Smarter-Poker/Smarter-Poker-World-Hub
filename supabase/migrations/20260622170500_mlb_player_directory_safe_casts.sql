@@ -21,9 +21,9 @@ as $$
       'bb_pct', nullif(replace(b.metrics->>'BB%', '%', ''), '')::numeric
     ) j,
     nullif(b.metrics->>'wRC+', '')::numeric wrc_sort
-    from dim_players d
+    from mlb.dim_players d
     join lateral (
-      select metrics from agg_batter
+      select metrics from mlb.agg_batter
       where batter_id = d.player_id and window_kind = 'fg_season'
       order by as_of desc limit 1
     ) b on true
@@ -50,9 +50,9 @@ as $$
       'bf',   nullif(p.metrics->>'TBF', '')::numeric
     ) j,
     nullif(p.metrics->>'SO', '')::numeric k_sort
-    from dim_players d
+    from mlb.dim_players d
     join lateral (
-      select metrics from agg_pitcher
+      select metrics from mlb.agg_pitcher
       where pitcher_id = d.player_id and window_kind = 'fg_season'
       order by as_of desc limit 1
     ) p on true

@@ -103,11 +103,11 @@ export default async function edgeHandler(req: Request) {
         .order('as_of_ts', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       if (latestErr) {
         console.error('[API/MLB/Props] latestRow error:', latestErr);
       }
-      
+
       if (latestRow?.as_of_ts) {
         slateDate = slateYmdFromTs(latestRow.as_of_ts as string);
       }
@@ -139,9 +139,9 @@ export default async function edgeHandler(req: Request) {
       console.error('[API/MLB/Props] pred_props error:', propsRes.error);
       return new Response(JSON.stringify({ error: `Database error: ${propsRes.error.message}` }), {
         status: 500,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, max-age=0'
+          'Cache-Control': 'no-store, max-age=0',
         },
       });
     }
@@ -574,9 +574,9 @@ export default async function edgeHandler(req: Request) {
     console.error('[API/MLB/Props] Unhandled error:', err);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, max-age=0'
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   }

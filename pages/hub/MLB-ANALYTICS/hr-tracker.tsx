@@ -10,6 +10,7 @@ import {
   X,
   Zap,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -500,7 +501,7 @@ export default function HRTrackerPage() {
             </button>
           </div>
           <p className="text-[23px] text-slate-400 font-bold tracking-wide">
-            Track which hitters are statistically overdue for a home run. Due Score = Games Since
+            Track Which Hitters Are Statistically Overdue For A Home Run. Due Score = Games Since
             Last HR ÷ Career HR Rate.
           </p>
         </div>
@@ -572,8 +573,8 @@ export default function HRTrackerPage() {
               No HR Data Yet
             </div>
             <div className="text-slate-500 text-[21px] font-bold mt-2 max-w-md mx-auto">
-              The home-run cache is refreshed daily during the MLB season. If the season is
-              underway, check back shortly or tap Refresh.
+              The Home-Run Cache Is Refreshed Daily During The MLB Season. If The Season Is
+              Underway, Check Back Shortly Or Tap Refresh.
             </div>
             <button
               onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
@@ -592,7 +593,7 @@ export default function HRTrackerPage() {
               <h2
                 className="text-[23px] font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#FF4444] font-rajdhani"
               >
-                Most Due for a Home Run
+                Most Due For A Home Run
               </h2>
               <div className="flex flex-nowrap overflow-x-auto snap-x md:grid md:grid-cols-5 gap-3 px-4 md:px-0 pb-4 md:pb-0">
                 {spotlight.map((p, idx) => {
