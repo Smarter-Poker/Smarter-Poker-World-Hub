@@ -1090,13 +1090,17 @@ const BetCard = ({
           {/* Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="text-[17px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 truncate">
-              {bet.matchup || bet.team_name || 'MLB GAME'}
+              {!isTeamBet && bet.player_name
+                ? (bet.team_name || bet.matchup || 'MLB')
+                : (bet.matchup || bet.team_name || 'MLB GAME')}
             </div>
             <div
               className="text-[30px] font-black text-white capitalize leading-tight truncate"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
+              {!isTeamBet && bet.player_name
+                ? bet.player_name
+                : `${selectionLabel(bet?.selection, bet?.matchup)}${lineStr ? ' ' + lineStr : ''}`}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-[17px] font-black capitalize">
               <span
