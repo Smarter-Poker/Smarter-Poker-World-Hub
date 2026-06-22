@@ -105,12 +105,12 @@ const fetcher = async (url: string) => {
   }
 };
 
-const EMPTY_HEALTH: any = {};
-const EMPTY_SLATE = {};
-const EMPTY_ACCURACY = {};
+const EMPTY_HEALTH: Partial<MLBStatusPayload['health']> = {};
+const EMPTY_SLATE: Partial<MLBStatusPayload['slate']> = {};
+const EMPTY_ACCURACY: Partial<MLBStatusPayload['accuracy']> = {};
 const EMPTY_TIER_DIST: Record<string, number> = {};
 const EMPTY_TABLE_COUNTS: Record<string, number> = {};
-const EMPTY_LATEST_RUNS = {};
+const EMPTY_LATEST_RUNS: Record<string, any> = {};
 const EMPTY_PIPELINE = { hasError: false, okCount: 0, errorCount: 0, total: 0 };
 
 export default function StatusPage() {

@@ -44,6 +44,8 @@ const fetcher = async (url: string) => {
   }
 };
 
+const EMPTY_ARRAY: any[] = [];
+
 // ── Market filters — matched against the exact pred_props.prop vocabulary ───────
 const FILTERS: { label: string; match: (prop: string) => boolean }[] = [
   { label: 'All', match: () => true },
@@ -114,10 +116,11 @@ const PITCHER_PROPS = new Set([
   'hits_allowed'
 ]);
 
-function formatProp(raw: string): string {
-  if (!raw) return '';
-  if (raw === 'hrr') return 'H+R+RBI';
-  const val = raw.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+function formatProp(raw: any): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const r = raw.trim().toLowerCase();
+  if (r === 'hrr') return 'H+R+RBI';
+  const val = r.replace(/_/g, ' ').replace(/(^|[^a-zA-Z])([a-z])/g, (m, p, c) => p + c.toUpperCase());
   return val.replace(/\bRbi\b/g, 'RBI')
             .replace(/\bHr\b/g, 'HR')
             .replace(/\bAvg\b/g, 'AVG')
@@ -267,7 +270,7 @@ function StatPill({
 }
 
 // ── Header stat chip (slate-level totals) ──────────────────────────────────────
-function HeaderStat({
+const HeaderStat = React.memo(({
   label,
   value,
   color,
@@ -281,7 +284,7 @@ function HeaderStat({
   border: string;
   bg: string;
   glow?: boolean;
-}) {
+}) => {
   return (
     <div
       className="flex flex-col items-center justify-center px-3 py-1.5 rounded-sm border flex-shrink-0 min-w-[64px]"
@@ -309,10 +312,10 @@ function HeaderStat({
       </span>
     </div>
   );
-}
+});
 
 // ── Result badge (closed/graded slates) ────────────────────────────────────────
-function ResultBadge({ result, pnl }: { result: string; pnl: number | null }) {
+const ResultBadge = React.memo(({ result, pnl }: { result: string; pnl: number | null }) => {
   const r = (result || '').toLowerCase();
   const win = r === 'win';
   const loss = r === 'loss';
@@ -328,7 +331,7 @@ function ResultBadge({ result, pnl }: { result: string; pnl: number | null }) {
       {u && <span className="text-[14px] font-bold opacity-80">{u}</span>}
     </span>
   );
-}
+});
 
 // ── Detail Modal — rationale + full stats (parity with Best Bets) ──────────────
 function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) {
@@ -931,7 +934,7 @@ export default function PropsPage() {
     refreshInterval: 60000,
   });
 
-  const props: any[] = data?.props || [];
+  const props: any[] = data?.props || EMPTY_ARRAY;
   const slateStats = data?.stats || {
     total: 0,
     elite: 0,

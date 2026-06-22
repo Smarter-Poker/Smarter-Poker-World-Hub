@@ -202,28 +202,44 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   // aggregates are rewritten daily — so scope fact_games to those game_pks and bound
   // agg_pitcher to a recent as_of window instead of paging the full history (previously
   // up to 20k agg_pitcher rows + all ~10k fact_games rows on every enrichment cycle).
-  const gamePks = Array.from(
+      const gamePks = Array.from(
     new Set(betsArr.map((b: any) => Number(b.game_pk)).filter((x) => Number.isFinite(x)))
   );
   const aggSinceIso = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
-  // Fetch the hitter / pitcher pools (paginated past the 1000 cap) plus the scoped slate data.
+  // 1. Fetch slates first to get opposing pitchers
+  let slates: any[] = [];
+  try {
+    slates = await fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher'));
+  } catch(e) {}
+
+  // Extract all required player IDs and names
+  const uniquePlayerIds = Array.from(new Set(betsArr.map(b => b.player_id).filter(id => id != null)));
+  const uniqueNames = new Set<string>();
+  betsArr.forEach(b => {
+    if (b.player_name) uniqueNames.add(b.player_name);
+    if (b.selection) uniqueNames.add(b.selection);
+  });
+  slates.forEach(s => {
+    if (s.home_pitcher) uniqueNames.add(s.home_pitcher);
+    if (s.away_pitcher) uniqueNames.add(s.away_pitcher);
+  });
+  const uniquePlayerNames = Array.from(uniqueNames).filter(n => n.trim().length > 0);
+
+  // Format array for Supabase .or()
+  const idsStr = uniquePlayerIds.length > 0 ? `player_id.in.(${uniquePlayerIds.join(',')})` : 'player_id.in.(-1)';
+  const namesStr = uniquePlayerNames.length > 0 ? `full_name.in.(${uniquePlayerNames.map(n => '"' + n.replace(/"/g, '""') + '"').join(',')})` : 'full_name.in.("")';
+  const orFilter = `${idsStr},${namesStr}`;
+
   let hitters: any[] = [];
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
-  let slates: any[] = [];
   let games: any[] = [];
   let teamStats: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, slates, games, teamStats] = await Promise.all([
-      fetchAllRows(() =>
-        mlbDb
-          .from('v_hitter_profile')
-          .select('player_id, full_name, team_id, woba, wrc_plus, pa, splits')
-      ),
-      fetchAllRows(() =>
-        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera')
-      ),
+    [hitters, pitchers, aggPitchers, games, teamStats] = await Promise.all([
+      fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits').or(orFilter)),
+      fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').or(orFilter)),
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
@@ -232,7 +248,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
       ),
-      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')),
       fetchAllRows(() =>
         mlbDb
           .from('fact_games')

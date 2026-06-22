@@ -1,5 +1,6 @@
 -- Atomic sum function for diamond limits
 
+DROP FUNCTION IF EXISTS public.get_source_tier_available(uuid);
 CREATE OR REPLACE FUNCTION public.get_source_tier_available(p_user_id UUID)
 RETURNS TABLE (
     purchased_won_total BIGINT,
