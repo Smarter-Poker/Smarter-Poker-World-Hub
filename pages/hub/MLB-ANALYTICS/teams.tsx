@@ -52,7 +52,13 @@ const STAT_META: Record<string, { full: string; desc: string }> = {
   'Pyth W%':   { full: 'Pythagorean Win %', desc: 'Expected win% based on run differential. Strips out clutch variance — predicts future wins better than actual W%.' },
   'vs .500+':  { full: 'Record vs .500+ Teams', desc: 'Win-loss vs teams with winning records. Separates legit contenders from teams beating up on weak opponents.' },
   '1-Run W%':  { full: 'One-Run Game Win %', desc: 'Win rate in games decided by 1 run. Tests bullpen and clutch performance under pressure.' },
+  'OAA':       { full: 'Outs Above Average', desc: 'MLB\'s primary fielding metric. Measures how many outs a fielder saves vs. a league-average fielder at the same position.' },
+  'UZR':       { full: 'Ultimate Zone Rating', desc: 'Defensive runs saved based on batted ball location and fielder positioning. Positive = above-average defense.' },
+  'DEF':       { full: 'Defensive Runs (Composite)', desc: 'Combined defensive value metric. Aggregates multiple fielding components into a single run-value number.' },
+  'oWAR':      { full: 'Offensive WAR', desc: 'Total Wins Above Replacement contributed by all hitters. Measures combined offensive value vs. a replacement-level player.' },
+  'pWAR':      { full: 'Pitching WAR', desc: 'Total Wins Above Replacement contributed by all pitchers. Measures combined pitching value vs. a replacement-level pitcher.' },
 };
+
 
 // ── Tooltip Component ────────────────────────────────────────────────────────
 const StatLabel = ({
@@ -293,7 +299,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                         background: 'rgba(245,158,11,0.1)',
                       }}
                     >
-                      Hot
+                      HOT
                     </span>
                   )}
                 </div>
@@ -343,16 +349,15 @@ const TeamCardComponent = ({ team }: { team: any }) => {
           </div>
 
           {/* ── 5 Basic Stats Always Visible ── */}
-          {team.adv_stats && (
-            <div className="stats-panel" style={{ marginTop: 8 }}>
+          <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
-                <StatLabel label="Era" color="#60A5FA" />
+                <StatLabel label="ERA" color="#60A5FA" />
                 <div className="stat-value">
                   {fmtEra(adv.era)}
                 </div>
               </div>
               <div className="stat-segment">
-                <StatLabel label="Ops" color="#34D399" />
+                <StatLabel label="OPS" color="#34D399" />
                 <div className="stat-value">
                   {fmtOps(adv.ops)}
                 </div>
@@ -364,7 +369,7 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                 </div>
               </div>
               <div className="stat-segment">
-                <StatLabel label="Fip" color="#A78BFA" />
+                <StatLabel label="FIP" color="#A78BFA" />
                 <div className="stat-value">
                   {fmtEra(adv.fip)}
                 </div>
@@ -376,7 +381,6 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                 </div>
               </div>
             </div>
-          )}
         </Link>
 
         {/* ── Expandable Drawer — All 20 Stats ── */}
@@ -461,11 +465,11 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                 <div className="drawer-section-header" style={{ marginTop: 16 }}>🔥 PITCHING</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Era" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="ERA" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtEra(adv.era)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Fip" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="FIP" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtEra(adv.fip)}</span>
                   </div>
                   <div className="drawer-row">
@@ -473,20 +477,16 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                     <span className="drawer-value">{fmtEra(adv.xfip)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Siera" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="SIERA" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtEra(adv.siera)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Whip" color="#94A3B8" /></span>
-                    <span className="drawer-value">
-                      {adv.whip != null ? Number(adv.whip).toFixed(2) : '-'}
-                    </span>
+                    <span className="drawer-label"><StatLabel label="pWAR" color="#94A3B8" /></span>
+                    <span className="drawer-value">{adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="K%" color="#94A3B8" /></span>
-                    <span className="drawer-value">
-                      {adv.k_pct != null ? `${Number(adv.k_pct).toFixed(1)}%` : '-'}
-                    </span>
+                    <span className="drawer-label"><StatLabel label="OAA" color="#94A3B8" /></span>
+                    <span className="drawer-value">{adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}</span>
                   </div>
                 </div>
 
@@ -494,34 +494,32 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                 <div className="drawer-section-header" style={{ marginTop: 16 }}>⚙️ OFFENSE</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Ops" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="OPS" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtOps(adv.ops)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Obp" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="OBP" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtOps(adv.obp)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Slg" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="SLG" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtOps(adv.slg)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Avg" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="AVG" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtOps(adv.avg)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Hr" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="HR" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtInt(adv.hr)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Sb" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="SB" color="#94A3B8" /></span>
                     <span className="drawer-value">{fmtInt(adv.sb)}</span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Bb%" color="#94A3B8" /></span>
-                    <span className="drawer-value">
-                      {adv.bb_pct != null ? `${Number(adv.bb_pct).toFixed(1)}%` : '-'}
-                    </span>
+                    <span className="drawer-label"><StatLabel label="oWAR" color="#94A3B8" /></span>
+                    <span className="drawer-value">{adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'}</span>
                   </div>
                 </div>
 
@@ -553,27 +551,27 @@ const TeamCardComponent = ({ team }: { team: any }) => {
                     </span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Drs" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="DRS" color="#94A3B8" /></span>
                     <span className="drawer-value">
                       {adv.drs != null ? (Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Lob%" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="OAA" color="#94A3B8" /></span>
                     <span className="drawer-value">
-                      {adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'}
+                      {adv.oaa != null ? (Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Babip" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="UZR" color="#94A3B8" /></span>
                     <span className="drawer-value">
-                      {adv.babip != null ? fmtOps(adv.babip) : '-'}
+                      {adv.uzr != null ? (Number(adv.uzr) >= 0 ? `+${Number(adv.uzr).toFixed(1)}` : Number(adv.uzr).toFixed(1)) : '-'}
                     </span>
                   </div>
                   <div className="drawer-row">
-                    <span className="drawer-label"><StatLabel label="Bullpen" color="#94A3B8" /></span>
+                    <span className="drawer-label"><StatLabel label="DEF" color="#94A3B8" /></span>
                     <span className="drawer-value">
-                      {adv.bullpen_era != null ? fmtEra(adv.bullpen_era) : '-'}
+                      {adv.def != null ? (Number(adv.def) >= 0 ? `+${Number(adv.def).toFixed(1)}` : Number(adv.def).toFixed(1)) : '-'}
                     </span>
                   </div>
                 </div>
@@ -614,7 +612,7 @@ export default function TeamsPage({
     fallbackData: fallbackTeams
       ? { teams: fallbackTeams, globalEdgeActive: fallbackGlobalEdgeActive }
       : undefined,
-    refreshInterval: 30000,
+    refreshInterval: 300000,
     revalidateOnFocus: true,
     dedupingInterval: 10000,
   });

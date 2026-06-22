@@ -635,8 +635,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
 // ── Prop Card ────────────────────────────────────────────────────────────────
 const PropCard = ({ prop, idx, onOpen }: { prop: any; idx: number; onOpen: (p: any) => void }) => {
   const ts = tierStyle(prop.bet_tier);
-  const isOver =
-    prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
+  const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
   const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
   const isPitcher = isPitcherProp(prop);
   const stats = prop.stats || {};
@@ -1167,7 +1166,8 @@ export default function PropsPage() {
                 Last Graded Slate · Results
               </p>
               <p className="text-[13px] text-amber-600/70 font-bold capitalize tracking-wider m-0 mt-0.5">
-                Showing {data?.official_date || 'a previous date'} — games already played. Today's lines aren't posted yet, so these are graded outcomes, not live bets.
+                Showing {data?.official_date || 'a previous date'} — games already played. Today's
+                lines aren't posted yet, so these are graded outcomes, not live bets.
               </p>
             </div>
           </div>
@@ -1176,93 +1176,93 @@ export default function PropsPage() {
 
       {/* ── Main Content ──────────────────────────────────────────── */}
       <MlbPremiumGate featureName="Prop Bets Edge">
-      <main className="mx-auto max-w-2xl px-3 pt-4 pb-6 relative">
-        {/* Loading */}
-        {isLoading && !data && (
-          <div className="flex flex-col items-center justify-center mt-20 gap-4">
-            <div className="w-10 h-10 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin" />
-            <span className="text-[#5a6a7a] font-black tracking-widest text-[16px] capitalize">
-              Scanning Props Vault...
-            </span>
-          </div>
-        )}
+        <main className="mx-auto max-w-2xl px-3 pt-4 pb-6 relative">
+          {/* Loading */}
+          {isLoading && !data && (
+            <div className="flex flex-col items-center justify-center mt-20 gap-4">
+              <div className="w-10 h-10 rounded-full border-2 border-[#5a6a7a] border-t-[#00D4FF] animate-spin" />
+              <span className="text-[#5a6a7a] font-black tracking-widest text-[16px] capitalize">
+                Scanning Props Vault...
+              </span>
+            </div>
+          )}
 
-        {/* Error */}
-        {error && !isLoading && (
-          <div className="mt-4 rounded-sm border-2 border-red-500/50 bg-[#1a0a0a] px-4 py-3 relative">
-            <div className="absolute left-0 top-0 w-1 h-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
-            <p className="text-[17px] font-black tracking-widest capitalize text-red-500">
-              System Error
-            </p>
-            <p className="text-[14px] text-red-400 mt-1 font-bold tracking-wider">
-              Failed To Load Props Data. Retrying...
-            </p>
-          </div>
-        )}
+          {/* Error */}
+          {error && !isLoading && (
+            <div className="mt-4 rounded-sm border-2 border-red-500/50 bg-[#1a0a0a] px-4 py-3 relative">
+              <div className="absolute left-0 top-0 w-1 h-full bg-red-500 shadow-[0_0_10px_#ef4444]" />
+              <p className="text-[17px] font-black tracking-widest capitalize text-red-500">
+                System Error
+              </p>
+              <p className="text-[14px] text-red-400 mt-1 font-bold tracking-wider">
+                Failed To Load Props Data. Retrying...
+              </p>
+            </div>
+          )}
 
-        {/* Empty */}
-        {!isLoading && !error && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-[#3d4f5f] rounded-lg bg-[#0d1117] mt-4 opacity-60">
-            {filter === 'ALL' && minScore === 0 ? (
-              <CalendarX size={40} className="text-[#3d4f5f] mb-4" />
-            ) : (
-              <SearchX size={40} className="text-[#3d4f5f] mb-4" />
-            )}
-            <p className="text-[20px] font-black tracking-widest capitalize text-[#5a6a7a] text-center">
-              {filter === 'ALL' && minScore === 0
-                ? 'No Props Available — Awaiting Model Output'
-                : 'No Props Match This Filter'}
-            </p>
-            <p className="text-[14px] text-[#3d4f5f] font-bold tracking-widest capitalize text-center mt-1.5">
-              {filter === 'ALL' && minScore === 0
-                ? 'Props release 3–4 hours before first pitch'
-                : 'Try a broader grade or market'}
-            </p>
-          </div>
-        )}
+          {/* Empty */}
+          {!isLoading && !error && filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-[#3d4f5f] rounded-lg bg-[#0d1117] mt-4 opacity-60">
+              {filter === 'ALL' && minScore === 0 ? (
+                <CalendarX size={40} className="text-[#3d4f5f] mb-4" />
+              ) : (
+                <SearchX size={40} className="text-[#3d4f5f] mb-4" />
+              )}
+              <p className="text-[20px] font-black tracking-widest capitalize text-[#5a6a7a] text-center">
+                {filter === 'ALL' && minScore === 0
+                  ? 'No Props Available — Awaiting Model Output'
+                  : 'No Props Match This Filter'}
+              </p>
+              <p className="text-[14px] text-[#3d4f5f] font-bold tracking-widest capitalize text-center mt-1.5">
+                {filter === 'ALL' && minScore === 0
+                  ? 'Props release 3–4 hours before first pitch'
+                  : 'Try a broader grade or market'}
+              </p>
+            </div>
+          )}
 
-        {/* Props list */}
-        {!isLoading && shown.length > 0 && (
-          <div className="flex flex-col gap-3">
-            {shown.map((prop: any, idx: number) => (
-              <PropCard
-                key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
-                prop={prop}
-                idx={idx}
-                onOpen={openModal}
-              />
-            ))}
-          </div>
-        )}
+          {/* Props list */}
+          {!isLoading && shown.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {shown.map((prop: any, idx: number) => (
+                <PropCard
+                  key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
+                  prop={prop}
+                  idx={idx}
+                  onOpen={openModal}
+                />
+              ))}
+            </div>
+          )}
 
-        {/* Load more */}
-        {!isLoading && filtered.length > visible && (
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={() => setVisible((v) => v + PAGE_SIZE)}
-              className="px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[14px] font-black text-[#5a6a7a] tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
-            >
-              Load More ({filtered.length - visible} remaining)
-            </button>
-          </div>
-        )}
+          {/* Load more */}
+          {!isLoading && filtered.length > visible && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                className="px-5 py-2.5 bg-[#0d1117] border-2 border-[#2a3a4a] text-[14px] font-black text-[#5a6a7a] tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-all rounded-sm"
+              >
+                Load More ({filtered.length - visible} remaining)
+              </button>
+            </div>
+          )}
 
-        {/* Result count */}
-        {!isLoading && filtered.length > 0 && (
-          <div className="mt-5 text-center">
-            <span className="text-[14px] font-black text-[#3d4f5f] tracking-widest capitalize">
-              SHOWING {shown.length} OF {filtered.length} PROPS · RANKED BY{' '}
-              {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'}
-            </span>
-          </div>
-        )}
+          {/* Result count */}
+          {!isLoading && filtered.length > 0 && (
+            <div className="mt-5 text-center">
+              <span className="text-[14px] font-black text-[#3d4f5f] tracking-widest capitalize">
+                SHOWING {shown.length} OF {filtered.length} PROPS · RANKED BY{' '}
+                {SORTS.find((s) => s.key === sort)?.label || 'Bet Score'}
+              </span>
+            </div>
+          )}
 
-        {/* Footer */}
-        <div className="mt-6 px-4 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-[14px] font-black tracking-wide text-[#4a5a6a] text-center leading-relaxed">
-          <span className="text-[#00D4FF]">Analysis Only</span> — NOT BETTING ADVICE. BET SCORE
-          (0–100) RANKS VALUE = EV + CONFIDENCE.
-        </div>
-      </main>
+          {/* Footer */}
+          <div className="mt-6 px-4 py-3 bg-[#0d1117] border border-[#2a3a4a] rounded-sm text-[14px] font-black tracking-wide text-[#4a5a6a] text-center leading-relaxed">
+            <span className="text-[#00D4FF]">Analysis Only</span> — NOT BETTING ADVICE. BET SCORE
+            (0–100) RANKS VALUE = EV + CONFIDENCE.
+          </div>
+        </main>
       </MlbPremiumGate>
 
       <BottomNavBar />

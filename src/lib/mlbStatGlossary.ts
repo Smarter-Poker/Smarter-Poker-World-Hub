@@ -25,7 +25,8 @@ export const STAT_GLOSSARY: Record<string, string> = {
   SLG: 'Slugging Percentage — total bases per at-bat.',
   OPS: 'On-Base Plus Slugging (OBP + SLG).',
   ISO: 'Isolated Power — extra bases per at-bat (SLG minus AVG).',
-  'wRC+': 'Weighted Runs Created Plus — total offense vs league average (100 = average, higher is better).',
+  'wRC+':
+    'Weighted Runs Created Plus — total offense vs league average (100 = average, higher is better).',
   wOBA: 'Weighted On-Base Average — overall offensive value per plate appearance.',
   xwOBA: 'Expected wOBA based on quality of contact (exit velocity & launch angle).',
   xAVG: 'Expected Batting Average from quality of contact.',

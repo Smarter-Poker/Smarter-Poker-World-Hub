@@ -6,18 +6,36 @@ interface ModelIntelResponse {
     model_version: string | null;
     total_bets_tracked: number;
     graded_predictions: number;
-    markets_tracked: number;
-    recent_roi: number; // bets-weighted portfolio ROI, most recent 14 active dates
-    overall_roi: number; // all-time portfolio ROI
-    avg_brier: number | null; // n-weighted, lower is better
-    avg_clv: number | null; // n-weighted closing-line value (pts)
-    data_through: string | null; // most recent graded date (NOT a training date)
+    win_pct: number | null;        // overall win-rate across all graded bets
+    recent_roi: number;
+    overall_roi: number;
+    avg_brier: number | null;
+    avg_clv: number | null;
+    data_through: string | null;
   };
+  // Lock-In Gate KPIs (merged from /api/mlb/accuracy)
+  gate: {
+    n: number;
+    clv: string;
+    roi: string;
+    brier: string;
+  };
+  // Daily performance table rows (merged from /api/mlb/accuracy)
+  tableData: Array<{
+    date: string;
+    market: string;
+    n: number;
+    brier: number | null;
+    avg_clv: number | null;
+    sum_unit_profit: number;
+    bet_count: number;
+  }>;
   history: Array<{ date: string; pnl: number; cum_pnl: number; bets: number; roi: number }>;
   markets: Array<{
     market: string;
     n: number;
     bets: number;
+    win_pct: number | null;       // win-rate for this market
     brier: number | null;
     avg_clv: number | null;
     roi: number | null;
@@ -66,13 +84,15 @@ async function edgeHandler(req: Request): Promise<Response> {
           model_version: rpcData.model_version ?? null,
           total_bets_tracked: Number(k.total_bets) || 0,
           graded_predictions: Number(k.graded_predictions) || 0,
-          markets_tracked: Number(k.markets_tracked) || 0,
+          win_pct: num(k.win_pct),
           recent_roi: num(rpcData.recent_roi) ?? 0,
           overall_roi: num(k.overall_roi) ?? 0,
           avg_brier: num(k.avg_brier),
           avg_clv: num(k.avg_clv),
           data_through: k.data_through ?? null,
         },
+        gate: rpcData.gate ?? { n: Number(k.total_bets) || 0, clv: (num(k.avg_clv) ?? 0).toFixed(2), roi: (num(k.overall_roi) ?? 0).toFixed(1), brier: (num(k.avg_brier) ?? 0).toFixed(3) },
+        tableData: Array.isArray(rpcData.table_data) ? rpcData.table_data : [],
         history: Array.isArray(rpcData.history) ? rpcData.history : [],
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
         betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types : [],
@@ -88,7 +108,8 @@ async function edgeHandler(req: Request): Promise<Response> {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+        // Model intel data changes at most once per day — 30-min cache, 1-hr stale
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
       },
     });
   } catch (err) {
@@ -109,13 +130,15 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
       model_version: null,
       total_bets_tracked: 0,
       graded_predictions: 0,
-      markets_tracked: 0,
+      win_pct: null,
       recent_roi: 0,
       overall_roi: 0,
       avg_brier: null,
       avg_clv: null,
       data_through: null,
     },
+    gate: { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' },
+    tableData: [],
     history: [],
     markets: [],
     betTypes: [],
@@ -189,6 +212,17 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     }
   }
 
+  // Build tableData (raw per-market-per-date rows for the Daily Performance Log + Gate)
+  const tableData = rows.map((r: any) => ({
+    date: r.date,
+    market: String(r.market || 'unknown').toLowerCase(),
+    n: Number(r.n) || 0,
+    brier: r.brier != null ? Number(r.brier) : null,
+    avg_clv: r.avg_clv != null ? Number(r.avg_clv) : null,
+    sum_unit_profit: Number(r.sum_unit_profit) || 0,
+    bet_count: Number(r.bet_count) || 0,
+  }));
+
   const dailySorted = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
   let cum = 0;
   const history = dailySorted.map((g) => {
@@ -207,6 +241,7 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
       market: g.market,
       n: g.n,
       bets: g.bets,
+      win_pct: null as number | null,   // not available in summary view — populated by RPC
       brier: g.bDen > 0 ? Number((g.bNum / g.bDen).toFixed(4)) : null,
       avg_clv: g.cDen > 0 ? Number((g.cNum / g.cDen).toFixed(2)) : null,
       roi: g.bets > 0 ? Number(((g.profit / g.bets) * 100).toFixed(2)) : null,
@@ -254,18 +289,36 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     score_mult: num(b.score_mult),
   }));
 
+  // Compute gate KPIs from summary data
+  const totalProfit2 = dailySorted.reduce((s, g) => s + g.profit, 0);
+  const totalBets2 = dailySorted.reduce((s, g) => s + g.bets, 0);
+  const totalGraded2 = dailySorted.reduce((s, g) => s + g.graded, 0);
+  const bNum2 = dailySorted.reduce((s, g) => s + g.bNum, 0);
+  const bDen2 = dailySorted.reduce((s, g) => s + g.bDen, 0);
+  const cNum2 = dailySorted.reduce((s, g) => s + g.cNum, 0);
+  const cDen2 = dailySorted.reduce((s, g) => s + g.cDen, 0);
+
+  const gate = {
+    n: totalGraded2,
+    brier: bDen2 > 0 ? (bNum2 / bDen2).toFixed(3) : '0.000',
+    clv: cDen2 > 0 ? (cNum2 / cDen2).toFixed(2) : '0.00',
+    roi: totalBets2 > 0 ? ((totalProfit2 / totalBets2) * 100).toFixed(1) : '0.0',
+  };
+
   return {
     intel: {
       model_version: mvRes?.data && mvRes.data.length > 0 ? mvRes.data[0].model_version : null,
-      total_bets_tracked: totalBets,
-      graded_predictions: totalGraded,
-      markets_tracked: markets.size,
+      total_bets_tracked: totalBets2,
+      graded_predictions: totalGraded2,
+      win_pct: null,  // not derivable from v_backtest_summary alone
       recent_roi: rBets > 0 ? Number(((rNum / rBets) * 100).toFixed(2)) : 0,
-      overall_roi: totalBets > 0 ? Number(((totalProfit / totalBets) * 100).toFixed(2)) : 0,
-      avg_brier: bDen > 0 ? Number((bNum / bDen).toFixed(4)) : null,
-      avg_clv: cDen > 0 ? Number((cNum / cDen).toFixed(2)) : null,
+      overall_roi: totalBets2 > 0 ? Number(((totalProfit2 / totalBets2) * 100).toFixed(2)) : 0,
+      avg_brier: bDen2 > 0 ? Number((bNum2 / bDen2).toFixed(4)) : null,
+      avg_clv: cDen2 > 0 ? Number((cNum2 / cDen2).toFixed(2)) : null,
       data_through: history.length > 0 ? history[history.length - 1].date : null,
     },
+    gate,
+    tableData,
     history,
     markets: marketsArr,
     betTypes,
