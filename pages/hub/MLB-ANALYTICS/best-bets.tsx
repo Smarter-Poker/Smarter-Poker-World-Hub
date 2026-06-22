@@ -1203,14 +1203,19 @@ const CategoryCarousel = ({
   bets,
   onBetClick,
   rankLabel = 'RANK',
+  note,
+  keepWhenEmpty = false,
 }: {
   title: string;
   icon?: any;
   bets: any[];
   onBetClick: (bet: any) => void;
   rankLabel?: string;
+  note?: string;
+  keepWhenEmpty?: boolean;
 }) => {
-  if (!bets || bets.length === 0) return null;
+  const isEmpty = !bets || bets.length === 0;
+  if (isEmpty && !keepWhenEmpty) return null;
 
   // Render every real bet the model produced for this category. No empty
   // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
@@ -1219,18 +1224,29 @@ const CategoryCarousel = ({
   return (
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
-      <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
-          {bets.map((bet, idx) => (
-            <BetCard
-              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
-              bet={bet}
-              rank={idx + 1}
-              rankLabel={rankLabel}
-              onClick={() => onBetClick(bet)}
-            />
-          ))}
+      {note && (
+        <div className="px-1 -mt-1 mb-2 text-[13px] font-bold tracking-wide text-[#5a6a7a]">
+          {note}
         </div>
+      )}
+      <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
+        {isEmpty ? (
+          <div className="text-[15px] font-bold tracking-wide text-[#5a6a7a] py-6 text-center capitalize">
+            No {toTitleCase(title).replace(/^Best /, '')} clear the model{`'`}s value bar today.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+            {bets.map((bet, idx) => (
+              <BetCard
+                key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+                bet={bet}
+                rank={idx + 1}
+                rankLabel={rankLabel}
+                onClick={() => onBetClick(bet)}
+              />
+            ))}
+          </div>
+        )}
       </MetalFrame>
     </div>
   );
@@ -1579,6 +1595,8 @@ export default function BestBetsPage() {
                   icon={Activity}
                   bets={bestRunLines}
                   onBetClick={openModal}
+                  note="Run lines only appear when the model finds a genuine edge vs the book — most slates that's just one or two, and that's by design."
+                  keepWhenEmpty
                 />
                 <CategoryCarousel
                   title="Best Over / Unders"
