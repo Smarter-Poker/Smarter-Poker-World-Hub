@@ -171,7 +171,7 @@ export default function StatusPage() {
             <button
               onClick={handleRefresh}
               disabled={manualRefreshing && isValidating}
-              className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-[16px] font-bold tracking-widest capitalize touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-[16px] font-bold tracking-widest capitalize touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               <RefreshCw
                 aria-hidden="true"
@@ -253,7 +253,7 @@ export default function StatusPage() {
               <button
                 onClick={handleRefresh}
                 disabled={manualRefreshing && isValidating}
-                className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-[16px] font-extrabold tracking-widest capitalize touch-manipulation disabled:opacity-50"
+                className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-[16px] font-extrabold tracking-widest capitalize touch-manipulation disabled:opacity-50 min-h-[44px]"
               >
                 <RefreshCw
                   aria-hidden="true"

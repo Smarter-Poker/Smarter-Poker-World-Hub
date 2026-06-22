@@ -360,7 +360,7 @@ export default function PortfolioPage() {
               <Download size={16} /> Csv
             </a>
             <Link href="/hub/MLB-ANALYTICS/model-intel" passHref>
-              <button className="flex items-center gap-1 py-2 px-4 bg-[#1a2332] border border-[#3d4f5f] rounded-md text-slate-200 text-[22px] font-bold cursor-pointer transition-all duration-200 hover:bg-[#3d4f5f]">
+              <button className="flex items-center gap-1 py-2 px-4 bg-[#1a2332] border border-[#3d4f5f] rounded-md text-slate-200 text-[22px] font-bold cursor-pointer transition-all duration-200 hover:bg-[#3d4f5f] min-h-[44px]">
                 Model <ArrowRight size={16} />
               </button>
             </Link>

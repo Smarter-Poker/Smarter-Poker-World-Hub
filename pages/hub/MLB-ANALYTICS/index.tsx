@@ -108,11 +108,11 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
 
   return (
     <button
-      onClick={() => {
-        onSync();
-        setHasUpdate(false);
-      }}
-      className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] rounded-sm shadow-[0_0_15px_rgba(0,212,255,0.4)] z-50 cursor-pointer hover:bg-[#00D4FF] group transition-all animate-pulse"
+      onClick={() => { try { navigator.vibrate(15); } catch(err) {} 
+                  onSync();
+                  setHasUpdate(false);
+                }}
+      className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] rounded-sm shadow-[0_0_15px_rgba(0,212,255,0.4)] z-50 cursor-pointer hover:bg-[#00D4FF] group transition-all animate-pulse min-h-[44px]"
     >
       <div className="w-2.5 h-2.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#00D4FF] group-hover:bg-[#0d1117]" />
       <span className="text-[18px] font-black text-[#00D4FF] tracking-widest capitalize  group-hover:text-[#0d1117]">
@@ -314,7 +314,7 @@ function FilterBar({
 
       {/* Actionable */}
       <button
-        onClick={() => onFilter({ ...filters, actionable: !filters.actionable })}
+        onClick={() => { try { navigator.vibrate(15); } catch(err) {} return onFilter({ ...filters, actionable: !filters.actionable }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.actionable
             ? 'bg-[#0d1117] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -333,7 +333,7 @@ function FilterBar({
 
       {/* Props Only */}
       <button
-        onClick={() => onFilter({ ...filters, propsOnly: !filters.propsOnly })}
+        onClick={() => { try { navigator.vibrate(15); } catch(err) {} return onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.propsOnly
             ? 'bg-[#0d1117] border-[#00BFFF] shadow-[0_0_10px_rgba(0,191,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'

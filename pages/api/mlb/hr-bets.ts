@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Per-user HR bet tracking. Account-synced (RLS-protected table public.mlb_hr_bets in
@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // ── Auth: verify the caller and derive their user_id from the JWT ──
   const authHeader = req.headers.authorization;
-  const authStr = Array.isArray(authHeader) ? authHeader[0] : (authHeader || '');
+  const authStr = Array.isArray(authHeader) ? authHeader[0] : authHeader || '';
   const token = authStr.replace('Bearer ', '').trim();
   if (!token) return res.status(401).json({ error: 'Auth required' });
   const { data: authData, error: authErr } = await sb.auth.getUser(token);

@@ -451,7 +451,7 @@ export default function ModelIntelPage() {
     <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
       <SEOHead
         title="MLB Predictive Model Intelligence - Calibration & Edge Analytics | Smarter.Poker"
-        description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine: Brier calibration, closing-line value, ROI by market, the bet-type trust ledger, and the cumulative P&L curve for the 2026 MLB season."
+        description="Behind-the-scenes look at the Smarter.Poker MLB prediction engine: Brier calibration, closing-line value, ROI by market, the bet-type trust ledger, and the cumulative P&L curve across the MLB season."
         canonical="/hub/MLB-ANALYTICS/model-intel"
         ogImage="/images/mlb/og.png"
         noindex={true}
@@ -496,8 +496,8 @@ export default function ModelIntelPage() {
             Failed To Load Intel Data. Please Try Again.
           </p>
           <button
-            onClick={() => mutate()}
-            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold capitalize tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)]"
+            onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold capitalize tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)] min-h-[44px]"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -544,10 +544,10 @@ export default function ModelIntelPage() {
           {/* Refresh + last-updated */}
           <div className="flex flex-col items-end gap-1">
             <button
-              onClick={() => mutate()}
+              onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
               disabled={isValidating}
               aria-label="Refresh model intel data"
-              className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold capitalize tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold capitalize tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50 min-h-[44px]"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
               {isValidating ? 'Syncing' : 'Refresh'}

@@ -537,7 +537,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 letterSpacing: '0.1em',
                 cursor: 'pointer',
                 padding: '4px 0',
-              }}
+              }} className="min-h-[44px]"
             >
               {expanded ? 'COLLAPSE TELEMETRY' : 'EXPAND TELEMETRY'}
               {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

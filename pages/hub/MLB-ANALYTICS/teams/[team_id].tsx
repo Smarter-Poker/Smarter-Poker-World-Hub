@@ -676,7 +676,7 @@ export default function TeamDetailPage() {
                   type="button"
                   role="tab"
                   aria-selected={activeTab === tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => { try { navigator.vibrate(15); } catch(err) {} return setActiveTab(tab); }}
                   className={`tab-btn ${activeTab === tab ? 'active' : 'inactive'}`}
                 >
                   {tab}
@@ -850,11 +850,20 @@ export default function TeamDetailPage() {
                     <StatBox label="Away Rec" value={awayRec} color="#FCD34D" />
                     <StatBox label="vs .500+" value={vs500} color="#94A3B8" />
                     <StatBox label="Last 10" value={last10} color={parseInt((last10 || '0-0').split('-')[0]) >= 7 ? '#22C55E' : 'white'} />
-                    <StatBox label="Lob%" value={adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'} color="#94A3B8" />
+                    <StatBox label="LOB%" value={adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'} color="#94A3B8" />
                     <StatBox label="oWAR" value={adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'} color="#34D399" />
                     <StatBox label="pWAR" value={adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'} color="#60A5FA" />
                     {adv.drs != null && (
-                      <StatBox label="Drs" value={Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)} color={Number(adv.drs) >= 0 ? '#22C55E' : '#EF4444'} />
+                      <StatBox label="DRS" value={Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)} color={Number(adv.drs) >= 0 ? '#22C55E' : '#EF4444'} />
+                    )}
+                    {adv.oaa != null && (
+                      <StatBox label="OAA" value={Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)} color={Number(adv.oaa) >= 0 ? '#22C55E' : '#EF4444'} />
+                    )}
+                    {adv.uzr != null && (
+                      <StatBox label="UZR" value={Number(adv.uzr) >= 0 ? `+${fmtNum(adv.uzr)}` : fmtNum(adv.uzr)} color={Number(adv.uzr) >= 0 ? '#22C55E' : '#EF4444'} />
+                    )}
+                    {adv.def != null && (
+                      <StatBox label="DEF" value={Number(adv.def) >= 0 ? `+${fmtNum(adv.def)}` : fmtNum(adv.def)} color={Number(adv.def) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
                   </div>
                 </div>
@@ -963,7 +972,7 @@ export default function TeamDetailPage() {
                           : prop.side || '';
                       return (
                         <div
-                          key={idx}
+                          key={game.game_pk || idx}
                           style={{
                             padding: '14px 16px',
                             border: '1px solid #3d4f5f',

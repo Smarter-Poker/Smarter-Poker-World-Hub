@@ -416,8 +416,8 @@ export default function HRTrackerPage() {
       >
         <button
           type="button"
-          onClick={() => handleSort(col)}
-          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF]"
+          onClick={() => { try { navigator.vibrate(15); } catch(err) {} return handleSort(col); }}
+          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF] min-h-[44px]"
           aria-label={`Sort by ${label}`}
         >
           {label}
@@ -490,8 +490,8 @@ export default function HRTrackerPage() {
               </p>
             </div>
             <button
-              onClick={() => mutate()}
-              className="ml-auto text-[17px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors"
+              onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+              className="ml-auto text-[17px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors min-h-[44px]"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               Refresh
@@ -549,8 +549,8 @@ export default function HRTrackerPage() {
                 The HR cache is temporarily unavailable. Try refreshing in a moment.
               </div>
               <button
-                onClick={() => mutate()}
-                className="mt-3 text-[17px] font-extrabold text-[#FF4444] border border-[#FF4444]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#FF4444]/10 transition-colors"
+                onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+                className="mt-3 text-[17px] font-extrabold text-[#FF4444] border border-[#FF4444]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#FF4444]/10 transition-colors min-h-[44px]"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Retry
@@ -574,8 +574,8 @@ export default function HRTrackerPage() {
               underway, check back shortly or tap Refresh.
             </div>
             <button
-              onClick={() => mutate()}
-              className="mt-4 text-[17px] font-extrabold text-[#00D4FF] border border-[#00D4FF]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#00D4FF]/10 transition-colors"
+              onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+              className="mt-4 text-[17px] font-extrabold text-[#00D4FF] border border-[#00D4FF]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#00D4FF]/10 transition-colors min-h-[44px]"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               Refresh
@@ -679,9 +679,9 @@ export default function HRTrackerPage() {
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => { try { navigator.vibrate(15); } catch(err) {} return setSearchQuery(''); }}
                     aria-label="Clear search"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors min-h-[44px]"
                   >
                     <X size={14} />
                   </button>
@@ -696,7 +696,7 @@ export default function HRTrackerPage() {
                   return (
                     <button
                       key={s}
-                      onClick={() => setStatusFilter(s)}
+                      onClick={() => { try { navigator.vibrate(15); } catch(err) {} return setStatusFilter(s); }}
                       aria-pressed={statusFilter === s}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[18px] tracking-widest capitalize transition-all border-[2px] whitespace-nowrap font-rajdhani ${
                         statusFilter === s
@@ -736,8 +736,8 @@ export default function HRTrackerPage() {
                       >
                         <button
                           type="button"
-                          onClick={() => handleSort('full_name')}
-                          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF] font-rajdhani"
+                          onClick={() => { try { navigator.vibrate(15); } catch(err) {} return handleSort('full_name'); }}
+                          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[17px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF] font-rajdhani min-h-[44px]"
                           aria-label="Sort by Player"
                         >
                           Player
@@ -774,8 +774,8 @@ export default function HRTrackerPage() {
               {visibleCount < filtered.length && (
                 <div className="p-4 border-t border-[#3d4f5f]/50 flex justify-center">
                   <button
-                    onClick={() => setVisibleCount((prev) => prev + 50)}
-                    className="text-[17px] font-extrabold tracking-widest capitalize text-[#00D4FF] border border-[#00D4FF]/40 rounded-md px-6 py-2.5 hover:bg-[#00D4FF]/10 transition-colors"
+                    onClick={() => { try { navigator.vibrate(15); } catch(err) {} return setVisibleCount((prev) => prev + 50); }}
+                    className="text-[17px] font-extrabold tracking-widest capitalize text-[#00D4FF] border border-[#00D4FF]/40 rounded-md px-6 py-2.5 hover:bg-[#00D4FF]/10 transition-colors min-h-[44px]"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
                     Load More
