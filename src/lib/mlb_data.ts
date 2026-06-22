@@ -9,8 +9,8 @@ export const teamLogo = (id?: number | null): string | null =>
 
 export type GameCard = {
   gamePk: number; home: string; away: string; homeId: number; awayId: number; firstPitch: string | null;
-  homeStarter: { name: string; wins?: number; losses?: number; era?: number } | null; 
-  awayStarter: { name: string; wins?: number; losses?: number; era?: number } | null;
+  homeStarter: { name: string; wins?: number; losses?: number; era?: number; whip?: number } | null; 
+  awayStarter: { name: string; wins?: number; losses?: number; era?: number; whip?: number } | null;
   homeRecord?: { wins: number; losses: number };
   awayRecord?: { wins: number; losses: number };
   homeStreak?: string;
@@ -72,7 +72,7 @@ async function starterMap(sb: any /* eslint-disable-line @typescript-eslint/no-e
   const latest = latestBy(probs ?? [], (r) => `${r.game_pk}:${r.team_id}`);
   const pids = [...new Set(latest.map(r => r.pitcher_id))];
 
-  const pmap = new Map<number, { name: string; wins?: number; losses?: number; era?: number }>();
+  const pmap = new Map<number, { name: string; wins?: number; losses?: number; era?: number; whip?: number }>();
   if (pids.length > 0) {
     // 1) NAME first, with full fallback, so EVERY probable has a pmap entry BEFORE stats attach.
     const { data: profiles } = await sb.from("v_pitcher_profile").select("player_id,full_name").in("player_id", pids);
@@ -92,7 +92,7 @@ async function starterMap(sb: any /* eslint-disable-line @typescript-eslint/no-e
     //    starter missing from that view (e.g. a rookie) silently lost its record + ERA.
     const { data: spStats } = await sb
       .from("agg_pitcher")
-      .select("pitcher_id,w,l,era,as_of")
+      .select("pitcher_id,w,l,era,h,bb,ip,as_of")
       .in("pitcher_id", pids)
       .eq("window_kind", "fg_season")
       .order("as_of", { ascending: false });
@@ -103,11 +103,14 @@ async function starterMap(sb: any /* eslint-disable-line @typescript-eslint/no-e
         e.wins   = s.w   != null ? Number(s.w)   : e.wins;
         e.losses = s.l   != null ? Number(s.l)   : e.losses;
         e.era    = s.era != null ? Number(s.era) : e.era;
+        if (s.h != null && s.bb != null && s.ip != null && Number(s.ip) > 0) {
+          e.whip = (Number(s.h) + Number(s.bb)) / Number(s.ip);
+        }
       }
     }
   }
 
-  const m = new Map<string, { name: string; wins?: number; losses?: number; era?: number } | null>();
+  const m = new Map<string, { name: string; wins?: number; losses?: number; era?: number; whip?: number } | null>();
   for (const r of latest) {
     m.set(`${r.game_pk}:${r.team_id}`, pmap.get(r.pitcher_id as number) ?? null);
   }
