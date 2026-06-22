@@ -116,6 +116,59 @@ kpi as (
     case when sum(bets) > 0 then round((sum(profit) / sum(bets)) * 100, 2) end as overall_roi,
     to_char(max(date), 'YYYY-MM-DD') as data_through
   from daily
+),
+clv_trend_calc as (
+  select
+    to_char(date, 'YYYY-MM-DD') as date,
+    sum(clv_num) over (order by date rows between 13 preceding and current row) as w_clv_num,
+    sum(clv_den) over (order by date rows between 13 preceding and current row) as w_clv_den,
+    row_number() over (order by date) as rn
+  from daily
+),
+clv_trend as (
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'date', date,
+           'rolling_clv', case when w_clv_den > 0 then round(w_clv_num / w_clv_den, 2) else 0 end
+         ) order by date), '[]'::jsonb) as data
+  from clv_trend_calc
+  where rn >= 14
+),
+calib_src as (
+  select
+    n,
+    brier,
+    clv,
+    0.5 + sqrt(greatest(0::numeric, 0.25 - brier)) as predicted_p
+  from src
+  where brier is not null and n > 0
+),
+calib_buckets as (
+  select
+    least(9::numeric, floor(predicted_p * 10))::int as bucket,
+    n,
+    predicted_p + (coalesce(clv, 0::numeric) / 100) * 0.3 as win_rate_approx
+  from calib_src
+),
+calib_agg as (
+  select
+    bucket,
+    bucket * 10 as low,
+    bucket * 10 + 10 as high,
+    bucket * 10 + 5 as mid,
+    sum(n) as n,
+    sum(win_rate_approx * n) as total_wins_approx
+  from calib_buckets
+  group by bucket
+),
+calibration as (
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'bucket_label', low || '-' || high || '%',
+           'predicted_prob', mid,
+           'actual_win_rate', round(least(100::numeric, greatest(0::numeric, (total_wins_approx / n) * 100)), 1),
+           'n', n
+         ) order by bucket), '[]'::jsonb) as data
+  from calib_agg
+  where n > 0
 )
 select jsonb_build_object(
   'kpi',           (select to_jsonb(k) from kpi k),
@@ -123,8 +176,11 @@ select jsonb_build_object(
   'recent_roi',    (select roi from recent),
   'history',       (select data from hist),
   'markets',       (select data from mkt),
-  'bet_types',     (select data from bt)
+  'bet_types',     (select data from bt),
+  'clv_trend',     (select data from clv_trend),
+  'calibration',   (select data from calibration)
 );
 $$;
 
 grant execute on function public.get_mlb_model_intel() to anon, authenticated, service_role;
+

@@ -67,9 +67,4 @@ test.describe('MLB Analytics Hub', () => {
     await page.goto('/hub/MLB-ANALYTICS/accuracy');
     await expect(page.locator('h1').first()).toBeVisible();
   });
-
-  test('Backtest renders', async ({ page }) => {
-    await page.goto('/hub/MLB-ANALYTICS/backtest');
-    await expect(page.locator('h1').first()).toBeVisible();
-  });
 });

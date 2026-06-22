@@ -59,7 +59,11 @@ export default function HrBetTracker({
     }
     return fetch(url, {
       ...init,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(init?.headers || {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init?.headers || {}),
+      },
     });
   }, []);
 
@@ -96,7 +100,13 @@ export default function HrBetTracker({
     try {
       const res = await authFetch('/api/mlb/hr-bets', {
         method: 'POST',
-        body: JSON.stringify({ player_id: playerId, player_name: playerName, team_id: teamId ?? null, stake: s, american_odds: o }),
+        body: JSON.stringify({
+          player_id: playerId,
+          player_name: playerName,
+          team_id: teamId ?? null,
+          stake: s,
+          american_odds: o,
+        }),
       });
       if (!res.ok) throw new Error('post-failed');
       setStake('');
@@ -112,7 +122,10 @@ export default function HrBetTracker({
     async (id: number, result: Bet['result']) => {
       setBusy(true);
       try {
-        await authFetch('/api/mlb/hr-bets', { method: 'PATCH', body: JSON.stringify({ id, result }) });
+        await authFetch('/api/mlb/hr-bets', {
+          method: 'PATCH',
+          body: JSON.stringify({ id, result }),
+        });
         await load();
       } catch {
         setErr('Could not update the bet.');
@@ -173,7 +186,10 @@ export default function HrBetTracker({
     return (
       <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 text-center">
         <DollarSign className="w-7 h-7 text-[#00D4FF] mx-auto mb-2" />
-        <div className="text-white font-extrabold text-[17px] tracking-wide" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+        <div
+          className="text-white font-extrabold text-[17px] tracking-wide"
+          style={{ fontFamily: '"Rajdhani", sans-serif' }}
+        >
           Sign In To Track Your HR Bets
         </div>
         <p className="text-slate-400 text-[14px] font-bold mt-1">
@@ -191,21 +207,36 @@ export default function HrBetTracker({
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 text-center">
-          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">Wagered</div>
-          <div className="text-[22px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">
+            Wagered
+          </div>
+          <div
+            className="text-[22px] font-extrabold text-white"
+            style={{ fontFamily: '"Rajdhani", sans-serif' }}
+          >
             {money(summary.totalStaked)}
           </div>
         </div>
         <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 text-center">
-          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">Net P&amp;L</div>
-          <div className={`text-[22px] font-extrabold ${netColor} flex items-center justify-center gap-1`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">
+            Net P&amp;L
+          </div>
+          <div
+            className={`text-[22px] font-extrabold ${netColor} flex items-center justify-center gap-1`}
+            style={{ fontFamily: '"Rajdhani", sans-serif' }}
+          >
             {net > 0 ? <TrendingUp size={18} /> : net < 0 ? <TrendingDown size={18} /> : null}
             {money(net)}
           </div>
         </div>
         <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 text-center">
-          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">Record</div>
-          <div className="text-[22px] font-extrabold text-white" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+          <div className="text-[12px] font-extrabold text-slate-400 tracking-widest capitalize mb-1">
+            Record
+          </div>
+          <div
+            className="text-[22px] font-extrabold text-white"
+            style={{ fontFamily: '"Rajdhani", sans-serif' }}
+          >
             {summary.wins}/{summary.settled}
           </div>
         </div>
@@ -216,19 +247,35 @@ export default function HrBetTracker({
         className={`rounded-lg p-3 mb-5 border ${summary.recoveryStake > 0 ? 'border-[#FFB800]/50 bg-[#FFB800]/10' : 'border-[#00ff88]/40 bg-[#00ff88]/5'}`}
       >
         <div className="flex items-start gap-2">
-          <Target size={18} className={summary.recoveryStake > 0 ? 'text-[#FFB800] mt-0.5 shrink-0' : 'text-[#00ff88] mt-0.5 shrink-0'} />
+          <Target
+            size={18}
+            className={
+              summary.recoveryStake > 0
+                ? 'text-[#FFB800] mt-0.5 shrink-0'
+                : 'text-[#00ff88] mt-0.5 shrink-0'
+            }
+          />
           <div className="text-[14px] font-bold text-slate-200 leading-snug">
             {summary.recoveryStake > 0 ? (
               <>
-                You&apos;re down <span className="text-[#FF4444] font-extrabold">{money(net)}</span> on{' '}
-                {playerName || 'this player'}. To get back to net-positive on a win at{' '}
+                You&apos;re down <span className="text-[#FF4444] font-extrabold">{money(net)}</span>{' '}
+                on {playerName || 'this player'}. To get back to net-positive on a win at{' '}
                 <span className="text-white font-extrabold">{odds || '+450'}</span>, bet at least{' '}
-                <span className="text-[#FFB800] font-extrabold text-[16px]">${summary.recoveryStake.toFixed(2)}</span> next.
+                <span className="text-[#FFB800] font-extrabold text-[16px]">
+                  ${summary.recoveryStake.toFixed(2)}
+                </span>{' '}
+                next.
               </>
             ) : net > 0 ? (
-              <>You&apos;re up <span className="text-[#00ff88] font-extrabold">{money(net)}</span> on {playerName || 'this player'} — any winning bet keeps you profitable.</>
+              <>
+                You&apos;re up <span className="text-[#00ff88] font-extrabold">{money(net)}</span>{' '}
+                on {playerName || 'this player'} — any winning bet keeps you profitable.
+              </>
             ) : (
-              <>No settled bets yet. Log a wager and mark Hit/Miss to track profit and your recovery stake.</>
+              <>
+                No settled bets yet. Log a wager and mark Hit/Miss to track profit and your recovery
+                stake.
+              </>
             )}
           </div>
         </div>
@@ -237,7 +284,9 @@ export default function HrBetTracker({
       {/* Add bet */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <div className="flex-1">
-          <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest capitalize mb-1">Wager ($)</label>
+          <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest capitalize mb-1">
+            Wager ($)
+          </label>
           <input
             type="number"
             inputMode="decimal"
@@ -248,7 +297,9 @@ export default function HrBetTracker({
           />
         </div>
         <div className="w-full sm:w-32">
-          <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest capitalize mb-1">Odds</label>
+          <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest capitalize mb-1">
+            Odds
+          </label>
           <input
             type="text"
             value={odds}
@@ -272,7 +323,9 @@ export default function HrBetTracker({
 
       {/* Bet history */}
       {loading ? (
-        <div className="text-slate-500 text-[14px] font-bold text-center py-4">Loading your bets…</div>
+        <div className="text-slate-500 text-[14px] font-bold text-center py-4">
+          Loading your bets…
+        </div>
       ) : bets.length === 0 ? (
         <div className="text-slate-500 text-[14px] font-bold text-center py-4">
           No bets logged yet for {playerName || 'this player'}.
@@ -283,11 +336,20 @@ export default function HrBetTracker({
             const dec = decimalOdds(b.american_odds);
             const payout = b.stake * (dec - 1);
             return (
-              <div key={b.id} className="flex items-center justify-between bg-[#1a2332] border border-[#3d4f5f] rounded-lg px-3 py-2.5 gap-2">
+              <div
+                key={b.id}
+                className="flex items-center justify-between bg-[#1a2332] border border-[#3d4f5f] rounded-lg px-3 py-2.5 gap-2"
+              >
                 <div className="min-w-0">
-                  <div className="text-white font-extrabold text-[15px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                    {money(b.stake)} @ {b.american_odds > 0 ? `+${b.american_odds}` : b.american_odds}
-                    <span className="text-slate-500 text-[12px] font-bold ml-2">→ +{money(payout)} to win</span>
+                  <div
+                    className="text-white font-extrabold text-[15px]"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {money(b.stake)} @{' '}
+                    {b.american_odds > 0 ? `+${b.american_odds}` : b.american_odds}
+                    <span className="text-slate-500 text-[12px] font-bold ml-2">
+                      → +{money(payout)} to win
+                    </span>
                   </div>
                   <div className="text-slate-500 text-[12px] font-bold">{b.bet_date}</div>
                 </div>
@@ -310,7 +372,12 @@ export default function HrBetTracker({
                       {r}
                     </button>
                   ))}
-                  <button onClick={() => removeBet(b.id)} disabled={busy} aria-label="Delete bet" className="text-slate-600 hover:text-[#FF4444] transition-colors p-1">
+                  <button
+                    onClick={() => removeBet(b.id)}
+                    disabled={busy}
+                    aria-label="Delete bet"
+                    className="text-slate-600 hover:text-[#FF4444] transition-colors p-1"
+                  >
                     <Trash2 size={15} />
                   </button>
                 </div>

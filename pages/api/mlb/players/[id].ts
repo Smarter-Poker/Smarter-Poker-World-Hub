@@ -8,9 +8,14 @@ import { getMlbSupabase } from '../../../../utils/supabase/mlb';
 // Short, defensible HR-conditions summary from the latest weather snapshot.
 // Park-relative wind (out/in) needs stadium orientation we don't model here, so we
 // describe temperature + wind speed + roof only — no over-claiming on wind direction.
-function weatherSummary(w: { temp_f: number | null; wind_mph: number | null; roof_state: string | null }): string {
+function weatherSummary(w: {
+  temp_f: number | null;
+  wind_mph: number | null;
+  roof_state: string | null;
+}): string {
   const roof = (w.roof_state || '').toLowerCase();
-  if (roof.includes('closed') || roof.includes('dome')) return 'Indoors / roof closed — controlled, neutral conditions for power.';
+  if (roof.includes('closed') || roof.includes('dome'))
+    return 'Indoors / roof closed — controlled, neutral conditions for power.';
   const parts: string[] = [];
   const t = w.temp_f;
   if (t != null) {
@@ -87,7 +92,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data.matchup.weather = weather;
         }
         const lu: any = luRes.data;
-        data.matchup.lineup = lu ? { batting_order: lu.batting_order, confirmed: !!lu.confirmed } : null;
+        data.matchup.lineup = lu
+          ? { batting_order: lu.batting_order, confirmed: !!lu.confirmed }
+          : null;
       }
     } catch (e: any) {
       console.error('[MLB Player Detail] enrichment skipped:', e?.message || e);

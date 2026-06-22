@@ -17,7 +17,8 @@ function LeaderCard({ rank, p }: { rank: number; p: Leader }) {
   const [img, setImg] = useState(headshot(p.player_id));
   const pct = p.hr_prob != null ? Math.round(p.hr_prob * 100) : null;
   // Rank tiers for the badge color.
-  const badge = rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : rank === 3 ? '#CD7F32' : '#00D4FF';
+  const badge =
+    rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : rank === 3 ? '#CD7F32' : '#00D4FF';
   return (
     <Link
       href={`/hub/MLB-ANALYTICS/players/${p.player_id}`}
@@ -53,14 +54,20 @@ function LeaderCard({ rank, p }: { rank: number; p: Leader }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-white font-extrabold text-[15px] truncate" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+        <div
+          className="text-white font-extrabold text-[15px] truncate"
+          style={{ fontFamily: '"Rajdhani", sans-serif' }}
+        >
           {p.full_name}
         </div>
         <div className="text-slate-500 text-[12px] font-bold tracking-wide">HR Chance Today</div>
       </div>
       {pct != null && (
         <div className="shrink-0 text-right">
-          <div className="text-[#00D4FF] font-extrabold text-[22px] leading-none" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+          <div
+            className="text-[#00D4FF] font-extrabold text-[22px] leading-none"
+            style={{ fontFamily: '"Rajdhani", sans-serif' }}
+          >
             {pct}%
           </div>
         </div>
@@ -110,7 +117,10 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-[68px] bg-[#1a2332] border border-[#3d4f5f] rounded-lg animate-pulse" />
+              <div
+                key={i}
+                className="h-[68px] bg-[#1a2332] border border-[#3d4f5f] rounded-lg animate-pulse"
+              />
             ))}
           </div>
         ) : leaders.length === 0 ? (

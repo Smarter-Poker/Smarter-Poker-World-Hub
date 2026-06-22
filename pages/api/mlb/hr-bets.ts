@@ -57,7 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const stake = Number(b.stake);
       const american_odds = parseInt(String(b.american_odds), 10);
       if (Number.isNaN(player_id)) return res.status(400).json({ error: 'player_id required' });
-      if (Number.isNaN(stake) || stake < 0) return res.status(400).json({ error: 'valid stake required' });
+      if (Number.isNaN(stake) || stake < 0)
+        return res.status(400).json({ error: 'valid stake required' });
       if (Number.isNaN(american_odds) || american_odds === 0)
         return res.status(400).json({ error: 'valid american_odds required' });
       const result = RESULTS.includes(b.result) ? b.result : 'pending';

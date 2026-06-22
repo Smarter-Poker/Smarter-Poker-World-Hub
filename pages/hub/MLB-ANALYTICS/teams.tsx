@@ -29,20 +29,10 @@ const STAT_META: Record<string, { full: string; desc: string }> = {
   'FIP':       { full: 'Fielding Independent Pitching', desc: 'ERA-like stat using only K, BB, HBP, HR — removes defense from the equation.' },
   'xFIP':      { full: 'Expected FIP', desc: 'Like FIP but normalizes home run rate. Best for true pitcher skill assessment.' },
   'SIERA':     { full: 'Skill-Interactive ERA', desc: 'Most predictive ERA estimator. Accounts for batted ball type and swing-miss rates.' },
-  'OPS+':      { full: 'OPS Plus (Adjusted)', desc: 'OPS adjusted for park and league. 100 = average. Above 100 = above average.' },
-  'WHIP':      { full: 'Walks + Hits Per Inning Pitched', desc: 'Baserunner prevention. Lower is better. Measures pitcher command and efficiency.' },
-  'BB%':       { full: 'Walk Rate (Offense)', desc: 'Team walk rate — plate discipline. Strongly correlates with run scoring.' },
-  'K%':        { full: 'Strikeout Rate (Pitching)', desc: 'Team K rate allowed. Most defense-independent pitching metric available.' },
-  'RS':        { full: 'Runs Scored', desc: 'Total runs scored this season. Raw offensive output.' },
-  'RA':        { full: 'Runs Allowed', desc: 'Total runs allowed. Combines pitching + defense quality.' },
   'OBP':       { full: 'On-Base Percentage', desc: 'Rate batters reach base. Getting on base is the engine of scoring runs.' },
   'SLG':       { full: 'Slugging Percentage', desc: 'Total bases per at-bat. Measures power and extra-base hit production.' },
   'HR':        { full: 'Home Runs', desc: 'Total team home runs. The most reliable run-scoring vehicle in modern MLB.' },
-  'LOB%':      { full: 'Left on Base % (Pitching)', desc: 'Rate pitchers strand baserunners. High % = good; partially luck-driven. League avg ~72%.' },
-  'BABIP':     { full: 'Batting Avg on Balls In Play', desc: 'Reveals luck vs. skill. League avg ≈ .300. Major outliers tend to regress to the mean.' },
   'DRS':       { full: 'Defensive Runs Saved', desc: 'Defensive value in runs above average. Positive = above-average defense.' },
-  'Bullpen':   { full: 'Bullpen ERA', desc: 'Relief pitcher ERA. Modern MLB games are routinely won or lost in the bullpen.' },
-  'SB%':       { full: 'Stolen Base Success Rate', desc: 'Stolen base efficiency. Raw SB totals are less meaningful than success rate.' },
   'wOBA':      { full: 'Weighted On-Base Average', desc: 'Combines all offensive events into one number. Better than OPS for run prediction.' },
   'AVG':       { full: 'Batting Average', desc: 'Hits per at-bat. Traditional hitting metric. Less predictive than OBP or wRC+.' },
   'SB':        { full: 'Stolen Bases', desc: 'Total stolen bases this season. Context-dependent without success rate.' },
@@ -429,16 +419,31 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
                   price={team.grade.price}
                   pMarket={team.grade.pMarket}
                 />
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: '#64748B',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  {team.grade.edgeCount} EDGE{team.grade.edgeCount === 1 ? '' : 'S'}
-                </span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: team.grade.tier === 'ELITE' ? '#10B981' : team.grade.tier === 'STRONG' ? '#3B82F6' : '#64748B',
+                      letterSpacing: '0.08em',
+                      backgroundColor: 'rgba(0,0,0,0.2)',
+                      padding: '2px 4px',
+                      borderRadius: 4,
+                    }}
+                  >
+                    {team.grade.tier}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: '#64748B',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    {team.grade.edgeCount} EDGE{team.grade.edgeCount === 1 ? '' : 'S'}
+                  </span>
+                </div>
               </div>
             ) : (
               <span
