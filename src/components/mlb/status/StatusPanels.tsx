@@ -15,7 +15,7 @@ import {
   Bell,
   RefreshCw,
 } from 'lucide-react';
-import { MLBStatusPayload } from '../../../../pages/hub/MLB-ANALYTICS/status';
+import type { MLBStatusPayload } from '../../../../pages/hub/MLB-ANALYTICS/status';
 
 const fetcher = (url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error('API Error');
