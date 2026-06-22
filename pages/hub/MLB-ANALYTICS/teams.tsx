@@ -460,25 +460,25 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
           <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
                 <StatLabel label="ERA" color="#60A5FA" />
-                <div className="stat-value">
+                <div className="stat-value" style={{ color: adv.era != null ? statColor('ERA', adv.era) : undefined }}>
                   {fmtEra(adv.era)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="OPS" color="#34D399" />
-                <div className="stat-value">
+                <div className="stat-value" style={{ color: adv.ops != null ? statColor('OPS', adv.ops) : undefined }}>
                   {fmtOps(adv.ops)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="wRC+" color="#F472B6" />
-                <div className="stat-value">
+                <div className="stat-value" style={{ color: adv.wrc_plus != null ? statColor('wRC+', adv.wrc_plus) : undefined }}>
                   {fmtInt(adv.wrc_plus)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="FIP" color="#A78BFA" />
-                <div className="stat-value">
+                <div className="stat-value" style={{ color: adv.fip != null ? statColor('FIP', adv.fip) : undefined }}>
                   {fmtEra(adv.fip)}
                 </div>
               </div>
@@ -633,7 +633,7 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
                 </div>
 
                 {/* TIER 4 — Defense & Situational */}
-                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ DEFENSE &amp; SITUATIONAL</div>
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ DEFENSE & SITUATIONAL</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="Home" color="#94A3B8" /></span>

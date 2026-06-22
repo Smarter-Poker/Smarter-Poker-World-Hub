@@ -138,7 +138,14 @@ interface MetricBoxProps {
   tooltip?: string;
 }
 
-const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading, tooltip }: MetricBoxProps) => (
+const MetricBox = ({
+  title,
+  value,
+  sub,
+  valueColor = '#FFFFFF',
+  isLoading,
+  tooltip,
+}: MetricBoxProps) => (
   <div
     className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)] cursor-default"
     title={tooltip}
@@ -296,10 +303,10 @@ function downloadCsv(rows: any[], filter: string) {
 /* ─── page ───────────────────────────────────────────────────────────────────── */
 
 const CHART_RANGES = ['7D', '30D', 'All'] as const;
-type ChartRange = typeof CHART_RANGES[number];
+type ChartRange = (typeof CHART_RANGES)[number];
 
 const ACC_FILTERS = ['All', 'Moneyline', 'Totals', 'Run Line', 'Props'] as const;
-type AccFilter = typeof ACC_FILTERS[number];
+type AccFilter = (typeof ACC_FILTERS)[number];
 
 export default function ModelIntelPage() {
   const router = useRouter();
@@ -324,7 +331,9 @@ export default function ModelIntelPage() {
 
   useEffect(() => {
     timerRef.current = setInterval(() => forceRender((n) => n + 1), 30_000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   const relativeTime = useMemo(() => {
@@ -368,23 +377,36 @@ export default function ModelIntelPage() {
 
   // ── Daily performance table aggregation (n-weighted Brier/CLV, true ROI per date)
   const filteredTable = useMemo(() => {
-    const rows = tableData.filter(
-      (r) => accFilter === 'All' || categoryOf(r.market) === accFilter
-    );
+    const rows = tableData.filter((r) => accFilter === 'All' || categoryOf(r.market) === accFilter);
     const byDate: Record<string, any> = {};
     for (const r of rows) {
       const n = Number(r.n) || 0;
       if (n <= 0) continue;
       const d = r.date;
       if (!byDate[d]) {
-        byDate[d] = { date: d, n: 0, brierNum: 0, brierW: 0, clvNum: 0, clvW: 0, profit: 0, bets: 0 };
+        byDate[d] = {
+          date: d,
+          n: 0,
+          brierNum: 0,
+          brierW: 0,
+          clvNum: 0,
+          clvW: 0,
+          profit: 0,
+          bets: 0,
+        };
       }
       const g = byDate[d];
       g.n += n;
       g.profit += Number(r.sum_unit_profit) || 0;
       g.bets += Number(r.bet_count) || 0;
-      if (r.brier != null) { g.brierNum += Number(r.brier) * n; g.brierW += n; }
-      if (r.avg_clv != null) { g.clvNum += Number(r.avg_clv) * n; g.clvW += n; }
+      if (r.brier != null) {
+        g.brierNum += Number(r.brier) * n;
+        g.brierW += n;
+      }
+      if (r.avg_clv != null) {
+        g.clvNum += Number(r.avg_clv) * n;
+        g.clvW += n;
+      }
     }
     return Object.values(byDate)
       .map((g: any) => ({
@@ -764,12 +786,26 @@ export default function ModelIntelPage() {
                   // Skeleton rows
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="border-b border-[#1a2332] animate-pulse">
-                      <td className="px-4 py-3.5"><div className="h-3 bg-[#1a2332] rounded w-16" /></td>
-                      {accFilter === 'All' && <td className="px-4 py-3.5"><div className="h-3 bg-[#1a2332] rounded w-20" /></td>}
-                      <td className="px-4 py-3.5 text-right"><div className="h-3 bg-[#1a2332] rounded w-8 ml-auto" /></td>
-                      <td className="px-4 py-3.5 text-right"><div className="h-3 bg-[#1a2332] rounded w-12 ml-auto" /></td>
-                      <td className="px-4 py-3.5 text-right"><div className="h-3 bg-[#1a2332] rounded w-10 ml-auto" /></td>
-                      <td className="px-4 py-3.5 text-right"><div className="h-3 bg-[#1a2332] rounded w-14 ml-auto" /></td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-3 bg-[#1a2332] rounded w-16" />
+                      </td>
+                      {accFilter === 'All' && (
+                        <td className="px-4 py-3.5">
+                          <div className="h-3 bg-[#1a2332] rounded w-20" />
+                        </td>
+                      )}
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="h-3 bg-[#1a2332] rounded w-8 ml-auto" />
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="h-3 bg-[#1a2332] rounded w-12 ml-auto" />
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="h-3 bg-[#1a2332] rounded w-10 ml-auto" />
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="h-3 bg-[#1a2332] rounded w-14 ml-auto" />
+                      </td>
                     </tr>
                   ))
                 ) : filteredTable.length === 0 ? (
@@ -801,7 +837,12 @@ export default function ModelIntelPage() {
                             ? '0 0 5px rgba(255,68,68,0.5)'
                             : 'none';
                     const clvNum = row.avg_clv != null ? Number(row.avg_clv) : null;
-                    const clvCls = clvNum == null ? 'text-slate-300' : clvNum > 0 ? 'text-[#00D4FF]' : 'text-[#FF4444]';
+                    const clvCls =
+                      clvNum == null
+                        ? 'text-slate-300'
+                        : clvNum > 0
+                          ? 'text-[#00D4FF]'
+                          : 'text-[#FF4444]';
                     return (
                       <tr
                         key={`${row.date}-${row.market}-${i}`}
@@ -815,7 +856,9 @@ export default function ModelIntelPage() {
                             </span>
                           </td>
                         )}
-                        <td className="px-4 py-3 text-slate-400 text-right font-medium tabular-nums">{row.n}</td>
+                        <td className="px-4 py-3 text-slate-400 text-right font-medium tabular-nums">
+                          {row.n}
+                        </td>
                         <td className="px-4 py-3 text-slate-300 text-right font-bold tabular-nums">
                           {row.brier !== null ? Number(row.brier).toFixed(3) : '—'}
                         </td>
@@ -877,8 +920,12 @@ export default function ModelIntelPage() {
                       <td className="text-left px-4 py-3 font-bold text-white whitespace-nowrap">
                         {marketLabel(m.market)}
                       </td>
-                      <td className="text-right px-3 py-3 text-slate-300 tabular-nums">{fmtInt(m.n)}</td>
-                      <td className="text-right px-3 py-3 text-slate-300 tabular-nums">{fmtInt(m.bets)}</td>
+                      <td className="text-right px-3 py-3 text-slate-300 tabular-nums">
+                        {fmtInt(m.n)}
+                      </td>
+                      <td className="text-right px-3 py-3 text-slate-300 tabular-nums">
+                        {fmtInt(m.bets)}
+                      </td>
                       <td className="text-right px-3 py-3 text-slate-300 tabular-nums">
                         {m.win_pct != null ? `${Number(m.win_pct).toFixed(1)}%` : '--'}
                       </td>
@@ -1018,8 +1065,8 @@ export default function ModelIntelPage() {
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Win Rate</span>{' '}
-            &mdash; Percentage Of Graded Bets That Resulted In A Win. A Positive-EV Model Can
-            Have A Win Rate Below 50% If Average Odds Are Long Enough.
+            &mdash; Percentage Of Graded Bets That Resulted In A Win. A Positive-EV Model Can Have A
+            Win Rate Below 50% If Average Odds Are Long Enough.
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trust</span> &mdash;
@@ -1028,8 +1075,8 @@ export default function ModelIntelPage() {
           </p>
           <p>
             <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Lock-In Gate</span>{' '}
-            &mdash; The Model Must Pass All Four Thresholds (N≥500, CLV{'>'}&thinsp;0, ROI{'>'}&thinsp;&minus;3%,
-            Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
+            &mdash; The Model Must Pass All Four Thresholds (N≥500, CLV{'>'}&thinsp;0, ROI{'>'}
+            &thinsp;&minus;3%, Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
           </p>
         </div>
       </div>

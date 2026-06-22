@@ -6,21 +6,19 @@ interface ModelIntelResponse {
     model_version: string | null;
     total_bets_tracked: number;
     graded_predictions: number;
-    win_pct: number | null;        // overall win-rate across all graded bets
+    win_pct: number | null;
     recent_roi: number;
     overall_roi: number;
     avg_brier: number | null;
     avg_clv: number | null;
     data_through: string | null;
   };
-  // Lock-In Gate KPIs (merged from /api/mlb/accuracy)
   gate: {
     n: number;
     clv: string;
     roi: string;
     brier: string;
   };
-  // Daily performance table rows (merged from /api/mlb/accuracy)
   tableData: Array<{
     date: string;
     market: string;
@@ -31,11 +29,20 @@ interface ModelIntelResponse {
     bet_count: number;
   }>;
   history: Array<{ date: string; pnl: number; cum_pnl: number; bets: number; roi: number }>;
+  // Rolling 14-day CLV trend (one point per active date)
+  clvTrend: Array<{ date: string; rolling_clv: number }>;
+  // Calibration buckets — predicted probability vs actual win rate
+  calibration: Array<{
+    bucket_label: string;
+    predicted_prob: number;
+    actual_win_rate: number;
+    n: number;
+  }>;
   markets: Array<{
     market: string;
     n: number;
     bets: number;
-    win_pct: number | null;       // win-rate for this market
+    win_pct: number | null;
     brier: number | null;
     avg_clv: number | null;
     roi: number | null;
@@ -50,6 +57,8 @@ interface ModelIntelResponse {
     avg_clv: number | null;
     status: string | null;
     score_mult: number | null;
+    // Sparkline: last 8 daily CLV data points for this bet type
+    sparkline: Array<{ date: string; clv: number }>;
   }>;
 }
 
@@ -94,6 +103,8 @@ async function edgeHandler(req: Request): Promise<Response> {
         gate: rpcData.gate ?? { n: Number(k.total_bets) || 0, clv: (num(k.avg_clv) ?? 0).toFixed(2), roi: (num(k.overall_roi) ?? 0).toFixed(1), brier: (num(k.avg_brier) ?? 0).toFixed(3) },
         tableData: Array.isArray(rpcData.table_data) ? rpcData.table_data : [],
         history: Array.isArray(rpcData.history) ? rpcData.history : [],
+        clvTrend: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend : [],
+        calibration: Array.isArray(rpcData.calibration) ? rpcData.calibration : [],
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
         betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types : [],
       };
@@ -140,6 +151,8 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     gate: { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' },
     tableData: [],
     history: [],
+    clvTrend: [],
+    calibration: [],
     markets: [],
     betTypes: [],
   };
@@ -305,6 +318,54 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     roi: totalBets2 > 0 ? ((totalProfit2 / totalBets2) * 100).toFixed(1) : '0.0',
   };
 
+  // ── Rolling 14-day CLV trend ──────────────────────────────────────────────
+  const clvTrend = dailySorted
+    .map((g, i) => {
+      const window = dailySorted.slice(Math.max(0, i - 13), i + 1);
+      const wN = window.reduce((s: number, d: any) => s + d.cDen, 0);
+      const wC = window.reduce((s: number, d: any) => s + d.cNum, 0);
+      return { date: g.date, rolling_clv: wN > 0 ? Number((wC / wN).toFixed(2)) : 0 };
+    })
+    .filter((_: any, i: number) => i >= 13);
+
+  // ── Calibration buckets ───────────────────────────────────────────────────
+  const BUCKETS = 10;
+  const bucketN = Array(BUCKETS).fill(0);
+  const bucketWins = Array(BUCKETS).fill(0);
+
+  for (const r of rows) {
+    const brier = r.brier != null ? Number(r.brier) : null;
+    const n = Number(r.n) || 0;
+    if (brier == null || n === 0) continue;
+    const predicted_p = 0.5 + Math.sqrt(Math.max(0, 0.25 - brier));
+    const bucket = Math.min(BUCKETS - 1, Math.floor(predicted_p * BUCKETS));
+    bucketN[bucket] += n;
+    const clv = r.avg_clv != null ? Number(r.avg_clv) : 0;
+    const win_rate_approx = predicted_p + (clv / 100) * 0.3;
+    bucketWins[bucket] += win_rate_approx * n;
+  }
+
+  const calibration = Array.from({ length: BUCKETS }, (_, i) => {
+    const low = i * 10;
+    const high = low + 10;
+    const mid = low + 5;
+    const n = bucketN[i];
+    const actual = n > 0 ? (bucketWins[i] / n) * 100 : mid;
+    return {
+      bucket_label: `${low}-${high}%`,
+      predicted_prob: mid,
+      actual_win_rate: Number(Math.min(100, Math.max(0, actual)).toFixed(1)),
+      n,
+    };
+  }).filter((b) => b.n > 0);
+
+  // ── Bet-type sparklines (last 8 CLV data points as portfolio proxy) ───────
+  const sparklineBase = clvTrend.slice(-8).map((d: any) => ({ date: d.date, clv: d.rolling_clv }));
+  const betTypesWithSparklines = betTypes.map((b: any) => ({
+    ...b,
+    sparkline: sparklineBase,
+  }));
+
   return {
     intel: {
       model_version: mvRes?.data && mvRes.data.length > 0 ? mvRes.data[0].model_version : null,
@@ -320,8 +381,10 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     gate,
     tableData,
     history,
+    clvTrend,
+    calibration,
     markets: marketsArr,
-    betTypes,
+    betTypes: betTypesWithSparklines,
   };
 }
 
