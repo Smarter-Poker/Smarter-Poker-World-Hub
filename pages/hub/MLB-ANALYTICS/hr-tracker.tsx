@@ -63,7 +63,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 
 const STATUS_CONFIG = {
   OVERDUE: {
-    label: 'OVERDUE',
+    label: 'Overdue',
     color: 'text-[#FF4444]',
     bg: 'bg-[#FF4444]/10',
     border: 'border-[#FF4444]/60',
@@ -72,7 +72,7 @@ const STATUS_CONFIG = {
     icon: '●',
   },
   DUE: {
-    label: 'DUE',
+    label: 'Due',
     color: 'text-[#FFB800]',
     bg: 'bg-[#FFB800]/10',
     border: 'border-[#FFB800]/60',
@@ -81,7 +81,7 @@ const STATUS_CONFIG = {
     icon: '◆',
   },
   RECENT: {
-    label: 'RECENT',
+    label: 'Recent',
     color: 'text-[#00D4FF]',
     bg: 'bg-[#00D4FF]/10',
     border: 'border-[#00D4FF]/40',
@@ -90,7 +90,7 @@ const STATUS_CONFIG = {
     icon: '●',
   },
   NO_HR: {
-    label: 'NO HR',
+    label: 'No HR',
     color: 'text-slate-500',
     bg: 'bg-slate-800/30',
     border: 'border-slate-700',
@@ -252,7 +252,7 @@ export default function HRTrackerPage() {
         <button
           type="button"
           onClick={() => handleSort(col)}
-          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[10px] font-extrabold tracking-widest uppercase text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF]"
+          className="inline-flex items-center bg-transparent border-0 p-0 m-0 text-[10px] font-extrabold tracking-widest capitalize text-slate-400 cursor-pointer hover:text-[#00D4FF] transition-colors select-none focus:outline-none focus:text-[#00D4FF]"
           aria-label={`Sort by ${label}`}
         >
           {label}
@@ -301,7 +301,7 @@ export default function HRTrackerPage() {
             </div>
             <div>
               <h1
-                className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase"
+                className="m-0 text-2xl md:text-3xl font-extrabold text-white tracking-widest capitalize"
                 style={{
                   fontFamily: '"Rajdhani", sans-serif',
                   textShadow: '0 0 10px rgba(255,68,68,0.2)',
@@ -309,7 +309,7 @@ export default function HRTrackerPage() {
               >
                 HR Tracker
               </h1>
-              <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 flex-wrap">
+              <p className="text-[10px] text-slate-500 font-bold tracking-widest capitalize flex items-center gap-2 flex-wrap">
                 <span>
                   {isLoading
                     ? 'Loading...'
@@ -326,7 +326,7 @@ export default function HRTrackerPage() {
             </div>
             <button
               onClick={() => mutate()}
-              className="ml-auto text-[10px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest uppercase hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors"
+              className="ml-auto text-[10px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               Refresh
@@ -375,7 +375,7 @@ export default function HRTrackerPage() {
             <AlertTriangle className="text-[#FF4444] w-8 h-8 shrink-0" />
             <div>
               <div
-                className="text-[#FF4444] font-extrabold uppercase tracking-widest text-sm"
+                className="text-[#FF4444] font-extrabold capitalize tracking-widest text-sm"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Failed To Load HR Data
@@ -385,7 +385,7 @@ export default function HRTrackerPage() {
               </div>
               <button
                 onClick={() => mutate()}
-                className="mt-3 text-[10px] font-extrabold text-[#FF4444] border border-[#FF4444]/60 px-4 py-2 rounded-md tracking-widest uppercase hover:bg-[#FF4444]/10 transition-colors"
+                className="mt-3 text-[10px] font-extrabold text-[#FF4444] border border-[#FF4444]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#FF4444]/10 transition-colors"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Retry
@@ -399,7 +399,7 @@ export default function HRTrackerPage() {
           <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-10 text-center">
             <Zap size={32} className="text-[#3d4f5f] mx-auto mb-3" />
             <div
-              className="text-slate-300 font-extrabold uppercase tracking-widest text-sm"
+              className="text-slate-300 font-extrabold capitalize tracking-widest text-sm"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               No HR Data Yet
@@ -410,7 +410,7 @@ export default function HRTrackerPage() {
             </div>
             <button
               onClick={() => mutate()}
-              className="mt-4 text-[10px] font-extrabold text-[#00D4FF] border border-[#00D4FF]/60 px-4 py-2 rounded-md tracking-widest uppercase hover:bg-[#00D4FF]/10 transition-colors"
+              className="mt-4 text-[10px] font-extrabold text-[#00D4FF] border border-[#00D4FF]/60 px-4 py-2 rounded-md tracking-widest capitalize hover:bg-[#00D4FF]/10 transition-colors"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               Refresh
@@ -423,7 +423,7 @@ export default function HRTrackerPage() {
             {/* ── Spotlight: Most Due ─────────────────────────────── */}
             <div className="mb-8">
               <h2
-                className="text-sm font-extrabold text-white mb-4 uppercase tracking-widest pl-2 border-l-[3px] border-[#FF4444]"
+                className="text-sm font-extrabold text-white mb-4 capitalize tracking-widest pl-2 border-l-[3px] border-[#FF4444]"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 Most Due for a Home Run
@@ -440,10 +440,10 @@ export default function HRTrackerPage() {
                     >
                       {idx === 0 && (
                         <div
-                          className="absolute top-2 right-2 text-[9px] font-extrabold text-[#FF4444] tracking-widest uppercase bg-[#FF4444]/10 px-1.5 py-0.5 rounded border border-[#FF4444]/30"
+                          className="absolute top-2 right-2 text-[9px] font-extrabold text-[#FF4444] tracking-widest capitalize bg-[#FF4444]/10 px-1.5 py-0.5 rounded border border-[#FF4444]/30"
                           style={{ fontFamily: '"Rajdhani", sans-serif' }}
                         >
-                          #1 DUE
+                          #1 Due
                         </div>
                       )}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -459,29 +459,35 @@ export default function HRTrackerPage() {
                         }}
                       />
                       <div
-                        className={`text-[10px] font-extrabold tracking-widest uppercase ${cfg.color} mb-1`}
+                        className={`text-[10px] font-extrabold tracking-widest capitalize ${cfg.color} mb-1`}
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         {cfg.icon} {cfg.label}
                       </div>
                       <div
-                        className="text-white font-extrabold text-sm uppercase tracking-wide leading-tight truncate"
+                        className="text-white font-extrabold text-sm capitalize tracking-wide leading-tight truncate"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         {p.full_name}
                       </div>
                       <div className="mt-2 space-y-1">
                         <div className="flex justify-between text-[10px]">
-                          <span className="text-slate-500 font-bold uppercase">Due Score</span>
+                          <span className="text-slate-500 font-bold capitalize">Due Score</span>
                           <span className={`font-extrabold ${cfg.color}`}>
                             {p.due_score.toFixed(2)}x
                           </span>
                         </div>
                         <DueGauge score={p.due_score} />
                         <div className="flex justify-between text-[10px] mt-1">
-                          <span className="text-slate-500 font-bold uppercase">Last HR</span>
+                          <span className="text-slate-500 font-bold capitalize">Last HR</span>
                           <span className="text-slate-300 font-bold">
                             {formatDate(p.last_hr_date)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-slate-500 font-bold capitalize">Games Since</span>
+                          <span className="text-slate-300 font-bold">
+                            {p.games_since_hr != null ? `${p.games_since_hr} Games` : '—'}
                           </span>
                         </div>
                       </div>
@@ -504,10 +510,10 @@ export default function HRTrackerPage() {
                 <input
                   type="text"
                   aria-label="Search player or team"
-                  placeholder="SEARCH PLAYER OR TEAM..."
+                  placeholder="Search player or team..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-2.5 pl-10 pr-10 text-white font-extrabold text-sm tracking-widest uppercase focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600"
+                  className="w-full bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg py-2.5 pl-10 pr-10 text-white font-extrabold text-sm tracking-widest capitalize focus:outline-none focus:border-[#00D4FF] focus:shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all placeholder:text-slate-600"
                 />
                 {searchQuery && (
                   <button
@@ -530,7 +536,7 @@ export default function HRTrackerPage() {
                       key={s}
                       onClick={() => setStatusFilter(s)}
                       aria-pressed={statusFilter === s}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[11px] tracking-widest uppercase transition-all border-[2px] whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-extrabold text-[11px] tracking-widest capitalize transition-all border-[2px] whitespace-nowrap ${
                         statusFilter === s
                           ? cfg
                             ? `${cfg.bg} ${cfg.border} ${cfg.color} ${cfg.glow}`
@@ -540,7 +546,7 @@ export default function HRTrackerPage() {
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {cfg && <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />}
-                      {s} <span className="opacity-60">({count})</span>
+                      {s === 'ALL' ? 'All' : (cfg?.label ?? s)} <span className="opacity-60">({count})</span>
                     </button>
                   );
                 })}
@@ -549,7 +555,7 @@ export default function HRTrackerPage() {
 
             {/* ── Results count ────────────────────────────────────── */}
             <div
-              className="text-[10px] text-slate-600 font-extrabold tracking-widest uppercase mb-3"
+              className="text-[10px] text-slate-600 font-extrabold tracking-widest capitalize mb-3"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {filtered.length} Players · Sorted By {SORT_LABELS[sortKey]}{' '}
@@ -565,7 +571,7 @@ export default function HRTrackerPage() {
                     <tr>
                       {colHeader('full_name', 'Player')}
                       <th
-                        className="text-center py-3 px-3 text-[10px] font-extrabold tracking-widest uppercase text-slate-400"
+                        className="text-center py-3 px-3 text-[10px] font-extrabold tracking-widest capitalize text-slate-400"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         Status
@@ -574,7 +580,7 @@ export default function HRTrackerPage() {
                       {colHeader('games_per_hr', 'Games/HR', 'text-right')}
                       {colHeader('games_since_hr', 'Since HR', 'text-right')}
                       <th
-                        className="text-right py-3 px-3 text-[10px] font-extrabold tracking-widest uppercase text-slate-400"
+                        className="text-right py-3 px-3 text-[10px] font-extrabold tracking-widest capitalize text-slate-400"
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         Matchup
@@ -632,7 +638,7 @@ export default function HRTrackerPage() {
                               </div>
                               <div>
                                 <div
-                                  className="text-white font-extrabold text-sm tracking-wider uppercase group-hover:text-[#00D4FF] transition-colors"
+                                  className="text-white font-extrabold text-sm tracking-wider capitalize group-hover:text-[#00D4FF] transition-colors"
                                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                                 >
                                   {p.full_name}
@@ -647,7 +653,7 @@ export default function HRTrackerPage() {
                           {/* Status Badge */}
                           <td className="py-3 px-3 text-center">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-widest uppercase ${cfg.bg} ${cfg.color} border ${cfg.border}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-widest capitalize ${cfg.bg} ${cfg.color} border ${cfg.border}`}
                               style={{ fontFamily: '"Rajdhani", sans-serif' }}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} shrink-0`} />
@@ -671,7 +677,7 @@ export default function HRTrackerPage() {
                               className="text-[#00D4FF] font-extrabold text-sm"
                               style={{ fontFamily: '"Rajdhani", sans-serif' }}
                             >
-                              {hasRate ? `1 per ${p.games_per_hr}g` : '—'}
+                              {hasRate ? `1 Per ${p.games_per_hr}g` : '—'}
                             </span>
                           </td>
 
@@ -698,12 +704,12 @@ export default function HRTrackerPage() {
                             {p.opp_pitcher_name ? (
                               <div className="flex flex-col items-end">
                                 <span className="text-white font-bold text-sm truncate max-w-[120px]">
-                                  vs{' '}
+                                  Vs{' '}
                                   {p.opp_pitcher_name.split(' ').filter(Boolean).pop() ||
                                     p.opp_pitcher_name}
                                 </span>
                                 {p.opp_pitcher_hr9 != null && (
-                                  <span className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+                                  <span className="text-slate-500 text-[10px] capitalize font-bold tracking-widest mt-0.5">
                                     {p.opp_pitcher_hr9.toFixed(2)} HR/9
                                   </span>
                                 )}
@@ -760,7 +766,7 @@ export default function HRTrackerPage() {
                 <div className="py-16 text-center">
                   <Search size={32} className="text-[#3d4f5f] mx-auto mb-3" />
                   <div
-                    className="text-slate-500 font-extrabold uppercase tracking-widest text-sm"
+                    className="text-slate-500 font-extrabold capitalize tracking-widest text-sm"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
                     No Players Found
@@ -776,22 +782,22 @@ export default function HRTrackerPage() {
             <div className="mt-6 bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-wrap gap-6">
               <div>
                 <div
-                  className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-2"
+                  className="text-[10px] text-slate-500 font-extrabold tracking-widest capitalize mb-2"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   How To Read This
                 </div>
                 <div className="space-y-1.5 text-[11px] text-slate-400 font-bold">
                   <div>
-                    <span className="text-[#FF4444] font-extrabold">OVERDUE</span> — Due Score &gt;
+                    <span className="text-[#FF4444] font-extrabold">Overdue</span> — Due Score &gt;
                     1.25x their average rate
                   </div>
                   <div>
-                    <span className="text-[#FFB800] font-extrabold">DUE</span> — Due Score between
+                    <span className="text-[#FFB800] font-extrabold">Due</span> — Due Score between
                     0.75x – 1.25x
                   </div>
                   <div>
-                    <span className="text-[#00D4FF] font-extrabold">RECENT</span> — Hit a HR
+                    <span className="text-[#00D4FF] font-extrabold">Recent</span> — Hit a HR
                     recently, below their average rate
                   </div>
                   <div>
@@ -806,7 +812,7 @@ export default function HRTrackerPage() {
               </div>
               <div>
                 <div
-                  className="text-[10px] text-slate-500 font-extrabold tracking-widest uppercase mb-2"
+                  className="text-[10px] text-slate-500 font-extrabold tracking-widest capitalize mb-2"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   Data Source
