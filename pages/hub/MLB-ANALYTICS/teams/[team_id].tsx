@@ -156,6 +156,24 @@ export default function TeamDetailPage() {
   const props = data?.props || [];
   const hasEdge = props.length > 0;
 
+  // Current / next matchup: first game in the window that isn't final yet (games come
+  // back ordered ascending, so this is the live or next-scheduled game).
+  const nextGame = games.find((g: any) => !g.final);
+  const matchupDate = nextGame?.official_date
+    ? new Date(`${nextGame.official_date}T12:00:00`).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
+  const matchupTime = nextGame?.first_pitch_utc
+    ? new Date(nextGame.first_pitch_utc).toLocaleTimeString('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+      }) + ' ET'
+    : nextGame?.status || 'Scheduled';
+
   if (!team && data) {
     return (
       <div className="min-h-screen bg-[#0a0a15] pb-20 font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200 flex flex-col">
@@ -327,7 +345,7 @@ export default function TeamDetailPage() {
                       AWAY SPLIT
                     </div>
                     <div className="text-xl text-[#FCD34D] font-black">
-                      {team.splits?.away || '0-0'}
+                      {team.splits?.road || team.splits?.away || '0-0'}
                     </div>
                   </div>
                 </div>
@@ -367,6 +385,32 @@ export default function TeamDetailPage() {
 
             {activeTab === 'OVERVIEW' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-0">
+                {/* Current / Next Matchup (full width) */}
+                {nextGame && (
+                  <div className="metal-panel md:col-span-2 lg:col-span-3">
+                    <div className="panel-title flex items-center">
+                      <Swords size={14} className="mr-2 text-[#00D4FF]" /> Next Matchup
+                    </div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-1">
+                          {nextGame.is_home ? 'Home · vs' : 'Away · @'}
+                        </div>
+                        <div className="text-2xl font-extrabold text-white tracking-tight">
+                          {nextGame.opponent ||
+                            (nextGame.is_home ? nextGame.away_team : nextGame.home_team) ||
+                            'TBD'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-1">
+                          {matchupDate}
+                        </div>
+                        <div className="text-lg font-bold text-[#00D4FF]">{matchupTime}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* Team Value */}
                 <div className="metal-panel">
                   <div className="panel-title flex items-center">
