@@ -596,7 +596,7 @@ export default function TeamDetailPage() {
         </Link>
 
         {team && (
-          <>
+          <React.Fragment>
             {/* ── Hero Profile Card ── */}
             <div className={`metal-panel mb-6 ${hasEdge ? 'edge-glow' : ''}`}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -613,13 +613,13 @@ export default function TeamDetailPage() {
                         {[team.league, team.division].filter(Boolean).join(' • ') || 'MLB'}
                       </span>
                       {team.grade && (
-                        <>
+                        <React.Fragment>
                           <span style={{ color: '#475569', fontSize: 10 }}>·</span>
                           <BetScoreBadge pWin={team.grade.pWin} price={team.grade.price} pMarket={team.grade.pMarket} />
                           <span style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em' }}>
                             {team.grade.edgeCount} EDGE{team.grade.edgeCount !== 1 ? 'S' : ''}
                           </span>
-                        </>
+                        </React.Fragment>
                       )}
                     </div>
 
@@ -699,8 +699,8 @@ export default function TeamDetailPage() {
                       <div>
                         <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {nextGame.is_home
-                            ? <><Home size={11} style={{ color: '#00D4FF' }} /> Home vs</>
-                            : <><Plane size={11} style={{ color: '#F59E0B' }} /> Away @</>
+                            ? <React.Fragment><Home size={11} style={{ color: '#00D4FF' }} /> Home vs</React.Fragment>
+                            : <React.Fragment><Plane size={11} style={{ color: '#F59E0B' }} /> Away @</React.Fragment>
                           }
                         </div>
                         <div style={{ fontSize: 28, fontWeight: 900, color: 'white', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '-0.01em', lineHeight: 1.1 }}>
@@ -860,10 +860,10 @@ export default function TeamDetailPage() {
                       <StatBox label="OAA" value={Number(adv.oaa) >= 0 ? `+${fmtInt(adv.oaa)}` : fmtInt(adv.oaa)} color={Number(adv.oaa) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
                     {adv.uzr != null && (
-                      <StatBox label="UZR" value={Number(adv.uzr) >= 0 ? `+${fmtNum(adv.uzr)}` : fmtNum(adv.uzr)} color={Number(adv.uzr) >= 0 ? '#22C55E' : '#EF4444'} />
+                      <StatBox label="UZR" value={Number(adv.uzr) >= 0 ? `+${fmtInt(adv.uzr)}` : fmtInt(adv.uzr)} color={Number(adv.uzr) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
                     {adv.def != null && (
-                      <StatBox label="DEF" value={Number(adv.def) >= 0 ? `+${fmtNum(adv.def)}` : fmtNum(adv.def)} color={Number(adv.def) >= 0 ? '#22C55E' : '#EF4444'} />
+                      <StatBox label="DEF" value={Number(adv.def) >= 0 ? `+${fmtInt(adv.def)}` : fmtInt(adv.def)} color={Number(adv.def) >= 0 ? '#22C55E' : '#EF4444'} />
                     )}
                   </div>
                 </div>
@@ -919,7 +919,7 @@ export default function TeamDetailPage() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                             {game.final && game.team_score != null && game.opp_score != null ? (
-                              <>
+                              <React.Fragment>
                                 {game.result && (
                                   <span
                                     className="result-chip"
@@ -935,7 +935,7 @@ export default function TeamDetailPage() {
                                 <span style={{ fontSize: 18, fontWeight: 900, color: 'white', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '-0.01em' }}>
                                   {game.team_score}–{game.opp_score}
                                 </span>
-                              </>
+                              </React.Fragment>
                             ) : (
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.08em', textTransform: 'capitalize' }}>
                                 {game.status || 'Scheduled'}
@@ -972,7 +972,7 @@ export default function TeamDetailPage() {
                           : prop.side || '';
                       return (
                         <div
-                          key={game.game_pk || idx}
+                          key={prop.id || idx}
                           style={{
                             padding: '14px 16px',
                             border: '1px solid #3d4f5f',
@@ -1018,7 +1018,7 @@ export default function TeamDetailPage() {
                 </div>
               </div>
             )}
-          </>
+          </React.Fragment>
         )}
       </main>
       <BottomNavBar />

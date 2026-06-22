@@ -213,12 +213,6 @@ const cardRole = (player: PlayerProfile, type: 'hitters' | 'pitchers'): string |
 
 const PlayerCard = React.memo(({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
   const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
-  const [imgSrc, setImgSrc] = useState(headshotUrl);
-
-  useEffect(() => {
-    setImgSrc(headshotUrl);
-  }, [headshotUrl]);
-
   return (
     <Link
       href={`/hub/MLB-ANALYTICS/players/${player.player_id}`}
@@ -233,8 +227,8 @@ const PlayerCard = React.memo(({ player, type }: { player: PlayerProfile; type: 
           <div className="relative w-14 h-14">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={imgSrc}
-              onError={() => { if (imgSrc !== '/default-avatar.png') setImgSrc('/default-avatar.png'); }}
+              src={headshotUrl}
+              onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
               alt={player.full_name}
               loading="lazy"
               width={56}

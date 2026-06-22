@@ -89,10 +89,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             summary: '',
           };
           weather.summary = weatherSummary(weather);
-          data.matchup.weather = weather;
+          if (data?.matchup) data.matchup.weather = weather;
         }
         const lu: any = luRes.data;
-        data.matchup.lineup = lu
+        if (data?.matchup) data.matchup.lineup = lu
           ? { batting_order: lu.batting_order, confirmed: !!lu.confirmed }
           : null;
       }

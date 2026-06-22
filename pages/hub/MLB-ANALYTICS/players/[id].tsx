@@ -334,11 +334,6 @@ export default function PlayerProfilePage() {
   const headshotUrl = id
     ? `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${id}/headshot/67/current`
     : '/default-avatar.png';
-  const [imgSrc, setImgSrc] = useState(headshotUrl);
-  useEffect(() => {
-    setImgSrc(headshotUrl);
-  }, [headshotUrl]);
-
   const status = (error as any)?.status;
   const isNotFound = !!error && status === 404;
 
@@ -515,8 +510,8 @@ export default function PlayerProfilePage() {
                 <div className="relative w-32 h-32 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={imgSrc}
-                    onError={() => setImgSrc('/default-avatar.png')}
+                    src={headshotUrl}
+                    onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                     alt={player.full_name}
                     loading="lazy"
                     width={128}
