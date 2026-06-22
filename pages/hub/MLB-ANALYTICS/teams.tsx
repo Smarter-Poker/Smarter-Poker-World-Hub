@@ -99,6 +99,20 @@ function statColor(key: string, value: number | null | undefined): string {
   return 'white';
 }
 
+function statStyle(key: string, value: number | null | undefined): React.CSSProperties {
+  if (value == null) return {};
+  const c = statColor(key, value);
+  if (c === 'white') return { color: 'white', textShadow: 'none' };
+  return { color: c, textShadow: `0 0 10px ${c}80` };
+}
+
+function getRunDiffStyle(v: number | null | undefined): React.CSSProperties {
+  if (v == null) return {};
+  if (v > 0) return { color: '#34D399', textShadow: '0 0 10px #34D39980' };
+  if (v < 0) return { color: '#EF4444', textShadow: '0 0 10px #EF444480' };
+  return { color: 'white', textShadow: 'none' };
+}
+
 // ── Data Age Formatter ───────────────────────────────────────────────────────
 function getRelativeAge(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
@@ -131,12 +145,22 @@ const StatLabel = ({
     );
   }
   return (
-    <span className="stat-tooltip-wrap">
+    <span 
+      className="stat-tooltip-wrap"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+      }}
+    >
       <span className="stat-label" style={{ color }}>
         {label}
         <span
           className="tooltip-dot"
           tabIndex={0}
+          role="button"
           aria-label={`Info about ${label}`}
         >?</span>
       </span>
@@ -441,31 +465,31 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
           <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
                 <StatLabel label="ERA" color="#60A5FA" />
-                <div className="stat-value" style={{ color: adv.era != null ? statColor('ERA', adv.era) : undefined }}>
+                <div className="stat-value" style={statStyle('ERA', adv.era)}>
                   {fmtEra(adv.era)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="OPS" color="#34D399" />
-                <div className="stat-value" style={{ color: adv.ops != null ? statColor('OPS', adv.ops) : undefined }}>
+                <div className="stat-value" style={statStyle('OPS', adv.ops)}>
                   {fmtOps(adv.ops)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="wRC+" color="#F472B6" />
-                <div className="stat-value" style={{ color: adv.wrc_plus != null ? statColor('wRC+', adv.wrc_plus) : undefined }}>
+                <div className="stat-value" style={statStyle('wRC+', adv.wrc_plus)}>
                   {fmtInt(adv.wrc_plus)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="FIP" color="#A78BFA" />
-                <div className="stat-value" style={{ color: adv.fip != null ? statColor('FIP', adv.fip) : undefined }}>
+                <div className="stat-value" style={statStyle('FIP', adv.fip)}>
                   {fmtEra(adv.fip)}
                 </div>
               </div>
               <div className="stat-segment">
                 <StatLabel label="Run Diff" color="#00D4FF" />
-                <div className="stat-value" style={{ color: runDiff == null ? undefined : runDiff >= 0 ? '#34D399' : '#EF4444' }}>
+                <div className="stat-value" style={getRunDiffStyle(runDiff)}>
                   {fmtRunDiff(runDiff)}
                 </div>
               </div>
@@ -533,7 +557,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                   </div>
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="Run Diff" color="#94A3B8" /></span>
-                    <span className="drawer-value" style={{ color: runDiff == null ? 'white' : runDiff >= 0 ? '#34D399' : '#EF4444' }}>
+                    <span className="drawer-value" style={{ color: runDiff == null ? 'white' : runDiff > 0 ? '#34D399' : runDiff < 0 ? '#EF4444' : 'white' }}>
                       {fmtRunDiff(runDiff)}
                     </span>
                   </div>
@@ -732,7 +756,17 @@ export default function TeamsPage({
 
   const activeTeams = data?.teams || fallbackTeams || [];
   const globalEdgeActive = data?.globalEdgeActive || fallbackGlobalEdgeActive || false;
-  const summary = data?.summary || { gradedCount: 0, eliteCount: 0, strongCount: 0 };
+  const summary = data?.summary || useMemo(() => {
+    let gradedCount = 0, eliteCount = 0, strongCount = 0;
+    activeTeams.forEach((t: any) => {
+      if (t.grade) {
+        gradedCount++;
+        if (t.grade.tier === 'ELITE') eliteCount++;
+        if (t.grade.tier === 'STRONG') strongCount++;
+      }
+    });
+    return { gradedCount, eliteCount, strongCount };
+  }, [activeTeams]);
   const isInitialLoading = !data && !error;
 
   // Filter teams by search/league/division
@@ -920,6 +954,24 @@ export default function TeamsPage({
                 border: 6px solid transparent;
                 border-top-color: rgba(0, 212, 255, 0.5);
             }
+            .stat-segment:first-child .stat-tooltip-box {
+                left: -10px;
+                transform: none;
+            }
+            .stat-segment:first-child .stat-tooltip-box::after {
+                left: 24px;
+                transform: none;
+            }
+            .stat-segment:last-child .stat-tooltip-box {
+                left: auto;
+                right: -10px;
+                transform: none;
+            }
+            .stat-segment:last-child .stat-tooltip-box::after {
+                left: auto;
+                right: 24px;
+                transform: none;
+            }
             .stat-tooltip-title {
                 display: block;
                 font-size: 11px;
@@ -937,8 +989,8 @@ export default function TeamsPage({
             }
             .stat-tooltip-wrap:hover .stat-tooltip-box,
             .stat-tooltip-wrap:focus-within .stat-tooltip-box,
-            .stat-tooltip-wrap:hover .stat-tooltip-box,
-            .stat-tooltip-wrap:focus-within .stat-tooltip-box {
+            .stat-tooltip-wrap:active .stat-tooltip-box,
+            .stat-tooltip-wrap:focus .stat-tooltip-box {
                 opacity: 1;
                 visibility: visible;
                 pointer-events: auto;
@@ -1018,7 +1070,7 @@ export default function TeamsPage({
             /* ── Filter Pills ── */
             .filter-row {
                 display: flex;
-                gap: 8px;
+                gap: 12px 24px;
                 flex-wrap: wrap;
                 margin-bottom: 10px;
             }
@@ -1380,30 +1432,32 @@ export default function TeamsPage({
                   />
                 </div>
 
-                {/* League Filter */}
+                {/* League & Division Filters */}
                 <div className="filter-row">
-                  <span className="filter-row-label">LEAGUE:</span>
-                  {(['ALL', 'AL', 'NL'] as const).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setFilterLeague(l)}
-                      className={`filter-pill ${filterLeague === l ? 'active' : ''}`}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                  <div style={{ marginLeft: 8, borderLeft: '1px solid var(--metal-highlight)', paddingLeft: 12 }}>
-                    <span className="filter-row-label">DIV:</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span className="filter-row-label">LEAGUE:</span>
+                    {(['ALL', 'AL', 'NL'] as const).map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => setFilterLeague(l)}
+                        className={`filter-pill ${filterLeague === l ? 'active' : ''}`}
+                      >
+                        {l}
+                      </button>
+                    ))}
                   </div>
-                  {(['ALL', 'East', 'Central', 'West'] as const).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setFilterDivision(d)}
-                      className={`filter-pill ${filterDivision === d ? 'active' : ''}`}
-                    >
-                      {d === 'ALL' ? 'ALL' : d === 'Central' ? 'CEN' : d.toUpperCase()}
-                    </button>
-                  ))}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span className="filter-row-label">DIV:</span>
+                    {(['ALL', 'East', 'Central', 'West'] as const).map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setFilterDivision(d)}
+                        className={`filter-pill ${filterDivision === d ? 'active' : ''}`}
+                      >
+                        {d === 'ALL' ? 'ALL' : d === 'Central' ? 'CEN' : d.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
