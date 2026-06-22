@@ -184,7 +184,15 @@ export default function UniversalHeader({
     useEffect(() => {
         if (!isAdmin) return;
         const syncAlerts = () => {
-            fetch('/api/mlb/sync-alerts', { method: 'POST' }).catch(() => {});
+            try {
+                const lastSync = parseInt(localStorage.getItem('sp-mlb-sync-ts') || '0', 10);
+                const now = Date.now();
+                // Debounce across tabs (wait at least 55 seconds before allowing another sync)
+                if (now - lastSync > 55000) {
+                    localStorage.setItem('sp-mlb-sync-ts', String(now));
+                    fetch('/api/mlb/sync-alerts', { method: 'POST' }).catch(() => {});
+                }
+            } catch (_) {}
         };
         syncAlerts(); // Sync immediately on mount
         const interval = setInterval(syncAlerts, 60000); // Polling every minute
