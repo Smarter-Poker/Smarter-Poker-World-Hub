@@ -485,7 +485,7 @@ export default function PlayersPage() {
             >
               System Error
             </h2>
-            <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10">
+            <p className="text-[#FF4444] font-bold tracking-widest text-[11px] relative z-10">
               Failed To Load Data. Please Try Again Later.
             </p>
           </div>
