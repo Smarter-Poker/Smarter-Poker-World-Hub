@@ -21,6 +21,15 @@ const TIER_HEX: Record<string, string> = {
   PASS: '#64748B',
 };
 
+const PROP_LABELS: Record<string, string> = {
+  home_run: 'Home Run', hits: 'Hits', hrr: 'H+R+RBI', total_bases: 'Total Bases',
+  rbi: 'RBIs', runs: 'Runs', walks: 'Walks', stolen_bases: 'Stolen Bases',
+  earned_runs: 'Earned Runs', pitcher_strikeouts: 'Pitcher Ks', pitcher_walks: 'Pitcher BB',
+  strikeouts: 'Strikeouts',
+};
+const propLabel = (p?: string | null) =>
+  p ? (PROP_LABELS[p] ?? p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : '';
+
 export default function GameMatchupDashboard() {
   const router = useRouter();
   const { id } = router.query;
@@ -50,6 +59,7 @@ export default function GameMatchupDashboard() {
     // Match bets by seeing if the bet's matchup string contains our team abbreviations,
     // or if team_id matches (if available)
     const _matched = betsData.bets.filter((b: any) => {
+      if ((b.bet_type || '').toLowerCase() === 'prop' || b.player_id != null) return false;
       const h = game.home.toLowerCase();
       const a = game.away.toLowerCase();
       const bMatchup = (b.matchup || '').toLowerCase();
@@ -140,14 +150,7 @@ export default function GameMatchupDashboard() {
       <MlbSubNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* BACK BUTTON */}
-        <Link
-          href="/hub/MLB-ANALYTICS"
-          className="inline-flex items-center text-[#00D4FF] hover:text-[#FF4444] transition-colors text-[23px] font-bold capitalize tracking-wider"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Link>
+        {/* Back navigation is provided by UniversalHeader (pageDepth=2); no duplicate link. */}
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-[#00D4FF]">
@@ -380,7 +383,7 @@ export default function GameMatchupDashboard() {
                           {prop.player_name}
                         </span>
                         <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
-                          {prop.selection} {prop.line} | {prop.market}
+                          {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
