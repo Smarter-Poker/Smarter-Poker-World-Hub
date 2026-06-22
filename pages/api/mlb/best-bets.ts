@@ -198,7 +198,16 @@ function dedupeLatestBets(rows: any[]): any[] {
 async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   if (!betsArr || betsArr.length === 0) return betsArr;
 
-  // Fetch the full hitter / pitcher / agg-pitcher pools (paginated past the 1000 cap).
+  // Only the slate's games are referenced by the bets, and active pitchers' fg_season
+  // aggregates are rewritten daily — so scope fact_games to those game_pks and bound
+  // agg_pitcher to a recent as_of window instead of paging the full history (previously
+  // up to 20k agg_pitcher rows + all ~10k fact_games rows on every enrichment cycle).
+  const gamePks = Array.from(
+    new Set(betsArr.map((b: any) => Number(b.game_pk)).filter((x) => Number.isFinite(x)))
+  );
+  const aggSinceIso = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+
+  // Fetch the hitter / pitcher pools (paginated past the 1000 cap) plus the scoped slate data.
   let hitters: any[] = [];
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
@@ -220,13 +229,17 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .from('agg_pitcher')
           .select('pitcher_id, era, w, l, so, bb, h, ip, as_of')
           .eq('window_kind', 'fg_season')
+          .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
       ),
       fetchAllRows(() =>
         mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')
       ),
       fetchAllRows(() =>
-        mlbDb.from('fact_games').select('game_pk, first_pitch_utc')
+        mlbDb
+          .from('fact_games')
+          .select('game_pk, first_pitch_utc, home_team_id, away_team_id')
+          .in('game_pk', gamePks.length ? gamePks : [-1])
       ),
       fetchAllRows(() =>
         mlbDb.from('v_mlb_standings').select('*')
@@ -267,6 +280,8 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     if (g.game_pk) {
       const slate = slateMap.get(g.game_pk) || {};
       slate.first_pitch_utc = g.first_pitch_utc;
+      slate.home_team_id = g.home_team_id;
+      slate.away_team_id = g.away_team_id;
       slateMap.set(g.game_pk, slate);
     }
   });
@@ -374,6 +389,18 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         }
       }
     } else if (isTeamBet) {
+      // Reliable ID-based team resolution: fact_games carries home_team_id/away_team_id
+      // for every game; pick the side from the selection so the team logo never depends
+      // on fragile matchup string parsing. The name-parse below is kept as a fallback.
+      const tgSlate = enriched.game_pk ? slateMap.get(Number(enriched.game_pk)) : null;
+      const selSide = (bet.selection || '').toLowerCase();
+      if (tgSlate && (selSide === 'home' || selSide.startsWith('home_'))) {
+        enriched.team_id = tgSlate.home_team_id;
+      } else if (tgSlate && (selSide === 'away' || selSide.startsWith('away_'))) {
+        enriched.team_id = tgSlate.away_team_id;
+      }
+      if (enriched.team_id) enriched.team_name = TEAM_ID_TO_NAME[enriched.team_id as number];
+
       let actualTeamName = bet.team_name || bet.team || bet.selection;
       if (bet.matchup) {
         const selLow = bet.selection?.toLowerCase() || '';
@@ -389,7 +416,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           }
         }
       }
-      if (actualTeamName) {
+      if (!enriched.team_id && actualTeamName) {
         // Find matching team ID by iterating over TEAM_ID_TO_NAME values
         let foundTeamId: number | null = null;
         const searchName = actualTeamName.toLowerCase().trim();

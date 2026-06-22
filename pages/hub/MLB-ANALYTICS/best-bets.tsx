@@ -1048,29 +1048,24 @@ const BetCard = ({ bet, rank, onClick, rankLabel = 'RANK' }: { bet: any; rank?: 
 // ──────────────────────────────────────────────────────────────────────────────
 const CategoryCarousel = ({ title, icon: Icon, bets, onBetClick, rankLabel = 'RANK' }: { title: string; icon?: any; bets: any[]; onBetClick: (bet: any) => void; rankLabel?: string }) => {
   if (!bets || bets.length === 0) return null;
-  
-  // Enforce exactly 3 cards
-  const paddedBets = [...bets];
-  while (paddedBets.length < 3) {
-    paddedBets.push({ isStub: true });
-  }
 
+  // Render every real bet the model produced for this category. No empty
+  // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
+  // rows, so a category with 1 bet shows 1 card and a category with 8 shows 8.
+  // The length===0 guard above is the only (graceful) empty state.
   return (
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
-          {paddedBets.map((bet, idx) => (
-            bet.isStub ? (
-              <div key={`stub-${idx}`} className="flex flex-col items-center justify-center h-full min-h-[140px] bg-[#0a0a15] border border-dashed border-[#2a3a4a]/50 rounded-sm opacity-50 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#1a2a3a]/10 to-transparent"></div>
-                <div className="text-[#3d4f5f] text-[10px] font-black uppercase tracking-widest relative z-10" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
-                  AWAITING MODEL
-                </div>
-              </div>
-            ) : (
-              <BetCard key={idx} bet={bet} rank={idx + 1} rankLabel={rankLabel} onClick={() => onBetClick(bet)} />
-            )
+          {bets.map((bet, idx) => (
+            <BetCard
+              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+              bet={bet}
+              rank={idx + 1}
+              rankLabel={rankLabel}
+              onClick={() => onBetClick(bet)}
+            />
           ))}
         </div>
       </MetalFrame>
@@ -1114,28 +1109,25 @@ export default function BestBetsPage() {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline' || b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'))
       .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
-      .slice(0, 3);
+      .slice(0, 8);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
-      .slice(0, 3);
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestRunLines = useMemo(() => {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'))
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
-      .slice(0, 3);
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestTotals = useMemo(() => {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && b.market === 'total')
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
-      .slice(0, 3);
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestF5 = useMemo(() => {
@@ -1144,8 +1136,7 @@ export default function BestBetsPage() {
         const m = (b.market || '').toLowerCase();
         return m.includes('first_5') || m.includes('f5') || m.includes('1st_half');
       })
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
-      .slice(0, 3);
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const mostLikelyToHomer = useMemo(() => {
@@ -1175,7 +1166,7 @@ export default function BestBetsPage() {
 
     const groups: { title: string; bets: any[] }[] = [];
     for (const [market, groupBets] of propsMap.entries()) {
-      const sorted = [...groupBets].sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)).slice(0, 5);
+      const sorted = [...groupBets].sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)).slice(0, 12);
       if (sorted.length > 0) {
           groups.push({ title: `Top ${market.replace(/_/g, ' ')}`, bets: sorted });
       }
