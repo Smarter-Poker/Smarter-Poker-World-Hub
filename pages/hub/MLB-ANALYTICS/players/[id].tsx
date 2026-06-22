@@ -23,6 +23,7 @@ import { useState, useEffect } from 'react';
 import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../../src/lib/mlbStatGlossary';
 import HrBetTracker from '../../../../src/components/mlb/HrBetTracker';
+import HrMatchupConditions from '../../../../src/components/mlb/HrMatchupConditions';
 
 const MLB_TEAMS: Record<number, string> = {
   108: 'Los Angeles Angels',
@@ -865,6 +866,8 @@ export default function PlayerProfilePage() {
                 </MetalFrame>
               </div>
             )}
+
+            {matchup && <HrMatchupConditions matchup={matchup} type={type} />}
 
             {type === 'hitter' && id && (
               <div className="mb-8">

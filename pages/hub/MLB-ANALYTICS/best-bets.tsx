@@ -299,6 +299,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
           </div>
           <button
             onClick={onClose}
+            aria-label="Close bet details"
             className="p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95"
           >
             <X size={16} />
@@ -615,7 +616,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
         })()}
 
         {/* Team Profile */}
-        {isTeamBet && bet.team_w !== undefined && (
+        {isTeamBet && bet.team_w != null && (
           <div className="px-4 py-3 border-b border-[#2a3a4a]">
             <div className="text-[16px] font-black text-[#FFD700] mb-2 capitalize tracking-widest flex items-center gap-1.5 ">
               <Shield size={10} /> Team Profile
@@ -630,16 +631,17 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   {bet.team_w}-{bet.team_l}
-                  <span
-                    className={`text-[21px] ml-1 ${bet.team_streak > 0 ? 'text-[#00D4FF]' : 'text-[#FF6B6B]'}`}
-                  >
-                    ({bet.team_streak > 0 ? `W${bet.team_streak}` : `L${Math.abs(bet.team_streak)}`}
-                    )
-                  </span>
+                  {Number.isFinite(bet.team_streak) && bet.team_streak !== 0 && (
+                    <span
+                      className={`text-[21px] ml-1 ${bet.team_streak > 0 ? 'text-[#00D4FF]' : 'text-[#FF6B6B]'}`}
+                    >
+                      ({bet.team_streak > 0 ? `W${bet.team_streak}` : `L${Math.abs(bet.team_streak)}`})
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {bet.team_run_diff !== undefined && (
+              {Number.isFinite(bet.team_run_diff) && (
                 <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
                   <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                     Run Differential
@@ -993,7 +995,16 @@ const BetCard = ({
 
   return (
     <div
-      className="w-full bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
+      role="button"
+      tabIndex={0}
+      aria-label={`View bet details: ${bet?.selection || 'bet'}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="w-full bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
       onClick={() => {
         onClick();
         if (navigator.vibrate)
@@ -1248,17 +1259,11 @@ export default function BestBetsPage() {
   const isStale = !!(todayStr && officialDate && officialDate < todayStr);
 
   // Categorize
+  // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
+  // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
     return [...bets]
-      .filter(
-        (b) =>
-          b.bet_type === 'line' &&
-          (b.market === 'h2h' ||
-            b.market === 'moneyline' ||
-            b.market === 'run_line' ||
-            b.market === 'runline' ||
-            b.market === 'spread')
-      )
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
       .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 8);
   }, [bets]);
