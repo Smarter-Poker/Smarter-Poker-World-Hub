@@ -1,4 +1,5 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { tier } from '../../../src/lib/betScore';
 
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {
@@ -202,44 +203,28 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   // aggregates are rewritten daily — so scope fact_games to those game_pks and bound
   // agg_pitcher to a recent as_of window instead of paging the full history (previously
   // up to 20k agg_pitcher rows + all ~10k fact_games rows on every enrichment cycle).
-      const gamePks = Array.from(
+  const gamePks = Array.from(
     new Set(betsArr.map((b: any) => Number(b.game_pk)).filter((x) => Number.isFinite(x)))
   );
   const aggSinceIso = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
-  // 1. Fetch slates first to get opposing pitchers
-  let slates: any[] = [];
-  try {
-    slates = await fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher'));
-  } catch(e) {}
-
-  // Extract all required player IDs and names
-  const uniquePlayerIds = Array.from(new Set(betsArr.map(b => b.player_id).filter(id => id != null)));
-  const uniqueNames = new Set<string>();
-  betsArr.forEach(b => {
-    if (b.player_name) uniqueNames.add(b.player_name);
-    if (b.selection) uniqueNames.add(b.selection);
-  });
-  slates.forEach(s => {
-    if (s.home_pitcher) uniqueNames.add(s.home_pitcher);
-    if (s.away_pitcher) uniqueNames.add(s.away_pitcher);
-  });
-  const uniquePlayerNames = Array.from(uniqueNames).filter(n => n.trim().length > 0);
-
-  // Format array for Supabase .or()
-  const idsStr = uniquePlayerIds.length > 0 ? `player_id.in.(${uniquePlayerIds.join(',')})` : 'player_id.in.(-1)';
-  const namesStr = uniquePlayerNames.length > 0 ? `full_name.in.(${uniquePlayerNames.map(n => '"' + n.replace(/"/g, '""') + '"').join(',')})` : 'full_name.in.("")';
-  const orFilter = `${idsStr},${namesStr}`;
-
+  // Fetch the hitter / pitcher pools (paginated past the 1000 cap) plus the scoped slate data.
   let hitters: any[] = [];
   let pitchers: any[] = [];
   let aggPitchers: any[] = [];
+  let slates: any[] = [];
   let games: any[] = [];
   let teamStats: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, games, teamStats] = await Promise.all([
-      fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, full_name, team_id, woba, wrc_plus, pa, splits').or(orFilter)),
-      fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera').or(orFilter)),
+    [hitters, pitchers, aggPitchers, slates, games, teamStats] = await Promise.all([
+      fetchAllRows(() =>
+        mlbDb
+          .from('v_hitter_profile')
+          .select('player_id, full_name, team_id, woba, wrc_plus, pa, splits')
+      ),
+      fetchAllRows(() =>
+        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera')
+      ),
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
@@ -248,6 +233,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
       ),
+      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')),
       fetchAllRows(() =>
         mlbDb
           .from('fact_games')
@@ -518,8 +504,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       // If the pitcher has fewer than 25 IP, penalize the bet severely
       if (!aggP || Number(aggP.ip) < 25) {
         enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 20);
-        if (enriched.bet_tier === 'ELITE') enriched.bet_tier = 'STRONG';
-        if (enriched.bet_tier === 'STRONG' && enriched.bet_score < 68) enriched.bet_tier = 'LEAN';
+        enriched.bet_tier = tier(enriched.bet_score);
         enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
         penaltyApplied = true;
         enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
@@ -544,6 +529,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       if (oppP && oppP.era < 3.0 && Number(oppP.ip) > 50) {
         if (!ourP || ourP.era > 4.5 || Number(ourP.ip) < 25) {
           enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
+          enriched.bet_tier = tier(enriched.bet_score);
           enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
 
           let factors: any[] = [];
@@ -721,13 +707,19 @@ async function edgeHandler(req: Request) {
       );
     }
 
-    // Ensure topLock is formatted correctly if it's 0-1
-    let topLock = data?.stats?.topLock || 0;
-    if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
-
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
     const enrichedBets = await enrichBets(rawBets, mlbDb);
+
+    // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
+    // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.
+    let topLock = enrichedBets.length > 0
+      ? Math.max(...enrichedBets.map((b: any) => Number(b.win_confidence) || 0))
+      : (data?.stats?.topLock || 0);
+    if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
+    const topScore = enrichedBets.length > 0
+      ? Math.max(...enrichedBets.map((b: any) => Number(b.bet_score) || 0))
+      : (data?.stats?.topScore || 0);
 
     return new Response(
       JSON.stringify({
@@ -737,7 +729,7 @@ async function edgeHandler(req: Request) {
           // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), derived from the returned
           // rows so the count matches betScore.ts everywhere — not the RPC's legacy edge>=5.
           eliteBets: enrichedBets.filter((b: any) => b.bet_tier === 'ELITE').length,
-          topScore: data?.stats?.topScore || 0,
+          topScore: topScore,
           topLock: topLock,
         },
         officialDate: data?.officialDate || null,
