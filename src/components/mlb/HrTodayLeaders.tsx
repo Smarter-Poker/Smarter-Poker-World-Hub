@@ -14,7 +14,6 @@ const headshot = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_120,q_auto:best/v1/people/${id}/headshot/67/current`;
 
 function LeaderCard({ rank, p }: { rank: number; p: Leader }) {
-  const [img, setImg] = useState(headshot(p.player_id));
   const pct = p.hr_prob != null ? Math.round(p.hr_prob * 100) : null;
   // Rank tiers for the badge color.
   const badge =
@@ -33,8 +32,8 @@ function LeaderCard({ rank, p }: { rank: number; p: Leader }) {
       <div className="relative shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={img}
-          onError={() => setImg('/default-avatar.png')}
+          src={headshot(p.player_id)}
+          onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
           alt={p.full_name}
           loading="lazy"
           width={44}
@@ -120,7 +119,7 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
       <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: Math.min(limit, 12) }).map((_, i) => (
               <div
                 key={i}
                 className="h-[68px] bg-[#1a2332] border border-[#3d4f5f] rounded-lg animate-pulse"

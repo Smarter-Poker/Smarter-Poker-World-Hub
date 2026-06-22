@@ -303,7 +303,7 @@ export default function HRTrackerPage() {
     setVisibleCount(50);
   }, [sortKey, sortDir, deferredSearch, statusFilter]);
 
-  const { data, error, isLoading, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
+  const { data, error, isLoading, isValidating, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
     refreshInterval: 1000 * 60 * 60, // revalidate hourly (cache itself refreshes daily)
     revalidateOnFocus: false,
     onError: (err) => logError('[hr-tracker] SWR fetch failed', err),
@@ -491,10 +491,12 @@ export default function HRTrackerPage() {
             </div>
             <button
               onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
-              className="ml-auto text-[17px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors min-h-[44px]"
+              disabled={isValidating}
+              className="ml-auto text-[17px] font-extrabold text-slate-500 border border-[#3d4f5f] px-3 py-1.5 rounded-md tracking-widest capitalize hover:text-[#00D4FF] hover:border-[#00D4FF] transition-colors min-h-[44px] disabled:opacity-50 inline-flex items-center gap-2"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              Refresh
+              <RefreshCw className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
+              {isValidating ? 'Syncing' : 'Refresh'}
             </button>
           </div>
           <p className="text-[23px] text-slate-400 font-bold tracking-wide">
