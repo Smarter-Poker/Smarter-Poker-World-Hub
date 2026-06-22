@@ -60,25 +60,30 @@ async function edgeHandler(req: Request) {
       day: '2-digit',
     }).format(new Date());
 
-    // ── Team profile + dimension (league / division live in dim_teams) ──
-    const [profileRes, dimRes, dimAllRes] = await Promise.all([
+    // ── Team profile + dimension (league / division live in dim_teams) + standings
+    //    (run differential, runs for/against, Pythagorean win%). ──
+    const [profileRes, dimRes, dimAllRes, standRes] = await Promise.all([
       mlbDb.from('v_team_profile').select('*').eq('team_id', id).maybeSingle(),
       mlbDb.from('dim_teams').select('*').eq('team_id', id).maybeSingle(),
       mlbDb.from('dim_teams').select('team_id, name, abbr'),
+      mlbDb.from('v_mlb_standings').select('run_diff, rs, ra, pyth, l10_w, l10_l').eq('team_id', id).maybeSingle(),
     ]);
     const teamData = profileRes.data;
     const dimData = dimRes.data;
     const dimAll = dimAllRes.data || [];
+    const standData = standRes.data;
 
     // ── Advanced stats: agg_team is a daily snapshot split across window_kinds
     //    (pitching rates in fg_pitching, hitting counts in fg_hitting, rate/value
     //    summary in season). Take the latest row per window and merge into one line.
+    //    The FanGraphs `metrics` JSON carries the rate stats (WHIP, K%, BB%, LOB%,
+    //    BABIP, WAR) that aren't promoted to top-level columns.
     //    (Reading a single window with `.maybeSingle()` would also error on the many
     //    daily rows per team — order + dedupe avoids that.) ──
     const { data: aggRows, error: aggErr } = await mlbDb
       .from('agg_team')
       .select(
-        'window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa'
+        'window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, k_pct, wrc_plus, woba, hitting_war, def, uzr, drs, oaa, metrics'
       )
       .eq('team_id', id)
       .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
@@ -90,6 +95,18 @@ async function edgeHandler(req: Request) {
         aggLatestByWindow.set(a.window_kind, a);
     });
     const aggNum = (v: any) => (v == null ? null : Number(v));
+    // Read a numeric value out of the FanGraphs `metrics` JSON blob.
+    const mNum = (row: any, key: string) => {
+      const v = row?.metrics?.[key];
+      if (v == null) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    // Same, but for rate stats stored as decimals (0.236) the page renders as "23.6%".
+    const mPct = (row: any, key: string) => {
+      const n = mNum(row, key);
+      return n == null ? null : n * 100;
+    };
     const seasonRow = aggLatestByWindow.get('season');
     const hitRow = aggLatestByWindow.get('fg_hitting');
     const pitRow = aggLatestByWindow.get('fg_pitching');
@@ -100,16 +117,24 @@ async function edgeHandler(req: Request) {
             fip: aggNum(pitRow?.fip),
             xfip: aggNum(pitRow?.xfip),
             siera: aggNum(pitRow?.siera),
+            whip: mNum(pitRow, 'WHIP'),
+            k_pct: mPct(pitRow, 'K%'),
+            bb_pct: mPct(pitRow, 'BB%'),
+            lob_pct: mPct(pitRow, 'LOB%'),
+            bullpen_era: null,
             ops: aggNum(seasonRow?.ops),
             avg: aggNum(seasonRow?.avg ?? hitRow?.avg),
             obp: aggNum(seasonRow?.obp),
             slg: aggNum(seasonRow?.slg),
             hr: aggNum(hitRow?.hr),
             sb: aggNum(hitRow?.sb),
+            babip: mNum(hitRow, 'BABIP') ?? mNum(seasonRow, 'babip'),
             wrc_plus: aggNum(seasonRow?.wrc_plus ?? hitRow?.wrc_plus),
             woba: aggNum(seasonRow?.woba ?? hitRow?.woba),
-            hitting_war: aggNum(seasonRow?.hitting_war ?? hitRow?.hitting_war),
-            pitching_war: aggNum(pitRow?.pitching_war),
+            pyth_wpct: aggNum(standData?.pyth),
+            // WAR columns are null in agg_team; the FanGraphs metrics blob carries them.
+            hitting_war: mNum(hitRow, 'WAR') ?? aggNum(seasonRow?.hitting_war ?? hitRow?.hitting_war),
+            pitching_war: mNum(pitRow, 'WAR') ?? aggNum(pitRow?.pitching_war),
             def: aggNum(seasonRow?.def),
             uzr: aggNum(seasonRow?.uzr),
             drs: aggNum(seasonRow?.drs),
@@ -375,13 +400,21 @@ async function edgeHandler(req: Request) {
       : null;
 
     // Guaranteed non-null: the not-found guard above already returned 404 when
-    // both sources were missing.
+    // both sources were missing. Augment with standings-derived run differential
+    // and a `vs_500_plus` split (the profile view names it `vs_winning_team`).
     const baseTeam = teamData || dimData;
+    const baseSplits = (baseTeam as any)?.splits;
     const team = {
       ...baseTeam,
       league: (teamData as any)?.league || dimData?.league || null,
       division: (teamData as any)?.division || dimData?.division || null,
       abbr: teamData?.abbr || dimData?.abbr || null,
+      run_diff: standData?.run_diff != null ? Number(standData.run_diff) : null,
+      runs_scored: standData?.rs != null ? Number(standData.rs) : null,
+      runs_allowed: standData?.ra != null ? Number(standData.ra) : null,
+      splits: baseSplits
+        ? { ...baseSplits, vs_500_plus: baseSplits.vs_winning_team ?? baseSplits.vs_500_plus ?? null }
+        : baseSplits,
       grade,
     };
 
