@@ -616,6 +616,12 @@ export default function PlayersPage() {
             Complete profiles for every MLB hitter and pitcher. Explore recent form, model
             projections, and advanced metrics.
           </p>
+          <Link
+            href="/hub/MLB-ANALYTICS/players/compare"
+            className="inline-flex items-center gap-1 mt-3 text-[#00D4FF] text-[13px] font-extrabold tracking-widest hover:text-white transition-colors"
+          >
+            Compare Players <ChevronRight size={14} />
+          </Link>
         </div>
 
         <HrTodayLeaders />
