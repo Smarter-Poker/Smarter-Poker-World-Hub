@@ -282,7 +282,7 @@ export default function TeamDetailPage() {
 
   // Next / current matchup
   const nextGame = games.find((g: any) => !g.final);
-  // Rich matchup enrichment from the API (probable pitchers, model win %, h2h Bet Score).
+  // Rich matchup enrichment from the API (probable pitchers, model win %, h2h/total/run-line Bet Score).
   const m = data?.matchup || null;
   const matchupDate = nextGame?.official_date
     ? new Date(`${nextGame.official_date}T12:00:00`).toLocaleDateString('en-US', {
@@ -298,6 +298,14 @@ export default function TeamDetailPage() {
         minute: '2-digit',
       }) + ' ET'
     : nextGame?.status || 'Scheduled';
+  const totalLabel =
+    m?.total && m.total.line != null
+      ? `${m.total.side === 'OVER' ? 'Over' : m.total.side === 'UNDER' ? 'Under' : ''} ${m.total.line}`.trim()
+      : 'Total';
+  const runLineLabel =
+    m?.run_line && m.run_line.line != null
+      ? `Run Line ${Number(m.run_line.line) > 0 ? `+${m.run_line.line}` : m.run_line.line}`
+      : 'Run Line';
 
   // Recent game results (last 5 finals)
   const recentResults = games.filter((g: any) => g.final).slice(-5);
@@ -372,6 +380,11 @@ export default function TeamDetailPage() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 10px;
+        }
+        /* Phones: collapse the dense 3/4-col stat grids to 2 columns so values stay legible. */
+        @media (max-width: 480px) {
+          .stat-grid-3 { grid-template-columns: repeat(2, 1fr); }
+          .stat-grid-4 { grid-template-columns: repeat(2, 1fr); }
         }
         .stat-box {
           background: rgba(0,0,0,0.25);
@@ -714,9 +727,9 @@ export default function TeamDetailPage() {
                       </div>
                     </div>
 
-                    {/* Probable pitchers + model win % + moneyline Bet Score (from data.matchup) */}
+                    {/* Probable pitchers + model win % + moneyline / total / run-line Bet Scores */}
                     {m && (m.team_pitcher || m.opp_pitcher || m.team_win_prob != null || (m.bet && m.bet.p_win != null)) && (
-                      <div style={{ marginTop: 18, borderTop: '1px solid rgba(61,79,95,0.5)', paddingTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, alignItems: 'center' }}>
+                      <div style={{ marginTop: 18, borderTop: '1px solid rgba(61,79,95,0.5)', paddingTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, alignItems: 'center' }}>
                         <div>
                           <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize', marginBottom: 4 }}>
                             Probable · {team.abbr || (nextGame.is_home ? 'Home' : 'Away')}
@@ -741,11 +754,33 @@ export default function TeamDetailPage() {
                         {m.bet && m.bet.p_win != null && m.bet.price != null && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                             <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
-                              Moneyline Bet Score
+                              Moneyline
                             </div>
                             <BetScoreBadge pWin={m.bet.p_win} price={m.bet.price} pMarket={m.bet.p_market} />
                             {m.bet.rec && (
                               <span style={{ fontSize: 9, fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'capitalize' }}>{m.bet.rec}</span>
+                            )}
+                          </div>
+                        )}
+                        {m.total && m.total.p_win != null && m.total.price != null && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
+                              {totalLabel}
+                            </div>
+                            <BetScoreBadge pWin={m.total.p_win} price={m.total.price} pMarket={m.total.p_market} />
+                            {m.total.rec && (
+                              <span style={{ fontSize: 9, fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'capitalize' }}>{m.total.rec}</span>
+                            )}
+                          </div>
+                        )}
+                        {m.run_line && m.run_line.p_win != null && m.run_line.price != null && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            <div style={{ fontSize: 9, color: '#64748B', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'capitalize' }}>
+                              {runLineLabel}
+                            </div>
+                            <BetScoreBadge pWin={m.run_line.p_win} price={m.run_line.price} pMarket={m.run_line.p_market} />
+                            {m.run_line.rec && (
+                              <span style={{ fontSize: 9, fontWeight: 800, color: '#64748B', letterSpacing: '0.08em', textTransform: 'capitalize' }}>{m.run_line.rec}</span>
                             )}
                           </div>
                         )}
@@ -782,7 +817,9 @@ export default function TeamDetailPage() {
                     <StatBox label="Whip" value={adv.whip != null ? Number(adv.whip).toFixed(2) : '-'} color="white" />
                     <StatBox label="K%" value={adv.k_pct != null ? `${Number(adv.k_pct).toFixed(1)}%` : '-'} color="#60A5FA" />
                     <StatBox label="Bb%" value={adv.bb_pct != null ? `${Number(adv.bb_pct).toFixed(1)}%` : '-'} color="#F59E0B" />
-                    <StatBox label="Bullpen ERA" value={adv.bullpen_era != null ? fmtEra(adv.bullpen_era) : '-'} color="#60A5FA" />
+                    {adv.bullpen_era != null && (
+                      <StatBox label="Bullpen ERA" value={fmtEra(adv.bullpen_era)} color="#60A5FA" />
+                    )}
                   </div>
                 </div>
 
@@ -813,10 +850,12 @@ export default function TeamDetailPage() {
                     <StatBox label="Away Rec" value={awayRec} color="#FCD34D" />
                     <StatBox label="vs .500+" value={vs500} color="#94A3B8" />
                     <StatBox label="Last 10" value={last10} color={parseInt((last10 || '0-0').split('-')[0]) >= 7 ? '#22C55E' : 'white'} />
-                    <StatBox label="Drs" value={adv.drs != null ? (Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)) : '-'} color={adv.drs != null ? (Number(adv.drs) >= 0 ? '#22C55E' : '#EF4444') : 'white'} />
                     <StatBox label="Lob%" value={adv.lob_pct != null ? `${Number(adv.lob_pct).toFixed(1)}%` : '-'} color="#94A3B8" />
                     <StatBox label="oWAR" value={adv.hitting_war != null ? Number(adv.hitting_war).toFixed(1) : '-'} color="#34D399" />
                     <StatBox label="pWAR" value={adv.pitching_war != null ? Number(adv.pitching_war).toFixed(1) : '-'} color="#60A5FA" />
+                    {adv.drs != null && (
+                      <StatBox label="Drs" value={Number(adv.drs) >= 0 ? `+${fmtInt(adv.drs)}` : fmtInt(adv.drs)} color={Number(adv.drs) >= 0 ? '#22C55E' : '#EF4444'} />
+                    )}
                   </div>
                 </div>
               </div>
