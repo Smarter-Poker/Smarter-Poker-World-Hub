@@ -23,6 +23,7 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
+import useVIP from '../../../src/hooks/useVIP';
 
 // ── Single dynamic chunk for all of recharts ──────────────────────────────────
 const PnLChart = dynamic(() => import('../../../src/components/mlb/PnLChart'), {
@@ -30,7 +31,7 @@ const PnLChart = dynamic(() => import('../../../src/components/mlb/PnLChart'), {
   loading: () => (
     <div className="w-full h-full flex flex-col items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mb-4" />
-      <div className="text-[#00D4FF] font-bold tracking-widest text-[11px] animate-pulse uppercase">
+      <div className="text-[#00D4FF] font-bold tracking-widest text-[11px] animate-pulse capitalize">
         Compiling Matrices...
       </div>
     </div>
@@ -169,7 +170,7 @@ const MetricBox = ({
     className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)] cursor-default"
     title={tooltip}
   >
-    <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-2 uppercase">
+    <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-2 capitalize">
       {title}
     </div>
     <div
@@ -186,7 +187,7 @@ const MetricBox = ({
       {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-[#00D4FF]" /> : value}
     </div>
     {sub && (
-      <div className="text-[10px] text-slate-500 mt-1 font-bold tracking-widest uppercase">
+      <div className="text-[10px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
         {isLoading ? '--' : sub}
       </div>
     )}
@@ -204,7 +205,7 @@ const MetricSkeleton = () => (
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2
-    className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 uppercase tracking-widest relative z-10"
+    className="text-lg font-extrabold text-white mb-4 flex items-center gap-2 capitalize tracking-widest relative z-10"
     style={{ fontFamily: '"Rajdhani", sans-serif' }}
   >
     <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
@@ -236,7 +237,7 @@ const TrustBadge = ({ status, scoreMult }: { status: string | null; scoreMult: n
   }
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize tracking-wider whitespace-nowrap"
       style={{ color, background: bg, border: `1px solid ${color}40` }}
     >
       <Icon className="w-3 h-3" />
@@ -265,7 +266,7 @@ const GateRow = ({
       passed ? 'border-[#00D4FF]' : 'border-[#3d4f5f]'
     }`}
   >
-    <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+    <div className="text-[10px] text-slate-400 mb-2 font-bold capitalize tracking-wider flex items-center gap-1.5">
       {passed ? (
         <CheckCircle2 className="w-3 h-3 text-[#00D4FF]" />
       ) : (
@@ -329,9 +330,10 @@ type AccFilter = (typeof ACC_FILTERS)[number];
 
 export default function ModelIntelPage() {
   const router = useRouter();
+  const { isVip } = useVIP();
 
   // ── Single SWR fetch — includes gate + tableData + history + markets + betTypes
-  const { data, error, isLoading, isValidating, mutate } = useSWR('/api/mlb/model-intel', fetcher, {
+  const { data, error, isLoading, isValidating, mutate } = useSWR(isVip ? '/api/mlb/model-intel' : null, fetcher, {
     refreshInterval: 1_800_000, // 30 min — data changes at most once per day
     revalidateOnFocus: false,
     keepPreviousData: true,
@@ -485,17 +487,17 @@ export default function ModelIntelPage() {
             style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }}
           />
           <h2
-            className="text-2xl font-extrabold text-white uppercase tracking-wider mb-2 relative z-10"
+            className="text-2xl font-extrabold text-white capitalize tracking-wider mb-2 relative z-10"
             style={{ fontFamily: '"Rajdhani", sans-serif' }}
           >
             System Error
           </h2>
-          <p className="text-[#FF4444] font-bold uppercase tracking-widest text-[11px] relative z-10 mb-5">
+          <p className="text-[#FF4444] font-bold capitalize tracking-widest text-[11px] relative z-10 mb-5">
             Failed To Load Intel Data. Please Try Again.
           </p>
           <button
             onClick={() => mutate()}
-            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold uppercase tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)]"
+            className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold capitalize tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)]"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -520,7 +522,7 @@ export default function ModelIntelPage() {
             </div>
             <div>
               <h1
-                className="m-0 text-2xl sm:text-3xl font-extrabold text-white tracking-widest uppercase"
+                className="m-0 text-2xl sm:text-3xl font-extrabold text-white tracking-widest capitalize"
                 style={{
                   fontFamily: '"Rajdhani", sans-serif',
                   textShadow: '0 0 15px rgba(255,255,255,0.2)',
@@ -534,7 +536,7 @@ export default function ModelIntelPage() {
                   INTEL
                 </span>
               </h1>
-              <p className="m-0 mt-1 text-[#00D4FF] font-bold uppercase tracking-wider text-[11px]">
+              <p className="m-0 mt-1 text-[#00D4FF] font-bold capitalize tracking-wider text-[11px]">
                 Calibration, Edge &amp; Backtesting Intelligence
               </p>
             </div>
@@ -545,13 +547,13 @@ export default function ModelIntelPage() {
               onClick={() => mutate()}
               disabled={isValidating}
               aria-label="Refresh model intel data"
-              className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold uppercase tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold capitalize tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
               {isValidating ? 'Syncing' : 'Refresh'}
             </button>
             {relativeTime && (
-              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">
+              <span className="text-[9px] font-bold text-slate-600 capitalize tracking-widest">
                 Updated {relativeTime}
               </span>
             )}
@@ -559,7 +561,7 @@ export default function ModelIntelPage() {
         </div>
 
         {/* ── As-of line ── */}
-        <div className="mb-6 text-[11px] text-slate-500 font-bold uppercase tracking-widest relative z-10">
+        <div className="mb-6 text-[11px] text-slate-500 font-bold capitalize tracking-widest relative z-10">
           {isLoading ? (
             'Loading Model Diagnostics...'
           ) : (
@@ -644,7 +646,7 @@ export default function ModelIntelPage() {
                 key={r}
                 onClick={() => setChartRange(r)}
                 aria-label={`Show ${r} P&L chart`}
-                className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all uppercase tracking-wider ${
+                className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
                   chartRange === r
                     ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.3)]'
                     : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
@@ -659,14 +661,14 @@ export default function ModelIntelPage() {
           {isLoading ? (
             <div className="w-full h-full flex flex-col items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF] mb-4" />
-              <div className="text-[#00D4FF] font-bold tracking-widest text-[11px] animate-pulse uppercase">
+              <div className="text-[#00D4FF] font-bold tracking-widest text-[11px] animate-pulse capitalize">
                 Compiling Matrices...
               </div>
             </div>
           ) : chartData.length > 0 ? (
             <PnLChart data={chartData} />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold capitalize tracking-widest text-[11px]">
               <TrendingUp className="w-8 h-8 mb-3 opacity-40" />
               No Historical Data Available
             </div>
@@ -692,7 +694,7 @@ export default function ModelIntelPage() {
             <div className="flex justify-between items-center mb-5 border-b border-[#3d4f5f] pb-3">
               <div className="flex items-center gap-3">
                 <h3
-                  className="m-0 text-base font-extrabold uppercase text-white tracking-wider"
+                  className="m-0 text-base font-extrabold capitalize text-white tracking-wider"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   Lock-In Gate
@@ -765,7 +767,7 @@ export default function ModelIntelPage() {
                     key={f}
                     onClick={() => setAccFilter(f)}
                     aria-label={`Filter By ${f}`}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all uppercase tracking-wider ${
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all capitalize tracking-wider ${
                       accFilter === f
                         ? 'bg-gradient-to-b from-[#1a2332] to-[#0d1117] text-[#00D4FF] border border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.25)]'
                         : 'bg-transparent text-slate-400 hover:text-white border border-transparent'
@@ -793,7 +795,7 @@ export default function ModelIntelPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px] whitespace-nowrap">
               <thead>
-                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                <tr className="bg-[#1a2332] border-b-2 border-[#3d4f5f] text-slate-400 font-bold capitalize tracking-wider text-[10px]">
                   <th className="px-4 py-3.5">Date</th>
                   {accFilter === 'All' && <th className="px-4 py-3.5">Market</th>}
                   <th className="px-4 py-3.5 text-right">N</th>
@@ -872,7 +874,7 @@ export default function ModelIntelPage() {
                         <td className="px-4 py-3 font-bold text-slate-300">{fmtDate(row.date)}</td>
                         {accFilter === 'All' && (
                           <td className="px-4 py-3">
-                            <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-0.5 rounded-sm text-[10px] text-slate-300 font-bold uppercase tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+                            <span className="bg-[#0d1117] border border-[#3d4f5f] px-2 py-0.5 rounded-sm text-[10px] text-slate-300 font-bold capitalize tracking-widest shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                               {row.market}
                             </span>
                           </td>
@@ -978,7 +980,7 @@ export default function ModelIntelPage() {
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="p-8 text-center text-slate-500 font-bold capitalize tracking-widest text-[11px]">
               No Market Data Available
             </div>
           )}
@@ -1027,7 +1029,7 @@ export default function ModelIntelPage() {
                       <td className="text-left px-4 py-3 whitespace-nowrap">
                         <span className="font-bold text-white">{marketLabel(b.bet_type)}</span>
                         {b.category && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-500">
+                          <span className="ml-2 text-[10px] capitalize tracking-wider text-slate-500">
                             {b.category}
                           </span>
                         )}
@@ -1096,84 +1098,98 @@ export default function ModelIntelPage() {
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+            <div className="p-8 text-center text-slate-500 font-bold capitalize tracking-widest text-[11px]">
               No Reliability Data Available
             </div>
           )}
         </div>
 
         {/* ── CLV Trend ── */}
-        {clvTrend.length > 0 && (
-          <>
-            <SectionTitle>14-Day Rolling CLV Trend</SectionTitle>
-            <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
-              Rolling 14-Day Average Closing-Line Value. Sustained Positive Values Confirm Persistent
-              Edge; A Downtrend Is An Early Warning Signal Before ROI Catches Up.
-            </p>
-            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[240px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
-              role="img" aria-label="Rolling 14-day average closing-line value trend">
-              <ClvTrendChart data={clvTrend} />
+        <SectionTitle>14-Day Rolling CLV Trend</SectionTitle>
+        <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
+          Rolling 14-Day Average Closing-Line Value. Sustained Positive Values Confirm Persistent
+          Edge; A Downtrend Is An Early Warning Signal Before ROI Catches Up.
+        </p>
+        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[240px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
+          role="img" aria-label="Rolling 14-day average closing-line value trend">
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF]" />
             </div>
-          </>
-        )}
+          ) : clvTrend.length > 0 ? (
+            <ClvTrendChart data={clvTrend} />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold capitalize tracking-widest text-[11px]">
+              <TrendingUp className="w-8 h-8 mb-3 opacity-40" />
+              No Trend Data Available
+            </div>
+          )}
+        </div>
 
         {/* ── Calibration Curve ── */}
-        {calibration.length > 2 && (
-          <>
-            <SectionTitle>Calibration Curve</SectionTitle>
-            <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
-              Predicted Win Probability Vs. Actual Win Rate By Bucket. Dots On The Dashed Diagonal =
-              Perfect Calibration. Dot Size = Sample Volume. Cyan = Within 4%, Green =
-              Overperforming, Red = Underperforming.
-            </p>
-            <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[300px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
-              role="img" aria-label="Model calibration curve: predicted probability vs actual win rate">
-              <CalibrationChart data={calibration} />
+        <SectionTitle>Calibration Curve</SectionTitle>
+        <p className="text-[11px] text-slate-500 mb-4 -mt-2 relative z-10 leading-relaxed">
+          Predicted Win Probability Vs. Actual Win Rate By Bucket. Dots On The Dashed Diagonal =
+          Perfect Calibration. Dot Size = Sample Volume. Cyan = Within 4%, Green =
+          Overperforming, Red = Underperforming.
+        </p>
+        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl mb-8 h-[300px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative z-10 p-4"
+          role="img" aria-label="Model calibration curve: predicted probability vs actual win rate">
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#00D4FF]" />
             </div>
-          </>
-        )}
+          ) : calibration.length > 2 ? (
+            <CalibrationChart data={calibration} />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold capitalize tracking-widest text-[11px]">
+              <Target className="w-8 h-8 mb-3 opacity-40" />
+              Insufficient Calibration Data
+            </div>
+          )}
+        </div>
 
         {/* ── Methodology Glossary ── */}
         <SectionTitle>How To Read This</SectionTitle>
         <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-5 mb-4 relative z-10 text-[12px] leading-relaxed text-slate-400 space-y-2.5">
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Brier</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Brier</span> &mdash;
             Mean Squared Error Of Probability Forecasts (0 = Perfect, 0.25 = A Coin Flip). Lower Is
             Better; N-Weighted Across Every Graded Prediction.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">CLV</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">CLV</span> &mdash;
             Closing-Line Value — How Much The Model Beat The Market&apos;s Closing Price.
             Persistently Positive CLV Is The Strongest Signal Of A Genuine Edge.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">ROI</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">ROI</span> &mdash;
             True Portfolio Return (Total Unit Profit Divided By Bets Placed), Not A
             Prediction-Weighted Average.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Win Rate</span>{' '}
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Win Rate</span>{' '}
             &mdash; Percentage Of Graded Bets That Resulted In A Win. A Positive-EV Model Can Have A
             Win Rate Below 50% If Average Odds Are Long Enough.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trend Sparkline</span>{' '}
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Trend Sparkline</span>{' '}
             &mdash; Mini Chart Showing The Last 8 Rolling-CLV Data Points For Each Bet Type.
             Cyan = Trending Positive, Red = Trending Negative.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Calibration Curve</span>{' '}
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Calibration Curve</span>{' '}
             &mdash; Gold-Standard Model Evaluation. If The Model Is Well-Calibrated, A Bet Predicted
             At 60% Wins Roughly 60% Of The Time. Systematic Deviation Reveals Overconfidence Or
             Underconfidence In A Probability Range.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Trust</span> &mdash;
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Trust</span> &mdash;
             Self-Assessed Reliability Per Bet Type From Realized Results. Allow = Full Stake,
             Caution = Scaled Stake, Suppress = Removed From Recommendations.
           </p>
           <p>
-            <span className="text-[#00D4FF] font-bold uppercase tracking-wider">Lock-In Gate</span>{' '}
+            <span className="text-[#00D4FF] font-bold capitalize tracking-wider">Lock-In Gate</span>{' '}
             &mdash; The Model Must Pass All Four Thresholds (N≥500, CLV{'>'}&thinsp;0, ROI{'>'}
             &thinsp;&minus;3%, Brier{'<'}0.23) Before Value Bets Are Surfaced For Real-Money Play.
           </p>

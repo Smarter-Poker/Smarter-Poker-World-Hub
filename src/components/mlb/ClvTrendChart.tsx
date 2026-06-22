@@ -31,7 +31,7 @@ export default function ClvTrendChart({ data }: ClvTrendChartProps) {
   const color = latest >= 0 ? '#00D4FF' : '#FF4444';
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
         <XAxis

@@ -10,8 +10,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { days: daysQuery, market: marketQuery } = req.query;
         const daysStr = Array.isArray(daysQuery) ? daysQuery[0] : daysQuery;
         const marketStr = Array.isArray(marketQuery) ? marketQuery[0] : marketQuery;
-        const parsedDays = (daysStr && !isNaN(parseInt(daysStr, 10))) ? parseInt(daysStr, 10) : undefined;
-        const parsedMarket = marketStr && marketStr !== 'ALL' ? marketStr : undefined;
+        const parsedDays = (daysStr && daysStr !== '' && !isNaN(parseInt(daysStr, 10))) ? parseInt(daysStr, 10) : undefined;
+        if (parsedDays !== undefined && parsedDays < 0) {
+            return res.status(400).send('Bad Request: Days cannot be negative');
+        }
+        const parsedMarket = marketStr && marketStr.toUpperCase() !== 'ALL' ? marketStr.toUpperCase() : undefined;
 
         const mlbDb = getMlbSupabase();
 
@@ -32,11 +35,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (parsedMarket) {
                 maxQuery = maxQuery.eq('market', parsedMarket);
             }
-            const { data: maxRow } = await maxQuery.maybeSingle();
+            const { data: maxRow, error: maxError } = await maxQuery.maybeSingle();
+            if (maxError) {
+                console.error('[CSV Export] maxQuery error:', maxError.message);
+                return res.status(500).send('Internal Server Error: Anchor Query Failed');
+            }
             if (maxRow?.as_of_ts) {
                 const anchor = new Date(maxRow.as_of_ts);
-                anchor.setDate(anchor.getDate() - parsedDays);
-                anchorCutoffIso = anchor.toISOString();
+                if (!isNaN(anchor.getTime())) {
+                    anchor.setDate(anchor.getDate() - parsedDays);
+                    anchorCutoffIso = anchor.toISOString();
+                }
             }
         }
 
@@ -62,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             if (data && data.length > 0) {
-                allBets = [...allBets, ...data];
+                allBets.push(...data);
                 if (data.length < PAGE_SIZE) {
                     hasMore = false;
                 } else {
@@ -85,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }).join(',');
         });
 
-        const csvContent = [headers.join(','), ...rows].join('\n');
+        const csvContent = headers.join(',') + '\n' + rows.join('\n');
 
         const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' });
         const todayStr = formatter.format(new Date());

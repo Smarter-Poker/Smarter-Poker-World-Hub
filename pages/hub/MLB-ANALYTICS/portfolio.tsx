@@ -18,12 +18,54 @@ const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: 
 const ResponsiveContainer = dynamic(() => import('recharts').then((m) => m.ResponsiveContainer), {
   ssr: false,
 });
-import { ArrowRight, Activity, Loader2, Download } from 'lucide-react';
+import { ArrowRight, Activity, Loader2, Download, AlertTriangle } from 'lucide-react';
 
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { logError } from '@/utils/logger';
+
+class ChartErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    logError('Chart Render Error', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[18px] capitalize">
+          <AlertTriangle className="w-8 h-8 text-[#FF4444] mb-2" />
+          Chart Failed To Render
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+interface MarketSummaryRow {
+  market: string;
+  bets: number;
+  wins: number;
+  losses: number;
+  pnl: number;
+  roi: number;
+}
+
+interface GradeSummaryRow {
+  bet_tier: string;
+  bets: number;
+  wins: number;
+  losses: number;
+  pnl: number;
+  roi: number;
+}
 
 const formatCurrency = (val: number, showSign = false) => {
   if (val === undefined || val === null || isNaN(val)) return '$0.00';
@@ -86,13 +128,13 @@ interface MetricBoxProps {
   isLoading?: boolean;
 }
 
-const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
+const MetricBox = React.memo(({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
   <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)]">
     <div className="text-[17px] font-bold text-slate-400 tracking-widest mb-2 capitalize">
       {title}
     </div>
     <div
-      className="text-[40px] font-extrabold"
+      className="text-3xl sm:text-4xl font-extrabold"
       style={{
         color: isLoading ? '#00D4FF' : valueColor,
         textShadow:
@@ -110,9 +152,10 @@ const MetricBox = ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: Met
       </div>
     )}
   </div>
-);
+));
+MetricBox.displayName = 'MetricBox';
 
-const SectionTitle = ({ children, tag }: { children: React.ReactNode; tag?: string }) => (
+const SectionTitle = React.memo(({ children, tag }: { children: React.ReactNode; tag?: string }) => (
   <h2
     className="text-[30px] font-extrabold text-white mb-4 flex items-center gap-2 tracking-widest relative z-10"
     style={{ fontFamily: '"Rajdhani", sans-serif' }}
@@ -125,7 +168,8 @@ const SectionTitle = ({ children, tag }: { children: React.ReactNode; tag?: stri
       </span>
     )}
   </h2>
-);
+));
+SectionTitle.displayName = 'SectionTitle';
 
 const fetcher = async (url: string) => {
   try {
@@ -140,7 +184,7 @@ const fetcher = async (url: string) => {
   }
 };
 
-const EMPTY_ARRAY: any[] = [];
+const EMPTY_ARRAY: never[] = [];
 
 // Market chips map UI label -> raw DB value. Only h2h + total exist in sim_bets,
 // so we expose exactly those (no phantom "Run Line").
@@ -201,18 +245,20 @@ export default function PortfolioPage() {
   const csvHref = `/api/mlb/portfolio-csv?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
   // Kelly-vs-flat: Kelly final = last daily end_bankroll; flat from baseline view.
-  const lastEq = equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
-  const kellyFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
-  const startBankroll = baseline ? Number(baseline.starting_bankroll) : 1000;
-  const flatFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
-  const kellyGrowth =
-    kellyFinal != null && startBankroll > 0 ? (kellyFinal / startBankroll - 1) * 100 : null;
-  const flatGrowth =
-    flatFinal != null && startBankroll > 0 ? (flatFinal / startBankroll - 1) * 100 : null;
-  const kellyMultiple =
-    kellyFinal != null && flatFinal && flatFinal !== startBankroll
-      ? (kellyFinal - startBankroll) / (flatFinal - startBankroll)
-      : null;
+  const { kellyFinal, startBankroll, flatFinal, kellyGrowth, flatGrowth, kellyMultiple } = React.useMemo(() => {
+    const lastEq = equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
+    const kFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
+    const sBankroll = baseline ? Number(baseline.starting_bankroll) : (data?.currentBankroll ? data.currentBankroll - (data.totalPnl || 0) : 1000);
+    const fFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
+    return {
+      kellyFinal: kFinal,
+      startBankroll: sBankroll,
+      flatFinal: fFinal,
+      kellyGrowth: kFinal != null && sBankroll > 0 ? (kFinal / sBankroll - 1) * 100 : null,
+      flatGrowth: fFinal != null && sBankroll > 0 ? (fFinal / sBankroll - 1) * 100 : null,
+      kellyMultiple: kFinal != null && fFinal && fFinal !== sBankroll ? (kFinal - sBankroll) / (fFinal - sBankroll) : null,
+    };
+  }, [equityDaily, baseline, data?.currentBankroll, data?.totalPnl]);
 
   const hasError = !!error || !!data?.error;
 
@@ -458,6 +504,7 @@ export default function PortfolioPage() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
+                  <ChartErrorBoundary>
                   <AreaChart data={weeklyCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorBankroll" x1="0" y1="0" x2="0" y2="1">
@@ -472,7 +519,7 @@ export default function PortfolioPage() {
                       fontSize={12}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(val) => {
+                      tickFormatter={React.useCallback((val: any) => {
                         if (!val) return '';
                         const d = new Date(val);
                         if (isNaN(d.getTime())) return '';
@@ -481,7 +528,7 @@ export default function PortfolioPage() {
                           day: 'numeric',
                           timeZone: 'UTC',
                         });
-                      }}
+                      }, [])}
                     />
                     <YAxis
                       stroke="#64748B"
@@ -489,7 +536,7 @@ export default function PortfolioPage() {
                       tickLine={false}
                       axisLine={false}
                       domain={['auto', 'auto']}
-                      tickFormatter={(val) => `${val}`}
+                      tickFormatter={React.useCallback((val: any) => `${val}`, [])}
                     />
                     <Tooltip
                       contentStyle={{
@@ -500,8 +547,8 @@ export default function PortfolioPage() {
                       }}
                       itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
                       labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                      formatter={(value: number) => [formatCurrency(value), 'Bankroll']}
-                      labelFormatter={(label) => `Week of ${label}`}
+                      formatter={React.useCallback((value: number) => [formatCurrency(value), 'Bankroll'], [])}
+                      labelFormatter={React.useCallback((label: any) => `Week of ${label}`, [])}
                     />
                     <Area
                       type="monotone"
@@ -513,6 +560,7 @@ export default function PortfolioPage() {
                       activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }}
                     />
                   </AreaChart>
+                  </ChartErrorBoundary>
                 </ResponsiveContainer>
               )}
             </div>
@@ -621,7 +669,7 @@ export default function PortfolioPage() {
 
                 {/* Mobile view (Cards) */}
                 <div className="grid grid-cols-1 md:hidden gap-4 px-4 md:px-0">
-                  {markets.map((m: any) => (
+                  {markets.map((m: MarketSummaryRow) => (
                     <div
                       key={m.market}
                       className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-col gap-3 shadow-[0_4px_10px_rgba(0,0,0,0.3)]"
@@ -676,7 +724,7 @@ export default function PortfolioPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {markets.map((m: any) => (
+                      {markets.map((m: MarketSummaryRow) => (
                         <tr
                           key={m.market}
                           className="border-b border-[#2a3a4a] hover:bg-[#1a2332]/50 transition-colors"
@@ -713,7 +761,7 @@ export default function PortfolioPage() {
 
                 {/* Mobile view (Cards) */}
                 <div className="grid grid-cols-1 md:hidden gap-4 px-4 md:px-0">
-                  {grades.map((g: any) => {
+                  {grades.map((g: GradeSummaryRow) => {
                     const tc = tierColor(g.bet_tier);
                     return (
                       <div
@@ -778,7 +826,7 @@ export default function PortfolioPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {grades.map((g: any) => {
+                      {grades.map((g: GradeSummaryRow) => {
                         const tc = tierColor(g.bet_tier);
                         return (
                           <tr
@@ -830,6 +878,7 @@ export default function PortfolioPage() {
                   aria-label="Daily drawdown from peak bankroll (underwater chart)"
                 >
                   <ResponsiveContainer width="100%" height="100%">
+                    <ChartErrorBoundary>
                     <AreaChart
                       data={equityDaily}
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -848,7 +897,7 @@ export default function PortfolioPage() {
                         tickLine={false}
                         axisLine={false}
                         minTickGap={28}
-                        tickFormatter={(val) => {
+                        tickFormatter={React.useCallback((val: any) => {
                           if (!val) return '';
                           const d = new Date(`${val}T00:00:00Z`);
                           if (isNaN(d.getTime())) return '';
@@ -857,7 +906,7 @@ export default function PortfolioPage() {
                             day: 'numeric',
                             timeZone: 'UTC',
                           });
-                        }}
+                        }, [])}
                       />
                       <YAxis
                         stroke="#64748B"
@@ -865,7 +914,7 @@ export default function PortfolioPage() {
                         tickLine={false}
                         axisLine={false}
                         domain={['dataMin', 0]}
-                        tickFormatter={(val) => `${val}%`}
+                        tickFormatter={React.useCallback((val: any) => `${val}%`, [])}
                       />
                       <Tooltip
                         contentStyle={{
@@ -876,8 +925,8 @@ export default function PortfolioPage() {
                         }}
                         itemStyle={{ color: '#FF0055', fontWeight: 700 }}
                         labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                        formatter={(value: number) => [`${Number(value).toFixed(2)}%`, 'Drawdown']}
-                        labelFormatter={(label) => `${fmtDay(label)}`}
+                        formatter={React.useCallback((value: number) => [`${Number(value).toFixed(2)}%`, 'Drawdown'], [])}
+                        labelFormatter={React.useCallback((label: any) => `${fmtDay(label)}`, [])}
                       />
                       <Area
                         type="monotone"
@@ -888,6 +937,7 @@ export default function PortfolioPage() {
                         fill="url(#colorDrawdown)"
                       />
                     </AreaChart>
+                    </ChartErrorBoundary>
                   </ResponsiveContainer>
                 </div>
               </div>

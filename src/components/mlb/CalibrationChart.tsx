@@ -106,7 +106,7 @@ export default function CalibrationChart({ data }: CalibrationChartProps) {
   if (!data || data.length === 0) return null;
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={300}>
       <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" />
         <XAxis

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -265,7 +265,7 @@ function fmtInt(v: number | null | undefined): string {
 function fmtRunDiff(v: number | null | undefined): string {
   if (v == null) return '-';
   const n = Math.round(Number(v));
-  return n >= 0 ? `+${n}` : String(n);
+  return n > 0 ? `+${n}` : String(n);
 }
 
 // ── Division Config ───────────────────────────────────────────────────────────
@@ -987,14 +987,30 @@ export default function TeamsPage({
                 line-height: 1.4;
                 font-family: inherit;
             }
-            .stat-tooltip-wrap:hover .stat-tooltip-box,
-            .stat-tooltip-wrap:focus-within .stat-tooltip-box,
-            .stat-tooltip-wrap:active .stat-tooltip-box,
             .stat-tooltip-wrap:focus .stat-tooltip-box {
                 opacity: 1;
                 visibility: visible;
                 pointer-events: auto;
-            }/* ── Expanded Drawer ── */
+            }
+            .drawer-grid > div:nth-child(odd) .stat-tooltip-box {
+                left: 0;
+                transform: none;
+            }
+            .drawer-grid > div:nth-child(odd) .stat-tooltip-box::after {
+                left: 20px;
+                transform: none;
+            }
+            .drawer-grid > div:nth-child(even) .stat-tooltip-box {
+                left: auto;
+                right: 0;
+                transform: none;
+            }
+            .drawer-grid > div:nth-child(even) .stat-tooltip-box::after {
+                left: auto;
+                right: 20px;
+                transform: none;
+            }
+            /* ── Expanded Drawer ── */
             .drawer-section-header {
                 font-size: 9px;
                 font-weight: 800;

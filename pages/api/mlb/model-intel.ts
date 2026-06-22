@@ -113,7 +113,7 @@ async function edgeHandler(req: Request): Promise<Response> {
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
         betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types.map((b: any) => ({
           ...b,
-          sparkline: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend : [] // Stub using global trend until bet-type specific trend exists
+          sparkline: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend.slice(-8).map((d: any) => ({ date: d.date, clv: d.rolling_clv })) : [] // Stub using global trend until bet-type specific trend exists
         })) : [],
       };
     } else {

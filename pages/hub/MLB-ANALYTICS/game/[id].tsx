@@ -140,9 +140,13 @@ export default function GameMatchupDashboard() {
           startDate: game?.firstPitch || new Date().toISOString(),
           competitor: [
             { '@type': 'SportsTeam', name: game?.away || 'Away Team' },
-            { '@type': 'SportsTeam', name: game?.home || 'Home Team' }
+            { '@type': 'SportsTeam', name: game?.home || 'Home Team' },
           ],
-          provider: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' }
+          provider: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker',
+          },
         }}
       />
 
@@ -181,7 +185,8 @@ export default function GameMatchupDashboard() {
                     <img
                       src={teamLogo(game.awayId) || ''}
                       alt={game.away}
-                      className="w-full h-full object-contain" loading="lazy"
+                      className="w-full h-full object-contain"
+                      loading="lazy"
                     />
                   </div>
                   <h2 className="text-[40px] font-extrabold font-['Rajdhani'] tracking-widest capitalize font-['Rajdhani'] text-white">
@@ -227,7 +232,8 @@ export default function GameMatchupDashboard() {
                     <img
                       src={teamLogo(game.homeId) || ''}
                       alt={game.home}
-                      className="w-full h-full object-contain" loading="lazy"
+                      className="w-full h-full object-contain"
+                      loading="lazy"
                     />
                   </div>
                   <h2 className="text-[40px] font-extrabold font-['Rajdhani'] tracking-widest capitalize font-['Rajdhani'] text-white">
@@ -251,7 +257,9 @@ export default function GameMatchupDashboard() {
               {/* ODDS STRIP */}
               <div className="mt-8 pt-6 border-t border-[#1A2436] grid grid-cols-3 gap-4 px-4 md:px-0">
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">Moneyline</p>
+                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">
+                    Moneyline
+                  </p>
                   <div className="flex justify-around">
                     <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgAwayLine
@@ -271,7 +279,9 @@ export default function GameMatchupDashboard() {
                   </div>
                 </div>
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">Spread</p>
+                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">
+                    Spread
+                  </p>
                   <div className="flex justify-around">
                     <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white">
                       {game.avgAwaySpreadLine
@@ -291,7 +301,9 @@ export default function GameMatchupDashboard() {
                   </div>
                 </div>
                 <div className="bg-[#060B14] p-3 rounded text-center border border-[#1A2436]">
-                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">Total</p>
+                  <p className="text-[21px] text-[#8BA4D5] capitalize tracking-widest mb-1">
+                    Total
+                  </p>
                   <div className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white">
                     {game.avgTotalLine ? `O/U ${game.avgTotalLine}` : '-'}
                   </div>
