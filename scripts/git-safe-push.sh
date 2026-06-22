@@ -470,7 +470,7 @@ echo "✅ Destructive change detection passed"
 
 echo ""
 echo "🔭 Phase 0.7: Reflog auto-reset loop detection..."
-RESET_COUNT=$(git reflog -50 2>/dev/null | grep -c 'reset: moving to origin/' || echo 0)
+RESET_COUNT=$(git reflog -50 2>/dev/null | grep 'reset: moving to origin/' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$RESET_COUNT" -ge 2 ]; then
   echo "⚠️  WARNING: $RESET_COUNT 'reset: moving to origin/...' entries in last 50 reflog ops."
   echo "   This is the signature of an external auto-sync agent (Antigravity, IDE,"

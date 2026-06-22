@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Per-user HR bet tracking. Account-synced (RLS-protected table public.mlb_hr_bets in

@@ -121,3 +121,33 @@ if (fs.existsSync(buildIndexPathMain)) {
 
 console.log('🏁 Build-Time Patching Completed.\n');
 
+// ── 5. Patch build/index.js to tolerate ENOENT on static-page renames ────────
+// When .next/ is freshly cleaned, some intermediate HTML files (e.g. 404.html)
+// don't exist at the expected source path during the move-to-server step. This
+// causes the build to abort with ENOENT even though all pages compiled fine.
+// Wrap the two rename calls in ENOENT-tolerant try-catch blocks.
+const buildIndex2Path = path.resolve(__dirname, '../node_modules/next/dist/build/index.js');
+if (fs.existsSync(buildIndex2Path)) {
+  let content = fs.readFileSync(buildIndex2Path, 'utf8');
+  const renameTarget   = 'await _fs.promises.rename(orig, dest);';
+  const renameReplace  = 'try { await _fs.promises.rename(orig, dest); } catch(e) { if (e.code !== \'ENOENT\') throw e; }';
+  const rename2Target  = 'await _fs.promises.rename(updatedOrig, updatedDest);';
+  const rename2Replace = 'try { await _fs.promises.rename(updatedOrig, updatedDest); } catch(e) { if (e.code !== \'ENOENT\') throw e; }';
+  let changed = false;
+  if (content.includes(renameTarget) && !content.includes(renameReplace)) {
+    content = content.replace(new RegExp(renameTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), renameReplace);
+    changed = true;
+  }
+  if (content.includes(rename2Target) && !content.includes(rename2Replace)) {
+    content = content.replace(new RegExp(rename2Target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), rename2Replace);
+    changed = true;
+  }
+  if (changed) {
+    fs.writeFileSync(buildIndex2Path, content, 'utf8');
+    console.log('   ✅ build/index.js static-page rename ENOENT tolerance patched.');
+  } else {
+    console.log('   ✅ build/index.js static-page rename is already patched or healthy.');
+  }
+} else {
+  console.log('   ⚠️ build/index.js path not found, skipping patch 5.');
+}
