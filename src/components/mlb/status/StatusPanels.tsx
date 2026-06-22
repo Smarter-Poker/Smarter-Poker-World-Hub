@@ -112,7 +112,7 @@ export const PipelineStatusPanel = React.memo(({ pipeline }: { pipeline: MLBStat
   </div>
 ));
 
-export const HealthPanel = React.memo(({ health, data, serverNow }: { health: MLBStatusPayload['health']; data?: { aggAsOf?: string | null }; serverNow: Date }) => (
+export const HealthPanel = React.memo(({ health, data, serverNow }: { health: MLBStatusPayload['health']; data?: { aggAsOf?: string | null }; serverNow?: string | null | null }) => (
   <div className="mb-8">
     <SectionHeader icon={Clock} label="System Health" />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
@@ -330,7 +330,7 @@ export const BetTierDistPanel = React.memo(({ tierDist }: { tierDist: MLBStatusP
   );
 });
 
-export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: MLBStatusPayload['sources']; serverNow: Date }) => (
+export const DataSourcePanel = React.memo(({ sources, serverNow }: { sources: MLBStatusPayload['sources']; serverNow?: string | null }) => (
   <div className="mb-8">
     <SectionHeader icon={Database} label="Data Source Freshness" />
     <MetalFrame className="p-0">

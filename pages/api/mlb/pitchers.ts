@@ -51,46 +51,8 @@ async function edgeHandler(req: Request) {
   }
 }
 
-import { NextApiRequest, NextApiResponse } from 'next';
+export default edgeHandler;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    let protocol = 'http';
-    const xForwardedProto = req.headers['x-forwarded-proto'];
-    if (typeof xForwardedProto === 'string') {
-        protocol = xForwardedProto.split(',')[0].trim();
-    } else if (Array.isArray(xForwardedProto) && xForwardedProto.length > 0) {
-        protocol = xForwardedProto[0].split(',')[0].trim();
-    }
-    const host = req.headers.host || 'localhost';
-    const url = `${protocol}://${host}${req.url}`;
-
-    const safeHeaders: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (Array.isArray(value)) {
-        safeHeaders[key] = value.join(', ');
-      } else if (value !== undefined) {
-        safeHeaders[key] = value;
-      }
-    }
-
-    const requestOptions: RequestInit = {
-      method: req.method,
-      headers: safeHeaders,
-    };
-
-    const request = new Request(url, requestOptions);
-    const response = await edgeHandler(request);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-
-    const text = await response.text();
-    res.send(text);
-  } catch (err: any) {
-    console.error('API Polyfill Error:', err);
-    res.status(500).json({ fetchError: true, data: [] });
-  }
-}
+export const config = {
+  runtime: 'edge',
+};

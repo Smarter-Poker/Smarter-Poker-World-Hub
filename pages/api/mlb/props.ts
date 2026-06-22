@@ -188,6 +188,7 @@ export default async function edgeHandler(req: Request) {
             .eq('window_kind', 'fg_season')
             .in('pitcher_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
+            .limit(10000)
         : { data: [] },
       uniquePlayerIds.length > 0
         ? mlbDb
@@ -197,6 +198,7 @@ export default async function edgeHandler(req: Request) {
             .eq('vs_hand', 'A')
             .in('batter_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
+            .limit(10000)
         : { data: [] },
     ]);
 
@@ -346,7 +348,8 @@ export default async function edgeHandler(req: Request) {
       const { data: fallback, error: fbErr } = await mlbDb
         .from('dim_players')
         .select('player_id, full_name')
-        .in('player_id', unresolvedIds);
+        .in('player_id', unresolvedIds)
+        .limit(1000);
       if (fbErr) console.error('[API/MLB/Props] dim_players fallback error:', fbErr);
       for (const f of fallback || []) {
         if (f.player_id && !playerMap.has(f.player_id)) {

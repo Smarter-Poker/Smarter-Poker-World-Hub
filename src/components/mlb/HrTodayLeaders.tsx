@@ -83,7 +83,7 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+    const fetchLeaders = async () => {
       try {
         const res = await fetch(`/api/mlb/hr-today?limit=${limit}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -96,9 +96,13 @@ export default function HrTodayLeaders({ limit = 24 }: { limit?: number }) {
       } finally {
         if (alive) setLoading(false);
       }
-    })();
+    };
+    fetchLeaders();
+    // Keep the board live: re-fetch every 5 min (HR probabilities reprice intraday).
+    const iv = setInterval(fetchLeaders, 300000);
     return () => {
       alive = false;
+      clearInterval(iv);
     };
   }, [limit]);
 
