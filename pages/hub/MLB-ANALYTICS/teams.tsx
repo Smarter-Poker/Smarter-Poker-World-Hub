@@ -256,7 +256,7 @@ const DIVISION_ABBR: Record<string, string> = {
 };
 
 // ── Team Card ─────────────────────────────────────────────────────────────────
-const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLeader?: boolean }) => {
+const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any; isDivLeader?: boolean }) => {
   const [expanded, setExpanded] = useState(false);
 
   const record = team.streaks?.record || '0-0';
@@ -437,9 +437,10 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
               </span>
             )}
           </div>
+        </Link>
 
-          {/* ── 5 Basic Stats Always Visible ── */}
-          <div className="stats-panel" style={{ marginTop: 8 }}>
+        {/* ── 5 Basic Stats Always Visible ── */}
+        <div className="stats-panel" style={{ marginTop: 8 }}>
               <div className="stat-segment">
                 <StatLabel label="ERA" color="#60A5FA" />
                 <div className="stat-value" style={{ color: adv.era != null ? statColor('ERA', adv.era) : undefined }}>
@@ -471,7 +472,6 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
                 </div>
               </div>
             </div>
-        </Link>
 
         {/* Stats Age Indicator */}
         {adv.as_of && (
@@ -665,7 +665,8 @@ const TeamCardComponent = ({ team, isDivLeader = false }: { team: any; isDivLead
       </div>
     </div>
   );
-};
+});
+TeamCardComponent.displayName = 'TeamCardComponent';
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function TeamsPage({

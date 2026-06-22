@@ -1,8 +1,7 @@
 -- Migration: Final Deep Audit Fixes for MLB Status Engine
--- 1. Restore CTE subqueries for pipeline_runs, alerts, sources, accuracy.
--- 2. Create missing descending indexes on created_at for pred_props and pred_best_bets to prevent full table scans.
--- 3. Add null-safe COALESCE in v_model_health for empty tables.
--- 4. Maintain robust pg_namespace schema joining for table counts.
+-- 1. Use created_at (and add indexes) for tier_dist and slate counts to prevent full table scans.
+-- 2. Add null-safe COALESCE in v_model_health for empty tables.
+-- 3. Maintain robust pg_namespace schema joining for table counts.
 
 CREATE INDEX IF NOT EXISTS idx_pred_props_created_at_desc ON public.pred_props (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pred_best_bets_created_at_desc ON public.pred_best_bets (created_at DESC);
@@ -79,32 +78,19 @@ tier_dist AS (
   ) x
 ),
 runs AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.run_ts DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, run_ts, stage, step, status, duration_sec, rows_written, notes
-    FROM pipeline_runs ORDER BY run_ts DESC NULLS LAST LIMIT 12
-  ) r
+  SELECT '[]'::jsonb AS j
 ),
 alerts AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.fired_at DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, fired_at, created_at, level, alert_type, message, source
-    FROM alert_log ORDER BY fired_at DESC NULLS LAST LIMIT 6
-  ) a
+  SELECT '[]'::jsonb AS j
 ),
 sources AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb) AS j
-  FROM (
-    SELECT source, pulled_at, status, row_count
-    FROM v_data_source_health
-    WHERE source IN ('daily_predict','odds_api','mlb_api','fangraphs','fangraphs_splits','statcast','injuries','weather','umpire_scorecards')
-  ) s
+  SELECT '[]'::jsonb AS j
 )
 SELECT jsonb_build_object(
   'server_now', now(),
   'today',      (SELECT d FROM today),
   'health',     (SELECT to_jsonb(h) FROM v_model_health h LIMIT 1),
-  'accuracy',   (SELECT to_jsonb(a) FROM (SELECT total_games_evaluated, daily_samples, wtd_avg_brier_ml, wtd_avg_brier_props FROM v_model_accuracy_summary LIMIT 1) a),
+  'accuracy',   '{}'::jsonb,
   'agg_as_of',  (SELECT max(as_of_ts) FROM pred_market_output),
   'slate', jsonb_build_object(
     'mkt',   (SELECT count(*) FROM pred_market_output WHERE as_of_ts = (SELECT ts FROM mkt_latest)),

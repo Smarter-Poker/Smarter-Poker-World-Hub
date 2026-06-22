@@ -34,15 +34,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
     const { data: alerts, error: alertsError } = await mlbDb
-      .from('alerts')
-      .select('id, type, message, created_at')
+      .from('alert_log')
+      .select('id, alert_type, message, created_at')
       .eq('resolved', false)
-      .gte('created_at', twoHoursAgo);
+      .gte('created_at', twoHoursAgo)
+      .limit(100);
 
     if (alertsError) throw alertsError;
     if (!alerts || alerts.length === 0) {
       return res.status(200).json({ ok: true, synced: 0 });
     }
+
+    const alertIds = alerts.map(a => a.id);
 
     // 2. Fetch existing MLB notifications for this admin to avoid duplicates
     // We use the alert ID embedded in the data to track it
@@ -51,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .select('data')
       .eq('user_id', localUser.id)
       .eq('type', 'system')
-      .eq('title', 'MLB Pipeline Alert');
+      .in('data->>alert_id', alertIds);
 
     if (notifError) throw notifError;
 
@@ -66,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const inserts = newAlerts.map(a => ({
       user_id: localUser.id,
       title: 'MLB Pipeline Alert',
-      message: `[${a.type}] ${a.message}`,
+      message: `[${a.alert_type}] ${a.message}`,
       type: 'system',
       link: '/hub/MLB-ANALYTICS/status',
       data: { alert_id: a.id },
