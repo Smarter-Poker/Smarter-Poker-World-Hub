@@ -13,7 +13,6 @@ export default function MlbSubNav() {
         { label: 'Tracker', href: '/hub/MLB-ANALYTICS/tracker' },
         { label: 'Players', href: '/hub/MLB-ANALYTICS/players' },
         { label: 'Teams', href: '/hub/MLB-ANALYTICS/teams' },
-        { label: 'Backtest', href: '/hub/MLB-ANALYTICS/backtest' },
         { label: 'Status', href: '/hub/MLB-ANALYTICS/status' },
         { label: 'Portfolio', href: '/hub/MLB-ANALYTICS/portfolio' },
         { label: 'Validation', href: '/hub/MLB-ANALYTICS/validation' }

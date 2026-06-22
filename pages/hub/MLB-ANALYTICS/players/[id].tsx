@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { ArrowLeft, Info, Swords, Activity, Target, Shield, Zap, TrendingUp, BarChart3 } from 'lucide-react';
+import { Info, Swords, Activity, Target, Shield, Zap, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
 import MetalFrame from '../../../../src/components/ui/MetalFrame';
 import SectionHeader from '../../../../src/components/ui/SectionHeader';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../../src/lib/mlbStatGlossary';
+import HrBetTracker from '../../../../src/components/mlb/HrBetTracker';
 
 const MLB_TEAMS: Record<number, string> = {
   108: 'Los Angeles Angels', 109: 'Arizona Diamondbacks', 110: 'Baltimore Orioles', 111: 'Boston Red Sox',
@@ -89,12 +90,12 @@ const PITCHER_GROUPS: { title: string; icon: any; stats: Stat[] }[] = [
 ];
 
 const MetricTile = ({ label, value, tip, accent }: { label: string; value: string; tip?: string; accent?: boolean }) => (
-  <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" title={tip}>
-    <div className="flex items-center gap-1 mb-1">
-      <span className="text-[10px] font-extrabold text-slate-400 tracking-widest">{label}</span>
+  <div className="bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] text-center" title={tip}>
+    <div className="flex items-center justify-center gap-1 mb-1">
+      <span className="text-[13px] font-extrabold text-slate-400 tracking-widest">{label}</span>
       {tip ? <Info size={10} className="text-slate-600 shrink-0" aria-hidden="true" /> : null}
     </div>
-    <div className={`text-lg font-extrabold ${accent ? 'text-[#00D4FF]' : 'text-white'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
+    <div className={`text-xl font-extrabold ${accent ? 'text-[#00D4FF]' : 'text-white'}`} style={{ fontFamily: '"Rajdhani", sans-serif' }}>
       {value}
     </div>
   </div>
@@ -191,12 +192,6 @@ export default function PlayerProfilePage() {
       <div className="p-4 w-full max-w-4xl mx-auto box-border relative">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D4FF] rounded-full mix-blend-screen filter blur-[150px] opacity-[0.05] pointer-events-none"></div>
 
-        <div className="mb-6">
-          <Link href="/hub/MLB-ANALYTICS/players" className="inline-flex items-center gap-1 text-[#00D4FF] text-[13px] font-extrabold tracking-widest hover:text-white transition-colors mb-4">
-            <ArrowLeft size={14} /> Back to Database
-          </Link>
-        </div>
-
         {isLoading || !player ? (
           <div className="animate-pulse">
             <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-6 flex flex-col md:flex-row items-center gap-6">
@@ -229,26 +224,26 @@ export default function PlayerProfilePage() {
                 )}
               </div>
               <div className="flex-1 text-center md:text-left z-10">
-                <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[10px] font-extrabold text-[#00D4FF] tracking-widest mb-2">
+                <div className="inline-block bg-[#1a2332] border border-[#3d4f5f] px-3 py-1 rounded-sm text-[13px] font-extrabold text-[#00D4FF] tracking-widest mb-2">
                   {type === 'pitcher' ? 'Pitcher Profile' : 'Hitter Profile'}
                 </div>
                 <h1 className="m-0 text-3xl md:text-5xl font-extrabold text-white tracking-wide" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
                   {player.full_name}
                 </h1>
                 <div className="flex items-center justify-center md:justify-start gap-2 mt-3 flex-wrap">
-                  {teamName && <span className="text-slate-300 font-bold text-[12px] tracking-widest">{teamName}</span>}
+                  {teamName && <span className="text-slate-300 font-bold text-[14px] tracking-widest">{teamName}</span>}
                   {(type === 'pitcher' ? player.role : player.position) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-300 tracking-widest">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-300 tracking-widest">
                       {type === 'pitcher' ? player.role : player.position}
                     </span>
                   )}
                   {(player.bats || player.throws) && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-400 tracking-widest" title="Bats / Throws">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest" title="Bats / Throws">
                       B/T {player.bats || '—'}/{player.throws || '—'}
                     </span>
                   )}
                   {age != null && (
-                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[10px] font-extrabold text-slate-400 tracking-widest">
+                    <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-slate-400 tracking-widest">
                       Age {age}
                     </span>
                   )}
@@ -270,7 +265,7 @@ export default function PlayerProfilePage() {
                         <div className="text-white font-extrabold text-lg tracking-wide" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
                           {matchup.is_home ? 'vs' : '@'} {matchup.opp_team_name}
                         </div>
-                        <div className="text-slate-500 text-[11px] font-bold tracking-wide">
+                        <div className="text-slate-500 text-[13px] font-bold tracking-wide">
                           {matchup.date}{firstPitchET ? ` • First Pitch ${firstPitchET}` : ''}
                         </div>
                       </div>
@@ -280,7 +275,7 @@ export default function PlayerProfilePage() {
                       <>
                         {matchup.opp_pitcher_name && (
                           <div className="mb-3">
-                            <div className="text-slate-400 text-[10px] font-extrabold tracking-widest mb-2">
+                            <div className="text-slate-400 text-[13px] font-extrabold tracking-widest mb-2">
                               Probable Pitcher: <span className="text-white">{matchup.opp_pitcher_name}</span>
                               {matchup.opp_pitcher_throws ? ` (${matchup.opp_pitcher_throws}HP)` : ''}
                             </div>
@@ -295,7 +290,7 @@ export default function PlayerProfilePage() {
                             )}
                           </div>
                         )}
-                        <div className="text-slate-400 text-[10px] font-extrabold tracking-widest mb-2">
+                        <div className="text-slate-400 text-[13px] font-extrabold tracking-widest mb-2">
                           {player.full_name} vs {matchup.opp_pitcher_name || 'This Pitcher'} (Career)
                         </div>
                         {matchup.bvp ? (
@@ -311,7 +306,7 @@ export default function PlayerProfilePage() {
                       </>
                     ) : (
                       <>
-                        <div className="text-slate-400 text-[10px] font-extrabold tracking-widest mb-2">
+                        <div className="text-slate-400 text-[13px] font-extrabold tracking-widest mb-2">
                           {player.full_name} vs {matchup.opp_team_name} Lineup (Career)
                         </div>
                         {matchup.pvt ? (
@@ -326,7 +321,7 @@ export default function PlayerProfilePage() {
                         )}
                         {matchup.opp_team_hitting && (
                           <>
-                            <div className="text-slate-400 text-[10px] font-extrabold tracking-widest mb-2">{matchup.opp_team_name} Offense (Season)</div>
+                            <div className="text-slate-400 text-[13px] font-extrabold tracking-widest mb-2">{matchup.opp_team_name} Offense (Season)</div>
                             <div className="grid grid-cols-3 gap-3">
                               <MetricTile label="AVG" value={fmt('rate', matchup.opp_team_hitting.avg)} tip={glossaryFor('AVG')} />
                               <MetricTile label="OPS" value={fmt('rate', matchup.opp_team_hitting.ops)} tip={glossaryFor('OPS')} />
@@ -339,7 +334,7 @@ export default function PlayerProfilePage() {
 
                     {type === 'hitter' && matchup.opp_team_pitching && (
                       <div className="mt-4">
-                        <div className="text-slate-400 text-[10px] font-extrabold tracking-widest mb-2">{matchup.opp_team_name} Pitching Staff (Season)</div>
+                        <div className="text-slate-400 text-[13px] font-extrabold tracking-widest mb-2">{matchup.opp_team_name} Pitching Staff (Season)</div>
                         <div className="grid grid-cols-2 gap-3">
                           <MetricTile label="ERA" value={fmt('n2', matchup.opp_team_pitching.era)} tip={glossaryFor('ERA')} />
                           <MetricTile label="WHIP" value={fmt('n2', matchup.opp_team_pitching.whip)} tip={glossaryFor('WHIP')} />
@@ -350,6 +345,13 @@ export default function PlayerProfilePage() {
                 )}
               </MetalFrame>
             </div>
+
+            {type === 'hitter' && id && (
+              <div className="mb-8">
+                <SectionHeader icon={DollarSign} label="Your HR Bet Tracker" />
+                <HrBetTracker playerId={Number(id)} playerName={player.full_name} teamId={player.team_id} />
+              </div>
+            )}
 
             {groups.map((g) => (
               <StatGroup key={g.title} title={g.title} icon={g.icon} stats={g.stats} season={season} />
@@ -366,7 +368,7 @@ export default function PlayerProfilePage() {
                     <MetricTile label="HBP Rate" value={fmt('pct', sim.hbp)} tip="Projected hit-by-pitch rate." />
                     <MetricTile label="BABIP" value={fmt('rate', sim.babip)} tip={glossaryFor('BABIP')} />
                   </div>
-                  <p className="text-slate-600 text-[10px] font-bold tracking-wide mt-3">
+                  <p className="text-slate-600 text-[13px] font-bold tracking-wide mt-3">
                     Projected outcome rates from the Smarter.Poker simulation engine, regressed for sample size.
                   </p>
                 </MetalFrame>
@@ -379,7 +381,7 @@ export default function PlayerProfilePage() {
                 <MetalFrame className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
                   {hotCold && (
                     <div className="mb-4">
-                      <span className="inline-block text-[11px] font-extrabold px-3 py-1 rounded-full tracking-widest" style={{
+                      <span className="inline-block text-[13px] font-extrabold px-3 py-1 rounded-full tracking-widest" style={{
                         fontFamily: '"Rajdhani", sans-serif',
                         background: hotCold === 'hot' ? 'rgba(255,120,40,0.15)' : hotCold === 'cold' ? 'rgba(60,120,255,0.15)' : 'rgba(148,163,184,0.12)',
                         color: hotCold === 'hot' ? '#FF8C42' : hotCold === 'cold' ? '#5B9BFF' : '#94A3B8',
@@ -407,18 +409,18 @@ export default function PlayerProfilePage() {
 
                   {type === 'hitter' && last5.length > 0 && (
                     <div className="mt-5">
-                      <div className="text-[10px] font-extrabold text-slate-500 tracking-widest mb-2">Last 5 Games</div>
+                      <div className="text-[13px] font-extrabold text-slate-500 tracking-widest mb-2">Last 5 Games</div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="text-slate-500 text-[10px] font-extrabold tracking-widest">
+                            <tr className="text-slate-500 text-[13px] font-extrabold tracking-widest">
                               <th className="py-1 pr-3">Date</th><th className="py-1 px-2 text-center">AB</th><th className="py-1 px-2 text-center">H</th>
                               <th className="py-1 px-2 text-center">HR</th><th className="py-1 px-2 text-center">RBI</th><th className="py-1 px-2 text-center">BB</th><th className="py-1 px-2 text-center">K</th>
                             </tr>
                           </thead>
                           <tbody>
                             {last5.map((gm: any, i: number) => (
-                              <tr key={gm.date || i} className="border-t border-[#1e2d3d] text-slate-300 text-[12px] font-bold">
+                              <tr key={gm.date || i} className="border-t border-[#1e2d3d] text-slate-300 text-[14px] font-bold">
                                 <td className="py-1.5 pr-3 text-slate-400">{gm.date || '—'}</td>
                                 <td className="py-1.5 px-2 text-center">{gm.AB ?? '—'}</td>
                                 <td className="py-1.5 px-2 text-center text-white">{gm.H ?? '—'}</td>
@@ -436,7 +438,7 @@ export default function PlayerProfilePage() {
 
                   {type === 'pitcher' && streaks.last_start_line && typeof streaks.last_start_line === 'object' && (
                     <div className="mt-5">
-                      <div className="text-[10px] font-extrabold text-slate-500 tracking-widest mb-2">
+                      <div className="text-[13px] font-extrabold text-slate-500 tracking-widest mb-2">
                         Last Start{streaks.last_start_date ? ` — ${streaks.last_start_date}` : ''}
                       </div>
                       <div className="flex items-center gap-3 flex-wrap">

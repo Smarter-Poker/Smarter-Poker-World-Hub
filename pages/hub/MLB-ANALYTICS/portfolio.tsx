@@ -2,9 +2,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import useSWR from 'swr';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RecentBetsTable from '../../../components/mlb/RecentBetsTable';
 import dynamic from 'next/dynamic';
+import useCurrentUser from '../../../src/hooks/useCurrentUser';
 
 const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
 const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false });
@@ -108,19 +109,20 @@ const MARKETS = [
 
 export default function PortfolioPage() {
     const router = useRouter();
+    const { user, loading: userLoading } = useCurrentUser();
     const [daysFilter, setDaysFilter] = useState<number | null>(null);
     const [marketFilter, setMarketFilter] = useState<string>('ALL');
 
-    const apiUrl = `/api/mlb/portfolio?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
+    useEffect(() => {
+        if (!userLoading && !user) {
+            router.push('/hub/auth/login');
+        }
+    }, [user, userLoading, router]);
 
-    const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
+    const apiUrl = `/api/mlb/portfolio-full?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
+
+    const { data, error, isLoading } = useSWR(user ? apiUrl : null, fetcher, {
         refreshInterval: 600000, // 10 min — portfolio stats update nightly
-        revalidateOnFocus: false,
-    });
-
-    // Full-backtest analytics (filter-independent). Never blocks the page.
-    const { data: extras } = useSWR('/api/mlb/portfolio-extras', fetcher, {
-        refreshInterval: 600000,
         revalidateOnFocus: false,
     });
 
@@ -131,19 +133,19 @@ export default function PortfolioPage() {
     const weeklyCurve = data?.weeklyCurve || EMPTY_ARRAY;
     const recentBets = data?.recentBets || EMPTY_ARRAY;
 
-    const risk = extras?.riskMetrics;
-    const markets = extras?.marketSummary || EMPTY_ARRAY;
-    const baseline = extras?.baseline;
-    const grades = extras?.gradeSummary || EMPTY_ARRAY;
-    const equityDaily = extras?.equityDaily || EMPTY_ARRAY;
-    const dataWindow = extras?.dataWindow;
+    const risk = data?.riskMetrics;
+    const markets = data?.marketSummary || EMPTY_ARRAY;
+    const baseline = data?.baseline;
+    const grades = data?.gradeSummary || EMPTY_ARRAY;
+    const equityDaily = data?.equityDaily || EMPTY_ARRAY;
+    const dataWindow = data?.dataWindow;
 
     // Only show the page-level spinner on the very first load (no cached data yet).
-    const loading = isLoading && !data;
+    const loading = (isLoading && !data) || userLoading || !user;
 
     const csvHref = `/api/mlb/portfolio-csv?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
-    // Kelly-vs-flat (full backtest): Kelly final = last daily end_bankroll; flat from baseline view.
+    // Kelly-vs-flat: Kelly final = last daily end_bankroll; flat from baseline view.
     const kellyFinal = equityDaily.length > 0 ? Number(equityDaily[equityDaily.length - 1].end_bankroll) : null;
     const startBankroll = baseline ? Number(baseline.starting_bankroll) : 1000;
     const flatFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
@@ -155,10 +157,10 @@ export default function PortfolioPage() {
 
     const hasError = !!error || !!data?.error;
 
-    if (hasError) {
+    if (hasError && !loading) {
         return (
             <div className="min-h-screen bg-[#0a0a15] pb-[70px] font-sans w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
-                <SEOHead title="MLB Betting Portfolio — Simulated P&amp;L &amp; Unit Tracking | Smarter.Poker" description="Simulated MLB betting portfolio tracker by Smarter.Poker." noindex={true} />
+                <SEOHead title="MLB Betting Portfolio — System P&amp;L &amp; Unit Tracking | Smarter.Poker" description="MLB betting portfolio tracker by Smarter.Poker." noindex={true} />
                 <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
                 <MlbSubNav />
                 <main className="max-w-7xl mx-auto px-4 py-12 flex justify-center items-center min-h-[50vh]">
@@ -177,15 +179,15 @@ export default function PortfolioPage() {
     return (
         <div className="bg-[#0a0a15] min-h-screen font-inter pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border text-slate-200">
             <SEOHead
-                title="MLB Betting Portfolio — Simulated P&L & Unit Tracking | Smarter.Poker"
-                description="Simulated MLB betting portfolio for Smarter.Poker model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, per-market and per-tier results, and the full bet log across the 2026 MLB season."
+                title="MLB Betting Portfolio — System P&L & Unit Tracking | Smarter.Poker"
+                description="System MLB betting portfolio for Smarter.Poker model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, per-market and per-tier results, and the full bet log across the MLB season."
                 canonical="/hub/MLB-ANALYTICS/portfolio"
                 ogImage="/images/mlb/og.png"
                 jsonLd={{
                     "@context": "https://schema.org",
                     "@type": "Dataset",
                     "name": "MLB Portfolio Analytics — Cumulative ROI & Performance Tracking",
-                    "description": "Full-season simulated portfolio performance for Smarter.Poker MLB model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, and per-market / per-Bet-Score-tier breakdowns over the 2026 MLB season.",
+                    "description": "Full-season portfolio performance for Smarter.Poker MLB model picks: cumulative bankroll, ROI, win rate, profit factor, max drawdown, and per-market / per-Bet-Score-tier breakdowns over the MLB season.",
                     "url": "https://smarter.poker/hub/MLB-ANALYTICS/portfolio",
                     "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
                 }}
@@ -202,10 +204,10 @@ export default function PortfolioPage() {
                 <div className="flex flex-wrap gap-4 justify-between items-start mb-6 relative z-10">
                     <div>
                         <h1 className="m-0 text-[51px] font-extrabold text-white tracking-widest capitalize" style={{ fontFamily: '"Rajdhani", sans-serif', textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
-                            Portfolio <span className="text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}>Simulator</span>
+                            System <span className="text-[#00D4FF]" style={{ textShadow: '0 0 15px rgba(0,212,255,0.4)' }}>Portfolio</span>
                         </h1>
                         <p className="m-0 mt-1 text-[#00D4FF] font-bold capitalize tracking-wider text-[18px]">
-                            Virtual bankroll · Kelly-sized from {totalBets.toLocaleString()} model-graded markets
+                            System bankroll · Kelly-sized from {totalBets.toLocaleString()} model-graded markets
                         </p>
                         {dataWindow?.firstDay && dataWindow?.lastDay && (
                             <p className="m-0 mt-1 text-slate-500 font-semibold text-[18px] tracking-wide">
@@ -290,7 +292,7 @@ export default function PortfolioPage() {
                                     {formatCurrency(totalPnl, true)} from start
                                 </div>
                                 <div className="relative z-10 text-[17px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
-                                    $1,000 Simulated Base
+                                    $1,000 Starting Base
                                 </div>
                             </div>
 
@@ -358,7 +360,7 @@ export default function PortfolioPage() {
                         {(risk || baseline || markets.length > 0 || grades.length > 0) && (
                             <div className="mb-2 mt-2 flex items-center gap-3 relative z-10">
                                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#3d4f5f] to-[#3d4f5f]" />
-                                <span className="text-[17px] font-extrabold tracking-[0.2em] text-slate-500 capitalize">Full Backtest Analytics</span>
+                                <span className="text-[17px] font-extrabold tracking-[0.2em] text-slate-500 capitalize">Analytics Breakdown</span>
                                 <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#3d4f5f] to-[#3d4f5f]" />
                             </div>
                         )}
@@ -366,7 +368,7 @@ export default function PortfolioPage() {
                         {/* Kelly vs Flat */}
                         {baseline && kellyFinal != null && flatFinal != null && (
                             <div className="mb-8 relative z-10">
-                                <SectionTitle tag="FULL BACKTEST">Kelly Sizing vs Flat Staking</SectionTitle>
+                                <SectionTitle tag="COMPARISON">Kelly Sizing vs Flat Staking</SectionTitle>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4 md:px-0">
                                     <div className="bg-[#0d1117] border-[2px] border-[#00D4FF]/40 rounded-xl p-5 shadow-[0_0_15px_rgba(0,212,255,0.1)]">
                                         <div className="text-[17px] font-bold text-[#00D4FF] tracking-widest mb-2 capitalize">Model (Kelly-Sized)</div>
@@ -380,7 +382,7 @@ export default function PortfolioPage() {
                                     </div>
                                 </div>
                                 {kellyMultiple != null && kellyMultiple > 0 && (
-                                    <p className="text-[18px] text-slate-500 mt-3 font-semibold tracking-wide">
+                                    <p className="text-[18px] text-slate-500 mt-3 font-semibold tracking-wide px-4 md:px-0">
                                         Same picks, same {formatCurrency(startBankroll)} start — Kelly-fractional sizing produced {kellyMultiple.toFixed(1)}x the profit of flat {formatCurrency(Number(baseline.unit_size))} units.
                                     </p>
                                 )}
@@ -390,7 +392,7 @@ export default function PortfolioPage() {
                         {/* Risk & Quality */}
                         {risk && (
                             <div className="mb-8 relative z-10">
-                                <SectionTitle tag="FULL BACKTEST">Risk &amp; Quality</SectionTitle>
+                                <SectionTitle tag="METRICS">Risk &amp; Quality</SectionTitle>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 px-4 md:px-0">
                                     <MetricBox title="PROFIT FACTOR" value={`${Number(risk.profit_factor || 0).toFixed(2)}x`} sub="Gross won / lost" valueColor={Number(risk.profit_factor || 0) >= 1 ? '#00D4FF' : '#FF0055'} />
                                     <MetricBox title="EXPECTANCY / BET" value={formatCurrency(Number(risk.expectancy || 0), true)} sub="Avg profit per bet" valueColor={Number(risk.expectancy || 0) >= 0 ? '#00D4FF' : '#FF0055'} />
@@ -405,8 +407,34 @@ export default function PortfolioPage() {
                         {/* By Market */}
                         {markets.length > 0 && (
                             <div className="mb-8 relative z-10">
-                                <SectionTitle tag="FULL BACKTEST">Results by Market</SectionTitle>
-                                <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                                <SectionTitle tag="BREAKDOWN">Results by Market</SectionTitle>
+                                
+                                {/* Mobile view (Cards) */}
+                                <div className="grid grid-cols-1 md:hidden gap-4 px-4 md:px-0">
+                                    {markets.map((m: any) => (
+                                        <div key={m.market} className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-col gap-3 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                                            <div className="flex justify-between items-center border-b border-[#2a3a4a] pb-2">
+                                                <span className="font-bold text-[20px] text-slate-100">{marketLabel(m.market)}</span>
+                                                <span className="text-slate-400 font-semibold text-[16px]">{m.bets} Bets</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[18px]">
+                                                <span className="text-slate-400 font-semibold">Win Rate</span>
+                                                <span className="text-slate-200 font-bold">{winPct(m.wins, m.losses).toFixed(1)}%</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[18px]">
+                                                <span className="text-slate-400 font-semibold">P&amp;L</span>
+                                                <span className={`font-bold ${Number(m.pnl) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}>{formatCurrency(Number(m.pnl), true)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[18px]">
+                                                <span className="text-slate-400 font-semibold">ROI</span>
+                                                <span className={`font-bold ${Number(m.roi) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}>{formatPct(Number(m.roi), true)}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop view (Table) */}
+                                <div className="hidden md:block bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                                     <table className="w-full min-w-[460px] border-collapse text-left text-[22px]">
                                         <thead>
                                             <tr className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] capitalize tracking-widest text-[18px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
@@ -436,8 +464,39 @@ export default function PortfolioPage() {
                         {/* By Bet Score Tier */}
                         {grades.length > 0 && (
                             <div className="mb-8 relative z-10">
-                                <SectionTitle tag="FULL BACKTEST">Results by Bet Score Tier</SectionTitle>
-                                <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                                <SectionTitle tag="BREAKDOWN">Results by Bet Score Tier</SectionTitle>
+                                
+                                {/* Mobile view (Cards) */}
+                                <div className="grid grid-cols-1 md:hidden gap-4 px-4 md:px-0">
+                                    {grades.map((g: any) => {
+                                        const tc = tierColor(g.bet_tier);
+                                        return (
+                                            <div key={g.bet_tier} className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl p-4 flex flex-col gap-3 shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                                                <div className="flex justify-between items-center border-b border-[#2a3a4a] pb-2">
+                                                    <span className="py-1 px-2 rounded text-[16px] font-extrabold tracking-wide" style={{ color: tc.color, background: tc.bg, border: `1px solid ${tc.border}` }}>
+                                                        {g.bet_tier}
+                                                    </span>
+                                                    <span className="text-slate-400 font-semibold text-[16px]">{g.bets} Bets</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[18px]">
+                                                    <span className="text-slate-400 font-semibold">Win Rate</span>
+                                                    <span className="text-slate-200 font-bold">{winPct(g.wins, g.losses).toFixed(1)}%</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[18px]">
+                                                    <span className="text-slate-400 font-semibold">P&amp;L</span>
+                                                    <span className={`font-bold ${Number(g.pnl) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}>{formatCurrency(Number(g.pnl), true)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[18px]">
+                                                    <span className="text-slate-400 font-semibold">ROI</span>
+                                                    <span className={`font-bold ${Number(g.roi) >= 0 ? 'text-[#00D4FF]' : 'text-[#FF0055]'}`}>{formatPct(Number(g.roi), true)}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Desktop view (Table) */}
+                                <div className="hidden md:block bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                                     <table className="w-full min-w-[460px] border-collapse text-left text-[22px]">
                                         <thead>
                                             <tr className="border-b-[2px] border-[#3d4f5f] text-[#8b9bb4] bg-[#1a2332] capitalize tracking-widest text-[18px]" style={{ fontFamily: '"Rajdhani", sans-serif' }}>
@@ -474,7 +533,7 @@ export default function PortfolioPage() {
                         {/* Drawdown (underwater) */}
                         {equityDaily.length > 0 && (
                             <div className="mb-8 relative z-10">
-                                <SectionTitle tag="FULL BACKTEST">Drawdown</SectionTitle>
+                                <SectionTitle tag="METRICS">Drawdown</SectionTitle>
                                 <div className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 h-[260px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden" role="img" aria-label="Daily drawdown from peak bankroll (underwater chart)">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={equityDaily} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -515,7 +574,7 @@ export default function PortfolioPage() {
                         )}
 
                         <SectionTitle>
-                            Recent Simulated Bets <span className="text-slate-400 font-bold tracking-widest text-[18px]">(LAST 20)</span>
+                            Recent Bets <span className="text-slate-400 font-bold tracking-widest text-[18px]">(LAST 20)</span>
                         </SectionTitle>
 
                         <div className="w-full">
@@ -523,13 +582,13 @@ export default function PortfolioPage() {
                         </div>
 
                         {/* Methodology / disclaimer */}
-                        <div className="mt-8 bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-5 text-[21px] leading-relaxed text-slate-400 relative z-10">
+                        <div className="mt-8 bg-[#0d1117] border border-[#2a3a4a] rounded-xl p-5 text-[21px] leading-relaxed text-slate-400 relative z-10 mx-4 md:mx-0">
                             <div className="text-[17px] font-extrabold tracking-widest text-slate-500 capitalize mb-2">Methodology</div>
                             <p className="m-0">
-                                A virtual {formatCurrency(startBankroll)} bankroll is staked on every model-graded MLB pick using Kelly-fractional
-                                sizing. Results are simulated at the model&apos;s graded price across moneyline and totals markets
+                                A system {formatCurrency(startBankroll)} bankroll is staked on every model-graded MLB pick using Kelly-fractional
+                                sizing. Results are tracked at the model&apos;s graded price across moneyline and totals markets
                                 {dataWindow?.firstDay && dataWindow?.lastDay ? ` from ${fmtDay(dataWindow.firstDay)} to ${fmtDay(dataWindow.lastDay)}` : ''}.
-                                Past simulated performance does not guarantee future results. Analysis only — not betting advice.
+                                Past performance does not guarantee future results. Analysis only — not betting advice.
                             </p>
                         </div>
                     </>

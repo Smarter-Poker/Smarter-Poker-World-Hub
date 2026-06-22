@@ -349,7 +349,7 @@ export default function ModelIntelPage() {
 
   // ── Gate pass logic — all 4 thresholds required
   const isGatePassed =
-    gateKpi.n >= 300 &&
+    gateKpi.n >= 500 &&
     Number(gateKpi.clv) > 0 &&
     Number(gateKpi.roi) > -3.0 &&
     Number(gateKpi.brier) < 0.23;
