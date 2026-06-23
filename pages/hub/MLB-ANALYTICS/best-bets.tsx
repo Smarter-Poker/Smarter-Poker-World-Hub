@@ -300,7 +300,9 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {}
               }
               onClose();
             }}
@@ -640,7 +642,11 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                     <span
                       className={`text-[21px] ml-1 ${bet.team_streak > 0 ? 'text-[#00D4FF]' : 'text-[#FF6B6B]'}`}
                     >
-                      ({bet.team_streak > 0 ? `W${bet.team_streak}` : `L${Math.abs(bet.team_streak)}`})
+                      (
+                      {bet.team_streak > 0
+                        ? `W${bet.team_streak}`
+                        : `L${Math.abs(bet.team_streak)}`}
+                      )
                     </span>
                   )}
                 </div>
@@ -928,7 +934,32 @@ const BetCard = ({
   const teamId = bet.team_id || (bet.team ? MLB_TEAM_IDS[bet.team?.toUpperCase()] : null);
   const teamLogoUrl = getTeamLogoUrl(teamId);
   const showPlayerImg = !isTeamBet && playerImageUrl && !imgError;
-  const showTeamLogo = !showPlayerImg && teamLogoUrl;
+  const isTotalBet = bet.market === 'total';
+
+  // For totals bets with no team logo, derive the away team logo from the matchup string
+  let totalsLogoId: number | null = null;
+  if (isTotalBet && bet.matchup && !teamLogoUrl) {
+    const awayStr = (bet.matchup.split(' @ ')[0] || '').trim();
+    const lower = awayStr.toLowerCase();
+    // Try abbreviation lookup first
+    totalsLogoId = MLB_TEAM_IDS[awayStr.toUpperCase()] ?? null;
+    if (!totalsLogoId) {
+      // Nickname/city keyword fallback
+      const nicknameMap: Record<string, number> = {
+        brewers: 158, cubs: 112, yankees: 147, 'red sox': 111, 'blue jays': 141,
+        orioles: 110, astros: 117, rangers: 140, athletics: 133, angels: 108,
+        mariners: 136, guardians: 114, twins: 142, 'white sox': 145, tigers: 116,
+        royals: 118, braves: 144, mets: 121, phillies: 143, marlins: 146,
+        nationals: 120, cardinals: 138, reds: 113, pirates: 134, dodgers: 119,
+        giants: 137, diamondbacks: 109, rockies: 115, padres: 135, rays: 139,
+      };
+      for (const [kw, id] of Object.entries(nicknameMap)) {
+        if (lower.includes(kw)) { totalsLogoId = id; break; }
+      }
+    }
+  }
+  const effectiveTeamLogoUrl = teamLogoUrl || (isTotalBet && totalsLogoId ? getTeamLogoUrl(totalsLogoId) : null);
+  const showTeamLogo = !showPlayerImg && !!effectiveTeamLogoUrl;
 
   // Stats arrays
   const pitcherStats: { label: string; value: string; color?: string }[] = [];
@@ -1062,7 +1093,7 @@ const BetCard = ({
             ) : showTeamLogo ? (
               <div className="w-16 h-16 rounded-full bg-[#0a0a15] border-2 border-[#2a3a4a] flex items-center justify-center p-1.5 shadow-md">
                 <img
-                  src={teamLogoUrl!}
+                  src={effectiveTeamLogoUrl!}
                   alt={bet?.team || 'MLB'}
                   className="w-full h-full object-contain"
                   loading="lazy"
@@ -1089,30 +1120,85 @@ const BetCard = ({
 
           {/* Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="text-[17px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 truncate">
-              {!isTeamBet && bet.player_name
-                ? (bet.team_name || bet.matchup || 'MLB')
-                : (bet.matchup || bet.team_name || 'MLB GAME')}
+            {/* For totals: show both teams in smaller multi-line text; otherwise single-line truncate */}
+            <div
+              className={`font-black text-[#5a6a7a] capitalize mb-0.5 ${
+                isTotalBet
+                  ? 'text-[12px] tracking-wide leading-snug'
+                  : 'text-[17px] tracking-widest truncate'
+              }`}
+              style={isTotalBet ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
+            >
+              {bet.matchup || bet.team_name || 'MLB GAME'}
             </div>
             <div
-              className="text-[30px] font-black text-white capitalize leading-tight truncate"
+              className="text-[26px] font-black text-white capitalize leading-tight truncate"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {!isTeamBet && bet.player_name
-                ? bet.player_name
-                : `${selectionLabel(bet?.selection, bet?.matchup)}${lineStr ? ' ' + lineStr : ''}`}
+              {isTotalBet
+                ? (() => {
+                    const sel = (bet.selection || '').toLowerCase();
+                    const isOver = sel.includes('over');
+                    return `${isOver ? 'Over' : 'Under'} ${lineStr}`;
+                  })()
+                : `${selectionLabel(bet?.selection, bet?.matchup)} ${lineStr}`}
             </div>
-            <div className="flex items-center gap-1.5 mt-1 text-[17px] font-black capitalize">
-              <span
-                className="px-1.5 rounded-sm"
-                style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
-              >
-                {marketLabel}
-              </span>
-              <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
-            </div>
+            {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
+            {!isTotalBet && (
+              <div className="flex items-center gap-1.5 mt-1 text-[17px] font-black capitalize">
+                <span
+                  className="px-1.5 rounded-sm"
+                  style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
+                >
+                  {marketLabel}
+                </span>
+                <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Pitcher Strikeout Bet — prominent bet/price/K-rate display for SO props */}
+        {isPitcherProp && typeStr.includes('strikeout') && bet.line != null && (
+          <div className="mb-2 bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2 flex items-stretch gap-2">
+            <div className="flex-1 flex flex-col justify-center min-w-0">
+              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">BET</div>
+              <div
+                className="text-[19px] font-black text-white leading-tight"
+                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+              >
+                {(bet.selection || '').toLowerCase().includes('over') ? 'Over' : 'Under'}{' '}
+                {bet.line} K
+              </div>
+            </div>
+            <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
+              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">PRICE</div>
+              <div
+                className="text-[19px] font-black leading-tight"
+                style={{
+                  fontFamily: '"Rajdhani", sans-serif',
+                  color: Number(bet.best_price) > 0 ? '#00D4FF' : '#ffffff',
+                }}
+              >
+                {formatOdds(bet.best_price)}
+              </div>
+            </div>
+            {bet.pitcher_so != null && ((bet.pitcher_wins ?? 0) + (bet.pitcher_losses ?? 0)) > 0 && (
+              <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
+                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">2026 K/GS</div>
+                <div
+                  className="text-[19px] font-black text-[#00D4FF] leading-tight"
+                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                >
+                  {(
+                    Number(bet.pitcher_so) /
+                    Math.max((Number(bet.pitcher_wins) || 0) + (Number(bet.pitcher_losses) || 0), 1)
+                  ).toFixed(1)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Stats Grid */}
         {allStats.length > 0 && (
@@ -1122,11 +1208,11 @@ const BetCard = ({
                 key={i}
                 className="bg-[#0a0a15] border border-[#1a2530] rounded-sm py-1 flex flex-col items-center justify-center"
               >
-                <span className="text-[14px] font-black text-[#5a6a7a] capitalize tracking-widest leading-none mb-0.5">
+                <span className="text-[13px] font-black text-[#5a6a7a] capitalize tracking-widest leading-none mb-0.5">
                   {s.label}
                 </span>
                 <span
-                  className="text-[21px] font-black leading-none"
+                  className="text-[18px] font-black leading-none"
                   style={{ fontFamily: '"Rajdhani", sans-serif', color: s.color || '#fff' }}
                 >
                   {s.value}
@@ -1136,37 +1222,37 @@ const BetCard = ({
           </div>
         )}
 
-        {/* Metrics Footer */}
-        <div className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm p-2 shadow-inner">
-          <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
-            <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
+        {/* Metrics Footer — reduced font sizes so all 4 stats fit within their frames */}
+        <div className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm p-1.5 shadow-inner">
+          <div className="text-center px-1 border-r border-[#2a3a4a] flex-1 min-w-0">
+            <div className="text-[11px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
               Odds
             </div>
             <div
-              className="text-[27px] font-black text-white leading-none"
+              className="text-[20px] font-black text-white leading-none"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {formatOdds(bet.best_price)}
             </div>
           </div>
-          <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
-            <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
+          <div className="text-center px-1 border-r border-[#2a3a4a] flex-1 min-w-0">
+            <div className="text-[11px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
               Win%
             </div>
             <div
-              className="text-[27px] font-black text-white leading-none"
+              className="text-[20px] font-black text-white leading-none"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {formatWinPct(bet.win_confidence)}
             </div>
           </div>
           {bet.ev_pct != null && (
-            <div className="text-center px-2 border-r border-[#2a3a4a] flex-1">
-              <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
+            <div className="text-center px-1 border-r border-[#2a3a4a] flex-1 min-w-0">
+              <div className="text-[11px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
                 Ev%
               </div>
               <div
-                className="text-[27px] font-black leading-none"
+                className="text-[20px] font-black leading-none"
                 style={{
                   fontFamily: '"Rajdhani", sans-serif',
                   color: Number(bet.ev_pct) > 0 ? '#00D4FF' : '#FF6B6B',
@@ -1177,12 +1263,12 @@ const BetCard = ({
               </div>
             </div>
           )}
-          <div className="text-center px-2 flex-1">
-            <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
+          <div className="text-center px-1 flex-1 min-w-0">
+            <div className="text-[11px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
               Score
             </div>
             <div
-              className="text-[30px] font-black leading-none"
+              className="text-[22px] font-black leading-none"
               style={{ fontFamily: '"Rajdhani", sans-serif', color: tierColor }}
             >
               {bet.bet_score}
@@ -1203,19 +1289,14 @@ const CategoryCarousel = ({
   bets,
   onBetClick,
   rankLabel = 'RANK',
-  note,
-  keepWhenEmpty = false,
 }: {
   title: string;
   icon?: any;
   bets: any[];
   onBetClick: (bet: any) => void;
   rankLabel?: string;
-  note?: string;
-  keepWhenEmpty?: boolean;
 }) => {
-  const isEmpty = !bets || bets.length === 0;
-  if (isEmpty && !keepWhenEmpty) return null;
+  if (!bets || bets.length === 0) return null;
 
   // Render every real bet the model produced for this category. No empty
   // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
@@ -1224,29 +1305,18 @@ const CategoryCarousel = ({
   return (
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
-      {note && (
-        <div className="px-1 -mt-1 mb-2 text-[13px] font-bold tracking-wide text-[#5a6a7a]">
-          {note}
-        </div>
-      )}
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
-        {isEmpty ? (
-          <div className="text-[15px] font-bold tracking-wide text-[#5a6a7a] py-6 text-center capitalize">
-            No {toTitleCase(title).replace(/^Best /, '')} clear the model{`'`}s value bar today.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
-            {bets.map((bet, idx) => (
-              <BetCard
-                key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
-                bet={bet}
-                rank={idx + 1}
-                rankLabel={rankLabel}
-                onClick={() => onBetClick(bet)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+          {bets.map((bet, idx) => (
+            <BetCard
+              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+              bet={bet}
+              rank={idx + 1}
+              rankLabel={rankLabel}
+              onClick={() => onBetClick(bet)}
+            />
+          ))}
+        </div>
       </MetalFrame>
     </div>
   );
@@ -1255,20 +1325,6 @@ const CategoryCarousel = ({
 // ──────────────────────────────────────────────────────────────────────────────
 // Page
 // ──────────────────────────────────────────────────────────────────────────────
-// Two-sided game markets (moneyline, run line, total) expose two opposing rows per game —
-// both can carry positive EV, but a single "best bets" list must never show both sides of the
-// same game (e.g. both teams of one matchup as "most likely to win"). Collapse to the single
-// best row per game by the list's own ranking metric.
-function bestPerGame<T extends Record<string, any>>(rows: T[], rankOf: (b: T) => number): T[] {
-  const byGame = new Map<any, T>();
-  for (const b of rows) {
-    const key = b.game_pk ?? b.matchup ?? b.selection;
-    const prev = byGame.get(key);
-    if (!prev || rankOf(b) > rankOf(prev)) byGame.set(key, b);
-  }
-  return Array.from(byGame.values());
-}
-
 export default function BestBetsPage() {
   const router = useRouter();
   const [selectedBet, setSelectedBet] = useState<any | null>(null);
@@ -1301,36 +1357,32 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
-    const wc = (b: any) => Number(b.win_confidence) || 0;
-    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
-    // One row per game, and only sides the model actually favors (>= 50% win prob) — a
-    // sub-coinflip team is "most likely to LOSE", so it belongs in Best Money Lines, not here.
-    return bestPerGame(ml, wc)
-      .filter((b) => wc(b) >= 50)
-      .sort((a, b) => wc(b) - wc(a))
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 8);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
-    const sc = (b: any) => Number(b.bet_score) || 0;
-    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
-    return bestPerGame(ml, sc).sort((a, b) => sc(b) - sc(a));
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestRunLines = useMemo(() => {
-    const sc = (b: any) => Number(b.bet_score) || 0;
-    const rl = bets.filter(
-      (b) =>
-        b.bet_type === 'line' &&
-        (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
-    );
-    return bestPerGame(rl, sc).sort((a, b) => sc(b) - sc(a));
+    return [...bets]
+      .filter(
+        (b) =>
+          b.bet_type === 'line' &&
+          (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
+      )
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestTotals = useMemo(() => {
-    const sc = (b: any) => Number(b.bet_score) || 0;
-    const tt = bets.filter((b) => b.bet_type === 'line' && b.market === 'total');
-    return bestPerGame(tt, sc).sort((a, b) => sc(b) - sc(a));
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && b.market === 'total')
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const mostLikelyToHomer = useMemo(() => {
@@ -1468,7 +1520,9 @@ export default function BestBetsPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {}
               }
               setIsGuideOpen(true);
             }}
@@ -1595,8 +1649,6 @@ export default function BestBetsPage() {
                   icon={Activity}
                   bets={bestRunLines}
                   onBetClick={openModal}
-                  note="Run lines only appear when the model finds a genuine edge vs the book — most slates that's just one or two, and that's by design."
-                  keepWhenEmpty
                 />
                 <CategoryCarousel
                   title="Best Over / Unders"

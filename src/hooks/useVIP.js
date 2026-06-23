@@ -24,38 +24,40 @@ const VIP_CACHE_KEY = 'sp-vip-status';
  * @returns {{ isVip: boolean, user: object|null, userId: string|null, initializing: boolean }}
  */
 export default function useVIP() {
-    const { user, isVip: contextIsVip, initializing } = useAvatar();
+  const { user, isVip: contextIsVip, initializing } = useAvatar();
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Optimistic cache: while AvatarContext is initializing, use the
-    // last-known VIP status from localStorage to prevent false lockouts.
-    // Once AvatarContext finishes, its answer is authoritative and we
-    // update the cache for next time.
-    // ═══════════════════════════════════════════════════════════════════
-    let isVip = contextIsVip;
+  // ═══════════════════════════════════════════════════════════════════
+  // Optimistic cache: while AvatarContext is initializing, use the
+  // last-known VIP status from localStorage to prevent false lockouts.
+  // Once AvatarContext finishes, its answer is authoritative and we
+  // update the cache for next time.
+  // ═══════════════════════════════════════════════════════════════════
+  let isVip = contextIsVip;
 
-    if (initializing && typeof window !== 'undefined') {
-        // Use cached value while waiting for server verification
-        const cached = localStorage.getItem(VIP_CACHE_KEY);
-        if (cached === 'true') {
-            isVip = true;
-        }
+  if (initializing && typeof window !== 'undefined') {
+    // Use cached value while waiting for server verification
+    const cached = localStorage.getItem(VIP_CACHE_KEY);
+    if (cached === 'true') {
+      isVip = true;
     }
+  }
 
-    // Persist authoritative answer for optimistic rendering next load.
-    // Runs in an effect (not during render) so the hook stays a pure function of its inputs.
-    useEffect(() => {
-        if (!initializing && typeof window !== 'undefined') {
-            try {
-                localStorage.setItem(VIP_CACHE_KEY, String(contextIsVip));
-            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        }
-    }, [initializing, contextIsVip]);
+  // Persist authoritative answer for optimistic rendering next load.
+  // Runs in an effect (not during render) so the hook stays a pure function of its inputs.
+  useEffect(() => {
+    if (!initializing && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(VIP_CACHE_KEY, String(contextIsVip));
+      } catch (_) {
+        console.warn('[App] Handled exception:', _?.message || _);
+      }
+    }
+  }, [initializing, contextIsVip]);
 
-    return {
-        isVip,
-        user,
-        userId: user?.id || null,
-        initializing,
-    };
+  return {
+    isVip,
+    user,
+    userId: user?.id || null,
+    initializing,
+  };
 }

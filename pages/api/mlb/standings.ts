@@ -21,9 +21,7 @@ async function edgeHandler(req: Request) {
           'Content-Type': 'application/json',
           // Never cache an error/empty response — a transient outage must not get
           // pinned in the CDN for 5 minutes. Only cache genuine empty-but-OK results.
-          ...(cache
-            ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' }
-            : {}),
+          ...(cache ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } : {}),
         },
       }
     );

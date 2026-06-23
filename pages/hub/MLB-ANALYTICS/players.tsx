@@ -152,7 +152,8 @@ const fetcher = async (url: string) => {
 };
 
 // Compact stat formatters for the directory cards.
-const fmtAvg = (v?: number | null) => (v == null || isNaN(Number(v)) ? '—' : Number(v).toFixed(3).replace(/^0\./, '.'));
+const fmtAvg = (v?: number | null) =>
+  v == null || isNaN(Number(v)) ? '—' : Number(v).toFixed(3).replace(/^0\./, '.');
 const fmt2 = (v?: number | null) => (v == null ? '—' : Number(v).toFixed(2));
 const fmtInt = (v?: number | null) => (v == null ? '—' : String(Math.round(Number(v))));
 const fmtIp = (v?: number | null) => (v == null ? '—' : String(v));
@@ -211,105 +212,109 @@ const cardRole = (player: PlayerProfile, type: 'hitters' | 'pitchers'): string |
   return null;
 };
 
-const PlayerCard = React.memo(({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
-  const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
-  return (
-    <Link
-      href={`/hub/MLB-ANALYTICS/players/${player.player_id}`}
-      className="block mb-3 group"
-      style={{ textDecoration: 'none' }}
-    >
-      <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex items-center justify-between transition-all group-hover:border-[#00D4FF] group-hover:shadow-[0_0_15px_rgba(0,212,255,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] relative overflow-hidden">
-        {/* Neon strip effect */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3d4f5f] transition-all group-hover:bg-[#00D4FF] group-hover:shadow-[0_0_10px_rgba(0,212,255,0.8)]" />
+const PlayerCard = React.memo(
+  ({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
+    const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
+    return (
+      <Link
+        href={`/hub/MLB-ANALYTICS/players/${player.player_id}`}
+        className="block mb-3 group"
+        style={{ textDecoration: 'none' }}
+      >
+        <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex items-center justify-between transition-all group-hover:border-[#00D4FF] group-hover:shadow-[0_0_15px_rgba(0,212,255,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] relative overflow-hidden">
+          {/* Neon strip effect */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3d4f5f] transition-all group-hover:bg-[#00D4FF] group-hover:shadow-[0_0_10px_rgba(0,212,255,0.8)]" />
 
-        <div className="flex items-center gap-4 z-10 pl-2 flex-1 min-w-0">
-          <div className="relative w-14 h-14">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={headshotUrl}
-              onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
-              alt={player.full_name}
-              loading="lazy"
-              width={56}
-              height={56}
-              className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
-            />
-            {player.team_id && (
-              // eslint-disable-next-line @next/next/no-img-element
+          <div className="flex items-center gap-4 z-10 pl-2 flex-1 min-w-0">
+            <div className="relative w-14 h-14">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`}
-                alt="Team Logo"
+                src={headshotUrl}
+                onError={(e) => {
+                  e.currentTarget.src = '/default-avatar.png';
+                }}
+                alt={player.full_name}
                 loading="lazy"
-                width={24}
-                height={24}
-                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0d1117] rounded-full p-0.5 border border-[#3d4f5f] shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                width={56}
+                height={56}
+                className="w-14 h-14 rounded-full object-cover bg-[#0d1117] border-[2px] border-[#3d4f5f] group-hover:border-[#00D4FF] transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,212,255,0.2)]"
               />
-            )}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span
-              className="font-extrabold text-white text-[23px] tracking-wide truncate"
-              style={{
-                fontFamily: '"Rajdhani", sans-serif',
-                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-              }}
-            >
-              {player.full_name}
-            </span>
-            {cardRole(player, type) && (
+              {player.team_id && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`}
+                  alt="Team Logo"
+                  loading="lazy"
+                  width={24}
+                  height={24}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0d1117] rounded-full p-0.5 border border-[#3d4f5f] shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                />
+              )}
+            </div>
+            <div className="flex flex-col min-w-0">
               <span
-                className="inline-block w-fit mt-0.5 bg-[#00D4FF]/10 border border-[#00D4FF]/40 text-[#00D4FF] text-[11px] font-extrabold tracking-widest px-1.5 py-0.5 rounded"
-                style={{ fontFamily: '"Rajdhani", sans-serif' }}
-                title={type === 'pitchers' ? 'Pitching role' : 'Lineup role'}
+                className="font-extrabold text-white text-[23px] tracking-wide truncate"
+                style={{
+                  fontFamily: '"Rajdhani", sans-serif',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                }}
               >
-                {cardRole(player, type)}
-                {type !== 'pitchers' && player.position ? ` · ${player.position}` : ''}
+                {player.full_name}
               </span>
-            )}
-            {type === 'pitchers' ? (
-              <>
-                <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
-                  <CardStat label="ERA" value={fmt2(player.era)} lead />
-                  <CardStat label="W-L" value={`${fmtInt(player.w)}-${fmtInt(player.l)}`} lead />
-                  <CardStat label="K" value={fmtInt(player.k)} lead />
-                </div>
-                <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
-                  <CardStat label="WHIP" value={fmt2(player.whip)} />
-                  <CardStat label="IP" value={fmtIp(player.ip)} />
-                  <CardStat label="SV" value={fmtInt(player.sv)} />
-                  <CardStat label="FIP" value={fmt2(player.fip)} />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
-                  <CardStat label="AVG" value={fmtAvg(player.avg)} lead />
-                  <CardStat label="HR" value={fmtInt(player.hr)} lead />
-                  <CardStat label="RBI" value={fmtInt(player.rbi)} lead />
-                </div>
-                <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
-                  <CardStat label="OBP" value={fmtAvg(player.obp)} />
-                  <CardStat label="SLG" value={fmtAvg(player.slg)} />
-                  <CardStat label="OPS" value={fmtAvg(player.ops)} />
-                  <CardStat label="wRC+" value={fmtInt(player.wrc_plus)} />
-                </div>
-              </>
-            )}
+              {cardRole(player, type) && (
+                <span
+                  className="inline-block w-fit mt-0.5 bg-[#00D4FF]/10 border border-[#00D4FF]/40 text-[#00D4FF] text-[11px] font-extrabold tracking-widest px-1.5 py-0.5 rounded"
+                  style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  title={type === 'pitchers' ? 'Pitching role' : 'Lineup role'}
+                >
+                  {cardRole(player, type)}
+                  {type !== 'pitchers' && player.position ? ` · ${player.position}` : ''}
+                </span>
+              )}
+              {type === 'pitchers' ? (
+                <>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
+                    <CardStat label="ERA" value={fmt2(player.era)} lead />
+                    <CardStat label="W-L" value={`${fmtInt(player.w)}-${fmtInt(player.l)}`} lead />
+                    <CardStat label="K" value={fmtInt(player.k)} lead />
+                  </div>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
+                    <CardStat label="WHIP" value={fmt2(player.whip)} />
+                    <CardStat label="IP" value={fmtIp(player.ip)} />
+                    <CardStat label="SV" value={fmtInt(player.sv)} />
+                    <CardStat label="FIP" value={fmt2(player.fip)} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 flex-wrap">
+                    <CardStat label="AVG" value={fmtAvg(player.avg)} lead />
+                    <CardStat label="HR" value={fmtInt(player.hr)} lead />
+                    <CardStat label="RBI" value={fmtInt(player.rbi)} lead />
+                  </div>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
+                    <CardStat label="OBP" value={fmtAvg(player.obp)} />
+                    <CardStat label="SLG" value={fmtAvg(player.slg)} />
+                    <CardStat label="OPS" value={fmtAvg(player.ops)} />
+                    <CardStat label="wRC+" value={fmtInt(player.wrc_plus)} />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="w-8 h-8 rounded-full bg-[#1a2332] border border-[#3d4f5f] flex items-center justify-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)] z-10 group-hover:border-[#00D4FF] group-hover:bg-[#0d1117] transition-all">
+            <ChevronRight
+              size={16}
+              className="text-[#00D4FF]"
+              style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }}
+            />
           </div>
         </div>
-
-        <div className="w-8 h-8 rounded-full bg-[#1a2332] border border-[#3d4f5f] flex items-center justify-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)] z-10 group-hover:border-[#00D4FF] group-hover:bg-[#0d1117] transition-all">
-          <ChevronRight
-            size={16}
-            className="text-[#00D4FF]"
-            style={{ filter: 'drop-shadow(0 0 2px rgba(0,212,255,0.5))' }}
-          />
-        </div>
-      </div>
-    </Link>
-  );
-});
+      </Link>
+    );
+  }
+);
 
 // Helper: format streak as "W3" or "L2"
 function formatStreak(streak: number): { label: string; isWin: boolean } {
@@ -344,7 +349,9 @@ const TeamSelectorRow = React.memo(
       <button
         onClick={() => {
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            try { navigator.vibrate(15); } catch (e) {}
+            try {
+              navigator.vibrate(15);
+            } catch (e) {}
           }
           onSelect(teamId);
         }}
@@ -431,21 +438,34 @@ const StatPill = React.memo(({ label, value }: { label: string; value: string | 
 
 export default function PlayersPage() {
   const router = useRouter();
-  const { data: hittersData, error: hittersError, isLoading: hittersLoading } = useSWR('/api/mlb/hitters', fetcher, {
+  const {
+    data: hittersData,
+    error: hittersError,
+    isLoading: hittersLoading,
+  } = useSWR('/api/mlb/hitters', fetcher, {
     refreshInterval: 60000,
   });
 
-  const { data: pitchersData, error: pitchersError, isLoading: pitchersLoading } = useSWR('/api/mlb/pitchers', fetcher, {
+  const {
+    data: pitchersData,
+    error: pitchersError,
+    isLoading: pitchersLoading,
+  } = useSWR('/api/mlb/pitchers', fetcher, {
     refreshInterval: 60000,
   });
 
-  const { data: standingsData, isLoading: isStandingsLoading } = useSWR('/api/mlb/standings', fetcher, {
-    refreshInterval: 3600000, // 1 hour (matches CDN cache)
-  });
+  const { data: standingsData, isLoading: isStandingsLoading } = useSWR(
+    '/api/mlb/standings',
+    fetcher,
+    {
+      refreshInterval: 3600000, // 1 hour (matches CDN cache)
+    }
+  );
 
   const hitters = hittersData?.data || EMPTY_ARRAY;
   const pitchers = pitchersData?.data || EMPTY_ARRAY;
-  const fetchError = hittersError || pitchersError || hittersData?.fetchError || pitchersData?.fetchError;
+  const fetchError =
+    hittersError || pitchersError || hittersData?.fetchError || pitchersData?.fetchError;
   const error = hittersError || pitchersError;
   const isLoading = hittersLoading || pitchersLoading;
   const data = hittersData && pitchersData ? { hitters, pitchers } : undefined;
@@ -524,8 +544,10 @@ export default function PlayersPage() {
       // Rate stats need a minimum sample so a tiny-sample player (1 IP / 0.00 ERA, or
       // 3 AB / 1.000 AVG) doesn't top the leaderboard. Counting stats are self-qualifying.
       const RATE_QUALIFY: Record<string, { field: string; min: number }> = {
-        avg: { field: 'pa', min: 50 }, ops: { field: 'pa', min: 50 },
-        era: { field: 'ip', min: 20 }, whip: { field: 'ip', min: 20 },
+        avg: { field: 'pa', min: 50 },
+        ops: { field: 'pa', min: 50 },
+        era: { field: 'ip', min: 20 },
+        whip: { field: 'ip', min: 20 },
       };
       const q = RATE_QUALIFY[sortKey];
       const worst = asc ? Infinity : -Infinity;
@@ -670,7 +692,9 @@ export default function PlayersPage() {
               <button
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    try { navigator.vibrate(15); } catch (e) {}
+                    try {
+                      navigator.vibrate(15);
+                    } catch (e) {}
                   }
                   setSearchQuery('');
                   setSelectedTeam(null);
@@ -737,7 +761,9 @@ export default function PlayersPage() {
                 key={tab}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    try { navigator.vibrate(15); } catch (e) {}
+                    try {
+                      navigator.vibrate(15);
+                    } catch (e) {}
                   }
                   setActiveTab(tab);
                   setSortKey('default');
@@ -824,67 +850,67 @@ export default function PlayersPage() {
                   >
                     Select a Team
                   </p>
-                {Object.entries(MLB_STRUCTURE).map(([league, divisions]) => (
-                  <div key={league}>
-                    {/* League header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#3d4f5f]" />
-                      <span
-                        className="text-[#00D4FF] font-extrabold text-[17px] tracking-[0.2em] px-3 py-1 rounded-full border border-[#00D4FF]/30 bg-[#00D4FF]/5"
-                        style={{
-                          fontFamily: '"Rajdhani", sans-serif',
-                          textShadow: '0 0 8px rgba(0,212,255,0.5)',
-                        }}
-                      >
-                        {league}
-                      </span>
-                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#3d4f5f]" />
-                    </div>
+                  {Object.entries(MLB_STRUCTURE).map(([league, divisions]) => (
+                    <div key={league}>
+                      {/* League header */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#3d4f5f]" />
+                        <span
+                          className="text-[#00D4FF] font-extrabold text-[17px] tracking-[0.2em] px-3 py-1 rounded-full border border-[#00D4FF]/30 bg-[#00D4FF]/5"
+                          style={{
+                            fontFamily: '"Rajdhani", sans-serif',
+                            textShadow: '0 0 8px rgba(0,212,255,0.5)',
+                          }}
+                        >
+                          {league}
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#3d4f5f]" />
+                      </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-0">
-                      {Object.entries(divisions).map(([division, teamIds]) => {
-                        // Sort teams in this division by win pct (best first)
-                        const sortedIds = [...teamIds].sort((a, b) => {
-                          const sa = standingsMap.get(a);
-                          const sb = standingsMap.get(b);
-                          const pctA = sa?.pct ?? 0;
-                          const pctB = sb?.pct ?? 0;
-                          return pctB - pctA;
-                        });
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 md:px-0">
+                        {Object.entries(divisions).map(([division, teamIds]) => {
+                          // Sort teams in this division by win pct (best first)
+                          const sortedIds = [...teamIds].sort((a, b) => {
+                            const sa = standingsMap.get(a);
+                            const sb = standingsMap.get(b);
+                            const pctA = sa?.pct ?? 0;
+                            const pctB = sb?.pct ?? 0;
+                            return pctB - pctA;
+                          });
 
-                        return (
-                          <div
-                            key={division}
-                            className="bg-[#0d1117]/60 rounded-2xl border border-[#2a3a4a] p-3 backdrop-blur-sm"
-                          >
-                            {/* Division header */}
+                          return (
                             <div
-                              className="text-[13px] font-extrabold text-slate-500 tracking-[0.2em] mb-3 pl-2 border-b border-[#2a3a4a] pb-2"
-                              style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              key={division}
+                              className="bg-[#0d1117]/60 rounded-2xl border border-[#2a3a4a] p-3 backdrop-blur-sm"
                             >
-                              {division}
+                              {/* Division header */}
+                              <div
+                                className="text-[13px] font-extrabold text-slate-500 tracking-[0.2em] mb-3 pl-2 border-b border-[#2a3a4a] pb-2"
+                                style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                              >
+                                {division}
+                              </div>
+                              {/* Team rows */}
+                              <div className="divide-y divide-[#1e2d3d]">
+                                {sortedIds.map((teamId) => (
+                                  <TeamSelectorRow
+                                    key={teamId}
+                                    teamId={teamId}
+                                    standing={standingsMap.get(teamId)}
+                                    onSelect={setSelectedTeam}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                            {/* Team rows */}
-                            <div className="divide-y divide-[#1e2d3d]">
-                              {sortedIds.map((teamId) => (
-                                <TeamSelectorRow
-                                  key={teamId}
-                                  teamId={teamId}
-                                  standing={standingsMap.get(teamId)}
-                                  onSelect={setSelectedTeam}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="space-y-3">
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="space-y-3">
                 {/* Sort + position controls */}
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <label
@@ -955,7 +981,9 @@ export default function PlayersPage() {
                     <button
                       onClick={() => {
                         if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                          try { navigator.vibrate(15); } catch (e) {}
+                          try {
+                            navigator.vibrate(15);
+                          } catch (e) {}
                         }
                         setSelectedTeam(null);
                         setSearchQuery('');
@@ -982,7 +1010,9 @@ export default function PlayersPage() {
                         <button
                           onClick={() => {
                             if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                              try { navigator.vibrate(15); } catch (e) {}
+                              try {
+                                navigator.vibrate(15);
+                              } catch (e) {}
                             }
                             setVisibleCount((c) => c + 50);
                           }}
@@ -1010,7 +1040,9 @@ export default function PlayersPage() {
                     <button
                       onClick={() => {
                         if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                          try { navigator.vibrate(15); } catch (e) {}
+                          try {
+                            navigator.vibrate(15);
+                          } catch (e) {}
                         }
                         setSearchQuery('');
                         setSelectedTeam(null);

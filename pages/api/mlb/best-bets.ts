@@ -643,9 +643,9 @@ async function edgeHandler(req: Request) {
         console.error('[MLB Best Bets] Fallback error on pred_best_bets:', dateErr);
         return new Response(JSON.stringify({ error: `Database error: ${dateErr.message}` }), {
           status: 500,
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, max-age=0'
+            'Cache-Control': 'no-store, max-age=0',
           },
         });
       }
@@ -713,13 +713,15 @@ async function edgeHandler(req: Request) {
 
     // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
     // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.
-    let topLock = enrichedBets.length > 0
-      ? Math.max(...enrichedBets.map((b: any) => Number(b.win_confidence) || 0))
-      : (data?.stats?.topLock || 0);
+    let topLock =
+      enrichedBets.length > 0
+        ? Math.max(...enrichedBets.map((b: any) => Number(b.win_confidence) || 0))
+        : data?.stats?.topLock || 0;
     if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
-    const topScore = enrichedBets.length > 0
-      ? Math.max(...enrichedBets.map((b: any) => Number(b.bet_score) || 0))
-      : (data?.stats?.topScore || 0);
+    const topScore =
+      enrichedBets.length > 0
+        ? Math.max(...enrichedBets.map((b: any) => Number(b.bet_score) || 0))
+        : data?.stats?.topScore || 0;
 
     return new Response(
       JSON.stringify({
@@ -746,9 +748,9 @@ async function edgeHandler(req: Request) {
     console.error('Error fetching best bets API:', err);
     return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
       status: 500,
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, max-age=0'
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   }
