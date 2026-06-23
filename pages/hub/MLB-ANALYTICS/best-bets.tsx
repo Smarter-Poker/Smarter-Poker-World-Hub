@@ -1146,13 +1146,17 @@ const BetCard = ({
               }`}
               style={isTotalBet ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
             >
-              {bet.matchup || bet.team_name || 'MLB GAME'}
+              {!isTeamBet && bet.player_name
+                ? (bet.team_name || bet.matchup || 'MLB')
+                : (bet.matchup || bet.team_name || 'MLB GAME')}
             </div>
             <div
               className="text-[26px] font-black text-white capitalize leading-tight truncate"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {isTotalBet
+              {!isTeamBet && bet.player_name
+                ? bet.player_name
+                : isTotalBet
                 ? (() => {
                     const sel = (bet.selection || '').toLowerCase();
                     const isOver = sel.includes('over');
@@ -1306,34 +1310,46 @@ const CategoryCarousel = ({
   bets,
   onBetClick,
   rankLabel = 'RANK',
+  note,
+  keepWhenEmpty = false,
 }: {
   title: string;
   icon?: any;
   bets: any[];
   onBetClick: (bet: any) => void;
   rankLabel?: string;
+  note?: string;
+  keepWhenEmpty?: boolean;
 }) => {
-  if (!bets || bets.length === 0) return null;
+  const isEmpty = !bets || bets.length === 0;
+  if (isEmpty && !keepWhenEmpty) return null;
 
-  // Render every real bet the model produced for this category. No empty
-  // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
-  // rows, so a category with 1 bet shows 1 card and a category with 8 shows 8.
-  // The length===0 guard above is the only (graceful) empty state.
   return (
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
-      <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
-          {bets.map((bet, idx) => (
-            <BetCard
-              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
-              bet={bet}
-              rank={idx + 1}
-              rankLabel={rankLabel}
-              onClick={() => onBetClick(bet)}
-            />
-          ))}
+      {note && (
+        <div className="px-1 -mt-1 mb-2 text-[13px] font-bold tracking-wide text-[#5a6a7a]">
+          {note}
         </div>
+      )}
+      <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
+        {isEmpty ? (
+          <div className="text-[15px] font-bold tracking-wide text-[#5a6a7a] py-6 text-center capitalize">
+            No {toTitleCase(title).replace(/^Best /, '')} clear the model{`'`}s value bar today.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+            {bets.map((bet, idx) => (
+              <BetCard
+                key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+                bet={bet}
+                rank={idx + 1}
+                rankLabel={rankLabel}
+                onClick={() => onBetClick(bet)}
+              />
+            ))}
+          </div>
+        )}
       </MetalFrame>
     </div>
   );
@@ -1374,32 +1390,35 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+    const wc = (b: any) => Number(b.win_confidence) || 0;
+    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
+    // One row per game, and only sides the model actually favors (>= 50% win prob).
+    return bestPerKey(ml, (b) => String(b.game_pk), wc)
+      .filter((b) => wc(b) >= 50)
+      .sort((a, b) => wc(b) - wc(a))
       .slice(0, 8);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const r = (b: any) => Number(b.bet_score) || 0;
+    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
+    return bestPerKey(ml, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
   }, [bets]);
 
   const bestRunLines = useMemo(() => {
-    return [...bets]
-      .filter(
-        (b) =>
-          b.bet_type === 'line' &&
-          (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
-      )
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const r = (b: any) => Number(b.bet_score) || 0;
+    const rl = bets.filter(
+      (b) =>
+        b.bet_type === 'line' &&
+        (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
+    );
+    return bestPerKey(rl, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
   }, [bets]);
 
   const bestTotals = useMemo(() => {
-    return [...bets]
-      .filter((b) => b.bet_type === 'line' && b.market === 'total')
-      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const r = (b: any) => Number(b.bet_score) || 0;
+    const tt = bets.filter((b) => b.bet_type === 'line' && b.market === 'total');
+    return bestPerKey(tt, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
   }, [bets]);
 
   const sc = (b: any) => Number(b.bet_score) || 0;
@@ -1681,6 +1700,8 @@ export default function BestBetsPage() {
                   icon={Activity}
                   bets={bestRunLines}
                   onBetClick={openModal}
+                  note="Run lines only appear when the model finds a genuine edge vs the book — most slates that's just one or two, and that's by design."
+                  keepWhenEmpty
                 />
                 <CategoryCarousel
                   title="Best Over / Unders"
