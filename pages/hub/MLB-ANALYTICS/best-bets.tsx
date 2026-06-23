@@ -163,7 +163,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[1];
     }
-    const suffix = s.replace(/^home_?/, '');
+    let suffix = s.replace(/^home_?/, '');
+    suffix = suffix.replace(/^over_?/, 'Over ').replace(/^under_?/, 'Under ').replace(/_/g, ' ').trim();
     return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
   if (s === 'away' || s.startsWith('away_')) {
@@ -172,7 +173,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[0];
     }
-    const suffix = s.replace(/^away_?/, '');
+    let suffix = s.replace(/^away_?/, '');
+    suffix = suffix.replace(/^over_?/, 'Over ').replace(/^under_?/, 'Under ').replace(/_/g, ' ').trim();
     return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
 
@@ -183,6 +185,18 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
     return toTitleCase(`Under ${s.replace(/^under_?/, '')}`) + matchupScope;
 
   return toTitleCase(selection.replace(/_/g, ' '));
+};
+
+// Collapse two-sided / multi-side game markets to the single best row per key so a list never
+// shows both sides of the same bet (e.g. a team's Over and Under, or both F5 moneyline sides).
+const bestPerKey = (rows: any[], keyFn: (b: any) => string, rankFn: (b: any) => number): any[] => {
+  const m = new Map<string, any>();
+  for (const b of rows) {
+    const k = keyFn(b);
+    const prev = m.get(k);
+    if (!prev || rankFn(b) > rankFn(prev)) m.set(k, b);
+  }
+  return Array.from(m.values());
 };
 
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
@@ -913,7 +927,10 @@ const BetCard = ({
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   let marketLabel = 'ML';
-  if (typeStr.includes('total')) marketLabel = 'TOT';
+  if (typeStr.includes('f5_moneyline')) marketLabel = 'F5 ML';
+  else if (typeStr.includes('f5_total')) marketLabel = 'F5 O/U';
+  else if (typeStr.includes('team_total')) marketLabel = 'TEAM';
+  else if (typeStr.includes('total')) marketLabel = 'TOT';
   else if (
     typeStr.includes('run_line') ||
     typeStr.includes('runline') ||
@@ -1385,6 +1402,21 @@ export default function BestBetsPage() {
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
+  const sc = (b: any) => Number(b.bet_score) || 0;
+  const bestF5Moneyline = useMemo(() => {
+    const rows = bets.filter((b) => b.market === 'f5_moneyline');
+    return bestPerKey(rows, (b) => String(b.game_pk), sc).sort((a, b) => sc(b) - sc(a));
+  }, [bets]);
+  const bestF5Totals = useMemo(() => {
+    const rows = bets.filter((b) => b.market === 'f5_total');
+    return bestPerKey(rows, (b) => String(b.game_pk), sc).sort((a, b) => sc(b) - sc(a));
+  }, [bets]);
+  const bestTeamTotals = useMemo(() => {
+    const rows = bets.filter((b) => b.market === 'team_total');
+    return bestPerKey(rows, (b) => `${b.game_pk}|${String(b.selection || '').startsWith('away') ? 'a' : 'h'}`, sc)
+      .sort((a, b) => sc(b) - sc(a));
+  }, [bets]);
+
   const mostLikelyToHomer = useMemo(() => {
     return [...bets]
       .filter((b) => {
@@ -1654,6 +1686,24 @@ export default function BestBetsPage() {
                   title="Best Over / Unders"
                   icon={TrendingUp}
                   bets={bestTotals}
+                  onBetClick={openModal}
+                />
+                <CategoryCarousel
+                  title="First 5 Innings - Moneyline"
+                  icon={Target}
+                  bets={bestF5Moneyline}
+                  onBetClick={openModal}
+                />
+                <CategoryCarousel
+                  title="First 5 Innings - Over / Unders"
+                  icon={TrendingUp}
+                  bets={bestF5Totals}
+                  onBetClick={openModal}
+                />
+                <CategoryCarousel
+                  title="Team Totals"
+                  icon={Activity}
+                  bets={bestTeamTotals}
                   onBetClick={openModal}
                 />
                 <CategoryCarousel
