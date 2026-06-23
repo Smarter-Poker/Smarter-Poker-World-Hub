@@ -1173,7 +1173,11 @@ const BetCard = ({
                 >
                   {marketLabel}
                 </span>
-                <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
+                <span className="text-[#3d4f5f] truncate">
+                  {isPlayerProp && bet.line != null
+                    ? `${(bet.selection || '').toLowerCase().startsWith('under') ? 'Under' : 'Over'} ${bet.line} ${(bet.market || '').replace(/_/g, ' ')}`
+                    : bet.market?.replace(/_/g, ' ')}
+                </span>
               </div>
             )}
           </div>
@@ -1394,7 +1398,7 @@ export default function BestBetsPage() {
     const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
     // One row per game, and only sides the model actually favors (>= 50% win prob).
     return bestPerKey(ml, (b) => String(b.game_pk), wc)
-      .filter((b) => wc(b) >= 50)
+      .filter((b) => wc(b) >= 50 && (Number(b.bet_score) || 0) >= 52)
       .sort((a, b) => wc(b) - wc(a))
       .slice(0, 8);
   }, [bets]);
@@ -1688,6 +1692,7 @@ export default function BestBetsPage() {
                   icon={Target}
                   bets={mostLikelyToWin}
                   onBetClick={openModal}
+                  note="Ranked by the model's win probability (likeliest to win), among its real plays — not by value Score. For value ranking, see Best Money Lines."
                 />
                 <CategoryCarousel
                   title="Best Money Lines"
@@ -1732,6 +1737,8 @@ export default function BestBetsPage() {
                   icon={Zap}
                   bets={mostLikelyToHomer}
                   onBetClick={openModal}
+                  note="Home-run props with a genuine model edge. HR is high-variance and books juice it hard, so most slates surface only one or two."
+                  keepWhenEmpty
                 />
 
                 {topPropsByMarket.map((group, idx) => (
