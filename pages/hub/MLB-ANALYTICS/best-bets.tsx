@@ -1280,10 +1280,10 @@ const BetCard = ({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            {/* For totals: show both teams in smaller multi-line text; otherwise single-line truncate */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center overflow-visible">
+            {/* Ensure one-line display for matchups per requirements */}
             <div
-              className="font-black text-[#5a6a7a] uppercase mb-0.5 text-[17px] tracking-widest truncate"
+              className="font-black text-[#5a6a7a] uppercase mb-0.5 text-[11px] sm:text-[13px] md:text-[15px] lg:text-[17px] tracking-widest whitespace-nowrap"
             >
               {formatMatchup(bet.matchup) || stripCity(bet.team_name) || 'MLB GAME'}
             </div>
@@ -1292,7 +1292,7 @@ const BetCard = ({
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {`Bet The ${marketLabel}`}
-              <div className="text-[24px] font-black mt-1 truncate" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
+              <div className="text-[18px] sm:text-[20px] md:text-[24px] font-black mt-1 whitespace-nowrap overflow-visible" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
                 {(() => {
                   let target = '';
                   if (bet.player_name) {

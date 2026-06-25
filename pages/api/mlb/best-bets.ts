@@ -459,15 +459,22 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       if (enriched.team_id) enriched.team_name = TEAM_ID_TO_NAME[enriched.team_id as number];
 
       let actualTeamName = bet.team_name || bet.team || bet.selection;
-      if (bet.matchup) {
+      if (!enriched.matchup && tgSlate) {
+        const homeName = TEAM_ID_TO_NAME[tgSlate.home_team_id];
+        const awayName = TEAM_ID_TO_NAME[tgSlate.away_team_id];
+        if (homeName && awayName) {
+          enriched.matchup = `${awayName} @ ${homeName}`;
+        }
+      }
+      if (enriched.matchup) {
         const selLow = bet.selection?.toLowerCase() || '';
         if (selLow === 'home' || selLow.startsWith('home_')) {
-          const parts = bet.matchup.split(' @ ');
+          const parts = enriched.matchup.split(' @ ');
           if (parts.length === 2) {
             actualTeamName = parts[1];
           }
         } else if (selLow === 'away' || selLow.startsWith('away_')) {
-          const parts = bet.matchup.split(' @ ');
+          const parts = enriched.matchup.split(' @ ');
           if (parts.length === 2) {
             actualTeamName = parts[0];
           }
@@ -497,8 +504,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
     }
 
+    if (enriched.win_confidence == null && bet.model_prob != null) {
+      enriched.win_confidence = Number(bet.model_prob) * 100;
+    }
     
-    
+
     let pitcherToEvaluateId: number | null = null;
     let opposingPitcherToEvaluateId: number | null = null;
 
@@ -703,41 +713,51 @@ async function edgeHandler(req: Request) {
       let topTotals: any[] = [];
       let topHomers: any[] = [];
       
+      const startIso = new Date(`${officialDate}T00:00:00.000Z`).toISOString();
+      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
+
       const { data: rawTopML } = await mlbDb
-        .from('pred_mlb_predictions')
+        .from('pred_market_output')
         .select('*')
-        .eq('official_date', officialDate)
-        .in('market', ['moneyline', 'h2h'])
-        .order('model_prob', { ascending: false })
-        .limit(10);
-      if (rawTopML && rawTopML.length > 0) topMoneylines = await enrichBets(rawTopML, mlbDb);
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('market', ['moneyline', 'h2h']);
+      if (rawTopML && rawTopML.length > 0) {
+        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        topMoneylines = await enrichBets(dedupedML, mlbDb);
+      }
 
       const { data: rawTopRL } = await mlbDb
-        .from('pred_mlb_predictions')
+        .from('pred_market_output')
         .select('*')
-        .eq('official_date', officialDate)
-        .in('market', ['run_line', 'spread'])
-        .order('edge_pts', { ascending: false })
-        .limit(10);
-      if (rawTopRL && rawTopRL.length > 0) topRunlines = await enrichBets(rawTopRL, mlbDb);
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('market', ['run_line', 'spread']);
+      if (rawTopRL && rawTopRL.length > 0) {
+        const dedupedRL = dedupeLatestBets(rawTopRL).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+        topRunlines = await enrichBets(dedupedRL, mlbDb);
+      }
 
       const { data: rawTopTot } = await mlbDb
-        .from('pred_mlb_predictions')
+        .from('pred_market_output')
         .select('*')
-        .eq('official_date', officialDate)
-        .eq('market', 'total')
-        .order('edge_pts', { ascending: false })
-        .limit(10);
-      if (rawTopTot && rawTopTot.length > 0) topTotals = await enrichBets(rawTopTot, mlbDb);
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .eq('market', 'total');
+      if (rawTopTot && rawTopTot.length > 0) {
+        const dedupedTot = dedupeLatestBets(rawTopTot).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+        topTotals = await enrichBets(dedupedTot, mlbDb);
+      }
 
       const { data: rawTopHR } = await mlbDb
-        .from('pred_mlb_predictions')
+        .from('pred_props')
         .select('*')
-        .eq('official_date', officialDate)
-        .in('market', ['home_run', 'hr'])
-        .order('win_confidence', { ascending: false })
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('prop', ['home_run', 'hr', 'hrr'])
+        .order('edge_pts', { ascending: false })
         .limit(10);
-      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR, mlbDb);
+      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
 
       return new Response(
         JSON.stringify({
@@ -767,14 +787,18 @@ async function edgeHandler(req: Request) {
     // Fetch missing categories to guarantee minimum 3 for UI carousels
     let topMoneylines: any[] = [];
     if (data?.officialDate) {
+      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
+      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
       const { data: rawTopML } = await mlbDb
-        .from('pred_mlb_predictions')
+        .from('pred_market_output')
         .select('*')
-        .eq('official_date', data.officialDate)
-        .in('market', ['moneyline', 'h2h'])
-        .order('model_prob', { ascending: false })
-        .limit(10);
-      if (rawTopML && rawTopML.length > 0) topMoneylines = await enrichBets(rawTopML, mlbDb);
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('market', ['moneyline', 'h2h']);
+      if (rawTopML && rawTopML.length > 0) {
+        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        topMoneylines = await enrichBets(dedupedML, mlbDb);
+      }
     }
 
     // --- ZERO-BIAS CATEGORY FILLER ---
@@ -783,24 +807,28 @@ async function edgeHandler(req: Request) {
       const neededMarkets = [
         { market: 'run_line', bet_type: 'line' },
         { market: 'total', bet_type: 'game' },
-        { market: 'first_5_moneyline', bet_type: 'game' },
+        { market: 'f5_moneyline', bet_type: 'game' },
         { market: 'first_5_run_line', bet_type: 'line' },
-        { market: 'first_5_total', bet_type: 'game' },
+        { market: 'f5_total', bet_type: 'game' },
         { market: 'first_5_team_total', bet_type: 'team_total' },
         { market: 'team_total', bet_type: 'team_total' }
       ];
+      
+      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
+      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
+      
       for (const mkt of neededMarkets) {
         const count = enrichedBets.filter((b: any) => b.market === mkt.market).length;
         if (count < 3) {
           const { data: fallback } = await mlbDb
-            .from('pred_mlb_predictions')
+            .from('pred_market_output')
             .select('*')
-            .eq('official_date', data.officialDate)
-            .eq('market', mkt.market)
-            .order('edge_pts', { ascending: false, nullsFirst: false })
-            .limit(10);
-          if (fallback) {
-            const mapped = fallback.map(f => ({ ...f, bet_type: mkt.bet_type }));
+            .gte('as_of_ts', startIso)
+            .lt('as_of_ts', endIso)
+            .eq('market', mkt.market);
+          if (fallback && fallback.length > 0) {
+            const dedupedFallback = dedupeLatestBets(fallback).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+            const mapped = dedupedFallback.map(f => ({ ...f, bet_type: mkt.bet_type }));
             extraBets = extraBets.concat(mapped);
           }
         }
