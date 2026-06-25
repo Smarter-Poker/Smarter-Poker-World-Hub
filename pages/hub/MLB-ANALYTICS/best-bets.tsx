@@ -197,9 +197,9 @@ const stripCity = (fullName) => {
 const formatMatchup = (matchup) => {
   if (!matchup) return '';
   if (matchup.includes(' @ ')) {
-    return matchup.split(' @ ').map(p => stripCity(p.trim())).join(' @ ');
+    return matchup.split(' @ ').map(p => stripCity(p.trim()).toUpperCase()).join(' @ ');
   }
-  return stripCity(matchup);
+  return stripCity(matchup).toUpperCase();
 };
 
 const formatWinPct = (wc: any) => {
