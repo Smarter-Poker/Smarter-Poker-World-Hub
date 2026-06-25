@@ -334,7 +334,7 @@ export default function ModelIntelPage() {
 
   // ── Single SWR fetch — includes gate + tableData + history + markets + betTypes
   const { data, error, isLoading, isValidating, mutate } = useSWR(isVip ? '/api/mlb/model-intel' : null, fetcher, {
-    refreshInterval: 1_800_000, // 30 min — data changes at most once per day
+    refreshInterval: 300000, // 30 min — data changes at most once per day
     revalidateOnFocus: false,
     keepPreviousData: true,
   });

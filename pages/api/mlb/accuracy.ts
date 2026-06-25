@@ -12,9 +12,9 @@ interface MarketRow {
 
 interface Kpi {
   n: number;
-  clv: string;
-  roi: string;
-  brier: string;
+  clv: number;
+  roi: number;
+  brier: number;
 }
 
 async function edgeHandler(req: Request) {
@@ -29,7 +29,7 @@ async function edgeHandler(req: Request) {
     const mlbDb = getMlbSupabase();
 
     let tableData: MarketRow[] = [];
-    let kpi: Kpi = { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' };
+    let kpi: Kpi = { n: 0, clv: 0, roi: 0, brier: 0 };
 
     // PRIMARY: per-market-per-date rows from the summary view. We return the raw
     // per-market breakdown so the client can filter by market category and aggregate
@@ -85,87 +85,12 @@ async function edgeHandler(req: Request) {
 
       kpi = {
         n: totalN,
-        brier: brierWeight > 0 ? (brierNum / brierWeight).toFixed(3) : '0.000',
-        clv: clvWeight > 0 ? (clvNum / clvWeight).toFixed(2) : '0.00',
-        roi: totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0',
+        brier: brierWeight > 0 ? (brierNum / brierWeight) : 0,
+        clv: clvWeight > 0 ? (clvNum / clvWeight) : 0,
+        roi: totalBets > 0 ? ((totalProfit / totalBets) * 100) : 0,
       };
-    } else {
-      // FALLBACK: aggregate raw sim_bets (only if the view is empty/unavailable).
-      // Each sim_bets row is one placed bet; unit_profit is already stake-normalized
-      // to units, so bet_count == row count keeps ROI math identical to the view.
-      if (sumErr) {
-        console.warn(
-          '[API/MLB/Accuracy] v_backtest_summary unavailable, falling back to sim_bets:',
-          sumErr.message
-        );
-      }
-      const { count, error: countErr } = await mlbDb
-        .from('sim_bets')
-        .select('*', { count: 'exact', head: true });
-
-      if (!countErr && count) {
-        const limit = 1000;
-        const numPages = Math.ceil(count / limit);
-        let rows: any[] = [];
-
-        for (let i = 0; i < numPages; i += 5) {
-          const promises: any[] = [];
-          for (let j = 0; j < 5 && i + j < numPages; j++) {
-            const offset = (i + j) * limit;
-            promises.push(
-              mlbDb
-                .from('sim_bets')
-                .select('as_of_ts, market, unit_profit')
-                .range(offset, offset + limit - 1)
-            );
-          }
-          const results = (await Promise.all(promises)) as any[];
-          for (const r of results) {
-            if (r.error) throw r.error;
-            if (r.data) rows = rows.concat(r.data);
-          }
-        }
-
-        const groups: Record<string, MarketRow> = {};
-        let totalProfit = 0,
-          totalBets = 0;
-
-        for (const row of rows) {
-          if (row.unit_profit == null) continue;
-          const date = row.as_of_ts ? String(row.as_of_ts).split('T')[0] : 'unknown';
-          const market = String(row.market || 'unknown').toLowerCase();
-          const key = `${date}_${market}`;
-          if (!groups[key]) {
-            groups[key] = {
-              date,
-              market,
-              n: 0,
-              brier: null,
-              avg_clv: null,
-              sum_unit_profit: 0,
-              bet_count: 0,
-            };
-          }
-          const g = groups[key];
-          const profit = Number(row.unit_profit) || 0;
-          g.n += 1;
-          g.bet_count += 1;
-          g.sum_unit_profit += profit;
-          totalProfit += profit;
-          totalBets += 1;
-        }
-
-        tableData = Object.values(groups).sort((a, b) =>
-          String(b.date).localeCompare(String(a.date))
-        );
-        kpi = {
-          n: totalBets,
-          clv: '0.00',
-          brier: '0.000',
-          roi: totalBets > 0 ? ((totalProfit / totalBets) * 100).toFixed(1) : '0.0',
-        };
-      }
     }
+    // Removed fallback stub
 
     return new Response(
       JSON.stringify({
@@ -176,7 +101,7 @@ async function edgeHandler(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       }
     );

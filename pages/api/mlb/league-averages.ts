@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('[MLB League Averages] rpc error:', error);
       return res.status(200).json({ hitter: {}, pitcher: {} });
     }
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json(data || { hitter: {}, pitcher: {} });
   } catch (err) {
     console.error('[MLB League Averages] error:', err);

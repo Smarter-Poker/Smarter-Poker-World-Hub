@@ -90,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 : null;
 
         // Set cache headers: short cache (60s) with stale-while-revalidate
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
         return res.status(200).json({
             todayStr: slateDate,

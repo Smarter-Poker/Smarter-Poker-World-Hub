@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .maybeSingle();
     if (latestErr) throw latestErr;
     if (!latestRow?.as_of_ts) {
-      res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       return res.status(200).json({ as_of: null, leaders: [] });
     }
     const asOf = latestRow.as_of_ts;
@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       game_pk: r.game_pk ?? null,
     }));
 
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json({ as_of: asOf, leaders });
   } catch (err: any) {
     console.error('[hr-today] error:', err?.message || err);

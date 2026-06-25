@@ -329,7 +329,7 @@ export default function PlayerProfilePage() {
     revalidateOnFocus: false,
   });
   const { data: leagueData } = useSWR('/api/mlb/league-averages', fetcher, {
-    refreshInterval: 3600000,
+    refreshInterval: 300000,
     revalidateOnFocus: false,
   });
 

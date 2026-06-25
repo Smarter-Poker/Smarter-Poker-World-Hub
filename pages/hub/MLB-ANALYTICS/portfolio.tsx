@@ -209,7 +209,7 @@ export default function PortfolioPage() {
   const apiUrl = `/api/mlb/portfolio-full?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
   const { data, error, isLoading, isValidating } = useSWR(user ? apiUrl : null, fetcher, {
-    refreshInterval: 7200000, // 2 hours — portfolio stats update nightly
+    refreshInterval: 300000, // 2 hours — portfolio stats update nightly
     dedupingInterval: 60000,
     keepPreviousData: true,
     revalidateOnFocus: false,

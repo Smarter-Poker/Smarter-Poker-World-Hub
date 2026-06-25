@@ -38,7 +38,7 @@ async function edgeHandler(req: Request) {
             console.warn('[API/MLB/Tracker] Error fetching games from raw_games:', error.message);
             return new Response(JSON.stringify({ games: [] }), {
                 status: 200,
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' }
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
             });
         }
 
@@ -57,7 +57,7 @@ async function edgeHandler(req: Request) {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120'
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
             }
         });
     } catch (err) {

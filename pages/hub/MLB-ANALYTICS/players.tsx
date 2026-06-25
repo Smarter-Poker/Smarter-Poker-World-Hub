@@ -464,7 +464,7 @@ export default function PlayersPage() {
     '/api/mlb/standings',
     fetcher,
     {
-      refreshInterval: 3600000, // 1 hour (matches CDN cache)
+      refreshInterval: 300000, // 1 hour (matches CDN cache)
     }
   );
 

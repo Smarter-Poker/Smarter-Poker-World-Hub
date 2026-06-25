@@ -22,6 +22,18 @@ function getSupabase() {
   return _sb;
 }
 
+async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+  let all: any[] = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = data || [];
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
 const RESULTS = ['pending', 'hit', 'miss', 'push'];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -40,23 +52,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === 'GET') {
-      let q = sb
+      let q = () => sb
         .from('mlb_hr_bets')
         .select('*')
         .eq('user_id', userId)
         .order('bet_date', { ascending: false })
         .order('created_at', { ascending: false });
       const pid = req.query.player_id ? parseInt(String(req.query.player_id), 10) : null;
-      if (pid != null && !Number.isNaN(pid)) q = q.eq('player_id', pid);
-      const { data, error } = await q;
-      if (error) throw error;
+      if (pid != null && !Number.isNaN(pid)) {
+        const baseQ = q;
+        q = () => baseQ().eq('player_id', pid);
+      }
+      const data = await fetchAllRows(q);
       return res.status(200).json({ bets: data || [] });
     }
 
     if (req.method === 'POST') {
       const b = req.body || {};
       const player_id = parseInt(String(b.player_id), 10);
-      const stake = Math.round(Number(b.stake) * 100) / 100; // 2dp to match numeric(10,2)
+      const stake = Number(b.stake); // 2dp to match numeric(10,2)
       const american_odds = parseInt(String(b.american_odds), 10);
       if (Number.isNaN(player_id)) return res.status(400).json({ error: 'player_id required' });
       if (Number.isNaN(stake) || stake < 0 || stake > 99999999.99)
@@ -101,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         patch.result = b.result;
       }
       if (b.stake !== undefined) {
-        const s = Math.round(Number(b.stake) * 100) / 100;
+        const s = Number(b.stake);
         if (Number.isNaN(s) || s < 0 || s > 99999999.99)
           return res.status(400).json({ error: 'invalid stake' });
         patch.stake = s;

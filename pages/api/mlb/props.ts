@@ -71,8 +71,8 @@ function inferSide(
 function fairAmericanFromProb(prob: number | null): number | null {
   if (prob == null || prob <= 0 || prob >= 1) return null;
   return prob > 0.5
-    ? Math.round((-100 * prob) / (1 - prob))
-    : Math.round((100 * (1 - prob)) / prob);
+    ? ((-100 * prob) / (1 - prob))
+    : ((100 * (1 - prob)) / prob);
 }
 
 export default async function edgeHandler(req: Request) {
@@ -255,11 +255,11 @@ export default async function edgeHandler(req: Request) {
         let k_per_ip: number | null = null;
         let k_per_g: number | null = null;
         if (row.so != null && row.ip != null && Number(row.ip) > 0) {
-          k_per_ip = Number((Number(row.so) / Number(row.ip)).toFixed(2));
+          k_per_ip = (Number(row.so) / Number(row.ip));
         }
         const gCount = Number(row.gs) > 0 ? Number(row.gs) : Number(row.g);
         if (row.so != null && gCount > 0) {
-          k_per_g = Number((Number(row.so) / gCount).toFixed(2));
+          k_per_g = (Number(row.so) / gCount);
         }
 
         aggPitcherMap.set(row.pitcher_id, {
@@ -615,7 +615,7 @@ export default async function edgeHandler(req: Request) {
       wins: bets.filter((p) => p?.result === 'win').length,
       losses: bets.filter((p) => p?.result === 'loss').length,
       voided: mappedProps.filter((p) => p?.was_bet && p?.result === 'void').length,
-      units: Math.round(bets.reduce((s, p) => s + (p?.pnl ?? 0), 0) * 100) / 100,
+      units: bets.reduce((s, p) => s + (p?.pnl ?? 0), 0),
     };
 
     return new Response(

@@ -38,8 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const gCount = Number(p.gs) > 0 ? Number(p.gs) : Number(p.g || 0);
       return {
         ...p,
-        k_per_ip: ip > 0 ? Number((so / ip).toFixed(2)) : null,
-        k_per_g: gCount > 0 ? Number((so / gCount).toFixed(2)) : null
+        k_per_ip: ip > 0 ? (so / ip) : null,
+        k_per_g: gCount > 0 ? (so / gCount) : null
       };
     }) : [];
 

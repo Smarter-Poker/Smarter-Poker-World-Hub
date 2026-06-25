@@ -1,6 +1,4 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
-import { tier } from '../../../src/lib/betScore';
-
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {
   108: 'Los Angeles Angels',
@@ -603,12 +601,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
     }
 
-    if (
-      typeof enriched.best_book === 'string' &&
-      enriched.best_book.toUpperCase() === 'MODEL ONLY'
-    ) {
-      enriched.best_book = 'CONSENSUS';
-    }
+
 
     return enriched;
   });
@@ -627,9 +620,9 @@ async function edgeHandler(req: Request) {
   try {
     const mlbDb = getMlbSupabase();
 
-    // Call our RPC
+    // Call our RPC. Use a very high limit to bypass the 1000 default if the RPC supports it.
     const { data, error } = await mlbDb.rpc('get_best_bets_stats', {
-      p_limit: 1000,
+      p_limit: 10000,
     });
 
     if (error) {
@@ -672,14 +665,18 @@ async function edgeHandler(req: Request) {
 
       const officialDate = latestDateData[0].official_date;
 
-      const { data: bets, error: betsErr } = await mlbDb
+      const bets = await fetchAllRows(() => mlbDb
         .from('pred_best_bets')
         .select('*')
         .eq('official_date', officialDate)
-        .order('rank', { ascending: true });
+        .order('rank', { ascending: true })
+      ).catch((betsErr) => {
+        console.error('[MLB Best Bets] Fallback error fetching bets:', betsErr);
+        return null;
+      });
 
-      if (betsErr) {
-        console.warn('[MLB Best Bets] Error fetching bets:', betsErr.message);
+      if (!bets) {
+        console.warn('[MLB Best Bets] Error fetching bets');
       }
 
       const betsArr = dedupeLatestBets(bets || []);
@@ -691,10 +688,15 @@ async function edgeHandler(req: Request) {
       // not the legacy edge>=5 heuristic (and b.edge was never populated; the column is edge_pts).
       const eliteBets = enriched.filter((b: BetRow) => (b as any).bet_tier === 'ELITE').length;
       const topScore =
-        enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.bet_score || 0)) : 0;
+        enriched.length > 0 ? enriched.reduce((max: number, b: BetRow) => Math.max(max, b.bet_score || 0), 0) : 0;
       const topLock =
-        enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.win_confidence || 0)) : 0;
+        enriched.length > 0 ? enriched.reduce((max: number, b: BetRow) => Math.max(max, b.win_confidence || 0), 0) : 0;
+      // Fetch missing categories to guarantee minimum 3 for UI carousels
       let topMoneylines: any[] = [];
+      let topRunlines: any[] = [];
+      let topTotals: any[] = [];
+      let topHomers: any[] = [];
+      
       const { data: rawTopML } = await mlbDb
         .from('pred_mlb_predictions')
         .select('*')
@@ -702,14 +704,43 @@ async function edgeHandler(req: Request) {
         .in('market', ['moneyline', 'h2h'])
         .order('model_prob', { ascending: false })
         .limit(10);
-      if (rawTopML && rawTopML.length > 0) {
-        topMoneylines = await enrichBets(rawTopML, mlbDb);
-      }
+      if (rawTopML && rawTopML.length > 0) topMoneylines = await enrichBets(rawTopML, mlbDb);
+
+      const { data: rawTopRL } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', officialDate)
+        .in('market', ['run_line', 'spread'])
+        .order('edge_pts', { ascending: false })
+        .limit(10);
+      if (rawTopRL && rawTopRL.length > 0) topRunlines = await enrichBets(rawTopRL, mlbDb);
+
+      const { data: rawTopTot } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', officialDate)
+        .eq('market', 'total')
+        .order('edge_pts', { ascending: false })
+        .limit(10);
+      if (rawTopTot && rawTopTot.length > 0) topTotals = await enrichBets(rawTopTot, mlbDb);
+
+      const { data: rawTopHR } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', officialDate)
+        .in('market', ['home_run', 'hr'])
+        .order('win_confidence', { ascending: false })
+        .limit(10);
+      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR, mlbDb);
+
       return new Response(
         JSON.stringify({
           bets: enriched,
           stats: { totalBets, eliteBets, topScore, topLock },
           topMoneylines,
+          topRunlines,
+          topTotals,
+          topHomers,
           officialDate,
         }),
         {
@@ -727,8 +758,12 @@ async function edgeHandler(req: Request) {
     const rawBets = data?.bets || [];
     const enrichedBets = await enrichBets(rawBets, mlbDb);
 
-    // Fetch pure highest win probability moneylines (regardless of edge) for Most Likely To Win
+    // Fetch missing categories to guarantee minimum 3 for UI carousels
     let topMoneylines: any[] = [];
+    let topRunlines: any[] = [];
+    let topTotals: any[] = [];
+    let topHomers: any[] = [];
+    
     if (data?.officialDate) {
       const { data: rawTopML } = await mlbDb
         .from('pred_mlb_predictions')
@@ -737,22 +772,45 @@ async function edgeHandler(req: Request) {
         .in('market', ['moneyline', 'h2h'])
         .order('model_prob', { ascending: false })
         .limit(10);
-      if (rawTopML && rawTopML.length > 0) {
-        topMoneylines = await enrichBets(rawTopML, mlbDb);
-      }
+      if (rawTopML && rawTopML.length > 0) topMoneylines = await enrichBets(rawTopML, mlbDb);
+
+      const { data: rawTopRL } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', data.officialDate)
+        .in('market', ['run_line', 'spread'])
+        .order('edge_pts', { ascending: false })
+        .limit(10);
+      if (rawTopRL && rawTopRL.length > 0) topRunlines = await enrichBets(rawTopRL, mlbDb);
+
+      const { data: rawTopTot } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', data.officialDate)
+        .eq('market', 'total')
+        .order('edge_pts', { ascending: false })
+        .limit(10);
+      if (rawTopTot && rawTopTot.length > 0) topTotals = await enrichBets(rawTopTot, mlbDb);
+
+      const { data: rawTopHR } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', data.officialDate)
+        .in('market', ['home_run', 'hr'])
+        .order('win_confidence', { ascending: false })
+        .limit(10);
+      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR, mlbDb);
     }
 
-
-    // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
-    // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.
+    // Headline Top Score / Top Lock from the enriched rows so they match the displayed pick list
     let topLock =
       enrichedBets.length > 0
-        ? Math.max(...enrichedBets.map((b: any) => Number(b.win_confidence) || 0))
+        ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.win_confidence) || 0), 0)
         : data?.stats?.topLock || 0;
     if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
     const topScore =
       enrichedBets.length > 0
-        ? Math.max(...enrichedBets.map((b: any) => Number(b.bet_score) || 0))
+        ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.bet_score) || 0), 0)
         : data?.stats?.topScore || 0;
 
     return new Response(
@@ -760,12 +818,14 @@ async function edgeHandler(req: Request) {
         bets: enrichedBets,
         stats: {
           totalBets: data?.stats?.totalBets || 0,
-          // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), derived from the returned
-          // rows so the count matches betScore.ts everywhere — not the RPC's legacy edge>=5.
           eliteBets: enrichedBets.filter((b: any) => b.bet_tier === 'ELITE').length,
           topScore: topScore,
           topLock: topLock,
         },
+        topMoneylines,
+        topRunlines,
+        topTotals,
+        topHomers,
         officialDate: data?.officialDate || null,
       }),
       {

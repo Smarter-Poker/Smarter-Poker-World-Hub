@@ -123,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const health = {
       minutes_since_refresh:
         rawHealth.minutes_since_refresh ??
-        (rawHealth.hours_stale != null ? Math.round(rawHealth.hours_stale * 60) : null),
+        (rawHealth.hours_stale != null ? (rawHealth.hours_stale * 60) : null),
       last_refresh: rawHealth.last_refresh ?? rawHealth.latest_as_of ?? null,
       is_stale: rawHealth.is_stale ?? true,
       slate_as_of: rawHealth.slate_as_of ?? rawHealth.latest_as_of ?? null,
@@ -140,7 +140,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       Object.entries(rawTierDist).map(([k, v]) => [String(k).toUpperCase(), v])
     );
 
-    res.setHeader('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'private, s-maxage=60, stale-while-revalidate=300');
 
     return res.status(200).json({
       ok: true,

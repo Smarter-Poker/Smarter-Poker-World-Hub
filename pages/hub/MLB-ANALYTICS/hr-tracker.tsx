@@ -311,7 +311,7 @@ export default function HRTrackerPage() {
   }, [sortKey, sortDir, deferredSearch, statusFilter]);
 
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
-    refreshInterval: 1000 * 60 * 60, // revalidate hourly (cache itself refreshes daily)
+    refreshInterval: 300000, // revalidate hourly (cache itself refreshes daily)
     revalidateOnFocus: false,
     onError: (err) => logError('[hr-tracker] SWR fetch failed', err),
   });

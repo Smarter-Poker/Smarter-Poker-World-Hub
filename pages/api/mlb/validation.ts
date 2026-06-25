@@ -26,13 +26,9 @@ async function edgeHandler(req: Request) {
 
     if (error) {
       console.error('RPC get_mlb_validation_stats failed:', error.message);
-      // Fallback for when RPC is not deployed yet or fails
-      return new Response(JSON.stringify({ stats: null }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
@@ -41,7 +37,7 @@ async function edgeHandler(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       });
     }
@@ -56,7 +52,7 @@ async function edgeHandler(req: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     });
   } catch (err: any) {
