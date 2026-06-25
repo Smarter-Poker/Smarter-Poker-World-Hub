@@ -1,6 +1,18 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
+async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+  let all: any[] = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = data || [];
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // 1. CORS Preflight & Method Check
   if (req.method === 'OPTIONS') {
@@ -16,16 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const mlbDb = getMlbSupabase();
-    // Pass query params explicitly to the RPC if pagination is eventually added
-    const { data, error } = await mlbDb.rpc('get_mlb_pitcher_directory', {
-      // Future-proofing for param passing: limit: req.query.limit, etc.
-    });
-
-    if (error) {
-      console.error('[MLB Pitchers] directory failed:', error);
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(503).json({ fetchError: true, data: [] });
-    }
+    // Use fetchAllRows and query the view directly to bypass the 1000-row PostgREST limit
+    const data = await fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('*'));
 
     // Success: Compute K/IP and K/G for each pitcher
     const enrichedData = Array.isArray(data) ? data.map(p => {
