@@ -3,19 +3,19 @@
 set -euo pipefail
 
 HETZNER_IP="178.156.160.206"
-SSH_USER="root"
+SSH_USER="openclaw"
 REMOTE="$SSH_USER@$HETZNER_IP"
 CONTAINER="club-arena-engine"
 
 echo "=== Checking Docker status on Hetzner ==="
-ssh -o ConnectTimeout=10 "$REMOTE" "docker ps -a --filter name=$CONTAINER --format '{{.Names}} {{.Status}}'" 2>&1 || {
+ssh -i ~/.ssh/openclaw_ed25519 -o ConnectTimeout=10 "$REMOTE" "docker ps -a --filter name=$CONTAINER --format '{{.Names}} {{.Status}}'" 2>&1 || {
   echo "SSH failed. Trying with StrictHostKeyChecking=no..."
-  ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE" "docker ps -a --filter name=$CONTAINER --format '{{.Names}} {{.Status}}'"
+  ssh -i ~/.ssh/openclaw_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE" "docker ps -a --filter name=$CONTAINER --format '{{.Names}} {{.Status}}'"
 }
 
 echo ""
 echo "=== Restarting container ==="
-ssh -o StrictHostKeyChecking=no "$REMOTE" "docker restart $CONTAINER 2>/dev/null || {
+ssh -i ~/.ssh/openclaw_ed25519 -o StrictHostKeyChecking=no "$REMOTE" "docker restart $CONTAINER 2>/dev/null || {
   echo 'Container not found, starting fresh...'
   docker run -d \
     --name $CONTAINER \
@@ -36,7 +36,7 @@ echo "$HEALTH"
 
 echo ""
 echo "=== Docker logs (last 20 lines) ==="
-ssh -o StrictHostKeyChecking=no "$REMOTE" "docker logs --tail 20 $CONTAINER" 2>&1
+ssh -i ~/.ssh/openclaw_ed25519 -o StrictHostKeyChecking=no "$REMOTE" "docker logs --tail 20 $CONTAINER" 2>&1
 
 echo ""
 echo "=== DONE ==="
