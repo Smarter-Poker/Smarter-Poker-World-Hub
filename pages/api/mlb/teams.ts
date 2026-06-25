@@ -240,10 +240,7 @@ async function edgeHandler(req: Request) {
       if (!teamId) continue;
       const inputs = betInputsFromProp(p);
       if (!inputs) continue;
-      const score = betScore(inputs.pWin, inputs.price, {
-        pMarket: inputs.pMarket,
-        lineupLocked: true,
-      });
+      const score = betScore(inputs.pWin, inputs.price);
       const existing = teamGrade.get(teamId);
       const edgeCount = (existing?.edgeCount || 0) + 1;
       if (!existing || score > existing.score) {
