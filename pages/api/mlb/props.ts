@@ -1,6 +1,18 @@
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { explain, type ScoreFactor, type Tier } from '../../../src/lib/betScore';
 
+async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+  let all: any[] = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = data || [];
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
 // ── Timezone helpers (America/Chicago is the canonical slate timezone) ─────────
 function chicagoYmd(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -135,7 +147,7 @@ export default async function edgeHandler(req: Request) {
     });
 
     if (!rawProps) {
-      console.error('[API/MLB/Props] pred_props error:', propsRes.error);
+      console.error('[API/MLB/Props] pred_props error');
       return new Response(JSON.stringify({ error: `Database error` }), {
         status: 500,
         headers: {
