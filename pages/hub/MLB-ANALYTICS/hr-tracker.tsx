@@ -17,6 +17,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import { teamLogo, playerHeadshot } from '../../../src/lib/mlb_data';
 
 interface HRPlayer {
   player_id: number;
@@ -154,7 +155,7 @@ const PlayerRow = memo(function PlayerRow({ p }: { p: HRPlayer }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="relative shrink-0">
             <img
-              src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${p.player_id}/headshot/67/current`}
+              src={playerHeadshot(p.player_id) || '/default-avatar.png'}
               alt={p.full_name}
               loading="lazy"
               width={36}
@@ -168,7 +169,7 @@ const PlayerRow = memo(function PlayerRow({ p }: { p: HRPlayer }) {
             {p.team_id ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`}
+                src={teamLogo(p.team_id) || ''}
                 alt=""
                 width={16}
                 height={16}
@@ -620,7 +621,7 @@ export default function HRTrackerPage() {
                       )}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${p.player_id}/headshot/67/current`}
+                        src={playerHeadshot(p.player_id) || '/default-avatar.png'}
                         alt={p.full_name}
                         loading="lazy"
                         width={56}

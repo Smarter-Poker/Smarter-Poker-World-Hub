@@ -11,6 +11,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../src/lib/mlbStatGlossary';
+import { teamLogo, playerHeadshot } from '../../../src/lib/mlb_data';
 import HrTodayLeaders from '../../../src/components/mlb/HrTodayLeaders';
 
 const fuzzyMatch = (str: string, query: string) => {
@@ -216,7 +217,7 @@ const cardRole = (player: PlayerProfile, type: 'hitters' | 'pitchers'): string |
 
 const PlayerCard = React.memo(
   ({ player, type }: { player: PlayerProfile; type: 'hitters' | 'pitchers' }) => {
-    const headshotUrl = `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${player.player_id}/headshot/67/current`;
+    const headshotUrl = playerHeadshot(player.player_id) || '/default-avatar.png';
     return (
       <Link
         href={`/hub/MLB-ANALYTICS/players/${player.player_id}`}
@@ -244,7 +245,7 @@ const PlayerCard = React.memo(
               {player.team_id && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`}
+                  src={teamLogo(player.team_id) || ''}
                   alt="Team Logo"
                   loading="lazy"
                   width={24}
@@ -366,7 +367,7 @@ const TeamSelectorRow = React.memo(
         {/* Logo — large, no background, no border */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+          src={teamLogo(teamId) || ''}
           alt={teamName}
           loading="lazy"
           width={72}
@@ -730,7 +731,7 @@ export default function PlayersPage() {
                     {p.team_id ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`}
+                        src={teamLogo(p.team_id) || ''}
                         className="w-8 h-8 object-contain drop-shadow-md"
                         alt="Team"
                         loading="lazy"
@@ -969,7 +970,7 @@ export default function PlayersPage() {
                   <div className="flex items-center gap-3 mb-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`https://www.mlbstatic.com/team-logos/${selectedTeam}.svg`}
+                      src={teamLogo(selectedTeam) || ''}
                       alt="Selected Team"
                       className="w-10 h-10 object-contain"
                       loading="lazy"
