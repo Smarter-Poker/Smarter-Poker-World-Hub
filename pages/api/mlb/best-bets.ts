@@ -699,6 +699,7 @@ async function edgeHandler(req: Request) {
         JSON.stringify({
           bets: enriched,
           stats: { totalBets, eliteBets, topScore, topLock },
+          topMoneylines,
           officialDate,
         }),
         {
@@ -711,9 +712,26 @@ async function edgeHandler(req: Request) {
       );
     }
 
+
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
     const enrichedBets = await enrichBets(rawBets, mlbDb);
+
+    // Fetch pure highest win probability moneylines (regardless of edge) for Most Likely To Win
+    let topMoneylines = [];
+    if (data?.officialDate) {
+      const { data: rawTopML } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', data.officialDate)
+        .in('market', ['moneyline', 'h2h'])
+        .order('model_prob', { ascending: false })
+        .limit(10);
+      if (rawTopML && rawTopML.length > 0) {
+        topMoneylines = await enrichBets(rawTopML, mlbDb);
+      }
+    }
+
 
     // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
     // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.

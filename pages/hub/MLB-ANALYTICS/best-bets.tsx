@@ -1483,11 +1483,14 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
+    if (data?.topMoneylines?.length > 0) {
+      return data.topMoneylines;
+    }
     return [...bets]
       .filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'))
       .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 10);
-  }, [bets]);
+  }, [bets, data]);
 
   const bestMoneyLines = useMemo(() => {
     return [...bets]
@@ -1652,7 +1655,7 @@ export default function BestBetsPage() {
               </span>
             </h1>
             <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] capitalize  mt-1">
-              Ranked By Bet Score · {officialDate || todayStr || '—'}
+              Ranked By Bet Score · {formattedDate}
             </p>
           </div>
           <button
