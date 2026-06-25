@@ -28,59 +28,16 @@ function evValue(ev: number): number {
   return 100 / (1 + Math.exp(-(e - 2) / 4));
 }
 
-function confidenceMult(
-  ev: number,
-  american: number,
-  vol: boolean,
-  lineupLocked: boolean,
-  d: number | null
-): number {
-  let m = 1.0;
-  if (!lineupLocked) m *= 0.88;
-  if (vol) m *= 0.85;
-  if (Math.abs(american) >= 250) m *= 0.9;
-  if (ev > 20) m *= 0.85;
-  
-  if (d != null) {
-    if (d > 0.15) m *= 0.85;
-    else if (d > 0.08) m *= 0.90;
-    else if (d > 0.05) m *= 0.95;
-    
-    if (lineupLocked && !vol && d <= 0.05) m *= 1.04;
-  }
-  return Math.max(0.4, Math.min(1.0, m));
-}
+
 
 export function betScore(
   pWin: number,
   american: number,
   opts: { vol?: boolean; lineupLocked?: boolean; pMarket?: number | null } = {},
 ): number {
-  const { vol = false, lineupLocked = true, pMarket = null } = opts;
-  
-  let adjWin = pWin;
-  let d: number | null = null;
-  
-  if (pMarket != null) {
-    d = Math.abs(pWin - pMarket);
-    // Bayesian Shrinkage: Heavily shrink stale model edges toward the sharp market.
-    // When a lineup locks (e.g. rookie pitcher confirmed) and there's large disagreement,
-    // the market is invariably correct about the late scratch.
-    let modelWeight = 1.0;
-    if (lineupLocked) {
-      if (d > 0.06) modelWeight = 0.2; // heavy trust in sharp market on late confirmed changes
-      else modelWeight = 0.9;
-    } else {
-      if (d > 0.06) modelWeight = 0.4;
-      else modelWeight = 0.7;
-    }
-    adjWin = pWin * modelWeight + pMarket * (1 - modelWeight);
-  }
-
-  const ev = evPct(adjWin, american);
+  const ev = evPct(pWin, american);
   const base = evValue(ev);
-  const m = confidenceMult(ev, american, vol, lineupLocked, d);
-  return Math.round(Math.max(1, Math.min(99, base * m)));
+  return Math.round(Math.max(1, Math.min(99, base)));
 }
 
 export function tier(score: number): Tier {
@@ -111,25 +68,7 @@ export function explain(
   american: number,
   opts: { vol?: boolean; lineupLocked?: boolean; pMarket?: number | null } = {},
 ): { betScore: number; tier: Tier; winConfidence: number; evPct: number; verdict: string; factors: ScoreFactor[] } {
-  const { vol = false, lineupLocked = true, pMarket = null } = opts;
-  
-  let adjWin = pWin;
-  let d = 0;
-  if (pMarket != null) {
-    d = Math.abs(pWin - pMarket);
-    let modelWeight = 1.0;
-    if (lineupLocked) {
-      if (d > 0.06) modelWeight = 0.2;
-      else modelWeight = 0.9;
-    } else {
-      if (d > 0.06) modelWeight = 0.4;
-      else modelWeight = 0.7;
-    }
-    adjWin = pWin * modelWeight + pMarket * (1 - modelWeight);
-  }
-
-  const rawEv = evPct(pWin, american);
-  const ev = evPct(adjWin, american);
+  const ev = evPct(pWin, american);
   const wc = winConfidence(pWin);
   const s = betScore(pWin, american, opts);
   const t = tier(s);
@@ -142,18 +81,6 @@ export function explain(
   
   factors.push({ dir: "info", text: `Model raw baseline gives this a ${wc.toFixed(0)}% chance to hit.` });
   if (american > 0) factors.push({ dir: "up", text: `Plus-money price (+${american}) — pays more than even if it hits.` });
-  if (Math.abs(american) >= 250) factors.push({ dir: "down", text: "Longshot price — lower hit rate and higher swing; keep the stake small." });
-  if (vol) factors.push({ dir: "down", text: "High-variance matchup — the model flags wide outcome swings, so treat the edge as softer than it looks." });
-  if (!lineupLocked) factors.push({ dir: "down", text: "Lineup / starter not confirmed yet — the edge can move before first pitch." });
-  
-  if (pWin != null && pMarket != null) {
-    const dPts = d * 100;
-    if (dPts > 15) factors.push({ dir: "down", text: `Model is far above the market (${dPts.toFixed(0)} pts) — edge heavily shrunk toward sharp market line.` });
-    else if (dPts > 6) factors.push({ dir: "down", text: `Model is well above the market (${dPts.toFixed(0)} pts) — some disagreement risk, edge discounted.` });
-    else if (dPts <= 5) factors.push({ dir: "up", text: "Model roughly agrees with the market — you're capturing true price value, not betting on a wild disagreement." });
-  }
-  
-  if (rawEv > 20) factors.push({ dir: "down", text: "Raw edge is implausibly large (>20%) — usually a stale line or injury scratch, so the score is safely shrunk." });
   
   return { betScore: s, tier: t, winConfidence: wc, evPct: Math.round(ev * 10) / 10, verdict: VERDICT[t], factors };
 }

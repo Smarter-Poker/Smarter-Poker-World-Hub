@@ -31,10 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Use fetchAllRows and query the view directly to bypass the 1000-row PostgREST limit
     // and avoid overloaded RPC ambiguity.
     const data = await fetchAllRows(() => mlbDb.from('v_hitter_profile').select('*'));
-      console.error('[MLB Hitters] directory failed:', error);
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(503).json({ fetchError: true, data: [] });
-    }
 
     // Success: Cache heavily
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
