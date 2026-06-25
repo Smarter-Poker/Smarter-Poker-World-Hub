@@ -608,6 +608,12 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
                 {stats.so != null && (
                   <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
                 )}
+                {stats.k_per_ip != null && (
+                  <StatPill label="K/IP" value={fmtStat(stats.k_per_ip, 2)} color="#e2e8f0" />
+                )}
+                {stats.k_per_g != null && (
+                  <StatPill label="K/G" value={fmtStat(stats.k_per_g, 2)} color="#e2e8f0" />
+                )}
                 {stats.w != null && stats.l != null && (
                   <StatPill
                     label="W-L"
@@ -864,6 +870,12 @@ const PropCard = React.memo(
                 )}
                 {stats.so != null && (
                   <StatPill label="SO" value={String(Math.round(stats.so))} color="#22C55E" />
+                )}
+                {stats.k_per_ip != null && (
+                  <StatPill label="K/IP" value={fmtStat(stats.k_per_ip, 2)} color="#e2e8f0" />
+                )}
+                {stats.k_per_g != null && (
+                  <StatPill label="K/G" value={fmtStat(stats.k_per_g, 2)} color="#e2e8f0" />
                 )}
                 {stats.w != null && stats.l != null && (
                   <StatPill

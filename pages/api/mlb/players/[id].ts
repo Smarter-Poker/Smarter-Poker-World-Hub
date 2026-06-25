@@ -50,9 +50,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Internal server error fetching player' });
     }
 
-    // RPC returns null (no row) when the id does not exist.
-    if (!data || !data.player) {
+    if (!data || (!data.player && !data.season)) {
       return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // Add last 10 pitching games for pitchers
+    if (data.type === 'pitcher' || (data.player && data.player.position === 'P')) {
+      try {
+        const { data: logsData } = await mlbDb
+          .from('raw_player_gamelog')
+          .select('game_date, stat')
+          .eq('player_id', Number(id))
+          .eq('group', 'pitching')
+          .order('game_date', { ascending: false })
+          .limit(10);
+        
+        if (logsData && logsData.length > 0) {
+          if (!data.profile) data.profile = {};
+          if (!data.profile.streaks) data.profile.streaks = {};
+          data.profile.streaks.last10 = logsData.map((r: any) => ({
+            date: r.game_date,
+            IP: r.stat?.inningsPitched,
+            H: r.stat?.hits,
+            ER: r.stat?.earnedRuns,
+            BB: r.stat?.baseOnBalls,
+            K: r.stat?.strikeOuts,
+            HR: r.stat?.homeRuns,
+            Pitches: r.stat?.numberOfPitches
+          }));
+        }
+      } catch (e) {
+        console.error('[MLB Player Detail] last10 fetch skipped:', e);
+      }
     }
 
     // Best-effort enrichment: today's weather + this batter's posted lineup slot.

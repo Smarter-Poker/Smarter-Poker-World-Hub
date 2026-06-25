@@ -206,6 +206,8 @@ const PITCHER_GROUPS: { title: string; icon: any; stats: Stat[] }[] = [
       ['HR', 'HR', 'int'],
       ['BB', 'BB', 'int'],
       ['SO', 'SO', 'int'],
+      ['K/IP', 'k_per_ip', 'n2', 'up'],
+      ['K/G', 'k_per_g', 'n2', 'up'],
       ['ERA', 'ERA', 'n2', 'down'],
       ['WHIP', 'WHIP', 'n2', 'down'],
     ],
@@ -373,7 +375,14 @@ export default function PlayerProfilePage() {
 
   const player = data?.player;
   const type: 'hitter' | 'pitcher' = data?.type === 'pitcher' ? 'pitcher' : 'hitter';
-  const season = data?.season || null;
+  const season = data?.season ? { ...data.season } : null;
+  if (season && type === 'pitcher') {
+    const ip = Number(season.IP || 0);
+    const so = Number(season.SO || 0);
+    const gCount = Number(season.GS) > 0 ? Number(season.GS) : Number(season.G || 0);
+    season.k_per_ip = ip > 0 ? Number((so / ip).toFixed(2)) : null;
+    season.k_per_g = gCount > 0 ? Number((so / gCount).toFixed(2)) : null;
+  }
   const sim =
     data?.profile?.sim_rates && typeof data.profile.sim_rates === 'object'
       ? data.profile.sim_rates
@@ -399,6 +408,7 @@ export default function PlayerProfilePage() {
   const age = player ? calcAge(player.birth_date) : null;
   const hasStreaks = !!streaks && Number(streaks.games || 0) > 0;
   const last5: any[] = Array.isArray(streaks?.last5) ? streaks.last5 : [];
+  const last10: any[] = Array.isArray(streaks?.last10) ? streaks.last10 : [];
   const hotCold: string | null = streaks?.hot_cold || null;
   const groups = type === 'pitcher' ? PITCHER_GROUPS : HITTER_GROUPS;
 
@@ -1109,23 +1119,107 @@ export default function PlayerProfilePage() {
                             tip={glossaryFor('IP')}
                           />
                           <MetricTile
-                            label="K"
-                            value={fmt('int', streaks.last_start_line.K)}
-                            tip={glossaryFor('K')}
-                          />
-                          <MetricTile
-                            label="BB"
-                            value={fmt('int', streaks.last_start_line.BB)}
-                            tip={glossaryFor('BB')}
+                            label="H"
+                            value={
+                              streaks.last_start_line.H != null
+                                ? String(streaks.last_start_line.H)
+                                : '—'
+                            }
+                            tip={glossaryFor('H')}
                           />
                           <MetricTile
                             label="ER"
-                            value={fmt('int', streaks.last_start_line.ER)}
+                            value={
+                              streaks.last_start_line.ER != null
+                                ? String(streaks.last_start_line.ER)
+                                : '—'
+                            }
                             tip={glossaryFor('ER')}
+                          />
+                          <MetricTile
+                            label="BB"
+                            value={
+                              streaks.last_start_line.BB != null
+                                ? String(streaks.last_start_line.BB)
+                                : '—'
+                            }
+                            tip={glossaryFor('BB')}
+                          />
+                          <MetricTile
+                            label="K"
+                            value={
+                              streaks.last_start_line.K != null
+                                ? String(streaks.last_start_line.K)
+                                : '—'
+                            }
+                            tip={glossaryFor('SO')}
+                          />
+                          <MetricTile
+                            label="HR"
+                            value={
+                              streaks.last_start_line.HR != null
+                                ? String(streaks.last_start_line.HR)
+                                : '—'
+                            }
+                            tip={glossaryFor('HR')}
+                          />
+                          <MetricTile
+                            label="Pitches"
+                            value={
+                              streaks.last_start_line.Pitches != null
+                                ? String(streaks.last_start_line.Pitches)
+                                : '—'
+                            }
+                            tip="Total pitches thrown"
                           />
                         </div>
                       </div>
                     )}
+
+                  {type === 'pitcher' && last10.length > 0 && (
+                    <div className="mt-5">
+                      <div className="text-[13px] font-extrabold text-slate-500 tracking-widest mb-2">
+                        Last 10 Games
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="text-slate-500 text-[13px] font-extrabold tracking-widest">
+                              <th className="py-1 pr-3">Date</th>
+                              <th className="py-1 px-2 text-center">IP</th>
+                              <th className="py-1 px-2 text-center">H</th>
+                              <th className="py-1 px-2 text-center">ER</th>
+                              <th className="py-1 px-2 text-center">BB</th>
+                              <th className="py-1 px-2 text-center">K</th>
+                              <th className="py-1 px-2 text-center">HR</th>
+                              <th className="py-1 px-2 text-center">Pitches</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {last10.map((gm: any, i: number) => (
+                              <tr
+                                key={gm.date || i}
+                                className="border-t border-[#1e2d3d] text-slate-300 text-[14px] font-bold"
+                              >
+                                <td className="py-1.5 pr-3 text-slate-400">{gm.date || '—'}</td>
+                                <td className="py-1.5 px-2 text-center">{gm.IP ?? '—'}</td>
+                                <td className="py-1.5 px-2 text-center text-white">
+                                  {gm.H ?? '—'}
+                                </td>
+                                <td className="py-1.5 px-2 text-center text-[#00D4FF]">
+                                  {gm.ER ?? '—'}
+                                </td>
+                                <td className="py-1.5 px-2 text-center">{gm.BB ?? '—'}</td>
+                                <td className="py-1.5 px-2 text-center">{gm.K ?? '—'}</td>
+                                <td className="py-1.5 px-2 text-center">{gm.HR ?? '—'}</td>
+                                <td className="py-1.5 px-2 text-center">{gm.Pitches ?? '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </MetalFrame>
               </div>
             )}
