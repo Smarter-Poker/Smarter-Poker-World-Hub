@@ -86,7 +86,7 @@ export default async function edgeHandler(req: Request) {
       .gte('as_of_ts', todayStart)
       .lt('as_of_ts', todayEnd)
       .or('best_price.not.is.null,best_price_under.not.is.null')
-      .limit(1);
+      ;
 
     if (todayErr) {
       console.error('[API/MLB/Props] todayCheck error:', todayErr);
@@ -100,7 +100,7 @@ export default async function edgeHandler(req: Request) {
         .lt('as_of_ts', todayEnd)
         .or('best_price.not.is.null,best_price_under.not.is.null')
         .order('as_of_ts', { ascending: false })
-        .limit(1)
+        
         .maybeSingle();
 
       if (latestErr) {
@@ -120,7 +120,7 @@ export default async function edgeHandler(req: Request) {
 
     // ── 1. Fetch priced props for the slate ──────────────────────────────
     // Only rows with a posted price are gradeable / actionable.
-    const propsRes = await mlbDb
+    const rawProps = await fetchAllRows(() => mlbDb
       .from('pred_props')
       .select(
         'game_pk, as_of_ts, player_id, prop, line, proj_mean, prob_over, blended_over, market_novig_over, best_lines, best_price, best_book, best_price_under, best_book_under, best_lines_under, rec, kelly_pct, result, pnl'
@@ -128,15 +128,15 @@ export default async function edgeHandler(req: Request) {
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
       .or('best_price.not.is.null,best_price_under.not.is.null')
-      // PostgREST caps the result (~1000 rows) below some slates' priced count,
-      // so order by model edge first — the highest-value props are always kept
-      // within the cap instead of an arbitrary slice — before client Bet Score ranking.
       .order('edge_pts', { ascending: false, nullsFirst: false })
-      .limit(2000);
+    ).catch(err => {
+      console.error('[API/MLB/Props] pred_props error:', err);
+      return null;
+    });
 
-    if (propsRes.error) {
+    if (!rawProps) {
       console.error('[API/MLB/Props] pred_props error:', propsRes.error);
-      return new Response(JSON.stringify({ error: `Database error: ${propsRes.error.message}` }), {
+      return new Response(JSON.stringify({ error: `Database error` }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export default async function edgeHandler(req: Request) {
       });
     }
 
-    const rawProps = propsRes.data || [];
+    
 
     // De-duplicate to one row per (player_id, prop, line), keeping the most
     // recent as_of_ts. The engine currently writes a single run per slate day
@@ -166,70 +166,53 @@ export default async function edgeHandler(req: Request) {
       ...new Set(slateProps.map((p) => p.player_id).filter((id): id is number => id != null)),
     ];
 
+    
     // ── 2. Fetch Player Profiles & Stats ONLY for relevant players ────────
-    const [hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes, gameLogsRes] = await Promise.all([
+    const [hitters, pitchers, dimTeams, aggPitchers, aggBatters, gameLogs] = await Promise.all([
       uniquePlayerIds.length > 0
-        ? mlbDb
+        ? fetchAllRows(() => mlbDb
             .from('v_hitter_profile')
             .select('player_id, full_name, team_id')
-            .in('player_id', uniquePlayerIds)
-            .limit(1000)
-        : { data: [] },
+            .in('player_id', uniquePlayerIds))
+        : [],
       uniquePlayerIds.length > 0
-        ? mlbDb
+        ? fetchAllRows(() => mlbDb
             .from('v_pitcher_profile')
             .select('player_id, full_name, team_id, fip, siera')
-            .in('player_id', uniquePlayerIds)
-            .limit(1000)
-        : { data: [] },
-      mlbDb.from('dim_teams').select('team_id, abbr').limit(100),
+            .in('player_id', uniquePlayerIds))
+        : [],
+      fetchAllRows(() => mlbDb.from('dim_teams').select('team_id, abbr')),
       uniquePlayerIds.length > 0
-        ? mlbDb
+        ? fetchAllRows(() => mlbDb
             .from('agg_pitcher')
             .select('pitcher_id, w, l, era, so, h, bb, ip, g, gs, as_of')
             .eq('window_kind', 'fg_season')
             .in('pitcher_id', uniquePlayerIds)
-            .order('as_of', { ascending: false })
-        : { data: [] },
+            .order('as_of', { ascending: false }))
+        : [],
       uniquePlayerIds.length > 0
-        ? mlbDb
+        ? fetchAllRows(() => mlbDb
             .from('agg_batter')
             .select('batter_id, hr, rbi, avg, obp, slg, woba, wrc_plus, as_of')
             .eq('window_kind', 'fg_season')
             .eq('vs_hand', 'A')
             .in('batter_id', uniquePlayerIds)
-            .order('as_of', { ascending: false })
-        : { data: [] },
+            .order('as_of', { ascending: false }))
+        : [],
       uniquePlayerIds.length > 0
-        ? mlbDb
+        ? fetchAllRows(() => mlbDb
             .from('raw_player_gamelog')
             .select('player_id, game_date, stat')
             .in('player_id', uniquePlayerIds)
             .eq('group', 'pitching')
-            .order('game_date', { ascending: false })
-            .limit(2000)
-        : { data: [] },
-    ]);
+            .order('game_date', { ascending: false }))
+        : []
+    ]).catch(err => {
+      console.error('[API/MLB/Props] Secondary fetch error:', err);
+      return [[], [], [], [], [], []];
+    });
 
-    const hitters = hittersRes.data || [];
-    const pitchers = pitchersRes.data || [];
-    const dimTeams = teamsRes.data || [];
-    const aggPitchers = aggPitcherRes.data || [];
-    const aggBatters = aggBatterRes.data || [];
-    const gameLogs = gameLogsRes.data || [];
-
-    // Surface partial-data degradation instead of silently rendering Player #<id>.
-    for (const [label, r] of [
-      ['v_hitter_profile', hittersRes],
-      ['v_pitcher_profile', pitchersRes],
-      ['dim_teams', teamsRes],
-      ['agg_pitcher', aggPitcherRes],
-      ['agg_batter', aggBatterRes],
-      ['raw_player_gamelog', gameLogsRes],
-    ] as const) {
-      if ((r as any).error)
-        console.error(`[API/MLB/Props] ${label} fetch error:`, (r as any).error);
-    }
+    // Note: The above Promise.all returns arrays directly due to fetchAllRows.
 
     // ── Team map: team_id → abbr ──────────────────────────────────────────
     const teamMap = new Map<number, string>();

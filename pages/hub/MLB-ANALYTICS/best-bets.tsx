@@ -261,6 +261,7 @@ const getTierColors = (tier: string) => {
 // Fullscreen Modal Component
 // ──────────────────────────────────────────────────────────────────────────────
 const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
+  const [showLogs, setShowLogs] = useState(false);
   const { isTeamBet, isPlayerProp, isPitcherProp } = detectBetCategory(bet);
   const [imgError, setImgError] = useState(false);
   const { color: tierColor, glow: tierGlow, bg: tierBg } = getTierColors(bet.bet_tier || '');
@@ -759,7 +760,89 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                   </div>
                 </div>
               )}
+              {bet.pitcher_k_per_ip !== null && bet.pitcher_k_per_ip !== undefined && (
+                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                  <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
+                    K/IP
+                  </div>
+                  <div
+                    className="text-[30px] font-black text-slate-300"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {bet.pitcher_k_per_ip}
+                  </div>
+                </div>
+              )}
+              {bet.pitcher_k_per_g !== null && bet.pitcher_k_per_g !== undefined && (
+                <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5 text-center">
+                  <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
+                    K/G
+                  </div>
+                  <div
+                    className="text-[30px] font-black text-slate-300"
+                    style={{ fontFamily: '"Rajdhani", sans-serif' }}
+                  >
+                    {bet.pitcher_k_per_g}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Last 10 Games Log */}
+            {bet.pitcher_last10 && bet.pitcher_last10.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="w-full flex items-center justify-between bg-[#0a0f1a] border border-[#2a3a4a] px-3 py-2 rounded-sm text-left hover:bg-[#111827] transition-colors"
+                >
+                  <span className="text-[14px] font-black text-white capitalize tracking-widest flex items-center gap-2">
+                    <Activity size={12} className="text-[#00D4FF]" />
+                    {showLogs ? 'Hide Last 10 Games' : 'Show Last 10 Games'}
+                  </span>
+                  {showLogs ? (
+                    <ChevronUp size={16} className="text-[#5a6a7a]" />
+                  ) : (
+                    <ChevronDown size={16} className="text-[#5a6a7a]" />
+                  )}
+                </button>
+
+                {showLogs && (
+                  <div className="mt-2 border border-[#2a3a4a] rounded-sm overflow-hidden">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-[#111827] border-b border-[#2a3a4a]">
+                        <tr>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">Date</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">IP</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">H</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">ER</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">BB</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize">K</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">Pit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-[#0a0f1a]">
+                        {bet.pitcher_last10.map((log: any, idx: number) => (
+                          <tr
+                            key={idx}
+                            className="border-b border-[#1a2530] last:border-b-0 hover:bg-[#111827] transition-colors"
+                          >
+                            <td className="px-3 py-2 font-bold text-slate-300">
+                              {log.date ? log.date.substring(5, 10).replace('-', '/') : '-'}
+                            </td>
+                            <td className="px-3 py-2 text-white font-medium">{log.IP ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.H ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.ER ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.BB ?? '-'}</td>
+                            <td className="px-3 py-2 text-[#00D4FF] font-black">{log.K ?? '-'}</td>
+                            <td className="px-3 py-2 text-slate-400 font-medium">{log.Pitches ?? '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
