@@ -33,12 +33,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Success: Compute K/IP and K/G for each pitcher
     const enrichedData = Array.isArray(data) ? data.map(p => {
-      const ip = Number(p.ip || 0);
       const so = Number(p.k || p.so || 0);
-      const gCount = Number(p.gs) > 0 ? Number(p.gs) : Number(p.g || 0);
+      const gCount = Number(p.g || 0) > 0 ? Number(p.g || 0) : 1;
+      const parts = String(p.ip || 0).split('.');
+      const full = Number(parts[0]) || 0;
+      const partial = parts[1] ? Number(parts[1]) : 0;
+      const trueIP = full + (partial === 1 ? 1/3 : partial === 2 ? 2/3 : 0);
       return {
         ...p,
-        k_per_ip: ip > 0 ? (so / ip) : null,
+        k_per_ip: trueIP > 0 ? (so / trueIP) : null,
         k_per_g: gCount > 0 ? (so / gCount) : null
       };
     }) : [];

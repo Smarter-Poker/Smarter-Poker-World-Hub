@@ -249,15 +249,23 @@ export default async function edgeHandler(req: Request) {
     for (const row of aggPitchers) {
       if (row.pitcher_id != null && !aggPitcherMap.has(row.pitcher_id)) {
         let whip: number | null = null;
-        if (row.h != null && row.bb != null && row.ip != null && Number(row.ip) > 0) {
-          whip = (Number(row.h) + Number(row.bb)) / Number(row.ip);
+        let trueIP: number | null = null;
+        if (row.ip != null) {
+          const parts = String(row.ip).split('.');
+          const full = Number(parts[0]) || 0;
+          const partial = parts[1] ? Number(parts[1]) : 0;
+          trueIP = full + (partial === 1 ? 1/3 : partial === 2 ? 2/3 : 0);
+        }
+
+        if (row.h != null && row.bb != null && trueIP != null && trueIP > 0) {
+          whip = (Number(row.h) + Number(row.bb)) / trueIP;
         }
         let k_per_ip: number | null = null;
         let k_per_g: number | null = null;
-        if (row.so != null && row.ip != null && Number(row.ip) > 0) {
-          k_per_ip = (Number(row.so) / Number(row.ip));
+        if (row.so != null && trueIP != null && trueIP > 0) {
+          k_per_ip = (Number(row.so) / trueIP);
         }
-        const gCount = Number(row.gs) > 0 ? Number(row.gs) : Number(row.g);
+        const gCount = Number(row.g) > 0 ? Number(row.g) : 1;
         if (row.so != null && gCount > 0) {
           k_per_g = (Number(row.so) / gCount);
         }
