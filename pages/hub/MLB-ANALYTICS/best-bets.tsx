@@ -1073,22 +1073,18 @@ const BetCard = ({
 
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-  let marketLabel = 'ML';
-  if (typeStr.includes('total')) marketLabel = 'TOT';
-  else if (
-    typeStr.includes('run_line') ||
-    typeStr.includes('runline') ||
-    typeStr.includes('spread')
-  )
-    marketLabel = 'RL';
-  else if (
-    typeStr.includes('prop') ||
-    typeStr.includes('strikeout') ||
-    typeStr.includes('pitcher') ||
-    typeStr.includes('hits') ||
-    typeStr.includes('home_run')
-  )
-    marketLabel = 'PROP';
+  let marketLabel = 'Money Line';
+  if (bet.market === 'run_line') marketLabel = 'Run Line';
+  else if (bet.market === 'total') marketLabel = 'Over / Under';
+  else if (bet.market === 'first_5_money_line') marketLabel = 'First 5 Inning Money Line';
+  else if (bet.market === 'first_5_run_line') marketLabel = 'First 5 Inning Run Line';
+  else if (bet.market === 'first_5_total') marketLabel = 'First 5 Inning Total';
+  else if (bet.market === 'team_total') marketLabel = 'Team Total';
+  else if (bet.market === 'first_5_team_total') marketLabel = 'First 5 Inning Team Total';
+  else if (typeStr.includes('strikeout')) marketLabel = 'Pitcher Strikeouts';
+  else if (typeStr.includes('hits')) marketLabel = 'Player Hits';
+  else if (typeStr.includes('home_run')) marketLabel = 'Player Home Runs';
+  else if (typeStr.includes('prop')) marketLabel = 'Player Prop';
 
   // Image logic
   const playerImageUrl = getPlayerImageUrl(bet.player_id);
@@ -1287,12 +1283,7 @@ const BetCard = ({
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             {/* For totals: show both teams in smaller multi-line text; otherwise single-line truncate */}
             <div
-              className={`font-black text-[#5a6a7a] uppercase mb-0.5 ${
-                isTotalBet
-                  ? 'text-[12px] tracking-wide leading-snug'
-                  : 'text-[17px] tracking-widest truncate'
-              }`}
-              style={isTotalBet ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
+              className="font-black text-[#5a6a7a] uppercase mb-0.5 text-[17px] tracking-widest truncate"
             >
               {formatMatchup(bet.matchup) || stripCity(bet.team_name) || 'MLB GAME'}
             </div>
@@ -1300,41 +1291,19 @@ const BetCard = ({
               className="font-black text-white capitalize leading-tight text-[24px] whitespace-normal"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {isTotalBet
-                ? (() => {
-                    const sel = (bet.selection || '').toLowerCase();
-                    const isOver = sel.includes('over');
-                    let prefix = 'Bet The';
-                    if (bet.market && bet.market.includes('first_5')) prefix = 'Bet The First 5 Inning';
-                    return `${prefix} ${isOver ? 'Over' : 'Under'}`;
-                  })()
-                : `Bet The ${marketLabel}`}
+              {`Bet The ${marketLabel}`}
               <div className="text-[24px] font-black mt-1 truncate" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
                 {(() => {
                   let target = '';
                   if (bet.player_name) {
                     target = bet.player_name;
-                  } else if (bet.market === 'total' || bet.market === 'first_5_total') {
-                    target = '';
                   } else {
-                    target = stripCity(selectionLabel(bet?.selection, bet?.matchup)).replace(/over|under/i, '').trim();
+                    target = stripCity(selectionLabel(bet?.selection, bet?.matchup)).trim();
                   }
                   return `${target} ${lineStr} ${formatOdds(bet.best_price)}`.trim().replace(/\s+/g, ' ');
                 })()}
               </div>
             </div>
-            {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
-            {!isTotalBet && (
-              <div className="flex items-center gap-1.5 mt-1 text-[17px] font-black capitalize">
-                <span
-                  className="px-1.5 rounded-sm"
-                  style={{ background: tierBg, color: tierColor, border: `1px solid ${tierBorder}` }}
-                >
-                  {marketLabel}
-                </span>
-                <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
-              </div>
-            )}
           </div>
         </div>
 
