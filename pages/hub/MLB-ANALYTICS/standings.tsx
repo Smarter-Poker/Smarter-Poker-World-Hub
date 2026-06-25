@@ -584,7 +584,7 @@ export default function StandingsPage() {
                 aria-selected={view === key}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    try { navigator.vibrate(15); } catch (e) {}
+                    try { navigator.vibrate(15); } catch (e) { console.error(e); }
                   }
                   setView(key);
                 }}

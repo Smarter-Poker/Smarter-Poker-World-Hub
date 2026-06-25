@@ -184,15 +184,30 @@ const TEAM_NICKNAMES = [
   'Rockies', 'Royals', 'Tigers', 'Twins', 'Yankees'
 ];
 
+const ABBR_TO_NICKNAME: Record<string, string> = {
+  NYY: 'Yankees', BOS: 'Red Sox', TOR: 'Blue Jays', BAL: 'Orioles', TBR: 'Rays', TB: 'Rays',
+  HOU: 'Astros', TEX: 'Rangers', OAK: 'Athletics', LAA: 'Angels', SEA: 'Mariners',
+  CLE: 'Guardians', MIN: 'Twins', CWS: 'White Sox', CHW: 'White Sox', DET: 'Tigers',
+  KCR: 'Royals', KC: 'Royals', ATL: 'Braves', NYM: 'Mets', PHI: 'Phillies', MIA: 'Marlins',
+  WSN: 'Nationals', WAS: 'Nationals', MIL: 'Brewers', CHC: 'Cubs', STL: 'Cardinals',
+  CIN: 'Reds', PIT: 'Pirates', LAD: 'Dodgers', SF: 'Giants', SFG: 'Giants', ARI: 'Diamondbacks',
+  AZ: 'Diamondbacks', COL: 'Rockies', SDP: 'Padres', SD: 'Padres', ATH: 'Athletics',
+  WSH: 'Nationals'
+};
+
 const stripCity = (fullName: string | null | undefined): string => {
   if (!fullName) return '';
-  const lower = fullName.toLowerCase();
+  const trimmed = fullName.trim();
+  const upper = trimmed.toUpperCase();
+  if (ABBR_TO_NICKNAME[upper]) return ABBR_TO_NICKNAME[upper];
+
+  const lower = trimmed.toLowerCase();
   for (const nick of TEAM_NICKNAMES) {
     if (lower.includes(nick.toLowerCase())) {
       return nick;
     }
   }
-  return fullName;
+  return trimmed;
 };
 
 const formatMatchup = (matchup: string | null | undefined): string => {
@@ -243,8 +258,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
 
   // Totals formatting
   const matchupScope = matchup ? ` (${formatMatchup(matchup)})` : '';
-  if (s.startsWith('over')) return 'Over' + matchupScope;
-  if (s.startsWith('under')) return 'Under' + matchupScope;
+  if (s.startsWith('over')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
+  if (s.startsWith('under')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
 
   return toTitleCase(stripCity(selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim()));
 };
@@ -632,7 +647,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
           if (typeof bet.score_factors === 'string') {
             try {
               factors = JSON.parse(bet.score_factors);
-            } catch {}
+            } catch (e) { console.error('Failed to parse score_factors', e); }
           } else if (Array.isArray(bet.score_factors)) {
             factors = bet.score_factors;
           }
@@ -1082,8 +1097,17 @@ const BetCard = ({
   else if (bet.market === 'first_5_team_total' || bet.market === 'f5_team_total') marketLabel = 'First 5 Inning Team Total';
   else if (typeStr.includes('strikeout')) marketLabel = 'Pitcher Strikeouts';
   else if (typeStr.includes('hits')) marketLabel = 'Player Hits';
-  else if (typeStr.includes('home_run')) marketLabel = 'Player Home Runs';
-  else if (typeStr.includes('prop')) marketLabel = 'Player Prop';
+  else if (typeStr.includes('home_run') || typeStr.includes('hr')) marketLabel = 'Player Home Runs';
+  else if (typeStr.includes('bases')) marketLabel = 'Total Bases';
+  else if (typeStr.includes('rbi') || typeStr.includes('runs_batted_in')) marketLabel = 'Player RBIs';
+  else if (typeStr.includes('outs')) marketLabel = 'Pitching Outs';
+  else if (typeStr.includes('walks') || typeStr.includes('bb')) marketLabel = 'Pitcher Walks';
+  else if (typeStr.includes('earned_runs')) marketLabel = 'Earned Runs';
+  else if (bet.market && bet.market !== 'prop') {
+    marketLabel = bet.market.replace(/_/g, ' ');
+  } else if (typeStr.includes('prop')) {
+    marketLabel = 'Player Prop';
+  }
 
   // Image logic
   const playerImageUrl = getPlayerImageUrl(bet.player_id);
@@ -1206,7 +1230,7 @@ const BetCard = ({
         if (navigator.vibrate)
           try {
             navigator.vibrate(8);
-          } catch (e) {}
+          } catch (e) { console.error('Failed to vibrate', e); }
       }}
     >
       {/* Top tier bar */}
@@ -1532,22 +1556,43 @@ export default function BestBetsPage() {
   const bestMoneyLines = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
     const merged = [...filtered, ...(data?.topMoneylines || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
-    return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const uniqueMap = new Map();
+    for (const b of merged) {
+      const matchKey = b.game_pk || b.matchup; // Ensure only 1 bet per game, prioritize game_pk for double headers
+      const betKey = `${matchKey}-${b.market}`; // e.g. 12345-h2h
+      if (!uniqueMap.has(betKey) || Number(b.bet_score) > Number(uniqueMap.get(betKey).bet_score)) {
+        uniqueMap.set(betKey, b);
+      }
+    }
+    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const bestRunLines = useMemo(() => {
     const filtered = [...bets].filter((b) => b.bet_type === 'line' && (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'));
     const merged = [...filtered, ...(data?.topRunlines || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
-    return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const uniqueMap = new Map();
+    for (const b of merged) {
+      const matchKey = b.game_pk || b.matchup; 
+      const betKey = `${matchKey}-${b.market}`; 
+      if (!uniqueMap.has(betKey) || Number(b.bet_score) > Number(uniqueMap.get(betKey).bet_score)) {
+        uniqueMap.set(betKey, b);
+      }
+    }
+    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const bestTotals = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && b.market === 'total');
     const merged = [...filtered, ...(data?.topTotals || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
-    return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    const uniqueMap = new Map();
+    for (const b of merged) {
+      const matchKey = b.game_pk || b.matchup; 
+      const betKey = `${matchKey}-${b.market}`; 
+      if (!uniqueMap.has(betKey) || Number(b.bet_score) > Number(uniqueMap.get(betKey).bet_score)) {
+        uniqueMap.set(betKey, b);
+      }
+    }
+    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const mostLikelyToHomer = useMemo(() => {
@@ -1557,7 +1602,7 @@ export default function BestBetsPage() {
     });
     const merged = [...filtered, ...(data?.topHomers || [])];
     const unique = Array.from(new Map(merged.map(b => [`${b.player_id}-${b.selection}-${b.market}`, b])).values());
-    return unique.sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0)).slice(0, 10);
+    return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const topPropsByMarket = useMemo(() => {
@@ -1702,7 +1747,7 @@ export default function BestBetsPage() {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
                 try {
                   navigator.vibrate(15);
-                } catch (e) {}
+                } catch (e) { console.error('Failed to vibrate', e); }
               }
               setIsGuideOpen(true);
             }}
@@ -1812,12 +1857,7 @@ export default function BestBetsPage() {
               </div>
             ) : (
               <>
-                <CategoryCarousel
-                  title="Most Likely to Win"
-                  icon={Target}
-                  bets={mostLikelyToWin}
-                  onBetClick={openModal}
-                />
+                {/* Removed Most Likely to Win carousel to prevent double-listing of moneyline bets */}
                 <CategoryCarousel
                   title="Best Money Lines"
                   icon={Zap}

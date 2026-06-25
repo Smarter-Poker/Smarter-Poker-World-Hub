@@ -34,7 +34,7 @@ from (
   ) j,
   coalesce(case when (b.metrics->>'wRC+') ~ '^-?[0-9.]+$' then (b.metrics->>'wRC+')::numeric else null end, 0) wrc_sort
   from dim_players d
-  join latest_batter b on b.batter_id = d.player_id
+  left join latest_batter b on b.batter_id = d.player_id
   where case when (b.metrics->>'PA') ~ '^-?[0-9.]+$' then (b.metrics->>'PA')::numeric else 0 end >= 0
 ) s;
 $$;
@@ -70,7 +70,7 @@ from (
   ) j,
   coalesce(case when (p.metrics->>'SO') ~ '^-?[0-9.]+$' then (p.metrics->>'SO')::numeric else null end, 0) k_sort
   from dim_players d
-  join latest_pitcher p on p.pitcher_id = d.player_id
+  left join latest_pitcher p on p.pitcher_id = d.player_id
   where case when (p.metrics->>'IP') ~ '^-?[0-9.]+$' then (p.metrics->>'IP')::numeric else 0 end >= 0
 ) s;
 $$;

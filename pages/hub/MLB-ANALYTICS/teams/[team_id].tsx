@@ -679,7 +679,7 @@ export default function TeamDetailPage() {
                   type="button"
                   role="tab"
                   aria-selected={activeTab === tab}
-                  onClick={() => { try { navigator.vibrate(15); } catch(err) {} return setActiveTab(tab); }}
+                  onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return setActiveTab(tab); }}
                   className={`tab-btn ${activeTab === tab ? 'active' : 'inactive'}`}
                 >
                   {tab}

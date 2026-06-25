@@ -496,7 +496,7 @@ export default function ModelIntelPage() {
             Failed To Load Intel Data. Please Try Again.
           </p>
           <button
-            onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+            onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return mutate(); }}
             className="relative z-10 inline-flex items-center gap-2 bg-[#00D4FF] text-[#0a0a15] font-extrabold capitalize tracking-widest text-[11px] px-5 py-2.5 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.5)] min-h-[44px]"
           >
             <RefreshCw className="w-4 h-4" />
@@ -544,7 +544,7 @@ export default function ModelIntelPage() {
           {/* Refresh + last-updated */}
           <div className="flex flex-col items-end gap-1">
             <button
-              onClick={() => { try { navigator.vibrate(15); } catch(err) {} return mutate(); }}
+              onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return mutate(); }}
               disabled={isValidating}
               aria-label="Refresh model intel data"
               className="inline-flex items-center gap-2 bg-[#0d1117] border-[2px] border-[#3d4f5f] text-slate-300 font-bold capitalize tracking-widest text-[10px] px-3 py-2 rounded-lg transition-all hover:border-[#00D4FF] hover:text-[#00D4FF] disabled:opacity-50 min-h-[44px]"
@@ -645,7 +645,7 @@ export default function ModelIntelPage() {
               <button
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    try { navigator.vibrate(15); } catch (e) {}
+                    try { navigator.vibrate(15); } catch (e) { console.error(e); }
                   }
                   setChartRange(r);
                 }}
@@ -770,7 +770,7 @@ export default function ModelIntelPage() {
                   <button
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch (e) {}
+                        try { navigator.vibrate(15); } catch (e) { console.error(e); }
                       }
                       setAccFilter(f);
                     }}
@@ -790,7 +790,7 @@ export default function ModelIntelPage() {
                 <button
                   onClick={(e) => {
                     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                      try { navigator.vibrate(15); } catch (err) {}
+                      try { navigator.vibrate(15); } catch (err) { console.error(err); }
                     }
                     handleExportCsv();
                   }}

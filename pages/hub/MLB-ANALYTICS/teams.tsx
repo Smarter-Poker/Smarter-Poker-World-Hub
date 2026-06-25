@@ -521,7 +521,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
               onClick={(e) => {
                 e.preventDefault();
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                  try { navigator.vibrate(15); } catch (err) {}
+                  try { navigator.vibrate(15); } catch (err) { console.error(err); }
                 }
                 setExpanded(!expanded);
               }}
@@ -1483,7 +1483,7 @@ export default function TeamsPage({
                         key={l}
                         onClick={() => {
                           if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                            try { navigator.vibrate(15); } catch (e) {}
+                            try { navigator.vibrate(15); } catch (e) { console.error(e); }
                           }
                           setFilterLeague(l);
                         }}
@@ -1500,7 +1500,7 @@ export default function TeamsPage({
                         key={d}
                         onClick={() => {
                           if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                            try { navigator.vibrate(15); } catch (e) {}
+                            try { navigator.vibrate(15); } catch (e) { console.error(e); }
                           }
                           setFilterDivision(d);
                         }}

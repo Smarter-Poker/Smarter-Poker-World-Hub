@@ -490,7 +490,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         } else {
           for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
             const lowerName = name.toLowerCase();
-            if (lowerName === searchName || searchName.includes(lowerName)) {
+            if (lowerName === searchName || lowerName.includes(searchName)) {
               foundTeamId = Number(idStr);
               break;
             }
@@ -571,7 +571,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           const trueIP = (Number(parts[0]) || 0) + (ipFractionPart.startsWith('1') ? 1/3 : ipFractionPart.startsWith('2') ? 2/3 : 0);
           enriched.pitcher_k_per_ip = trueIP > 0 ? Number((aggP.so / trueIP).toFixed(2)) : null;
           enriched.pitcher_k_per_g = gCount > 0 ? Number((aggP.so / gCount).toFixed(2)) : null;
-          enriched.pitcher_whip = trueIP > 0 ? ((aggP.h + aggP.bb) / trueIP).toFixed(2) : null;
+          enriched.pitcher_whip = trueIP > 0 ? Number(((aggP.h + aggP.bb) / trueIP).toFixed(2)) : null;
         }
         if (vP) {
           enriched.pitcher_fip = vP.fip;
@@ -685,6 +685,10 @@ async function edgeHandler(req: Request) {
         return new Response(
           JSON.stringify({
             bets: [],
+            topMoneylines: [],
+            topRunlines: [],
+            topTotals: [],
+            topHomers: [],
             stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 },
             officialDate: null,
           }),
@@ -864,7 +868,7 @@ async function edgeHandler(req: Request) {
       enrichedBets.length > 0
         ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.win_confidence) || 0), 0)
         : data?.stats?.topLock || 0;
-    if (topLock > 0 && topLock <= 1.0) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
+    // Removed arbitrary double scaling bug here
     const topScore =
       enrichedBets.length > 0
         ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.bet_score) || 0), 0)

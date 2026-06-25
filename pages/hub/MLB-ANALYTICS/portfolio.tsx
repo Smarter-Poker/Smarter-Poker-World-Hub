@@ -387,7 +387,7 @@ export default function PortfolioPage() {
                     key={d}
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch (e) {}
+                        try { navigator.vibrate(15); } catch (e) { console.error(e); }
                       }
                       setDaysFilter(d);
                     }}
@@ -400,7 +400,7 @@ export default function PortfolioPage() {
                 <button
                   onClick={() => {
                     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                      try { navigator.vibrate(15); } catch (e) {}
+                      try { navigator.vibrate(15); } catch (e) { console.error(e); }
                     }
                     setDaysFilter(null);
                   }}
@@ -424,7 +424,7 @@ export default function PortfolioPage() {
                     key={m.val}
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch (e) {}
+                        try { navigator.vibrate(15); } catch (e) { console.error(e); }
                       }
                       setMarketFilter(m.val);
                     }}

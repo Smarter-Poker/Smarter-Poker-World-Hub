@@ -157,7 +157,7 @@ const PlayerPicker = ({
                   onClick={() => {
                     try {
                       navigator.vibrate(15);
-                    } catch (err) {}
+                    } catch (err) { console.error(err); }
                     onPick(p.player_id);
                     setQ('');
                   }}

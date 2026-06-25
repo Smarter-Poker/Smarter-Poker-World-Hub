@@ -211,7 +211,7 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try { navigator.vibrate(15); } catch (e) { console.error(e); }
               }
               setDays(7);
             }}
@@ -222,7 +222,7 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try { navigator.vibrate(15); } catch (e) { console.error(e); }
               }
               setDays(30);
             }}
@@ -233,7 +233,7 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) {}
+                try { navigator.vibrate(15); } catch (e) { console.error(e); }
               }
               setDays(null);
             }}

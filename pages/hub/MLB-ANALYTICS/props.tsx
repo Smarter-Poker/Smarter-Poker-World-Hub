@@ -398,7 +398,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
                 try {
                   navigator.vibrate(15);
-                } catch (e) {}
+                } catch (e) { console.error(e); }
               }
               onClose();
             }}
@@ -1243,7 +1243,7 @@ export default function PropsPage() {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                   try {
                     navigator.vibrate(15);
-                  } catch (e) {}
+                  } catch (e) { console.error(e); }
                 }
                 setFilter(f.label);
               }}
@@ -1389,7 +1389,7 @@ export default function PropsPage() {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     try {
                       navigator.vibrate(15);
-                    } catch (e) {}
+                    } catch (e) { console.error(e); }
                   }
                   setVisible((v) => v + PAGE_SIZE);
                 }}

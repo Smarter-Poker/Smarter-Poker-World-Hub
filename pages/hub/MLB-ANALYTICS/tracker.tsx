@@ -304,7 +304,7 @@ export default function TrackerPage() {
                 if (navigator.vibrate)
                   try {
                     navigator.vibrate(15);
-                  } catch (e) {}
+                  } catch (e) { console.error(e); }
               }}
               className={`min-h-[44px] px-5 py-2 rounded-sm border-[2px] text-[17px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all capitalize ${
                 filter === f

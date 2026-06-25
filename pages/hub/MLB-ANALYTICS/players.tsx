@@ -308,7 +308,7 @@ const TeamSelectorRow = React.memo(
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             try {
               navigator.vibrate(15);
-            } catch (e) {}
+            } catch (e) { console.error(e); }
           }
           onSelect(teamId);
         }}
@@ -666,7 +666,7 @@ export default function PlayersPage() {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     try {
                       navigator.vibrate(15);
-                    } catch (e) {}
+                    } catch (e) { console.error(e); }
                   }
                   setSearchQuery('');
                   setSelectedTeam(null);
@@ -735,7 +735,7 @@ export default function PlayersPage() {
                   if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     try {
                       navigator.vibrate(15);
-                    } catch (e) {}
+                    } catch (e) { console.error(e); }
                   }
                   setActiveTab(tab);
                   setSortKey('default');
@@ -954,7 +954,7 @@ export default function PlayersPage() {
                         if (typeof navigator !== 'undefined' && navigator.vibrate) {
                           try {
                             navigator.vibrate(15);
-                          } catch (e) {}
+                          } catch (e) { console.error(e); }
                         }
                         setSelectedTeam(null);
                         setSearchQuery('');
@@ -983,7 +983,7 @@ export default function PlayersPage() {
                             if (typeof navigator !== 'undefined' && navigator.vibrate) {
                               try {
                                 navigator.vibrate(15);
-                              } catch (e) {}
+                              } catch (e) { console.error(e); }
                             }
                             setVisibleCount((c) => c + 50);
                           }}
@@ -1013,7 +1013,7 @@ export default function PlayersPage() {
                         if (typeof navigator !== 'undefined' && navigator.vibrate) {
                           try {
                             navigator.vibrate(15);
-                          } catch (e) {}
+                          } catch (e) { console.error(e); }
                         }
                         setSearchQuery('');
                         setSelectedTeam(null);

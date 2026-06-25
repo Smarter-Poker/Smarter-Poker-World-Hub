@@ -110,7 +110,7 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
 
   return (
     <button
-      onClick={() => { try { navigator.vibrate(15); } catch(err) {} 
+      onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } 
                   onSync();
                   setHasUpdate(false);
                 }}
@@ -145,7 +145,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     try {
       const parsed = typeof g.bet.score_factors === 'string' ? JSON.parse(g.bet.score_factors) : g.bet.score_factors;
       if (Array.isArray(parsed)) mlFactors = parsed.map((f: any) => f.text).join('\n');
-    } catch(e) {}
+    } catch (e) { console.error(e); }
     
     const teamName = g.bet.team?.split(' ').pop() || 'Hold';
     const priceStr = g.bet.price != null ? (g.bet.price > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
@@ -167,7 +167,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     try {
       const parsed = typeof g.runLineBet.score_factors === 'string' ? JSON.parse(g.runLineBet.score_factors) : g.runLineBet.score_factors;
       if (Array.isArray(parsed)) rlFactors = parsed.map((f: any) => f.text).join('\n');
-    } catch(e) {}
+    } catch (e) { console.error(e); }
     
     let teamName = '';
     let lineStr = '';
@@ -197,7 +197,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     try {
       const parsed = typeof g.totalBet.score_factors === 'string' ? JSON.parse(g.totalBet.score_factors) : g.totalBet.score_factors;
       if (Array.isArray(parsed)) ouFactors = parsed.map((f: any) => f.text).join('\n');
-    } catch(e) {}
+    } catch (e) { console.error(e); }
 
     let choice = '';
     let lineStr = '';
@@ -311,7 +311,7 @@ function FilterBar({
 
       {/* Actionable */}
       <button
-        onClick={() => { try { navigator.vibrate(15); } catch(err) {} return onFilter({ ...filters, actionable: !filters.actionable }); }}
+        onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return onFilter({ ...filters, actionable: !filters.actionable }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.actionable
             ? 'bg-[#0d1117] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -330,7 +330,7 @@ function FilterBar({
 
       {/* Props Only */}
       <button
-        onClick={() => { try { navigator.vibrate(15); } catch(err) {} return onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
+        onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.propsOnly
             ? 'bg-[#0d1117] border-[#00BFFF] shadow-[0_0_10px_rgba(0,191,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
