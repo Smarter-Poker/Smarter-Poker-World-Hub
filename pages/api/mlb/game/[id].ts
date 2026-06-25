@@ -8,31 +8,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const mlbDb = getMlbSupabase();
-  const { data, error } = await mlbDb
-    .from('raw_games')
-    .select('*')
+  const { data: g, error: gErr } = await mlbDb
+    .from('fact_games')
+    .select('official_date')
     .eq('game_pk', Number(id))
     .maybeSingle();
 
-  if (error || !data) {
-    return res.status(404).json({ error: 'Game not found' });
+  if (gErr || !g?.official_date) {
+    return res.status(404).json({ error: 'Game not found in fact_games' });
   }
 
-  // Transform it so the UI recognizes it as a GameCard
-  const transformed = {
-    gamePk: data.game_pk,
-    gameTime: data.game_date,
-    firstPitch: data.game_date,
-    status: data.status_abstract_game_state,
-    homeId: data.home_team_id,
-    awayId: data.away_team_id,
-    home: data.home_team_name || 'Home',
-    away: data.away_team_name || 'Away',
-    home_score: data.home_score || 0,
-    away_score: data.away_score || 0,
-    home_pitcher: data.home_probable_pitcher_name || null,
-    away_pitcher: data.away_probable_pitcher_name || null,
-  };
+  const { getSlate } = await import('../../../../src/lib/mlb_data');
+  const slate = await getSlate(g.official_date);
+  const found = slate.find((card) => card.gamePk === Number(id));
 
-  res.status(200).json(transformed);
+  if (!found) {
+    return res.status(404).json({ error: 'Game not found in slate' });
+  }
+
+  res.status(200).json(found);
 }

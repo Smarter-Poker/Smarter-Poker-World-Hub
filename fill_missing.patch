@@ -1,0 +1,67 @@
+--- pages/api/mlb/best-bets.ts
++++ pages/api/mlb/best-bets.ts
+@@ -724,8 +724,53 @@
+ 
+ 
+     // Enrich bets from RPC result
+-    const rawBets = data?.bets || [];
++    let rawBets = data?.bets || [];
++
++    // --- ZERO-BIAS CATEGORY FILLER ---
++    // Ensure a minimum of 3 bets per category. If missing, fetch top 10 for that market by raw edge.
++    let extraBets: any[] = [];
++    if (data?.officialDate) {
++      const neededMarkets = [
++        'run_line', 'total', 
++        'first_5_moneyline', 'first_5_run_line', 'first_5_total', 'first_5_team_total', 'team_total'
++      ];
++      for (const mkt of neededMarkets) {
++        const count = rawBets.filter((b: any) => b.market === mkt).length;
++        if (count < 3) {
++          const { data: fallback } = await mlbDb
++            .from('pred_mlb_predictions')
++            .select('*')
++            .eq('official_date', data.officialDate)
++            .eq('market', mkt)
++            .order('edge', { ascending: false, nullsFirst: false })
++            .limit(10);
++          if (fallback) extraBets = extraBets.concat(fallback);
++        }
++      }
++      
++      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
++      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
++      const propTypes = ['pitcher_strikeouts', 'hitter_props', 'outs_recorded', 'hits', 'bases'];
++      
++      for (const pt of propTypes) {
++        const count = rawBets.filter((b: any) => b.prop === pt || b.market === pt).length;
++        if (count < 3) {
++          const { data: propFallback } = await mlbDb
++            .from('pred_props')
++            .select('*')
++            .gte('as_of_ts', startIso)
++            .lt('as_of_ts', endIso)
++            .eq('prop', pt)
++            .order('edge_pts', { ascending: false, nullsFirst: false })
++            .limit(10);
++          if (propFallback) {
++            const mapped = propFallback.map(p => ({ ...p, market: p.prop, bet_type: 'prop' }));
++            extraBets = extraBets.concat(mapped);
++          }
++        }
++      }
++      
++      if (extraBets.length > 0) rawBets = rawBets.concat(extraBets);
++    }
++
+     const enrichedBets = await enrichBets(rawBets, mlbDb);
+ 
+     // Fetch pure highest win probability moneylines (regardless of edge) for Most Likely To Win
+@@ -756,6 +801,7 @@
+     return new Response(
+       JSON.stringify({
+         bets: enrichedBets,
++        topMoneylines: topMoneylines,
+         stats: {
+           totalBets: data?.stats?.totalBets || 0,
+           // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), derived from the returned

@@ -760,10 +760,6 @@ async function edgeHandler(req: Request) {
 
     // Fetch missing categories to guarantee minimum 3 for UI carousels
     let topMoneylines: any[] = [];
-    let topRunlines: any[] = [];
-    let topTotals: any[] = [];
-    let topHomers: any[] = [];
-    
     if (data?.officialDate) {
       const { data: rawTopML } = await mlbDb
         .from('pred_mlb_predictions')
@@ -773,33 +769,63 @@ async function edgeHandler(req: Request) {
         .order('model_prob', { ascending: false })
         .limit(10);
       if (rawTopML && rawTopML.length > 0) topMoneylines = await enrichBets(rawTopML, mlbDb);
+    }
 
-      const { data: rawTopRL } = await mlbDb
-        .from('pred_mlb_predictions')
-        .select('*')
-        .eq('official_date', data.officialDate)
-        .in('market', ['run_line', 'spread'])
-        .order('edge_pts', { ascending: false })
-        .limit(10);
-      if (rawTopRL && rawTopRL.length > 0) topRunlines = await enrichBets(rawTopRL, mlbDb);
-
-      const { data: rawTopTot } = await mlbDb
-        .from('pred_mlb_predictions')
-        .select('*')
-        .eq('official_date', data.officialDate)
-        .eq('market', 'total')
-        .order('edge_pts', { ascending: false })
-        .limit(10);
-      if (rawTopTot && rawTopTot.length > 0) topTotals = await enrichBets(rawTopTot, mlbDb);
-
-      const { data: rawTopHR } = await mlbDb
-        .from('pred_mlb_predictions')
-        .select('*')
-        .eq('official_date', data.officialDate)
-        .in('market', ['home_run', 'hr'])
-        .order('win_confidence', { ascending: false })
-        .limit(10);
-      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR, mlbDb);
+    // --- ZERO-BIAS CATEGORY FILLER ---
+    let extraBets: any[] = [];
+    if (data?.officialDate) {
+      const neededMarkets = [
+        { market: 'run_line', bet_type: 'line' },
+        { market: 'total', bet_type: 'game' },
+        { market: 'first_5_moneyline', bet_type: 'game' },
+        { market: 'first_5_run_line', bet_type: 'line' },
+        { market: 'first_5_total', bet_type: 'game' },
+        { market: 'first_5_team_total', bet_type: 'team_total' },
+        { market: 'team_total', bet_type: 'team_total' }
+      ];
+      for (const mkt of neededMarkets) {
+        const count = enrichedBets.filter((b: any) => b.market === mkt.market).length;
+        if (count < 3) {
+          const { data: fallback } = await mlbDb
+            .from('pred_mlb_predictions')
+            .select('*')
+            .eq('official_date', data.officialDate)
+            .eq('market', mkt.market)
+            .order('edge', { ascending: false, nullsFirst: false })
+            .limit(10);
+          if (fallback) {
+            const mapped = fallback.map(f => ({ ...f, bet_type: mkt.bet_type }));
+            extraBets = extraBets.concat(mapped);
+          }
+        }
+      }
+      
+      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
+      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
+      const propTypes = ['pitcher_strikeouts', 'hitter_props', 'outs_recorded', 'hits', 'bases'];
+      
+      for (const pt of propTypes) {
+        const count = enrichedBets.filter((b: any) => b.prop === pt || b.market === pt).length;
+        if (count < 3) {
+          const { data: propFallback } = await mlbDb
+            .from('pred_props')
+            .select('*')
+            .gte('as_of_ts', startIso)
+            .lt('as_of_ts', endIso)
+            .eq('prop', pt)
+            .order('edge_pts', { ascending: false, nullsFirst: false })
+            .limit(10);
+          if (propFallback) {
+            const mapped = propFallback.map(p => ({ ...p, market: p.prop, bet_type: 'prop' }));
+            extraBets = extraBets.concat(mapped);
+          }
+        }
+      }
+      
+      if (extraBets.length > 0) {
+        const enrichedExtra = await enrichBets(extraBets, mlbDb);
+        enrichedBets.push(...enrichedExtra);
+      }
     }
 
     // Headline Top Score / Top Lock from the enriched rows so they match the displayed pick list
@@ -823,9 +849,6 @@ async function edgeHandler(req: Request) {
           topLock: topLock,
         },
         topMoneylines,
-        topRunlines,
-        topTotals,
-        topHomers,
         officialDate: data?.officialDate || null,
       }),
       {

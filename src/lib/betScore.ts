@@ -24,17 +24,12 @@ export function winConfidence(p: number): number {
 }
 
 function evValue(ev: number): number {
-  const e = Math.min(ev, 25);
-  return 100 / (1 + Math.exp(-(e - 2) / 4));
+  return 100 / (1 + Math.exp(-(ev - 2) / 4));
 }
 
 
 
-export function betScore(
-  pWin: number,
-  american: number,
-  opts: { vol?: boolean; lineupLocked?: boolean; pMarket?: number | null } = {},
-): number {
+export function betScore(pWin: number, american: number): number {
   const ev = evPct(pWin, american);
   const base = evValue(ev);
   return Math.round(Math.max(1, Math.min(99, base)));

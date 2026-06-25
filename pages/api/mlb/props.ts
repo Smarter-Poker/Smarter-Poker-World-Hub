@@ -404,11 +404,14 @@ export default async function edgeHandler(req: Request) {
     const unresolvedIds = uniquePlayerIds.filter((id) => !playerMap.has(id));
 
     if (unresolvedIds.length > 0) {
-      const { data: fallback, error: fbErr } = await mlbDb
+      const fallback = await fetchAllRows(() => mlbDb
         .from('dim_players')
         .select('player_id, full_name')
-        .in('player_id', unresolvedIds);
-      if (fbErr) console.error('[API/MLB/Props] dim_players fallback error:', fbErr);
+        .in('player_id', unresolvedIds)
+      ).catch((fbErr) => {
+        console.error('[API/MLB/Props] dim_players fallback error:', fbErr);
+        return null;
+      });
       for (const f of fallback || []) {
         if (f.player_id && !playerMap.has(f.player_id)) {
           const aggB = aggBatterMap.get(f.player_id);

@@ -24,6 +24,7 @@ import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../../src/lib/mlbStatGlossary';
 import HrBetTracker from '../../../../src/components/mlb/HrBetTracker';
 import HrMatchupConditions from '../../../../src/components/mlb/HrMatchupConditions';
+import { teamLogo, playerHeadshot } from '../../../../src/lib/mlb_data';
 
 const MLB_TEAMS: Record<number, string> = {
   108: 'Los Angeles Angels',
@@ -334,7 +335,7 @@ export default function PlayerProfilePage() {
   });
 
   const headshotUrl = id
-    ? `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${id}/headshot/67/current`
+    ? playerHeadshot(Number(id)) || '/default-avatar.png'
     : '/default-avatar.png';
   const status = (error as any)?.status;
   const isNotFound = !!error && status === 404;
@@ -531,7 +532,7 @@ export default function PlayerProfilePage() {
                   {player.team_id && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`https://www.mlbstatic.com/team-logos/${player.team_id}.svg`}
+                      src={teamLogo(player.team_id) || ''}
                       alt={teamName || 'Team'}
                       loading="lazy"
                       width={40}
