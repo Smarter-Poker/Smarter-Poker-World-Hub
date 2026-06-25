@@ -442,7 +442,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
               </div>
             )}
             {bet?.matchup && (
-              <div className="text-[21px] font-black text-[#5a6a7a] mt-2 tracking-widest capitalize">
+              <div className="text-[21px] font-black text-[#5a6a7a] mt-2 tracking-widest uppercase">
                 {formatMatchup(bet.matchup)}
               </div>
             )}
@@ -1287,7 +1287,7 @@ const BetCard = ({
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             {/* For totals: show both teams in smaller multi-line text; otherwise single-line truncate */}
             <div
-              className={`font-black text-[#5a6a7a] capitalize mb-0.5 ${
+              className={`font-black text-[#5a6a7a] uppercase mb-0.5 ${
                 isTotalBet
                   ? 'text-[12px] tracking-wide leading-snug'
                   : 'text-[17px] tracking-widest truncate'

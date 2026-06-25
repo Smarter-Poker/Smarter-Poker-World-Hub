@@ -526,7 +526,7 @@ export default async function edgeHandler(req: Request) {
       let score_verdict: string | null = null;
       let score_factors: ScoreFactor[] = [];
       if (pWin != null && price != null && price !== 0) {
-        const ex = explain(pWin, price, { pMarket, lineupLocked: true });
+        const ex = explain(pWin, price);
         bet_score = ex.betScore;
         bet_tier = ex.tier;
         win_confidence = ex.winConfidence;
