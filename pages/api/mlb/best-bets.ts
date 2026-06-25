@@ -833,9 +833,6 @@ async function edgeHandler(req: Request) {
           }
         }
       }
-      
-      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
-      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
       const propTypes = [
         'pitcher_strikeouts',
         'hits',
