@@ -389,7 +389,7 @@ export default function HRTrackerPage() {
   const spotlight = useMemo(
     () =>
       [...players]
-        .filter((p) => p.hr >= 3 && p.due_score > 0)
+        .filter((p) => p.due_score > 0)
         .sort((a, b) => b.due_score - a.due_score || b.hr - a.hr)
         .slice(0, 5),
     [players]
