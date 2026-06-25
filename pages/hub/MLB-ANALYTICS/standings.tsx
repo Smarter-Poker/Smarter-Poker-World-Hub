@@ -12,6 +12,7 @@ import { Trophy, Activity, Zap } from 'lucide-react';
 import { logError } from '@/utils/logger';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import SectionHeader from '../../../src/components/ui/SectionHeader';
+import { teamLogo } from '../../../src/lib/mlb_data';
 
 type PlayoffStatus = 'div' | 'wc' | null;
 
@@ -112,7 +113,7 @@ function TeamLogo({ teamId, abbr }: { teamId: number; abbr: string }) {
         unoptimized
         width={20}
         height={20}
-        src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+        src={teamLogo(teamId) || ''}
         alt={abbr}
         style={{ objectFit: 'contain' }}
         onError={() => setImgError(true)}
