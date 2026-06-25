@@ -754,10 +754,11 @@ async function edgeHandler(req: Request) {
         .select('*')
         .gte('as_of_ts', startIso)
         .lt('as_of_ts', endIso)
-        .in('prop', ['home_run', 'hr', 'hrr'])
-        .order('edge_pts', { ascending: false })
-        .limit(10);
-      if (rawTopHR && rawTopHR.length > 0) topHomers = await enrichBets(rawTopHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
+        .in('prop', ['home_run', 'hr', 'hrr']);
+      if (rawTopHR && rawTopHR.length > 0) {
+        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
+      }
 
       return new Response(
         JSON.stringify({
@@ -854,11 +855,10 @@ async function edgeHandler(req: Request) {
             .select('*')
             .gte('as_of_ts', startIso)
             .lt('as_of_ts', endIso)
-            .eq('prop', pt)
-            .order('edge_pts', { ascending: false, nullsFirst: false })
-            .limit(10);
-          if (propFallback) {
-            const mapped = propFallback.map(p => ({ ...p, market: p.prop, bet_type: 'prop' }));
+            .eq('prop', pt);
+          if (propFallback && propFallback.length > 0) {
+            const dedupedProp = dedupeLatestBets(propFallback).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+            const mapped = dedupedProp.map(p => ({ ...p, market: p.prop, bet_type: 'prop' }));
             extraBets = extraBets.concat(mapped);
           }
         }
