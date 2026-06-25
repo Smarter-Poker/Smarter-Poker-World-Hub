@@ -449,12 +449,8 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // DATA PENALIZATION (The "Rodriguez-Cruz" Fix)
-    // Globally penalize unproven pitchers (< 25 IP) so the model stops
-    // favoring them or their teams over proven superstars.
-    // ─────────────────────────────────────────────────────────────────
-    let penaltyApplied = false;
+    
+    
     let pitcherToEvaluateId: number | null = null;
     let opposingPitcherToEvaluateId: number | null = null;
 
@@ -519,50 +515,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         }
       }
 
-      // If the pitcher has fewer than 25 IP, penalize the bet severely
-      if (!aggP || Number(aggP.ip) < 25) {
-        enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 20);
-        enriched.bet_tier = tier(enriched.bet_score);
-        enriched.win_confidence = Math.max(0, (enriched.win_confidence || 0) - 0.15);
-        penaltyApplied = true;
-        enriched.penalty_reason = `Reduced score: Low data sample on starting pitcher (<25 IP).`;
-
-        let factors: any[] = [];
-        if (typeof enriched.score_factors === 'string') {
-          try {
-            factors = JSON.parse(enriched.score_factors);
-          } catch {}
-        } else if (Array.isArray(enriched.score_factors)) {
-          factors = [...enriched.score_factors];
-        }
-        factors.push({ dir: 'down', text: enriched.penalty_reason });
-        enriched.score_factors = factors;
-      }
     }
 
-    // Penalize if opposing pitcher is a proven superstar with elite ERA and our pitcher is not
-    if (opposingPitcherToEvaluateId && !penaltyApplied) {
-      const oppP = aggPitcherMap.get(opposingPitcherToEvaluateId);
-      const ourP = pitcherToEvaluateId ? aggPitcherMap.get(pitcherToEvaluateId) : null;
-      if (oppP && oppP.era < 3.0 && Number(oppP.ip) > 50) {
-        if (!ourP || ourP.era > 4.5 || Number(ourP.ip) < 25) {
-          enriched.bet_score = Math.max(0, (enriched.bet_score || 0) - 15);
-          enriched.bet_tier = tier(enriched.bet_score);
-          enriched.penalty_reason = `Reduced score: Opposing pitcher is elite (ERA < 3.00) vs unproven/weak starter.`;
-
-          let factors: any[] = [];
-          if (typeof enriched.score_factors === 'string') {
-            try {
-              factors = JSON.parse(enriched.score_factors);
-            } catch {}
-          } else if (Array.isArray(enriched.score_factors)) {
-            factors = [...enriched.score_factors];
-          }
-          factors.push({ dir: 'down', text: enriched.penalty_reason });
-          enriched.score_factors = factors;
-        }
-      }
-    }
+    // Removed arbitrary Rodriguez-Cruz data penalization to ensure pure data-driven edges.
 
     if (enriched.team_id) {
       const ts = teamStatMap.get(enriched.team_id);
@@ -630,78 +585,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     return enriched;
   });
 }
-
-
-async function padBets(betsArr: any[], targetDate: string, mlbDb: any): Promise<any[]> {
-  if (!targetDate) return betsArr;
-  try {
-    const { data: fallbackBets } = await mlbDb
-      .from('pred_mlb_predictions')
-      .select('*')
-      .eq('official_date', targetDate)
-      .order('bet_score', { ascending: false })
-      .limit(500);
-
-    if (!fallbackBets || fallbackBets.length === 0) return betsArr;
-
-    let padded = [...betsArr];
-    const cats: Record<string, number> = {
-      moneyline: 0,
-      run_line: 0,
-      total: 0,
-      home_run: 0,
-      pitching_outs: 0,
-      pitcher_strikeouts: 0,
-      hitter_bases: 0,
-      hitter_hits: 0,
-      hitter_rbis: 0,
-      first_five_innings: 0,
-      first_inning: 0,
-      team_total: 0,
-    };
-
-    const getCat = (b: any) => {
-      const m = (b.market || '').toLowerCase();
-      const bt = (b.bet_type || '').toLowerCase();
-      if (bt === 'line' && (m === 'h2h' || m === 'moneyline')) return 'moneyline';
-      if (bt === 'line' && (m === 'run_line' || m === 'runline' || m === 'spread')) return 'run_line';
-      if (bt === 'line' && m === 'total') return 'total';
-      if (m === 'home_run' || m === 'hr' || m.includes('home_run')) return 'home_run';
-      if (m === 'pitching_outs') return 'pitching_outs';
-      if (m === 'pitcher_strikeouts') return 'pitcher_strikeouts';
-      if (m === 'hitter_bases' || m === 'total_bases') return 'hitter_bases';
-      if (m === 'hitter_hits') return 'hitter_hits';
-      if (m === 'hitter_rbis') return 'hitter_rbis';
-      if (m === 'first_five_innings' || m === 'first_5_innings' || m === 'f5') return 'first_five_innings';
-      if (m === 'first_inning' || m === 'yrfi' || m === 'nrfi') return 'first_inning';
-      if (m === 'team_total') return 'team_total';
-      return null;
-    };
-
-    const existingIds = new Set<string>();
-    padded.forEach((b: any) => {
-      const cat = getCat(b);
-      if (cat) cats[cat]++;
-      existingIds.add(b.id || `${b.game_pk}-${b.selection}-${b.market}`);
-    });
-
-    for (const fb of fallbackBets) {
-      const cat = getCat(fb);
-      const fbid = fb.id || `${fb.game_pk}-${fb.selection}-${fb.market}`;
-      if (cat && cats[cat] < 3 && !existingIds.has(fbid)) {
-        padded.push(fb);
-        cats[cat]++;
-        existingIds.add(fbid);
-      }
-    }
-    return padded;
-  } catch (err) {
-    console.error('Error padding bets:', err);
-    return betsArr;
-  }
-}
-
-
 async function edgeHandler(req: Request) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
@@ -769,8 +652,7 @@ async function edgeHandler(req: Request) {
       }
 
       const betsArr = dedupeLatestBets(bets || []);
-      const paddedBetsArr = await padBets(betsArr, officialDate, mlbDb);
-      const enriched = await enrichBets(paddedBetsArr, mlbDb);
+      const enriched = await enrichBets(betsArr, mlbDb);
 
       const totalBets = enriched.length;
       // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), matching src/lib/betScore.ts —
@@ -799,8 +681,7 @@ async function edgeHandler(req: Request) {
 
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
-    const paddedBets = await padBets(rawBets, data?.officialDate, mlbDb);
-    const enrichedBets = await enrichBets(paddedBets, mlbDb);
+    const enrichedBets = await enrichBets(rawBets, mlbDb);
 
     // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
     // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.

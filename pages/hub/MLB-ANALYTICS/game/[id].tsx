@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { useRouter } from 'next/router';
 import { useMemo, useState, useEffect } from 'react';
 import useSWR from 'swr';
@@ -46,6 +48,7 @@ export default function GameMatchupDashboard() {
   const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, {
     refreshInterval: 120000,
   });
+  const { data: specificGameData, error: specificGameErr } = useSWR(gamePk && (!dashData || !dashData.slateGames?.find((g: any) => g.gamePk === gamePk)) ? `/api/mlb/game/${gamePk}` : null, fetcher);
   // Fetch bets and props — model output updates daily, check every 5 min
   const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, {
     refreshInterval: 300000,
@@ -54,12 +57,16 @@ export default function GameMatchupDashboard() {
     refreshInterval: 300000,
   });
 
-  const isLoading = (!dashData && !dashErr) || (!betsData && !betsErr) || (!propsData && !propsErr);
+  const isLoading = (!dashData && !dashErr && !specificGameData && !specificGameErr) || (!betsData && !betsErr) || (!propsData && !propsErr);
 
   const game: GameCard | undefined = useMemo(() => {
-    if (!dashData?.slateGames || !gamePk) return undefined;
-    return dashData.slateGames.find((g: GameCard) => g.gamePk === gamePk);
-  }, [dashData, gamePk]);
+    if (!gamePk) return undefined;
+    if (dashData?.slateGames) {
+      const found = dashData.slateGames.find((g: GameCard) => g.gamePk === gamePk);
+      if (found) return found;
+    }
+    return specificGameData;
+  }, [dashData, specificGameData, gamePk]);
 
   const gameBets = useMemo(() => {
     if (!game || !betsData?.bets) return [];
@@ -407,17 +414,21 @@ export default function GameMatchupDashboard() {
                       className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/40 transition-colors cursor-pointer focus:outline-none focus:border-[#00D4FF]/60"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={playerHeadshot(prop.player_id) || teamLogo(prop.team_id) || ''}
-                          alt={prop.player_name}
-                          className="w-10 h-10 rounded-full object-cover bg-[#060B14] border border-[#1A2436] shrink-0"
-                          loading="lazy"
-                        />
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white truncate">
-                            {prop.player_name}
-                          </span>
+                        <Link href={`/hub/MLB-ANALYTICS/players/${prop.player_id}`} className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={playerHeadshot(prop.player_id) || teamLogo(prop.team_id) || ''}
+                            alt={prop.player_name}
+                            className="w-10 h-10 rounded-full object-cover bg-[#060B14] border border-[#1A2436] shrink-0"
+                            loading="lazy"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white truncate hover:text-[#00D4FF] transition-colors">
+                              {prop.player_name}
+                            </span>
+                          </div>
+                        </Link>
+                        <div className="flex flex-col min-w-0 justify-end pb-1">
                           <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
                             {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
                           </span>

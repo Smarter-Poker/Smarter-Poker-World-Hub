@@ -265,7 +265,12 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   const [imgError, setImgError] = useState(false);
   const { color: tierColor, glow: tierGlow, bg: tierBg } = getTierColors(bet.bet_tier || '');
 
-  // Removed body overflow lock
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -863,6 +868,39 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
           </div>
         )}
 
+        {/* Actions */}
+        <div className="px-4 py-4 grid grid-cols-2 gap-3 mt-4">
+          <Link
+            href={`/hub/MLB-ANALYTICS/game/${bet.game_pk || bet.game_id}`}
+            className="flex items-center justify-center gap-2 bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-sm hover:border-[#00D4FF] hover:bg-[#00D4FF]/10 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Activity size={16} className="text-[#00D4FF]" />
+            <span className="font-['Rajdhani'] text-[21px] font-black text-white capitalize tracking-widest leading-none">
+              Matchup
+            </span>
+          </Link>
+          {bet.player_id ? (
+            <Link
+              href={`/hub/MLB-ANALYTICS/players/${bet.player_id}`}
+              className="flex items-center justify-center gap-2 bg-[#0d1117] border border-[#3d4f5f] p-3 rounded-sm hover:border-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Zap size={16} className="text-[#FFD700]" />
+              <span className="font-['Rajdhani'] text-[21px] font-black text-white capitalize tracking-widest leading-none">
+                Profile
+              </span>
+            </Link>
+          ) : (
+            <div className="flex items-center justify-center gap-2 bg-[#0a0f1a] border border-[#2a3a4a] p-3 rounded-sm opacity-50 cursor-not-allowed">
+              <Shield size={16} className="text-slate-500" />
+              <span className="font-['Rajdhani'] text-[21px] font-black text-slate-500 capitalize tracking-widest leading-none">
+                Team
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Disclaimer */}
         <div className="px-4 py-4 mt-auto">
           <div className="text-[16px] text-[#5a6a7a] text-center leading-relaxed font-black tracking-wide  capitalize">
@@ -1301,8 +1339,7 @@ const CategoryCarousel = ({
 }) => {
   if (!bets || bets.length === 0) return null;
 
-  // Render every real bet the model produced for this category. No empty
-  // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
+  // Render up to 10 best bets per the user's specific limits. Grid flows N cards into
   // rows, so a category with 1 bet shows 1 card and a category with 8 shows 8.
   // The length===0 guard above is the only (graceful) empty state.
   return (
@@ -1361,14 +1398,14 @@ export default function BestBetsPage() {
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
     return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.win_pct) || 0) - (Number(a.win_pct) || 0))
+      .filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 10);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
     return [...bets]
-      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'))
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
@@ -1384,7 +1421,7 @@ export default function BestBetsPage() {
 
   const bestTotals = useMemo(() => {
     return [...bets]
-      .filter((b) => b.bet_type === 'line' && b.market === 'total')
+      .filter((b) => ['line', 'game'].includes(b.bet_type) && b.market === 'total')
       .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 

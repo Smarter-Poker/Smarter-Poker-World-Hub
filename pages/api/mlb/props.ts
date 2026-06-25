@@ -45,14 +45,14 @@ function inferSide(
   pMarketOver: number | null,
   proj: number | null,
   line: number | null
-): 'over' | 'under' {
+): 'over' | 'under' | null {
   const r = (rec || '').toUpperCase();
   if (r.includes('UNDER')) return 'under';
   if (r.includes(' OVER') || r.startsWith('OVER')) return 'over';
   if (pOver != null && pMarketOver != null) return pOver >= pMarketOver ? 'over' : 'under';
   if (proj != null && line != null) return Number(proj) > Number(line) ? 'over' : 'under';
   if (pOver != null) return pOver >= 0.5 ? 'over' : 'under';
-  return 'over';
+  return null;
 }
 
 // Fair American odds (integer) implied by a no-vig probability (0..1). Used to
@@ -320,6 +320,11 @@ export default async function edgeHandler(req: Request) {
       l?: number | null;
       so?: number | null;
       whip?: number | null;
+      ip?: number | null;
+      g?: number | null;
+      gs?: number | null;
+      k_per_ip?: number | null;
+      k_per_g?: number | null;
     };
 
     const playerMap = new Map<number, PlayerEntry>();
@@ -455,6 +460,7 @@ export default async function edgeHandler(req: Request) {
       const pMarketOver = p.market_novig_over != null ? Number(p.market_novig_over) : null;
 
       const side = inferSide(p.rec, pOver, pMarketOver, p.proj_mean as any, p.line as any);
+      if (!side) return null;
       const isOver = side === 'over';
 
       // Win prob / market prob for the RECOMMENDED side.
@@ -477,7 +483,7 @@ export default async function edgeHandler(req: Request) {
         ? overPrice
         : underPrice != null
           ? underPrice
-          : fairAmericanFromProb(pMarket != null ? Math.min(0.985, pMarket + 0.023) : null);
+          : fairAmericanFromProb(pMarket);
       // Removed pathologically tight -600 clamping so heavy favorites still score.
       const priceIsReal = isOver ? overPrice != null : underPrice != null;
 
@@ -530,8 +536,8 @@ export default async function edgeHandler(req: Request) {
         price_estimated: !priceIsReal,
         was_bet: /^BET/i.test(String(p.rec || '')),
         // Graded outcome — present on closed/stale slates.
-        result: (p.result as string) ?? null,
-        pnl: p.pnl != null ? Number(p.pnl) : null,
+        result: (p?.result as string) ?? null,
+        pnl: p?.pnl != null ? Number(p?.pnl) : null,
         // Full stats payload
         stats: {
           avg: info.avg ?? null,
@@ -559,29 +565,29 @@ export default async function edgeHandler(req: Request) {
     });
 
     // Rank by Bet Score (desc), unscored last — same ordering principle as Best Bets.
-    mappedProps.sort((a, b) => (b.bet_score ?? -1) - (a.bet_score ?? -1));
+    mappedProps.sort((a, b) => (b?.bet_score ?? -1) - (a?.bet_score ?? -1));
 
     // Slate-level stats (tier counts use the canonical thresholds).
     const scored = mappedProps.filter((p) => p.bet_score != null);
     const stats = {
       total: mappedProps.length,
-      elite: scored.filter((p) => p.bet_tier === 'ELITE').length,
-      strong: scored.filter((p) => p.bet_tier === 'STRONG').length,
-      topScore: scored.reduce((m, p) => Math.max(m, p.bet_score ?? 0), 0),
-      topLock: scored.reduce((m, p) => Math.max(m, p.win_confidence ?? 0), 0),
+      elite: scored.filter((p) => p?.bet_tier === 'ELITE').length,
+      strong: scored.filter((p) => p?.bet_tier === 'STRONG').length,
+      topScore: scored.reduce((m, p) => Math.max(m, p?.bet_score ?? 0), 0),
+      topLock: scored.reduce((m, p) => Math.max(m, p?.win_confidence ?? 0), 0),
     };
 
     // Graded recap — the ENGINE'S ACTUAL BETS only (rec = "BET ..."), not every
     // priced prop, so the record/units reflect real model performance.
     const bets = mappedProps.filter(
-      (p) => p.was_bet && (p.result === 'win' || p.result === 'loss')
+      (p) => p?.was_bet && (p?.result === 'win' || p?.result === 'loss')
     );
     const results = {
       graded: bets.length,
-      wins: bets.filter((p) => p.result === 'win').length,
-      losses: bets.filter((p) => p.result === 'loss').length,
-      voided: mappedProps.filter((p) => p.was_bet && p.result === 'void').length,
-      units: Math.round(bets.reduce((s, p) => s + (p.pnl ?? 0), 0) * 100) / 100,
+      wins: bets.filter((p) => p?.result === 'win').length,
+      losses: bets.filter((p) => p?.result === 'loss').length,
+      voided: mappedProps.filter((p) => p?.was_bet && p?.result === 'void').length,
+      units: Math.round(bets.reduce((s, p) => s + (p?.pnl ?? 0), 0) * 100) / 100,
     };
 
     return new Response(

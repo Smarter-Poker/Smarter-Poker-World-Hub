@@ -113,7 +113,7 @@ async function edgeHandler(req: Request): Promise<Response> {
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
         betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types.map((b: any) => ({
           ...b,
-          sparkline: Array.isArray(rpcData.clv_trend) ? rpcData.clv_trend.slice(-8).map((d: any) => ({ date: d.date, clv: d.rolling_clv })) : [] // Stub using global trend until bet-type specific trend exists
+          sparkline: []
         })) : [],
       };
     } else {
@@ -349,8 +349,7 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     const bucket = Math.min(BUCKETS - 1, Math.floor(predicted_p * BUCKETS));
     bucketN[bucket] += n;
     const clv = r.avg_clv != null ? Number(r.avg_clv) : 0;
-    const win_rate_approx = predicted_p + (clv / 100) * 0.3;
-    bucketWins[bucket] += win_rate_approx * n;
+    
   }
 
   const calibration = Array.from({ length: BUCKETS }, (_, i) => {
@@ -358,20 +357,18 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     const high = low + 10;
     const mid = low + 5;
     const n = bucketN[i];
-    const actual = n > 0 ? (bucketWins[i] / n) * 100 : mid;
     return {
       bucket_label: `${low}-${high}%`,
       predicted_prob: mid,
-      actual_win_rate: Number(Math.min(100, Math.max(0, actual)).toFixed(1)),
+      actual_win_rate: 0,
       n,
     };
   }).filter((b) => b.n > 0);
 
   // ── Bet-type sparklines (last 8 CLV data points as portfolio proxy) ───────
-  const sparklineBase = clvTrend.slice(-8).map((d: any) => ({ date: d.date, clv: d.rolling_clv }));
   const betTypesWithSparklines = betTypes.map((b: any) => ({
     ...b,
-    sparkline: sparklineBase,
+    sparkline: [],
   }));
 
   return {

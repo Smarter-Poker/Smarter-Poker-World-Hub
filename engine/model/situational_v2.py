@@ -109,7 +109,8 @@ def _vs_record_adj(home_m: dict, away_m: dict, ctx: dict, cfg: dict) -> float:
         if n >= min_n:
             pct = w / n
             # Signal strength: deviation above/below .500 baseline (own prior embedded)
-            adj += cfg["vs_record_w"] * (pct - 0.55)   # 0.55 = expected win% vs losing
+            base_pct = float(home_m.get("win_pct") or 0.50)
+            adj += cfg["vs_record_w"] * (pct - base_pct)
 
     elif opp_wpct >= 0.500:
         # Away team is winning — look at home team's vs_winning record
@@ -119,7 +120,8 @@ def _vs_record_adj(home_m: dict, away_m: dict, ctx: dict, cfg: dict) -> float:
         n = w + l_
         if n >= min_n:
             pct = w / n
-            adj += cfg["vs_record_w"] * (pct - 0.45)   # 0.45 = expected vs good teams
+            base_pct = float(home_m.get("win_pct") or 0.50)
+            adj += cfg["vs_record_w"] * (pct - base_pct)
 
     return adj
 
@@ -156,8 +158,7 @@ def _rest_adj(home_ctx: dict, away_ctx: dict, cfg: dict) -> float:
         return 0.0
     delta = int(h_rest) - int(a_rest)
     # Scale: 1-day advantage ≈ +cfg[rest_w] / 2; cap at 2 days
-    scaled = max(-2, min(2, delta))
-    return cfg["rest_w"] * scaled * 0.03   # keep units in log-odds fraction
+    return cfg["rest_w"] * delta
 
 
 def _park_adj(home_ctx: dict, cfg: dict) -> float:
@@ -167,7 +168,7 @@ def _park_adj(home_ctx: dict, cfg: dict) -> float:
     if pf is None:
         return 0.0
     # Normalise: (pf - 100) / 100 → small fraction, weighted
-    return cfg["park_w"] * (float(pf) - 100) / 100 * 0.10
+    return cfg["park_w"] * (float(pf) - 100) / 100
 
 
 def _ump_adj(home_ctx: dict, cfg: dict) -> float:
@@ -177,7 +178,7 @@ def _ump_adj(home_ctx: dict, cfg: dict) -> float:
         return 0.0
     # League-avg K/9 ≈ 8.7; ump-driven variance ≈ ±0.5
     delta = (float(ump_k) - 8.7) / 0.5
-    return cfg["ump_w"] * delta * 0.02
+    return cfg["ump_w"] * delta
 
 
 # ── public API ─────────────────────────────────────────────────────────────────
@@ -257,7 +258,7 @@ def team_prior_v2(
     total_adj = max(-cfg["max_log_adj"], min(cfg["max_log_adj"], total_adj))
     meta["total_log_adj"] = round(total_adj, 4)
 
-    adj_p = _clamp(_logodds_to_prob(lo + total_adj))
+    adj_p = max(0.01, min(0.99, _logodds_to_prob(lo + total_adj)))
     meta["adj_prob"] = round(adj_p, 4)
 
     return adj_p, meta

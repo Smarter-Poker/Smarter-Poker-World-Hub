@@ -58,6 +58,8 @@ export interface PlayerProfile {
   hld?: number;
   era?: number;
   whip?: number;
+  k_per_ip?: number;
+  k_per_g?: number;
   k?: number;
   ip?: number;
   gs?: number;
