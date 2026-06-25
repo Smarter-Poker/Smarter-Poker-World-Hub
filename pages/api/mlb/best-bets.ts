@@ -213,6 +213,10 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   );
   const aggSinceIso = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
+  const betPlayerIds = Array.from(
+    new Set(betsArr.map((b: any) => Number(b.player_id)).filter((x) => Number.isFinite(x) && x > 0))
+  );
+
   // Fetch the hitter / pitcher pools (paginated past the 1000 cap) plus the scoped slate data.
   let hitters: any[] = [];
   let pitchers: any[] = [];
@@ -220,8 +224,9 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let slates: any[] = [];
   let games: any[] = [];
   let teamStats: any[] = [];
+  let gameLogs: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, slates, games, teamStats] = await Promise.all([
+    [hitters, pitchers, aggPitchers, slates, games, teamStats, gameLogs] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
@@ -246,6 +251,14 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .in('game_pk', gamePks.length ? gamePks : [-1])
       ),
       fetchAllRows(() => mlbDb.from('v_mlb_standings').select('*')),
+      fetchAllRows(() =>
+        mlbDb
+          .from('raw_player_gamelog')
+          .select('player_id, game_date, stat')
+          .in('player_id', betPlayerIds.length ? betPlayerIds : [-1])
+          .eq('group', 'pitching')
+          .order('game_date', { ascending: false })
+      ),
     ]);
   } catch (e: any) {
     console.warn('[MLB Best Bets] enrichment fetch error:', e?.message || e);
@@ -268,9 +281,43 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   const aggPitcherMap = new Map<number, any>();
   aggPitchers.forEach((ap: any) => {
     if (ap.pitcher_id && !aggPitcherMap.has(ap.pitcher_id)) {
+      let k_per_ip: number | null = null;
+      let k_per_g: number | null = null;
+      if (ap.so != null && ap.ip != null && Number(ap.ip) > 0) {
+        k_per_ip = Number((Number(ap.so) / Number(ap.ip)).toFixed(2));
+      }
+      const gCount = Number(ap.gs) > 0 ? Number(ap.gs) : Number(ap.g);
+      if (ap.so != null && gCount > 0) {
+        k_per_g = Number((Number(ap.so) / gCount).toFixed(2));
+      }
+      ap.k_per_ip = k_per_ip;
+      ap.k_per_g = k_per_g;
       aggPitcherMap.set(ap.pitcher_id, ap);
     }
   });
+
+  // ── last10 map: pitcher_id → last 10 game logs ────────────────────────
+  const last10Map = new Map<number, any[]>();
+  for (const row of gameLogs) {
+    if (row.player_id != null) {
+      if (!last10Map.has(row.player_id)) {
+        last10Map.set(row.player_id, []);
+      }
+      const arr = last10Map.get(row.player_id)!;
+      if (arr.length < 10) {
+        arr.push({
+          date: row.game_date,
+          IP: row.stat?.inningsPitched,
+          H: row.stat?.hits,
+          ER: row.stat?.earnedRuns,
+          BB: row.stat?.baseOnBalls,
+          K: row.stat?.strikeOuts,
+          HR: row.stat?.homeRuns,
+          Pitches: row.stat?.numberOfPitches,
+        });
+      }
+    }
+  }
 
   // Slate map for game_pk
   const slateMap = new Map<number, any>();
@@ -350,13 +397,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_ip = aggData.ip ?? null;
             enriched.pitcher_g = aggData.g ?? null;
             enriched.pitcher_gs = aggData.gs ?? null;
-            const ip = Number(aggData.ip);
-            const so = Number(aggData.so);
-            const gCount = Number(aggData.gs) > 0 ? Number(aggData.gs) : Number(aggData.g);
-            enriched.pitcher_k_per_ip = ip > 0 ? Number((so / ip).toFixed(2)) : null;
-            enriched.pitcher_k_per_g = gCount > 0 ? Number((so / gCount).toFixed(2)) : null;
+            enriched.pitcher_k_per_ip = aggData.k_per_ip ?? null;
+            enriched.pitcher_k_per_g = aggData.k_per_g ?? null;
             // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
             const walksHits = Number(aggData.bb) + Number(aggData.h);
+            const ip = Number(aggData.ip);
             enriched.pitcher_whip =
               ip > 0 && Number.isFinite(walksHits) ? Number((walksHits / ip).toFixed(2)) : null;
           }
@@ -365,6 +410,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_fip = pitcherProfileData.fip;
             enriched.pitcher_siera = pitcherProfileData.siera;
           }
+          enriched.pitcher_last10 = last10Map.get(playerRecord.player_id) || [];
         } else {
           // Hitter stats — extract from splits JSON or top-level fields
           enriched.hitter_woba = playerRecord.woba ?? null;
@@ -585,6 +631,78 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     return enriched;
   });
 }
+
+async function padBets(betsArr: any[], targetDate: string, mlbDb: any): Promise<any[]> {
+  if (!targetDate) return betsArr;
+  try {
+    const { data: fallbackBets } = await mlbDb
+      .from('pred_mlb_predictions')
+      .select('*')
+      .eq('official_date', targetDate)
+      .order('bet_score', { ascending: false })
+      .limit(500);
+
+    if (!fallbackBets || fallbackBets.length === 0) return betsArr;
+
+    let padded = [...betsArr];
+    const cats: Record<string, number> = {
+      moneyline: 0,
+      run_line: 0,
+      total: 0,
+      home_run: 0,
+      pitching_outs: 0,
+      pitcher_strikeouts: 0,
+      hitter_bases: 0,
+      hitter_hits: 0,
+      hitter_rbis: 0,
+      f5_moneyline: 0,
+      f5_total: 0,
+      f5_runline: 0,
+      team_total: 0,
+    };
+
+    const getCat = (b: any) => {
+      const m = (b.market || '').toLowerCase();
+      const bt = (b.bet_type || '').toLowerCase();
+      if (bt === 'line' && (m === 'h2h' || m === 'moneyline')) return 'moneyline';
+      if (bt === 'line' && (m === 'run_line' || m === 'runline' || m === 'spread')) return 'run_line';
+      if (bt === 'line' && m === 'total') return 'total';
+      if (m === 'home_run' || m === 'hr' || m.includes('home_run')) return 'home_run';
+      if (m === 'pitching_outs') return 'pitching_outs';
+      if (m === 'pitcher_strikeouts') return 'pitcher_strikeouts';
+      if (m === 'hitter_bases' || m === 'total_bases') return 'hitter_bases';
+      if (m === 'hitter_hits') return 'hitter_hits';
+      if (m === 'hitter_rbis') return 'hitter_rbis';
+      if (m === 'first_five_innings' || m === 'first_5_innings' || m === 'f5' || m === 'f5_moneyline') return 'f5_moneyline';
+      if (m === 'f5_total' || m === 'f5_team_total') return 'f5_total';
+      if (m === 'f5_runline') return 'f5_runline';
+      if (m === 'team_total') return 'team_total';
+      return null;
+    };
+
+    const existingIds = new Set<string>();
+    padded.forEach((b: any) => {
+      const cat = getCat(b);
+      if (cat) cats[cat]++;
+      existingIds.add(b.id || `${b.game_pk}-${b.selection}-${b.market}`);
+    });
+
+    for (const fb of fallbackBets) {
+      const cat = getCat(fb);
+      const fbid = fb.id || `${fb.game_pk}-${fb.selection}-${fb.market}`;
+      if (cat && cats[cat] < 3 && !existingIds.has(fbid)) {
+        padded.push(fb);
+        cats[cat]++;
+        existingIds.add(fbid);
+      }
+    }
+    return padded;
+  } catch (err) {
+    console.error('Error padding bets:', err);
+    return betsArr;
+  }
+}
+
 async function edgeHandler(req: Request) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
@@ -652,7 +770,8 @@ async function edgeHandler(req: Request) {
       }
 
       const betsArr = dedupeLatestBets(bets || []);
-      const enriched = await enrichBets(betsArr, mlbDb);
+      const paddedBetsArr = await padBets(betsArr, officialDate, mlbDb);
+      const enriched = await enrichBets(paddedBetsArr, mlbDb);
 
       const totalBets = enriched.length;
       // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), matching src/lib/betScore.ts —
@@ -681,7 +800,8 @@ async function edgeHandler(req: Request) {
 
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
-    const enrichedBets = await enrichBets(rawBets, mlbDb);
+    const paddedBets = await padBets(rawBets, data?.officialDate, mlbDb);
+    const enrichedBets = await enrichBets(paddedBets, mlbDb);
 
     // Headline Top Score / Top Lock from the POST-penalty enriched rows so they match the
     // displayed pick list (eliteBets already does); fall back to the RPC's pre-penalty stats.

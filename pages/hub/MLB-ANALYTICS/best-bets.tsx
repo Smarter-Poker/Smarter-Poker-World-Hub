@@ -298,7 +298,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   const era = bet.pitcher_era != null ? Number(bet.pitcher_era).toFixed(2) : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a15] text-slate-200 font-sans w-full max-w-[100vw] overflow-x-hidden box-border flex flex-col">
+    <div className="min-h-screen bg-[#0a0a15] text-slate-200 font-sans w-full max-w-[100vw] overflow-x-hidden box-border flex flex-col capitalize">
       <UniversalHeader pageDepth={3} onBackClick={onClose} />
       <div
         className="relative flex flex-col w-full max-w-lg mx-auto flex-1 pb-[70px]"
@@ -1181,8 +1181,14 @@ const BetCard = ({
                     return `${isOver ? 'Over' : 'Under'} ${lineStr}`;
                   })()
                 : bet.market === 'moneyline' || bet.market === 'h2h'
-                ? `Bet The Money Line ${bet.odds_american > 0 ? '+' : ''}${bet.odds_american || ''}`
+                ? 'Bet The Money Line'
                 : `${stripCity(selectionLabel(bet?.selection, bet?.matchup))} ${lineStr}`}
+              {/* Insert Team and Price for Moneyline */}
+              {(bet.market === 'moneyline' || bet.market === 'h2h') && !isTotalBet && (
+                <div className="text-[24px] font-black mt-1" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
+                  {stripCity(selectionLabel(bet?.selection, bet?.matchup))} {formatOdds(bet.best_price)}
+                </div>
+              )}
             </div>
             {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
             {!isTotalBet && (
@@ -1344,7 +1350,7 @@ const CategoryCarousel = ({
   // The length===0 guard above is the only (graceful) empty state.
   return (
     <div className="mb-8 w-full">
-      <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
+      <SectionHeader icon={Icon || Zap} label={title.toUpperCase()} />
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
           {bets.map((bet, idx) => (
@@ -1447,7 +1453,10 @@ export default function BestBetsPage() {
         typeStr.includes('hits') ||
         typeStr.includes('home_run') ||
         typeStr.includes('strikeout') ||
-        typeStr.includes('rbi')
+        typeStr.includes('rbi') ||
+        typeStr.includes('f5') ||
+        typeStr.includes('first_5') ||
+        typeStr.includes('team_total')
       ) {
         const m = b.market || 'Other Prop';
         // Skip home runs here since we have a dedicated section
@@ -1464,7 +1473,11 @@ export default function BestBetsPage() {
         .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
         .slice(0, 10);
       if (sorted.length > 0) {
-        groups.push({ title: `Top ${market.replace(/_/g, ' ')}`, bets: sorted });
+        const titleMarket = market.replace(/_/g, ' ');
+        const finalTitle = titleMarket.includes('f5') 
+          ? `Top ${titleMarket.replace('f5', 'F5')}` 
+          : `Top ${titleMarket}`;
+        groups.push({ title: finalTitle, bets: sorted });
       }
     }
 
@@ -1707,6 +1720,8 @@ export default function BestBetsPage() {
                   bets={mostLikelyToHomer}
                   onBetClick={openModal}
                 />
+                
+                {/* Dynamically grouped props from topPropsByMarket covers F5, Team Totals, Strikeouts, etc. */}
 
                 {topPropsByMarket.map((group, idx) => (
                   <CategoryCarousel

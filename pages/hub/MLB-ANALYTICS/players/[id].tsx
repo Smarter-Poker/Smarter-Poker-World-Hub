@@ -588,10 +588,61 @@ export default function PlayerProfilePage() {
                         Age {age}
                       </span>
                     )}
+                    {type === 'pitcher' && season && season.k_per_ip != null && (
+                      <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-white tracking-widest">
+                        K/IP {fmt('n2', season.k_per_ip)}
+                      </span>
+                    )}
+                    {type === 'pitcher' && season && season.k_per_g != null && (
+                      <span className="bg-[#1a2332] border border-[#3d4f5f] px-2 py-0.5 rounded text-[13px] font-extrabold text-white tracking-widest">
+                        K/G {fmt('n2', season.k_per_g)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </MetalFrame>
+
+            {type === 'pitcher' && last10.length > 0 && (
+              <div className="mb-6">
+                <SectionHeader icon={Activity} label="Last 10 Games" />
+                <MetalFrame className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="text-slate-500 text-[13px] font-extrabold tracking-widest border-b border-[#1e2d3d]">
+                          <th className="py-2 pr-3">Date</th>
+                          <th className="py-2 px-2 text-center">IP</th>
+                          <th className="py-2 px-2 text-center">H</th>
+                          <th className="py-2 px-2 text-center">ER</th>
+                          <th className="py-2 px-2 text-center">BB</th>
+                          <th className="py-2 px-2 text-center">K</th>
+                          <th className="py-2 px-2 text-center">HR</th>
+                          <th className="py-2 px-2 text-center">Pitches</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {last10.map((gm: any, i: number) => (
+                          <tr
+                            key={gm.date || i}
+                            className="border-b border-[#1e2d3d] last:border-0 text-slate-300 text-[14px] font-bold hover:bg-[#1a2332]/50 transition-colors"
+                          >
+                            <td className="py-2.5 pr-3 text-slate-400">{gm.date || '—'}</td>
+                            <td className="py-2.5 px-2 text-center text-white">{gm.IP ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center">{gm.H ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center text-[#FF6B6B]">{gm.ER ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center">{gm.BB ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center text-[#00D4FF] font-black">{gm.K ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center">{gm.HR ?? '—'}</td>
+                            <td className="py-2.5 px-2 text-center text-slate-500">{gm.Pitches ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </MetalFrame>
+              </div>
+            )}
 
             {health && health.notes && (
               <MetalFrame className="p-4 mb-6">
@@ -1175,51 +1226,6 @@ export default function PlayerProfilePage() {
                         </div>
                       </div>
                     )}
-
-                  {type === 'pitcher' && last10.length > 0 && (
-                    <div className="mt-5">
-                      <div className="text-[13px] font-extrabold text-slate-500 tracking-widest mb-2">
-                        Last 10 Games
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="text-slate-500 text-[13px] font-extrabold tracking-widest">
-                              <th className="py-1 pr-3">Date</th>
-                              <th className="py-1 px-2 text-center">IP</th>
-                              <th className="py-1 px-2 text-center">H</th>
-                              <th className="py-1 px-2 text-center">ER</th>
-                              <th className="py-1 px-2 text-center">BB</th>
-                              <th className="py-1 px-2 text-center">K</th>
-                              <th className="py-1 px-2 text-center">HR</th>
-                              <th className="py-1 px-2 text-center">Pitches</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {last10.map((gm: any, i: number) => (
-                              <tr
-                                key={gm.date || i}
-                                className="border-t border-[#1e2d3d] text-slate-300 text-[14px] font-bold"
-                              >
-                                <td className="py-1.5 pr-3 text-slate-400">{gm.date || '—'}</td>
-                                <td className="py-1.5 px-2 text-center">{gm.IP ?? '—'}</td>
-                                <td className="py-1.5 px-2 text-center text-white">
-                                  {gm.H ?? '—'}
-                                </td>
-                                <td className="py-1.5 px-2 text-center text-[#00D4FF]">
-                                  {gm.ER ?? '—'}
-                                </td>
-                                <td className="py-1.5 px-2 text-center">{gm.BB ?? '—'}</td>
-                                <td className="py-1.5 px-2 text-center">{gm.K ?? '—'}</td>
-                                <td className="py-1.5 px-2 text-center">{gm.HR ?? '—'}</td>
-                                <td className="py-1.5 px-2 text-center">{gm.Pitches ?? '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
                 </MetalFrame>
               </div>
             )}

@@ -15,6 +15,8 @@ import {
   Zap,
   Activity,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -340,6 +342,8 @@ const ResultBadge = React.memo(({ result, pnl }: { result: string; pnl: number |
 
 // ── Detail Modal — rationale + full stats (parity with Best Bets) ──────────────
 function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) {
+  const [showLogs, setShowLogs] = useState(false);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -652,6 +656,52 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
               </>
             )}
           </div>
+          {isPitcher && stats.last10 && stats.last10.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowLogs(!showLogs)}
+                className="w-full bg-[#1a2332] hover:bg-[#2a3a4a] border border-[#3d4f5f] transition-colors rounded-sm py-2 px-3 flex items-center justify-between text-[13px] font-extrabold tracking-widest text-slate-300 uppercase"
+              >
+                <span>Show Last 10 Games</span>
+                {showLogs ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {showLogs && (
+                <div className="mt-3 overflow-x-auto bg-[#0d1117] border border-[#2a3a4a] rounded-sm p-2">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-[#5a6a7a] text-[11px] font-black tracking-widest uppercase border-b border-[#1e2d3d]">
+                        <th className="py-1.5 pr-2">Date</th>
+                        <th className="py-1.5 px-1 text-center">IP</th>
+                        <th className="py-1.5 px-1 text-center">H</th>
+                        <th className="py-1.5 px-1 text-center">ER</th>
+                        <th className="py-1.5 px-1 text-center">BB</th>
+                        <th className="py-1.5 px-1 text-center">K</th>
+                        <th className="py-1.5 px-1 text-center">HR</th>
+                        <th className="py-1.5 pl-1 text-center">Pit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.last10.map((gm: any, i: number) => (
+                        <tr
+                          key={gm.date || i}
+                          className="border-b border-[#1e2d3d] last:border-0 text-slate-300 text-[12px] font-bold"
+                        >
+                          <td className="py-1.5 pr-2 text-slate-400 whitespace-nowrap">{gm.date?.slice(5) || '—'}</td>
+                          <td className="py-1.5 px-1 text-center text-white">{gm.IP ?? '—'}</td>
+                          <td className="py-1.5 px-1 text-center">{gm.H ?? '—'}</td>
+                          <td className="py-1.5 px-1 text-center text-[#FF6B6B]">{gm.ER ?? '—'}</td>
+                          <td className="py-1.5 px-1 text-center">{gm.BB ?? '—'}</td>
+                          <td className="py-1.5 px-1 text-center text-[#00D4FF] font-black">{gm.K ?? '—'}</td>
+                          <td className="py-1.5 px-1 text-center">{gm.HR ?? '—'}</td>
+                          <td className="py-1.5 pl-1 text-center text-slate-500">{gm.Pitches ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-4 mt-auto">

@@ -167,7 +167,7 @@ export default async function edgeHandler(req: Request) {
     ];
 
     // ── 2. Fetch Player Profiles & Stats ONLY for relevant players ────────
-    const [hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes] = await Promise.all([
+    const [hittersRes, pitchersRes, teamsRes, aggPitcherRes, aggBatterRes, gameLogsRes] = await Promise.all([
       uniquePlayerIds.length > 0
         ? mlbDb
             .from('v_hitter_profile')
@@ -200,6 +200,15 @@ export default async function edgeHandler(req: Request) {
             .in('batter_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
         : { data: [] },
+      uniquePlayerIds.length > 0
+        ? mlbDb
+            .from('raw_player_gamelog')
+            .select('player_id, game_date, stat')
+            .in('player_id', uniquePlayerIds)
+            .eq('group', 'pitching')
+            .order('game_date', { ascending: false })
+            .limit(2000)
+        : { data: [] },
     ]);
 
     const hitters = hittersRes.data || [];
@@ -207,6 +216,7 @@ export default async function edgeHandler(req: Request) {
     const dimTeams = teamsRes.data || [];
     const aggPitchers = aggPitcherRes.data || [];
     const aggBatters = aggBatterRes.data || [];
+    const gameLogs = gameLogsRes.data || [];
 
     // Surface partial-data degradation instead of silently rendering Player #<id>.
     for (const [label, r] of [
@@ -215,6 +225,7 @@ export default async function edgeHandler(req: Request) {
       ['dim_teams', teamsRes],
       ['agg_pitcher', aggPitcherRes],
       ['agg_batter', aggBatterRes],
+      ['raw_player_gamelog', gameLogsRes],
     ] as const) {
       if ((r as any).error)
         console.error(`[API/MLB/Props] ${label} fetch error:`, (r as any).error);
@@ -268,6 +279,29 @@ export default async function edgeHandler(req: Request) {
           k_per_ip,
           k_per_g,
         });
+      }
+    }
+
+    // ── last10 map: pitcher_id → last 10 game logs ────────────────────────
+    const last10Map = new Map<number, any[]>();
+    for (const row of gameLogs) {
+      if (row.player_id != null) {
+        if (!last10Map.has(row.player_id)) {
+          last10Map.set(row.player_id, []);
+        }
+        const arr = last10Map.get(row.player_id)!;
+        if (arr.length < 10) {
+          arr.push({
+            date: row.game_date,
+            IP: row.stat?.inningsPitched,
+            H: row.stat?.hits,
+            ER: row.stat?.earnedRuns,
+            BB: row.stat?.baseOnBalls,
+            K: row.stat?.strikeOuts,
+            HR: row.stat?.homeRuns,
+            Pitches: row.stat?.numberOfPitches,
+          });
+        }
       }
     }
 
