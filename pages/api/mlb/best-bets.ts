@@ -683,7 +683,7 @@ async function edgeHandler(req: Request) {
       }
 
       const betsArr = dedupeLatestBets(bets || []);
-      const paddedBetsArr = await padBets(betsArr, officialDate, mlbDb);
+      const paddedBetsArr = betsArr;
       const enriched = await enrichBets(paddedBetsArr, mlbDb);
 
       const totalBets = enriched.length;
