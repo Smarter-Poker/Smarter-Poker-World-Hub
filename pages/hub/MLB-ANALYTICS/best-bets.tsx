@@ -1363,7 +1363,7 @@ export default function BestBetsPage() {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
       .sort((a, b) => (Number(b.win_pct) || 0) - (Number(a.win_pct) || 0))
-      .slice(0, 8);
+      .slice(0, 10);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
@@ -1425,7 +1425,7 @@ export default function BestBetsPage() {
     for (const [market, groupBets] of propsMap.entries()) {
       const sorted = [...groupBets]
         .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
-        .slice(0, 12);
+        .slice(0, 10);
       if (sorted.length > 0) {
         groups.push({ title: `Top ${market.replace(/_/g, ' ')}`, bets: sorted });
       }

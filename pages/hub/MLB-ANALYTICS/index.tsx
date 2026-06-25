@@ -471,33 +471,22 @@ export default function MlbSlatePage() {
 
           <div className="flex flex-col items-center mt-3 mb-4 gap-3">
             <p className="text-[21px] text-[#5a6a7a] font-bold tracking-widest capitalize bg-[#0d1117] px-3 py-1 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
-              {isLoading ? 'Loading...' : `SYS.DATE: ${date ?? 'NO DATA'}`}
+              {isLoading ? 'Loading...' : (() => {
+                if (!date) return 'NO DATA';
+                const d = new Date(date + 'T00:00:00'); // Force local interpretation of the date string
+                const formattedDate = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                const day = d.getDate();
+                const suffix = ["th", "st", "nd", "rd"][day % 10 > 3 ? 0 : (day % 100 - day % 10 !== 10) ? day % 10 : 0];
+                return `${formattedDate}${suffix}`.toUpperCase();
+              })()}
               {!isLoading && (
                 <>
                   <span className="mx-2 text-[#3d4f5f]">|</span>
-                  {fullSlate.length} MAT
+                  {fullSlate.length} {fullSlate.length === 1 ? 'GAME' : 'GAMES'} TODAY
                 </>
               )}
             </p>
           </div>
-
-          <Link
-            href="/hub/MLB-ANALYTICS/best-bets"
-            className="block w-full text-center relative overflow-hidden bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] hover:bg-[#00D4FF] text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[21px] py-2.5 transition-all shadow-[0_0_15px_rgba(0,212,255,0.2),inset_0_1px_2px_rgba(255,255,255,0.1)] group rounded-sm"
-          >
-            <span className="relative z-10 group-hover:text-[#0a0a15]">
-              Execute Today&apos;s Best Bets
-            </span>
-            <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[45deg] group-hover:left-[200%] transition-all duration-700 ease-in-out" />
-          </Link>
-
-          <Link
-            href="/hub/MLB-ANALYTICS/model-intel"
-            className="block w-full text-center relative overflow-hidden bg-[#0d1117] border border-[#3d4f5f] hover:border-[#00D4FF] text-[#5a6a7a] hover:text-[#00D4FF] font-black capitalize tracking-[0.2em] text-[18px] py-2 mt-2 transition-all rounded-sm group"
-          >
-            <span className="relative z-10">View Model Intel &amp; Track Record</span>
-            <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-[#00D4FF]/10 to-transparent skew-x-[45deg] group-hover:left-[200%] transition-all duration-700 ease-in-out" />
-          </Link>
 
           {/* Bottom neon strip */}
           <div className="absolute bottom-0 left-[10%] right-[10%] h-[3px] bg-[#00D4FF] shadow-[0_0_10px_#00D4FF,0_0_20px_rgba(0,212,255,0.4)] rounded-t-full" />
@@ -528,8 +517,7 @@ export default function MlbSlatePage() {
           </div>
         )}
 
-        {/* ── Filter Bar ────────────────────────── */}
-        <FilterBar edgesCount={edgesCount} filters={filters} onFilter={setFilters} />
+
 
         {/* ── Loading Spinner ─────────────────────── */}
         {isLoading && (
@@ -572,30 +560,15 @@ export default function MlbSlatePage() {
                 <div className="absolute top-[20%] bottom-[20%] left-[-2px] w-[3px] bg-[#00D4FF] rounded-r-md opacity-30 group-hover:opacity-100 group-hover:shadow-[0_0_12px_#00D4FF] transition-all" />
 
                 {/* ── Game Header ────────────────── */}
-                <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
-                  <div className="flex flex-col min-w-0 pr-4">
+                <div className="flex items-center justify-start mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
+                  <div className="flex flex-col min-w-0 w-full overflow-hidden">
                     <span
-                      className="text-[19px] sm:text-[26px] text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] truncate whitespace-nowrap"
-                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                      className="text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] whitespace-nowrap text-left"
+                      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 'clamp(14px, 4.5vw, 26px)' }}
                     >
                       {g.away} @ {g.home}
                     </span>
                   </div>
-
-                  {/* First pitch time */}
-                  {g.firstPitch && (
-                    <span
-                      className="text-[22px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
-                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
-                    >
-                      {new Date(g.firstPitch).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZone: 'America/Chicago',
-                        timeZoneName: 'short',
-                      })}
-                    </span>
-                  )}
                 </div>
 
                 {/* ── Teams + Odds Grid ─────────────── */}
@@ -689,8 +662,26 @@ export default function MlbSlatePage() {
                     </div>
                   </div>
 
-                  {/* Right: Odds Grid */}
-                  <div className="flex gap-2 self-start bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] flex-shrink-0">
+                  {/* Right: First Pitch Time Box */}
+                  {g.firstPitch && (
+                    <div className="flex flex-col items-end">
+                      <span
+                        className="text-[20px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
+                        style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                      >
+                        {new Date(g.firstPitch).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZone: 'America/Chicago',
+                          timeZoneName: 'short',
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Odds Grid ─────────────── */}
+                <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] mt-4">
                     {/* Spread */}
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
