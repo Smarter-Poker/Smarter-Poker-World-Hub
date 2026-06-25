@@ -284,6 +284,10 @@ const PlayerCard = React.memo(
                     <CardStat label="SV" value={fmtInt(player.sv)} />
                     <CardStat label="FIP" value={fmt2(player.fip)} />
                   </div>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
+                    <CardStat label="K/IP" value={fmt2(player.k_per_ip)} />
+                    <CardStat label="K/G" value={fmt2(player.k_per_g)} />
+                  </div>
                 </>
               ) : (
                 <>

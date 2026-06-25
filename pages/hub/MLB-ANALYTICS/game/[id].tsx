@@ -491,6 +491,8 @@ function PropModal({
         ['SIERA', f2(s.siera)],
         ['W-L', wl],
         ['SO', f0(s.so)],
+        ['K/IP', f2(s.k_per_ip)],
+        ['K/G', f2(s.k_per_g)],
       ]
     : [
         ['AVG', f3(s.avg)],

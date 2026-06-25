@@ -27,9 +27,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(503).json({ fetchError: true, data: [] });
     }
 
-    // Success: Cache heavily
+    // Success: Compute K/IP and K/G for each pitcher
+    const enrichedData = Array.isArray(data) ? data.map(p => {
+      const ip = Number(p.ip || 0);
+      const so = Number(p.k || p.so || 0);
+      const gCount = Number(p.gs) > 0 ? Number(p.gs) : Number(p.g || 0);
+      return {
+        ...p,
+        k_per_ip: ip > 0 ? Number((so / ip).toFixed(2)) : null,
+        k_per_g: gCount > 0 ? Number((so / gCount).toFixed(2)) : null
+      };
+    }) : [];
+
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    return res.status(200).json({ fetchError: false, data: Array.isArray(data) ? data : [] });
+    return res.status(200).json({ fetchError: false, data: enrichedData });
   } catch (err: any) {
     console.error('API Error:', err);
     res.setHeader('Cache-Control', 'no-store');
