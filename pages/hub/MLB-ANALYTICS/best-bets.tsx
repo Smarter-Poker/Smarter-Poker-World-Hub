@@ -24,6 +24,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { logError } from '@/utils/logger';
+import { teamLogo, playerHeadshot } from '../../../src/lib/mlb_data';
 
 import { ScoringGuideModal } from '../../../src/components/mlb/ScoringGuideModal';
 import MlbPremiumGate from '../../../src/components/mlb/MlbPremiumGate';
@@ -204,7 +205,6 @@ const formatMatchup = (matchup) => {
 const formatWinPct = (wc: any) => {
   if (wc == null) return 'N/A';
   const n = Number(wc);
-  if (n > 0 && n <= 1) return (n * 100).toFixed(1) + '%';
   return n.toFixed(1) + '%';
 };
 

@@ -49,7 +49,7 @@ export default function HrBetTracker({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [stake, setStake] = useState('');
-  const [odds, setOdds] = useState('+450');
+  const [odds, setOdds] = useState('');
 
   const authFetch = useCallback(async (url: string, init?: RequestInit) => {
     const token = getAccessToken();
@@ -272,7 +272,7 @@ export default function HrBetTracker({
               <>
                 You&apos;re down <span className="text-[#FF4444] font-extrabold">{money(net)}</span>{' '}
                 on {playerName || 'this player'}. To get back to net-positive on a win at{' '}
-                <span className="text-white font-extrabold">{odds || '+450'}</span>, bet at least{' '}
+                <span className="font-mono text-[#00D4FF] font-black">{odds || ''}</span>, bet at least{' '}
                 <span className="text-[#FFB800] font-extrabold text-[16px]">
                   ${summary.recoveryStake.toFixed(2)}
                 </span>{' '}
@@ -304,7 +304,7 @@ export default function HrBetTracker({
             inputMode="decimal"
             value={stake}
             onChange={(e) => setStake(e.target.value)}
-            placeholder="50"
+            placeholder=""
             className="w-full bg-[#1a2332] border-[2px] border-[#3d4f5f] rounded-lg py-2.5 px-3 text-white font-extrabold text-[16px] focus:outline-none focus:border-[#00D4FF]"
           />
         </div>
@@ -316,7 +316,7 @@ export default function HrBetTracker({
             type="text"
             value={odds}
             onChange={(e) => setOdds(e.target.value)}
-            placeholder="+450"
+            placeholder=""
             className="w-full bg-[#1a2332] border-[2px] border-[#3d4f5f] rounded-lg py-2.5 px-3 text-white font-extrabold text-[16px] focus:outline-none focus:border-[#00D4FF]"
           />
         </div>
