@@ -694,7 +694,17 @@ async function edgeHandler(req: Request) {
         enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.bet_score || 0)) : 0;
       const topLock =
         enriched.length > 0 ? Math.max(...enriched.map((b: BetRow) => b.win_confidence || 0)) : 0;
-
+      let topMoneylines: any[] = [];
+      const { data: rawTopML } = await mlbDb
+        .from('pred_mlb_predictions')
+        .select('*')
+        .eq('official_date', officialDate)
+        .in('market', ['moneyline', 'h2h'])
+        .order('model_prob', { ascending: false })
+        .limit(10);
+      if (rawTopML && rawTopML.length > 0) {
+        topMoneylines = await enrichBets(rawTopML, mlbDb);
+      }
       return new Response(
         JSON.stringify({
           bets: enriched,
@@ -718,7 +728,7 @@ async function edgeHandler(req: Request) {
     const enrichedBets = await enrichBets(rawBets, mlbDb);
 
     // Fetch pure highest win probability moneylines (regardless of edge) for Most Likely To Win
-    let topMoneylines = [];
+    let topMoneylines: any[] = [];
     if (data?.officialDate) {
       const { data: rawTopML } = await mlbDb
         .from('pred_mlb_predictions')

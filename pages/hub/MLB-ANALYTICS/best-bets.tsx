@@ -1655,7 +1655,7 @@ export default function BestBetsPage() {
               </span>
             </h1>
             <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] capitalize  mt-1">
-              Ranked By Bet Score · {formattedDate}
+              Ranked By Bet Score · {officialDate}
             </p>
           </div>
           <button
