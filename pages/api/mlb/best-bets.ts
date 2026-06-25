@@ -812,7 +812,9 @@ async function edgeHandler(req: Request) {
         { market: 'first_5_run_line', bet_type: 'line' },
         { market: 'f5_total', bet_type: 'game' },
         { market: 'first_5_team_total', bet_type: 'team_total' },
-        { market: 'team_total', bet_type: 'team_total' }
+        { market: 'team_total', bet_type: 'team_total' },
+        { market: 'h2h', bet_type: 'game' },
+        { market: 'moneyline', bet_type: 'game' }
       ];
       
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();

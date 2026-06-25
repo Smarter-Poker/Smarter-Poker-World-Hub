@@ -228,9 +228,7 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[1];
     }
-    teamName = stripCity(teamName);
-    const suffix = s.replace(/^home_?/, '');
-    return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
+    return toTitleCase(stripCity(teamName));
   }
   if (s === 'away' || s.startsWith('away_')) {
     teamName = 'Away';
@@ -238,18 +236,15 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[0];
     }
-    teamName = stripCity(teamName);
-    const suffix = s.replace(/^away_?/, '');
-    return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
+    return toTitleCase(stripCity(teamName));
   }
 
   // Totals formatting
   const matchupScope = matchup ? ` (${formatMatchup(matchup)})` : '';
-  if (s.startsWith('over')) return toTitleCase(`Over ${s.replace(/^over_?/, '')}`) + matchupScope;
-  if (s.startsWith('under'))
-    return toTitleCase(`Under ${s.replace(/^under_?/, '')}`) + matchupScope;
+  if (s.startsWith('over')) return 'Over' + matchupScope;
+  if (s.startsWith('under')) return 'Under' + matchupScope;
 
-  return toTitleCase(stripCity(selection.replace(/_/g, ' ')));
+  return toTitleCase(stripCity(selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim()));
 };
 
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
@@ -1300,7 +1295,7 @@ const BetCard = ({
                   } else {
                     target = stripCity(selectionLabel(bet?.selection, bet?.matchup)).trim();
                   }
-                  return `${target} ${lineStr} ${formatOdds(bet.best_price)}`.trim().replace(/\s+/g, ' ');
+                  return `${target} ${lineStr} ${formatOdds(bet.price ?? bet.best_price)}`.trim().replace(/\s+/g, ' ');
                 })()}
               </div>
             </div>
@@ -1329,7 +1324,7 @@ const BetCard = ({
                   color: Number(bet.best_price) > 0 ? '#00D4FF' : '#ffffff',
                 }}
               >
-                {formatOdds(bet.best_price)}
+                {formatOdds(bet.price ?? bet.best_price)}
               </div>
             </div>
             {bet.pitcher_k_per_g != null && (
@@ -1378,7 +1373,7 @@ const BetCard = ({
               className="text-[20px] font-black text-white leading-none"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {formatOdds(bet.best_price)}
+              {formatOdds(bet.price ?? bet.best_price)}
             </div>
           </div>
           <div className="text-center px-1 border-r border-[#2a3a4a] flex-1 min-w-0">
@@ -1523,11 +1518,9 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
-    if (data?.topMoneylines?.length > 0) {
-      return data.topMoneylines;
-    }
-    return [...bets]
-      .filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'))
+    let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
+    return source
+      .filter((b) => Number(b.price ?? b.best_price) < 0)
       .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 10);
   }, [bets, data]);
@@ -1694,7 +1687,7 @@ export default function BestBetsPage() {
               </span>
             </h1>
             <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] uppercase mt-1">
-              Ranked By Bet Score · {officialDate ? new Date(`${officialDate}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'numeric', day: 'numeric', year: 'numeric' }).replace(/\//g, '-').toUpperCase() : ''}
+              Ranked By Bet Score · {officialDate ? (() => { const dt = new Date(`${officialDate}T12:00:00Z`); return `${dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}, ${dt.getMonth() + 1}-${dt.getDate()}-${dt.getFullYear()}`; })() : ''}
             </p>
           </div>
           <button
