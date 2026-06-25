@@ -14,13 +14,15 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { teamLogo, type GameCard } from '../../../src/lib/mlb_data';
-import {
-  betScore,
-  explain,
-  tier as getTier,
-  TIER_STYLE,
-  type Tier,
-} from '../../../src/lib/betScore';
+export type Tier = 'ELITE' | 'STRONG' | 'LEAN' | 'THIN' | 'PASS';
+
+export const TIER_STYLE: Record<Tier, { text: string; chip: string }> = {
+  ELITE: { text: 'text-[#00D4FF] drop-shadow-[0_0_8px_rgba(0,212,255,0.8)]', chip: 'border-[#00D4FF]/50 bg-[#00D4FF]/10 shadow-[0_0_15px_rgba(0,212,255,0.2)]' },
+  STRONG: { text: 'text-[#34D399] drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]', chip: 'border-[#34D399]/50 bg-[#34D399]/10 shadow-[0_0_15px_rgba(52,211,153,0.2)]' },
+  LEAN: { text: 'text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]', chip: 'border-[#38BDF8]/50 bg-[#38BDF8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' },
+  THIN: { text: 'text-[#F59E0B] drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]', chip: 'border-[#F59E0B]/50 bg-[#F59E0B]/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' },
+  PASS: { text: 'text-[#64748B]', chip: 'border-[#3d4f5f] bg-[#0a0f16]' },
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -137,46 +139,18 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   const isLocked = g.lineupState === 'confirmed';
 
   if (g.bet && g.bet.edge != null) {
-    const exp = explain(g.bet.winProb ?? 0, g.bet.price ?? -110, {
-      pMarket: g.bet.market,
-      lineupLocked: isLocked,
-    });
-    mlScore = exp.betScore;
-    mlTier = exp.tier;
-    mlEv = exp.evPct;
-    mlFactors = exp.factors.map((f) => f.text).join('\n');
-    const teamName = g.bet.team.split(' ').pop() || 'Hold';
+    mlScore = g.bet.bet_score ?? 0;
+    mlTier = (g.bet.bet_tier as Tier) || 'PASS';
+    mlEv = Number(Number(g.bet.ev_pct).toFixed(1)) || 0;
+    try {
+      const parsed = typeof g.bet.score_factors === 'string' ? JSON.parse(g.bet.score_factors) : g.bet.score_factors;
+      if (Array.isArray(parsed)) mlFactors = parsed.map((f: any) => f.text).join('\n');
+    } catch(e) {}
+    
+    const teamName = g.bet.team?.split(' ').pop() || 'Hold';
     const priceStr = g.bet.price != null ? (g.bet.price > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
     mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
     mlSide = g.bet.selection;
-  } else if (g.modelHome != null && g.marketHome != null) {
-    const homeExp = explain(g.modelHome, g.avgHomeLine || -110, {
-      pMarket: g.marketHome,
-      lineupLocked: isLocked,
-    });
-    const awayExp = explain(1 - g.modelHome, g.avgAwayLine || -110, {
-      pMarket: 1 - g.marketHome,
-      lineupLocked: isLocked,
-    });
-    if (homeExp.betScore >= awayExp.betScore) {
-      mlScore = homeExp.betScore;
-      mlTier = homeExp.tier;
-      mlEv = homeExp.evPct;
-      mlFactors = homeExp.factors.map((f) => f.text).join('\n');
-      const teamName = g.home.split(' ').pop() || 'Hold';
-      const priceStr = g.avgHomeLine != null ? (g.avgHomeLine > 0 ? `+${g.avgHomeLine}` : `${g.avgHomeLine}`) : '';
-      mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
-      mlSide = 'home';
-    } else {
-      mlScore = awayExp.betScore;
-      mlTier = awayExp.tier;
-      mlEv = awayExp.evPct;
-      mlFactors = awayExp.factors.map((f) => f.text).join('\n');
-      const teamName = g.away.split(' ').pop() || 'Hold';
-      const priceStr = g.avgAwayLine != null ? (g.avgAwayLine > 0 ? `+${g.avgAwayLine}` : `${g.avgAwayLine}`) : '';
-      mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
-      mlSide = 'away';
-    }
   }
 
   // RL
@@ -187,14 +161,13 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let rlFactors = '';
 
   if (g.runLineBet && g.runLineBet.edge != null) {
-    const exp = explain(g.runLineBet.winProb ?? 0, g.runLineBet.price ?? -110, {
-      pMarket: g.runLineBet.market,
-      lineupLocked: isLocked,
-    });
-    rlScore = exp.betScore;
-    rlTier = exp.tier;
-    rlEv = exp.evPct;
-    rlFactors = exp.factors.map((f) => f.text).join('\n');
+    rlScore = g.runLineBet.bet_score ?? 0;
+    rlTier = (g.runLineBet.bet_tier as Tier) || 'PASS';
+    rlEv = Number(Number(g.runLineBet.ev_pct).toFixed(1)) || 0;
+    try {
+      const parsed = typeof g.runLineBet.score_factors === 'string' ? JSON.parse(g.runLineBet.score_factors) : g.runLineBet.score_factors;
+      if (Array.isArray(parsed)) rlFactors = parsed.map((f: any) => f.text).join('\n');
+    } catch(e) {}
     
     let teamName = '';
     let lineStr = '';
@@ -218,14 +191,13 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let ouFactors = '';
 
   if (g.totalBet && g.totalBet.edge != null) {
-    const exp = explain(g.totalBet.winProb ?? 0, g.totalBet.price ?? -110, {
-      pMarket: g.totalBet.market,
-      lineupLocked: isLocked,
-    });
-    ouScore = exp.betScore;
-    ouTier = exp.tier;
-    ouEv = exp.evPct;
-    ouFactors = exp.factors.map((f) => f.text).join('\n');
+    ouScore = g.totalBet.bet_score ?? 0;
+    ouTier = (g.totalBet.bet_tier as Tier) || 'PASS';
+    ouEv = Number(Number(g.totalBet.ev_pct).toFixed(1)) || 0;
+    try {
+      const parsed = typeof g.totalBet.score_factors === 'string' ? JSON.parse(g.totalBet.score_factors) : g.totalBet.score_factors;
+      if (Array.isArray(parsed)) ouFactors = parsed.map((f: any) => f.text).join('\n');
+    } catch(e) {}
 
     let choice = '';
     let lineStr = '';
