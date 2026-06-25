@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useMemo, useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { Target, Loader2, Zap, X, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { Target, Loader2, Zap, X, TrendingUp, TrendingDown, Minus, Info, Activity, ChevronUp, ChevronDown } from 'lucide-react';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
