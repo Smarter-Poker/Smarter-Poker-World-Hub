@@ -239,7 +239,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .eq('window_kind', 'fg_season')
           .order('as_of', { ascending: false })
       ),
-      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')),
+      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1])),
       fetchAllRows(() =>
         mlbDb
           .from('fact_games')
@@ -506,6 +506,8 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
     if (enriched.win_confidence == null && bet.model_prob != null) {
       enriched.win_confidence = Number(bet.model_prob) * 100;
+    } else if (enriched.win_confidence != null && Number(enriched.win_confidence) <= 1.0 && Number(enriched.win_confidence) > 0) {
+      enriched.win_confidence = Number(enriched.win_confidence) * 100;
     }
     
 
@@ -565,14 +567,31 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           enriched.pitcher_gs = aggP.gs;
           const gCount = Number(aggP.g) > 0 ? Number(aggP.g) : 1;
           const parts = String(aggP.ip).split('.');
-          const trueIP = (Number(parts[0]) || 0) + (parts[1] === '1' ? 1/3 : parts[1] === '2' ? 2/3 : 0);
+          const ipFractionPart = parts.length > 1 ? parts[1] : '';
+          const trueIP = (Number(parts[0]) || 0) + (ipFractionPart.startsWith('1') ? 1/3 : ipFractionPart.startsWith('2') ? 2/3 : 0);
           enriched.pitcher_k_per_ip = trueIP > 0 ? Number((aggP.so / trueIP).toFixed(2)) : null;
           enriched.pitcher_k_per_g = gCount > 0 ? Number((aggP.so / gCount).toFixed(2)) : null;
           enriched.pitcher_whip = trueIP > 0 ? ((aggP.h + aggP.bb) / trueIP).toFixed(2) : null;
         }
         if (vP) {
           enriched.pitcher_fip = vP.fip;
+          enriched.pitcher_siera = vP.siera;
         }
+      }
+    }
+    
+    if (opposingPitcherToEvaluateId) {
+      const oppAggP = aggPitcherMap.get(opposingPitcherToEvaluateId);
+      const oppVP = pitcherMapById.get(opposingPitcherToEvaluateId);
+      if (oppAggP) {
+        enriched.opposing_pitcher_era = oppAggP.era;
+        enriched.opposing_pitcher_so = oppAggP.so;
+        enriched.opposing_pitcher_wins = oppAggP.w;
+        enriched.opposing_pitcher_losses = oppAggP.l;
+      }
+      if (oppVP) {
+        enriched.opposing_pitcher_fip = oppVP.fip;
+        enriched.opposing_pitcher_siera = oppVP.siera;
       }
 
     }
@@ -783,10 +802,13 @@ async function edgeHandler(req: Request) {
 
     // Enrich bets from RPC result
     const rawBets = data?.bets || [];
-    const enrichedBets = await enrichBets(rawBets, mlbDb);
+    let enrichedBets: any[] = await enrichBets(rawBets, mlbDb);
 
     // Fetch missing categories to guarantee minimum 3 for UI carousels
     let topMoneylines: any[] = [];
+    let topRunlines: any[] = [];
+    let topTotals: any[] = [];
+    let topHomers: any[] = [];
     if (data?.officialDate) {
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
@@ -800,84 +822,49 @@ async function edgeHandler(req: Request) {
         const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
         topMoneylines = await enrichBets(dedupedML, mlbDb);
       }
+
+      const { data: rawTopRL } = await mlbDb
+        .from('pred_market_output')
+        .select('*')
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('market', ['run_line', 'spread']);
+      if (rawTopRL && rawTopRL.length > 0) {
+        const dedupedRL = dedupeLatestBets(rawTopRL).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+        topRunlines = await enrichBets(dedupedRL, mlbDb);
+      }
+
+      const { data: rawTopTot } = await mlbDb
+        .from('pred_market_output')
+        .select('*')
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .eq('market', 'total');
+      if (rawTopTot && rawTopTot.length > 0) {
+        const dedupedTot = dedupeLatestBets(rawTopTot).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+        topTotals = await enrichBets(dedupedTot, mlbDb);
+      }
+
+      const { data: rawTopHR } = await mlbDb
+        .from('pred_props')
+        .select('*')
+        .gte('as_of_ts', startIso)
+        .lt('as_of_ts', endIso)
+        .in('prop', ['home_run', 'hr', 'hrr']);
+      if (rawTopHR && rawTopHR.length > 0) {
+        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
+      }
     }
 
-    // --- ZERO-BIAS CATEGORY FILLER ---
-    let extraBets: any[] = [];
-    if (data?.officialDate) {
-      const neededMarkets = [
-        { market: 'run_line', bet_type: 'line' },
-        { market: 'total', bet_type: 'game' },
-        { market: 'f5_moneyline', bet_type: 'game' },
-        { market: 'first_5_run_line', bet_type: 'line' },
-        { market: 'f5_total', bet_type: 'game' },
-        { market: 'first_5_team_total', bet_type: 'team_total' },
-        { market: 'team_total', bet_type: 'team_total' },
-        { market: 'h2h', bet_type: 'game' },
-        { market: 'moneyline', bet_type: 'game' }
-      ];
-      
-      const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
-      const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
-      
-      for (const mkt of neededMarkets) {
-        const count = enrichedBets.filter((b: any) => b.market === mkt.market).length;
-        if (count < 3) {
-          const { data: fallback } = await mlbDb
-            .from('pred_market_output')
-            .select('*')
-            .gte('as_of_ts', startIso)
-            .lt('as_of_ts', endIso)
-            .eq('market', mkt.market);
-          if (fallback && fallback.length > 0) {
-            const dedupedFallback = dedupeLatestBets(fallback).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-            const mapped = dedupedFallback.map(f => ({ ...f, bet_type: mkt.bet_type }));
-            extraBets = extraBets.concat(mapped);
-          }
-        }
-      }
-      const propTypes = [
-        'pitcher_strikeouts',
-        'hits',
-        'total_bases',
-        'runs',
-        'stolen_bases',
-        'rbi',
-        'hrr',
-        'walks',
-        'pitcher_walks',
-        'earned_runs'
-      ];
-      
-      for (const pt of propTypes) {
-        const count = enrichedBets.filter((b: any) => b.prop === pt || b.market === pt).length;
-        if (count < 3) {
-          const { data: propFallback } = await mlbDb
-            .from('pred_props')
-            .select('*')
-            .gte('as_of_ts', startIso)
-            .lt('as_of_ts', endIso)
-            .eq('prop', pt);
-          if (propFallback && propFallback.length > 0) {
-            const dedupedProp = dedupeLatestBets(propFallback).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-            const mapped = dedupedProp.map(p => ({ ...p, market: p.prop, bet_type: 'prop' }));
-            extraBets = extraBets.concat(mapped);
-          }
-        }
-      }
-      
-      if (extraBets.length > 0) {
-        const enrichedExtra = await enrichBets(extraBets, mlbDb);
-        enrichedBets.push(...enrichedExtra);
-      }
-    }
+
 
     // Headline Top Score / Top Lock from the enriched rows so they match the displayed pick list
     let topLock =
       enrichedBets.length > 0
         ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.win_confidence) || 0), 0)
         : data?.stats?.topLock || 0;
-    if (topLock > 0 && topLock < 1) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
+    if (topLock > 0 && topLock <= 1.0) topLock = topLock * 100; // normalize 0–1 fraction to percentage; skip if already a pct
     const topScore =
       enrichedBets.length > 0
         ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.bet_score) || 0), 0)
@@ -893,6 +880,9 @@ async function edgeHandler(req: Request) {
           topLock: topLock,
         },
         topMoneylines,
+        topRunlines,
+        topTotals,
+        topHomers,
         officialDate: data?.officialDate || null,
       }),
       {

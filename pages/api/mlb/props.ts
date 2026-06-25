@@ -58,9 +58,9 @@ function inferSide(
   proj: number | null,
   line: number | null
 ): 'over' | 'under' | null {
-  const r = (rec || '').toUpperCase();
-  if (r.includes('UNDER')) return 'under';
+  let r = (rec || '').toUpperCase();
   if (r.includes(' OVER') || r.startsWith('OVER')) return 'over';
+  if (r.includes(' UNDER') || r.startsWith('UNDER')) return 'under';
   if (pOver != null && pMarketOver != null) return pOver >= pMarketOver ? 'over' : 'under';
   if (proj != null && line != null) return Number(proj) > Number(line) ? 'over' : 'under';
   return null;

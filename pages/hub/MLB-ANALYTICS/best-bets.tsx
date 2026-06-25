@@ -4,6 +4,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import {
   ArrowLeft,
+  Minus,
   X,
   TrendingUp,
   TrendingDown,
@@ -183,7 +184,7 @@ const TEAM_NICKNAMES = [
   'Rockies', 'Royals', 'Tigers', 'Twins', 'Yankees'
 ];
 
-const stripCity = (fullName) => {
+const stripCity = (fullName: string | null | undefined): string => {
   if (!fullName) return '';
   const lower = fullName.toLowerCase();
   for (const nick of TEAM_NICKNAMES) {
@@ -194,7 +195,7 @@ const stripCity = (fullName) => {
   return fullName;
 };
 
-const formatMatchup = (matchup) => {
+const formatMatchup = (matchup: string | null | undefined): string => {
   if (!matchup) return '';
   if (matchup.includes(' @ ')) {
     return matchup.split(' @ ').map(p => stripCity(p.trim()).toUpperCase()).join(' @ ');
@@ -205,6 +206,7 @@ const formatMatchup = (matchup) => {
 const formatWinPct = (wc: any) => {
   if (wc == null) return 'N/A';
   const n = Number(wc);
+  if (isNaN(n)) return 'N/A';
   return n.toFixed(1) + '%';
 };
 
@@ -651,7 +653,8 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                       {factor?.dir === 'down' && (
                         <TrendingDown size={10} className="text-[#FF6B6B]" />
                       )}
-                      {factor?.dir === 'info' && <Info size={10} className="text-slate-400" />}
+                      {factor?.dir === 'flat' && <Minus size={10} className="text-slate-400" />}
+                      {factor?.dir === 'info' && <Info size={10} className="text-[#00D4FF]" />}
                     </div>
                     <div className="text-[21px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 capitalize">
                       {factor?.text}
@@ -1068,14 +1071,15 @@ const BetCard = ({
 
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-  let marketLabel = 'Money Line';
+  let marketLabel = 'Bet';
+  if (bet.market === 'h2h' || bet.market === 'moneyline') marketLabel = 'Money Line';
   if (bet.market === 'run_line') marketLabel = 'Run Line';
   else if (bet.market === 'total') marketLabel = 'Over / Under';
-  else if (bet.market === 'first_5_money_line') marketLabel = 'First 5 Inning Money Line';
-  else if (bet.market === 'first_5_run_line') marketLabel = 'First 5 Inning Run Line';
-  else if (bet.market === 'first_5_total') marketLabel = 'First 5 Inning Total';
+  else if (bet.market === 'first_5_money_line' || bet.market === 'f5_moneyline') marketLabel = 'First 5 Inning Money Line';
+  else if (bet.market === 'first_5_run_line' || bet.market === 'f5_run_line') marketLabel = 'First 5 Inning Run Line';
+  else if (bet.market === 'first_5_total' || bet.market === 'f5_total') marketLabel = 'First 5 Inning Total';
   else if (bet.market === 'team_total') marketLabel = 'Team Total';
-  else if (bet.market === 'first_5_team_total') marketLabel = 'First 5 Inning Team Total';
+  else if (bet.market === 'first_5_team_total' || bet.market === 'f5_team_total') marketLabel = 'First 5 Inning Team Total';
   else if (typeStr.includes('strikeout')) marketLabel = 'Pitcher Strikeouts';
   else if (typeStr.includes('hits')) marketLabel = 'Player Hits';
   else if (typeStr.includes('home_run')) marketLabel = 'Player Home Runs';
@@ -1520,7 +1524,7 @@ export default function BestBetsPage() {
   const mostLikelyToWin = useMemo(() => {
     let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
     return source
-      .filter((b) => Number(b.price ?? b.best_price) < 0)
+      .filter((b) => Number(b.win_confidence) > 50 || Number(b.price ?? b.best_price ?? 0) < 0)
       .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 10);
   }, [bets, data]);
@@ -1528,21 +1532,21 @@ export default function BestBetsPage() {
   const bestMoneyLines = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
     const merged = [...filtered, ...(data?.topMoneylines || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.player_id}-${b.selection}-${b.market}`, b])).values());
+    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
     return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const bestRunLines = useMemo(() => {
     const filtered = [...bets].filter((b) => b.bet_type === 'line' && (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'));
     const merged = [...filtered, ...(data?.topRunlines || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.player_id}-${b.selection}-${b.market}`, b])).values());
+    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
     return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
   const bestTotals = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && b.market === 'total');
     const merged = [...filtered, ...(data?.topTotals || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.player_id}-${b.selection}-${b.market}`, b])).values());
+    const unique = Array.from(new Map(merged.map(b => [`${b.game_pk}-${b.player_id}-${b.selection}-${b.market}`, b])).values());
     return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
@@ -1573,7 +1577,10 @@ export default function BestBetsPage() {
         typeStr.includes('first_5') ||
         typeStr.includes('team_total')
       ) {
-        const m = b.market || 'Other Prop';
+        let m = b.market || 'Other Prop';
+        // Normalize f5_ to first_5_ for grouping
+        if (m.startsWith('f5_')) m = m.replace('f5_', 'first_5_');
+        
         // Skip home runs here since we have a dedicated section
         if (m === 'home_run' || m === 'hr') return;
 
