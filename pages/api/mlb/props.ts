@@ -568,7 +568,7 @@ export default async function edgeHandler(req: Request) {
     mappedProps.sort((a, b) => (b?.bet_score ?? -1) - (a?.bet_score ?? -1));
 
     // Slate-level stats (tier counts use the canonical thresholds).
-    const scored = mappedProps.filter((p) => p.bet_score != null);
+    const scored = mappedProps.filter((p) => p?.bet_score != null);
     const stats = {
       total: mappedProps.length,
       elite: scored.filter((p) => p?.bet_tier === 'ELITE').length,
