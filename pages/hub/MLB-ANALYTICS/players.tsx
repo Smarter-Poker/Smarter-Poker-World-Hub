@@ -89,56 +89,7 @@ interface TeamStanding {
   team_avg: number | null;
 }
 
-// Canonical MLB league/division structure with team IDs
-// Used for grouping even before standings data loads
-const MLB_STRUCTURE: Record<string, Record<string, number[]>> = {
-  'American League': {
-    'AL East': [111, 139, 147, 141, 110], // BOS, TB, NYY, TOR, BAL
-    'AL Central': [114, 145, 116, 142, 118], // CLE, CWS, DET, MIN, KC
-    'AL West': [117, 108, 133, 140, 136], // HOU, LAA, OAK, TEX, SEA
-  },
-  'National League': {
-    'NL East': [121, 144, 120, 143, 146], // NYM, ATL, WSH, PHI, MIA
-    'NL Central': [112, 113, 158, 134, 138], // CHC, CIN, MIL, PIT, STL
-    'NL West': [119, 137, 109, 135, 115], // LAD, SF, ARI, SD, COL
-  },
-};
-
-// Static team identity (id -> name/abbr). Used as a graceful fallback so the team
-// selector never shows a raw "Team 111" when the standings feed is briefly unavailable.
-const MLB_TEAMS: Record<number, { name: string; abbr: string }> = {
-  108: { name: 'Los Angeles Angels', abbr: 'LAA' },
-  109: { name: 'Arizona Diamondbacks', abbr: 'ARI' },
-  110: { name: 'Baltimore Orioles', abbr: 'BAL' },
-  111: { name: 'Boston Red Sox', abbr: 'BOS' },
-  112: { name: 'Chicago Cubs', abbr: 'CHC' },
-  113: { name: 'Cincinnati Reds', abbr: 'CIN' },
-  114: { name: 'Cleveland Guardians', abbr: 'CLE' },
-  115: { name: 'Colorado Rockies', abbr: 'COL' },
-  116: { name: 'Detroit Tigers', abbr: 'DET' },
-  117: { name: 'Houston Astros', abbr: 'HOU' },
-  118: { name: 'Kansas City Royals', abbr: 'KC' },
-  119: { name: 'Los Angeles Dodgers', abbr: 'LAD' },
-  120: { name: 'Washington Nationals', abbr: 'WSH' },
-  121: { name: 'New York Mets', abbr: 'NYM' },
-  133: { name: 'Athletics', abbr: 'ATH' },
-  134: { name: 'Pittsburgh Pirates', abbr: 'PIT' },
-  135: { name: 'San Diego Padres', abbr: 'SD' },
-  136: { name: 'Seattle Mariners', abbr: 'SEA' },
-  137: { name: 'San Francisco Giants', abbr: 'SF' },
-  138: { name: 'St. Louis Cardinals', abbr: 'STL' },
-  139: { name: 'Tampa Bay Rays', abbr: 'TB' },
-  140: { name: 'Texas Rangers', abbr: 'TEX' },
-  141: { name: 'Toronto Blue Jays', abbr: 'TOR' },
-  142: { name: 'Minnesota Twins', abbr: 'MIN' },
-  143: { name: 'Philadelphia Phillies', abbr: 'PHI' },
-  144: { name: 'Atlanta Braves', abbr: 'ATL' },
-  145: { name: 'Chicago White Sox', abbr: 'CWS' },
-  146: { name: 'Miami Marlins', abbr: 'MIA' },
-  147: { name: 'New York Yankees', abbr: 'NYY' },
-  158: { name: 'Milwaukee Brewers', abbr: 'MIL' },
-};
-
+// Removed hardcoded fallback data per audit
 // Module-scope stable empty array (avoids re-allocating a fresh [] on every render,
 // which would needlessly invalidate the useMemo below while data is loading).
 const EMPTY_ARRAY: PlayerProfile[] = [];
@@ -350,8 +301,7 @@ const TeamSelectorRow = React.memo(
       standing?.runs_allowed_per_game != null
         ? Number(standing.runs_allowed_per_game).toFixed(1)
         : null;
-    const teamName = standing?.name ?? MLB_TEAMS[teamId]?.name ?? `Team ${teamId}`;
-
+    const teamName = standing?.name ?? `Team ${teamId}`;
     return (
       <button
         onClick={() => {
@@ -497,6 +447,21 @@ export default function PlayersPage() {
       map.set(Number(t.team_id), t);
     });
     return map;
+  }, [standingsData]);
+
+  // Build structure dynamically from standingsData
+  const dynamicStructure = useMemo(() => {
+    if (!standingsData || !standingsData.teams) return null;
+    const structure: Record<string, Record<string, number[]>> = {};
+    standingsData.teams.forEach((t: TeamStanding) => {
+      if (!t.league || !t.division) return;
+      if (!structure[t.league]) structure[t.league] = {};
+      if (!structure[t.league][t.division]) structure[t.league][t.division] = [];
+      if (!structure[t.league][t.division].includes(t.team_id)) {
+        structure[t.league][t.division].push(t.team_id);
+      }
+    });
+    return structure;
   }, [standingsData]);
 
   const filteredPlayers = useMemo(() => {
@@ -857,7 +822,7 @@ export default function PlayersPage() {
                   >
                     Select a Team
                   </p>
-                  {Object.entries(MLB_STRUCTURE).map(([league, divisions]) => (
+                  {dynamicStructure && Object.entries(dynamicStructure).map(([league, divisions]) => (
                     <div key={league}>
                       {/* League header */}
                       <div className="flex items-center gap-3 mb-4">
@@ -982,7 +947,6 @@ export default function PlayersPage() {
                       style={{ fontFamily: '"Rajdhani", sans-serif' }}
                     >
                       {standingsMap.get(selectedTeam)?.name ??
-                        MLB_TEAMS[selectedTeam]?.name ??
                         `Team ${selectedTeam}`}
                     </span>
                     <button

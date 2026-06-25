@@ -66,13 +66,25 @@ function inferSide(
   return null;
 }
 
-// Fair American odds (integer) implied by a no-vig probability (0..1). Used to
-// price the UNDER side honestly, since pred_props only stores the OVER price.
+// Fair American odds (integer) implied by a no-vig probability (0..1).
 function fairAmericanFromProb(prob: number | null): number | null {
   if (prob == null || prob < 0 || prob > 1) return null;
   return prob > 0.5
     ? ((-100 * prob) / (1 - prob))
     : ((100 * (1 - prob)) / prob);
+}
+
+// Simulated American odds including standard book vig (~4.76% per side).
+// Used to price the UNDER side honestly when no real under price is stored,
+// preventing artificially inflated EVs from comparing model edge to a vig-free price.
+function vigAmericanFromProb(prob: number | null): number | null {
+  if (prob == null || prob <= 0 || prob >= 1) return null;
+  // Apply typical -110 vig (~4.76% juice on top of fair prob)
+  const vigProb = prob * 1.0476;
+  if (vigProb >= 1) return -10000; // clamp pathological cases
+  return vigProb > 0.5
+    ? ((-100 * vigProb) / (1 - vigProb))
+    : ((100 * (1 - vigProb)) / vigProb);
 }
 
 export default async function edgeHandler(req: Request) {
@@ -522,7 +534,7 @@ export default async function edgeHandler(req: Request) {
         ? overPrice
         : underPrice != null
           ? underPrice
-          : fairAmericanFromProb(pMarket);
+          : vigAmericanFromProb(pMarket);
       // Removed pathologically tight -600 clamping so heavy favorites still score.
       const priceIsReal = isOver ? overPrice != null : underPrice != null;
 
