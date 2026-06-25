@@ -768,7 +768,6 @@ export default function MlbSlatePage() {
                       </div>
                     </div>
                   </div>
-                </div>
 
                 {/* ── Market Grades + Prop Bets Button ─── */}
                 <MarketGradesPanel g={g} />
