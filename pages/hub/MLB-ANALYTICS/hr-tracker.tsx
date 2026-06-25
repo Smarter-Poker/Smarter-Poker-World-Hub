@@ -234,7 +234,7 @@ const PlayerRow = memo(function PlayerRow({ p }: { p: HRPlayer }) {
       <td className="py-3 px-3 text-right">
         {p.opp_pitcher_name ? (
           <div className="flex flex-col items-end">
-            <span className="text-white font-bold text-[23px] truncate max-w-[120px]">
+            <span className="text-white font-bold text-[23px]  max-w-[120px]">
               Vs{' '}
               {p.opp_pitcher_name.split(' ').filter(Boolean).pop() ||
                 p.opp_pitcher_name}
@@ -638,7 +638,7 @@ export default function HRTrackerPage() {
                         {cfg.icon} {cfg.label}
                       </div>
                       <div
-                        className="text-white font-extrabold text-[23px] capitalize tracking-wide leading-tight truncate font-rajdhani"
+                        className="text-white font-extrabold text-[23px] capitalize tracking-wide leading-tight  font-rajdhani"
                       >
                         {p.full_name}
                       </div>

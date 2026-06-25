@@ -418,7 +418,7 @@ export default function GameMatchupDashboard() {
                             loading="lazy"
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white truncate hover:text-[#00D4FF] transition-colors">
+                            <span className="font-['Rajdhani'] text-[30px] font-extrabold font-['Rajdhani'] text-white  hover:text-[#00D4FF] transition-colors">
                               {prop.player_name}
                             </span>
                           </div>
@@ -541,7 +541,7 @@ function PropModal({
               loading="lazy"
             />
             <div className="min-w-0">
-              <h3 className="text-[26px] font-extrabold font-['Rajdhani'] text-white truncate">
+              <h3 className="text-[26px] font-extrabold font-['Rajdhani'] text-white ">
                 {prop.player_name}
               </h3>
               <p className="text-[17px] text-[#8BA4D5] font-['Rajdhani'] tracking-wider">

@@ -256,7 +256,7 @@ const PlayerCard = React.memo(
             </div>
             <div className="flex flex-col min-w-0">
               <span
-                className="font-extrabold text-white text-[23px] tracking-wide truncate"
+                className="font-extrabold text-white text-[23px] tracking-wide "
                 style={{
                   fontFamily: '"Rajdhani", sans-serif',
                   textShadow: '0 1px 2px rgba(0,0,0,0.8)',
@@ -380,7 +380,7 @@ const TeamSelectorRow = React.memo(
           {/* Name + record + streak */}
           <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="font-extrabold text-white text-[20px] tracking-widest truncate"
+              className="font-extrabold text-white text-[20px] tracking-widest "
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {teamName}
@@ -743,7 +743,7 @@ export default function PlayersPage() {
                     )}
                     <div className="flex flex-col min-w-0">
                       <span
-                        className="text-white font-extrabold tracking-widest text-[18px] group-hover:text-[#00D4FF] transition-colors truncate"
+                        className="text-white font-extrabold tracking-widest text-[18px] group-hover:text-[#00D4FF] transition-colors "
                         style={{ fontFamily: '"Rajdhani", sans-serif' }}
                       >
                         {p.full_name}

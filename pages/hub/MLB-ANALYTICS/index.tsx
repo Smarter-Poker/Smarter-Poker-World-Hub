@@ -603,7 +603,7 @@ export default function MlbSlatePage() {
                         </div>
                         {g.awayStarter ? (
                           <span className="flex flex-col leading-tight min-w-0">
-                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize truncate">P: {g.awayStarter.name}</span>
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">P: {g.awayStarter.name}</span>
                             {g.awayStarter.wins != null && (
                               <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.awayStarter.wins}-{g.awayStarter.losses}{g.awayStarter.era != null ? ` · ${g.awayStarter.era.toFixed(2)} ERA` : ''}{g.awayStarter.whip != null ? ` · ${g.awayStarter.whip.toFixed(2)} WHIP` : ''}</span>
                             )}
@@ -646,7 +646,7 @@ export default function MlbSlatePage() {
                         </div>
                         {g.homeStarter ? (
                           <span className="flex flex-col leading-tight min-w-0">
-                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize truncate">P: {g.homeStarter.name}</span>
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">P: {g.homeStarter.name}</span>
                             {g.homeStarter.wins != null && (
                               <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.homeStarter.wins}-{g.homeStarter.losses}{g.homeStarter.era != null ? ` · ${g.homeStarter.era.toFixed(2)} ERA` : ''}{g.homeStarter.whip != null ? ` · ${g.homeStarter.whip.toFixed(2)} WHIP` : ''}</span>
                             )}

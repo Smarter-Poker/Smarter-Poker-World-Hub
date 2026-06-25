@@ -196,7 +196,7 @@ function TeamRow({
         <div className="flex items-center gap-2 min-w-0">
           <TeamLogo teamId={team.team_id} abbr={team.abbr} />
           <span className="font-black text-slate-200">{team.abbr}</span>
-          <span className="font-medium text-slate-400 truncate hidden sm:inline">{team.name}</span>
+          <span className="font-medium text-slate-400  hidden sm:inline">{team.name}</span>
         </div>
       </td>
       {showDivision && (
@@ -305,7 +305,7 @@ function WildCardRow({
         <div className="flex items-center gap-2 min-w-0">
           <TeamLogo teamId={team.team_id} abbr={team.abbr} />
           <span className="font-black text-slate-200">{team.abbr}</span>
-          <span className="font-medium text-slate-400 truncate hidden sm:inline">{team.name}</span>
+          <span className="font-medium text-slate-400  hidden sm:inline">{team.name}</span>
         </div>
       </td>
       <td className="py-2.5 px-2 text-center font-bold text-[#00D4FF]">{team.w}</td>

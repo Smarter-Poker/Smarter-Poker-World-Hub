@@ -124,7 +124,7 @@ const PlayerPicker = ({
             className="w-9 h-9 rounded-full object-cover bg-[#0d1117]"
           />
           <span
-            className="text-white font-extrabold text-[15px] truncate"
+            className="text-white font-extrabold text-[15px] "
             style={{ fontFamily: '"Rajdhani", sans-serif' }}
           >
             {selected.full_name}
@@ -176,7 +176,7 @@ const PlayerPicker = ({
                   ) : (
                     <div className="w-[22px] h-[22px]" />
                   )}
-                  <span className="text-slate-200 font-bold text-[14px] truncate">
+                  <span className="text-slate-200 font-bold text-[14px] ">
                     {p.full_name}
                   </span>
                   <span className="ml-auto text-slate-600 text-[11px] font-bold uppercase">
@@ -304,7 +304,7 @@ export default function ComparePage() {
           <MetalFrame className="p-2 sm:p-4">
             <div className="grid grid-cols-3 items-center gap-2 pb-3 mb-2 border-b border-[#2a3a4a]">
               <div
-                className="text-center text-white font-extrabold text-[15px] truncate"
+                className="text-center text-white font-extrabold text-[15px] "
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 {dA.player.full_name}
@@ -313,7 +313,7 @@ export default function ComparePage() {
                 STAT
               </div>
               <div
-                className="text-center text-white font-extrabold text-[15px] truncate"
+                className="text-center text-white font-extrabold text-[15px] "
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
                 {dB.player.full_name}
