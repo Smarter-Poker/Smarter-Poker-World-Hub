@@ -18,6 +18,7 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BetScoreBadge } from '../../../src/components/mlb/BetScoreBadge';
 import { logError } from '@/utils/logger';
+import { teamLogo } from '../../../src/lib/mlb_data';
 
 // ── Stat Tooltip Definitions ────────────────────────────────────────────────
 const STAT_META: Record<string, { full: string; desc: string }> = {
@@ -219,7 +220,7 @@ const TeamLogo = ({ teamId, teamName }: { teamId: number; teamName: string }) =>
         unoptimized
         width={42}
         height={42}
-        src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+        src={teamLogo(teamId) || ''}
         alt={teamName}
         className="shrink-0"
         style={{ objectFit: 'contain' }}

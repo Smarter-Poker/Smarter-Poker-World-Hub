@@ -9,6 +9,7 @@ import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { glossaryFor } from '../../../../src/lib/mlbStatGlossary';
+import { teamLogo, playerHeadshot } from '../../../../src/lib/mlb_data';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -115,7 +116,7 @@ const PlayerPicker = ({
         <div className="flex items-center gap-2 bg-[#1a2332] border border-[#3d4f5f] rounded-lg p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${selected.player_id}/headshot/67/current`}
+            src={playerHeadshot(selected.player_id) || '/default-avatar.png'}
             alt={selected.full_name}
             loading="lazy"
             width={36}
@@ -165,7 +166,7 @@ const PlayerPicker = ({
                   {p.team_id ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`https://www.mlbstatic.com/team-logos/${p.team_id}.svg`}
+                      src={teamLogo(p.team_id) || ''}
                       alt=""
                       loading="lazy"
                       width={22}
