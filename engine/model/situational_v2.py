@@ -60,7 +60,8 @@ DEFAULT_CFG: dict = {
 # ── helpers ────────────────────────────────────────────────────────────────────
 
 def _prob_to_logodds(p: float) -> float:
-    p = max(0.001, min(0.999, p))
+    if p <= 0: p = 1e-6
+    if p >= 1: p = 1 - 1e-6
     return math.log(p / (1 - p))
 
 
@@ -176,9 +177,11 @@ def _ump_adj(home_ctx: dict, cfg: dict) -> float:
     ump_k = home_ctx.get("ump_k_rate")   # K/9 tendency for this ump
     if ump_k is None:
         return 0.0
-    # League-avg K/9 ≈ 8.7; ump-driven variance ≈ ±0.5
-    delta = (float(ump_k) - 8.7) / 0.5
-    return cfg["ump_w"] * delta
+    # Use empirical league-avg K/9 and variance if available
+    lg_k = home_ctx.get("league_avg_k") or 8.7
+    variance = home_ctx.get("league_k_variance") or 0.5
+    delta = (float(ump_k) - lg_k) / variance
+    return cfg.get("ump_w", 0.0) * delta
 
 
 # ── public API ─────────────────────────────────────────────────────────────────
@@ -254,11 +257,14 @@ def team_prior_v2(
     meta["signals"]["ump"] = round(ump_adj, 4)
     total_adj += ump_adj
 
-    # 3. Cap total adjustment and apply
-    total_adj = max(-cfg["max_log_adj"], min(cfg["max_log_adj"], total_adj))
+    # 3. Apply adjustment
+    if cfg.get("max_log_adj", 0) > 0:
+        total_adj = max(-cfg["max_log_adj"], min(cfg["max_log_adj"], total_adj))
     meta["total_log_adj"] = round(total_adj, 4)
 
-    adj_p = max(0.01, min(0.99, _logodds_to_prob(lo + total_adj)))
+    adj_p = _logodds_to_prob(lo + total_adj)
+    if adj_p <= 0: adj_p = 1e-6
+    if adj_p >= 1: adj_p = 1 - 1e-6
     meta["adj_prob"] = round(adj_p, 4)
 
     return adj_p, meta
