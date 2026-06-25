@@ -1543,15 +1543,8 @@ export default function BestBetsPage() {
   const isStale = !!(todayStr && officialDate && officialDate < todayStr);
 
   // Categorize
-  // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
-  // have their own dedicated sections; including them here double-listed the same bets.
-  const mostLikelyToWin = useMemo(() => {
-    let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
-    return source
-      .filter((b) => Number(b.win_confidence) > 50 || Number(b.price ?? b.best_price ?? 0) < 0)
-      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
-      .slice(0, 10);
-  }, [bets, data]);
+  // "Most Likely to Win" carousel has been removed to prevent double-listing moneyline bets
+  // and to focus strictly on highest edge_pts rather than pure massive favorite probabilities.
 
   const bestMoneyLines = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
