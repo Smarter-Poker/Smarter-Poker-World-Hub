@@ -1133,7 +1133,7 @@ const BetCard = ({
               {formatMatchup(bet.matchup) || stripCity(bet.team_name) || 'MLB GAME'}
             </div>
             <div
-              className="text-[26px] font-black text-white capitalize leading-tight truncate"
+              className={`font-black text-white capitalize leading-tight ${(bet.market === 'moneyline' || bet.market === 'h2h') ? 'text-[24px] whitespace-normal' : 'text-[34px] truncate'}`}
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {isTotalBet
@@ -1142,6 +1142,8 @@ const BetCard = ({
                     const isOver = sel.includes('over');
                     return `${isOver ? 'Over' : 'Under'} ${lineStr}`;
                   })()
+                : bet.market === 'moneyline' || bet.market === 'h2h'
+                ? `Bet The Money Line ${bet.odds_american > 0 ? '+' : ''}${bet.odds_american || ''}`
                 : `${stripCity(selectionLabel(bet?.selection, bet?.matchup))} ${lineStr}`}
             </div>
             {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
@@ -1297,7 +1299,7 @@ const CategoryCarousel = ({
   onBetClick: (bet: any) => void;
   rankLabel?: string;
 }) => {
-  if (!bets || bets.length < 3) return null;
+  if (!bets || bets.length === 0) return null;
 
   // Render every real bet the model produced for this category. No empty
   // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
@@ -1360,7 +1362,7 @@ export default function BestBetsPage() {
   const mostLikelyToWin = useMemo(() => {
     return [...bets]
       .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
-      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+      .sort((a, b) => (Number(b.win_pct) || 0) - (Number(a.win_pct) || 0))
       .slice(0, 8);
   }, [bets]);
 
