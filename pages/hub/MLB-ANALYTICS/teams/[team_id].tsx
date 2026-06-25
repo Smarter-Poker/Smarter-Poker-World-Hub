@@ -156,7 +156,7 @@ const TeamLogo = ({ teamId, teamName, size = 96 }: { teamId: string; teamName: s
         unoptimized
         width={imgSize}
         height={imgSize}
-        src={teamLogo(teamId) || ''}
+        src={teamLogo(parseInt(teamId, 10)) || ''}
         alt={teamName}
         className="shrink-0"
         style={{ objectFit: 'contain' }}

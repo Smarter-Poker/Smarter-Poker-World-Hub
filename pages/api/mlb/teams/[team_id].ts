@@ -152,7 +152,7 @@ async function edgeHandler(req: Request) {
       let pMarket: number | null = null;
       let isOver: boolean | null = null;
       if (inputs) {
-        bet_score = betScore(inputs.pWin, inputs.price, { pMarket: inputs.pMarket, lineupLocked: true });
+        bet_score = betScore(inputs.pWin, inputs.price);
         bet_tier = tier(bet_score);
         ev_pct = (inputs.pWin * americanToDecimal(inputs.price) - 1) * 100;
         pWin = inputs.pWin;

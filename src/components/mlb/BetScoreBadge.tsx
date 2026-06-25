@@ -28,7 +28,7 @@ export function BetScoreBadge({
       </span>
     );
   }
-  const s = score ?? betScore(pWin!, price!, { vol, lineupLocked, pMarket });
+  const s = score ?? betScore(pWin!, price!);
   const t = tierName ? (tierName.toUpperCase() as any) : tier(s);
   const st = TIER_STYLE[t as keyof typeof TIER_STYLE] || TIER_STYLE['PASS'];
   return (
