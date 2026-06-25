@@ -60,7 +60,7 @@ prof_p as (select metrics from agg_pitcher where pitcher_id = p_id and window_ki
 typ as (
   select case
     when coalesce((select (metrics->>'PA')::numeric from hit), 0) >= 20 then 'hitter'
-    when (select metrics from pit) is not null and coalesce((select (metrics->>'IP')::numeric from pit), 0) > 0 then 'pitcher'
+    when (select metrics from pit) is not null and coalesce((select (metrics->>'IP')::numeric from pit), 0) >= 0 then 'pitcher'
     when (select metrics from hit) is not null then 'hitter'
     else 'pitcher'
   end as t
