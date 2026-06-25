@@ -573,39 +573,13 @@ export default function MlbSlatePage() {
 
                 {/* ── Game Header ────────────────── */}
                 <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col min-w-0 pr-4">
                     <span
-                      className="text-[26px] text-white font-black tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]"
+                      className="text-[26px] text-white font-black tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] truncate"
                       style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {g.away} @ {g.home}
                     </span>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      {/* SGP badge */}
-                      <span className="rounded-sm bg-[#1a2030] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
-                        Sgp
-                      </span>
-                      {/* Game ID */}
-                      <span className="text-[16px] text-[#3d4f5f]  font-black">ID:{g.gamePk}</span>
-                      {/* Lineup state */}
-                      {g.lineupState === 'confirmed' ? (
-                        <span className="rounded-sm bg-[#001a0a] border border-[#00C853]/50 px-1.5 py-[2px] text-[16px] font-black text-[#00C853] capitalize tracking-widest">
-                          Confirmed
-                        </span>
-                      ) : g.lineupState === 'pending' ? (
-                        <span className="rounded-sm bg-[#1a1000] border border-[#FFA000]/50 px-1.5 py-[2px] text-[16px] font-black text-[#FFA000] capitalize tracking-widest">
-                          Pending
-                        </span>
-                      ) : (
-                        <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
-                          Awaiting Price
-                        </span>
-                      )}
-                      {/* Status */}
-                      <span className="rounded-sm bg-[#0d1117] border border-[#3d4f5f] px-1.5 py-[2px] text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest">
-                        Projected
-                      </span>
-                    </div>
                   </div>
 
                   {/* First pitch time */}

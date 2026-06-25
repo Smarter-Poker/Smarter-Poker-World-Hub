@@ -136,6 +136,34 @@ const formatOdds = (o: any) => {
   return num > 0 ? `+${num}` : `${num}`;
 };
 
+
+const TEAM_NICKNAMES = [
+  'Red Sox', 'Blue Jays', 'White Sox', 'Angels', 'Astros', 'Athletics', 
+  'Braves', 'Brewers', 'Cardinals', 'Cubs', 'Diamondbacks', 'Dodgers', 
+  'Giants', 'Guardians', 'Mariners', 'Marlins', 'Mets', 'Nationals', 
+  'Orioles', 'Padres', 'Phillies', 'Pirates', 'Rangers', 'Rays', 'Reds', 
+  'Rockies', 'Royals', 'Tigers', 'Twins', 'Yankees'
+];
+
+const stripCity = (fullName) => {
+  if (!fullName) return '';
+  const lower = fullName.toLowerCase();
+  for (const nick of TEAM_NICKNAMES) {
+    if (lower.includes(nick.toLowerCase())) {
+      return nick;
+    }
+  }
+  return fullName;
+};
+
+const formatMatchup = (matchup) => {
+  if (!matchup) return '';
+  if (matchup.includes(' @ ')) {
+    return matchup.split(' @ ').map(p => stripCity(p.trim())).join(' @ ');
+  }
+  return stripCity(matchup);
+};
+
 const formatWinPct = (wc: any) => {
   if (wc == null) return 'N/A';
   const n = Number(wc);
@@ -163,8 +191,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[1];
     }
-    let suffix = s.replace(/^home_?/, '');
-    suffix = suffix.replace(/^over_?/, 'Over ').replace(/^under_?/, 'Under ').replace(/_/g, ' ').trim();
+    teamName = stripCity(teamName);
+    const suffix = s.replace(/^home_?/, '');
     return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
   if (s === 'away' || s.startsWith('away_')) {
@@ -173,30 +201,18 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
       const parts = matchup.split(' @ ');
       if (parts.length === 2) teamName = parts[0];
     }
-    let suffix = s.replace(/^away_?/, '');
-    suffix = suffix.replace(/^over_?/, 'Over ').replace(/^under_?/, 'Under ').replace(/_/g, ' ').trim();
+    teamName = stripCity(teamName);
+    const suffix = s.replace(/^away_?/, '');
     return toTitleCase(teamName) + (suffix ? ' ' + suffix : '');
   }
 
   // Totals formatting
-  const matchupScope = matchup ? ` (${matchup})` : '';
+  const matchupScope = matchup ? ` (${formatMatchup(matchup)})` : '';
   if (s.startsWith('over')) return toTitleCase(`Over ${s.replace(/^over_?/, '')}`) + matchupScope;
   if (s.startsWith('under'))
     return toTitleCase(`Under ${s.replace(/^under_?/, '')}`) + matchupScope;
 
-  return toTitleCase(selection.replace(/_/g, ' '));
-};
-
-// Collapse two-sided / multi-side game markets to the single best row per key so a list never
-// shows both sides of the same bet (e.g. a team's Over and Under, or both F5 moneyline sides).
-const bestPerKey = (rows: any[], keyFn: (b: any) => string, rankFn: (b: any) => number): any[] => {
-  const m = new Map<string, any>();
-  for (const b of rows) {
-    const k = keyFn(b);
-    const prev = m.get(k);
-    if (!prev || rankFn(b) > rankFn(prev)) m.set(k, b);
-  }
-  return Array.from(m.values());
+  return toTitleCase(stripCity(selection.replace(/_/g, ' ')));
 };
 
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
@@ -244,17 +260,12 @@ const getTierColors = (tier: string) => {
 // ──────────────────────────────────────────────────────────────────────────────
 // Fullscreen Modal Component
 // ──────────────────────────────────────────────────────────────────────────────
-const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
+const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   const { isTeamBet, isPlayerProp, isPitcherProp } = detectBetCategory(bet);
   const [imgError, setImgError] = useState(false);
   const { color: tierColor, glow: tierGlow, bg: tierBg } = getTierColors(bet.bet_tier || '');
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
+  // Removed body overflow lock
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -282,17 +293,11 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
   const era = bet.pitcher_era != null ? Number(bet.pitcher_era).toFixed(2) : null;
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex flex-col"
-      style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className="min-h-screen bg-[#0a0a15] text-slate-200 font-sans w-full max-w-[100vw] overflow-x-hidden box-border flex flex-col">
+      <UniversalHeader pageDepth={3} onBackClick={onClose} />
       <div
-        className="relative flex flex-col w-full max-w-lg mx-auto h-full overflow-y-auto"
+        className="relative flex flex-col w-full max-w-lg mx-auto flex-1 pb-[70px]"
         style={{ background: 'linear-gradient(180deg, #0d1117 0%, #131e2e 100%)' }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Top border glow */}
         <div
@@ -303,29 +308,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
           }}
         />
 
-        {/* Header bar */}
-        <div
-          className="sticky top-0 z-10 flex justify-between items-center px-4 py-3 border-b border-[#2a3a4a]"
-          style={{ background: 'rgba(13,17,23,0.97)', backdropFilter: 'blur(10px)' }}
-        >
-          <div className="text-[17px] font-black text-[#5a6a7a] capitalize tracking-widest ">
-            Bet Details
-          </div>
-          <button
-            onClick={() => {
-              if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try {
-                  navigator.vibrate(15);
-                } catch (e) {}
-              }
-              onClose();
-            }}
-            aria-label="Close bet details"
-            className="flex items-center justify-center p-2 rounded-sm border border-[#3d4f5f] text-slate-400 hover:text-white hover:border-[#00D4FF] transition-all active:scale-95 min-h-[44px] min-w-[44px]"
-          >
-            <X size={16} />
-          </button>
-        </div>
+        
 
         {/* Hero Section */}
         <div className="flex flex-col items-center pt-5 pb-4 px-4 border-b border-[#2a3a4a] relative overflow-hidden">
@@ -396,7 +379,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
             >
               {bet?.player_name ||
                 (isTeamBet
-                  ? selectionLabel(bet?.selection, bet?.matchup)
+                  ? stripCity(selectionLabel(bet?.selection, bet?.matchup))
                   : bet?.selection?.split(' ').slice(0, -1).join(' ') || bet?.selection) ||
                 bet?.team ||
                 'Unknown'}
@@ -431,7 +414,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                 className="text-[34px] font-black text-white capitalize leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
+                {stripCity(selectionLabel(bet?.selection, bet?.matchup))} {lineStr}
               </div>
             </div>
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
@@ -626,7 +609,7 @@ const BetDetailModal = ({ bet, onClose }: { bet: any; onClose: () => void }) => 
                       )}
                       {factor?.dir === 'info' && <Info size={10} className="text-slate-400" />}
                     </div>
-                    <div className="text-[21px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 ">
+                    <div className="text-[21px] text-slate-300 leading-relaxed font-bold tracking-wide flex-1 capitalize">
                       {factor?.text}
                     </div>
                   </div>
@@ -927,10 +910,7 @@ const BetCard = ({
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   let marketLabel = 'ML';
-  if (typeStr.includes('f5_moneyline')) marketLabel = 'F5 ML';
-  else if (typeStr.includes('f5_total')) marketLabel = 'F5 O/U';
-  else if (typeStr.includes('team_total')) marketLabel = 'TEAM';
-  else if (typeStr.includes('total')) marketLabel = 'TOT';
+  if (typeStr.includes('total')) marketLabel = 'TOT';
   else if (
     typeStr.includes('run_line') ||
     typeStr.includes('runline') ||
@@ -1146,23 +1126,19 @@ const BetCard = ({
               }`}
               style={isTotalBet ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
             >
-              {!isTeamBet && bet.player_name
-                ? (bet.team_name || bet.matchup || 'MLB')
-                : (bet.matchup || bet.team_name || 'MLB GAME')}
+              {formatMatchup(bet.matchup) || stripCity(bet.team_name) || 'MLB GAME'}
             </div>
             <div
               className="text-[26px] font-black text-white capitalize leading-tight truncate"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {!isTeamBet && bet.player_name
-                ? bet.player_name
-                : isTotalBet
+              {isTotalBet
                 ? (() => {
                     const sel = (bet.selection || '').toLowerCase();
                     const isOver = sel.includes('over');
                     return `${isOver ? 'Over' : 'Under'} ${lineStr}`;
                   })()
-                : `${selectionLabel(bet?.selection, bet?.matchup)} ${lineStr}`}
+                : `${stripCity(selectionLabel(bet?.selection, bet?.matchup))} ${lineStr}`}
             </div>
             {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
             {!isTotalBet && (
@@ -1173,11 +1149,7 @@ const BetCard = ({
                 >
                   {marketLabel}
                 </span>
-                <span className="text-[#3d4f5f] truncate">
-                  {isPlayerProp && bet.line != null
-                    ? `${(bet.selection || '').toLowerCase().startsWith('under') ? 'Under' : 'Over'} ${bet.line} ${(bet.market || '').replace(/_/g, ' ')}`
-                    : bet.market?.replace(/_/g, ' ')}
-                </span>
+                <span className="text-[#3d4f5f] truncate">{bet.market?.replace(/_/g, ' ')}</span>
               </div>
             )}
           </div>
@@ -1314,46 +1286,34 @@ const CategoryCarousel = ({
   bets,
   onBetClick,
   rankLabel = 'RANK',
-  note,
-  keepWhenEmpty = false,
 }: {
   title: string;
   icon?: any;
   bets: any[];
   onBetClick: (bet: any) => void;
   rankLabel?: string;
-  note?: string;
-  keepWhenEmpty?: boolean;
 }) => {
-  const isEmpty = !bets || bets.length === 0;
-  if (isEmpty && !keepWhenEmpty) return null;
+  if (!bets || bets.length < 3) return null;
 
+  // Render every real bet the model produced for this category. No empty
+  // placeholder stubs and no fixed 3-slot cap — the grid flows N cards into
+  // rows, so a category with 1 bet shows 1 card and a category with 8 shows 8.
+  // The length===0 guard above is the only (graceful) empty state.
   return (
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={toTitleCase(title)} />
-      {note && (
-        <div className="px-1 -mt-1 mb-2 text-[13px] font-bold tracking-wide text-[#5a6a7a]">
-          {note}
-        </div>
-      )}
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
-        {isEmpty ? (
-          <div className="text-[15px] font-bold tracking-wide text-[#5a6a7a] py-6 text-center capitalize">
-            No {toTitleCase(title).replace(/^Best /, '')} clear the model{`'`}s value bar today.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
-            {bets.map((bet, idx) => (
-              <BetCard
-                key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
-                bet={bet}
-                rank={idx + 1}
-                rankLabel={rankLabel}
-                onClick={() => onBetClick(bet)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+          {bets.map((bet, idx) => (
+            <BetCard
+              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+              bet={bet}
+              rank={idx + 1}
+              rankLabel={rankLabel}
+              onClick={() => onBetClick(bet)}
+            />
+          ))}
+        </div>
       </MetalFrame>
     </div>
   );
@@ -1394,50 +1354,32 @@ export default function BestBetsPage() {
   // "Most Likely to Win" = highest win-probability moneylines (h2h). Run lines and totals
   // have their own dedicated sections; including them here double-listed the same bets.
   const mostLikelyToWin = useMemo(() => {
-    const wc = (b: any) => Number(b.win_confidence) || 0;
-    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
-    // One row per game, and only sides the model actually favors (>= 50% win prob).
-    return bestPerKey(ml, (b) => String(b.game_pk), wc)
-      .filter((b) => wc(b) >= 50 && (Number(b.bet_score) || 0) >= 52)
-      .sort((a, b) => wc(b) - wc(a))
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
       .slice(0, 8);
   }, [bets]);
 
   const bestMoneyLines = useMemo(() => {
-    const r = (b: any) => Number(b.bet_score) || 0;
-    const ml = bets.filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'));
-    return bestPerKey(ml, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && (b.market === 'h2h' || b.market === 'moneyline'))
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestRunLines = useMemo(() => {
-    const r = (b: any) => Number(b.bet_score) || 0;
-    const rl = bets.filter(
-      (b) =>
-        b.bet_type === 'line' &&
-        (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
-    );
-    return bestPerKey(rl, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
+    return [...bets]
+      .filter(
+        (b) =>
+          b.bet_type === 'line' &&
+          (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
+      )
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const bestTotals = useMemo(() => {
-    const r = (b: any) => Number(b.bet_score) || 0;
-    const tt = bets.filter((b) => b.bet_type === 'line' && b.market === 'total');
-    return bestPerKey(tt, (b) => String(b.game_pk), r).sort((a, b) => r(b) - r(a));
-  }, [bets]);
-
-  const sc = (b: any) => Number(b.bet_score) || 0;
-  const bestF5Moneyline = useMemo(() => {
-    const rows = bets.filter((b) => b.market === 'f5_moneyline');
-    return bestPerKey(rows, (b) => String(b.game_pk), sc).sort((a, b) => sc(b) - sc(a));
-  }, [bets]);
-  const bestF5Totals = useMemo(() => {
-    const rows = bets.filter((b) => b.market === 'f5_total');
-    return bestPerKey(rows, (b) => String(b.game_pk), sc).sort((a, b) => sc(b) - sc(a));
-  }, [bets]);
-  const bestTeamTotals = useMemo(() => {
-    const rows = bets.filter((b) => b.market === 'team_total');
-    return bestPerKey(rows, (b) => `${b.game_pk}|${String(b.selection || '').startsWith('away') ? 'a' : 'h'}`, sc)
-      .sort((a, b) => sc(b) - sc(a));
+    return [...bets]
+      .filter((b) => b.bet_type === 'line' && b.market === 'total')
+      .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets]);
 
   const mostLikelyToHomer = useMemo(() => {
@@ -1521,6 +1463,11 @@ export default function BestBetsPage() {
         <BottomNavBar />
       </div>
     );
+  }
+
+  
+  if (selectedBet) {
+    return <BetDetailView bet={selectedBet} onClose={closeModal} />;
   }
 
   return (
@@ -1692,7 +1639,6 @@ export default function BestBetsPage() {
                   icon={Target}
                   bets={mostLikelyToWin}
                   onBetClick={openModal}
-                  note="Ranked by the model's win probability (likeliest to win), among its real plays — not by value Score. For value ranking, see Best Money Lines."
                 />
                 <CategoryCarousel
                   title="Best Money Lines"
@@ -1705,8 +1651,6 @@ export default function BestBetsPage() {
                   icon={Activity}
                   bets={bestRunLines}
                   onBetClick={openModal}
-                  note="Run lines only appear when the model finds a genuine edge vs the book — most slates that's just one or two, and that's by design."
-                  keepWhenEmpty
                 />
                 <CategoryCarousel
                   title="Best Over / Unders"
@@ -1715,30 +1659,10 @@ export default function BestBetsPage() {
                   onBetClick={openModal}
                 />
                 <CategoryCarousel
-                  title="First 5 Innings - Moneyline"
-                  icon={Target}
-                  bets={bestF5Moneyline}
-                  onBetClick={openModal}
-                />
-                <CategoryCarousel
-                  title="First 5 Innings - Over / Unders"
-                  icon={TrendingUp}
-                  bets={bestF5Totals}
-                  onBetClick={openModal}
-                />
-                <CategoryCarousel
-                  title="Team Totals"
-                  icon={Activity}
-                  bets={bestTeamTotals}
-                  onBetClick={openModal}
-                />
-                <CategoryCarousel
                   title="Most Likely to Homer"
                   icon={Zap}
                   bets={mostLikelyToHomer}
                   onBetClick={openModal}
-                  note="Home-run props with a genuine model edge. HR is high-variance and books juice it hard, so most slates surface only one or two."
-                  keepWhenEmpty
                 />
 
                 {topPropsByMarket.map((group, idx) => (
@@ -1767,8 +1691,7 @@ export default function BestBetsPage() {
 
       <BottomNavBar />
 
-      {/* Fullscreen Modal */}
-      {selectedBet && <BetDetailModal bet={selectedBet} onClose={closeModal} />}
+      
     </div>
   );
 }
