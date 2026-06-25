@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('raw_games')
     .select('*')
     .eq('game_pk', Number(id))
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     return res.status(404).json({ error: 'Game not found' });
