@@ -54,7 +54,7 @@ export function ScoringGuideModal({
         <div className="space-y-5">
           <div>
             <p className="text-[22px] text-slate-300 mb-3 leading-relaxed">
-              Our MLB model generates a <span className="font-bold text-white">0-100 Bet Score</span> that perfectly balances the <span className="text-[#00D4FF] font-semibold">Expected Value (EV)</span> against <span className="text-emerald-400 font-semibold">Confidence Factors</span>. The higher the score, the stronger the bet.
+              Our MLB model generates a <span className="font-bold text-white">0-100 Bet Score</span> that perfectly scales with pure <span className="text-[#00D4FF] font-semibold">Expected Value (EV)</span>. The higher the score, the stronger the true mathematical edge.
             </p>
             
             <div className="bg-[#0a0a15] border border-[#2a3a4a] rounded-md p-3 mb-4 space-y-3 shadow-inner">
@@ -66,10 +66,10 @@ export function ScoringGuideModal({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <ShieldCheck size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+                <Target size={16} className="text-emerald-400 mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-[18px] font-black capitalize text-white tracking-wider">Confidence Factors</div>
-                  <div className="text-[18px] text-slate-400">We haircut edges if lineups aren't confirmed, if it's a high-variance spot, or if it strays too far from sharp market consensus.</div>
+                  <div className="text-[18px] font-black capitalize text-white tracking-wider">Zero Bias Scaling</div>
+                  <div className="text-[18px] text-slate-400">Our model scores are 100% data-driven. No arbitrary haircuts, limits, or artificial boundaries—just pure statistical edges mapped linearly.</div>
                 </div>
               </div>
             </div>
