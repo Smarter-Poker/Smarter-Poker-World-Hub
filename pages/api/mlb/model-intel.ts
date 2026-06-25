@@ -337,33 +337,9 @@ async function fallbackAggregate(mlbDb: any): Promise<ModelIntelResponse> {
     .filter((_: any, i: number) => i >= 13);
 
   // ── Calibration buckets ───────────────────────────────────────────────────
-  const BUCKETS = 10;
-  const bucketN = Array(BUCKETS).fill(0);
-  const bucketWins = Array(BUCKETS).fill(0);
+  // Eradicated: No longer fabricating expected win probability from Brier.
+  const calibration: any[] = [];
 
-  for (const r of rows) {
-    const brier = r.brier != null ? Number(r.brier) : null;
-    const n = Number(r.n) || 0;
-    if (brier == null || n === 0) continue;
-    const predicted_p = 0.5 + Math.sqrt(Math.max(0, 0.25 - brier));
-    const bucket = Math.min(BUCKETS - 1, Math.floor(predicted_p * BUCKETS));
-    bucketN[bucket] += n;
-    const clv = r.avg_clv != null ? Number(r.avg_clv) : 0;
-    
-  }
-
-  const calibration = Array.from({ length: BUCKETS }, (_, i) => {
-    const low = i * 10;
-    const high = low + 10;
-    const mid = low + 5;
-    const n = bucketN[i];
-    return {
-      bucket_label: `${low}-${high}%`,
-      predicted_prob: mid,
-      actual_win_rate: 0,
-      n,
-    };
-  }).filter((b) => b.n > 0);
 
   // ── Bet-type sparklines (last 8 CLV data points as portfolio proxy) ───────
   const betTypesWithSparklines = betTypes.map((b: any) => ({

@@ -24,7 +24,7 @@ ENV_LOCAL="$REPO_ROOT/.env.local"
 [ -f "$ENV_LOCAL" ] || { echo "ERROR: $ENV_LOCAL not found (the key is stored there)"; exit 1; }
 
 # Read values from .env.local WITHOUT sourcing it (don't execute other vars).
-get() { grep -E "^$1=" "$ENV_LOCAL" | head -1 | cut -d= -f2- | tr -d '\r'; }
+get() { grep -E "^$1=" "$ENV_LOCAL" || true | head -1 | cut -d= -f2- | tr -d '\r'; }
 
 KEY_NAME="$(get HETZNER_SSH_KEY_NAME)"; KEY_NAME="${KEY_NAME:-openclaw_ed25519}"
 B64="$(get HETZNER_SSH_KEY_B64)"

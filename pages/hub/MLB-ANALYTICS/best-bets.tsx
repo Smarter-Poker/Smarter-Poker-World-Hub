@@ -1226,7 +1226,7 @@ const BetCard = ({
             </div>
             {bet.pitcher_so != null && ((bet.pitcher_wins ?? 0) + (bet.pitcher_losses ?? 0)) > 0 && (
               <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
-                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">2026 K/GS</div>
+                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">Season K/GS</div>
                 <div
                   className="text-[19px] font-black text-[#00D4FF] leading-tight"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
