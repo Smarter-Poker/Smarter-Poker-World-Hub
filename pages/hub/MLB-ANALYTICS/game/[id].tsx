@@ -425,7 +425,7 @@ export default function GameMatchupDashboard() {
                         </Link>
                         <div className="flex flex-col min-w-0 justify-end pb-1">
                           <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
-                            {propLabel(prop.prop)} {prop.side === 'under' ? 'U' : 'O'} {prop.line}
+                            {propLabel(prop.prop)} {String(prop.side || '').toLowerCase() === 'under' ? 'U' : String(prop.side || '').toLowerCase() === 'over' ? 'O' : ''} {prop.line}
                           </span>
                         </div>
                       </div>
@@ -546,7 +546,7 @@ function PropModal({
               </h3>
               <p className="text-[17px] text-[#8BA4D5] font-['Rajdhani'] tracking-wider">
                 {prop.team_abbr ? `${prop.team_abbr} · ` : ''}
-                {propLabel(prop.prop)} {prop.side === 'under' ? 'Under' : 'Over'} {prop.line}
+                {propLabel(prop.prop)} {String(prop.side || '').toLowerCase() === 'under' ? 'Under' : String(prop.side || '').toLowerCase() === 'over' ? 'Over' : ''} {prop.line}
                 {'  ·  '}
                 {fmtOdds(prop.odds ?? prop.price)}
               </p>

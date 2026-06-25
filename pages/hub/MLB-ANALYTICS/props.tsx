@@ -362,7 +362,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
   const isPitcher = isPitcherProp(prop);
   const stats = prop.stats || {};
   const factors: any[] = Array.isArray(prop.score_factors) ? prop.score_factors : [];
-  const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
+  const isOver = String(prop.side || '').toLowerCase() === 'over' ? true : String(prop.side || '').toLowerCase() === 'under' ? false : !!prop.isOver;
 
   return (
     <div
@@ -732,7 +732,7 @@ const PropCard = React.memo(
     onOpen: (p: any) => void;
   }) => {
     const ts = tierStyle(prop.bet_tier);
-    const isOver = prop.side === 'over' ? true : prop.side === 'under' ? false : !!prop.isOver;
+    const isOver = String(prop.side || '').toLowerCase() === 'over' ? true : String(prop.side || '').toLowerCase() === 'under' ? false : !!prop.isOver;
     const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
     const isPitcher = isPitcherProp(prop);
     const stats = prop.stats || {};

@@ -1311,7 +1311,7 @@ const BetCard = ({
                 className="text-[19px] font-black text-white leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {(bet.selection || '').toLowerCase().includes('over') ? 'Over' : 'Under'}{' '}
+                {(bet.selection || '').toLowerCase().includes('under') ? 'Under' : (bet.selection || '').toLowerCase().includes('over') ? 'Over' : ''}{' '}
                 {bet.line} K
               </div>
             </div>
