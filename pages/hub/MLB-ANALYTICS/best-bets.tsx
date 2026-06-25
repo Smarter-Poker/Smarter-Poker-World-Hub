@@ -261,7 +261,11 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (s.startsWith('over')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
   if (s.startsWith('under')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
 
-  return toTitleCase(stripCity(selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim()));
+  let cleanSelection = selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim();
+  if (cleanSelection.includes(' @ ')) {
+    return toTitleCase(formatMatchup(cleanSelection));
+  }
+  return toTitleCase(stripCity(cleanSelection));
 };
 
 // Canonical tier palette — identical five tiers/colors to src/lib/betScore.ts (TIER_STYLE)
@@ -434,8 +438,8 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
             >
               {bet?.player_name ||
                 (isTeamBet
-                  ? stripCity(selectionLabel(bet?.selection, bet?.matchup))
-                  : bet?.selection?.split(' ').slice(0, -1).join(' ') || bet?.selection) ||
+                  ? selectionLabel(bet?.selection, bet?.matchup)
+                  : bet?.selection) ||
                 bet?.team ||
                 'Unknown'}
             </div>
@@ -475,7 +479,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                 className="text-[34px] font-black text-white capitalize leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {stripCity(selectionLabel(bet?.selection, bet?.matchup))} {lineStr}
+                {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
               </div>
             </div>
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
@@ -749,7 +753,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                     className="text-[30px] font-black text-slate-300"
                     style={{ fontFamily: '"Rajdhani", sans-serif' }}
                   >
-                    .{String(Number(bet.team_avg).toFixed(3)).split('.')[1] || '000'}
+                    .{String(Number(bet.team_avg).toFixed(3)).split('.')[1]}
                   </div>
                 </div>
               )}
@@ -1321,7 +1325,7 @@ const BetCard = ({
                   if (bet.player_name) {
                     target = bet.player_name;
                   } else {
-                    target = stripCity(selectionLabel(bet?.selection, bet?.matchup)).trim();
+                    target = selectionLabel(bet?.selection, bet?.matchup).trim();
                   }
                   return `${target} ${lineStr} ${formatOdds(bet.price ?? bet.best_price)}`.trim().replace(/\s+/g, ' ');
                 })()}
