@@ -69,7 +69,7 @@ function inferSide(
 // Fair American odds (integer) implied by a no-vig probability (0..1). Used to
 // price the UNDER side honestly, since pred_props only stores the OVER price.
 function fairAmericanFromProb(prob: number | null): number | null {
-  if (prob == null || prob <= 0 || prob >= 1) return null;
+  if (prob == null || prob < 0 || prob > 1) return null;
   return prob > 0.5
     ? ((-100 * prob) / (1 - prob))
     : ((100 * (1 - prob)) / prob);
