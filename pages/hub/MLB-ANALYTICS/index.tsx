@@ -184,8 +184,6 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let rlTier: Tier = 'PASS';
   let rlRec = 'Hold';
   if (mlScore > 0 && mlSide) {
-    rlScore = Math.max(0, Math.round(mlScore * 0.7)); // Scale down proxy
-    rlTier = getTier(rlScore);
     const line =
       mlSide === 'home'
         ? g.avgHomeSpreadLine != null
@@ -207,13 +205,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let ouTier: Tier = 'PASS';
   let ouRec = 'Hold';
   if (g.modelHome != null && g.marketHome != null && g.avgTotalLine) {
-    ouScore = Math.max(0, Math.round(mlScore * 0.6));
-    ouTier = getTier(ouScore);
     const overFv = g.avgOverOdds || -110;
     const underFv = g.avgUnderOdds || -110;
-    let choice = overFv < underFv ? 'Over' : 'Under';
-    if (overFv === underFv) choice = g.gamePk % 2 === 0 ? 'Over' : 'Under';
-    ouRec = `${choice} ${g.avgTotalLine}`;
+    ouRec = `O/U ${g.avgTotalLine}`;
   } else if (g.avgTotalLine) {
     ouRec = `O/U ${g.avgTotalLine}`;
   }

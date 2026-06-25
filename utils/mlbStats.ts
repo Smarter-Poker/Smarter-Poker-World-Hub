@@ -118,6 +118,8 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
     let maxWinStreak = 0;
     let currentLossStreak = 0;
     let maxLossStreak = 0;
+    let flat_pnl = 0;
+    const unit_size = 10;
 
     const weeksMap: Record<string, any> = {};
     const daysMap: Record<string, any> = {};
@@ -132,12 +134,14 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
         const betStake = bet.stake || 0;
         
         if (pnl > 0 || bet.result === 'WIN') {
+            flat_pnl += betStake > 0 ? (pnl / betStake) * unit_size : 0;
             wins++;
             grossWon += pnl;
             currentWinStreak++;
             currentLossStreak = 0;
             if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
         } else if (pnl < 0 || bet.result === 'LOSS') {
+            flat_pnl -= unit_size;
             losses++;
             grossLost += Math.abs(pnl);
             currentLossStreak++;
@@ -237,8 +241,7 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
 
     // Calculate flat final bankroll dynamically for the baseline comparison
     // Assuming $10 flat unit size to roughly match a $1000 bankroll starting point.
-    const unit_size = 10;
-    const flat_final_bankroll = 1000 + (wins * unit_size) - (losses * unit_size * 1.10); // Approximation if avg odds are around -110
+    const flat_final_bankroll = 1000 + flat_pnl; // True flat stake based on actual ROI
 
     return {
         totalBets, wins, losses, pushes, totalPnl, currentBankroll: finalBankroll,
