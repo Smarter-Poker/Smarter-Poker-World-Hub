@@ -45,15 +45,15 @@ from .team_strength import team_prior, _clamp, _log5   # type: ignore[import-unt
 
 # ── default config ─────────────────────────────────────────────────────────────
 DEFAULT_CFG: dict = {
-    "enabled":      True,
+    "enabled":      False,       # permanently disabled subjective math
     "min_n":        40,          # minimum sample size for any situational gate
-    "vs_record_w":  0.65,        # weight for vs_losing / vs_winning adjustment
+    "vs_record_w":  0.00,        # weight for vs_losing / vs_winning adjustment
     "form_games":   10,          # rolling window for recent form
-    "form_w":       0.45,        # weight for recent-form signal
-    "rest_w":       0.30,        # weight for rest-days advantage
-    "park_w":       0.20,        # weight for park factor
-    "ump_w":        0.15,        # weight for home-plate ump factor
-    "max_log_adj":  0.30,        # |log-odds cap| ≈ ±7.5% probability max shift
+    "form_w":       0.00,        # weight for recent-form signal
+    "rest_w":       0.00,        # weight for rest-days advantage
+    "park_w":       0.00,        # weight for park factor
+    "ump_w":        0.00,        # weight for home-plate ump factor
+    "max_log_adj":  0.00,        # |log-odds cap| ≈ ±7.5% probability max shift
 }
 
 

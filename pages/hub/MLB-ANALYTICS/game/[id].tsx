@@ -375,7 +375,7 @@ export default function GameMatchupDashboard() {
                           }}
                         >
                           {bet.bet_score != null
-                            ? `${Number(bet.bet_score).toFixed(0)}${bet.bet_tier ? ' · ' + bet.bet_tier : ''}`
+                            ? `${Number(bet.bet_score) % 1 !== 0 ? Number(bet.bet_score).toFixed(1) : bet.bet_score}${bet.bet_tier ? ' · ' + bet.bet_tier : ''}`
                             : 'N/A'}
                         </span>
                       </div>
@@ -473,6 +473,8 @@ function PropModal({
   game: GameCard;
   onClose: () => void;
 }) {
+  const [showLogs, setShowLogs] = useState(false);
+
   // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -565,7 +567,7 @@ function PropModal({
               className="text-[30px] font-extrabold font-['Rajdhani'] leading-none"
               style={{ color: tierColor }}
             >
-              {prop.bet_score != null ? Number(prop.bet_score).toFixed(0) : '—'}
+              {prop.bet_score != null ? (Number(prop.bet_score) % 1 !== 0 ? Number(prop.bet_score).toFixed(1) : prop.bet_score) : '—'}
             </p>
             <p className="text-[13px] font-bold mt-1" style={{ color: tierColor }}>
               {prop.bet_tier || ''}
@@ -574,7 +576,7 @@ function PropModal({
           <div className="bg-[#0A101C] p-3 text-center">
             <p className="text-[12px] text-[#8BA4D5] capitalize tracking-widest mb-1">Top Lock</p>
             <p className="text-[30px] font-extrabold font-['Rajdhani'] leading-none text-white">
-              {prop.win_confidence != null ? `${Number(prop.win_confidence).toFixed(0)}%` : '—'}
+              {prop.win_confidence != null ? `${Number(prop.win_confidence).toFixed(1)}%` : '—'}
             </p>
             <p className="text-[13px] text-[#8BA4D5] mt-1">to hit</p>
           </div>
@@ -660,6 +662,62 @@ function PropModal({
                 </div>
               ))}
             </div>
+
+            {/* Last 10 Games Log */}
+            {isPitcher && prop.stats?.last10 && prop.stats.last10.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="w-full flex items-center justify-between bg-[#060B14] border border-[#1A2436] px-3 py-2 rounded-sm text-left hover:bg-[#111827] transition-colors"
+                >
+                  <span className="text-[14px] font-black text-white capitalize tracking-widest flex items-center gap-2 font-['Rajdhani']">
+                    <Activity size={12} className="text-[#00D4FF]" />
+                    {showLogs ? 'Hide Last 10 Games' : 'Show Last 10 Games'}
+                  </span>
+                  {showLogs ? (
+                    <ChevronUp size={16} className="text-[#8BA4D5]" />
+                  ) : (
+                    <ChevronDown size={16} className="text-[#8BA4D5]" />
+                  )}
+                </button>
+
+                {showLogs && (
+                  <div className="mt-2 border border-[#1A2436] rounded-sm overflow-hidden">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-[#111827] border-b border-[#1A2436]">
+                        <tr>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">Date</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">IP</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">H</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">ER</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">BB</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize font-['Rajdhani']">K</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">Pit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-[#060B14]">
+                        {prop.stats.last10.map((log: any, idx: number) => (
+                          <tr
+                            key={idx}
+                            className="border-b border-[#1A2436] last:border-b-0 hover:bg-[#111827] transition-colors"
+                          >
+                            <td className="px-3 py-2 font-bold text-slate-300 font-['Rajdhani']">
+                              {log.date ? log.date.substring(5, 10).replace('-', '/') : '-'}
+                            </td>
+                            <td className="px-3 py-2 text-white font-medium">{log.IP ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.H ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.ER ?? '-'}</td>
+                            <td className="px-3 py-2 text-white font-medium">{log.BB ?? '-'}</td>
+                            <td className="px-3 py-2 text-[#00D4FF] font-black">{log.K ?? '-'}</td>
+                            <td className="px-3 py-2 text-slate-400 font-medium">{log.Pitches ?? '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Matchup */}

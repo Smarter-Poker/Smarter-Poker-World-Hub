@@ -25,14 +25,9 @@ from __future__ import annotations
 
 import math
 
-# ── constants ──────────────────────────────────────────────────────────────────
+# Pure Pythagorean expectation exponent
 PYTHAG_EXP = 1.83  # exponent for Pythagorean formula (Smyth/Patriot variation)
 
-# Blend weights for the base prior components (must sum to 1.0)
-W_WIN_PCT  = 0.35
-W_PYTHAG   = 0.40
-W_OPS_PLUS = 0.10
-W_PITCHING = 0.15
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -58,7 +53,7 @@ def _log5(pa: float, pb: float) -> float:
 
 
 def _team_strength_score(m: dict) -> float:
-    """Convert a raw metrics dict into a single [0,1] strength score."""
+    """Return a clean strength score using only factual win percentages and pythagorean expectations."""
     if not m:
         return 0.50
 
@@ -72,27 +67,8 @@ def _team_strength_score(m: dict) -> float:
         ra = float(m.get("runs_allowed_pg") or m.get("runs_allowed") or 0)
         pythag = _pythag(rs, ra) if (rs > 0 or ra > 0) else win_pct
 
-    # OPS+ (league-relative; 100 = average) → convert to [0, 1]
-    ops_plus = float(m.get("ops_plus") or 100)
-    ops_score = (ops_plus - 60) / 80  # 60 bad → 140 elite
-
-    # Pitching composite: FIP lower = better; ERA+ higher = better
-    fip = float(m.get("fip") or m.get("starter_fip") or 4.20)
-    era_plus = float(m.get("era_plus") or m.get("starter_era_plus") or 100)
-    bullpen_era = float(m.get("bullpen_era") or 4.00)
-
-    # Normalise FIP: MLB range ~2.8 (elite) – 5.5 (poor).  Lower → higher score.
-    fip_score = 1 - (fip - 2.8) / (5.5 - 2.8)
-    era_plus_score = (era_plus - 70) / 80  # 70 bad → 150 elite
-    bullpen_score = 1 - (bullpen_era - 2.5) / (6.0 - 2.5)
-    pitch_composite = 0.40 * fip_score + 0.35 * era_plus_score + 0.25 * bullpen_score
-
-    raw = (
-        W_WIN_PCT  * win_pct +
-        W_PYTHAG   * pythag +
-        W_OPS_PLUS * ops_score +
-        W_PITCHING * pitch_composite
-    )
+    # Blend factual Win% and factual Pythagorean expectation (50/50 factual representation)
+    raw = 0.5 * win_pct + 0.5 * pythag
     return max(0.01, min(0.99, raw))
 
 

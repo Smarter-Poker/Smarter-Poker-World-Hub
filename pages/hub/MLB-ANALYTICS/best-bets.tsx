@@ -1313,17 +1313,14 @@ const BetCard = ({
                 {formatOdds(bet.best_price)}
               </div>
             </div>
-            {bet.pitcher_so != null && ((bet.pitcher_wins ?? 0) + (bet.pitcher_losses ?? 0)) > 0 && (
+            {bet.pitcher_k_per_g != null && (
               <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
-                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">Season K/GS</div>
+                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">Season K/G</div>
                 <div
                   className="text-[19px] font-black text-[#00D4FF] leading-tight"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
-                  {(
-                    Number(bet.pitcher_so) /
-                    Math.max((Number(bet.pitcher_wins) || 0) + (Number(bet.pitcher_losses) || 0), 1)
-                  ).toFixed(1)}
+                  {Number(bet.pitcher_k_per_g).toFixed(1)}
                 </div>
               </div>
             )}
@@ -1706,7 +1703,7 @@ export default function BestBetsPage() {
             },
             {
               label: 'Top Lock',
-              value: isLoading && !data ? null : `${(Number(stats.topLock) || 0).toFixed(0)}%`,
+              value: isLoading && !data ? null : `${(Number(stats.topLock) || 0).toFixed(1)}%`,
               color: '#8a9ba8',
             },
           ].map(({ label, value, color }) => (

@@ -148,8 +148,8 @@ function formatOdds(n: any): string {
 function formatPct(v: any): string {
   if (v == null || isNaN(Number(v))) return '—';
   const n = Number(v);
-  if (n > 0 && n <= 1) return `${(n * 100).toFixed(0)}%`;
-  return `${n.toFixed(0)}%`;
+  if (n > 0 && n <= 1) return `${(n * 100).toFixed(1)}%`;
+  return `${n.toFixed(1)}%`;
 }
 
 function fmtStat(v: any, decimals = 1): string {
@@ -485,7 +485,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
                 className="text-[26px] font-black text-white"
                 style={{ fontFamily: "'Rajdhani', sans-serif" }}
               >
-                {prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'}
+                {prop.win_confidence != null ? `${Number(prop.win_confidence).toFixed(1)}%` : '—'}
               </div>
             </div>
             {prop.ev_pct != null && (
@@ -858,7 +858,7 @@ const PropCard = React.memo(
             <StatPill
               label="Win%"
               value={
-                prop.win_confidence != null ? `${Math.round(Number(prop.win_confidence))}%` : '—'
+                prop.win_confidence != null ? `${Number(prop.win_confidence).toFixed(1)}%` : '—'
               }
               color="#e2e8f0"
             />
@@ -1217,7 +1217,7 @@ export default function PropsPage() {
               {slateStats.topLock > 0 && (
                 <HeaderStat
                   label="Max Win%"
-                  value={`${Math.round(slateStats.topLock)}%`}
+                  value={`${Number(slateStats.topLock).toFixed(1)}%`}
                   color="#A78BFA"
                   border="rgba(167,139,250,0.5)"
                   bg="#120a1f"

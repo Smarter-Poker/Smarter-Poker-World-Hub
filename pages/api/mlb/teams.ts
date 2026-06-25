@@ -83,33 +83,34 @@ async function edgeHandler(req: Request) {
       aggFloor = d.toISOString().slice(0, 10);
     }
 
+    const wrap = async (fn: () => Promise<any[]>) => { try { return { data: await fn(), error: null }; } catch (e) { return { data: null, error: e }; } };
+    const recentPropsIso = `${slateDate}T00:00:00`;
+
     const [profRes, dimRes, aggRes, propsRes, hittersRes, pitchersRes, defRes] = await Promise.all([
-      mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }),
-      mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'),
+      wrap(() => fetchAllRows(() => mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }))),
+      wrap(() => fetchAllRows(() => mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'))),
       aggFloor
-        ? mlbDb
+        ? wrap(() => fetchAllRows(() => mlbDb
             .from('agg_team')
             .select(
               'team_id, window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa'
             )
             .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
             .gte('as_of', aggFloor)
-            .order('as_of', { ascending: false })
-        : Promise.resolve({ data: [], error: null } as any),
-      mlbDb
+            .order('as_of', { ascending: false })))
+        : { data: [], error: null },
+      wrap(() => fetchAllRows(() => mlbDb
         .from('pred_props')
-        .select(
-          'team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts'
-        )
+        .select('team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
         .gte('as_of_ts', `${slateDate}T00:00:00`)
         .lte('as_of_ts', `${slateDate}T23:59:59`)
-        .gt('edge_pts', 0),
-      mlbDb.from('v_hitter_profile').select('player_id, team_id'),
-      mlbDb.from('v_pitcher_profile').select('player_id, team_id'),
+        .gt('edge_pts', 0))),
+      wrap(() => fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, team_id'))),
+      wrap(() => fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, team_id'))),
       // Team defense (OAA/DRS/Def) + bullpen ERA/WHIP — one row per team_id.
-      mlbDb
+      wrap(() => fetchAllRows(() => mlbDb
         .from('v_mlb_team_defense_bullpen')
-        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip, hitting_war, pitching_war'),
+        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip, hitting_war, pitching_war'))),
     ]);
 
     if (profRes.error) {
@@ -323,6 +324,19 @@ async function edgeHandler(req: Request) {
 }
 
 import { NextApiRequest, NextApiResponse } from 'next';
+
+// Fetch all rows to bypass PostgREST's 1000 row cap
+async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+  let all: any[] = [];
+  for (let from = 0; from < maxRows; from += pageSize) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = data || [];
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

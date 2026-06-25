@@ -108,8 +108,8 @@ function formatDate(dateStr: string | null): string {
 }
 
 function DueGauge({ score }: { score: number }) {
-  const pct = Math.max(Math.min(score / 2, 1), 0.02); // cap at 200% for display, min 2%
-  const color = score >= 1.25 ? '#FF4444' : score >= 0.75 ? '#FFB800' : '#00D4FF';
+  const pct = score / 2; // pure ratio
+  const color = score >= 1.0 ? '#FF4444' : score >= 0.5 ? '#FFB800' : '#00D4FF';
   return (
     <div className="w-full h-1.5 bg-[#1a2332] rounded-full overflow-hidden" aria-hidden="true">
       <div
@@ -217,11 +217,11 @@ const PlayerRow = memo(function PlayerRow({ p }: { p: HRPlayer }) {
         <span
           className={`font-extrabold text-[23px] ${
             p.games_since_hr != null && hasRate
-              ? p.games_since_hr > p.games_per_hr * 1.25
-                ? 'text-[#FF4444]'
-                : p.games_since_hr > p.games_per_hr * 0.75
-                  ? 'text-[#FFB800]'
-                  : 'text-slate-400'
+              ? p.games_since_hr > p.games_per_hr
+                ? 'text-[#FF4444] font-black'
+                : p.games_since_hr > p.games_per_hr * 0.9
+                  ? 'text-[#FFB800] font-bold'
+                  : 'text-slate-300'
               : 'text-slate-600'
           } font-rajdhani`}
         >
@@ -253,10 +253,16 @@ const PlayerRow = memo(function PlayerRow({ p }: { p: HRPlayer }) {
       <td className="py-3 px-3 text-right">
         <div className="flex flex-col items-end gap-1">
           <span
-            className={`font-extrabold text-[27px] ${(p.matchup_due_score ?? p.due_score) > p.due_score ? 'text-[#FF4444]' : (p.matchup_due_score ?? p.due_score) < p.due_score ? 'text-[#00D4FF]' : cfg.color} font-rajdhani`}
+            className={`px-3 py-2 text-center text-[15px] font-black tracking-wider ${
+              (p.matchup_due_score ?? p.due_score) >= 1.0
+                ? 'text-[#FF4444]'
+                : (p.matchup_due_score ?? p.due_score) < p.due_score
+                  ? 'text-[#00D4FF]'
+                  : cfg.color
+            } font-rajdhani`}
             style={{
               textShadow:
-                (p.matchup_due_score ?? p.due_score) >= 1.25
+                (p.matchup_due_score ?? p.due_score) >= 1.0
                   ? '0 0 8px rgba(255,68,68,0.5)'
                   : '',
             }}

@@ -101,7 +101,7 @@ async function edgeHandler(req: Request) {
       const totalRow =
         markets
           .filter((r) => r.market === 'total' && r.best_price != null)
-          .sort((a, b) => (Number(b.edge_pts) || -99) - (Number(a.edge_pts) || -99))[0] || null;
+          .sort((a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity))[0] || null;
       const rlRow =
         markets
           .filter(
@@ -110,7 +110,7 @@ async function edgeHandler(req: Request) {
               String(r.selection).startsWith(`${side}_`) &&
               r.best_price != null
           )
-          .sort((a, b) => (Number(b.edge_pts) || -99) - (Number(a.edge_pts) || -99))[0] || null;
+          .sort((a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity))[0] || null;
       const total: any = betObj(totalRow);
       if (total && totalRow) {
         const [sd, ln] = String(totalRow.selection).split('_');
