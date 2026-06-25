@@ -742,7 +742,7 @@ async function edgeHandler(req: Request) {
         .lt('as_of_ts', endIso)
         .in('market', ['moneyline', 'h2h']);
       if (rawTopML && rawTopML.length > 0) {
-        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
         topMoneylines = await enrichBets(dedupedML, mlbDb);
       }
 
@@ -775,7 +775,7 @@ async function edgeHandler(req: Request) {
         .lt('as_of_ts', endIso)
         .in('prop', ['home_run', 'hr', 'hrr']);
       if (rawTopHR && rawTopHR.length > 0) {
-        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
         topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
       }
 
@@ -819,7 +819,7 @@ async function edgeHandler(req: Request) {
         .lt('as_of_ts', endIso)
         .in('market', ['moneyline', 'h2h']);
       if (rawTopML && rawTopML.length > 0) {
-        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
         topMoneylines = await enrichBets(dedupedML, mlbDb);
       }
 
@@ -852,7 +852,7 @@ async function edgeHandler(req: Request) {
         .lt('as_of_ts', endIso)
         .in('prop', ['home_run', 'hr', 'hrr']);
       if (rawTopHR && rawTopHR.length > 0) {
-        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.model_prob - a.model_prob).slice(0, 10);
+        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
         topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
       }
     }
