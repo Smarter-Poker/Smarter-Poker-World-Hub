@@ -10,6 +10,7 @@
 export type Tier = "ELITE" | "STRONG" | "LEAN" | "THIN" | "PASS";
 
 export function americanToDecimal(a: number): number {
+  if (a === 0) return 1;
   return 1 + (a > 0 ? a / 100 : 100 / Math.abs(a));
 }
 
@@ -20,19 +21,13 @@ export function evPct(p: number, american: number): number {
 }
 
 export function winConfidence(p: number): number {
-  return Math.round(Math.max(0, Math.min(1, p)) * 1000) / 10;
+  return Math.round(p * 1000) / 10;
 }
-
-function evValue(ev: number): number {
-  return 100 / (1 + Math.exp(-(ev - 2) / 4));
-}
-
-
 
 export function betScore(pWin: number, american: number): number {
   const ev = evPct(pWin, american);
-  const base = evValue(ev);
-  return Math.round(Math.max(1, Math.min(99, base)));
+  // Pure linear scaling: 1% EV = 10 Score
+  return Math.round(ev * 10);
 }
 
 export function tier(score: number): Tier {
@@ -61,11 +56,10 @@ export type ScoreFactor = { dir: "up" | "down" | "flat" | "info"; text: string }
 export function explain(
   pWin: number,
   american: number,
-  opts: { vol?: boolean; lineupLocked?: boolean; pMarket?: number | null } = {},
 ): { betScore: number; tier: Tier; winConfidence: number; evPct: number; verdict: string; factors: ScoreFactor[] } {
   const ev = evPct(pWin, american);
   const wc = winConfidence(pWin);
-  const s = betScore(pWin, american, opts);
+  const s = betScore(pWin, american);
   const t = tier(s);
   
   const factors: ScoreFactor[] = [];

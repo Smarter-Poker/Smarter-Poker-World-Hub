@@ -209,7 +209,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   const gamePks = Array.from(
     new Set(betsArr.map((b: any) => Number(b.game_pk)).filter((x) => Number.isFinite(x)))
   );
-  const aggSinceIso = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   const betPlayerIds = Array.from(
     new Set(betsArr.map((b: any) => Number(b.player_id)).filter((x) => Number.isFinite(x) && x > 0))
@@ -238,7 +237,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .from('agg_pitcher')
           .select('pitcher_id, era, w, l, so, bb, h, ip, g, gs, as_of')
           .eq('window_kind', 'fg_season')
-          .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
       ),
       fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher')),
@@ -282,9 +280,13 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       let k_per_ip: number | null = null;
       let k_per_g: number | null = null;
       if (ap.so != null && ap.ip != null && Number(ap.ip) > 0) {
-        k_per_ip = Number((Number(ap.so) / Number(ap.ip)).toFixed(2));
+        const parts = String(ap.ip).split('.');
+        const full = Number(parts[0]) || 0;
+        const partial = parts[1] ? Number(parts[1]) : 0;
+        const trueIP = full + (partial === 1 ? 1/3 : partial === 2 ? 2/3 : 0);
+        k_per_ip = trueIP > 0 ? Number((Number(ap.so) / trueIP).toFixed(2)) : null;
       }
-      const gCount = Number(ap.gs) > 0 ? Number(ap.gs) : Number(ap.g);
+      const gCount = Number(ap.g) > 0 ? Number(ap.g) : 1;
       if (ap.so != null && gCount > 0) {
         k_per_g = Number((Number(ap.so) / gCount).toFixed(2));
       }
@@ -399,9 +401,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_k_per_g = aggData.k_per_g ?? null;
             // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
             const walksHits = Number(aggData.bb) + Number(aggData.h);
-            const ip = Number(aggData.ip);
+            const ipRaw = Number(aggData.ip);
+            const parts = String(ipRaw).split('.');
+            const trueIP = (Number(parts[0]) || 0) + (parts[1] === '1' ? 1/3 : parts[1] === '2' ? 2/3 : 0);
             enriched.pitcher_whip =
-              ip > 0 && Number.isFinite(walksHits) ? Number((walksHits / ip).toFixed(2)) : null;
+              trueIP > 0 && Number.isFinite(walksHits) ? Number((walksHits / trueIP).toFixed(2)) : null;
           }
           const pitcherProfileData = pitcherMap.get(normName(playerRecord.full_name || ''));
           if (pitcherProfileData) {
@@ -549,10 +553,12 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           enriched.pitcher_ip = aggP.ip;
           enriched.pitcher_g = aggP.g;
           enriched.pitcher_gs = aggP.gs;
-          const gCount = Number(aggP.gs) > 0 ? Number(aggP.gs) : Number(aggP.g);
-          enriched.pitcher_k_per_ip = aggP.ip > 0 ? Number((aggP.so / aggP.ip).toFixed(2)) : null;
+          const gCount = Number(aggP.g) > 0 ? Number(aggP.g) : 1;
+          const parts = String(aggP.ip).split('.');
+          const trueIP = (Number(parts[0]) || 0) + (parts[1] === '1' ? 1/3 : parts[1] === '2' ? 2/3 : 0);
+          enriched.pitcher_k_per_ip = trueIP > 0 ? Number((aggP.so / trueIP).toFixed(2)) : null;
           enriched.pitcher_k_per_g = gCount > 0 ? Number((aggP.so / gCount).toFixed(2)) : null;
-          enriched.pitcher_whip = aggP.ip > 0 ? ((aggP.h + aggP.bb) / aggP.ip).toFixed(2) : null;
+          enriched.pitcher_whip = trueIP > 0 ? ((aggP.h + aggP.bb) / trueIP).toFixed(2) : null;
         }
         if (vP) {
           enriched.pitcher_fip = vP.fip;
@@ -791,7 +797,7 @@ async function edgeHandler(req: Request) {
             .select('*')
             .eq('official_date', data.officialDate)
             .eq('market', mkt.market)
-            .order('edge', { ascending: false, nullsFirst: false })
+            .order('edge_pts', { ascending: false, nullsFirst: false })
             .limit(10);
           if (fallback) {
             const mapped = fallback.map(f => ({ ...f, bet_type: mkt.bet_type }));
