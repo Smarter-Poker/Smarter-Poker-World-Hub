@@ -27,19 +27,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const asOf = latestRow.as_of_ts;
 
-    // 2) Top players by modeled HR probability for that slate. Fetch a WIDER window than
-    //    `limit` because a player can have multiple home_run prop rows at one as_of_ts
-    //    (doubleheaders / multiple lines); we then collapse to one row per player so the
-    //    leaderboard never shows a player twice (and never collides React keys downstream).
-    const { data: props, error: propsErr } = await db
-      .from('pred_props')
-      .select('player_id, prob_over, game_pk')
-      .eq('prop', 'home_run')
-      .eq('as_of_ts', asOf)
-      .not('prob_over', 'is', null)
-      .order('prob_over', { ascending: false })
-      .limit(limit * 4);
-    if (propsErr) throw propsErr;
+    async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+      let all: any[] = [];
+      for (let from = 0; from < maxRows; from += pageSize) {
+        const { data, error } = await build().range(from, from + pageSize - 1);
+        if (error) throw error;
+        const rows = data || [];
+        all = all.concat(rows);
+        if (rows.length < pageSize) break;
+      }
+      return all;
+    }
+
+    // 2) Top players by modeled HR probability for that slate.
+    //    We fetch all rows for this slate using fetchAllRows because a player can have
+    //    multiple home_run prop rows at one as_of_ts (doubleheaders / multiple lines).
+    const props = await fetchAllRows(() =>
+      db
+        .from('pred_props')
+        .select('player_id, prob_over, game_pk')
+        .eq('prop', 'home_run')
+        .eq('as_of_ts', asOf)
+        .not('prob_over', 'is', null)
+        .order('prob_over', { ascending: false })
+    );
 
     // Collapse to the single best (highest prob_over, already sorted desc) row per
     // player_id, then take the top `limit`.

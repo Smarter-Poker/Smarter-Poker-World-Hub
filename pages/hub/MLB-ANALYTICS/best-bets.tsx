@@ -1310,9 +1310,17 @@ const BetCard = ({
                   })()
                 : `Bet The ${marketLabel}`}
               <div className="text-[24px] font-black mt-1 truncate" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
-                {isTotalBet
-                  ? `${lineStr} ${formatOdds(bet.best_price)}`
-                  : `${stripCity(selectionLabel(bet?.selection, bet?.matchup))} ${lineStr} ${formatOdds(bet.best_price)}`}
+                {(() => {
+                  let target = '';
+                  if (bet.player_name) {
+                    target = bet.player_name;
+                  } else if (bet.market === 'total' || bet.market === 'first_5_total') {
+                    target = '';
+                  } else {
+                    target = stripCity(selectionLabel(bet?.selection, bet?.matchup)).replace(/over|under/i, '').trim();
+                  }
+                  return `${target} ${lineStr} ${formatOdds(bet.best_price)}`.trim().replace(/\s+/g, ' ');
+                })()}
               </div>
             </div>
             {/* Hide market badge for totals — the Over/Under label already makes it obvious */}
@@ -1716,8 +1724,8 @@ export default function BestBetsPage() {
                 Bets
               </span>
             </h1>
-            <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] capitalize  mt-1">
-              Ranked By Bet Score · {officialDate}
+            <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] uppercase mt-1">
+              Ranked By Bet Score · {officialDate ? new Date(`${officialDate}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'numeric', day: 'numeric', year: 'numeric' }).replace(/\//g, '-').toUpperCase() : ''}
             </p>
           </div>
           <button

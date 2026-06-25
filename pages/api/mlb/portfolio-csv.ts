@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (maxRow?.as_of_ts) {
                 const anchor = new Date(maxRow.as_of_ts);
                 if (!isNaN(anchor.getTime())) {
-                    anchor.setDate(anchor.getDate() - parsedDays);
+                    anchor.setUTCDate(anchor.getUTCDate() - parsedDays);
                     anchorCutoffIso = anchor.toISOString();
                 }
             }

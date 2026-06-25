@@ -802,7 +802,18 @@ async function edgeHandler(req: Request) {
       
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
-      const propTypes = ['pitcher_strikeouts', 'hitter_props', 'outs_recorded', 'hits', 'bases'];
+      const propTypes = [
+        'pitcher_strikeouts',
+        'hits',
+        'total_bases',
+        'runs',
+        'stolen_bases',
+        'rbi',
+        'hrr',
+        'walks',
+        'pitcher_walks',
+        'earned_runs'
+      ];
       
       for (const pt of propTypes) {
         const count = enrichedBets.filter((b: any) => b.prop === pt || b.market === pt).length;

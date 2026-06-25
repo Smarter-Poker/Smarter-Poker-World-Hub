@@ -232,11 +232,6 @@ export default function GameMatchupDashboard() {
                         })
                       : 'TBD'}
                   </div>
-                  {game.lineupState === 'confirmed' && (
-                    <div className="mt-2 text-[21px] font-bold text-[#00FF88] capitalize tracking-widest font-['Rajdhani'] bg-[#00FF88]/10 px-2 py-0.5 rounded border border-[#00FF88]/20">
-                      Confirmed Lineups
-                    </div>
-                  )}
                 </div>
 
                 {/* HOME TEAM */}

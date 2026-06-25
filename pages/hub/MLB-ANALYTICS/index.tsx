@@ -561,7 +561,7 @@ export default function MlbSlatePage() {
                   <div className="flex flex-col min-w-0 w-full overflow-hidden">
                     <span
                       className="text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] whitespace-nowrap text-left"
-                      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 'clamp(14px, 4.5vw, 26px)' }}
+                      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 'clamp(11px, 3.2vw, 24px)' }}
                     >
                       {g.away} @ {g.home}
                     </span>
@@ -659,23 +659,24 @@ export default function MlbSlatePage() {
                     </div>
                   </div>
 
-                  {/* Right: First Pitch Time Box */}
-                  {g.firstPitch && (
-                    <div className="flex flex-col items-end">
-                      <span
-                        className="text-[20px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-2 py-1 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
-                        style={{ fontFamily: "'Rajdhani', sans-serif" }}
-                      >
-                        {new Date(g.firstPitch).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          timeZone: 'America/Chicago',
-                          timeZoneName: 'short',
-                        })}
-                      </span>
-                    </div>
-                  )}
                 </div>
+
+                {/* ── Starting Time Box ─────────────── */}
+                {g.firstPitch && (
+                  <div className="flex justify-center mt-4">
+                    <span
+                      className="text-[20px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-3 py-1.5 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
+                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                    >
+                      {new Date(g.firstPitch).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        timeZone: 'America/Chicago',
+                        timeZoneName: 'short',
+                      })}
+                    </span>
+                  </div>
+                )}
 
                 {/* ── Odds Grid ─────────────── */}
                 <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] mt-4">
