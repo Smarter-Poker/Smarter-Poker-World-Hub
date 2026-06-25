@@ -51,7 +51,6 @@ function inferSide(
   if (r.includes(' OVER') || r.startsWith('OVER')) return 'over';
   if (pOver != null && pMarketOver != null) return pOver >= pMarketOver ? 'over' : 'under';
   if (proj != null && line != null) return Number(proj) > Number(line) ? 'over' : 'under';
-  if (pOver != null) return pOver >= 0.5 ? 'over' : 'under';
   return null;
 }
 

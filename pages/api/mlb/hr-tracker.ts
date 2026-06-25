@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const sortBy = (req.query.sort as string) || 'due_score';
   const filterStatus = req.query.status as string | undefined;
-  const limit = Math.min(parseInt((req.query.limit as string) || '500', 10), 1000);
+  const limit = parseInt((req.query.limit as string) || '500', 10);
 
   try {
     const supabase = getMainSupabase();

@@ -7,7 +7,7 @@ import { getMlbSupabase } from '../../../utils/supabase/mlb';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const limit = Math.min(Math.max(parseInt(String(req.query.limit || '24'), 10) || 24, 1), 100);
+  const limit = parseInt(String(req.query.limit || '24'), 10) || 24;
 
   try {
     const db = getMlbSupabase();
@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('as_of_ts', asOf)
       .not('prob_over', 'is', null)
       .order('prob_over', { ascending: false })
-      .limit(Math.min(limit * 4, 400));
+      .limit(limit * 4);
     if (propsErr) throw propsErr;
 
     // Collapse to the single best (highest prob_over, already sorted desc) row per

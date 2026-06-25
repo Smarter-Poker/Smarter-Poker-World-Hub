@@ -13,7 +13,8 @@ function betInputsFromProp(
   let isOver: boolean;
   if (mktOver != null) isOver = probOver >= mktOver;
   else if (p.proj_mean != null && p.line != null) isOver = Number(p.proj_mean) > Number(p.line);
-  else isOver = probOver >= 0.5;
+  else return null;
+
   const pWin = isOver ? probOver : 1 - probOver;
   if (!(pWin > 0 && pWin < 1)) return null;
   const pMarket = mktOver == null ? null : isOver ? mktOver : 1 - mktOver;

@@ -19,6 +19,8 @@ export type GameCard = {
   scoreWinProb?: number | null; scorePrice?: number | null; scoreMarket?: number | null;
   avgOdds?: number | null; spreadLine?: number | null; totalLine?: number | null;
   bet: { selection: "home" | "away"; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
+  runLineBet?: { selection: string; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
+  totalBet?: { selection: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
   avgHomeLine?: number | null;
   avgAwayLine?: number | null;
   avgHomeSpreadLine?: number | null;
@@ -153,7 +155,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   ] = await Promise.all([
     sb.from("dim_teams").select("team_id,name"),
     sb.from("agg_market").select("game_pk,novig_home,metrics,line_move").in("game_pk", gpks).eq("as_of", date),
-    sb.from("pred_market_output").select("game_pk,as_of_ts,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price").in("game_pk", gpks).eq("market", "h2h"),
+    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]),
     starterMap(sb, gpks),
     sb.from("agg_team").select("team_id,metrics").eq("window_kind", "season").eq("as_of", date),
     sb.from("pred_props").select("game_pk,prop,player_id,line,edge_pts,as_of_ts,prob_over,blended_over,best_price").in("game_pk", gpks).gte("as_of_ts", `${date}T00:00:00`).lte("as_of_ts", `${date}T23:59:59`),
@@ -204,12 +206,18 @@ async function _getSlate(date: string): Promise<GameCard[]> {
     if (!latestTs.has(p.game_pk) || t > latestTs.get(p.game_pk)!) latestTs.set(p.game_pk, t);
   }
   type Row = NonNullable<typeof preds>[number];
-  const byGame = new Map<number, { home?: Row; away?: Row; bet?: Row }>();
+  const byGame = new Map<number, { home?: Row; away?: Row; bet?: Row; runLineBet?: Row; totalBet?: Row }>();
   for (const p of preds ?? []) {
     if (String(p.as_of_ts ?? "") !== latestTs.get(p.game_pk)) continue;
     const e = byGame.get(p.game_pk) ?? {};
-    if (p.selection === "home") e.home = p; else e.away = p;
-    if (p.rec?.startsWith("BET")) e.bet = p;
+    if (p.market === "h2h") {
+      if (p.selection === "home") e.home = p; else e.away = p;
+      if (p.rec?.startsWith("BET")) e.bet = p;
+    } else if (p.market === "run_line") {
+      if (p.rec?.startsWith("BET")) e.runLineBet = p;
+    } else if (p.market === "total") {
+      if (p.rec?.startsWith("BET")) e.totalBet = p;
+    }
     byGame.set(p.game_pk, e);
   }
   return games.map((g) => {
@@ -316,6 +324,8 @@ async function _getSlate(date: string): Promise<GameCard[]> {
       spreadLine: metrics.spread_line ? Number(metrics.spread_line) : null,
       totalLine: metrics.total_line ? Number(metrics.total_line) : null,
       bet: e.bet ? { selection: e.bet.selection as "home" | "away", team: e.bet.selection === "home" ? homeName : awayName, edge: Number(e.bet.edge_pts), winProb: e.bet.blended_prob != null ? Number(e.bet.blended_prob) : (e.bet.model_prob != null ? Number(e.bet.model_prob) : null), price: e.bet.best_price != null ? Number(e.bet.best_price) : null, market: e.bet.market_novig_prob != null ? Number(e.bet.market_novig_prob) : null } : null,
+      runLineBet: e.runLineBet ? { selection: String(e.runLineBet.selection), team: String(e.runLineBet.selection).startsWith("home") ? homeName : awayName, edge: Number(e.runLineBet.edge_pts), winProb: e.runLineBet.blended_prob != null ? Number(e.runLineBet.blended_prob) : (e.runLineBet.model_prob != null ? Number(e.runLineBet.model_prob) : null), price: e.runLineBet.best_price != null ? Number(e.runLineBet.best_price) : null, market: e.runLineBet.market_novig_prob != null ? Number(e.runLineBet.market_novig_prob) : null } : null,
+      totalBet: e.totalBet ? { selection: String(e.totalBet.selection), edge: Number(e.totalBet.edge_pts), winProb: e.totalBet.blended_prob != null ? Number(e.totalBet.blended_prob) : (e.totalBet.model_prob != null ? Number(e.totalBet.model_prob) : null), price: e.totalBet.best_price != null ? Number(e.totalBet.best_price) : null, market: e.totalBet.market_novig_prob != null ? Number(e.totalBet.market_novig_prob) : null } : null,
       sportsbooks,
       topProps: propsByGame.get(g.game_pk) ?? [],
       lineupState: featuresMap.get(g.game_pk) as "confirmed" | "projected" | null,

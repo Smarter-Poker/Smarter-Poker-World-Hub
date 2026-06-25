@@ -183,39 +183,70 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let rlScore = 0;
   let rlTier: Tier = 'PASS';
   let rlRec = 'Hold';
-  if (mlScore > 0 && mlSide) {
-    const line =
-      mlSide === 'home'
-        ? g.avgHomeSpreadLine != null
-          ? g.avgHomeSpreadLine > 0
-            ? `+${g.avgHomeSpreadLine}`
-            : g.avgHomeSpreadLine
-          : null
-        : g.avgAwaySpreadLine != null
-          ? g.avgAwaySpreadLine > 0
-            ? `+${g.avgAwaySpreadLine}`
-            : g.avgAwaySpreadLine
-          : null;
-    const teamName = mlSide === 'home' ? g.home.split(' ').pop() : g.away.split(' ').pop();
-    if (line) rlRec = `${teamName} ${line}`;
+  let rlEv = 0;
+  let rlFactors = '';
+
+  if (g.runLineBet && g.runLineBet.edge != null) {
+    const exp = explain(g.runLineBet.winProb ?? 0, g.runLineBet.price ?? -110, {
+      pMarket: g.runLineBet.market,
+      lineupLocked: isLocked,
+    });
+    rlScore = exp.betScore;
+    rlTier = exp.tier;
+    rlEv = exp.evPct;
+    rlFactors = exp.factors.map((f) => f.text).join('\n');
+    
+    let teamName = '';
+    let lineStr = '';
+    const sel = String(g.runLineBet.selection || '');
+    if (sel.startsWith('home')) {
+      teamName = g.home.split(' ').pop() || 'Home';
+      lineStr = sel.replace('home_', '');
+    } else if (sel.startsWith('away')) {
+      teamName = g.away.split(' ').pop() || 'Away';
+      lineStr = sel.replace('away_', '');
+    }
+    const priceStr = g.runLineBet.price != null ? (g.runLineBet.price > 0 ? `+${g.runLineBet.price}` : `${g.runLineBet.price}`) : '';
+    rlRec = rlScore > 0 ? `${teamName} ${lineStr} ${priceStr}`.trim() : `${teamName} ${lineStr}`.trim();
   }
 
   // O/U
   let ouScore = 0;
   let ouTier: Tier = 'PASS';
   let ouRec = 'Hold';
-  if (g.modelHome != null && g.marketHome != null && g.avgTotalLine) {
-    const overFv = g.avgOverOdds || -110;
-    const underFv = g.avgUnderOdds || -110;
-    ouRec = `O/U ${g.avgTotalLine}`;
+  let ouEv = 0;
+  let ouFactors = '';
+
+  if (g.totalBet && g.totalBet.edge != null) {
+    const exp = explain(g.totalBet.winProb ?? 0, g.totalBet.price ?? -110, {
+      pMarket: g.totalBet.market,
+      lineupLocked: isLocked,
+    });
+    ouScore = exp.betScore;
+    ouTier = exp.tier;
+    ouEv = exp.evPct;
+    ouFactors = exp.factors.map((f) => f.text).join('\n');
+
+    let choice = '';
+    let lineStr = '';
+    const sel = String(g.totalBet.selection || '');
+    if (sel.startsWith('over')) {
+      choice = 'Over';
+      lineStr = sel.replace('over_', '');
+    } else if (sel.startsWith('under')) {
+      choice = 'Under';
+      lineStr = sel.replace('under_', '');
+    }
+    const priceStr = g.totalBet.price != null ? (g.totalBet.price > 0 ? `+${g.totalBet.price}` : `${g.totalBet.price}`) : '';
+    ouRec = ouScore > 0 ? `${choice} ${lineStr} ${priceStr}`.trim() : `${choice} ${lineStr}`.trim();
   } else if (g.avgTotalLine) {
     ouRec = `O/U ${g.avgTotalLine}`;
   }
 
   const cells = [
     { label: 'Money Line', score: mlScore, tier: mlTier, rec: mlRec, ev: mlEv, factors: mlFactors },
-    { label: 'Run Line', score: rlScore, tier: rlTier, rec: rlRec, ev: 0, factors: '' },
-    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: 0, factors: '' },
+    { label: 'Run Line', score: rlScore, tier: rlTier, rec: rlRec, ev: rlEv, factors: rlFactors },
+    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: ouEv, factors: ouFactors },
   ];
 
   return (
