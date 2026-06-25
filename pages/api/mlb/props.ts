@@ -187,7 +187,7 @@ export default async function edgeHandler(req: Request) {
       uniquePlayerIds.length > 0
         ? mlbDb
             .from('agg_pitcher')
-            .select('pitcher_id, w, l, era, so, h, bb, ip, as_of')
+            .select('pitcher_id, w, l, era, so, h, bb, ip, g, gs, as_of')
             .eq('window_kind', 'fg_season')
             .in('pitcher_id', uniquePlayerIds)
             .order('as_of', { ascending: false })
@@ -234,6 +234,11 @@ export default async function edgeHandler(req: Request) {
         l: number | null;
         so: number | null;
         whip: number | null;
+        ip: number | null;
+        g: number | null;
+        gs: number | null;
+        k_per_ip: number | null;
+        k_per_g: number | null;
       }
     >();
     for (const row of aggPitchers) {
@@ -242,12 +247,27 @@ export default async function edgeHandler(req: Request) {
         if (row.h != null && row.bb != null && row.ip != null && Number(row.ip) > 0) {
           whip = (Number(row.h) + Number(row.bb)) / Number(row.ip);
         }
+        let k_per_ip: number | null = null;
+        let k_per_g: number | null = null;
+        if (row.so != null && row.ip != null && Number(row.ip) > 0) {
+          k_per_ip = Number((Number(row.so) / Number(row.ip)).toFixed(2));
+        }
+        const gCount = Number(row.gs) > 0 ? Number(row.gs) : Number(row.g);
+        if (row.so != null && gCount > 0) {
+          k_per_g = Number((Number(row.so) / gCount).toFixed(2));
+        }
+
         aggPitcherMap.set(row.pitcher_id, {
           era: row.era != null ? Number(row.era) : null,
           w: row.w != null ? Number(row.w) : null,
           l: row.l != null ? Number(row.l) : null,
           so: row.so != null ? Number(row.so) : null,
           whip: whip,
+          ip: row.ip != null ? Number(row.ip) : null,
+          g: row.g != null ? Number(row.g) : null,
+          gs: row.gs != null ? Number(row.gs) : null,
+          k_per_ip,
+          k_per_g,
         });
       }
     }
@@ -339,6 +359,11 @@ export default async function edgeHandler(req: Request) {
         l: agg?.l ?? null,
         so: agg?.so ?? null,
         whip: agg?.whip ?? null,
+        ip: agg?.ip ?? null,
+        g: agg?.g ?? null,
+        gs: agg?.gs ?? null,
+        k_per_ip: agg?.k_per_ip ?? null,
+        k_per_g: agg?.k_per_g ?? null,
       });
     }
 
@@ -524,6 +549,11 @@ export default async function edgeHandler(req: Request) {
           l: info.l ?? null,
           so: info.so ?? null,
           whip: info.whip ?? null,
+          ip: info.ip ?? null,
+          g: info.g ?? null,
+          gs: info.gs ?? null,
+          k_per_ip: info.k_per_ip ?? null,
+          k_per_g: info.k_per_g ?? null,
         },
       };
     });

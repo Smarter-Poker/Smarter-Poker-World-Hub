@@ -975,6 +975,10 @@ const BetCard = ({
       });
     if (bet.pitcher_so != null)
       pitcherStats.push({ label: 'K', value: String(bet.pitcher_so), color: '#fff' });
+    if (bet.pitcher_k_per_ip != null)
+      pitcherStats.push({ label: 'K/IP', value: Number(bet.pitcher_k_per_ip).toFixed(2), color: '#fff' });
+    if (bet.pitcher_k_per_g != null)
+      pitcherStats.push({ label: 'K/G', value: Number(bet.pitcher_k_per_g).toFixed(2), color: '#fff' });
     if (bet.pitcher_whip != null)
       pitcherStats.push({
         label: 'WHIP',

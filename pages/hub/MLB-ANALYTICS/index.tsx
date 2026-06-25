@@ -575,7 +575,7 @@ export default function MlbSlatePage() {
                 <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
                   <div className="flex flex-col min-w-0 pr-4">
                     <span
-                      className="text-[26px] text-white font-black tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] truncate"
+                      className="text-[19px] sm:text-[26px] text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] truncate whitespace-nowrap"
                       style={{ fontFamily: "'Rajdhani', sans-serif" }}
                     >
                       {g.away} @ {g.home}

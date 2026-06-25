@@ -96,6 +96,11 @@ interface BetRow {
   pitcher_losses?: number | null;
   pitcher_fip?: number | null;
   pitcher_siera?: number | null;
+  pitcher_ip?: number | null;
+  pitcher_g?: number | null;
+  pitcher_gs?: number | null;
+  pitcher_k_per_ip?: number | null;
+  pitcher_k_per_g?: number | null;
   hitter_woba?: number | null;
   hitter_wrc_plus?: number | null;
   hitter_pa?: number | null;
@@ -228,7 +233,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
-          .select('pitcher_id, era, w, l, so, bb, h, ip, as_of')
+          .select('pitcher_id, era, w, l, so, bb, h, ip, g, gs, as_of')
           .eq('window_kind', 'fg_season')
           .gte('as_of', aggSinceIso)
           .order('as_of', { ascending: false })
@@ -342,8 +347,15 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_wins = aggData.w;
             enriched.pitcher_losses = aggData.l;
             enriched.pitcher_so = aggData.so ?? null;
-            // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
+            enriched.pitcher_ip = aggData.ip ?? null;
+            enriched.pitcher_g = aggData.g ?? null;
+            enriched.pitcher_gs = aggData.gs ?? null;
             const ip = Number(aggData.ip);
+            const so = Number(aggData.so);
+            const gCount = Number(aggData.gs) > 0 ? Number(aggData.gs) : Number(aggData.g);
+            enriched.pitcher_k_per_ip = ip > 0 ? Number((so / ip).toFixed(2)) : null;
+            enriched.pitcher_k_per_g = gCount > 0 ? Number((so / gCount).toFixed(2)) : null;
+            // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
             const walksHits = Number(aggData.bb) + Number(aggData.h);
             enriched.pitcher_whip =
               ip > 0 && Number.isFinite(walksHits) ? Number((walksHits / ip).toFixed(2)) : null;
@@ -494,6 +506,12 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           enriched.pitcher_so = aggP.so;
           enriched.pitcher_wins = aggP.w;
           enriched.pitcher_losses = aggP.l;
+          enriched.pitcher_ip = aggP.ip;
+          enriched.pitcher_g = aggP.g;
+          enriched.pitcher_gs = aggP.gs;
+          const gCount = Number(aggP.gs) > 0 ? Number(aggP.gs) : Number(aggP.g);
+          enriched.pitcher_k_per_ip = aggP.ip > 0 ? Number((aggP.so / aggP.ip).toFixed(2)) : null;
+          enriched.pitcher_k_per_g = gCount > 0 ? Number((aggP.so / gCount).toFixed(2)) : null;
           enriched.pitcher_whip = aggP.ip > 0 ? ((aggP.h + aggP.bb) / aggP.ip).toFixed(2) : null;
         }
         if (vP) {
