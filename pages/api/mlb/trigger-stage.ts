@@ -3,7 +3,7 @@ import { getMlbSupabase } from '../../../utils/supabase/mlb';
 import { createClient } from '@supabase/supabase-js';
 // @ts-ignore
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

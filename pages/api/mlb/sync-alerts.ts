@@ -34,8 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mlbDb = getMlbSupabase();
 
     // 1. Fetch recent unresolved alerts from MLB backend
-    // Only fetch alerts from the last 2 hours to avoid spamming historical alerts
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    // Only fetch alerts from the last 24 hours to avoid spamming historical alerts
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     let timeoutId: NodeJS.Timeout | undefined;
     const timeoutPromise = new Promise((_, reject) => {
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('alert_log')
       .select('id, alert_type, message, created_at')
       .eq('resolved', false)
-      .gte('created_at', twoHoursAgo)
+      .gte('created_at', cutoff)
       .limit(100);
 
     let alerts, alertsError;

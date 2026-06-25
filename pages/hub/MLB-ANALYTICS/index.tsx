@@ -477,10 +477,9 @@ export default function MlbSlatePage() {
                 return `${formattedDate}${suffix}`.toUpperCase();
               })()}
               {!isLoading && (
-                <>
-                  <span className="mx-2 text-[#3d4f5f]">|</span>
-                  {fullSlate.length} {fullSlate.length === 1 ? 'GAME' : 'GAMES'} TODAY
-                </>
+                <span className="ml-2">
+                  ({fullSlate.length} TODAY)
+                </span>
               )}
             </p>
           </div>
