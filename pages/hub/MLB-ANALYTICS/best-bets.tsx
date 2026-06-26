@@ -549,6 +549,11 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                     if (bet.selection?.toLowerCase().includes('under')) selText += ' Under';
                   }
                   if (selText === '—') selText = '';
+
+                  if (lineStr && selText.endsWith(lineStr)) {
+                    return selText;
+                  }
+
                   return `${selText} ${lineStr}`.trim();
                 })()}
               </div>
@@ -1439,8 +1444,8 @@ const BetCard = ({
                     if ((bet.selection || '').toLowerCase().startsWith('under')) target += ' Under';
                   } else {
                     target = selectionLabel(bet?.selection, bet?.matchup).trim();
-                    // For totals, append the line value after Over/Under
-                    if (isTotalBet && lineStr) target = `${target} ${lineStr}`;
+                    // For totals, append the line value after Over/Under, if it isn't already there
+                    if (isTotalBet && lineStr && !target.endsWith(lineStr)) target = `${target} ${lineStr}`;
                   }
                   if (target === '—') target = '';
                   const oddsStr = formatOdds(bet.price ?? bet.best_price);
