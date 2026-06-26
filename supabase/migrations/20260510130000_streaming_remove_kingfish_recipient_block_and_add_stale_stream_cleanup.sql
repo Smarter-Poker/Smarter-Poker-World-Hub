@@ -106,7 +106,7 @@ BEGIN
 END;
 $function$;
 
-COMMENT ON FUNCTION public.fn_check_anti_farming_gift_cap IS
+COMMENT ON FUNCTION public.fn_check_anti_farming_gift_cap(uuid, uuid, integer) IS
   'Bug 5 patch: removed KINGFISH recipient block (was blocking legitimate gifts to platform owner). Sender-side bypass for KINGFISH retained. All other caps unchanged.';
 
 -- ── 2. fn_auto_end_stale_streams (Bug 8b) ──────────────────────────────────

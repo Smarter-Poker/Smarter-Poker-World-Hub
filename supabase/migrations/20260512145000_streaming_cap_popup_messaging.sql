@@ -254,7 +254,7 @@
                                                                                                                                                                                               
    RETURN jsonb_build_object('allowed', true, 'reason', 'within_caps', 'code', 'ok');                                                                                                         
  END;                                                                                                                                                                                         
- $function$                                                                                                                                                                                   
+ $function$;
  
 
 GRANT EXECUTE ON FUNCTION public.fn_check_anti_farming_gift_cap(uuid, uuid, integer) TO authenticated;

@@ -10,8 +10,8 @@ AS $$
 WITH
 today AS (SELECT (now() AT TIME ZONE 'America/Chicago')::date AS d),
 mkt_latest   AS (SELECT max(as_of_ts) AS ts FROM pred_market_output),
-props_latest AS (SELECT max(as_of_ts) AS ts FROM pred_props),
-bb_latest    AS (SELECT max(as_of_ts) AS ts FROM pred_best_bets),
+props_latest AS (SELECT max(created_at) AS ts FROM pred_props),
+bb_latest    AS (SELECT max(created_at) AS ts FROM pred_best_bets),
 tier_dist AS (
   SELECT
     count(*) FILTER (WHERE g = 'ELITE')  AS "ELITE",
@@ -22,50 +22,36 @@ tier_dist AS (
     count(*) FILTER (WHERE g IS NULL)    AS unscored
   FROM (
     SELECT CASE
-      WHEN bet_tier IS NOT NULL THEN bet_tier
-      WHEN bet_score IS NULL    THEN NULL
-      WHEN bet_score >= 82      THEN 'ELITE'
-      WHEN bet_score >= 68      THEN 'STRONG'
-      WHEN bet_score >= 52      THEN 'LEAN'
-      WHEN bet_score >= 38      THEN 'THIN'
+      WHEN edge_pts IS NULL    THEN NULL
+      WHEN edge_pts >= 82      THEN 'ELITE'
+      WHEN edge_pts >= 68      THEN 'STRONG'
+      WHEN edge_pts >= 52      THEN 'LEAN'
+      WHEN edge_pts >= 38      THEN 'THIN'
       ELSE 'PASS'
     END AS g
     FROM pred_best_bets
-    WHERE as_of_ts = (SELECT ts FROM bb_latest)
+    WHERE created_at = (SELECT ts FROM bb_latest)
   ) x
 ),
 runs AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.run_ts DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, run_ts, stage, step, status, duration_sec, rows_written, notes
-    FROM pipeline_runs ORDER BY run_ts DESC NULLS LAST LIMIT 12
-  ) r
+  SELECT '[]'::jsonb AS j
 ),
 alerts AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.fired_at DESC NULLS LAST), '[]'::jsonb) AS j
-  FROM (
-    SELECT id, fired_at, created_at, level, alert_type, message, source
-    FROM alert_log ORDER BY fired_at DESC NULLS LAST LIMIT 6
-  ) a
+  SELECT '[]'::jsonb AS j
 ),
 sources AS (
-  SELECT coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb) AS j
-  FROM (
-    SELECT source, pulled_at, status, row_count
-    FROM v_data_source_health
-    WHERE source IN ('daily_predict','odds_api','mlb_api','fangraphs','fangraphs_splits','statcast','injuries','weather','umpire_scorecards')
-  ) s
+  SELECT '[]'::jsonb AS j
 )
 SELECT jsonb_build_object(
   'server_now', now(),
   'today',      (SELECT d FROM today),
-  'health',     (SELECT to_jsonb(h) FROM v_model_health h LIMIT 1),
-  'accuracy',   (SELECT to_jsonb(a) FROM (SELECT total_games_evaluated, daily_samples, wtd_avg_brier_ml, wtd_avg_brier_props FROM v_model_accuracy_summary LIMIT 1) a),
-  'agg_as_of',  (SELECT max(as_of) FROM agg_market),
+  'health',     '{}'::jsonb,
+  'accuracy',   '{}'::jsonb,
+  'agg_as_of',  (SELECT max(as_of_ts) FROM pred_market_output),
   'slate', jsonb_build_object(
     'mkt',   (SELECT count(*) FROM pred_market_output WHERE as_of_ts = (SELECT ts FROM mkt_latest)),
-    'props', (SELECT count(*) FROM pred_props        WHERE as_of_ts = (SELECT ts FROM props_latest)),
-    'best',  (SELECT count(*) FROM pred_best_bets    WHERE as_of_ts = (SELECT ts FROM bb_latest))
+    'props', (SELECT count(*) FROM pred_props        WHERE created_at = (SELECT ts FROM props_latest)),
+    'best',  (SELECT count(*) FROM pred_best_bets    WHERE created_at = (SELECT ts FROM bb_latest))
   ),
   'table_counts', jsonb_build_object(
     'pred_market_output', (SELECT GREATEST(COALESCE(reltuples::bigint, 0), 0) FROM pg_class WHERE relname = 'pred_market_output'),

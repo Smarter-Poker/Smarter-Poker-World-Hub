@@ -317,6 +317,7 @@ DROP POLICY IF EXISTS "video_analysis_public_read" ON public.video_analysis;
 -- ──────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Users can view own tickets" ON public.live_help_tickets;
 DROP POLICY IF EXISTS "Admins and Support can view all tickets" ON public.live_help_tickets;
+DROP POLICY IF EXISTS "live_help_tickets_select" ON public.live_help_tickets;
 CREATE POLICY "live_help_tickets_select"
     ON public.live_help_tickets FOR SELECT TO authenticated
     USING (
@@ -331,6 +332,7 @@ CREATE POLICY "live_help_tickets_select"
 
 DROP POLICY IF EXISTS "Users can update own tickets" ON public.live_help_tickets;
 DROP POLICY IF EXISTS "Admins and Support can update all tickets" ON public.live_help_tickets;
+DROP POLICY IF EXISTS "live_help_tickets_update" ON public.live_help_tickets;
 CREATE POLICY "live_help_tickets_update"
     ON public.live_help_tickets FOR UPDATE TO authenticated
     USING (

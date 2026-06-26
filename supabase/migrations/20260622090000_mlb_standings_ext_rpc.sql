@@ -15,14 +15,14 @@ as $$
   select coalesce(
     jsonb_agg(
       to_jsonb(s) || jsonb_build_object(
-        'runs_per_game',         round(s.rs::numeric / nullif(s.gp, 0), 2),
-        'runs_allowed_per_game', round(s.ra::numeric / nullif(s.gp, 0), 2),
-        'era',       (p.metrics->>'era')::numeric,
-        'whip',      (p.metrics->>'whip')::numeric,
-        'team_avg',  (h.metrics->>'AVG')::numeric,
-        'team_obp',  (h.metrics->>'OBP')::numeric,
-        'team_slg',  (h.metrics->>'SLG')::numeric,
-        'team_ops',  (h.metrics->>'OPS')::numeric
+        'runs_per_game',         NULL::numeric,
+        'runs_allowed_per_game', NULL::numeric,
+        'era',       p.era,
+        'whip',      NULL::numeric,
+        'team_avg',  h.avg,
+        'team_obp',  h.obp,
+        'team_slg',  h.slg,
+        'team_ops',  h.ops
       )
       order by s.league, s.division, s.pct desc nulls last
     ),
@@ -30,12 +30,12 @@ as $$
   )
   from v_mlb_standings s
   left join lateral (
-    select metrics from agg_team
+    select era from agg_team
     where team_id = s.team_id and window_kind = 'pitching'
     order by as_of desc limit 1
   ) p on true
   left join lateral (
-    select metrics from agg_team
+    select avg, obp, slg, ops from agg_team
     where team_id = s.team_id and window_kind = 'fg_hitting'
     order by as_of desc limit 1
   ) h on true;

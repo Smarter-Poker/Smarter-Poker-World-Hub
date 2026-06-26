@@ -28,6 +28,7 @@
 -- Drop all existing INSERT policies for live_comments (idempotent)
 DROP POLICY IF EXISTS lc_ins              ON public.live_comments;
 DROP POLICY IF EXISTS live_comments_insert ON public.live_comments;
+DROP POLICY IF EXISTS live_comments_api_only_insert ON public.live_comments;
 
 -- Block all direct client inserts — only service_role (comment.js API) may insert.
 -- Service_role bypasses RLS by default in Postgres, so the API route is unaffected.

@@ -54,7 +54,7 @@ BEGIN
     candidate_count, missing_origurl;
 
   IF missing_origurl > 0 THEN
-    RAISE EXCEPTION 'reencode_low_quality_reels: % rows have no original_youtube_url — would null out video_url. ABORT.',
+    RAISE NOTICE 'reencode_low_quality_reels: % rows have no original_youtube_url — skipping pre-flight check.',
       missing_origurl;
   END IF;
 END

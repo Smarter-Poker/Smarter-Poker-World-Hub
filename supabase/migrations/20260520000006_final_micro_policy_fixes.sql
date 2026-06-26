@@ -24,9 +24,11 @@ DROP POLICY IF EXISTS "Users can view their own reports" ON public.trivia_questi
 -- Actually simpler: drop redundant sub-policies that the ALL covers for authenticated users.
 -- The "Admins can manage all reports" ALL only applies where is_admin=true.
 -- Users still need SELECT and INSERT. Recreate cleanly:
+DROP POLICY IF EXISTS "trivia_question_reports_user_insert" ON public.trivia_question_reports;
 CREATE POLICY "trivia_question_reports_user_insert"
     ON public.trivia_question_reports FOR INSERT TO authenticated
     WITH CHECK ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "trivia_question_reports_user_select" ON public.trivia_question_reports;
 CREATE POLICY "trivia_question_reports_user_select"
     ON public.trivia_question_reports FOR SELECT TO authenticated
     USING ((SELECT auth.uid()) = user_id);
@@ -34,6 +36,7 @@ CREATE POLICY "trivia_question_reports_user_select"
 -- ── pipeline_runs: ALL "Admins view" {public} + SELECT {anon,authenticated}
 -- Scope ALL to service_role (admin management should be via service_role)
 DROP POLICY IF EXISTS "Admins view pipeline runs" ON public.pipeline_runs;
+DROP POLICY IF EXISTS "pipeline_runs_service_write" ON public.pipeline_runs;
 CREATE POLICY "pipeline_runs_service_write"
     ON public.pipeline_runs FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -43,7 +46,9 @@ CREATE POLICY "pipeline_runs_service_write"
 -- Drop and recreate cleanly scoped:
 DROP POLICY IF EXISTS "live_gifts_api_only_insert" ON public.live_gifts;
 DROP POLICY IF EXISTS "lg_sel" ON public.live_gifts;
+DROP POLICY IF EXISTS "live_gifts_read" ON public.live_gifts;
 CREATE POLICY "live_gifts_read" ON public.live_gifts FOR SELECT USING (true);
+DROP POLICY IF EXISTS "live_gifts_insert" ON public.live_gifts;
 CREATE POLICY "live_gifts_insert" ON public.live_gifts FOR INSERT TO authenticated
     WITH CHECK (true);
 
@@ -53,10 +58,13 @@ CREATE POLICY "live_gifts_insert" ON public.live_gifts FOR INSERT TO authenticat
 -- as also applying to authenticated. Merge into one: drop the ALL and replace with
 -- specific INSERT/UPDATE/DELETE for authenticated; keep public SELECT.
 DROP POLICY IF EXISTS "Authenticated users manage venue news" ON public.venue_news;
+DROP POLICY IF EXISTS "venue_news_auth_write" ON public.venue_news;
 CREATE POLICY "venue_news_auth_write"
     ON public.venue_news FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "venue_news_auth_update" ON public.venue_news;
 CREATE POLICY "venue_news_auth_update"
     ON public.venue_news FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "venue_news_auth_delete" ON public.venue_news;
 CREATE POLICY "venue_news_auth_delete"
     ON public.venue_news FOR DELETE TO authenticated USING (true);
 

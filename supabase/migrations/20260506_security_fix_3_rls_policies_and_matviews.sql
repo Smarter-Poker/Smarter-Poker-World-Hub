@@ -9,6 +9,7 @@
 -- horse_bug_reports: restrict INSERT to authenticated users only
 -- (currently allows anonymous INSERT with no check — potential spam vector)
 DROP POLICY IF EXISTS "Anyone can insert bug reports" ON public.horse_bug_reports;
+DROP POLICY IF EXISTS "Authenticated users can insert bug reports" ON public.horse_bug_reports;
 CREATE POLICY "Authenticated users can insert bug reports"
   ON public.horse_bug_reports
   FOR INSERT
@@ -17,6 +18,7 @@ CREATE POLICY "Authenticated users can insert bug reports"
 
 -- qr_code_scans: restrict INSERT to authenticated users only
 DROP POLICY IF EXISTS "Anyone can record scans" ON public.qr_code_scans;
+DROP POLICY IF EXISTS "Authenticated users can record scans" ON public.qr_code_scans;
 CREATE POLICY "Authenticated users can record scans"
   ON public.qr_code_scans
   FOR INSERT

@@ -21,12 +21,14 @@
 -- and NULL = user_id is never true.
 -- ============================================================================
 
+DROP POLICY IF EXISTS "Users can update own sessions" ON public.training_sessions;
 CREATE POLICY "Users can update own sessions"
   ON public.training_sessions
   FOR UPDATE
   USING ( (SELECT auth.uid()) = user_id )
   WITH CHECK ( (SELECT auth.uid()) = user_id );
 
+DROP POLICY IF EXISTS "Users can delete own sessions" ON public.training_sessions;
 CREATE POLICY "Users can delete own sessions"
   ON public.training_sessions
   FOR DELETE

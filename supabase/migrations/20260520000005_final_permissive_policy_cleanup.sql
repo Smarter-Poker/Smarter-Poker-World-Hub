@@ -40,48 +40,60 @@ CREATE POLICY "Owners can manage announcements"
 -- ── commander_freeroll_qualifications: ALL + SELECT
 DROP POLICY IF EXISTS "quals_player_read" ON public.commander_freeroll_qualifications;
 DROP POLICY IF EXISTS "quals_staff_access" ON public.commander_freeroll_qualifications;
+DROP POLICY IF EXISTS "commander_freeroll_qualifications_read" ON public.commander_freeroll_qualifications;
 CREATE POLICY "commander_freeroll_qualifications_read"
     ON public.commander_freeroll_qualifications FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "commander_freeroll_qualifications_write" ON public.commander_freeroll_qualifications;
 CREATE POLICY "commander_freeroll_qualifications_write"
     ON public.commander_freeroll_qualifications FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ── commander_freerolls: ALL + SELECT
 DROP POLICY IF EXISTS "freerolls_public_read" ON public.commander_freerolls;
 DROP POLICY IF EXISTS "freerolls_staff_access" ON public.commander_freerolls;
+DROP POLICY IF EXISTS "commander_freerolls_read" ON public.commander_freerolls;
 CREATE POLICY "commander_freerolls_read"
     ON public.commander_freerolls FOR SELECT USING (true);
+DROP POLICY IF EXISTS "commander_freerolls_write" ON public.commander_freerolls;
 CREATE POLICY "commander_freerolls_write"
     ON public.commander_freerolls FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ── commander_games: ALL + SELECT
 DROP POLICY IF EXISTS "captain_games_select" ON public.commander_games;
 DROP POLICY IF EXISTS "captain_games_modify" ON public.commander_games;
+DROP POLICY IF EXISTS "commander_games_read" ON public.commander_games;
 CREATE POLICY "commander_games_read"
     ON public.commander_games FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "commander_games_write" ON public.commander_games;
 CREATE POLICY "commander_games_write"
     ON public.commander_games FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ── commander_high_hands: ALL + SELECT
 DROP POLICY IF EXISTS "Players can view own high hands" ON public.commander_high_hands;
 DROP POLICY IF EXISTS "Staff can manage high hands" ON public.commander_high_hands;
+DROP POLICY IF EXISTS "commander_high_hands_read" ON public.commander_high_hands;
 CREATE POLICY "commander_high_hands_read"
     ON public.commander_high_hands FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "commander_high_hands_write" ON public.commander_high_hands;
 CREATE POLICY "commander_high_hands_write"
     ON public.commander_high_hands FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ── commander_seats: ALL + SELECT
 DROP POLICY IF EXISTS "captain_seats_select" ON public.commander_seats;
 DROP POLICY IF EXISTS "captain_seats_modify" ON public.commander_seats;
+DROP POLICY IF EXISTS "commander_seats_read" ON public.commander_seats;
 CREATE POLICY "commander_seats_read"
     ON public.commander_seats FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "commander_seats_write" ON public.commander_seats;
 CREATE POLICY "commander_seats_write"
     ON public.commander_seats FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ── commander_tables: ALL + SELECT
 DROP POLICY IF EXISTS "captain_tables_select" ON public.commander_tables;
 DROP POLICY IF EXISTS "captain_tables_modify" ON public.commander_tables;
+DROP POLICY IF EXISTS "commander_tables_read" ON public.commander_tables;
 CREATE POLICY "commander_tables_read"
     ON public.commander_tables FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "commander_tables_write" ON public.commander_tables;
 CREATE POLICY "commander_tables_write"
     ON public.commander_tables FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -89,6 +101,7 @@ CREATE POLICY "commander_tables_write"
 -- Both for public/anon SELECT. Scope ALL to authenticated.
 DROP POLICY IF EXISTS "Agents can read own commission history" ON public.commission_history;
 DROP POLICY IF EXISTS "commission_history_owner_all" ON public.commission_history;
+DROP POLICY IF EXISTS "commission_history_owner" ON public.commission_history;
 CREATE POLICY "commission_history_owner"
     ON public.commission_history FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = agent_id)
@@ -109,7 +122,9 @@ CREATE POLICY "Admins manage authors"
 -- ── memory_leaderboards: ALL + SELECT both public
 DROP POLICY IF EXISTS "Anyone can view leaderboards" ON public.memory_leaderboards;
 DROP POLICY IF EXISTS "Users can manage own entries" ON public.memory_leaderboards;
+DROP POLICY IF EXISTS "memory_leaderboards_read" ON public.memory_leaderboards;
 CREATE POLICY "memory_leaderboards_read" ON public.memory_leaderboards FOR SELECT USING (true);
+DROP POLICY IF EXISTS "memory_leaderboards_write" ON public.memory_leaderboards;
 CREATE POLICY "memory_leaderboards_write" ON public.memory_leaderboards FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
 
@@ -124,6 +139,7 @@ CREATE POLICY "player_stats_self"
 -- ── trivia_streaks: ALL "Users can manage own" + SELECT "viewable by all"
 -- Scope ALL to authenticated.
 DROP POLICY IF EXISTS "Users can manage their own streaks" ON public.trivia_streaks;
+DROP POLICY IF EXISTS "trivia_streaks_self" ON public.trivia_streaks;
 CREATE POLICY "trivia_streaks_self"
     ON public.trivia_streaks FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id)

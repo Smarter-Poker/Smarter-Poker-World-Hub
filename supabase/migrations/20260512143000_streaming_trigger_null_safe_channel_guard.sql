@@ -48,7 +48,7 @@
                                                                                                
    RETURN NEW;                                                                                 
  END;                                                                                          
- $function$                                                                                    
+ $function$;
  
 
 GRANT EXECUTE ON FUNCTION public.fn_enforce_anti_farming_caps() TO authenticated;

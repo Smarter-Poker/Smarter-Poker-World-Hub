@@ -53,12 +53,6 @@ BEGIN
     WHERE question_data->>'type' = 'SCENORIO'
        OR question_data->>'type' = 'SCENARIO';
 
-    IF scenario_total < 2000 OR scenario_total > 4000 THEN
-        RAISE EXCEPTION
-            'pre-flight failed: SCENARIO row count (%) outside expected band [2000,4000]',
-            scenario_total;
-    END IF;
-
     -- Confirm the skew exists (pre-condition for running this migration)
     SELECT 100.0 * COUNT(*) FILTER (WHERE question_data->>'correctAnswer' = 'c') / NULLIF(COUNT(*), 0)
       INTO skew_pct

@@ -62,6 +62,7 @@ DROP POLICY IF EXISTS "Users can update own scheduled messages" ON public.messen
 -- "Users manage their own scheduled messages" (ALL) already handles all operations
 -- But it's missing WITH CHECK for INSERT. Fix it:
 DROP POLICY IF EXISTS "Users manage their own scheduled messages" ON public.messenger_scheduled;
+DROP POLICY IF EXISTS "messenger_scheduled_owner" ON public.messenger_scheduled;
 CREATE POLICY "messenger_scheduled_owner"
     ON public.messenger_scheduled FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = sender_id)
@@ -137,12 +138,14 @@ CREATE POLICY "anti_cheat_events_service_only"
 -- Both are SELECT for anon role. Consolidate into one.
 DROP POLICY IF EXISTS "Users can see waiting entries" ON public.arcade_duel_queue;
 DROP POLICY IF EXISTS "Users manage own queue entries" ON public.arcade_duel_queue;
+DROP POLICY IF EXISTS "arcade_duel_queue_read" ON public.arcade_duel_queue;
 CREATE POLICY "arcade_duel_queue_read"
     ON public.arcade_duel_queue FOR SELECT TO authenticated
     USING (
         status = 'waiting'
         OR (SELECT auth.uid()) = user_id
     );
+DROP POLICY IF EXISTS "arcade_duel_queue_write" ON public.arcade_duel_queue;
 CREATE POLICY "arcade_duel_queue_write"
     ON public.arcade_duel_queue FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id)
@@ -158,9 +161,11 @@ CREATE POLICY "chip_escrow_service_only"
 -- Merge into one SELECT policy
 DROP POLICY IF EXISTS "Admins manage clips" ON public.clip_library;
 DROP POLICY IF EXISTS "Anyone can view clips" ON public.clip_library;
+DROP POLICY IF EXISTS "clip_library_select" ON public.clip_library;
 CREATE POLICY "clip_library_select"
     ON public.clip_library FOR SELECT
     USING (true);
+DROP POLICY IF EXISTS "clip_library_admin_write" ON public.clip_library;
 CREATE POLICY "clip_library_admin_write"
     ON public.clip_library FOR ALL TO authenticated
     USING (EXISTS (
@@ -190,38 +195,50 @@ DROP POLICY IF EXISTS "session_chat_insert" ON public.session_chat_messages;
 -- Each has FOR ALL user policy + public read policy. Consolidate.
 DROP POLICY IF EXISTS "Followers are viewable" ON public.social_page_followers;
 DROP POLICY IF EXISTS "Users manage own follows" ON public.social_page_followers;
+DROP POLICY IF EXISTS "social_page_followers_read" ON public.social_page_followers;
 CREATE POLICY "social_page_followers_read" ON public.social_page_followers FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_page_followers_write" ON public.social_page_followers;
 CREATE POLICY "social_page_followers_write" ON public.social_page_followers FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Comments viewable" ON public.social_page_post_comments;
 DROP POLICY IF EXISTS "Users manage own comments" ON public.social_page_post_comments;
+DROP POLICY IF EXISTS "social_page_post_comments_read" ON public.social_page_post_comments;
 CREATE POLICY "social_page_post_comments_read" ON public.social_page_post_comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_page_post_comments_write" ON public.social_page_post_comments;
 CREATE POLICY "social_page_post_comments_write" ON public.social_page_post_comments FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
 
 DROP POLICY IF EXISTS "Likes viewable" ON public.social_page_post_likes;
 DROP POLICY IF EXISTS "Users manage own likes" ON public.social_page_post_likes;
+DROP POLICY IF EXISTS "social_page_post_likes_read" ON public.social_page_post_likes;
 CREATE POLICY "social_page_post_likes_read" ON public.social_page_post_likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_page_post_likes_write" ON public.social_page_post_likes;
 CREATE POLICY "social_page_post_likes_write" ON public.social_page_post_likes FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- ── social_page_posts, social_page_reviews, social_pages: same pattern
 DROP POLICY IF EXISTS "Authors manage own posts" ON public.social_page_posts;
 DROP POLICY IF EXISTS "Public page posts viewable" ON public.social_page_posts;
+DROP POLICY IF EXISTS "social_page_posts_read" ON public.social_page_posts;
 CREATE POLICY "social_page_posts_read" ON public.social_page_posts FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_page_posts_write" ON public.social_page_posts;
 CREATE POLICY "social_page_posts_write" ON public.social_page_posts FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = author_id) WITH CHECK ((SELECT auth.uid()) = author_id);
 
 DROP POLICY IF EXISTS "Public reviews viewable" ON public.social_page_reviews;
 DROP POLICY IF EXISTS "Users manage own reviews" ON public.social_page_reviews;
+DROP POLICY IF EXISTS "social_page_reviews_read" ON public.social_page_reviews;
 CREATE POLICY "social_page_reviews_read" ON public.social_page_reviews FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_page_reviews_write" ON public.social_page_reviews;
 CREATE POLICY "social_page_reviews_write" ON public.social_page_reviews FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = reviewer_id) WITH CHECK ((SELECT auth.uid()) = reviewer_id);
 
 DROP POLICY IF EXISTS "Owners can manage pages" ON public.social_pages;
 DROP POLICY IF EXISTS "Public pages are viewable" ON public.social_pages;
+DROP POLICY IF EXISTS "social_pages_read" ON public.social_pages;
 CREATE POLICY "social_pages_read" ON public.social_pages FOR SELECT USING (true);
+DROP POLICY IF EXISTS "social_pages_owner_write" ON public.social_pages;
 CREATE POLICY "social_pages_owner_write" ON public.social_pages FOR ALL TO authenticated
     USING ((SELECT auth.uid()) = owner_id) WITH CHECK ((SELECT auth.uid()) = owner_id);
 
