@@ -538,10 +538,22 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         } else {
           for (const [idStr, name] of Object.entries(TEAM_ID_TO_NAME)) {
             const lowerName = name.toLowerCase();
-            if (lowerName === searchName || lowerName.includes(searchName)) {
+            // Bidirectional check to catch "cubs" in "chicago cubs" AND "chicago cubs" in "cubs"
+            if (lowerName === searchName || searchName.includes(lowerName) || lowerName.includes(searchName)) {
               foundTeamId = Number(idStr);
               break;
             }
+          }
+        }
+
+        // Final fallback: If we still don't have it, try to match against the slate directly
+        if (!foundTeamId && tgSlate) {
+          const homeName = TEAM_ID_TO_NAME[tgSlate.home_team_id]?.toLowerCase() || '';
+          const awayName = TEAM_ID_TO_NAME[tgSlate.away_team_id]?.toLowerCase() || '';
+          if (homeName && (homeName.includes(searchName) || searchName.includes(homeName))) {
+            foundTeamId = tgSlate.home_team_id;
+          } else if (awayName && (awayName.includes(searchName) || searchName.includes(awayName))) {
+            foundTeamId = tgSlate.away_team_id;
           }
         }
 
@@ -913,9 +925,10 @@ async function edgeHandler(req: Request) {
             const prob = Number(p.prob_over);
             // Synthesize odds: if best_price exists use it; else derive from prob_over.
             // HR prob of 20% → +400 implied, 15% → +567 (round to nearest 5).
+            const calculatedOdds = Math.round(probToAmericanOdds(prob) / 5) * 5;
             const syntheticPrice = p.best_price != null
               ? p.best_price
-              : Math.round(probToAmericanOdds(prob) / 5) * 5;
+              : Math.max(350, calculatedOdds); // Floor at +350 to ensure realistic HR lines
             // bet_score 0-100: scale from 0% HR prob → 0 to 30% HR prob → 100
             const betScore = Math.min(100, Math.round((prob / 0.30) * 100));
             return {

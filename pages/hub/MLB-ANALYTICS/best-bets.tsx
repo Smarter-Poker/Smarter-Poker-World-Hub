@@ -1148,7 +1148,7 @@ const BetCard = ({
   const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
   const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
   const isHomeRun = spreadCheck.includes('home_run') || spreadCheck.includes('hr');
-  const isTotalBet = spreadCheck.includes('total') && !isSpread;
+  const isTotalBet = (spreadCheck.includes('total') || spreadCheck.includes('nrfi')) && !isSpread;
   
   if (isMoneyline || isHomeRun) {
     lineStr = '';
@@ -1778,6 +1778,8 @@ export default function BestBetsPage() {
         
         // Skip home runs here since we have a dedicated section
         if (m === 'home_run' || m === 'hr') return;
+        // Skip H2H or Moneyline entirely since they shouldn't be rendered as a "Prop" carousel
+        if (m === 'h2h' || m === 'moneyline' || m === 'money_line') return;
 
         if (!propsMap.has(m)) propsMap.set(m, []);
         propsMap.get(m)!.push(b);
@@ -1790,13 +1792,21 @@ export default function BestBetsPage() {
         .sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0))
         .slice(0, 10);
       if (sorted.length > 0) {
-        const titleMarket = market.replace(/_/g, ' ');
-        let finalTitle = titleMarket.includes('f5') 
-          ? `Top ${titleMarket.replace('f5', 'F5')}` 
-          : `Top ${titleMarket}`;
-          
-        if (market.toLowerCase() === 'hits') {
-          finalTitle = 'Best Bets Players To Get A Hit';
+        let finalTitle = '';
+        if (market.toLowerCase() === 'runs') finalTitle = 'Player Runs Scored';
+        else if (market.toLowerCase() === 'earned_runs') finalTitle = 'Pitcher Earned Runs';
+        else if (market.toLowerCase() === 'strikeout' || market.toLowerCase() === 'strikeouts' || market.toLowerCase() === 'pitcher_strikeout') finalTitle = 'Pitcher Strikeouts';
+        else if (market.toLowerCase() === 'hits') finalTitle = 'Best Bets Players To Get A Hit';
+        else if (market.toLowerCase() === 'bases' || market.toLowerCase() === 'total_bases') finalTitle = 'Player Total Bases';
+        else if (market.toLowerCase() === 'rbi' || market.toLowerCase() === 'runs_batted_in') finalTitle = 'Player RBIs';
+        else if (market.toLowerCase() === 'outs' || market.toLowerCase() === 'outs_recorded') finalTitle = 'Pitching Outs';
+        else if (market.toLowerCase() === 'bb' || market.toLowerCase() === 'pitcher_walks') finalTitle = 'Pitcher Walks';
+        else if (market.toLowerCase() === 'stolen_bases') finalTitle = 'Player Stolen Bases';
+        else {
+          const titleMarket = market.replace(/_/g, ' ');
+          finalTitle = titleMarket.includes('f5') 
+            ? `Top ${titleMarket.replace('f5', 'F5')}` 
+            : `Top ${titleMarket.replace(/\b\w/g, l => l.toUpperCase())}`;
         }
 
         groups.push({ title: finalTitle, bets: sorted });
