@@ -155,7 +155,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   ] = await Promise.all([
     sb.from("dim_teams").select("team_id,name"),
     sb.from("agg_market").select("game_pk,novig_home,metrics,line_move").in("game_pk", gpks).eq("as_of", date),
-    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price,bet_score,bet_tier,ev_pct,score_factors,kelly_pct").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]),
+    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price,bet_score,bet_tier,ev_pct,score_factors,kelly_pct").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]).order("as_of_ts", { ascending: false }).limit(1500),
     starterMap(sb, gpks),
     sb.from("agg_team").select("team_id,metrics").eq("window_kind", "season").eq("as_of", date),
     sb.from("pred_props").select("game_pk,prop,player_id,line,edge_pts,as_of_ts,prob_over,blended_over,best_price").in("game_pk", gpks).gte("as_of_ts", `${date}T00:00:00`).lte("as_of_ts", `${date}T23:59:59`),
@@ -210,13 +210,14 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   for (const p of preds ?? []) {
     if (String(p.as_of_ts ?? "") !== latestTs.get(p.game_pk)) continue;
     const e = byGame.get(p.game_pk) ?? {};
+    const isBet = p.rec && p.rec.match(/\bBET\b/) && !p.rec.includes("NO BET");
     if (p.market === "h2h") {
       if (p.selection === "home") e.home = p; else e.away = p;
-      if (p.rec?.startsWith("BET")) e.bet = p;
+      if (isBet) e.bet = p;
     } else if (p.market === "run_line") {
-      if (p.rec?.startsWith("BET")) e.runLineBet = p;
+      if (isBet) e.runLineBet = p;
     } else if (p.market === "total") {
-      if (p.rec?.startsWith("BET")) e.totalBet = p;
+      if (isBet) e.totalBet = p;
     }
     byGame.set(p.game_pk, e);
   }
@@ -340,7 +341,7 @@ async function _getGame(gamePk: number) {
   const [{ data: fg }, { data: teams }, { data: market }, { data: props }, { data: lineups }, smap0] = await Promise.all([
     sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc").eq("game_pk", gamePk).limit(1),
     sb.from("dim_teams").select("team_id,name"),
-    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk).order("market"),
+    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk).order("as_of_ts", { ascending: false }).limit(1000),
     sb.from("pred_props").select("player_id,prop,line,proj_mean,prob_over,blended_over,rec,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk),
     sb.from("raw_lineups").select("team_id,batting_order,player_id,knowledge_time").eq("game_pk", gamePk),
     starterMap(sb, [gamePk]),
@@ -504,7 +505,7 @@ async function _getGameFull(gamePk: number) {
     sb.from("dim_teams").select("team_id,name,abbr"),
     sb.from("raw_lineups").select("team_id,batting_order,player_id,knowledge_time,confirmed").eq("game_pk", gamePk),
     sb.from("raw_probables").select("team_id,pitcher_id,knowledge_time").eq("game_pk", gamePk),
-    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book,bet_score,bet_tier,ev_pct,score_factors").eq("game_pk", gamePk),
+    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book,bet_score,bet_tier,ev_pct,score_factors").eq("game_pk", gamePk).order("as_of_ts", { ascending: false }).limit(1000),
     sb.from("pred_props").select("as_of_ts,player_id,prop,line,proj_mean,prob_over,blended_over,rec,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk),
     sb.from("agg_team").select("team_id,window_kind,as_of,metrics").in("team_id", [g.home_team_id, g.away_team_id]),
     sb.from("agg_market").select("metrics").eq("game_pk", gamePk).order("as_of", { ascending: false }).limit(1),
