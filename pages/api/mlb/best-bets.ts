@@ -222,12 +222,27 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let games: any[] = [];
   let teamStats: any[] = [];
   let gameLogs: any[] = [];
+  // Phase 1: fetch fact_games and v_daily_slate in parallel.
+  // v_daily_slate can time out (it's a heavy view) — MUST NOT block fact_games which
+  // is the critical source for team_id/matchup resolution. Fire both concurrently and
+  // catch each failure independently so a slate timeout never kills team logos.
   try {
-    const slatesResult = await fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1]));
-    slates = slatesResult;
-    
+    const [slatesResult, gamesResult] = await Promise.allSettled([
+      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1])),
+      fetchAllRows(() =>
+        mlbDb
+          .from('fact_games')
+          .select('game_pk, first_pitch_utc, home_team_id, away_team_id')
+          .in('game_pk', gamePks.length ? gamePks : [-1])
+      ),
+    ]);
+    slates = slatesResult.status === 'fulfilled' ? slatesResult.value : [];
+    games = gamesResult.status === 'fulfilled' ? gamesResult.value : [];
+    if (slatesResult.status === 'rejected') console.warn('[MLB Best Bets] v_daily_slate timeout:', slatesResult.reason?.message);
+    if (gamesResult.status === 'rejected') console.warn('[MLB Best Bets] fact_games error:', gamesResult.reason?.message);
+
     // Collect pitcher names to lookup
-    const pitcherNames = Array.from(new Set(slates.flatMap(s => [s.home_pitcher, s.away_pitcher]).filter(Boolean)));
+    const pitcherNames = Array.from(new Set(slates.flatMap((s: any) => [s.home_pitcher, s.away_pitcher]).filter(Boolean)));
     
     // Quick lookup of pitcher IDs from names using a lightweight query on dim_players
     let pitcherIdsFromName: number[] = [];
@@ -237,7 +252,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
     const allPitcherIds = Array.from(new Set([...betPlayerIds, ...pitcherIdsFromName]));
 
-    [hitters, pitchers, aggPitchers, games, teamStats, gameLogs] = await Promise.all([
+    [hitters, pitchers, aggPitchers, teamStats, gameLogs] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
@@ -257,12 +272,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .eq('window_kind', 'fg_season')
           .in('pitcher_id', allPitcherIds.length ? allPitcherIds : [-1])
           .order('as_of', { ascending: false })
-      ),
-      fetchAllRows(() =>
-        mlbDb
-          .from('fact_games')
-          .select('game_pk, first_pitch_utc, home_team_id, away_team_id')
-          .in('game_pk', gamePks.length ? gamePks : [-1])
       ),
       fetchAllRows(() => mlbDb.from('v_mlb_standings').select('*')),
       fetchAllRows(() =>
@@ -882,7 +891,10 @@ async function edgeHandler(req: Request) {
     const allEnriched = await enrichBets(allBetsToEnrich, mlbDb);
     
     let offset = 0;
-    enrichedBets = allEnriched.slice(offset, offset + rawBets.length); offset += rawBets.length;
+    enrichedBets = allEnriched.slice(offset, offset + rawBets.length).map((b: any) => ({
+      ...b,
+      bet_score: b.bet_score != null ? Math.min(100, Number(b.bet_score)) : b.bet_score,
+    })); offset += rawBets.length;
     topMoneylines = allEnriched.slice(offset, offset + dedupedML.length); offset += dedupedML.length;
     topRunlines = allEnriched.slice(offset, offset + dedupedRL.length); offset += dedupedRL.length;
     topTotals = allEnriched.slice(offset, offset + dedupedTot.length); offset += dedupedTot.length;
