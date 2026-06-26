@@ -257,6 +257,21 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (!selection) return '—';
   let s = selection.toLowerCase();
 
+  // Handle f5_team_total selections like "home_over_1.5" or "away_under_2.5"
+  // Pattern: {home|away}_{over|under}_{line}
+  const f5TeamTotMatch = s.match(/^(home|away)_(over|under)_([\d.]+)$/);
+  if (f5TeamTotMatch) {
+    const side = f5TeamTotMatch[1];
+    const dir = f5TeamTotMatch[2];
+    const line = f5TeamTotMatch[3];
+    let teamName = side === 'home' ? 'Home' : 'Away';
+    if (matchup) {
+      const parts = matchup.split(' @ ');
+      if (parts.length === 2) teamName = side === 'home' ? parts[1] : parts[0];
+    }
+    return `${toTitleCase(stripCity(teamName))} ${toTitleCase(dir)} ${line}`;
+  }
+
   let teamName = '';
   if (s === 'home' || s.startsWith('home_')) {
     teamName = 'Home';
@@ -1746,7 +1761,11 @@ export default function BestBetsPage() {
         typeStr.includes('rbi') ||
         typeStr.includes('f5') ||
         typeStr.includes('first_5') ||
-        typeStr.includes('team_total')
+        typeStr.includes('team_total') ||
+        typeStr.includes('pitcher_walks') ||
+        typeStr.includes('pitcher_strikeout') ||
+        typeStr.includes('earned_runs') ||
+        typeStr.includes('outs_recorded')
       ) {
         let m = b.market || 'Other Prop';
         // Normalize f5_ to first_5_ for grouping
@@ -1790,9 +1809,11 @@ export default function BestBetsPage() {
   }, [bets]);
 
   // Dedicated F5/team_total/nrfi sections from API (pred_market_output enriched)
+  const bestTeamTotals = useMemo(() => (data?.topTeamTotals || []).slice(0, 10), [data]);
   const bestF5Moneylines = useMemo(() => (data?.topF5Moneylines || []).slice(0, 10), [data]);
   const bestF5Totals = useMemo(() => (data?.topF5Totals || []).slice(0, 10), [data]);
-  const bestTeamTotals = useMemo(() => (data?.topTeamTotals || []).slice(0, 10), [data]);
+  // f5_team_total — first-5-inning team totals (engine now emits home_over_1.5 selections)
+  const bestF5TeamTotals = useMemo(() => (data?.topF5TeamTotals || []).slice(0, 10), [data]);
   const bestNrfi = useMemo(() => (data?.topNrfi || []).slice(0, 10), [data]);
 
   if (error || data?.error) {
@@ -2027,17 +2048,17 @@ export default function BestBetsPage() {
                   onBetClick={openModal}
                 />
                 
-                {/* Dynamically grouped props from topPropsByMarket covers F5, Team Totals, Strikeouts, etc. */}
+                {/* Dynamically grouped props from pred_best_bets (strikeouts, pitcher_walks, etc.) */}
 
                 {topPropsByMarket
                   .filter((group) => {
-                    // Exclude 'runs' group - it will be shown as a dedicated section or is just noise
-                    // Also exclude anything that's essentially a duplicate of a dedicated section
+                    // Exclude markets that have dedicated sections below
                     const lowerTitle = group.title.toLowerCase();
                     return !lowerTitle.includes('top runs') && 
                            !lowerTitle.includes('top earned') &&
                            !lowerTitle.includes('f5') &&
                            !lowerTitle.includes('team total') &&
+                           !lowerTitle.includes('f5 team') &&
                            !lowerTitle.includes('nrfi');
                   })
                   .map((group, idx) => (
@@ -2048,6 +2069,18 @@ export default function BestBetsPage() {
                     onBetClick={openModal}
                   />
                 ))}
+
+                {/* Section order: Team Total → F5 ML → F5 Total → F5 Team Total → NRFI */}
+
+                {/* Dedicated Team Totals Section */}
+                {bestTeamTotals.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: Team Totals"
+                    icon={TrendingUp}
+                    bets={bestTeamTotals}
+                    onBetClick={openModal}
+                  />
+                )}
                 {/* Dedicated F5 Moneyline Section */}
                 {bestF5Moneylines.length > 0 && (
                   <CategoryCarousel
@@ -2066,12 +2099,12 @@ export default function BestBetsPage() {
                     onBetClick={openModal}
                   />
                 )}
-                {/* Dedicated Team Totals Section */}
-                {bestTeamTotals.length > 0 && (
+                {/* Dedicated F5 Team Totals Section — engine emits f5_team_total with home_over_1.5 selections */}
+                {bestF5TeamTotals.length > 0 && (
                   <CategoryCarousel
-                    title="Best Bets: Team Totals"
+                    title="Best Bets: First 5 Innings Team Totals"
                     icon={TrendingUp}
-                    bets={bestTeamTotals}
+                    bets={bestF5TeamTotals}
                     onBetClick={openModal}
                   />
                 )}

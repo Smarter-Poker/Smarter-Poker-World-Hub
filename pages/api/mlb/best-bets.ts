@@ -851,6 +851,7 @@ async function edgeHandler(req: Request) {
     let topHomers: any[] = [];
     let topF5Moneylines: any[] = [];
     let topF5Totals: any[] = [];
+    let topF5TeamTotals: any[] = [];
     let topTeamTotals: any[] = [];
     let topNrfi: any[] = [];
     let dedupedML: any[] = [];
@@ -859,6 +860,7 @@ async function edgeHandler(req: Request) {
     let dedupedHR: any[] = [];
     let dedupedF5ML: any[] = [];
     let dedupedF5Tot: any[] = [];
+    let dedupedF5TeamTot: any[] = [];
     let dedupedTeamTot: any[] = [];
     let dedupedNrfi: any[] = [];
     
@@ -866,7 +868,7 @@ async function edgeHandler(req: Request) {
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
       
-      const [mlData, rlData, totData, hrBestBetsData, hrPropsData, f5mlData, f5totData, teamTotData, nrfiData] = await Promise.all([
+      const [mlData, rlData, totData, hrBestBetsData, hrPropsData, f5mlData, f5totData, f5teamTotData, teamTotData, nrfiData] = await Promise.all([
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['moneyline', 'h2h']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['run_line', 'spread']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'total'),
@@ -876,6 +878,8 @@ async function edgeHandler(req: Request) {
         mlbDb.from('pred_props').select('*').eq('prop', 'home_run').gte('as_of_ts', startIso).lt('as_of_ts', endIso).order('prob_over', {ascending: false}).limit(50),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_moneyline', 'f5_money_line']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_total']),
+        // f5_team_total — engine now emits first-5-inning team totals (e.g. home_over_1.5)
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'f5_team_total'),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'team_total'),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'nrfi'),
       ]);
@@ -926,6 +930,7 @@ async function edgeHandler(req: Request) {
 
       if (f5mlData.data && f5mlData.data.length > 0) dedupedF5ML = dedupeLatestBets(f5mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5totData.data && f5totData.data.length > 0) dedupedF5Tot = dedupeLatestBets(f5totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (f5teamTotData.data && f5teamTotData.data.length > 0) dedupedF5TeamTot = dedupeLatestBets(f5teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (teamTotData.data && teamTotData.data.length > 0) dedupedTeamTot = dedupeLatestBets(teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (nrfiData.data && nrfiData.data.length > 0) dedupedNrfi = dedupeLatestBets(nrfiData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
     }
@@ -949,6 +954,7 @@ async function edgeHandler(req: Request) {
       ...enrichWithMatchupStub(dedupedHR, 'prop'),
       ...enrichWithMatchupStub(dedupedF5ML, 'line'),
       ...enrichWithMatchupStub(dedupedF5Tot, 'line'),
+      ...enrichWithMatchupStub(dedupedF5TeamTot, 'line'),
       ...enrichWithMatchupStub(dedupedTeamTot, 'line'),
       ...enrichWithMatchupStub(dedupedNrfi, 'line'),
     ];
@@ -965,6 +971,7 @@ async function edgeHandler(req: Request) {
     topHomers = allEnriched.slice(offset, offset + dedupedHR.length); offset += dedupedHR.length;
     topF5Moneylines = allEnriched.slice(offset, offset + dedupedF5ML.length); offset += dedupedF5ML.length;
     topF5Totals = allEnriched.slice(offset, offset + dedupedF5Tot.length); offset += dedupedF5Tot.length;
+    topF5TeamTotals = allEnriched.slice(offset, offset + dedupedF5TeamTot.length); offset += dedupedF5TeamTot.length;
     topTeamTotals = allEnriched.slice(offset, offset + dedupedTeamTot.length); offset += dedupedTeamTot.length;
     topNrfi = allEnriched.slice(offset, offset + dedupedNrfi.length); offset += dedupedNrfi.length;
 
@@ -996,6 +1003,7 @@ async function edgeHandler(req: Request) {
         topHomers,
         topF5Moneylines,
         topF5Totals,
+        topF5TeamTotals,
         topTeamTotals,
         topNrfi,
         officialDate: data?.officialDate || null,
