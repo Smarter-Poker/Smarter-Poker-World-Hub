@@ -1184,6 +1184,8 @@ const BetCard = ({
     marketLabel = 'Pitcher Strikeouts';
   } else if (typeStr.includes('home_run') || typeStr.includes('hrr')) {
     marketLabel = 'Player Home Runs';
+  } else if (cleanMarket === 'runs' || typeStr.includes('runs_scored')) {
+    marketLabel = 'Player To Score A Run';
   } else if (typeStr.includes('hits')) {
     marketLabel = 'Player Hits';
   } else if (typeStr.includes('bases')) {
@@ -1196,6 +1198,10 @@ const BetCard = ({
     marketLabel = 'Pitcher Walks';
   } else if (typeStr.includes('earned_runs')) {
     marketLabel = 'Earned Runs';
+  } else if (typeStr.includes('nrfi')) {
+    marketLabel = 'No Run First Inning';
+  } else if (typeStr.includes('stolen_bases')) {
+    marketLabel = 'Stolen Bases';
   } else if (bet.market && bet.market !== 'prop') {
     marketLabel = bet.market.replace(/_/g, ' ');
   } else if (typeStr.includes('prop')) {
@@ -1664,11 +1670,12 @@ export default function BestBetsPage() {
     let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
     return source
       .filter((b) => {
-          const prob = Number(b.win_confidence) || 0;
-          const price = Number(b.price ?? b.best_price ?? 0);
-          return prob > 50 && price < 0; // MUST be a favorite
+          const prob = Number(b.win_confidence) || Number(b.model_prob ? Number(b.model_prob) * 100 : 0);
+          // Use win_confidence > 50 (favorites). Do NOT require price < 0 since pred_market_output
+          // underdogs with high model_prob still deserve to show here with their logo.
+          return prob > 50;
       })
-      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+      .sort((a, b) => (Number(b.win_confidence) || Number(b.model_prob) * 100 || 0) - (Number(a.win_confidence) || Number(a.model_prob) * 100 || 0))
       .slice(0, 10);
   }, [bets, data]);
 
@@ -1781,6 +1788,12 @@ export default function BestBetsPage() {
 
     return groups;
   }, [bets]);
+
+  // Dedicated F5/team_total/nrfi sections from API (pred_market_output enriched)
+  const bestF5Moneylines = useMemo(() => (data?.topF5Moneylines || []).slice(0, 10), [data]);
+  const bestF5Totals = useMemo(() => (data?.topF5Totals || []).slice(0, 10), [data]);
+  const bestTeamTotals = useMemo(() => (data?.topTeamTotals || []).slice(0, 10), [data]);
+  const bestNrfi = useMemo(() => (data?.topNrfi || []).slice(0, 10), [data]);
 
   if (error || data?.error) {
     return (
@@ -2016,7 +2029,18 @@ export default function BestBetsPage() {
                 
                 {/* Dynamically grouped props from topPropsByMarket covers F5, Team Totals, Strikeouts, etc. */}
 
-                {topPropsByMarket.map((group, idx) => (
+                {topPropsByMarket
+                  .filter((group) => {
+                    // Exclude 'runs' group - it will be shown as a dedicated section or is just noise
+                    // Also exclude anything that's essentially a duplicate of a dedicated section
+                    const lowerTitle = group.title.toLowerCase();
+                    return !lowerTitle.includes('top runs') && 
+                           !lowerTitle.includes('top earned') &&
+                           !lowerTitle.includes('f5') &&
+                           !lowerTitle.includes('team total') &&
+                           !lowerTitle.includes('nrfi');
+                  })
+                  .map((group, idx) => (
                   <CategoryCarousel
                     key={idx}
                     title={group.title}
@@ -2024,6 +2048,42 @@ export default function BestBetsPage() {
                     onBetClick={openModal}
                   />
                 ))}
+                {/* Dedicated F5 Moneyline Section */}
+                {bestF5Moneylines.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: First 5 Innings Moneyline"
+                    icon={Zap}
+                    bets={bestF5Moneylines}
+                    onBetClick={openModal}
+                  />
+                )}
+                {/* Dedicated F5 Totals Section */}
+                {bestF5Totals.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: First 5 Innings Over / Under"
+                    icon={TrendingUp}
+                    bets={bestF5Totals}
+                    onBetClick={openModal}
+                  />
+                )}
+                {/* Dedicated Team Totals Section */}
+                {bestTeamTotals.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: Team Totals"
+                    icon={TrendingUp}
+                    bets={bestTeamTotals}
+                    onBetClick={openModal}
+                  />
+                )}
+                {/* Dedicated NRFI Section */}
+                {bestNrfi.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: No Run First Inning (NRFI)"
+                    icon={Shield}
+                    bets={bestNrfi}
+                    onBetClick={openModal}
+                  />
+                )}
               </>
             )}
           </div>
