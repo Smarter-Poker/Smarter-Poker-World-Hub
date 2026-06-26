@@ -173,17 +173,26 @@ function normName(s: string): string {
 // PostgREST caps every response at 1000 rows regardless of .limit(); page through with
 // .range() so the enrichment maps cover the full pool (v_hitter_profile ~1950 rows,
 // v_pitcher_profile ~1220) instead of being silently truncated to the first 1000.
-async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
-  let all: any[] = [];
-  for (let from = 0; from < maxRows; from += pageSize) {
-    const { data, error } = await build().range(from, from + pageSize - 1);
-    if (error) throw error;
-    const rows = data || [];
-    all = all.concat(rows);
-    if (rows.length < pageSize) break;
-  }
-  return all;
-}
+const fetchAllRows = async (queryFn: any) => {
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await queryFn().range(from, from + pageSize - 1);
+      if (error) {
+        if (allData.length > 0 && String(error.message).includes('timeout')) {
+          console.warn(`[MLB API] Pagination timeout at offset ${from}, returning partial data (${allData.length} rows).`);
+          break;
+        }
+        throw error;
+      }
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    return allData;
+  };
 
 // Collapse intraday repricing snapshots to the latest as_of_ts per unique bet, so the list and
 // counts reflect ~one row per bet (today: 398 raw rows -> 49 unique bets). Mirrors the dedupe the
@@ -222,12 +231,18 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let games: any[] = [];
   let teamStats: any[] = [];
   let gameLogs: any[] = [];
-  // Phase 1: fetch fact_games and v_daily_slate in parallel.
-  // v_daily_slate can time out (it's a heavy view) — MUST NOT block fact_games which
-  // is the critical source for team_id/matchup resolution. Fire both concurrently and
-  // catch each failure independently so a slate timeout never kills team logos.
+  let dimPlayers: any[] = [];
+
   try {
-    const [slatesResult, gamesResult] = await Promise.allSettled([
+    const [
+      hittersResult,
+      pitchersResult,
+      slatesResult,
+      gamesResult,
+      dimPlayersResult,
+    ] = await Promise.allSettled([
+      fetchAllRows(() => mlbDb.from('v_hitter_profile').select('*')),
+      fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('*')),
       fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1])),
       fetchAllRows(() =>
         mlbDb
@@ -235,16 +250,16 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           .select('game_pk, first_pitch_utc, home_team_id, away_team_id')
           .in('game_pk', gamePks.length ? gamePks : [-1])
       ),
+      fetchAllRows(() => mlbDb.from('dim_players').select('player_id, full_name, team_id')),
     ]);
+    hitters = hittersResult.status === 'fulfilled' ? hittersResult.value : [];
+    pitchers = pitchersResult.status === 'fulfilled' ? pitchersResult.value : [];
     slates = slatesResult.status === 'fulfilled' ? slatesResult.value : [];
     games = gamesResult.status === 'fulfilled' ? gamesResult.value : [];
-    if (slatesResult.status === 'rejected') console.warn('[MLB Best Bets] v_daily_slate timeout:', slatesResult.reason?.message);
-    if (gamesResult.status === 'rejected') console.warn('[MLB Best Bets] fact_games error:', gamesResult.reason?.message);
+    dimPlayers = dimPlayersResult.status === 'fulfilled' ? dimPlayersResult.value : [];
 
-    // Collect pitcher names to lookup
     const pitcherNames = Array.from(new Set(slates.flatMap((s: any) => [s.home_pitcher, s.away_pitcher]).filter(Boolean)));
     
-    // Quick lookup of pitcher IDs from names using a lightweight query on dim_players
     let pitcherIdsFromName: number[] = [];
     if (pitcherNames.length > 0) {
        const { data: nameData } = await mlbDb.from('dim_players').select('player_id, full_name').in('full_name', pitcherNames);
@@ -252,19 +267,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
     const allPitcherIds = Array.from(new Set([...betPlayerIds, ...pitcherIdsFromName]));
 
-    [hitters, pitchers, aggPitchers, teamStats, gameLogs] = await Promise.all([
-      fetchAllRows(() =>
-        mlbDb
-          .from('v_hitter_profile')
-          .select('player_id, full_name, team_id, woba, wrc_plus, pa, splits')
-          .in('player_id', betPlayerIds.length ? betPlayerIds : [-1])
-      ),
-      fetchAllRows(() =>
-        mlbDb
-          .from('v_pitcher_profile')
-          .select('player_id, full_name, team_id, fip, siera')
-          .in('player_id', allPitcherIds.length ? allPitcherIds : [-1])
-      ),
+    [aggPitchers, teamStats, gameLogs] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
@@ -287,7 +290,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     console.warn('[MLB Best Bets] enrichment fetch error:', e?.message || e);
   }
 
-  // Build lookup maps by normalized full_name (accent/suffix/punct-insensitive).
   const hitterMap = new Map<string, any>();
   const hitterMapById = new Map<number, any>();
   hitters.forEach((h: any) => {
@@ -302,7 +304,11 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     if (p.player_id) pitcherMapById.set(p.player_id, p);
   });
 
-  // agg_pitcher: deduplicate by pitcher_id (take most recent)
+  const fallbackPlayerMap = new Map<number, any>();
+  dimPlayers.forEach((p: any) => {
+    if (p.player_id) fallbackPlayerMap.set(p.player_id, p);
+  });
+
   const aggPitcherMap = new Map<number, any>();
   aggPitchers.forEach((ap: any) => {
     if (ap.pitcher_id && !aggPitcherMap.has(ap.pitcher_id)) {
@@ -325,7 +331,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
   });
 
-  // ── last10 map: pitcher_id → last 10 game logs ────────────────────────
   const last10Map = new Map<number, any[]>();
   for (const row of gameLogs) {
     if (row.player_id != null) {
@@ -348,7 +353,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
   }
 
-  // Slate map for game_pk
   const slateMap = new Map<number, any>();
   slates?.forEach((s: any) => {
     if (s.game_pk) slateMap.set(s.game_pk, s);
@@ -391,7 +395,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       let playerRecord: any = null;
       let isPitcher = false;
 
-      // Try ID lookup first (vital for pred_props rows that have player_id but no player_name)
       if (bet.player_id) {
         playerRecord = hitterMapById.get(Number(bet.player_id));
         if (!playerRecord) {
@@ -401,20 +404,13 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
 
       if (!playerRecord && (bet.player_name || bet.selection)) {
-        // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
         const lookupName = normName(bet.player_name || bet.selection || '');
-
-        // Try hitter lookup first
         playerRecord = hitterMap.get(lookupName);
-
         if (!playerRecord) {
-          // Try pitcher lookup
           playerRecord = pitcherMap.get(lookupName);
           if (playerRecord) isPitcher = true;
         }
-
         if (!playerRecord) {
-          // Try partial match — first two words of selection
           const parts = lookupName.split(' ');
           if (parts.length >= 2) {
             const twoWord = parts.slice(0, 2).join(' ');
@@ -436,7 +432,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           : undefined;
 
         if (isPitcherProp) {
-          // Pitcher stats
           const aggData = aggPitcherMap.get(playerRecord.player_id);
           if (aggData) {
             enriched.pitcher_era = aggData.era;
@@ -448,7 +443,6 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
             enriched.pitcher_gs = aggData.gs ?? null;
             enriched.pitcher_k_per_ip = aggData.k_per_ip ?? null;
             enriched.pitcher_k_per_g = aggData.k_per_g ?? null;
-            // WHIP = (BB + H) / IP - agg_pitcher carries the components, not WHIP itself.
             const walksHits = Number(aggData.bb) + Number(aggData.h);
             const ipRaw = Number(aggData.ip);
             const parts = String(ipRaw).split('.');
@@ -463,17 +457,14 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
           }
           enriched.pitcher_last10 = last10Map.get(playerRecord.player_id) || [];
         } else {
-          // Hitter stats — extract from splits JSON or top-level fields
           enriched.hitter_woba = playerRecord.woba ?? null;
           enriched.hitter_wrc_plus = playerRecord.wrc_plus ?? null;
           enriched.hitter_pa = playerRecord.pa ?? null;
-          // Extract season counting stats from splits if available
           try {
             const splits =
               typeof playerRecord.splits === 'string'
                 ? JSON.parse(playerRecord.splits)
                 : playerRecord.splits;
-            // splits may be an object with 'season' or 'overall' keys
             const season =
               splits?.season ||
               splits?.overall ||
@@ -489,13 +480,21 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
               enriched.hitter_slg = season.slg ?? season.SLG ?? null;
               enriched.hitter_h = season.h ?? season.H ?? season.hits ?? null;
             }
-          } catch {
-            /* splits parsing failed, skip */
+          } catch {}
+        }
+      }
+
+      if (!enriched.player_name && enriched.player_id) {
+        const fallback = fallbackPlayerMap.get(Number(enriched.player_id));
+        if (fallback) {
+          enriched.player_name = fallback.full_name;
+          if (!enriched.team_id && fallback.team_id) {
+            enriched.team_id = fallback.team_id;
+            enriched.team_name = TEAM_ID_TO_NAME[fallback.team_id];
           }
         }
       }
     } else if (isTeamBet) {
-      // Reliable ID-based team resolution: fact_games carries home_team_id/away_team_id
       // for every game; pick the side from the selection so the team logo never depends
       // on fragile matchup string parsing. The name-parse below is kept as a fallback.
       const tgSlate = enriched.game_pk ? slateMap.get(Number(enriched.game_pk)) : null;
