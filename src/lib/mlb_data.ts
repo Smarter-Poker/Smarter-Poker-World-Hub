@@ -155,7 +155,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   ] = await Promise.all([
     sb.from("dim_teams").select("team_id,name"),
     sb.from("agg_market").select("game_pk,novig_home,metrics,line_move").in("game_pk", gpks).eq("as_of", date),
-    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price,bet_score,bet_tier,ev_pct,score_factors,kelly_pct").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]).order("as_of_ts", { ascending: false }).limit(1500),
+    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]).order("as_of_ts", { ascending: false }).limit(1500),
     starterMap(sb, gpks),
     sb.from("agg_team").select("team_id,metrics").eq("window_kind", "season").eq("as_of", date),
     sb.from("pred_props").select("game_pk,prop,player_id,line,edge_pts,as_of_ts,prob_over,blended_over,best_price").in("game_pk", gpks).gte("as_of_ts", `${date}T00:00:00`).lte("as_of_ts", `${date}T23:59:59`).order("as_of_ts", { ascending: false }).limit(3000),
