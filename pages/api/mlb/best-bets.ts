@@ -934,9 +934,41 @@ async function edgeHandler(req: Request) {
       if (f5rlData.data && f5rlData.data.length > 0) dedupedF5RL = dedupeLatestBets(f5rlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5mlData.data && f5mlData.data.length > 0) dedupedF5ML = dedupeLatestBets(f5mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5totData.data && f5totData.data.length > 0) dedupedF5Tot = dedupeLatestBets(f5totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-      if (f5teamTotData.data && f5teamTotData.data.length > 0) dedupedF5TeamTot = dedupeLatestBets(f5teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (teamTotData.data && teamTotData.data.length > 0) dedupedTeamTot = dedupeLatestBets(teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (f5teamTotData.data && f5teamTotData.data.length > 0) {
+        dedupedF5TeamTot = dedupeLatestBets(f5teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      } else if (dedupedTeamTot.length > 0) {
+        // Synthesize F5 Team Totals from Full Game Team Totals if missing from engine output
+        dedupedF5TeamTot = dedupedTeamTot.map((t: any) => {
+          const match = (t.selection || '').match(/^(home|away)_(over|under)_([\d.]+)$/i);
+          if (!match) return null;
+          const [, side, dir, lineStr] = match;
+          const f5Line = Math.floor(Number(lineStr) * (5/9)) + 0.5;
+          return {
+            ...t,
+            market: 'f5_team_total',
+            selection: `${side}_${dir}_${f5Line}`
+          };
+        }).filter(Boolean).slice(0, 10);
+      }
       if (nrfiData.data && nrfiData.data.length > 0) dedupedNrfi = dedupeLatestBets(nrfiData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      
+      // Synthesize F5 Run Lines from Full Game Run Lines if missing
+      if (dedupedF5RL.length === 0 && dedupedRL.length > 0) {
+        dedupedF5RL = dedupedRL.map((r: any) => {
+          const match = (r.selection || '').match(/^(home|away)_([\+\-]?[\d.]+)$/i);
+          if (!match) return null;
+          const [, side, lineStr] = match;
+          const line = Number(lineStr);
+          const f5Line = line > 0 ? 0.5 : -0.5;
+          const sign = f5Line > 0 ? '+' : '';
+          return {
+            ...r,
+            market: 'f5_run_line',
+            selection: `${side}_${sign}${f5Line}`
+          };
+        }).filter(Boolean).slice(0, 10);
+      }
     }
 
       // Inject matchup and win_confidence for pred_market_output rows before enrichment.
