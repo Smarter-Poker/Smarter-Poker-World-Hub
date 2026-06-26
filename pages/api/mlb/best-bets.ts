@@ -724,16 +724,6 @@ async function edgeHandler(req: Request) {
 
       const betsArr = dedupeLatestBets(bets || []);
       const paddedBetsArr = betsArr;
-      const enriched = await enrichBets(paddedBetsArr, mlbDb);
-
-      const totalBets = enriched.length;
-      // Canonical ELITE = bet_tier 'ELITE' (bet_score >= 82), matching src/lib/betScore.ts —
-      // not the legacy edge>=5 heuristic (and b.edge was never populated; the column is edge_pts).
-      const eliteBets = enriched.filter((b: BetRow) => (b as any).bet_tier === 'ELITE').length;
-      const topScore =
-        enriched.length > 0 ? enriched.reduce((max: number, b: BetRow) => Math.max(max, b.bet_score || 0), 0) : 0;
-      const topLock =
-        enriched.length > 0 ? enriched.reduce((max: number, b: BetRow) => Math.max(max, b.win_confidence || 0), 0) : 0;
       // Fetch missing categories to guarantee minimum 3 for UI carousels
       let topMoneylines: any[] = [];
       let topRunlines: any[] = [];
@@ -743,49 +733,42 @@ async function edgeHandler(req: Request) {
       const startIso = new Date(`${officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
 
-      const { data: rawTopML } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('market', ['moneyline', 'h2h']);
-      if (rawTopML && rawTopML.length > 0) {
-        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topMoneylines = await enrichBets(dedupedML, mlbDb);
-      }
+      let rawTopML: any[] = [];
+      let rawTopRL: any[] = [];
+      let rawTopTot: any[] = [];
+      let rawTopHR: any[] = [];
 
-      const { data: rawTopRL } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('market', ['run_line', 'spread']);
-      if (rawTopRL && rawTopRL.length > 0) {
-        const dedupedRL = dedupeLatestBets(rawTopRL).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topRunlines = await enrichBets(dedupedRL, mlbDb);
-      }
+      const [mlData, rlData, totData, hrData] = await Promise.all([
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['moneyline', 'h2h']),
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['run_line', 'spread']),
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'total'),
+        mlbDb.from('pred_props').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('prop', ['home_run', 'hr', 'hrr'])
+      ]);
 
-      const { data: rawTopTot } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .eq('market', 'total');
-      if (rawTopTot && rawTopTot.length > 0) {
-        const dedupedTot = dedupeLatestBets(rawTopTot).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topTotals = await enrichBets(dedupedTot, mlbDb);
-      }
+      let dedupedML: any[] = [];
+      let dedupedRL: any[] = [];
+      let dedupedTot: any[] = [];
+      let dedupedHR: any[] = [];
 
-      const { data: rawTopHR } = await mlbDb
-        .from('pred_props')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('prop', ['home_run', 'hr', 'hrr']);
-      if (rawTopHR && rawTopHR.length > 0) {
-        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
-      }
+      if (mlData.data && mlData.data.length > 0) dedupedML = dedupeLatestBets(mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (rlData.data && rlData.data.length > 0) dedupedRL = dedupeLatestBets(rlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (totData.data && totData.data.length > 0) dedupedTot = dedupeLatestBets(totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10).map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' }));
+
+      const allBetsToEnrich = [...paddedBetsArr, ...dedupedML, ...dedupedRL, ...dedupedTot, ...dedupedHR];
+      const allEnriched = await enrichBets(allBetsToEnrich, mlbDb);
+
+      let offset = 0;
+      const enriched = allEnriched.slice(offset, offset + paddedBetsArr.length); offset += paddedBetsArr.length;
+      topMoneylines = allEnriched.slice(offset, offset + dedupedML.length); offset += dedupedML.length;
+      topRunlines = allEnriched.slice(offset, offset + dedupedRL.length); offset += dedupedRL.length;
+      topTotals = allEnriched.slice(offset, offset + dedupedTot.length); offset += dedupedTot.length;
+      topHomers = allEnriched.slice(offset, offset + dedupedHR.length); offset += dedupedHR.length;
+
+      const totalBets = enriched.length;
+      const eliteBets = enriched.filter((b: any) => (b as any).bet_tier === 'ELITE').length;
+      const topScore = enriched.length > 0 ? enriched.reduce((max: number, b: any) => Math.max(max, b.bet_score || 0), 0) : 0;
+      const topLock = enriched.length > 0 ? enriched.reduce((max: number, b: any) => Math.max(max, b.win_confidence || 0), 0) : 0;
 
       return new Response(
         JSON.stringify({
@@ -808,62 +791,46 @@ async function edgeHandler(req: Request) {
     }
 
 
-    // Enrich bets from RPC result
+    // Process bets from RPC result
     const rawBets = data?.bets || [];
-    let enrichedBets: any[] = await enrichBets(rawBets, mlbDb);
+    let enrichedBets: any[] = [];
 
     // Fetch missing categories to guarantee minimum 3 for UI carousels
     let topMoneylines: any[] = [];
     let topRunlines: any[] = [];
     let topTotals: any[] = [];
     let topHomers: any[] = [];
+    let dedupedML: any[] = [];
+    let dedupedRL: any[] = [];
+    let dedupedTot: any[] = [];
+    let dedupedHR: any[] = [];
+    
     if (data?.officialDate) {
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
-      const { data: rawTopML } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('market', ['moneyline', 'h2h']);
-      if (rawTopML && rawTopML.length > 0) {
-        const dedupedML = dedupeLatestBets(rawTopML).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topMoneylines = await enrichBets(dedupedML, mlbDb);
-      }
+      
+      const [mlData, rlData, totData, hrData] = await Promise.all([
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['moneyline', 'h2h']),
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['run_line', 'spread']),
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'total'),
+        mlbDb.from('pred_props').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('prop', ['home_run', 'hr', 'hrr'])
+      ]);
 
-      const { data: rawTopRL } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('market', ['run_line', 'spread']);
-      if (rawTopRL && rawTopRL.length > 0) {
-        const dedupedRL = dedupeLatestBets(rawTopRL).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topRunlines = await enrichBets(dedupedRL, mlbDb);
-      }
-
-      const { data: rawTopTot } = await mlbDb
-        .from('pred_market_output')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .eq('market', 'total');
-      if (rawTopTot && rawTopTot.length > 0) {
-        const dedupedTot = dedupeLatestBets(rawTopTot).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topTotals = await enrichBets(dedupedTot, mlbDb);
-      }
-
-      const { data: rawTopHR } = await mlbDb
-        .from('pred_props')
-        .select('*')
-        .gte('as_of_ts', startIso)
-        .lt('as_of_ts', endIso)
-        .in('prop', ['home_run', 'hr', 'hrr']);
-      if (rawTopHR && rawTopHR.length > 0) {
-        const dedupedHR = dedupeLatestBets(rawTopHR).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-        topHomers = await enrichBets(dedupedHR.map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' })), mlbDb);
-      }
+      if (mlData.data && mlData.data.length > 0) dedupedML = dedupeLatestBets(mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (rlData.data && rlData.data.length > 0) dedupedRL = dedupeLatestBets(rlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (totData.data && totData.data.length > 0) dedupedTot = dedupeLatestBets(totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
+      if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10).map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' }));
     }
+
+    const allBetsToEnrich = [...rawBets, ...dedupedML, ...dedupedRL, ...dedupedTot, ...dedupedHR];
+    const allEnriched = await enrichBets(allBetsToEnrich, mlbDb);
+    
+    let offset = 0;
+    enrichedBets = allEnriched.slice(offset, offset + rawBets.length); offset += rawBets.length;
+    topMoneylines = allEnriched.slice(offset, offset + dedupedML.length); offset += dedupedML.length;
+    topRunlines = allEnriched.slice(offset, offset + dedupedRL.length); offset += dedupedRL.length;
+    topTotals = allEnriched.slice(offset, offset + dedupedTot.length); offset += dedupedTot.length;
+    topHomers = allEnriched.slice(offset, offset + dedupedHR.length); offset += dedupedHR.length;
 
 
 
