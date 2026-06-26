@@ -381,7 +381,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     }
 
     if (!isTeamBet && (bet.player_id || bet.player_name || bet.selection)) {
-      let playerRecord = null;
+      let playerRecord: any = null;
       let isPitcher = false;
 
       // Try ID lookup first (vital for pred_props rows that have player_id but no player_name)
