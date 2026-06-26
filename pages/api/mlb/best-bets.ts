@@ -378,6 +378,13 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       if (slate && slate.first_pitch_utc) {
         enriched.game_time = slate.first_pitch_utc;
       }
+      if (slate && !enriched.matchup) {
+        const homeName = TEAM_ID_TO_NAME[slate.home_team_id];
+        const awayName = TEAM_ID_TO_NAME[slate.away_team_id];
+        if (homeName && awayName) {
+          enriched.matchup = `${awayName} @ ${homeName}`;
+        }
+      }
     }
 
     if (!isTeamBet && (bet.player_id || bet.player_name || bet.selection)) {
