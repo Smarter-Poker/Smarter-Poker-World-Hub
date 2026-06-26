@@ -755,7 +755,24 @@ async function edgeHandler(req: Request) {
       if (totData.data && totData.data.length > 0) dedupedTot = dedupeLatestBets(totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10).map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' }));
 
-      const allBetsToEnrich = [...paddedBetsArr, ...dedupedML, ...dedupedRL, ...dedupedTot, ...dedupedHR];
+      // Inject matchup and win_confidence for pred_market_output rows before enrichment.
+      // pred_market_output has no matchup, no bet_score, no win_confidence columns, so
+      // we synthesize them from model_prob and fact_games joins done in enrichBets.
+      const enrichWithMatchupStub = (rows: any[], betType: string): any[] =>
+        rows.map((r: any) => ({
+          ...r,
+          bet_type: r.bet_type || betType,
+          win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
+          bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
+        }));
+
+      const allBetsToEnrich = [
+        ...paddedBetsArr,
+        ...enrichWithMatchupStub(dedupedML, 'line'),
+        ...enrichWithMatchupStub(dedupedRL, 'line'),
+        ...enrichWithMatchupStub(dedupedTot, 'line'),
+        ...enrichWithMatchupStub(dedupedHR, 'prop'),
+      ];
       const allEnriched = await enrichBets(allBetsToEnrich, mlbDb);
 
       let offset = 0;
@@ -767,7 +784,9 @@ async function edgeHandler(req: Request) {
 
       const totalBets = enriched.length;
       const eliteBets = enriched.filter((b: any) => (b as any).bet_tier === 'ELITE').length;
-      const topScore = enriched.length > 0 ? enriched.reduce((max: number, b: any) => Math.max(max, b.bet_score || 0), 0) : 0;
+      // Cap topScore to 100 — raw bet_score values in the DB can exceed 100
+      const rawTopScore = enriched.length > 0 ? enriched.reduce((max: number, b: any) => Math.max(max, b.bet_score || 0), 0) : 0;
+      const topScore = Math.min(100, rawTopScore);
       const topLock = enriched.length > 0 ? enriched.reduce((max: number, b: any) => Math.max(max, b.win_confidence || 0), 0) : 0;
 
       return new Response(
@@ -822,7 +841,22 @@ async function edgeHandler(req: Request) {
       if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10).map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' }));
     }
 
-    const allBetsToEnrich = [...rawBets, ...dedupedML, ...dedupedRL, ...dedupedTot, ...dedupedHR];
+      // Inject matchup and win_confidence for pred_market_output rows before enrichment.
+      const enrichWithMatchupStub = (rows: any[], betType: string): any[] =>
+        rows.map((r: any) => ({
+          ...r,
+          bet_type: r.bet_type || betType,
+          win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
+          bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
+        }));
+
+    const allBetsToEnrich = [
+      ...rawBets,
+      ...enrichWithMatchupStub(dedupedML, 'line'),
+      ...enrichWithMatchupStub(dedupedRL, 'line'),
+      ...enrichWithMatchupStub(dedupedTot, 'line'),
+      ...enrichWithMatchupStub(dedupedHR, 'prop'),
+    ];
     const allEnriched = await enrichBets(allBetsToEnrich, mlbDb);
     
     let offset = 0;
@@ -834,16 +868,16 @@ async function edgeHandler(req: Request) {
 
 
 
-    // Headline Top Score / Top Lock from the enriched rows so they match the displayed pick list
-    let topLock =
-      enrichedBets.length > 0
-        ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.win_confidence) || 0), 0)
-        : data?.stats?.topLock || 0;
-    // Removed arbitrary double scaling bug here
-    const topScore =
+    // Cap topScore to 100 — raw bet_score values in the DB can exceed 100
+    const rawTopScore =
       enrichedBets.length > 0
         ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.bet_score) || 0), 0)
         : data?.stats?.topScore || 0;
+    const topScore = Math.min(100, rawTopScore);
+    const topLock =
+      enrichedBets.length > 0
+        ? enrichedBets.reduce((max: number, b: any) => Math.max(max, Number(b.win_confidence) || 0), 0)
+        : data?.stats?.topLock || 0;
 
     return new Response(
       JSON.stringify({
