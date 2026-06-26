@@ -233,7 +233,7 @@ export default async function edgeHandler(req: Request) {
         : []
     ]).catch(err => {
       console.error('[API/MLB/Props] Secondary fetch error:', err);
-      return [[], [], [], [], [], []];
+      return [[], [], [], [], [], []] as any;
     });
 
     // Note: The above Promise.all returns arrays directly due to fetchAllRows.
