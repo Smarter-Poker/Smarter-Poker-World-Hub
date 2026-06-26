@@ -658,113 +658,117 @@ export default function MlbSlatePage() {
                     </div>
                   </div>
 
+                  {/* Right: Time + Odds Grid */}
+                  <div className="flex flex-col gap-3 self-start items-end flex-shrink-0">
+                    {/* ── Starting Time Box ─────────────── */}
+                    {g.firstPitch && (
+                      <div className="flex justify-center">
+                        <span
+                          className="text-[20px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-3 py-1.5 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
+                          style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                        >
+                          {new Date(g.firstPitch).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: 'America/Chicago',
+                            timeZoneName: 'short',
+                          })}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* ── Odds Grid ─────────────── */}
+                    <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+                      {/* Spread */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                            {g.avgAwaySpreadLine != null
+                              ? g.avgAwaySpreadLine > 0
+                                ? `+${g.avgAwaySpreadLine}`
+                                : g.avgAwaySpreadLine
+                              : '—'}
+                          </span>
+                          <span className="text-[15px] font-black text-white leading-none ">
+                            {g.avgAwaySpreadOdds != null
+                              ? g.avgAwaySpreadOdds > 0
+                                ? `+${g.avgAwaySpreadOdds}`
+                                : g.avgAwaySpreadOdds
+                              : ''}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                            {g.avgHomeSpreadLine != null
+                              ? g.avgHomeSpreadLine > 0
+                                ? `+${g.avgHomeSpreadLine}`
+                                : g.avgHomeSpreadLine
+                              : '—'}
+                          </span>
+                          <span className="text-[15px] font-black text-white leading-none ">
+                            {g.avgHomeSpreadOdds != null
+                              ? g.avgHomeSpreadOdds > 0
+                                ? `+${g.avgHomeSpreadOdds}`
+                                : g.avgHomeSpreadOdds
+                              : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Moneyline */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                            {g.avgAwayLine != null
+                              ? g.avgAwayLine > 0
+                                ? `+${g.avgAwayLine}`
+                                : g.avgAwayLine
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
+                            {g.avgHomeLine != null
+                              ? g.avgHomeLine > 0
+                                ? `+${g.avgHomeLine}`
+                                : g.avgHomeLine
+                              : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Total */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                            {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
+                          </span>
+                          <span className="text-[15px] font-black text-white leading-none ">
+                            {g.avgOverOdds != null
+                              ? g.avgOverOdds > 0
+                                ? `+${g.avgOverOdds}`
+                                : g.avgOverOdds
+                              : ''}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
+                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
+                            {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
+                          </span>
+                          <span className="text-[15px] font-black text-white leading-none ">
+                            {g.avgUnderOdds != null
+                              ? g.avgUnderOdds > 0
+                                ? `+${g.avgUnderOdds}`
+                                : g.avgUnderOdds
+                              : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* ── Starting Time Box ─────────────── */}
-                {g.firstPitch && (
-                  <div className="flex justify-center mt-4">
-                    <span
-                      className="text-[20px] font-black text-white bg-[#0d1117] border border-[#3d4f5f] px-3 py-1.5 rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] whitespace-nowrap"
-                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
-                    >
-                      {new Date(g.firstPitch).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZone: 'America/Chicago',
-                        timeZoneName: 'short',
-                      })}
-                    </span>
-                  </div>
-                )}
 
-                {/* ── Odds Grid ─────────────── */}
-                <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)] mt-4">
-                    {/* Spread */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                          {g.avgAwaySpreadLine != null
-                            ? g.avgAwaySpreadLine > 0
-                              ? `+${g.avgAwaySpreadLine}`
-                              : g.avgAwaySpreadLine
-                            : '—'}
-                        </span>
-                        <span className="text-[15px] font-black text-white leading-none ">
-                          {g.avgAwaySpreadOdds != null
-                            ? g.avgAwaySpreadOdds > 0
-                              ? `+${g.avgAwaySpreadOdds}`
-                              : g.avgAwaySpreadOdds
-                            : ''}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                          {g.avgHomeSpreadLine != null
-                            ? g.avgHomeSpreadLine > 0
-                              ? `+${g.avgHomeSpreadLine}`
-                              : g.avgHomeSpreadLine
-                            : '—'}
-                        </span>
-                        <span className="text-[15px] font-black text-white leading-none ">
-                          {g.avgHomeSpreadOdds != null
-                            ? g.avgHomeSpreadOdds > 0
-                              ? `+${g.avgHomeSpreadOdds}`
-                              : g.avgHomeSpreadOdds
-                            : ''}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Moneyline */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
-                          {g.avgAwayLine != null
-                            ? g.avgAwayLine > 0
-                              ? `+${g.avgAwayLine}`
-                              : g.avgAwayLine
-                            : '—'}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
-                          {g.avgHomeLine != null
-                            ? g.avgHomeLine > 0
-                              ? `+${g.avgHomeLine}`
-                              : g.avgHomeLine
-                            : '—'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Total */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                          {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
-                        </span>
-                        <span className="text-[15px] font-black text-white leading-none ">
-                          {g.avgOverOdds != null
-                            ? g.avgOverOdds > 0
-                              ? `+${g.avgOverOdds}`
-                              : g.avgOverOdds
-                            : ''}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                        <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                          {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
-                        </span>
-                        <span className="text-[15px] font-black text-white leading-none ">
-                          {g.avgUnderOdds != null
-                            ? g.avgUnderOdds > 0
-                              ? `+${g.avgUnderOdds}`
-                              : g.avgUnderOdds
-                            : ''}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
                 {/* ── Market Grades + Prop Bets Button ─── */}
                 <MarketGradesPanel g={g} />

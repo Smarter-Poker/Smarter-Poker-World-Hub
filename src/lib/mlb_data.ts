@@ -18,9 +18,9 @@ export type GameCard = {
   marketHome: number | null; modelHome: number | null; rawModelHome: number | null; homeEdge: number | null;
   scoreWinProb?: number | null; scorePrice?: number | null; scoreMarket?: number | null;
   avgOdds?: number | null; spreadLine?: number | null; totalLine?: number | null;
-  bet: { selection: "home" | "away"; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
-  runLineBet?: { selection: string; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
-  totalBet?: { selection: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null } | null;
+  bet: { selection: "home" | "away"; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null; bet_score?: number; bet_tier?: string; ev_pct?: number; score_factors?: any } | null;
+  runLineBet?: { selection: string; team: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null; bet_score?: number; bet_tier?: string; ev_pct?: number; score_factors?: any } | null;
+  totalBet?: { selection: string; edge: number; kelly_pct?: number; winProb?: number | null; price?: number | null; market?: number | null; bet_score?: number; bet_tier?: string; ev_pct?: number; score_factors?: any } | null;
   avgHomeLine?: number | null;
   avgAwayLine?: number | null;
   avgHomeSpreadLine?: number | null;
@@ -155,7 +155,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
   ] = await Promise.all([
     sb.from("dim_teams").select("team_id,name"),
     sb.from("agg_market").select("game_pk,novig_home,metrics,line_move").in("game_pk", gpks).eq("as_of", date),
-    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]),
+    sb.from("pred_market_output").select("game_pk,as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,best_price,bet_score,bet_tier,ev_pct,score_factors,kelly_pct").in("game_pk", gpks).in("market", ["h2h", "run_line", "total"]),
     starterMap(sb, gpks),
     sb.from("agg_team").select("team_id,metrics").eq("window_kind", "season").eq("as_of", date),
     sb.from("pred_props").select("game_pk,prop,player_id,line,edge_pts,as_of_ts,prob_over,blended_over,best_price").in("game_pk", gpks).gte("as_of_ts", `${date}T00:00:00`).lte("as_of_ts", `${date}T23:59:59`),
@@ -323,9 +323,9 @@ async function _getSlate(date: string): Promise<GameCard[]> {
       avgUnderOdds,
       spreadLine: metrics.spread_line ? Number(metrics.spread_line) : null,
       totalLine: metrics.total_line ? Number(metrics.total_line) : null,
-      bet: e.bet ? { selection: e.bet.selection as "home" | "away", team: e.bet.selection === "home" ? homeName : awayName, edge: Number(e.bet.edge_pts), winProb: e.bet.blended_prob != null ? Number(e.bet.blended_prob) : (e.bet.model_prob != null ? Number(e.bet.model_prob) : null), price: e.bet.best_price != null ? Number(e.bet.best_price) : null, market: e.bet.market_novig_prob != null ? Number(e.bet.market_novig_prob) : null } : null,
-      runLineBet: e.runLineBet ? { selection: String(e.runLineBet.selection), team: String(e.runLineBet.selection).startsWith("home") ? homeName : awayName, edge: Number(e.runLineBet.edge_pts), winProb: e.runLineBet.blended_prob != null ? Number(e.runLineBet.blended_prob) : (e.runLineBet.model_prob != null ? Number(e.runLineBet.model_prob) : null), price: e.runLineBet.best_price != null ? Number(e.runLineBet.best_price) : null, market: e.runLineBet.market_novig_prob != null ? Number(e.runLineBet.market_novig_prob) : null } : null,
-      totalBet: e.totalBet ? { selection: String(e.totalBet.selection), edge: Number(e.totalBet.edge_pts), winProb: e.totalBet.blended_prob != null ? Number(e.totalBet.blended_prob) : (e.totalBet.model_prob != null ? Number(e.totalBet.model_prob) : null), price: e.totalBet.best_price != null ? Number(e.totalBet.best_price) : null, market: e.totalBet.market_novig_prob != null ? Number(e.totalBet.market_novig_prob) : null } : null,
+      bet: e.bet ? { selection: e.bet.selection as "home" | "away", team: e.bet.selection === "home" ? homeName : awayName, edge: Number(e.bet.edge_pts), winProb: e.bet.blended_prob != null ? Number(e.bet.blended_prob) : (e.bet.model_prob != null ? Number(e.bet.model_prob) : null), price: e.bet.best_price != null ? Number(e.bet.best_price) : null, market: e.bet.market_novig_prob != null ? Number(e.bet.market_novig_prob) : null, bet_score: e.bet.bet_score != null ? Number(e.bet.bet_score) : undefined, bet_tier: e.bet.bet_tier, ev_pct: e.bet.ev_pct != null ? Number(e.bet.ev_pct) : undefined, score_factors: e.bet.score_factors, kelly_pct: e.bet.kelly_pct != null ? Number(e.bet.kelly_pct) : undefined } : null,
+      runLineBet: e.runLineBet ? { selection: String(e.runLineBet.selection), team: String(e.runLineBet.selection).startsWith("home") ? homeName : awayName, edge: Number(e.runLineBet.edge_pts), winProb: e.runLineBet.blended_prob != null ? Number(e.runLineBet.blended_prob) : (e.runLineBet.model_prob != null ? Number(e.runLineBet.model_prob) : null), price: e.runLineBet.best_price != null ? Number(e.runLineBet.best_price) : null, market: e.runLineBet.market_novig_prob != null ? Number(e.runLineBet.market_novig_prob) : null, bet_score: e.runLineBet.bet_score != null ? Number(e.runLineBet.bet_score) : undefined, bet_tier: e.runLineBet.bet_tier, ev_pct: e.runLineBet.ev_pct != null ? Number(e.runLineBet.ev_pct) : undefined, score_factors: e.runLineBet.score_factors, kelly_pct: e.runLineBet.kelly_pct != null ? Number(e.runLineBet.kelly_pct) : undefined } : null,
+      totalBet: e.totalBet ? { selection: String(e.totalBet.selection), edge: Number(e.totalBet.edge_pts), winProb: e.totalBet.blended_prob != null ? Number(e.totalBet.blended_prob) : (e.totalBet.model_prob != null ? Number(e.totalBet.model_prob) : null), price: e.totalBet.best_price != null ? Number(e.totalBet.best_price) : null, market: e.totalBet.market_novig_prob != null ? Number(e.totalBet.market_novig_prob) : null, bet_score: e.totalBet.bet_score != null ? Number(e.totalBet.bet_score) : undefined, bet_tier: e.totalBet.bet_tier, ev_pct: e.totalBet.ev_pct != null ? Number(e.totalBet.ev_pct) : undefined, score_factors: e.totalBet.score_factors, kelly_pct: e.totalBet.kelly_pct != null ? Number(e.totalBet.kelly_pct) : undefined } : null,
       sportsbooks,
       topProps: propsByGame.get(g.game_pk) ?? [],
       lineupState: featuresMap.get(g.game_pk) as "confirmed" | "projected" | null,
@@ -504,7 +504,7 @@ async function _getGameFull(gamePk: number) {
     sb.from("dim_teams").select("team_id,name,abbr"),
     sb.from("raw_lineups").select("team_id,batting_order,player_id,knowledge_time,confirmed").eq("game_pk", gamePk),
     sb.from("raw_probables").select("team_id,pitcher_id,knowledge_time").eq("game_pk", gamePk),
-    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk),
+    sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book,bet_score,bet_tier,ev_pct,score_factors").eq("game_pk", gamePk),
     sb.from("pred_props").select("as_of_ts,player_id,prop,line,proj_mean,prob_over,blended_over,rec,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk),
     sb.from("agg_team").select("team_id,window_kind,as_of,metrics").in("team_id", [g.home_team_id, g.away_team_id]),
     sb.from("agg_market").select("metrics").eq("game_pk", gamePk).order("as_of", { ascending: false }).limit(1),

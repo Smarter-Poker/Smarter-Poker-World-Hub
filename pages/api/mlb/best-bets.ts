@@ -223,23 +223,41 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   let teamStats: any[] = [];
   let gameLogs: any[] = [];
   try {
-    [hitters, pitchers, aggPitchers, slates, games, teamStats, gameLogs] = await Promise.all([
+    const slatesResult = await fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1]));
+    slates = slatesResult;
+    
+    // Collect pitcher names to lookup
+    const pitcherNames = Array.from(new Set(slates.flatMap(s => [s.home_pitcher, s.away_pitcher]).filter(Boolean)));
+    
+    // Quick lookup of pitcher IDs from names using a lightweight query on dim_players
+    let pitcherIdsFromName: number[] = [];
+    if (pitcherNames.length > 0) {
+       const { data: nameData } = await mlbDb.from('dim_players').select('player_id, full_name').in('full_name', pitcherNames);
+       if (nameData) pitcherIdsFromName = nameData.map((p: any) => p.player_id);
+    }
+    const allPitcherIds = Array.from(new Set([...betPlayerIds, ...pitcherIdsFromName]));
+
+    [hitters, pitchers, aggPitchers, games, teamStats, gameLogs] = await Promise.all([
       fetchAllRows(() =>
         mlbDb
           .from('v_hitter_profile')
           .select('player_id, full_name, team_id, woba, wrc_plus, pa, splits')
+          .in('player_id', betPlayerIds.length ? betPlayerIds : [-1])
       ),
       fetchAllRows(() =>
-        mlbDb.from('v_pitcher_profile').select('player_id, full_name, team_id, fip, siera')
+        mlbDb
+          .from('v_pitcher_profile')
+          .select('player_id, full_name, team_id, fip, siera')
+          .in('player_id', allPitcherIds.length ? allPitcherIds : [-1])
       ),
       fetchAllRows(() =>
         mlbDb
           .from('agg_pitcher')
           .select('pitcher_id, era, w, l, so, bb, h, ip, g, gs, as_of')
           .eq('window_kind', 'fg_season')
+          .in('pitcher_id', allPitcherIds.length ? allPitcherIds : [-1])
           .order('as_of', { ascending: false })
       ),
-      fetchAllRows(() => mlbDb.from('v_daily_slate').select('game_pk, home_pitcher, away_pitcher').in('game_pk', gamePks.length ? gamePks : [-1])),
       fetchAllRows(() =>
         mlbDb
           .from('fact_games')
@@ -251,7 +269,7 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
         mlbDb
           .from('raw_player_gamelog')
           .select('player_id, game_date, stat')
-          .in('player_id', betPlayerIds.length ? betPlayerIds : [-1])
+          .in('player_id', allPitcherIds.length ? allPitcherIds : [-1])
           .eq('group', 'pitching')
           .order('game_date', { ascending: false })
       ),
@@ -654,55 +672,41 @@ async function edgeHandler(req: Request) {
 
   try {
     const mlbDb = getMlbSupabase();
+    
+    // First, find the latest official_date
+    const { data: latestDateData, error: dateErr } = await mlbDb
+      .from('pred_best_bets')
+      .select('official_date')
+      .order('official_date', { ascending: false })
+      .limit(1);
 
-    // Call our RPC. Use a very high limit to bypass the 1000 default if the RPC supports it.
-    const { data, error } = await mlbDb.rpc('get_best_bets_stats', {
-      p_limit: 10000,
-    });
+    if (dateErr || !latestDateData || latestDateData.length === 0) {
+      return new Response(
+        JSON.stringify({
+          bets: [],
+          topMoneylines: [],
+          topRunlines: [],
+          topTotals: [],
+          topHomers: [],
+          stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 },
+          officialDate: null,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    const officialDate = latestDateData[0].official_date;
+
+    // Call our RPC with target_date
+    const { data, error } = await mlbDb.rpc('get_best_bets_stats', { target_date: officialDate });
 
     if (error) {
       console.error('RPC Error, falling back to JS aggregation:', error);
 
       // Fallback JS aggregation
-      const { data: latestDateData, error: dateErr } = await mlbDb
-        .from('pred_best_bets')
-        .select('official_date')
-        .order('official_date', { ascending: false })
-        .limit(1);
-
-      if (dateErr) {
-        console.error('[MLB Best Bets] Fallback error on pred_best_bets:', dateErr);
-        return new Response(JSON.stringify({ error: `Database error: ${dateErr.message}` }), {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        });
-      }
-
-      if (!latestDateData || latestDateData.length === 0) {
-        return new Response(
-          JSON.stringify({
-            bets: [],
-            topMoneylines: [],
-            topRunlines: [],
-            topTotals: [],
-            topHomers: [],
-            stats: { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 },
-            officialDate: null,
-          }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-            },
-          }
-        );
-      }
-
-      const officialDate = latestDateData[0].official_date;
 
       const bets = await fetchAllRows(() => mlbDb
         .from('pred_best_bets')

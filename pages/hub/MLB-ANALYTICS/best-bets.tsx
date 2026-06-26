@@ -257,9 +257,8 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
   }
 
   // Totals formatting
-  const matchupScope = matchup ? ` (${formatMatchup(matchup)})` : '';
-  if (s.startsWith('over')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
-  if (s.startsWith('under')) return toTitleCase(s.replace('_', ' ')) + matchupScope;
+  if (s.startsWith('over')) return toTitleCase(s.replace('_', ' '));
+  if (s.startsWith('under')) return toTitleCase(s.replace('_', ' '));
 
   let cleanSelection = selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim();
   if (cleanSelection.includes(' @ ')) {
@@ -335,17 +334,22 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   }, [onClose]);
 
   let lineStr = '';
-  if (bet.line !== null && bet.line !== undefined) {
-    const numLine = Number(bet.line);
-    const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-    const isSpread =
-      typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
-    const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
-    
-    if (isMoneyline) {
-      lineStr = '';
-    } else {
-      lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+  const resolvedLine = bet.line ?? bet.point ?? bet.handicap;
+  const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+  const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
+  const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
+  const isHomeRun = typeStr.includes('home_run') || typeStr.includes('hr');
+  
+  if (isMoneyline || isHomeRun) {
+    lineStr = '';
+  } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+    const numLine = Number(resolvedLine);
+    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+  } else if (isSpread) {
+    const p = Number(bet.price ?? bet.best_price);
+    if (!isNaN(p)) {
+      const inferredLine = p > 0 ? -1.5 : 1.5;
+      lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
     }
   }
 
@@ -416,7 +420,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                 <img
                   src={playerImageUrl}
                   alt={bet?.player_name || bet?.selection}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover object-center"
                   loading="lazy"
                   onError={() => setImgError(true)}
                 />
@@ -492,6 +496,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                     if (bet.selection?.toLowerCase().includes('over')) selText += ' Over';
                     if (bet.selection?.toLowerCase().includes('under')) selText += ' Under';
                   }
+                  if (selText === '—') selText = '';
                   return `${selText} ${lineStr}`.trim();
                 })()}
               </div>
@@ -1081,28 +1086,36 @@ const BetCard = ({
   const [imgError, setImgError] = useState(false);
 
   let lineStr = '';
-  if (bet.line !== null && bet.line !== undefined) {
-    const numLine = Number(bet.line);
-    const spreadCheck = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-    const isSpread =
-      spreadCheck.includes('run_line') ||
-      spreadCheck.includes('runline') ||
-      spreadCheck.includes('spread');
-    const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
-    
-    if (isMoneyline) {
-      lineStr = '';
-    } else {
-      lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+  const resolvedLine = bet.line ?? bet.point ?? bet.handicap;
+  const spreadCheck = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
+  const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
+  const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
+  const isHomeRun = spreadCheck.includes('home_run') || spreadCheck.includes('hr');
+  
+  if (isMoneyline || isHomeRun) {
+    lineStr = '';
+  } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+    const numLine = Number(resolvedLine);
+    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+  } else if (isSpread) {
+    const p = Number(bet.price ?? bet.best_price);
+    if (!isNaN(p)) {
+      const inferredLine = p > 0 ? -1.5 : 1.5;
+      lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
     }
   }
 
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   let marketLabel = 'Bet';
-  if (bet.market === 'h2h' || bet.market === 'moneyline') marketLabel = 'Money Line';
+  if (bet.market?.toLowerCase() === 'h2h' || bet.market?.toLowerCase() === 'moneyline' || bet.market?.toLowerCase() === 'money_line') marketLabel = 'Moneyline';
   if (bet.market === 'run_line') marketLabel = 'Run Line';
-  else if (bet.market === 'total') marketLabel = 'Over / Under';
+  else if (bet.market?.toLowerCase() === 'total' || bet.market?.toLowerCase() === 'totals') {
+    const sel = bet.selection?.toLowerCase() || '';
+    if (sel.includes('over')) marketLabel = 'Over';
+    else if (sel.includes('under')) marketLabel = 'Under';
+    else marketLabel = 'Over / Under';
+  }
   else if (bet.market === 'first_5_money_line' || bet.market === 'f5_moneyline') marketLabel = 'First 5 Inning Money Line';
   else if (bet.market === 'first_5_run_line' || bet.market === 'f5_run_line') marketLabel = 'First 5 Inning Run Line';
   else if (bet.market === 'first_5_total' || bet.market === 'f5_total') marketLabel = 'First 5 Inning Total';
@@ -1282,7 +1295,7 @@ const BetCard = ({
                 <img
                   src={playerImageUrl!}
                   alt={bet?.player_name || bet?.selection}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover object-center"
                   loading="lazy"
                   onError={() => setImgError(true)}
                 />
@@ -1338,6 +1351,7 @@ const BetCard = ({
                   } else {
                     target = selectionLabel(bet?.selection, bet?.matchup).trim();
                   }
+                  if (target === '—') target = '';
                   return `${target} ${lineStr} ${formatOdds(bet.price ?? bet.best_price)}`.trim().replace(/\s+/g, ' ');
                 })()}
               </div>
@@ -1659,9 +1673,14 @@ export default function BestBetsPage() {
         .slice(0, 10);
       if (sorted.length > 0) {
         const titleMarket = market.replace(/_/g, ' ');
-        const finalTitle = titleMarket.includes('f5') 
+        let finalTitle = titleMarket.includes('f5') 
           ? `Top ${titleMarket.replace('f5', 'F5')}` 
           : `Top ${titleMarket}`;
+          
+        if (market.toLowerCase() === 'hits') {
+          finalTitle = 'Best Bets Players To Get A Hit';
+        }
+
         groups.push({ title: finalTitle, bets: sorted });
       }
     }
