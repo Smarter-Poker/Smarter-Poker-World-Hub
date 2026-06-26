@@ -289,8 +289,10 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
 
   // Build lookup maps by normalized full_name (accent/suffix/punct-insensitive).
   const hitterMap = new Map<string, any>();
+  const hitterMapById = new Map<number, any>();
   hitters.forEach((h: any) => {
     if (h.full_name) hitterMap.set(normName(h.full_name), h);
+    if (h.player_id) hitterMapById.set(h.player_id, h);
   });
 
   const pitcherMap = new Map<string, any>();
@@ -378,29 +380,42 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
       }
     }
 
-    if (!isTeamBet && (bet.player_name || bet.selection)) {
-      // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
-      const lookupName = normName(bet.player_name || bet.selection || '');
-
-      // Try hitter lookup first
-      let playerRecord = hitterMap.get(lookupName);
+    if (!isTeamBet && (bet.player_id || bet.player_name || bet.selection)) {
+      let playerRecord = null;
       let isPitcher = false;
 
-      if (!playerRecord) {
-        // Try pitcher lookup
-        playerRecord = pitcherMap.get(lookupName);
-        if (playerRecord) isPitcher = true;
+      // Try ID lookup first (vital for pred_props rows that have player_id but no player_name)
+      if (bet.player_id) {
+        playerRecord = hitterMapById.get(Number(bet.player_id));
+        if (!playerRecord) {
+          playerRecord = pitcherMapById.get(Number(bet.player_id));
+          if (playerRecord) isPitcher = true;
+        }
       }
 
-      if (!playerRecord) {
-        // Try partial match — first two words of selection
-        const parts = lookupName.split(' ');
-        if (parts.length >= 2) {
-          const twoWord = parts.slice(0, 2).join(' ');
-          playerRecord = hitterMap.get(twoWord) || pitcherMap.get(twoWord);
-          if (!playerRecord && parts.length >= 3) {
-            const threeWord = parts.slice(0, 3).join(' ');
-            playerRecord = hitterMap.get(threeWord) || pitcherMap.get(threeWord);
+      if (!playerRecord && (bet.player_name || bet.selection)) {
+        // Extract player name from player_name or selection (e.g., "Marcell Ozuna Hits O1.5" → "Marcell Ozuna")
+        const lookupName = normName(bet.player_name || bet.selection || '');
+
+        // Try hitter lookup first
+        playerRecord = hitterMap.get(lookupName);
+
+        if (!playerRecord) {
+          // Try pitcher lookup
+          playerRecord = pitcherMap.get(lookupName);
+          if (playerRecord) isPitcher = true;
+        }
+
+        if (!playerRecord) {
+          // Try partial match — first two words of selection
+          const parts = lookupName.split(' ');
+          if (parts.length >= 2) {
+            const twoWord = parts.slice(0, 2).join(' ');
+            playerRecord = hitterMap.get(twoWord) || pitcherMap.get(twoWord);
+            if (!playerRecord && parts.length >= 3) {
+              const threeWord = parts.slice(0, 3).join(' ');
+              playerRecord = hitterMap.get(threeWord) || pitcherMap.get(threeWord);
+            }
           }
         }
       }
