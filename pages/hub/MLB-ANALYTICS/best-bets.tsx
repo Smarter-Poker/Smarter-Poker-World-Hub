@@ -1810,6 +1810,7 @@ export default function BestBetsPage() {
 
   // Dedicated F5/team_total/nrfi sections from API (pred_market_output enriched)
   const bestTeamTotals = useMemo(() => (data?.topTeamTotals || []).slice(0, 10), [data]);
+  const bestF5Runlines = useMemo(() => (data?.topF5Runlines || []).slice(0, 10), [data]);
   const bestF5Moneylines = useMemo(() => (data?.topF5Moneylines || []).slice(0, 10), [data]);
   const bestF5Totals = useMemo(() => (data?.topF5Totals || []).slice(0, 10), [data]);
   // f5_team_total — first-5-inning team totals (engine now emits home_over_1.5 selections)
@@ -2078,6 +2079,15 @@ export default function BestBetsPage() {
                     title="Best Bets: Team Totals"
                     icon={TrendingUp}
                     bets={bestTeamTotals}
+                    onBetClick={openModal}
+                  />
+                )}
+                {/* Dedicated F5 Runline Section */}
+                {bestF5Runlines.length > 0 && (
+                  <CategoryCarousel
+                    title="Best Bets: First 5 Innings Run Lines"
+                    icon={TrendingUp}
+                    bets={bestF5Runlines}
                     onBetClick={openModal}
                   />
                 )}

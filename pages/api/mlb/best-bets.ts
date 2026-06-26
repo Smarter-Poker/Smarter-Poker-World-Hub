@@ -849,6 +849,7 @@ async function edgeHandler(req: Request) {
     let topRunlines: any[] = [];
     let topTotals: any[] = [];
     let topHomers: any[] = [];
+    let topF5Runlines: any[] = [];
     let topF5Moneylines: any[] = [];
     let topF5Totals: any[] = [];
     let topF5TeamTotals: any[] = [];
@@ -858,6 +859,7 @@ async function edgeHandler(req: Request) {
     let dedupedRL: any[] = [];
     let dedupedTot: any[] = [];
     let dedupedHR: any[] = [];
+    let dedupedF5RL: any[] = [];
     let dedupedF5ML: any[] = [];
     let dedupedF5Tot: any[] = [];
     let dedupedF5TeamTot: any[] = [];
@@ -868,7 +870,7 @@ async function edgeHandler(req: Request) {
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
       
-      const [mlData, rlData, totData, hrBestBetsData, hrPropsData, f5mlData, f5totData, f5teamTotData, teamTotData, nrfiData] = await Promise.all([
+      const [mlData, rlData, totData, hrBestBetsData, hrPropsData, f5rlData, f5mlData, f5totData, f5teamTotData, teamTotData, nrfiData] = await Promise.all([
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['moneyline', 'h2h']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['run_line', 'spread']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'total'),
@@ -876,6 +878,7 @@ async function edgeHandler(req: Request) {
         mlbDb.from('pred_best_bets').select('*').eq('official_date', data.officialDate).in('market', ['home_run', 'hr']).order('bet_score', {ascending: false}).limit(50),
         // Also get pred_props.home_run — has prob_over for every hitter today even when best_price is null
         mlbDb.from('pred_props').select('*').eq('prop', 'home_run').gte('as_of_ts', startIso).lt('as_of_ts', endIso).order('prob_over', {ascending: false}).limit(50),
+        mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_run_line', 'first_5_run_line', 'f5_spread']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_moneyline', 'f5_money_line']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_total']),
         // f5_team_total — engine now emits first-5-inning team totals (e.g. home_over_1.5)
@@ -928,6 +931,7 @@ async function edgeHandler(req: Request) {
         dedupedHR = validHRProps;
       }
 
+      if (f5rlData.data && f5rlData.data.length > 0) dedupedF5RL = dedupeLatestBets(f5rlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5mlData.data && f5mlData.data.length > 0) dedupedF5ML = dedupeLatestBets(f5mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5totData.data && f5totData.data.length > 0) dedupedF5Tot = dedupeLatestBets(f5totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5teamTotData.data && f5teamTotData.data.length > 0) dedupedF5TeamTot = dedupeLatestBets(f5teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
@@ -952,6 +956,7 @@ async function edgeHandler(req: Request) {
       // HR bets: may come from pred_best_bets (already enriched) or pred_props (needs stub)
       // Both paths produce win_confidence/bet_score, so enrichWithMatchupStub is safe for both
       ...enrichWithMatchupStub(dedupedHR, 'prop'),
+      ...enrichWithMatchupStub(dedupedF5RL, 'line'),
       ...enrichWithMatchupStub(dedupedF5ML, 'line'),
       ...enrichWithMatchupStub(dedupedF5Tot, 'line'),
       ...enrichWithMatchupStub(dedupedF5TeamTot, 'line'),
@@ -969,6 +974,7 @@ async function edgeHandler(req: Request) {
     topRunlines = allEnriched.slice(offset, offset + dedupedRL.length); offset += dedupedRL.length;
     topTotals = allEnriched.slice(offset, offset + dedupedTot.length); offset += dedupedTot.length;
     topHomers = allEnriched.slice(offset, offset + dedupedHR.length); offset += dedupedHR.length;
+    topF5Runlines = allEnriched.slice(offset, offset + dedupedF5RL.length); offset += dedupedF5RL.length;
     topF5Moneylines = allEnriched.slice(offset, offset + dedupedF5ML.length); offset += dedupedF5ML.length;
     topF5Totals = allEnriched.slice(offset, offset + dedupedF5Tot.length); offset += dedupedF5Tot.length;
     topF5TeamTotals = allEnriched.slice(offset, offset + dedupedF5TeamTot.length); offset += dedupedF5TeamTot.length;
@@ -1001,6 +1007,7 @@ async function edgeHandler(req: Request) {
         topRunlines,
         topTotals,
         topHomers,
+        topF5Runlines,
         topF5Moneylines,
         topF5Totals,
         topF5TeamTotals,
