@@ -1108,7 +1108,8 @@ const BetCard = ({
   // Detect market label
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   let marketLabel = 'Bet';
-  if (bet.market?.toLowerCase() === 'h2h' || bet.market?.toLowerCase() === 'moneyline' || bet.market?.toLowerCase() === 'money_line') marketLabel = 'Moneyline';
+  const cleanMarket = bet.market?.toLowerCase().trim() || '';
+  if (cleanMarket === 'h2h' || cleanMarket === 'moneyline' || cleanMarket === 'money_line') marketLabel = 'Moneyline';
   if (bet.market === 'run_line') marketLabel = 'Run Line';
   else if (bet.market?.toLowerCase() === 'total' || bet.market?.toLowerCase() === 'totals') {
     const sel = bet.selection?.toLowerCase() || '';
@@ -1503,7 +1504,21 @@ const CategoryCarousel = ({
     <div className="mb-8 w-full">
       <SectionHeader icon={Icon || Zap} label={title} />
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full">
+        {/* Mobile Scroller */}
+        <div className="flex md:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory scrollbar-hide -mx-2 px-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {bets.map((bet, idx) => (
+            <div key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`} className="flex-none w-[85vw] snap-center">
+              <BetCard
+                bet={bet}
+                rank={idx + 1}
+                rankLabel={rankLabel}
+                onClick={() => onBetClick(bet)}
+              />
+            </div>
+          ))}
+        </div>
+        {/* Desktop Grid */}
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
           {bets.map((bet, idx) => (
             <BetCard
               key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
