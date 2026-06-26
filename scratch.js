@@ -1,10 +1,8 @@
-const fs = require('fs');
-const content = fs.readFileSync('./pages/hub/MLB-ANALYTICS/best-bets.tsx', 'utf8');
-
-const regex = /const BetDetailModal = \(\{ bet, onClose \}: \{ bet: any; onClose: \(\) => void \}\) => \{([\s\S]*?)\};\n\n\/\/ ──────────────────────────────────────────────────────────────────────────────\n\/\/ Bet Card/m;
-const match = content.match(regex);
-console.log(match ? "Found BetDetailModal" : "Not Found");
-if (match) {
-  let modalContent = match[1];
-  console.log("Length:", modalContent.length);
+require('dotenv').config({ path: '.env.local' });
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+async function run() {
+  const { data, error } = await supabase.from('pred_market_output').select('*').limit(2);
+  console.log(JSON.stringify(data, null, 2));
 }
+run();
