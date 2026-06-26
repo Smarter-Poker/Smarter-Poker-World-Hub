@@ -845,23 +845,64 @@ async function edgeHandler(req: Request) {
       const startIso = new Date(`${data.officialDate}T00:00:00.000Z`).toISOString();
       const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
       
-      const [mlData, rlData, totData, hrData, f5mlData, f5totData, teamTotData, nrfiData] = await Promise.all([
+      const [mlData, rlData, totData, hrBestBetsData, hrPropsData, f5mlData, f5totData, teamTotData, nrfiData] = await Promise.all([
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['moneyline', 'h2h']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['run_line', 'spread']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'total'),
-        // Homers: query pred_best_bets directly since pred_props has no home_run data in current slate
-        mlbDb.from('pred_best_bets').select('*').eq('official_date', data.officialDate).in('market', ['home_run', 'hr', 'hrr']).order('bet_score', {ascending: false}),
+        // Try pred_best_bets first for home run (has bet_score/win_confidence already)
+        mlbDb.from('pred_best_bets').select('*').eq('official_date', data.officialDate).in('market', ['home_run', 'hr']).order('bet_score', {ascending: false}).limit(50),
+        // Also get pred_props.home_run — has prob_over for every hitter today even when best_price is null
+        mlbDb.from('pred_props').select('*').eq('prop', 'home_run').gte('as_of_ts', startIso).lt('as_of_ts', endIso).order('prob_over', {ascending: false}).limit(50),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_moneyline', 'f5_money_line']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).in('market', ['f5_total']),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'team_total'),
         mlbDb.from('pred_market_output').select('*').gte('as_of_ts', startIso).lt('as_of_ts', endIso).eq('market', 'nrfi'),
       ]);
 
+      // Helper: convert win probability (0-1) to American odds
+      const probToAmericanOdds = (prob: number): number => {
+        if (prob <= 0 || prob >= 1) return 500;
+        if (prob >= 0.5) return Math.round(-(prob / (1 - prob)) * 100);
+        return Math.round(((1 - prob) / prob) * 100);
+      };
+
       if (mlData.data && mlData.data.length > 0) dedupedML = dedupeLatestBets(mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (rlData.data && rlData.data.length > 0) dedupedRL = dedupeLatestBets(rlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (totData.data && totData.data.length > 0) dedupedTot = dedupeLatestBets(totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-      // Homers from pred_best_bets already have bet_score/win_confidence — use directly, no stub needed
-      if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).slice(0, 10);
+
+      // Homer resolution: prefer pred_best_bets (has bet_score/win_confidence);
+      // fall back to pred_props.home_run sorted by prob_over (highest HR probability wins).
+      // Synthesize bet_score and American odds from prob_over when best_price is null.
+      if (hrBestBetsData.data && hrBestBetsData.data.length > 0) {
+        dedupedHR = dedupeLatestBets(hrBestBetsData.data).slice(0, 10);
+      } else if (hrPropsData.data && hrPropsData.data.length > 0) {
+        // Filter to players with prob_over > 0, normalize into bet row shape
+        const validHRProps = hrPropsData.data
+          .filter((p: any) => Number(p.prob_over) > 0)
+          .sort((a: any, b: any) => Number(b.prob_over) - Number(a.prob_over))
+          .slice(0, 10)
+          .map((p: any) => {
+            const prob = Number(p.prob_over);
+            // Synthesize odds: if best_price exists use it; else derive from prob_over.
+            // HR prob of 20% → +400 implied, 15% → +567 (round to nearest 5).
+            const syntheticPrice = p.best_price != null
+              ? p.best_price
+              : Math.round(probToAmericanOdds(prob) / 5) * 5;
+            // bet_score 0-100: scale from 0% HR prob → 0 to 30% HR prob → 100
+            const betScore = Math.min(100, Math.round((prob / 0.30) * 100));
+            return {
+              ...p,
+              market: 'home_run',
+              bet_type: 'prop',
+              selection: 'over',
+              best_price: syntheticPrice,
+              win_confidence: Math.round(prob * 100 * 10) / 10,
+              bet_score: betScore,
+            };
+          });
+        dedupedHR = validHRProps;
+      }
+
       if (f5mlData.data && f5mlData.data.length > 0) dedupedF5ML = dedupeLatestBets(f5mlData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5totData.data && f5totData.data.length > 0) dedupedF5Tot = dedupeLatestBets(f5totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (teamTotData.data && teamTotData.data.length > 0) dedupedTeamTot = dedupeLatestBets(teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
@@ -882,7 +923,9 @@ async function edgeHandler(req: Request) {
       ...enrichWithMatchupStub(dedupedML, 'line'),
       ...enrichWithMatchupStub(dedupedRL, 'line'),
       ...enrichWithMatchupStub(dedupedTot, 'line'),
-      ...dedupedHR, // already has bet_score/win_confidence from pred_best_bets
+      // HR bets: may come from pred_best_bets (already enriched) or pred_props (needs stub)
+      // Both paths produce win_confidence/bet_score, so enrichWithMatchupStub is safe for both
+      ...enrichWithMatchupStub(dedupedHR, 'prop'),
       ...enrichWithMatchupStub(dedupedF5ML, 'line'),
       ...enrichWithMatchupStub(dedupedF5Tot, 'line'),
       ...enrichWithMatchupStub(dedupedTeamTot, 'line'),
