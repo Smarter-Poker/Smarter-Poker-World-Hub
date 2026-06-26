@@ -234,6 +234,25 @@ const toTitleCase = (str: string | null | undefined): string => {
     .join(' ');
 };
 
+// Extract the spread/line embedded in a selection like "home_-1.5" or "away_+1.5"
+const extractLineFromSelection = (selection: string | null): string => {
+  if (!selection) return '';
+  // Matches patterns like home_-1.5, away_+1.5, home_-1, etc.
+  const match = selection.match(/^(?:home|away)_([+-]?\d+(?:\.\d+)?)$/);
+  if (match) {
+    const num = parseFloat(match[1]);
+    return num > 0 ? `+${num}` : `${num}`;
+  }
+  return '';
+};
+
+// Extract the total line from a selection like "over_9.5" or "under_7.5"
+const extractTotalLine = (selection: string | null): string => {
+  if (!selection) return '';
+  const match = selection.match(/^(?:over|under)_([\d.]+)$/);
+  return match ? match[1] : '';
+};
+
 const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (!selection) return '—';
   let s = selection.toLowerCase();
@@ -256,9 +275,9 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
     return toTitleCase(stripCity(teamName));
   }
 
-  // Totals formatting
-  if (s.startsWith('over')) return toTitleCase(s.replace('_', ' '));
-  if (s.startsWith('under')) return toTitleCase(s.replace('_', ' '));
+  // Totals formatting — strip the line value, show only Over/Under
+  if (s.startsWith('over')) return 'Over';
+  if (s.startsWith('under')) return 'Under';
 
   let cleanSelection = selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim();
   if (cleanSelection.includes(' @ ')) {
@@ -339,18 +358,36 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
   const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
   const isHomeRun = typeStr.includes('home_run') || typeStr.includes('hr');
+  const isTotalBetDetail = typeStr.includes('total') && !isSpread;
   
   if (isMoneyline || isHomeRun) {
     lineStr = '';
+  } else if (isSpread) {
+    // First try: embedded line in selection (e.g. "home_-1.5")
+    const embeddedLine = extractLineFromSelection(bet.selection);
+    if (embeddedLine) {
+      lineStr = embeddedLine;
+    } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+      const numLine = Number(resolvedLine);
+      lineStr = numLine > 0 ? `+${numLine}` : `${numLine}`;
+    } else {
+      // Last resort: infer from price
+      const p = Number(bet.price ?? bet.best_price);
+      if (!isNaN(p)) {
+        const inferredLine = p > 0 ? -1.5 : 1.5;
+        lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
+      }
+    }
+  } else if (isTotalBetDetail) {
+    // Extract "9.5" from "over_9.5" or "under_7.5"
+    const totalLine = extractTotalLine(bet.selection);
+    if (totalLine) lineStr = totalLine;
+    else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+      lineStr = String(Number(resolvedLine));
+    }
   } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
     const numLine = Number(resolvedLine);
-    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
-  } else if (isSpread) {
-    const p = Number(bet.price ?? bet.best_price);
-    if (!isNaN(p)) {
-      const inferredLine = p > 0 ? -1.5 : 1.5;
-      lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
-    }
+    lineStr = String(numLine);
   }
 
   const playerImageUrl = !imgError ? getPlayerImageUrl(bet.player_id) : null;
@@ -1091,49 +1128,80 @@ const BetCard = ({
   const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
   const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
   const isHomeRun = spreadCheck.includes('home_run') || spreadCheck.includes('hr');
+  const isTotalBet = spreadCheck.includes('total') && !isSpread;
   
   if (isMoneyline || isHomeRun) {
     lineStr = '';
-  } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
-    const numLine = Number(resolvedLine);
-    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
   } else if (isSpread) {
-    const p = Number(bet.price ?? bet.best_price);
-    if (!isNaN(p)) {
-      const inferredLine = p > 0 ? -1.5 : 1.5;
-      lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
+    // First try: embedded line in selection (e.g. "home_-1.5")
+    const embeddedLine = extractLineFromSelection(bet.selection);
+    if (embeddedLine) {
+      lineStr = embeddedLine;
+    } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+      const numLine = Number(resolvedLine);
+      lineStr = numLine > 0 ? `+${numLine}` : `${numLine}`;
+    } else {
+      const p = Number(bet.price ?? bet.best_price);
+      if (!isNaN(p)) {
+        const inferredLine = p > 0 ? -1.5 : 1.5;
+        lineStr = inferredLine > 0 ? `+${inferredLine}` : `${inferredLine}`;
+      }
     }
+  } else if (isTotalBet) {
+    const totalLine = extractTotalLine(bet.selection);
+    if (totalLine) lineStr = totalLine;
+    else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+      lineStr = String(Number(resolvedLine));
+    }
+  } else if (resolvedLine !== null && resolvedLine !== undefined && resolvedLine !== '') {
+    lineStr = String(Number(resolvedLine));
   }
 
-  // Detect market label
+  // Detect market label — use if/else if chain to prevent earlier conditions overwriting
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-  let marketLabel = 'Bet';
   const cleanMarket = bet.market?.toLowerCase().trim() || '';
-  if (cleanMarket === 'h2h' || cleanMarket === 'moneyline' || cleanMarket === 'money_line') marketLabel = 'Moneyline';
-  if (bet.market === 'run_line') marketLabel = 'Run Line';
-  else if (bet.market?.toLowerCase() === 'total' || bet.market?.toLowerCase() === 'totals') {
-    const sel = bet.selection?.toLowerCase() || '';
-    if (sel.includes('over')) marketLabel = 'Over';
-    else if (sel.includes('under')) marketLabel = 'Under';
+  let marketLabel: string;
+  if (cleanMarket === 'h2h' || cleanMarket === 'moneyline' || cleanMarket === 'money_line') {
+    marketLabel = 'Moneyline';
+  } else if (cleanMarket === 'run_line' || cleanMarket === 'runline' || cleanMarket === 'spread') {
+    marketLabel = 'Run Line';
+  } else if (cleanMarket === 'total' || cleanMarket === 'totals') {
+    const sel = (bet.selection || '').toLowerCase();
+    if (sel.startsWith('over')) marketLabel = 'Over';
+    else if (sel.startsWith('under')) marketLabel = 'Under';
     else marketLabel = 'Over / Under';
-  }
-  else if (bet.market === 'first_5_money_line' || bet.market === 'f5_moneyline') marketLabel = 'First 5 Inning Money Line';
-  else if (bet.market === 'first_5_run_line' || bet.market === 'f5_run_line') marketLabel = 'First 5 Inning Run Line';
-  else if (bet.market === 'first_5_total' || bet.market === 'f5_total') marketLabel = 'First 5 Inning Total';
-  else if (bet.market === 'team_total') marketLabel = 'Team Total';
-  else if (bet.market === 'first_5_team_total' || bet.market === 'f5_team_total') marketLabel = 'First 5 Inning Team Total';
-  else if (typeStr.includes('strikeout')) marketLabel = 'Pitcher Strikeouts';
-  else if (typeStr.includes('hits')) marketLabel = 'Player Hits';
-  else if (typeStr.includes('home_run') || typeStr.includes('hr')) marketLabel = 'Player Home Runs';
-  else if (typeStr.includes('bases')) marketLabel = 'Total Bases';
-  else if (typeStr.includes('rbi') || typeStr.includes('runs_batted_in')) marketLabel = 'Player RBIs';
-  else if (typeStr.includes('outs')) marketLabel = 'Pitching Outs';
-  else if (typeStr.includes('walks') || typeStr.includes('bb')) marketLabel = 'Pitcher Walks';
-  else if (typeStr.includes('earned_runs')) marketLabel = 'Earned Runs';
-  else if (bet.market && bet.market !== 'prop') {
+  } else if (cleanMarket === 'first_5_money_line' || cleanMarket === 'f5_moneyline') {
+    marketLabel = 'First 5 Inning Money Line';
+  } else if (cleanMarket === 'first_5_run_line' || cleanMarket === 'f5_run_line') {
+    marketLabel = 'First 5 Inning Run Line';
+  } else if (cleanMarket === 'first_5_total' || cleanMarket === 'f5_total') {
+    marketLabel = 'First 5 Inning Total';
+  } else if (cleanMarket === 'team_total') {
+    marketLabel = 'Team Total';
+  } else if (cleanMarket === 'first_5_team_total' || cleanMarket === 'f5_team_total') {
+    marketLabel = 'First 5 Inning Team Total';
+  } else if (typeStr.includes('strikeout')) {
+    marketLabel = 'Pitcher Strikeouts';
+  } else if (typeStr.includes('home_run') || typeStr.includes('hrr')) {
+    marketLabel = 'Player Home Runs';
+  } else if (typeStr.includes('hits')) {
+    marketLabel = 'Player Hits';
+  } else if (typeStr.includes('bases')) {
+    marketLabel = 'Total Bases';
+  } else if (typeStr.includes('rbi') || typeStr.includes('runs_batted_in')) {
+    marketLabel = 'Player RBIs';
+  } else if (typeStr.includes('outs')) {
+    marketLabel = 'Pitching Outs';
+  } else if (typeStr.includes('walks') || typeStr.includes('bb')) {
+    marketLabel = 'Pitcher Walks';
+  } else if (typeStr.includes('earned_runs')) {
+    marketLabel = 'Earned Runs';
+  } else if (bet.market && bet.market !== 'prop') {
     marketLabel = bet.market.replace(/_/g, ' ');
   } else if (typeStr.includes('prop')) {
     marketLabel = 'Player Prop';
+  } else {
+    marketLabel = 'Bet';
   }
 
   // Image logic
@@ -1141,7 +1209,6 @@ const BetCard = ({
   const teamId = bet.team_id || (bet.team ? MLB_TEAM_IDS[bet.team?.toUpperCase()] : null);
   const teamLogoUrl = getTeamLogoUrl(teamId);
   const showPlayerImg = !isTeamBet && playerImageUrl && !imgError;
-  const isTotalBet = bet.market === 'total';
 
   // For totals bets with no team logo, derive the away team logo from the matchup string
   let totalsLogoId: number | null = null;
@@ -1347,13 +1414,18 @@ const BetCard = ({
                   let target = '';
                   if (bet.player_name) {
                     target = bet.player_name;
-                    if (bet.selection?.toLowerCase().includes('over')) target += ' Over';
-                    if (bet.selection?.toLowerCase().includes('under')) target += ' Under';
+                    if ((bet.selection || '').toLowerCase().startsWith('over')) target += ' Over';
+                    if ((bet.selection || '').toLowerCase().startsWith('under')) target += ' Under';
                   } else {
                     target = selectionLabel(bet?.selection, bet?.matchup).trim();
+                    // For totals, append the line value after Over/Under
+                    if (isTotalBet && lineStr) target = `${target} ${lineStr}`;
                   }
                   if (target === '—') target = '';
-                  return `${target} ${lineStr} ${formatOdds(bet.price ?? bet.best_price)}`.trim().replace(/\s+/g, ' ');
+                  const oddsStr = formatOdds(bet.price ?? bet.best_price);
+                  // For totals we already embedded the line in target
+                  const spreadPart = isSpread ? lineStr : '';
+                  return `${target} ${spreadPart} ${oddsStr}`.trim().replace(/\s+/g, ' ');
                 })()}
               </div>
             </div>
