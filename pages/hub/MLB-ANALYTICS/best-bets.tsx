@@ -340,7 +340,13 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
     const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
     const isSpread =
       typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
-    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+    const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
+    
+    if (isMoneyline) {
+      lineStr = '';
+    } else {
+      lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+    }
   }
 
   const playerImageUrl = !imgError ? getPlayerImageUrl(bet.player_id) : null;
@@ -470,7 +476,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
           <div className="text-[16px] font-black text-[#00D4FF] mb-2 capitalize tracking-widest ">
             Bet Details
           </div>
-          <div className="grid grid-cols-2 gap-2 mb-2 px-4 md:px-0">
+          <div className="grid grid-cols-1 mb-2 px-4 md:px-0">
             <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
               <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
                 Selection
@@ -479,18 +485,15 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                 className="text-[34px] font-black text-white capitalize leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {selectionLabel(bet?.selection, bet?.matchup)} {lineStr}
-              </div>
-            </div>
-            <div className="bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2.5">
-              <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
-                Market
-              </div>
-              <div
-                className="text-[22px] font-black text-slate-300 capitalize leading-tight"
-                style={{ fontFamily: '"Rajdhani", sans-serif' }}
-              >
-                {bet.market?.replace(/_/g, ' ') || bet.bet_type?.replace(/_/g, ' ') || '—'}
+                {(() => {
+                  let selText = selectionLabel(bet?.selection, bet?.matchup);
+                  if (bet.player_name) {
+                    selText = bet.player_name;
+                    if (bet.selection?.toLowerCase().includes('over')) selText += ' Over';
+                    if (bet.selection?.toLowerCase().includes('under')) selText += ' Under';
+                  }
+                  return `${selText} ${lineStr}`.trim();
+                })()}
               </div>
             </div>
           </div>
@@ -1085,7 +1088,13 @@ const BetCard = ({
       spreadCheck.includes('run_line') ||
       spreadCheck.includes('runline') ||
       spreadCheck.includes('spread');
-    lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+    const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
+    
+    if (isMoneyline) {
+      lineStr = '';
+    } else {
+      lineStr = isSpread && numLine > 0 ? `+${numLine}` : `${numLine}`;
+    }
   }
 
   // Detect market label
@@ -1324,6 +1333,8 @@ const BetCard = ({
                   let target = '';
                   if (bet.player_name) {
                     target = bet.player_name;
+                    if (bet.selection?.toLowerCase().includes('over')) target += ' Over';
+                    if (bet.selection?.toLowerCase().includes('under')) target += ' Under';
                   } else {
                     target = selectionLabel(bet?.selection, bet?.matchup).trim();
                   }
@@ -1546,9 +1557,19 @@ export default function BestBetsPage() {
   const stats = data?.stats || { totalBets: 0, eliteBets: 0, topScore: 0, topLock: 0 };
   const isStale = !!(todayStr && officialDate && officialDate < todayStr);
 
-  // Categorize
-  // "Most Likely to Win" carousel has been removed to prevent double-listing moneyline bets
-  // and to focus strictly on highest edge_pts rather than pure massive favorite probabilities.
+  // "Most Likely to Win" carousel: highest win-probability favorites.
+  // Filtered strictly to ensure NO UNDERDOGS appear here.
+  const mostLikelyToWin = useMemo(() => {
+    let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
+    return source
+      .filter((b) => {
+          const prob = Number(b.win_confidence) || 0;
+          const price = Number(b.price ?? b.best_price ?? 0);
+          return prob > 50 && price < 0; // MUST be a favorite
+      })
+      .sort((a, b) => (Number(b.win_confidence) || 0) - (Number(a.win_confidence) || 0))
+      .slice(0, 10);
+  }, [bets, data]);
 
   const bestMoneyLines = useMemo(() => {
     const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
@@ -1736,7 +1757,7 @@ export default function BestBetsPage() {
               </span>
             </h1>
             <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] uppercase mt-1">
-              Ranked By Bet Score · {officialDate ? (() => { const dt = new Date(`${officialDate}T12:00:00Z`); return `${dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}, ${dt.getMonth() + 1}-${dt.getDate()}-${dt.getFullYear()}`; })() : ''}
+              Ranked By Bet Score · {officialDate ? (() => { const dt = new Date(`${officialDate}T12:00:00Z`); return `${dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()} ${dt.getMonth() + 1}-${dt.getDate()}-${dt.getFullYear()}`; })() : ''}
             </p>
           </div>
           <button
@@ -1854,7 +1875,14 @@ export default function BestBetsPage() {
               </div>
             ) : (
               <>
-                {/* Removed Most Likely to Win carousel to prevent double-listing of moneyline bets */}
+                {mostLikelyToWin.length > 0 && (
+                  <CategoryCarousel
+                    title="Most Likely to Win"
+                    icon={Target}
+                    bets={mostLikelyToWin}
+                    onBetClick={openModal}
+                  />
+                )}
                 <CategoryCarousel
                   title="Best Money Lines"
                   icon={Zap}
