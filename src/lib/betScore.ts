@@ -26,8 +26,9 @@ export function winConfidence(p: number): number {
 
 export function betScore(pWin: number, american: number): number {
   const ev = evPct(pWin, american);
-  // Pure linear scaling: 1% EV = 10 Score. No artificial floors or caps.
-  return Math.round(ev * 10);
+  // Linear scaling: 1% EV = 10 Score, capped 0–100.
+  // 10%+ EV = 100 (ELITE ceiling), negative EV = 0 (PASS floor).
+  return Math.min(100, Math.max(0, Math.round(ev * 10)));
 }
 
 export function tier(score: number): Tier {
