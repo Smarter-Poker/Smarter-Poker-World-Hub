@@ -263,21 +263,18 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       {/* 3-column grade grid */}
       <div className="grid grid-cols-3 gap-2 mb-3 px-4 md:px-0">
         {modelPending ? (
-          // Model hasn't processed these games yet — show Pending across all 3 cells
           ['Money Line', 'Run Line', 'Over / Under'].map((label) => (
             <div
               key={label}
-              className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
+              className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-1 py-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
             >
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-2 opacity-90">
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-3 opacity-90">
                 {label}
               </span>
-              <div className="flex flex-col items-center justify-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-[11px] font-bold text-amber-400/70 tracking-wide uppercase">
-                  Pending
-                </span>
-              </div>
+              <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse mb-2" />
+              <span className="text-[14px] font-black text-amber-400/80 tracking-widest uppercase">
+                Pending
+              </span>
             </div>
           ))
         ) : (
@@ -288,36 +285,36 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
               <div
                 key={label}
                 title={factors}
-                className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' && !hasEdge ? 'border-[#2a3a4a] bg-[#0a0a15]' : tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+                className={`flex flex-col items-center justify-center rounded-sm border px-1 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${!hasEdge ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
               >
                 {/* Market label */}
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-80">
                   {label}
                 </span>
 
-                {/* Score — large hero number */}
+                {/* Score — massive hero number */}
                 <span
-                  className={`text-[32px] font-black leading-none tabular-nums ${hasEdge ? st.text : 'text-slate-600'}`}
+                  className={`text-[52px] font-black leading-none tabular-nums tracking-tight ${hasEdge ? st.text : 'text-slate-700'}`}
                 >
                   {hasEdge ? score : '—'}
                 </span>
 
-                {/* Tier badge — small pill below the score */}
+                {/* Tier badge */}
                 <span
-                  className={`text-[10px] font-black uppercase tracking-widest mt-0.5 ${hasEdge ? st.text : 'text-slate-600'}`}
+                  className={`text-[13px] font-black uppercase tracking-widest mt-0.5 ${hasEdge ? st.text : 'text-slate-600'}`}
                 >
                   {tier}
                 </span>
 
-                {/* Recommendation: team + price */}
-                <span className="text-[11px] font-bold capitalize tracking-wide mt-1.5 text-center leading-tight text-slate-300 min-h-[28px] flex items-center">
+                {/* Recommendation */}
+                <span className="text-[13px] font-bold capitalize tracking-wide mt-2 text-center leading-snug text-white w-full px-1">
                   {hasEdge ? rec : 'No Edge'}
                 </span>
 
                 {/* EV% */}
                 {hasEdge && ev !== 0 && (
                   <span
-                    className={`text-[12px] font-black tracking-widest ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
+                    className={`text-[14px] font-black tracking-wide mt-0.5 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
                   >
                     {ev > 0 ? '+' : ''}{ev}% EV
                   </span>
