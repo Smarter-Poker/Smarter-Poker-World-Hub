@@ -269,7 +269,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
               key={label}
               className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
             >
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-2 opacity-90">
                 {label}
               </span>
               <div className="flex flex-col items-center justify-center gap-1">
@@ -283,37 +283,45 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
         ) : (
           cells.map(({ label, score, tier, rec, ev, factors }) => {
             const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
+            const hasEdge = score > 0;
             return (
               <div
                 key={label}
                 title={factors}
-                className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+                className={`flex flex-col items-center justify-center rounded-sm border px-2 py-2 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' && !hasEdge ? 'border-[#2a3a4a] bg-[#0a0a15]' : tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
               >
-                <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
+                {/* Market label */}
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
                   {label}
                 </span>
-                <div className="flex flex-col items-center justify-center w-full">
-                  {/* Tier badge as hero — clear, actionable signal */}
+
+                {/* Score — large hero number */}
+                <span
+                  className={`text-[32px] font-black leading-none tabular-nums ${hasEdge ? st.text : 'text-slate-600'}`}
+                >
+                  {hasEdge ? score : '—'}
+                </span>
+
+                {/* Tier badge — small pill below the score */}
+                <span
+                  className={`text-[10px] font-black uppercase tracking-widest mt-0.5 ${hasEdge ? st.text : 'text-slate-600'}`}
+                >
+                  {tier}
+                </span>
+
+                {/* Recommendation: team + price */}
+                <span className="text-[11px] font-bold capitalize tracking-wide mt-1.5 text-center leading-tight text-slate-300 min-h-[28px] flex items-center">
+                  {hasEdge ? rec : 'No Edge'}
+                </span>
+
+                {/* EV% */}
+                {hasEdge && ev !== 0 && (
                   <span
-                    className={`text-[22px] font-black uppercase tracking-widest leading-none ${score > 0 ? st.text : 'text-slate-500'}`}
+                    className={`text-[12px] font-black tracking-widest ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
                   >
-                    {tier}
+                    {ev > 0 ? '+' : ''}{ev}% EV
                   </span>
-                  {/* Recommendation (team + price) */}
-                  <span
-                    className={`text-[12px] font-bold capitalize tracking-wide mt-1 text-center leading-tight text-slate-300`}
-                  >
-                    {score > 0 ? rec : 'No Edge'}
-                  </span>
-                  {/* EV% for all markets when there's a real edge */}
-                  {score > 0 && ev !== 0 && (
-                    <span
-                      className={`text-[13px] font-black tracking-widest mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
-                    >
-                      {ev > 0 ? '+' : ''}{ev}% EV
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             );
           })
