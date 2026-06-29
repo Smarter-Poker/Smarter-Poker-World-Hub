@@ -267,26 +267,28 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
               title={factors}
               className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
             >
-              <span className="text-[21px] font-black capitalize tracking-widest text-[#7a8a9a] mb-1.5 opacity-90">
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
                 {label}
               </span>
               <div className="flex flex-col items-center justify-center w-full">
+                {/* Tier badge as hero — clear, actionable signal */}
                 <span
-                  className={`text-[47px] font-black leading-none text-slate-200 font-sans tracking-tight`}
+                  className={`text-[22px] font-black uppercase tracking-widest leading-none ${score > 0 ? st.text : 'text-slate-500'}`}
                 >
-                  {score > 0 ? score : '—'}
+                  {tier}
                 </span>
+                {/* Recommendation (team + price) */}
                 <span
-                  className={`text-[23px] font-black capitalize tracking-widest mt-1.5 text-center leading-tight ${st.text} drop-shadow-sm`}
+                  className={`text-[12px] font-bold capitalize tracking-wide mt-1 text-center leading-tight text-slate-300`}
                 >
-                  {score > 0 ? rec : 'PASS'}
+                  {score > 0 ? rec : 'No Edge'}
                 </span>
-                {score > 0 && label === 'Money Line' && (
+                {/* EV% for all markets when there's a real edge */}
+                {score > 0 && ev !== 0 && (
                   <span
-                    className={`text-[18px] font-black tracking-widest capitalize mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-500'}`}
+                    className={`text-[13px] font-black tracking-widest mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
                   >
-                    {ev > 0 ? '+' : ''}
-                    {ev}% EV
+                    {ev > 0 ? '+' : ''}{ev}% EV
                   </span>
                 )}
               </div>
