@@ -206,11 +206,12 @@ async function _getSlate(date: string): Promise<GameCard[]> {
     if (!latestTs.has(p.game_pk) || t > latestTs.get(p.game_pk)!) latestTs.set(p.game_pk, t);
   }
   type Row = NonNullable<typeof preds>[number];
-  const byGame = new Map<number, { home?: Row; away?: Row; bet?: Row; runLineBet?: Row; totalBet?: Row }>();
+  const byGame = new Map<number, { home?: Row; away?: Row; bet?: Row; runLineBet?: Row; totalBet?: Row; hasPreds?: boolean }>();
   for (const p of preds ?? []) {
     if (String(p.as_of_ts ?? "") !== latestTs.get(p.game_pk)) continue;
     const e = byGame.get(p.game_pk) ?? {};
     const isBet = p.rec && p.rec.match(/\bBET\b/) && !p.rec.includes("NO BET");
+    e.hasPreds = true; // any row = pipeline ran for this game
     if (p.market === "h2h") {
       if (p.selection === "home") e.home = p; else e.away = p;
       if (isBet) e.bet = p;
@@ -354,6 +355,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
         bet_tier: e.totalBet.edge_pts != null ? (Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 82 ? 'ELITE' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 70 ? 'PREMIUM' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 60 ? 'STRONG' : 'STANDARD') : undefined,
       } : null,
       sportsbooks,
+      hasPredictions: e.hasPreds === true,
       topProps: propsByGame.get(g.game_pk) ?? [],
       lineupState: featuresMap.get(g.game_pk) as "confirmed" | "projected" | null,
     };

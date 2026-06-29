@@ -253,8 +253,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: ouEv, factors: ouFactors },
   ];
 
-  // If the model pipeline hasn't run yet (no modelHome), show a unified Pending state
-  const modelPending = g.modelHome == null && !g.bet && !g.runLineBet && !g.totalBet;
+  // modelPending = pipeline has NOT run for this game yet (no pred_market_output rows at all).
+  // hasPredictions=true means predictions ran — even if all markets are PASS, show scores not spinner.
+  const modelPending = !g.hasPredictions && !g.bet && !g.runLineBet && !g.totalBet;
 
   return (
     <div className="mt-5 pt-4 border-t-2 border-[#2a3a4a] relative">
