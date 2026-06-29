@@ -220,8 +220,11 @@ ALL_CRONS = [
     # ?dry=1 query param.
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── MLB Analytics Engine (SCRIPT_JOBS) ────────────────────────────────────
-    ('/api/cron/mlb-analytics-daily',       dict(hour=8, minute=0)),   # Daily 8am UTC (4am ET) — Full MLB data refresh & predict
-    ('/api/cron/mlb-analytics-intraday',    dict(hour='15-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (10am CDT - 10:59pm CDT)
+    ('/api/cron/mlb-analytics-daily',       dict(hour=8,  minute=0)),   # Daily 08:00 UTC (3am CDT)  — Full MLB data refresh & predict
+    ('/api/cron/mlb-analytics-noon',        dict(hour=13, minute=0)),   # Daily 13:00 UTC (8am CDT)  — Safety-net: catch any games missed at 3am
+    ('/api/cron/mlb-analytics-noon',        dict(hour=16, minute=0)),   # Daily 16:00 UTC (11am CDT) — Pre-noon guarantee: all games predicted
+    ('/api/cron/mlb-analytics-noon',        dict(hour=17, minute=0)),   # Daily 17:00 UTC (noon CDT) — Final safety-net: 2h before first pitch
+    ('/api/cron/mlb-analytics-intraday',    dict(hour='15-23,0-3', minute='0,15,30,45')), # Every 15 mins intraday (10am–11:59pm CDT)
     ('/api/cron/mlb-hr-cache-refresh',      dict(hour=11, minute=0)),  # Daily 11:00 UTC (7am ET) — refresh HR due-score cache for /hub/MLB-ANALYTICS/hr-tracker
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
@@ -696,6 +699,24 @@ def make_job(path):
     elif path == '/api/cron/mlb-analytics-daily':
         def _job():
             script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_daily.sh')
+            cmd = ['bash', script_path]
+            log.info(f'▶ Script job {path} → {" ".join(cmd)}')
+            t0 = time.time()
+            try:
+                result = subprocess.run(cmd, capture_output=False, timeout=600)
+                elapsed = round(time.time() - t0, 1)
+                if result.returncode == 0:
+                    log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+                else:
+                    log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            except Exception as e:
+                log.error(f'❌ {path} script error: {e}')
+    elif path == '/api/cron/mlb-analytics-noon':
+        def _job():
+            # Noon safety-net: ingest+predict+push only — catches any games
+            # that had zero pred_market_output rows after the 3am daily run.
+            # Fast path (~10-15 min). Upserts are idempotent for already-predicted games.
+            script_path = str(Path.home() / 'Documents' / 'mlb-analytics-engine' / 'run_noon.sh')
             cmd = ['bash', script_path]
             log.info(f'▶ Script job {path} → {" ".join(cmd)}')
             t0 = time.time()
