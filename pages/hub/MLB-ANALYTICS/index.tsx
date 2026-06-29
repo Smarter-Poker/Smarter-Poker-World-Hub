@@ -712,93 +712,85 @@ export default function MlbSlatePage() {
                     )}
 
                     {/* ── Odds Grid ─────────────── */}
-                    <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
-                      {/* Spread */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                            {g.avgAwaySpreadLine != null
-                              ? g.avgAwaySpreadLine > 0
-                                ? `+${g.avgAwaySpreadLine}`
-                                : g.avgAwaySpreadLine
-                              : '—'}
-                          </span>
-                          <span className="text-[15px] font-black text-white leading-none ">
-                            {g.avgAwaySpreadOdds != null
-                              ? g.avgAwaySpreadOdds > 0
-                                ? `+${g.avgAwaySpreadOdds}`
-                                : g.avgAwaySpreadOdds
-                              : ''}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                            {g.avgHomeSpreadLine != null
-                              ? g.avgHomeSpreadLine > 0
-                                ? `+${g.avgHomeSpreadLine}`
-                                : g.avgHomeSpreadLine
-                              : '—'}
-                          </span>
-                          <span className="text-[15px] font-black text-white leading-none ">
-                            {g.avgHomeSpreadOdds != null
-                              ? g.avgHomeSpreadOdds > 0
-                                ? `+${g.avgHomeSpreadOdds}`
-                                : g.avgHomeSpreadOdds
-                              : ''}
-                          </span>
-                        </div>
-                      </div>
+                    {(() => {
+                      // Determine which side is picked for each market
+                      const mlPickedAway = g.bet?.selection === 'away';
+                      const mlPickedHome = g.bet?.selection === 'home';
+                      const rlPickedAway = g.runLineBet?.selection?.startsWith('away');
+                      const rlPickedHome = g.runLineBet?.selection?.startsWith('home');
+                      const ouPickedOver = g.totalBet?.selection?.startsWith('over');
+                      const ouPickedUnder = g.totalBet?.selection?.startsWith('under');
 
-                      {/* Moneyline */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
-                            {g.avgAwayLine != null
-                              ? g.avgAwayLine > 0
-                                ? `+${g.avgAwayLine}`
-                                : g.avgAwayLine
-                              : '—'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[17px] font-black text-[#00D4FF] leading-none  drop-shadow-[0_0_2px_rgba(0,212,255,0.4)]">
-                            {g.avgHomeLine != null
-                              ? g.avgHomeLine > 0
-                                ? `+${g.avgHomeLine}`
-                                : g.avgHomeLine
-                              : '—'}
-                          </span>
-                        </div>
-                      </div>
+                      // Use the actual bet price when available (matches the recommendation exactly)
+                      const mlAwayPrice = mlPickedAway ? g.bet?.price : g.avgAwayLine;
+                      const mlHomePrice = mlPickedHome ? g.bet?.price : g.avgHomeLine;
 
-                      {/* Total */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                            {g.avgTotalLine != null ? `O ${g.avgTotalLine}` : '—'}
-                          </span>
-                          <span className="text-[15px] font-black text-white leading-none ">
-                            {g.avgOverOdds != null
-                              ? g.avgOverOdds > 0
-                                ? `+${g.avgOverOdds}`
-                                : g.avgOverOdds
-                              : ''}
+                      // Run line: parse the selection to extract line & use bet price
+                      const rlAwayLine = g.avgAwaySpreadLine;
+                      const rlHomeLine = g.avgHomeSpreadLine;
+                      const rlAwayOdds = rlPickedAway ? g.runLineBet?.price : g.avgAwaySpreadOdds;
+                      const rlHomeOdds = rlPickedHome ? g.runLineBet?.price : g.avgHomeSpreadOdds;
+
+                      // O/U: use the bet's actual line when it differs from market consensus
+                      const betTotalLine = g.totalBet?.selection
+                        ? parseFloat(String(g.totalBet.selection).replace(/^(over|under)_/, ''))
+                        : null;
+                      const displayTotalLine = betTotalLine ?? g.avgTotalLine;
+                      const overOdds = ouPickedOver ? g.totalBet?.price : g.avgOverOdds;
+                      const underOdds = ouPickedUnder ? g.totalBet?.price : g.avgUnderOdds;
+
+                      const fmt = (n: number | null | undefined) =>
+                        n == null ? '—' : n > 0 ? `+${n}` : `${n}`;
+
+                      const pill = (
+                        topLabel: string | null,
+                        mainVal: string,
+                        highlighted: boolean,
+                        key: string
+                      ) => (
+                        <div
+                          key={key}
+                          className={`flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] transition-colors ${
+                            highlighted
+                              ? 'border-2 border-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.4)]'
+                              : 'border border-[#3d4f5f] group-hover:border-[#00D4FF]/50'
+                          }`}
+                        >
+                          {topLabel && (
+                            <span className="text-[11px] text-[#8a9ba8] font-black tracking-widest mb-0.5">
+                              {topLabel}
+                            </span>
+                          )}
+                          <span
+                            className={`font-black leading-none ${topLabel ? 'text-[15px]' : 'text-[17px]'} ${
+                              highlighted ? 'text-[#00D4FF] drop-shadow-[0_0_4px_rgba(0,212,255,0.6)]' : 'text-white'
+                            }`}
+                          >
+                            {mainVal}
                           </span>
                         </div>
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#1a2332] to-[#0d1117] border border-[#3d4f5f] rounded-sm w-[68px] h-[48px] shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:border-[#00D4FF]/50 transition-colors">
-                          <span className="text-[13px] text-[#8a9ba8] font-black tracking-widest capitalize mb-0.5">
-                            {g.avgTotalLine != null ? `U ${g.avgTotalLine}` : '—'}
-                          </span>
-                          <span className="text-[15px] font-black text-white leading-none ">
-                            {g.avgUnderOdds != null
-                              ? g.avgUnderOdds > 0
-                                ? `+${g.avgUnderOdds}`
-                                : g.avgUnderOdds
-                              : ''}
-                          </span>
+                      );
+
+                      return (
+                        <div className="flex gap-2 justify-center bg-[#0a0a15] p-2 rounded-sm border border-[#2a3a4a] shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+                          {/* Spread */}
+                          <div className="flex flex-col gap-2">
+                            {pill(fmt(rlAwayLine), fmt(rlAwayOdds), !!rlPickedAway, 'rl-away')}
+                            {pill(fmt(rlHomeLine), fmt(rlHomeOdds), !!rlPickedHome, 'rl-home')}
+                          </div>
+                          {/* Moneyline */}
+                          <div className="flex flex-col gap-2">
+                            {pill(null, fmt(mlAwayPrice), !!mlPickedAway, 'ml-away')}
+                            {pill(null, fmt(mlHomePrice), !!mlPickedHome, 'ml-home')}
+                          </div>
+                          {/* Total */}
+                          <div className="flex flex-col gap-2">
+                            {pill(`O ${displayTotalLine ?? ''}`, fmt(overOdds), !!ouPickedOver, 'ou-over')}
+                            {pill(`U ${displayTotalLine ?? ''}`, fmt(underOdds), !!ouPickedUnder, 'ou-under')}
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
