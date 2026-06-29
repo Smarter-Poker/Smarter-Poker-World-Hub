@@ -95,6 +95,10 @@ export interface MLBStatusPayload {
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
+    if (res.status === 403) {
+      // Admin-only endpoint: return a clean error object instead of throwing
+      return { ok: false, error: 'Access denied. This page requires admin privileges.' };
+    }
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
