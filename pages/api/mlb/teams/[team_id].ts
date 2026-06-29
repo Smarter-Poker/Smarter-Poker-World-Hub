@@ -59,8 +59,8 @@ async function edgeHandler(req: Request) {
     //    The Bet Score math (the only thing that can't live in SQL) stays here. ──
     const { data, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) });
     if (error) {
-      console.error(`[API/MLB/Teams/${id}] rpc error:`, error.message);
-      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      console.error(`[API/MLB/Teams/${id}] rpc error:`, error.message, error.code, error.details, error.hint);
+      return new Response(JSON.stringify({ error: 'Internal server error', rpc_error: error.message, rpc_code: error.code }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });

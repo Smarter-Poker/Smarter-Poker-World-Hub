@@ -65,6 +65,8 @@ export default function GameMatchupDashboard() {
       const found = dashData.slateGames.find((g: GameCard) => g.gamePk === gamePk);
       if (found) return found;
     }
+    // If specificGameData has an error field, it means the game wasn't found — return undefined
+    if (specificGameData && specificGameData.error) return undefined;
     return specificGameData;
   }, [dashData, specificGameData, gamePk]);
 
@@ -125,6 +127,27 @@ export default function GameMatchupDashboard() {
         <div className="flex flex-col items-center justify-center py-20 text-[#00D4FF]">
           <Loader2 className="w-12 h-12 animate-spin mb-4" />
           <p className="tracking-widest capitalize font-bold text-[23px]">Loading Matchup...</p>
+        </div>
+        <BottomNavBar />
+      </div>
+    );
+  }
+
+  // Game not found (API returned error or not in today's slate and not in DB)
+  const gameNotFound = !isLoading && !game && (specificGameData?.error || (dashData && !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk)));
+  if (gameNotFound) {
+    return (
+      <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border">
+        <SEOHead title="Game Not Found — MLB Analytics | Smarter.Poker" description="This game was not found in the MLB database." />
+        <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
+        <MlbSubNav />
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <X className="w-12 h-12 text-[#FF4444] mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.6))' }} />
+          <h2 className="text-2xl font-extrabold text-white font-['Rajdhani'] mb-2">Game Not Found</h2>
+          <p className="text-slate-400 text-sm mb-6">This game ID could not be found in today\'s slate or the MLB database.</p>
+          <Link href="/hub/MLB-ANALYTICS" className="inline-block bg-[#1a2332] text-white px-6 py-2 rounded border border-[#3d4f5f] text-sm font-bold tracking-widest hover:bg-[#2a3a4a]">
+            Back to Dashboard
+          </Link>
         </div>
         <BottomNavBar />
       </div>

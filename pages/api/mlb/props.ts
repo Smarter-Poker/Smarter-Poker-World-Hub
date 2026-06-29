@@ -615,13 +615,15 @@ export default async function edgeHandler(req: Request) {
       };
     });
 
+    // Strip null entries (props where side could not be inferred) before ranking.
+    const validProps = mappedProps.filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
     // Rank by Bet Score (desc), unscored last — same ordering principle as Best Bets.
-    mappedProps.sort((a, b) => (b?.bet_score ?? -1) - (a?.bet_score ?? -1));
+    validProps.sort((a, b) => (b?.bet_score ?? -1) - (a?.bet_score ?? -1));
 
     // Slate-level stats (tier counts use the canonical thresholds).
-    const scored = mappedProps.filter((p) => p?.bet_score != null);
+    const scored = validProps.filter((p) => p?.bet_score != null);
     const stats = {
-      total: mappedProps.length,
+      total: validProps.length,
       elite: scored.filter((p) => p?.bet_tier === 'ELITE').length,
       strong: scored.filter((p) => p?.bet_tier === 'STRONG').length,
       topScore: scored.reduce((m, p) => Math.max(m, p?.bet_score ?? 0), 0),
@@ -630,20 +632,20 @@ export default async function edgeHandler(req: Request) {
 
     // Graded recap — the ENGINE'S ACTUAL BETS only (rec = "BET ..."), not every
     // priced prop, so the record/units reflect real model performance.
-    const bets = mappedProps.filter(
+    const bets = validProps.filter(
       (p) => p?.was_bet && (p?.result === 'win' || p?.result === 'loss')
     );
     const results = {
       graded: bets.length,
       wins: bets.filter((p) => p?.result === 'win').length,
       losses: bets.filter((p) => p?.result === 'loss').length,
-      voided: mappedProps.filter((p) => p?.was_bet && p?.result === 'void').length,
+      voided: validProps.filter((p) => p?.was_bet && p?.result === 'void').length,
       units: bets.reduce((s, p) => s + (p?.pnl ?? 0), 0),
     };
 
     return new Response(
       JSON.stringify({
-        props: mappedProps,
+        props: validProps,
         official_date: slateDate,
         is_stale: isStale,
         stats,
