@@ -253,48 +253,71 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: ouEv, factors: ouFactors },
   ];
 
+  // If the model pipeline hasn't run yet (no modelHome), show a unified Pending state
+  const modelPending = g.modelHome == null && !g.bet && !g.runLineBet && !g.totalBet;
+
   return (
     <div className="mt-5 pt-4 border-t-2 border-[#2a3a4a] relative">
       <div className="absolute top-[-2px] left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#3d4f5f]" />
 
       {/* 3-column grade grid */}
       <div className="grid grid-cols-3 gap-2 mb-3 px-4 md:px-0">
-        {cells.map(({ label, score, tier, rec, ev, factors }) => {
-          const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
-          return (
+        {modelPending ? (
+          // Model hasn't processed these games yet — show Pending across all 3 cells
+          ['Money Line', 'Run Line', 'Over / Under'].map((label) => (
             <div
               key={label}
-              title={factors}
-              className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+              className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
             >
               <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
                 {label}
               </span>
-              <div className="flex flex-col items-center justify-center w-full">
-                {/* Tier badge as hero — clear, actionable signal */}
-                <span
-                  className={`text-[22px] font-black uppercase tracking-widest leading-none ${score > 0 ? st.text : 'text-slate-500'}`}
-                >
-                  {tier}
+              <div className="flex flex-col items-center justify-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-[11px] font-bold text-amber-400/70 tracking-wide uppercase">
+                  Pending
                 </span>
-                {/* Recommendation (team + price) */}
-                <span
-                  className={`text-[12px] font-bold capitalize tracking-wide mt-1 text-center leading-tight text-slate-300`}
-                >
-                  {score > 0 ? rec : 'No Edge'}
-                </span>
-                {/* EV% for all markets when there's a real edge */}
-                {score > 0 && ev !== 0 && (
-                  <span
-                    className={`text-[13px] font-black tracking-widest mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
-                  >
-                    {ev > 0 ? '+' : ''}{ev}% EV
-                  </span>
-                )}
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          cells.map(({ label, score, tier, rec, ev, factors }) => {
+            const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
+            return (
+              <div
+                key={label}
+                title={factors}
+                className={`flex flex-col items-center justify-center rounded-sm border px-2 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${tier === 'PASS' ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+              >
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-90">
+                  {label}
+                </span>
+                <div className="flex flex-col items-center justify-center w-full">
+                  {/* Tier badge as hero — clear, actionable signal */}
+                  <span
+                    className={`text-[22px] font-black uppercase tracking-widest leading-none ${score > 0 ? st.text : 'text-slate-500'}`}
+                  >
+                    {tier}
+                  </span>
+                  {/* Recommendation (team + price) */}
+                  <span
+                    className={`text-[12px] font-bold capitalize tracking-wide mt-1 text-center leading-tight text-slate-300`}
+                  >
+                    {score > 0 ? rec : 'No Edge'}
+                  </span>
+                  {/* EV% for all markets when there's a real edge */}
+                  {score > 0 && ev !== 0 && (
+                    <span
+                      className={`text-[13px] font-black tracking-widest mt-1 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
+                    >
+                      {ev > 0 ? '+' : ''}{ev}% EV
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* See Prop Bets — div button avoids nested <a> inside the parent Link */}
