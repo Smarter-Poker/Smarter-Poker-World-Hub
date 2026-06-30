@@ -1023,6 +1023,7 @@ export default function PropsPage() {
 
   const { data, error, isLoading, isValidating } = useSWR('/api/mlb/props', fetcher, {
     refreshInterval: 60000,
+    keepPreviousData: true,
   });
 
   const props: any[] = data?.props || EMPTY_ARRAY;

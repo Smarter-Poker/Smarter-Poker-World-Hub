@@ -65,41 +65,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // ── Fetch all data in parallel ──────────────────────────────────────────
-        const [slateGames, topBetsResult, pipelineResult] = await Promise.all([
-            // Use getSlate() — this builds proper GameCard objects with all joined data
+        // topBets and lastUpdate from pred_best_bets/pred_props removed — both were
+        // dead weight (never consumed by index.tsx or game/[id].tsx). lastUpdate now
+        // comes from pred_market_output which is the correct pipeline freshness proxy.
+        const [slateGames, lastUpdateResult] = await Promise.all([
+            // Use getSlate() — builds proper GameCard objects with all joined data
             getSlate(slateDate).catch((err) => {
                 console.error('[API/MLB/Dashboard] getSlate error:', err);
                 return [];
             }),
             mlbDb
-                .from('pred_best_bets')
-                .select('*')
-                .eq('official_date', betsDate)
-                .order('rank', { ascending: true })
-                .limit(10),
-            mlbDb
-                .from('pred_props')
+                .from('pred_market_output')
                 .select('as_of_ts')
                 .order('as_of_ts', { ascending: false })
-                .limit(1),
+                .limit(1)
+                .maybeSingle(),
         ]);
 
-        const lastUpdate =
-            pipelineResult.data && pipelineResult.data.length > 0
-                ? pipelineResult.data[0].as_of_ts
-                : null;
+        const lastUpdate = lastUpdateResult.data?.as_of_ts ?? null;
 
         // Set cache headers: short cache (60s) with stale-while-revalidate
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
         return res.status(200).json({
             todayStr: slateDate,
-            topBets: topBetsResult.data || [],
             lastUpdate,
             slateGames,
         });
     } catch (error: any) {
         console.error('[API/MLB/Dashboard] Error:', error);
-        return res.status(500).json({ error: error?.message || 'Internal Server Error' });
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        return res.status(200).json({ error: error?.message || 'Internal Server Error', slateGames: [], topBets: [], lastUpdate: null, todayStr: null });
     }
 }

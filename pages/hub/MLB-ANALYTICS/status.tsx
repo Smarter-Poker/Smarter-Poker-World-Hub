@@ -95,10 +95,6 @@ export interface MLBStatusPayload {
 const fetcher = async (url: string) => {
   try {
     const res = await fetch(url);
-    if (res.status === 403) {
-      // Admin-only endpoint: return a clean error object instead of throwing
-      return { ok: false, error: 'Access denied. This page requires admin privileges.' };
-    }
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -174,7 +170,7 @@ export default function StatusPage() {
             <p className="text-slate-300 text-[16px] relative z-10 mb-6 break-words">{apiError}</p>
             <button
               onClick={handleRefresh}
-              disabled={manualRefreshing && isValidating}
+              disabled={manualRefreshing || isValidating}
               className="inline-flex items-center gap-2 hex-button px-4 py-3 rounded text-[16px] font-bold tracking-widest capitalize touch-manipulation relative z-10 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               <RefreshCw
@@ -256,7 +252,7 @@ export default function StatusPage() {
             <div className="flex justify-end mb-4 px-4 md:px-0">
               <button
                 onClick={handleRefresh}
-                disabled={manualRefreshing && isValidating}
+                disabled={manualRefreshing || isValidating}
                 className="hex-button px-4 py-3 rounded flex items-center gap-2 cursor-pointer text-[16px] font-extrabold tracking-widest capitalize touch-manipulation disabled:opacity-50 min-h-[44px]"
               >
                 <RefreshCw

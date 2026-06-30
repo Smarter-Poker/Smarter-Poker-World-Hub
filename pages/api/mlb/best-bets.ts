@@ -810,16 +810,16 @@ async function edgeHandler(req: Request) {
       if (totData.data && totData.data.length > 0) dedupedTot = dedupeLatestBets(totData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (hrData.data && hrData.data.length > 0) dedupedHR = dedupeLatestBets(hrData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10).map((p: any) => ({ ...p, market: p.prop, bet_type: 'prop' }));
 
-      // Inject matchup and win_confidence for pred_market_output rows before enrichment.
-      // pred_market_output has no matchup, no bet_score, no win_confidence columns, so
-      // we synthesize them from model_prob and fact_games joins done in enrichBets.
-      const enrichWithMatchupStub = (rows: any[], betType: string): any[] =>
-        rows.map((r: any) => ({
-          ...r,
-          bet_type: r.bet_type || betType,
-          win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
-          bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
-        }));
+    // Inject matchup and win_confidence for pred_market_output rows before enrichment.
+    // NOTE: this function is OUTSIDE the if(data?.officialDate) block (see closing } above).
+    // All deduped* arrays were initialized to [] above the if-block, so this is always safe.
+    const enrichWithMatchupStub = (rows: any[], betType: string): any[] =>
+      rows.map((r: any) => ({
+        ...r,
+        bet_type: r.bet_type || betType,
+        win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
+        bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
+      }));
 
       const allBetsToEnrich = [
         ...paddedBetsArr,
@@ -1097,7 +1097,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
+      ? req.headers['x-forwarded-proto'][0]
+      : (req.headers['x-forwarded-proto'] || 'http');
+    const protocol = rawProto.split(',')[0].trim();
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url}`;
 

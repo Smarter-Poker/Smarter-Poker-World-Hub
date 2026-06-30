@@ -6,7 +6,14 @@ import { createClient } from '@supabase/supabase-js';
 // Only MLB_SUPABASE_SERVICE_KEY is accepted — falling through to the main project's
 // SUPABASE_SERVICE_ROLE_KEY would silently authenticate against the wrong DB.
 
+// Module-level singleton: reuses the same client per warm serverless invocation.
+// Each cold-start gets a fresh client (correct Next.js serverless behavior).
+let _mlbClient: ReturnType<typeof createClient> | null = null;
+
 export const getMlbSupabase = () => {
+    // Return cached client if already initialised in this lambda invocation
+    if (_mlbClient) return _mlbClient;
+
     const supabaseUrl = process.env.MLB_SUPABASE_URL
         || 'https://nscdmxldtyszyvcxxwgr.supabase.co';  // public URL fallback only
 
@@ -22,11 +29,13 @@ export const getMlbSupabase = () => {
         );
     }
 
-    return createClient(supabaseUrl, supabaseServiceKey, {
+    _mlbClient = createClient(supabaseUrl, supabaseServiceKey, {
         auth: {
             persistSession: false,     // server-side only — never hydrate client sessions
             autoRefreshToken: false,
             detectSessionInUrl: false,
         },
     });
+
+    return _mlbClient;
 };

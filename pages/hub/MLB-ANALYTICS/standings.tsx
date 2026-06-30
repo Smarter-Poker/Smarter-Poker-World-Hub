@@ -451,6 +451,7 @@ export default function StandingsPage() {
   const router = useRouter();
   const { data, error, isLoading } = useSWR('/api/mlb/standings', fetcher, {
     refreshInterval: 60000,
+    keepPreviousData: true,
   });
   const [view, setView] = useState<'division' | 'wildcard' | 'power'>('division');
 

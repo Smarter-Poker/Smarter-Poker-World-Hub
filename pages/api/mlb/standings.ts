@@ -98,7 +98,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
+      ? req.headers['x-forwarded-proto'][0]
+      : (req.headers['x-forwarded-proto'] || 'http');
+    const protocol = rawProto.split(',')[0].trim();
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url}`;
 

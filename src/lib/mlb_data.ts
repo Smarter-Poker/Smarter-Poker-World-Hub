@@ -20,6 +20,8 @@ export type GameCard = {
   awayScore?: number | null;
   isFinal?: boolean | null;
   gameStatus?: string | null;
+  // Model prediction availability flag
+  hasPredictions?: boolean;
   marketHome: number | null; modelHome: number | null; rawModelHome: number | null; homeEdge: number | null;
   scoreWinProb?: number | null; scorePrice?: number | null; scoreMarket?: number | null;
   avgOdds?: number | null; spreadLine?: number | null; totalLine?: number | null;
@@ -308,7 +310,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
       // Live/final score data from fact_games (populated by the live ingestion pipeline)
       homeScore: g.home_score != null ? Number(g.home_score) : null,
       awayScore: g.away_score != null ? Number(g.away_score) : null,
-      isFinal: g.final === true || g.final === 'true' || g.final === 1 || g.final === '1' || null,
+      isFinal: g.final === true || g.final === 'true' || g.final === 1 || g.final === '1' || false,
       gameStatus: g.status ?? null,
       homeStarter: smap.get(`${g.game_pk}:${g.home_team_id}`) ?? null,
       awayStarter: smap.get(`${g.game_pk}:${g.away_team_id}`) ?? null,
@@ -342,8 +344,11 @@ async function _getSlate(date: string): Promise<GameCard[]> {
         winProb: e.bet.blended_prob != null ? Number(e.bet.blended_prob) : (e.bet.model_prob != null ? Number(e.bet.model_prob) : null), 
         price: e.bet.best_price != null ? Number(e.bet.best_price) : null, 
         market: e.bet.market_novig_prob != null ? Number(e.bet.market_novig_prob) : null,
+        // bet_tier: use canonical betScore.ts thresholds so BetScoreBadge renders correctly.
+        // Thresholds: ELITE>=82, STRONG>=68, LEAN>=52, THIN>=38, PASS<38
+        // (PREMIUM and STANDARD are NOT valid tier names — BetScoreBadge falls back to PASS for those)
         bet_score: e.bet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.bet.edge_pts) * 5))) : undefined,
-        bet_tier: e.bet.edge_pts != null ? (Math.round(50 + Number(e.bet.edge_pts) * 5) >= 82 ? 'ELITE' : Math.round(50 + Number(e.bet.edge_pts) * 5) >= 70 ? 'PREMIUM' : Math.round(50 + Number(e.bet.edge_pts) * 5) >= 60 ? 'STRONG' : 'STANDARD') : undefined,
+        bet_tier: (() => { const s = e.bet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.bet.edge_pts) * 5))) : null; return s == null ? undefined : s >= 82 ? 'ELITE' : s >= 68 ? 'STRONG' : s >= 52 ? 'LEAN' : s >= 38 ? 'THIN' : 'PASS'; })(),
       } : null,
       runLineBet: e.runLineBet ? { 
         selection: String(e.runLineBet.selection), 
@@ -353,7 +358,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
         price: e.runLineBet.best_price != null ? Number(e.runLineBet.best_price) : null, 
         market: e.runLineBet.market_novig_prob != null ? Number(e.runLineBet.market_novig_prob) : null,
         bet_score: e.runLineBet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.runLineBet.edge_pts) * 5))) : undefined,
-        bet_tier: e.runLineBet.edge_pts != null ? (Math.round(50 + Number(e.runLineBet.edge_pts) * 5) >= 82 ? 'ELITE' : Math.round(50 + Number(e.runLineBet.edge_pts) * 5) >= 70 ? 'PREMIUM' : Math.round(50 + Number(e.runLineBet.edge_pts) * 5) >= 60 ? 'STRONG' : 'STANDARD') : undefined,
+        bet_tier: (() => { const s = e.runLineBet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.runLineBet.edge_pts) * 5))) : null; return s == null ? undefined : s >= 82 ? 'ELITE' : s >= 68 ? 'STRONG' : s >= 52 ? 'LEAN' : s >= 38 ? 'THIN' : 'PASS'; })(),
       } : null,
       totalBet: e.totalBet ? { 
         selection: String(e.totalBet.selection), 
@@ -362,7 +367,7 @@ async function _getSlate(date: string): Promise<GameCard[]> {
         price: e.totalBet.best_price != null ? Number(e.totalBet.best_price) : null, 
         market: e.totalBet.market_novig_prob != null ? Number(e.totalBet.market_novig_prob) : null,
         bet_score: e.totalBet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.totalBet.edge_pts) * 5))) : undefined,
-        bet_tier: e.totalBet.edge_pts != null ? (Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 82 ? 'ELITE' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 70 ? 'PREMIUM' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 60 ? 'STRONG' : 'STANDARD') : undefined,
+        bet_tier: (() => { const s = e.totalBet.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(e.totalBet.edge_pts) * 5))) : null; return s == null ? undefined : s >= 82 ? 'ELITE' : s >= 68 ? 'STRONG' : s >= 52 ? 'LEAN' : s >= 38 ? 'THIN' : 'PASS'; })(),
       } : null,
       sportsbooks,
       // Games started 60+ min ago with no predictions show PASS (not PENDING).
@@ -546,7 +551,7 @@ function _latestBy<T extends Record<string, any /* eslint-disable-line @typescri
 
 async function _getGameFull(gamePk: number) {
   const sb = getMlbSupabase();
-  const { data: fg } = await sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc,home_score,away_score,final").eq("game_pk", gamePk).limit(1);
+  const { data: fg } = await sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc,home_score,away_score,final,status").eq("game_pk", gamePk).limit(1);
   const g = fg?.[0]; if (!g) return null;
   const [{ data: teams }, { data: lu }, { data: pr }, { data: mkt }, { data: props }, { data: aggteam }, { data: mktAgg }, { data: weather }, { data: park }, { data: st }, { data: bullpen }, { data: fgTeam }, { data: recentGames }, { data: pkgs }, { data: feats }] = await Promise.all([
     sb.from("dim_teams").select("team_id,name,abbr"),

@@ -152,7 +152,7 @@ export default async function edgeHandler(req: Request) {
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
       .or('best_price.not.is.null,best_price_under.not.is.null')
-      .order('edge_pts', { ascending: false, nullsFirst: false })
+      .order('kelly_pct', { ascending: false, nullsFirst: false })
     ).catch(err => {
       console.error('[API/MLB/Props] pred_props error:', err);
       return null;

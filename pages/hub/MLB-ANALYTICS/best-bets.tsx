@@ -1350,7 +1350,7 @@ const BetCard = ({
       className="w-full bg-gradient-to-b from-[#131e2e] to-[#0d1117] border-[2px] border-[#3d4f5f] rounded-lg overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_6px_20px_rgba(0,0,0,0.6)] hover:border-[#3d5a6a] focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] transition-all duration-200 cursor-pointer touch-manipulation snap-start group"
       onClick={() => {
         onClick();
-        if (navigator.vibrate)
+        if (typeof navigator !== 'undefined' && navigator.vibrate)
           try {
             navigator.vibrate(8);
           } catch (e) { console.error('Failed to vibrate', e); }
@@ -1641,21 +1641,22 @@ const CategoryCarousel = ({
 export default function BestBetsPage() {
   const router = useRouter();
   const [selectedBet, setSelectedBet] = useState<any | null>(null);
-  const [todayStr, setTodayStr] = useState<string>('');
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
-  useEffect(() => {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
+  // Compute today in CT synchronously so stale detection works on first render
+  // (previously initialized to '' which made every slate appear fresh until useEffect fired)
+  const [todayStr] = useState<string>(() =>
+    new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Chicago',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    });
-    setTodayStr(formatter.format(new Date()));
-  }, []);
+    }).format(new Date())
+  );
 
   const { data, error, isLoading } = useSWR('/api/mlb/best-bets', fetcher, {
     refreshInterval: 60000,
+    keepPreviousData: true,
   });
 
   useEffect(() => {

@@ -58,7 +58,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (timeoutId) clearTimeout(timeoutId);
     }
 
-    if (rpcError) throw rpcError;
+    if (rpcError) {
+      // Postgres code 42501 = insufficient_privilege (anon key lacks EXECUTE on this RPC)
+      // Don't crash the page — return a degraded payload with ok=false so the UI shows
+      // a friendly "unavailable" state rather than "Access denied"
+      const pgCode = (rpcError as any)?.code;
+      const isPermissionError = pgCode === '42501' || pgCode === 'PGRST301' ||
+        String((rpcError as any)?.message || '').toLowerCase().includes('permission') ||
+        String((rpcError as any)?.message || '').toLowerCase().includes('not allowed');
+      if (isPermissionError) {
+        console.warn('[API/MLB/Status] RPC permission error — check EXECUTE grant on get_status_dashboard for anon role:', rpcError);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          ok: false,
+          error: 'Status data temporarily unavailable. Pipeline running.',
+          serverNow: new Date().toISOString(),
+          today: new Date().toISOString().slice(0, 10),
+          aggAsOf: null, isSystemFresh: false,
+          pipeline: { okCount: 0, errorCount: 0, pendingCount: 0, total: 0, hasError: false },
+          health: {}, slate: {}, accuracy: {}, tierDist: {}, sources: [], alerts: [], tableCounts: {}, stages: [], latestRuns: {},
+        });
+      }
+      throw rpcError;
+    }
 
     const d = (data || {}) as DashboardData;
 
