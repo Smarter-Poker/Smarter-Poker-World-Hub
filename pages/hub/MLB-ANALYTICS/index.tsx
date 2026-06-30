@@ -129,6 +129,15 @@ function SyncIndicator({ onSync }: { onSync: () => void }) {
 
 function MarketGradesPanel({ g }: { g: GameCard }) {
   const router = useRouter();
+  // Log-scale score from edge_pts — same formula as betScore() in betScore.ts
+  // 3 edge→58(LEAN), 6→64(LEAN), 9→68(STRONG), 15→77(STRONG), 22→83(ELITE)
+  const edgeScore = (e: number) =>
+    Math.min(97, Math.max(0, Math.round(50 + 22 * Math.log(1 + Math.max(0, e) / 7))));
+  const edgeTier = (s: number): Tier =>
+    s >= 82 ? 'ELITE' : s >= 68 ? 'STRONG' : s >= 52 ? 'LEAN' : s >= 38 ? 'THIN' : 'PASS';
+  // Format a price as +160 or -127, returns '' if invalid
+  const fmtPrice = (p: number | null | undefined) =>
+    p != null && p !== 0 ? (p > 0 ? `+${p}` : `${p}`) : '';
 
   // ML
   let mlScore = 0;
@@ -151,13 +160,15 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       mlEv = exp.evPct;
       mlFactors = exp.factors.map((f: any) => f.text).join('\n');
     } else {
-      // best_price missing — use edge_pts directly (authoritative model signal)
-      mlScore = Math.min(100, Math.max(0, Math.round(50 + g.bet.edge * 5)));
-      mlTier = (TIER_STYLE as any)[mlScore >= 82 ? 'ELITE' : mlScore >= 68 ? 'STRONG' : mlScore >= 52 ? 'LEAN' : mlScore >= 38 ? 'THIN' : 'PASS'] ? (mlScore >= 82 ? 'ELITE' : mlScore >= 68 ? 'STRONG' : mlScore >= 52 ? 'LEAN' : mlScore >= 38 ? 'THIN' : 'PASS') as Tier : 'PASS';
-      mlEv = 0; // suppress EV when no valid price
+      // best_price missing — use edge_pts with log scale (same curve as main betScore)
+      mlScore = edgeScore(g.bet.edge);
+      mlTier = edgeTier(mlScore);
+      mlEv = 0; // suppress EV% when no valid price
     }
     const teamName = g.bet.team?.split(' ').pop() || 'Hold';
-    const priceStr = validPrice ? (g.bet.price! > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
+    // Price fallback: use avg market line when best_price is unavailable
+    const fallbackPrice = g.bet.selection === 'home' ? g.avgHomeLine : g.avgAwayLine;
+    const priceStr = validPrice ? fmtPrice(g.bet.price) : fmtPrice(fallbackPrice);
     mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
     mlSide = g.bet.selection;
   } else if (g.modelHome != null && g.marketHome != null) {
@@ -209,8 +220,8 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       rlEv = exp.evPct;
       rlFactors = exp.factors.map((f: any) => f.text).join('\n');
     } else {
-      rlScore = Math.min(100, Math.max(0, Math.round(50 + g.runLineBet.edge * 5)));
-      rlTier = (rlScore >= 82 ? 'ELITE' : rlScore >= 68 ? 'STRONG' : rlScore >= 52 ? 'LEAN' : rlScore >= 38 ? 'THIN' : 'PASS') as Tier;
+      rlScore = edgeScore(g.runLineBet.edge);
+      rlTier = edgeTier(rlScore);
       rlEv = 0;
     }
     let teamName = '';
@@ -223,7 +234,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       teamName = g.away.split(' ').pop() || 'Away';
       lineStr = sel.replace('away_', '');
     }
-    const priceStr = validRlPrice ? (g.runLineBet.price! > 0 ? `+${g.runLineBet.price}` : `${g.runLineBet.price}`) : '';
+    // Price fallback: use avg spread odds when best_price unavailable
+    const rlFallbackPrice = sel.startsWith('home') ? g.avgHomeSpreadOdds : g.avgAwaySpreadOdds;
+    const priceStr = validRlPrice ? fmtPrice(g.runLineBet.price) : fmtPrice(rlFallbackPrice);
     rlRec = rlScore > 0 ? `${teamName} ${lineStr} ${priceStr}`.trim() : `${teamName} ${lineStr}`.trim();
   }
 
@@ -246,8 +259,8 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       ouEv = exp.evPct;
       ouFactors = exp.factors.map((f: any) => f.text).join('\n');
     } else {
-      ouScore = Math.min(100, Math.max(0, Math.round(50 + g.totalBet.edge * 5)));
-      ouTier = (ouScore >= 82 ? 'ELITE' : ouScore >= 68 ? 'STRONG' : ouScore >= 52 ? 'LEAN' : ouScore >= 38 ? 'THIN' : 'PASS') as Tier;
+      ouScore = edgeScore(g.totalBet.edge);
+      ouTier = edgeTier(ouScore);
       ouEv = 0;
     }
     let choice = '';
@@ -260,7 +273,9 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       choice = 'Under';
       lineStr = sel.replace('under_', '');
     }
-    const priceStr = validOuPrice ? (g.totalBet.price! > 0 ? `+${g.totalBet.price}` : `${g.totalBet.price}`) : '';
+    // Price fallback: use avg over/under odds when best_price unavailable
+    const ouFallbackPrice = sel.startsWith('over') ? g.avgOverOdds : g.avgUnderOdds;
+    const priceStr = validOuPrice ? fmtPrice(g.totalBet.price) : fmtPrice(ouFallbackPrice);
     ouRec = ouScore > 0 ? `${choice} ${lineStr} ${priceStr}`.trim() : `${choice} ${lineStr}`.trim();
   } else if (g.avgTotalLine) {
     ouRec = `O/U ${g.avgTotalLine}`;
