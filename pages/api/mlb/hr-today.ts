@@ -22,8 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .maybeSingle();
     if (latestErr) throw latestErr;
     if (!latestRow?.as_of_ts) {
+      // No HR props found at all (very early season or table empty) — return empty
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-      return res.status(200).json({ as_of: null, leaders: [] });
+      return res.status(200).json({ as_of: null, leaders: [], stale: false });
     }
     const asOf = latestRow.as_of_ts;
 

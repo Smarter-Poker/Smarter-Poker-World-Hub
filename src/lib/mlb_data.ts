@@ -15,6 +15,11 @@ export type GameCard = {
   awayRecord?: { wins: number; losses: number };
   homeStreak?: string;
   awayStreak?: string;
+  // Live/final score fields
+  homeScore?: number | null;
+  awayScore?: number | null;
+  isFinal?: boolean | null;
+  gameStatus?: string | null;
   marketHome: number | null; modelHome: number | null; rawModelHome: number | null; homeEdge: number | null;
   scoreWinProb?: number | null; scorePrice?: number | null; scoreMarket?: number | null;
   avgOdds?: number | null; spreadLine?: number | null; totalLine?: number | null;
@@ -139,7 +144,7 @@ export async function getStreaks(): Promise<Map<number, string>> {
 async function _getSlate(date: string): Promise<GameCard[]> {
   const sb = getMlbSupabase();
   const { data: games } = await sb.from("fact_games")
-    .select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc")
+    .select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc,home_score,away_score,final,status")
     .eq("official_date", date).order("first_pitch_utc");
   if (!games?.length) return [];
   const gpks = games.map((g) => g.game_pk);
@@ -300,6 +305,11 @@ async function _getSlate(date: string): Promise<GameCard[]> {
 
     return {
       gamePk: g.game_pk, home: homeName, away: awayName, homeId: g.home_team_id, awayId: g.away_team_id, firstPitch: g.first_pitch_utc,
+      // Live/final score data from fact_games (populated by the live ingestion pipeline)
+      homeScore: g.home_score != null ? Number(g.home_score) : null,
+      awayScore: g.away_score != null ? Number(g.away_score) : null,
+      isFinal: g.final === true || g.final === 'true' || g.final === 1 || g.final === '1' || null,
+      gameStatus: g.status ?? null,
       homeStarter: smap.get(`${g.game_pk}:${g.home_team_id}`) ?? null,
       awayStarter: smap.get(`${g.game_pk}:${g.away_team_id}`) ?? null,
       homeRecord: recMap.get(g.home_team_id),
@@ -371,7 +381,7 @@ export const getSlate = async (date: string) => _getSlate(date);
 async function _getGame(gamePk: number) {
   const sb = getMlbSupabase();
   const [{ data: fg }, { data: teams }, { data: market }, { data: props }, { data: lineups }, smap0] = await Promise.all([
-    sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc").eq("game_pk", gamePk).limit(1),
+    sb.from("fact_games").select("game_pk,home_team_id,away_team_id,venue_id,first_pitch_utc,home_score,away_score,final,status").eq("game_pk", gamePk).limit(1),
     sb.from("dim_teams").select("team_id,name"),
     sb.from("pred_market_output").select("as_of_ts,market,selection,model_prob,raw_model_prob,market_novig_prob,blended_prob,edge_pts,rec,model_version,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk).order("as_of_ts", { ascending: false }).limit(1000),
     sb.from("pred_props").select("player_id,prop,line,proj_mean,prob_over,blended_over,rec,kelly_pct,best_lines,best_price,best_book").eq("game_pk", gamePk).order("as_of_ts", { ascending: false }).limit(1000),
@@ -402,6 +412,11 @@ async function _getGame(gamePk: number) {
     gamePk, home_team_id: g?.home_team_id, away_team_id: g?.away_team_id,
     home: tmap.get(g?.home_team_id) ?? "Home", away: tmap.get(g?.away_team_id) ?? "Away",
     venue, firstPitch: g?.first_pitch_utc ?? null,
+    // Live/final scores — populated by ingest pipeline
+    homeScore: g?.home_score != null ? Number(g.home_score) : null,
+    awayScore: g?.away_score != null ? Number(g.away_score) : null,
+    isFinal: g?.final === true || g?.final === 'true' || g?.final === 1 || g?.final === '1' || false,
+    gameStatus: g?.status ?? null,
     homeStarter: smap0.get(`${gamePk}:${g?.home_team_id}`) ?? null,
     awayStarter: smap0.get(`${gamePk}:${g?.away_team_id}`) ?? null,
     market: marketLatest, props: props ?? [], lineups: liveLineups,

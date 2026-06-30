@@ -826,7 +826,7 @@ export default function PlayerProfilePage() {
                               />
                               <MetricTile
                                 label="wRC+"
-                                value={fmt('int', matchup.opp_team_hitting.wrc)}
+                                value={fmt('int', matchup.opp_team_hitting.wrc_plus)}
                                 tip={glossaryFor('wRC+')}
                               />
                             </div>

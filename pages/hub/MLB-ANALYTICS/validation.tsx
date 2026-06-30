@@ -461,13 +461,15 @@ export default function ValidationPage() {
                       <div className="text-right text-slate-300 font-medium">{row.n}</div>
                       <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
                       <div
-                        className={`text-right font-extrabold ${Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#00D4FF]' : 'text-white'}`}
+                        className={`text-right font-extrabold ${
+                          Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#FF0055]' : 'text-white'
+                        }`}
                         style={{
                           textShadow:
                             Number(row.roi) > 0
                               ? '0 0 5px rgba(0,212,255,0.5)'
                               : Number(row.roi) < 0
-                                ? '0 0 5px rgba(0,212,255,0.5)'
+                                ? '0 0 5px rgba(255,0,85,0.5)'
                                 : 'none',
                         }}
                       >

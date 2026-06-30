@@ -281,9 +281,9 @@ async function edgeHandler(req: Request) {
           : null;
         return {
           ...team,
-          league: team.league || dim.league || null,
-          division: team.division || dim.division || null,
-          abbr: team.abbr || dim.abbr || null,
+          league: team.league || dim?.league || null,
+          division: team.division || dim?.division || null,
+          abbr: team.abbr || dim?.abbr || null,
           has_active_edge: !!grade,
           grade,
           adv_stats: mergeAgg(String(team.team_id)),

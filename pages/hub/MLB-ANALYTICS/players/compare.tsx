@@ -362,18 +362,22 @@ export default function ComparePage() {
               );
             })}
             <div className="flex justify-between mt-3 pt-2 text-[12px]">
-              <Link
-                href={`/hub/MLB-ANALYTICS/players/${a}`}
-                className="text-[#00D4FF] underline font-bold"
-              >
-                Full profile
-              </Link>
-              <Link
-                href={`/hub/MLB-ANALYTICS/players/${b}`}
-                className="text-[#00D4FF] underline font-bold"
-              >
-                Full profile
-              </Link>
+              {a && (
+                <Link
+                  href={`/hub/MLB-ANALYTICS/players/${a}`}
+                  className="text-[#00D4FF] underline font-bold"
+                >
+                  Full profile
+                </Link>
+              )}
+              {b && (
+                <Link
+                  href={`/hub/MLB-ANALYTICS/players/${b}`}
+                  className="text-[#00D4FF] underline font-bold"
+                >
+                  Full profile
+                </Link>
+              )}
             </div>
           </MetalFrame>
         )}

@@ -110,7 +110,7 @@ const GameCard = ({ game }: any) => {
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
               {isLive
-                ? `${game.inning_state === 'Top' || game.is_top_inning ? 'Top' : 'Bot'} ${game.inning || ''}`
+                ? `${game.inning_state === 'Top' ? 'Top' : 'Bot'} ${game.inning || ''}`
                 : isFinal
                   ? 'F'
                   : game.start_time

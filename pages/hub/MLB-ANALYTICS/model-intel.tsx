@@ -363,7 +363,7 @@ export default function ModelIntelPage() {
     if (mins < 1) return 'Just Now';
     if (mins === 1) return '1 Min Ago';
     return `${mins} Mins Ago`;
-  }, [lastRefreshed, /* eslint-disable-next-line react-hooks/exhaustive-deps */ Date.now()]);
+  }, [lastRefreshed]);
 
   // ── Filter state
   const [chartRange, setChartRange] = useState<ChartRange>('All');

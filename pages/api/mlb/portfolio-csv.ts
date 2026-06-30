@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (parsedDays !== undefined && parsedDays < 0) {
             return res.status(400).send('Bad Request: Days cannot be negative');
         }
-        const parsedMarket = marketStr && marketStr.toUpperCase() !== 'ALL' ? marketStr.toUpperCase() : undefined;
+        const parsedMarket = marketStr && marketStr.toLowerCase() !== 'all' ? marketStr.toLowerCase() : undefined;
 
         const mlbDb = getMlbSupabase();
 

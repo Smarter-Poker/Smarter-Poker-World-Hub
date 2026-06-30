@@ -612,8 +612,8 @@ export default function MlbSlatePage() {
                 <div className="absolute top-[20%] bottom-[20%] left-[-2px] w-[3px] bg-[#00D4FF] rounded-r-md opacity-30 group-hover:opacity-100 group-hover:shadow-[0_0_12px_#00D4FF] transition-all" />
 
                 {/* ── Game Header ────────────────── */}
-                <div className="flex items-center justify-start mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
-                  <div className="flex flex-col min-w-0 w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-4 pl-2 border-b border-[#2a3a4a] pb-3">
+                  <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                     <span
                       className="text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] whitespace-nowrap text-left"
                       style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 'clamp(11px, 3.2vw, 24px)' }}
@@ -621,6 +621,27 @@ export default function MlbSlatePage() {
                       {g.away} @ {g.home}
                     </span>
                   </div>
+                  {/* Live / Final score pill — only shown when score data is available */}
+                  {g.awayScore != null && g.homeScore != null && (
+                    <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                      {g.isFinal ? (
+                        <span
+                          className="text-[13px] font-black tracking-widest text-[#8a9ba8] bg-[#0d1117] border border-[#3d4f5f] px-2 py-0.5 rounded-sm"
+                          style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                        >
+                          {g.awayScore}&nbsp;–&nbsp;{g.homeScore}&nbsp;F
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[13px] font-black tracking-widest text-[#00D4FF] bg-[#001a22] border border-[#00D4FF]/50 px-2 py-0.5 rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.2)]"
+                          style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                        >
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse mr-1 align-middle" />
+                          {g.awayScore}&nbsp;–&nbsp;{g.homeScore}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Teams + Odds Grid ─────────────── */}

@@ -64,7 +64,8 @@ async function edgeHandler(req: Request) {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+                // Live game data — never serve stale from CDN; SWR polls every 15s.
+                'Cache-Control': 'no-store, max-age=0'
             }
         });
     } catch (err) {
@@ -81,7 +82,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        // x-forwarded-proto can be comma-separated behind multiple proxies — always take first.
+        const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
+          ? req.headers['x-forwarded-proto'][0]
+          : (req.headers['x-forwarded-proto'] || 'http');
+        const protocol = rawProto.split(',')[0].trim();
         const host = req.headers.host || 'localhost';
         const url = `${protocol}://${host}${req.url}`;
         

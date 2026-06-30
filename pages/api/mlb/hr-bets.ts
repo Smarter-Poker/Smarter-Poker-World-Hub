@@ -15,7 +15,8 @@ import { createClient } from '@supabase/supabase-js';
 let _sb: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
   if (!_sb) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!url) throw new Error('[hr-bets] NEXT_PUBLIC_SUPABASE_URL is not set — cannot connect to Supabase');
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
     _sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   }

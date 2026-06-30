@@ -48,7 +48,9 @@ export default function GameMatchupDashboard() {
   const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, {
     refreshInterval: 120000,
   });
-  const { data: specificGameData, error: specificGameErr } = useSWR(gamePk && (!dashData || !dashData.slateGames?.find((g: any) => g.gamePk === gamePk)) ? `/api/mlb/game/${gamePk}` : null, fetcher);
+  const { data: specificGameData, error: specificGameErr } = useSWR(
+    gamePk && (dashData?.error || !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk))
+      ? `/api/mlb/game/${gamePk}` : null, fetcher);
   // Fetch bets and props — model output updates daily, check every 5 min
   const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, {
     refreshInterval: 300000,

@@ -26,5 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Game not found in slate' });
   }
 
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   res.status(200).json(found);
 }

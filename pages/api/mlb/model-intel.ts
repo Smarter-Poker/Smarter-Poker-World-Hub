@@ -102,9 +102,10 @@ async function edgeHandler(req: Request): Promise<Response> {
         },
         gate: rpcData.gate ?? { 
           n: Number(k.graded_predictions) || 0, 
-          clv: (num(k.avg_clv) ?? 0), 
-          roi: (num(k.overall_roi) ?? 0), 
-          brier: (num(k.avg_brier) ?? 0) 
+          // Format as strings to match TypeScript interface declaration (clv: string, roi: string, brier: string)
+          clv: (num(k.avg_clv) ?? 0).toFixed(2), 
+          roi: (num(k.overall_roi) ?? 0).toFixed(1), 
+          brier: (num(k.avg_brier) ?? 0).toFixed(3) 
         },
         tableData: Array.isArray(rpcData.table_data) ? rpcData.table_data : [],
         history: Array.isArray(rpcData.history) ? rpcData.history : [],
@@ -116,12 +117,20 @@ async function edgeHandler(req: Request): Promise<Response> {
           sparkline: []
         })) : [],
       };
-    } else {
+    } else if (rpcError) {
       console.error('[API/MLB/ModelIntel] RPC failed:', rpcError?.message);
       return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
+    } else {
+      // RPC succeeded but returned empty/null kpi (e.g. pre-season, no graded data yet)
+      // Return an empty payload with 200 rather than crashing with 500
+      payload = {
+        intel: { model_version: null, total_bets_tracked: 0, graded_predictions: 0, win_pct: null, recent_roi: 0, overall_roi: 0, avg_brier: null, avg_clv: null, data_through: null },
+        gate: { n: 0, clv: '0.00', roi: '0.0', brier: '0.000' },
+        tableData: [], history: [], clvTrend: [], calibration: [], markets: [], betTypes: [],
+      };
     }
 
     return new Response(JSON.stringify(payload), {
@@ -146,7 +155,12 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    // x-forwarded-proto can be a comma-separated list behind multiple proxies (e.g. "https, http").
+    // Always take the first value to avoid malformed URLs.
+    const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
+      ? req.headers['x-forwarded-proto'][0]
+      : (req.headers['x-forwarded-proto'] || 'http');
+    const protocol = rawProto.split(',')[0].trim();
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url}`;
 
