@@ -140,17 +140,24 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   const isLocked = g.lineupState === 'confirmed';
 
   if (g.bet && g.bet.edge != null) {
-    const exp = explain(g.bet.winProb ?? 0, g.bet.price ?? -110, {
-      pMarket: g.bet.market ?? undefined,
-      lineupLocked: isLocked,
-    });
-    mlScore = exp.betScore;
-    mlTier = exp.tier as Tier;
-    mlEv = exp.evPct;
-    mlFactors = exp.factors.map((f: any) => f.text).join('\n');
-    
+    const validPrice = g.bet.price != null && g.bet.price !== 0;
+    if (validPrice) {
+      const exp = explain(g.bet.winProb ?? 0, g.bet.price!, {
+        pMarket: g.bet.market ?? undefined,
+        lineupLocked: isLocked,
+      });
+      mlScore = exp.betScore;
+      mlTier = exp.tier as Tier;
+      mlEv = exp.evPct;
+      mlFactors = exp.factors.map((f: any) => f.text).join('\n');
+    } else {
+      // best_price missing — use edge_pts directly (authoritative model signal)
+      mlScore = Math.min(100, Math.max(0, Math.round(50 + g.bet.edge * 5)));
+      mlTier = (TIER_STYLE as any)[mlScore >= 82 ? 'ELITE' : mlScore >= 68 ? 'STRONG' : mlScore >= 52 ? 'LEAN' : mlScore >= 38 ? 'THIN' : 'PASS'] ? (mlScore >= 82 ? 'ELITE' : mlScore >= 68 ? 'STRONG' : mlScore >= 52 ? 'LEAN' : mlScore >= 38 ? 'THIN' : 'PASS') as Tier : 'PASS';
+      mlEv = 0; // suppress EV when no valid price
+    }
     const teamName = g.bet.team?.split(' ').pop() || 'Hold';
-    const priceStr = g.bet.price != null ? (g.bet.price > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
+    const priceStr = validPrice ? (g.bet.price! > 0 ? `+${g.bet.price}` : `${g.bet.price}`) : '';
     mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
     mlSide = g.bet.selection;
   } else if (g.modelHome != null && g.marketHome != null) {
@@ -191,15 +198,21 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let rlFactors = '';
 
   if (g.runLineBet && g.runLineBet.edge != null) {
-    const exp = explain(g.runLineBet.winProb ?? 0, g.runLineBet.price ?? -110, {
-      pMarket: g.runLineBet.market ?? undefined,
-      lineupLocked: isLocked,
-    });
-    rlScore = exp.betScore;
-    rlTier = exp.tier as Tier;
-    rlEv = exp.evPct;
-    rlFactors = exp.factors.map((f: any) => f.text).join('\n');
-    
+    const validRlPrice = g.runLineBet.price != null && g.runLineBet.price !== 0;
+    if (validRlPrice) {
+      const exp = explain(g.runLineBet.winProb ?? 0, g.runLineBet.price!, {
+        pMarket: g.runLineBet.market ?? undefined,
+        lineupLocked: isLocked,
+      });
+      rlScore = exp.betScore;
+      rlTier = exp.tier as Tier;
+      rlEv = exp.evPct;
+      rlFactors = exp.factors.map((f: any) => f.text).join('\n');
+    } else {
+      rlScore = Math.min(100, Math.max(0, Math.round(50 + g.runLineBet.edge * 5)));
+      rlTier = (rlScore >= 82 ? 'ELITE' : rlScore >= 68 ? 'STRONG' : rlScore >= 52 ? 'LEAN' : rlScore >= 38 ? 'THIN' : 'PASS') as Tier;
+      rlEv = 0;
+    }
     let teamName = '';
     let lineStr = '';
     const sel = String(g.runLineBet.selection || '');
@@ -210,7 +223,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       teamName = g.away.split(' ').pop() || 'Away';
       lineStr = sel.replace('away_', '');
     }
-    const priceStr = g.runLineBet.price != null ? (g.runLineBet.price > 0 ? `+${g.runLineBet.price}` : `${g.runLineBet.price}`) : '';
+    const priceStr = validRlPrice ? (g.runLineBet.price! > 0 ? `+${g.runLineBet.price}` : `${g.runLineBet.price}`) : '';
     rlRec = rlScore > 0 ? `${teamName} ${lineStr} ${priceStr}`.trim() : `${teamName} ${lineStr}`.trim();
   }
 
@@ -222,15 +235,21 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   let ouFactors = '';
 
   if (g.totalBet && g.totalBet.edge != null) {
-    const exp = explain(g.totalBet.winProb ?? 0, g.totalBet.price ?? -110, {
-      pMarket: g.totalBet.market ?? undefined,
-      lineupLocked: isLocked,
-    });
-    ouScore = exp.betScore;
-    ouTier = exp.tier as Tier;
-    ouEv = exp.evPct;
-    ouFactors = exp.factors.map((f: any) => f.text).join('\n');
-
+    const validOuPrice = g.totalBet.price != null && g.totalBet.price !== 0;
+    if (validOuPrice) {
+      const exp = explain(g.totalBet.winProb ?? 0, g.totalBet.price!, {
+        pMarket: g.totalBet.market ?? undefined,
+        lineupLocked: isLocked,
+      });
+      ouScore = exp.betScore;
+      ouTier = exp.tier as Tier;
+      ouEv = exp.evPct;
+      ouFactors = exp.factors.map((f: any) => f.text).join('\n');
+    } else {
+      ouScore = Math.min(100, Math.max(0, Math.round(50 + g.totalBet.edge * 5)));
+      ouTier = (ouScore >= 82 ? 'ELITE' : ouScore >= 68 ? 'STRONG' : ouScore >= 52 ? 'LEAN' : ouScore >= 38 ? 'THIN' : 'PASS') as Tier;
+      ouEv = 0;
+    }
     let choice = '';
     let lineStr = '';
     const sel = String(g.totalBet.selection || '');
@@ -241,7 +260,7 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       choice = 'Under';
       lineStr = sel.replace('under_', '');
     }
-    const priceStr = g.totalBet.price != null ? (g.totalBet.price > 0 ? `+${g.totalBet.price}` : `${g.totalBet.price}`) : '';
+    const priceStr = validOuPrice ? (g.totalBet.price! > 0 ? `+${g.totalBet.price}` : `${g.totalBet.price}`) : '';
     ouRec = ouScore > 0 ? `${choice} ${lineStr} ${priceStr}`.trim() : `${choice} ${lineStr}`.trim();
   } else if (g.avgTotalLine) {
     ouRec = `O/U ${g.avgTotalLine}`;
