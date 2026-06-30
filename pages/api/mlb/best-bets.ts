@@ -569,7 +569,20 @@ async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
     } else if (enriched.win_confidence != null && Number(enriched.win_confidence) <= 1.0 && Number(enriched.win_confidence) > 0) {
       enriched.win_confidence = Number(enriched.win_confidence) * 100;
     }
-    
+
+    // Synthesize odds from model_prob when best_price is missing so the UI never shows "—"
+    if (enriched.best_price == null && enriched.price == null) {
+      const prob = bet.model_prob != null
+        ? Number(bet.model_prob)
+        : (enriched.win_confidence != null ? Number(enriched.win_confidence) / 100 : null);
+      if (prob != null && prob > 0 && prob < 1) {
+        const american = prob >= 0.5
+          ? Math.round(-(prob / (1 - prob)) * 100)
+          : Math.round(((1 - prob) / prob) * 100);
+        enriched.best_price = american;
+        enriched.price_estimated = true; // Flag so frontend can show "EST" badge
+      }
+    }
 
     let pitcherToEvaluateId: number | null = null;
     let opposingPitcherToEvaluateId: number | null = null;

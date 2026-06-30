@@ -562,11 +562,14 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
           {(bet.best_price || bet.best_book) && (
             <div className="bg-[#0d1420] border-2 border-[#3d4f5f] rounded-sm p-3 flex justify-between items-center">
               <div>
-                <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 ">
-                  Best Odds
+                <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 flex items-center gap-1.5">
+                  {bet.price_estimated ? 'Est. Odds' : 'Best Odds'}
+                  {bet.price_estimated && (
+                    <span className="text-[11px] font-black text-[#FFD700] border border-[#FFD700]/40 bg-[#FFD700]/10 px-1 py-px rounded-sm tracking-wider">EST</span>
+                  )}
                 </div>
                 <div
-                  className="text-[44px] font-black text-white"
+                  className={`text-[44px] font-black ${bet.price_estimated ? 'text-[#8a9ba8]' : 'text-white'}`}
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
                 >
                   {formatOdds(bet.best_price)}

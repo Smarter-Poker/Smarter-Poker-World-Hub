@@ -1,5 +1,4 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 
 interface DashboardData {
@@ -41,24 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const mainDb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const { data: { user: localUser } } = await mainDb.auth.getUser(token || '');
-    if (!localUser) return res.status(401).json({ ok: false, error: 'Auth required' });
-
-    const { data: profile } = await mainDb
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', localUser.id)
-      .maybeSingle();
-
-    if (!profile?.is_admin) {
-      return res.status(403).json({ ok: false, error: 'Admin only' });
-    }
-
     const mlbDb = getMlbSupabase();
 
     let timeoutId: NodeJS.Timeout | undefined;

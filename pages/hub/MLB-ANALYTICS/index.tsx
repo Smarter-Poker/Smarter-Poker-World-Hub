@@ -6,7 +6,6 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { createClient } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../src/components/ui/MlbSubNav';
@@ -71,57 +70,17 @@ function EdgeBadge({ g }: { g: GameCard }) {
   );
 }
 
-// ─── Supabase live-sync indicator ──────────────────────────────────────
+// ─── Auto-sync indicator (shows when new data is available after SWR revalidation) ──
 
-const sbUrl = typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL || '' : '';
-const sbAnonKey =
-  typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' : '';
-const sb =
-  typeof window !== 'undefined' && sbUrl && sbAnonKey ? createClient(sbUrl, sbAnonKey) : null;
-
-function SyncIndicator({ onSync }: { onSync: () => void }) {
-  const [hasUpdate, setHasUpdate] = useState(false);
-
-  useEffect(() => {
-    if (!sb) return;
-    const channel = sb
-      .channel('mlb-slate-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pred_market_output' }, () =>
-        setHasUpdate(true)
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fact_games' }, () =>
-        setHasUpdate(true)
-      )
-      .subscribe();
-    return () => {
-      sb.removeChannel(channel);
-    };
-  }, []);
-
-  if (!hasUpdate) {
-    return (
-      <div className="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-[#0d1117] border border-[#3d4f5f] rounded-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] z-50 pointer-events-none">
-        <div className="w-2 h-2 rounded-full bg-[#3d4f5f]" />
-        <span className="text-[17px] font-black text-[#5a6a7a] tracking-widest capitalize ">
-          System Sync
-        </span>
-      </div>
-    );
-  }
-
+function SyncIndicator({ isValidating }: { isValidating?: boolean }) {
+  if (!isValidating) return null;
   return (
-    <button
-      onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } 
-                  onSync();
-                  setHasUpdate(false);
-                }}
-      className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a2332] to-[#0d1117] border-2 border-[#00D4FF] rounded-sm shadow-[0_0_15px_rgba(0,212,255,0.4)] z-50 cursor-pointer hover:bg-[#00D4FF] group transition-all animate-pulse min-h-[44px]"
-    >
-      <div className="w-2.5 h-2.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#00D4FF] group-hover:bg-[#0d1117]" />
-      <span className="text-[18px] font-black text-[#00D4FF] tracking-widest capitalize  group-hover:text-[#0d1117]">
-        Sync New Data
+    <div className="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-[#0d1117] border border-[#00D4FF] rounded-sm shadow-[0_0_10px_rgba(0,212,255,0.3)] z-50 pointer-events-none">
+      <div className="w-2 h-2 rounded-full bg-[#00D4FF] animate-pulse" />
+      <span className="text-[17px] font-black text-[#00D4FF] tracking-widest capitalize">
+        Syncing...
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -485,8 +444,9 @@ export default function MlbSlatePage() {
     propsOnly: false,
     minEdge: 0,
   });
-  const { data, error, mutate } = useSWR('/api/mlb/dashboard', fetcher, {
-    refreshInterval: 120000,
+  const { data, error, mutate, isValidating } = useSWR('/api/mlb/dashboard', fetcher, {
+    refreshInterval: 60000,  // Auto-refresh every 60s — picks up live scores and model updates
+    revalidateOnFocus: true, // Refresh when user returns to the tab
   });
 
   const isLoading = !data && !error;
@@ -546,7 +506,7 @@ export default function MlbSlatePage() {
       />
       <MlbSubNav />
 
-      <SyncIndicator onSync={() => mutate()} />
+      <SyncIndicator isValidating={isValidating} />
 
       <main className="mx-auto max-w-2xl bg-[#0a0a15] min-h-screen shadow-2xl relative pb-[70px] text-slate-300 w-full">
         {/* ── Header ───────────────────────────────────── */}

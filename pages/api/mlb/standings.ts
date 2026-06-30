@@ -35,13 +35,24 @@ async function edgeHandler(req: Request) {
     // those, which is why ERA/AVG/R-G/RA-G rendered as "--".)
     const standingsRes = await mlbDb.rpc('get_mlb_standings_ext');
 
-    if (standingsRes.error) {
-      console.warn('[API/MLB/Standings] Error fetching standings:', standingsRes.error.message);
-      return EMPTY({ error: 'standings_unavailable', last_game_date: null }, false);
-    }
+    let teams: any[] = [];
 
-    // RPC returns a jsonb array of team rows.
-    const teams = Array.isArray(standingsRes.data) ? standingsRes.data : [];
+    if (standingsRes.error) {
+      console.warn('[API/MLB/Standings] get_mlb_standings_ext failed, falling back to v_mlb_standings:', standingsRes.error.message);
+      // Fallback: query the base view directly so standings always load
+      const fallbackRes = await mlbDb
+        .from('v_mlb_standings')
+        .select('*')
+        .order('pct', { ascending: false });
+      if (fallbackRes.error) {
+        console.error('[API/MLB/Standings] v_mlb_standings fallback also failed:', fallbackRes.error.message);
+        return EMPTY({ error: 'standings_unavailable', last_game_date: null }, false);
+      }
+      teams = Array.isArray(fallbackRes.data) ? fallbackRes.data : [];
+    } else {
+      // RPC returns a jsonb array of team rows.
+      teams = Array.isArray(standingsRes.data) ? standingsRes.data : [];
+    }
 
     // Latest-game lookup is best-effort: a failure here must not blank the (more
     // important) standings payload, so it runs in its own guard and degrades to null.
