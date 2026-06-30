@@ -355,7 +355,11 @@ async function _getSlate(date: string): Promise<GameCard[]> {
         bet_tier: e.totalBet.edge_pts != null ? (Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 82 ? 'ELITE' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 70 ? 'PREMIUM' : Math.round(50 + Number(e.totalBet.edge_pts) * 5) >= 60 ? 'STRONG' : 'STANDARD') : undefined,
       } : null,
       sportsbooks,
-      hasPredictions: e.hasPreds === true,
+      // Games started 60+ min ago with no predictions show PASS (not PENDING).
+      // The model couldn't run for this game — PENDING is misleading for live games.
+      hasPredictions: e.hasPreds === true ||
+        (g.first_pitch_utc != null &&
+          (Date.now() - new Date(g.first_pitch_utc).getTime()) > 60 * 60 * 1000),
       topProps: propsByGame.get(g.game_pk) ?? [],
       lineupState: featuresMap.get(g.game_pk) as "confirmed" | "projected" | null,
     };
