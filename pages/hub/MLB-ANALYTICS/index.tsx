@@ -366,7 +366,7 @@ function FilterBar({
 
       {/* Actionable */}
       <button
-        onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return onFilter({ ...filters, actionable: !filters.actionable }); }}
+        onClick={() => { try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15); } catch {} onFilter({ ...filters, actionable: !filters.actionable }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.actionable
             ? 'bg-[#0d1117] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -385,7 +385,7 @@ function FilterBar({
 
       {/* Props Only */}
       <button
-        onClick={() => { try { navigator.vibrate(15); } catch (err) { console.error(err); } return onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
+        onClick={() => { try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15); } catch {} onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.propsOnly
             ? 'bg-[#0d1117] border-[#00BFFF] shadow-[0_0_10px_rgba(0,191,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -446,6 +446,7 @@ export default function MlbSlatePage() {
   const { data, error, mutate, isValidating } = useSWR('/api/mlb/dashboard', fetcher, {
     refreshInterval: 60000,  // Auto-refresh every 60s — picks up live scores and model updates
     revalidateOnFocus: true, // Refresh when user returns to the tab
+    keepPreviousData: true,  // Prevents game cards from blanking during revalidation
   });
 
   const isLoading = !data && !error;
@@ -499,9 +500,7 @@ export default function MlbSlatePage() {
       />
       <UniversalHeader
         pageDepth={2}
-        onBackClick={() => {
-          window.location.href = '/hub';
-        }}
+        onBackClick={() => { router.push('/hub'); }}
       />
       <MlbSubNav />
 
@@ -853,6 +852,7 @@ export default function MlbSlatePage() {
           </p>
         </div>
       </main>
+      <BottomNavBar />
     </div>
   );
 }

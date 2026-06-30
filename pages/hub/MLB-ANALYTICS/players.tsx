@@ -401,6 +401,7 @@ export default function PlayersPage() {
     isLoading: hittersLoading,
   } = useSWR('/api/mlb/hitters', fetcher, {
     refreshInterval: 60000,
+    keepPreviousData: true,  // Prevents list flash during revalidation
   });
 
   const {
@@ -409,13 +410,15 @@ export default function PlayersPage() {
     isLoading: pitchersLoading,
   } = useSWR('/api/mlb/pitchers', fetcher, {
     refreshInterval: 60000,
+    keepPreviousData: true,  // Prevents list flash during revalidation
   });
 
   const { data: standingsData, isLoading: isStandingsLoading } = useSWR(
     '/api/mlb/standings',
     fetcher,
     {
-      refreshInterval: 300000, // 1 hour (matches CDN cache)
+      refreshInterval: 300000, // 5 min (matches CDN cache)
+      keepPreviousData: true,
     }
   );
 

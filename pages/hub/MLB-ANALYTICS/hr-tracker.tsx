@@ -109,7 +109,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 function DueGauge({ score }: { score: number }) {
-  const pct = score / 2; // pure ratio
+  const pct = Math.min(score / 2, 1); // cap at 100% — scores above 2.0 are still max bar
   const color = score >= 1.0 ? '#FF4444' : score >= 0.5 ? '#FFB800' : '#00D4FF';
   return (
     <div className="w-full h-1.5 bg-[#1a2332] rounded-full overflow-hidden" aria-hidden="true">

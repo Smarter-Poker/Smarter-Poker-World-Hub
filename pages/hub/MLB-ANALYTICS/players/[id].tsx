@@ -19,7 +19,7 @@ import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { useState, useEffect } from 'react';
+// useState and useEffect removed — not used in this file
 import { logError } from '@/utils/logger';
 import { glossaryFor } from '../../../../src/lib/mlbStatGlossary';
 import HrBetTracker from '../../../../src/components/mlb/HrBetTracker';

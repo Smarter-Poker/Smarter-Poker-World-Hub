@@ -19,7 +19,12 @@ export function wrapEdgeHandler(
 ): (req: NextApiRequest, res: NextApiResponse) => Promise<void> {
   return async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      // x-forwarded-proto can be a comma-separated list behind multiple proxies (e.g. "https, http").
+      // Always take the FIRST value. Also handle the case where Next.js gives us an array.
+      const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
+        ? req.headers['x-forwarded-proto'][0]
+        : (req.headers['x-forwarded-proto'] || 'http');
+      const protocol = rawProto.split(',')[0].trim();
       const host = req.headers.host || 'localhost';
       const url = `${protocol}://${host}${req.url}`;
 

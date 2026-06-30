@@ -79,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const STALE_AFTER_MS = 36 * 60 * 60 * 1000; // 36h (daily cron + buffer)
     const stale = updatedAt ? Date.now() - new Date(updatedAt).getTime() > STALE_AFTER_MS : true;
 
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
     return res.status(200).json({
       players: rows,
       total: rows.length,
@@ -89,6 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (err: any) {
     console.error('[hr-tracker] Fatal error:', err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(500).json({
       error: 'Failed to fetch HR tracker data',
       players: [],

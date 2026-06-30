@@ -163,6 +163,7 @@ function fmtAvg(v: any): string {
 }
 
 function isPitcherProp(prop: any): boolean {
+  if (!prop) return false;
   if (prop.player_kind === 'pitcher') return true;
   const market = (prop.prop || '').toLowerCase();
   return (
@@ -358,6 +359,8 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Defensive null guard for modal — if selected is somehow null, close the modal.
+  if (!prop) { onClose(); return null; }
   const ts = tierStyle(prop.bet_tier);
   const isPitcher = isPitcherProp(prop);
   const stats = prop.stats || {};
@@ -731,6 +734,8 @@ const PropCard = React.memo(
     isStale?: boolean;
     onOpen: (p: any) => void;
   }) => {
+    // Defensive null guard — old API builds could include null items in the array.
+    if (!prop) return null;
     const ts = tierStyle(prop.bet_tier);
     const isOver = String(prop.side || '').toLowerCase() === 'over' ? true : String(prop.side || '').toLowerCase() === 'under' ? false : !!prop.isOver;
     const ev = prop.ev_pct != null ? Number(prop.ev_pct) : null;
@@ -1043,6 +1048,8 @@ export default function PropsPage() {
 
   const filtered = useMemo(() => {
     const rows = props.filter((p: any) => {
+      // Strip any null/undefined rows that may arrive from a stale cached API response.
+      if (!p) return false;
       if (!activeFilter.match((p.prop || '').toLowerCase())) return false;
       if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
       return true;
@@ -1370,7 +1377,7 @@ export default function PropsPage() {
           {/* Props list */}
           {!isLoading && shown.length > 0 && (
             <div className="flex flex-col gap-3">
-              {shown.map((prop: any, idx: number) => (
+              {shown.filter(Boolean).map((prop: any, idx: number) => (
                 <PropCard
                   key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
                   prop={prop}

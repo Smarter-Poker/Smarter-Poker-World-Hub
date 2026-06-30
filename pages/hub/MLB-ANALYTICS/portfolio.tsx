@@ -202,7 +202,7 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (!userLoading && !user) {
-      router.push('/hub/auth/login');
+      router.push('/auth/login?redirect=/hub/MLB-ANALYTICS/portfolio');
     }
   }, [user, userLoading, router]);
 

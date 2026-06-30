@@ -32,6 +32,7 @@ const fmtDate = (v: string): string => {
 const fmtInt = (n: number): string => Math.round(n).toLocaleString('en-US');
 
 export default function PnLChart({ data }: PnLChartProps) {
+  if (!data || data.length === 0) return null;
   const max = Math.max(...data.map((d) => d.cum_pnl), 0);
   const min = Math.min(...data.map((d) => d.cum_pnl), 0);
   const offset = max <= 0 ? 0 : min >= 0 ? 1 : max / (max - min);

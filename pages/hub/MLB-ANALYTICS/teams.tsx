@@ -736,6 +736,7 @@ export default function TeamsPage({
     refreshInterval: 300000,
     revalidateOnFocus: true,
     dedupingInterval: 10000,
+    keepPreviousData: true,  // Prevents team cards from blanking during revalidation
   });
 
   if (error || data?.error) {

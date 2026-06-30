@@ -47,19 +47,26 @@ export default function GameMatchupDashboard() {
   // Fetch dashboard data to get the slate games (and find our game) — live, refresh every 2 min
   const { data: dashData, error: dashErr } = useSWR('/api/mlb/dashboard', fetcher, {
     refreshInterval: 120000,
+    keepPreviousData: true,
   });
   const { data: specificGameData, error: specificGameErr } = useSWR(
     gamePk && (dashData?.error || !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk))
-      ? `/api/mlb/game/${gamePk}` : null, fetcher);
+      ? `/api/mlb/game/${gamePk}` : null, fetcher, {
+      refreshInterval: 120000,
+      keepPreviousData: true,
+    });
   // Fetch bets and props — model output updates daily, check every 5 min
   const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, {
     refreshInterval: 300000,
+    keepPreviousData: true,
   });
   const { data: propsData, error: propsErr } = useSWR('/api/mlb/props', fetcher, {
     refreshInterval: 300000,
+    keepPreviousData: true,
   });
 
-  const isLoading = (!dashData && !dashErr && !specificGameData && !specificGameErr) || (!betsData && !betsErr) || (!propsData && !propsErr);
+  // Only block the whole page on the game header data — bets/props load independently.
+  const isLoading = (!dashData && !dashErr && !specificGameData && !specificGameErr);
 
   const game: GameCard | undefined = useMemo(() => {
     if (!gamePk) return undefined;

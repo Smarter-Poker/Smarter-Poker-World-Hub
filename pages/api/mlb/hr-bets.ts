@@ -65,6 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         q = () => baseQ().eq('player_id', pid);
       }
       const data = await fetchAllRows(q);
+      res.setHeader('Cache-Control', 'no-store, max-age=0, private');
       return res.status(200).json({ bets: data || [] });
     }
 
@@ -103,6 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (b.bet_date && /^\d{4}-\d{2}-\d{2}$/.test(String(b.bet_date))) row.bet_date = b.bet_date;
       const { data, error } = await sb.from('mlb_hr_bets').insert(row).select().maybeSingle();
       if (error) throw error;
+      res.setHeader('Cache-Control', 'no-store, max-age=0, private');
       return res.status(200).json({ bet: data });
     }
 
@@ -137,6 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: 'Bet not found' });
+      res.setHeader('Cache-Control', 'no-store, max-age=0, private');
       return res.status(200).json({ bet: data });
     }
 
@@ -145,6 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (Number.isNaN(id)) return res.status(400).json({ error: 'id required' });
       const { error } = await sb.from('mlb_hr_bets').delete().eq('id', id).eq('user_id', userId);
       if (error) throw error;
+      res.setHeader('Cache-Control', 'no-store, max-age=0, private');
       return res.status(200).json({ ok: true });
     }
 

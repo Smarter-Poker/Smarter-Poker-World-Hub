@@ -114,7 +114,8 @@ async function edgeHandler(req: Request): Promise<Response> {
         markets: Array.isArray(rpcData.markets) ? rpcData.markets : [],
         betTypes: Array.isArray(rpcData.bet_types) ? rpcData.bet_types.map((b: any) => ({
           ...b,
-          sparkline: []
+          // Preserve sparkline from RPC if it returned one; fall back to [] if absent/invalid.
+          sparkline: Array.isArray(b.sparkline) ? b.sparkline : [],
         })) : [],
       };
     } else if (rpcError) {

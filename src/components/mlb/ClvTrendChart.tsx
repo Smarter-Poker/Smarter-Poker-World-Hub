@@ -27,7 +27,8 @@ const fmtDate = (v: string): string => {
 };
 
 export default function ClvTrendChart({ data }: ClvTrendChartProps) {
-  const latest = data.length > 0 ? data[data.length - 1].rolling_clv : 0;
+  if (!data || data.length === 0) return null;
+  const latest = data[data.length - 1].rolling_clv;
   const color = latest >= 0 ? '#00D4FF' : '#FF4444';
 
   return (
