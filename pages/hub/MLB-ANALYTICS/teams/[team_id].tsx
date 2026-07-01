@@ -205,6 +205,7 @@ export default function TeamDetailPage() {
   const { data, error } = useSWR(team_id ? `/api/mlb/teams/${team_id}` : null, fetcher, {
     refreshInterval: 60000,
     revalidateOnFocus: true,
+    keepPreviousData: true,
   });
 
   // ── Error State ──

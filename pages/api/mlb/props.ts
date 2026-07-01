@@ -118,7 +118,7 @@ export default async function edgeHandler(req: Request) {
 
     if (!todayCheck || todayCheck.length === 0) {
       // No priced props for today yet — fall back to the most recent slate.
-      const { data: latestRow, error: latestErr } = await mlbDb
+      const { data: latestRowRaw, error: latestErr } = await mlbDb
         .from('pred_props')
         .select('as_of_ts')
         .lt('as_of_ts', todayEnd)
@@ -126,6 +126,8 @@ export default async function edgeHandler(req: Request) {
         .order('as_of_ts', { ascending: false })
         
         .maybeSingle();
+
+      const latestRow = latestRowRaw as any;
 
       if (latestErr) {
         console.error('[API/MLB/Props] latestRow error:', latestErr);

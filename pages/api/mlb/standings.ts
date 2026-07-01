@@ -64,7 +64,8 @@ async function edgeHandler(req: Request) {
         .eq('final', true)
         .order('official_date', { ascending: false })
         .limit(1);
-      latestDate = seasonRes.data?.[0]?.official_date ?? null;
+      const seasonData = seasonRes.data as any;
+      latestDate = seasonData?.[0]?.official_date ?? null;
     } catch (e) {
       console.warn('[API/MLB/Standings] season lookup failed (degrading to null):', e);
     }

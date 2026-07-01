@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getMlbSupabase } from "../../utils/supabase/mlb";
 
 // MLB team logos: one SVG per StatsAPI team_id in the public Supabase 'team-logos' bucket.

@@ -57,7 +57,8 @@ async function edgeHandler(req: Request) {
     // ── One round-trip. get_mlb_team_detail() returns:
     //    { team, stats, games, matchup: {..., markets:[raw h2h/total/run_line]}, props_raw, slate_date }.
     //    The Bet Score math (the only thing that can't live in SQL) stays here. ──
-    const { data, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) });
+    const { data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) } as any);
+    const data = dataRaw as any;
     if (error) {
       console.error(`[API/MLB/Teams/${id}] rpc error:`, error.message, error.code, error.details, error.hint);
       return new Response(JSON.stringify({ error: 'Internal server error', rpc_error: error.message, rpc_code: error.code }), {

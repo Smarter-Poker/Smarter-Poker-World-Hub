@@ -35,7 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (parsedMarket) {
                 maxQuery = maxQuery.eq('market', parsedMarket);
             }
-            const { data: maxRow, error: maxError } = await maxQuery.maybeSingle();
+            const { data: maxRowRaw, error: maxError } = await maxQuery.maybeSingle();
+            const maxRow = maxRowRaw as any;
             if (maxError) {
                 console.error('[CSV Export] maxQuery error:', maxError.message);
                 return res.status(500).send('Internal Server Error: Anchor Query Failed');

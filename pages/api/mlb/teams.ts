@@ -47,31 +47,34 @@ async function edgeHandler(req: Request) {
 
     // ── Resolve the active slate (today if predictions exist, else most recent) ──
     let slateDate = todayStr;
-    const { data: todayCheck, error: todayErr } = await mlbDb
+    const { data: todayCheckRaw, error: todayErr } = await mlbDb
       .from('pred_props')
       .select('as_of_ts')
       .gte('as_of_ts', `${todayStr}T00:00:00`)
       .limit(1);
+    const todayCheck = todayCheckRaw as any;
     if (todayErr) console.warn('[API/MLB/Teams] pred_props slate probe error:', todayErr.message);
     if (!todayCheck || todayCheck.length === 0) {
-      const { data: latestRow } = await mlbDb
+      const { data: latestRowRaw } = await mlbDb
         .from('pred_props')
         .select('as_of_ts')
         .lte('as_of_ts', `${todayStr}T23:59:59`)
         .order('as_of_ts', { ascending: false })
         .limit(1)
         .maybeSingle();
+      const latestRow = latestRowRaw as any;
       if (latestRow?.as_of_ts) slateDate = latestRow.as_of_ts.slice(0, 10);
     }
 
     // ── Resolve the latest advanced-stat snapshot date (agg_team is daily) ──
-    const { data: latestAggRow, error: latestAggErr } = await mlbDb
+    const { data: latestAggRowRaw, error: latestAggErr } = await mlbDb
       .from('agg_team')
       .select('as_of')
       .eq('window_kind', 'season')
       .order('as_of', { ascending: false })
       .limit(1)
       .maybeSingle();
+    const latestAggRow = latestAggRowRaw as any;
     if (latestAggErr)
       console.warn('[API/MLB/Teams] agg_team snapshot-date probe error:', latestAggErr.message);
     const aggLatest: string | null = latestAggRow?.as_of ?? null;

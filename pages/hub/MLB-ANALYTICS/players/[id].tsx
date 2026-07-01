@@ -328,10 +328,12 @@ export default function PlayerProfilePage() {
   const { data, error, isLoading } = useSWR(id ? `/api/mlb/players/${id}` : null, fetcher, {
     refreshInterval: 300000,
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
   const { data: leagueData } = useSWR('/api/mlb/league-averages', fetcher, {
     refreshInterval: 300000,
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
 
   const headshotUrl = id
