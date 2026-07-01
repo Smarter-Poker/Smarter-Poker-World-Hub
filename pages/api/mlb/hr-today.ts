@@ -21,12 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(1)
       .maybeSingle();
     if (latestErr) throw latestErr;
-    if (!latestRow?.as_of_ts) {
+    if (!(latestRow as any)?.as_of_ts) {
       // No HR props found at all (very early season or table empty) — return empty
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       return res.status(200).json({ as_of: null, leaders: [], stale: false });
     }
-    const asOf = latestRow.as_of_ts;
+    const asOf = (latestRow as any).as_of_ts;
 
     async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
       let all: any[] = [];

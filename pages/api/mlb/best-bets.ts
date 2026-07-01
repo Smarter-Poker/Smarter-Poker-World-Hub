@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {

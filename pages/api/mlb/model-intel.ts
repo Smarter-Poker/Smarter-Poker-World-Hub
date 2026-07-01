@@ -82,7 +82,8 @@ async function edgeHandler(req: Request): Promise<Response> {
     // PRIMARY PATH: a single bounded RPC that aggregates v_backtest_summary server-side
     // (one row per date), computes the correct cumulative P&L curve + n-weighted Brier/CLV
     // + portfolio ROI, and bundles the bet-type trust ledger and real model_version.
-    const { data: rpcData, error: rpcError } = await mlbDb.rpc('get_mlb_model_intel');
+    const { data: rpcDataRaw, error: rpcError } = await mlbDb.rpc('get_mlb_model_intel');
+    const rpcData = rpcDataRaw as any; // RPC not in generated Supabase types
 
     let payload: ModelIntelResponse | null = null;
 

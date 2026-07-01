@@ -16,13 +16,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('game_pk', Number(id))
       .maybeSingle();
 
-    if (gErr || !g?.official_date) {
+    if (gErr || !(g as any)?.official_date) {
       res.setHeader('Cache-Control', 'no-store, max-age=0');
       return res.status(404).json({ error: 'Game not found in fact_games' });
     }
 
     const { getSlate } = await import('../../../../src/lib/mlb_data');
-    const slate = await getSlate(g.official_date);
+    const slate = await getSlate((g as any).official_date);
     const found = slate.find((card) => card.gamePk === Number(id));
 
     if (!found) {

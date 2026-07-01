@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .limit(1)
                 .maybeSingle();
 
-            if (latestGames?.official_date) {
-                slateDate = latestGames.official_date;
+            if ((latestGames as any)?.official_date) {
+                slateDate = (latestGames as any).official_date;
             }
         }
 
@@ -59,8 +59,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .limit(1)
                 .maybeSingle();
 
-            if (latestBets?.official_date) {
-                betsDate = latestBets.official_date;
+            if ((latestBets as any)?.official_date) {
+                betsDate = (latestBets as any).official_date;
             }
         }
 
@@ -82,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .maybeSingle(),
         ]);
 
-        const lastUpdate = lastUpdateResult.data?.as_of_ts ?? null;
+        const lastUpdate = (lastUpdateResult.data as any)?.as_of_ts ?? null;
 
         // Set cache headers: short cache (60s) with stale-while-revalidate
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
