@@ -1048,8 +1048,8 @@ export default function PropsPage() {
 
   const filtered = useMemo(() => {
     const rows = props.filter((p: any) => {
-      // Strip any null/undefined rows that may arrive from a stale cached API response.
-      if (!p) return false;
+      // Strip any null/undefined rows AND rows with null prop field.
+      if (!p || !p.prop) return false;
       if (!activeFilter.match((p.prop || '').toLowerCase())) return false;
       if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
       return true;
@@ -1377,9 +1377,9 @@ export default function PropsPage() {
           {/* Props list */}
           {!isLoading && shown.length > 0 && (
             <div className="flex flex-col gap-3">
-              {shown.filter(Boolean).map((prop: any, idx: number) => (
+              {shown.filter((p: any) => p && p.prop).map((prop: any, idx: number) => (
                 <PropCard
-                  key={`prop-${prop.player_id}-${prop.prop}-${prop.line}`}
+                  key={`prop-${prop.player_id ?? 'x'}-${prop.prop ?? 'y'}-${prop.line ?? '0'}`}
                   prop={prop}
                   idx={idx}
                   isStale={isStale}

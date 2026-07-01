@@ -151,6 +151,7 @@ export default async function edgeHandler(req: Request) {
       )
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
+      .not('prop', 'is', null)           // ← never send null market names to UI
       .or('best_price.not.is.null,best_price_under.not.is.null')
       .order('kelly_pct', { ascending: false, nullsFirst: false })
     ).catch(err => {
@@ -177,6 +178,8 @@ export default async function edgeHandler(req: Request) {
     // otherwise surface a second card for the same prop — this keeps one card.
     const dedupMap = new Map<string, any>();
     for (const r of rawProps) {
+      // Skip rows with null prop field (null market names crash the UI)
+      if (!r || !r.prop) continue;
       const key = `${r.player_id}|${r.prop}|${r.line}`;
       const prev = dedupMap.get(key);
       if (!prev || r.as_of_ts > prev.as_of_ts) {
