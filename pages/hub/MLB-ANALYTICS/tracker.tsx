@@ -170,6 +170,7 @@ export default function TrackerPage() {
   // Fetch every 15 seconds as a fallback
   const { data, error, isLoading, mutate } = useSWR('/api/mlb/tracker', fetcher, {
     refreshInterval: 15000,
+    keepPreviousData: true,
   });
 
   if (error || data?.error) {
