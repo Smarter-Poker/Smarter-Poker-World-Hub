@@ -104,7 +104,6 @@ const PROP_LABELS: Record<string, string> = {
   runs: 'Runs',
   rbi: 'RBI',
   walks: 'Walks',
-  stolen_bases: 'Stolen Bases',
   hrr: 'Hits + Runs + RBI',
   earned_runs: 'Earned Runs',
   pitcher_strikeouts: 'Pitcher Strikeouts',

@@ -154,6 +154,7 @@ export default async function edgeHandler(req: Request) {
       .gte('as_of_ts', startIso)
       .lt('as_of_ts', endIso)
       .not('prop', 'is', null)           // ← never send null market names to UI
+      .neq('prop', 'stolen_bases')       // ← user requested ban
       .or('best_price.not.is.null,best_price_under.not.is.null')
       .order('kelly_pct', { ascending: false, nullsFirst: false })
     ).catch(err => {

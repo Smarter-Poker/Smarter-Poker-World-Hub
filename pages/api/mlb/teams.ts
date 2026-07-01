@@ -106,7 +106,8 @@ async function edgeHandler(req: Request) {
         .from('pred_props')
         .select('team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
         .gte('as_of_ts', `${slateDate}T00:00:00`)
-        .lte('as_of_ts', `${slateDate}T23:59:59`))),
+        .lte('as_of_ts', `${slateDate}T23:59:59`)
+        .neq('prop', 'stolen_bases'))),
       wrap(() => fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, team_id'))),
       wrap(() => fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, team_id'))),
       // Team defense (OAA/DRS/Def) + bullpen ERA/WHIP — one row per team_id.

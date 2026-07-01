@@ -768,6 +768,7 @@ async function edgeHandler(req: Request) {
         .from('pred_best_bets')
         .select('*')
         .eq('official_date', officialDate)
+        .neq('market', 'stolen_bases')
         .order('rank', { ascending: true })
       ).catch((betsErr) => {
         console.error('[MLB Best Bets] Fallback error fetching bets:', betsErr);

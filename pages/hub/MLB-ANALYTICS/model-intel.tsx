@@ -113,7 +113,6 @@ const MARKET_LABELS: Record<string, string> = {
   pitcher_strikeouts: 'Pitcher Ks',
   pitcher_walks: 'Pitcher Walks',
   earned_runs: 'Earned Runs',
-  stolen_bases: 'Stolen Bases',
 };
 
 const marketLabel = (m: string): string => {
@@ -139,7 +138,6 @@ const CATEGORY_MAP: Record<string, string> = {
   pitcher_strikeouts: 'Props',
   pitcher_walks: 'Props',
   earned_runs: 'Props',
-  stolen_bases: 'Props',
 };
 
 const categoryOf = (market: string): string => {

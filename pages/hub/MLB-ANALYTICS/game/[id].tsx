@@ -24,7 +24,7 @@ const TIER_HEX: Record<string, string> = {
 
 const PROP_LABELS: Record<string, string> = {
   home_run: 'Home Run', hits: 'Hits', hrr: 'H+R+RBI', total_bases: 'Total Bases',
-  rbi: 'RBIs', runs: 'Runs', walks: 'Walks', stolen_bases: 'Stolen Bases',
+  rbi: 'RBIs', runs: 'Runs', walks: 'Walks',
   earned_runs: 'Earned Runs', pitcher_strikeouts: 'Pitcher Ks', pitcher_walks: 'Pitcher BB',
   strikeouts: 'Strikeouts',
 };

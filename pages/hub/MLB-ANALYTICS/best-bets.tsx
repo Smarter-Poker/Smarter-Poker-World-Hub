@@ -1223,8 +1223,6 @@ const BetCard = ({
     marketLabel = 'Earned Runs';
   } else if (typeStr.includes('nrfi')) {
     marketLabel = 'No Run First Inning';
-  } else if (typeStr.includes('stolen_bases')) {
-    marketLabel = 'Stolen Bases';
   } else if (bet.market && bet.market !== 'prop') {
     marketLabel = bet.market.replace(/_/g, ' ');
   } else if (typeStr.includes('prop')) {
@@ -1804,7 +1802,7 @@ export default function BestBetsPage() {
         else if (market.toLowerCase() === 'rbi' || market.toLowerCase() === 'runs_batted_in') finalTitle = 'Player RBIs';
         else if (market.toLowerCase() === 'outs' || market.toLowerCase() === 'outs_recorded') finalTitle = 'Pitching Outs';
         else if (market.toLowerCase() === 'bb' || market.toLowerCase() === 'pitcher_walks') finalTitle = 'Pitcher Walks';
-        else if (market.toLowerCase() === 'stolen_bases') finalTitle = 'Player Stolen Bases';
+        else if (market.toLowerCase() === 'team_total') finalTitle = 'Team Total';
         else {
           const titleMarket = market.replace(/_/g, ' ');
           finalTitle = titleMarket.includes('f5') 

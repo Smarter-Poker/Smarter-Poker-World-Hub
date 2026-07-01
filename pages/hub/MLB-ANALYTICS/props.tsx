@@ -58,7 +58,7 @@ const FILTERS: { label: string; match: (prop: string) => boolean }[] = [
   { label: 'RBI', match: (p) => p === 'rbi' },
   { label: 'Runs', match: (p) => p === 'runs' },
   { label: 'Walks', match: (p) => p === 'walks' || p === 'pitcher_walks' },
-  { label: 'Stolen Bases', match: (p) => p === 'stolen_bases' },
+
   { label: 'H+R+RBI', match: (p) => p === 'hrr' },
   { label: 'Earned Runs', match: (p) => p === 'earned_runs' },
   { label: 'Hits Allowed', match: (p) => p === 'hits_allowed' },
