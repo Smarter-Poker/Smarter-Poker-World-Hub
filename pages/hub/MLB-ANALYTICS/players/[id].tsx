@@ -893,7 +893,7 @@ export default function PlayerProfilePage() {
                               key={i}
                               className="border-t border-[#1e2d3d] text-slate-300 text-[13px] font-bold"
                             >
-                              <td className="py-1.5 pr-3 text-white">{formatProp(p.prop)}</td>
+                              <td className="py-1.5 pr-3 text-white">{formatProp(p?.prop)}</td>
                               <td className="py-1.5 px-2 text-center">
                                 {p.line != null ? p.line : '—'}
                               </td>

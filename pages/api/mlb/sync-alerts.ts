@@ -6,16 +6,24 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+let _mainDb: ReturnType<typeof createClient> | null = null;
+const getMainDb = () => {
+  if (_mainDb) return _mainDb;
+  _mainDb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  return _mainDb;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const mainDb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+    const mainDb = getMainDb();
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     const { data: { user: localUser } } = await mainDb.auth.getUser(token || '');
     if (!localUser) return res.status(401).json({ error: 'Auth required' });
@@ -27,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('id', localUser.id)
       .maybeSingle();
 
-    if (!profile?.is_admin) {
+    if (!(profile as any)?.is_admin) {
       return res.status(403).json({ error: 'Admin only' });
     }
 
@@ -71,8 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('notifications')
       .select('data')
       .eq('user_id', localUser.id)
-      .eq('type', 'system')
-      .in('data->>alert_id', alertIds.map(String));
+      .eq('type', 'system');
 
     if (notifError) throw notifError;
 
@@ -91,8 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type: 'system',
       link: '/hub/MLB-ANALYTICS/status',
       data: { alert_id: a.id },
-      read: false,
-      is_read: false
+      read: false
     }));
 
     const { error: insertError } = await mainDb.from('notifications').insert(inserts);

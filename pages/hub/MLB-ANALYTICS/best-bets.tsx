@@ -1451,8 +1451,7 @@ const BetCard = ({
                     if (isTotalBet && lineStr && !target.endsWith(lineStr)) target = `${target} ${lineStr}`;
                   }
                   if (target === '—') target = '';
-                  const oddsStr = formatOdds(bet.price ?? bet.best_price);
-                  // For totals we already embedded the line in target
+                  const oddsStr = bet.price_estimated ? '' : formatOdds(bet.price ?? bet.best_price);
                   const spreadPart = isSpread ? lineStr : '';
                   return `${target} ${spreadPart} ${oddsStr}`.trim().replace(/\s+/g, ' ');
                 })()}
@@ -1526,7 +1525,7 @@ const BetCard = ({
         <div className="flex justify-between items-center bg-[#0a0a15] border border-[#2a3a4a] rounded-sm p-1.5 shadow-inner">
           <div className="text-center px-1 border-r border-[#2a3a4a] flex-1 min-w-0">
             <div className="text-[11px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5">
-              Odds
+              {bet.price_estimated ? 'Fair' : 'Odds'}
             </div>
             <div
               className="text-[20px] font-black text-white leading-none"

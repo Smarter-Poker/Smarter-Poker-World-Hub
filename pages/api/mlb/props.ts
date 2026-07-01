@@ -124,7 +124,7 @@ export default async function edgeHandler(req: Request) {
         .lt('as_of_ts', todayEnd)
         .or('best_price.not.is.null,best_price_under.not.is.null')
         .order('as_of_ts', { ascending: false })
-        
+        .limit(1)
         .maybeSingle();
 
       const latestRow = latestRowRaw as any;

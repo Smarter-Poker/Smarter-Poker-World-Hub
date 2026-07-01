@@ -966,7 +966,7 @@ export default function TeamDetailPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {props.length > 0 ? (
                     props.map((prop: any, idx: number) => {
-                      const label = String(prop.prop_type || prop.prop || '')
+                      const label = String(prop?.prop_type || prop?.prop || '')
                         .replace(/_/g, ' ')
                         .replace(/\b\w/g, (c: string) => c.toUpperCase());
                       const lineLabel =
@@ -975,7 +975,7 @@ export default function TeamDetailPage() {
                           : prop.side || '';
                       return (
                         <div
-                          key={`${prop.player_id}-${prop.prop_type ?? prop.prop}-${prop.line ?? ''}-${idx}`}
+                          key={`${prop?.player_id}-${prop?.prop_type ?? prop?.prop}-${prop?.line ?? ''}-${idx}`}
                           style={{
                             padding: '14px 16px',
                             border: '1px solid #3d4f5f',

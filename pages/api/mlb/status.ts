@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
     });
 
-    const rpcPromise = mlbDb.rpc('get_status_dashboard').maybeSingle();
+    const rpcPromise = mlbDb.rpc('get_status_dashboard');
 
     let data, rpcError;
     try {

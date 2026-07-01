@@ -165,7 +165,7 @@ function fmtAvg(v: any): string {
 function isPitcherProp(prop: any): boolean {
   if (!prop) return false;
   if (prop.player_kind === 'pitcher') return true;
-  const market = (prop.prop || '').toLowerCase();
+  const market = (prop?.prop || '').toLowerCase();
   return (
     PITCHER_PROPS.has(market) ||
     market.includes('pitcher') ||
@@ -451,7 +451,7 @@ function PropDetailModal({ prop, onClose }: { prop: any; onClose: () => void }) 
                     {isOver ? 'OVER' : 'UNDER'} {prop.line}
                   </span>
                 )}
-                <span>{formatProp(prop.prop)}</span>
+                <span>{formatProp(prop?.prop)}</span>
               </span>
             </div>
             {prop.team_abbr && (
@@ -799,7 +799,7 @@ const PropCard = React.memo(
                       {isOver ? 'OVER' : 'UNDER'} {prop.line}
                     </span>
                   )}
-                  {formatProp(prop.prop)}
+                  {formatProp(prop?.prop)}
                 </span>
                 {prop.kelly_pct != null && prop.kelly_pct > 0 && (
                   <span className="rounded-sm bg-[#FFD700]/10 border border-[#FFD700]/40 px-1.5 py-[1px] text-[13px] font-black text-[#FFD700]">
@@ -1049,8 +1049,8 @@ export default function PropsPage() {
   const filtered = useMemo(() => {
     const rows = props.filter((p: any) => {
       // Strip any null/undefined rows AND rows with null prop field.
-      if (!p || !p.prop) return false;
-      if (!activeFilter.match((p.prop || '').toLowerCase())) return false;
+      if (!p || !p?.prop) return false;
+      if (!activeFilter.match((p?.prop || '').toLowerCase())) return false;
       if (minScore > 0 && (p.bet_score == null || p.bet_score < minScore)) return false;
       return true;
     });
@@ -1377,9 +1377,9 @@ export default function PropsPage() {
           {/* Props list */}
           {!isLoading && shown.length > 0 && (
             <div className="flex flex-col gap-3">
-              {shown.filter((p: any) => p && p.prop).map((prop: any, idx: number) => (
+              {shown.filter((p: any) => p && p?.prop).map((prop: any, idx: number) => (
                 <PropCard
-                  key={`prop-${prop.player_id ?? 'x'}-${prop.prop ?? 'y'}-${prop.line ?? '0'}`}
+                  key={`prop-${prop?.player_id ?? 'x'}-${prop?.prop ?? 'y'}-${prop?.line ?? '0'}`}
                   prop={prop}
                   idx={idx}
                   isStale={isStale}
