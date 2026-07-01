@@ -36,6 +36,7 @@ async function edgeHandler(req: Request) {
         const { data, error } = await mlbDb
             .from('raw_games')
             .select('*')
+            .not('start_time', 'is', null)
             .gte('start_time', windowStart)
             .lt('start_time', windowEnd)
             .order('start_time', { ascending: true })
@@ -72,7 +73,7 @@ async function edgeHandler(req: Request) {
         console.error('[API/MLB/Tracker] Unhandled error:', err);
         return new Response(JSON.stringify({ error: 'Internal server error' }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
         });
     }
 }

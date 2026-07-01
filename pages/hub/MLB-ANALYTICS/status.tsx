@@ -121,6 +121,7 @@ export default function StatusPage() {
     {
       refreshInterval: 30000,
       revalidateOnFocus: true,
+      keepPreviousData: true,  // Prevents status panel from blanking during 30s revalidation
       onError: (err) => logError('SWR MLB Status', err),
     }
   );

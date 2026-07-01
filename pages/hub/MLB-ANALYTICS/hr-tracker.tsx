@@ -313,6 +313,7 @@ export default function HRTrackerPage() {
 
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/mlb/hr-tracker', fetcher, {
     refreshInterval: 300000, // revalidate hourly (cache itself refreshes daily)
+    keepPreviousData: true,
     revalidateOnFocus: false,
     onError: (err) => logError('[hr-tracker] SWR fetch failed', err),
   });

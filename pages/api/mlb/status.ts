@@ -143,7 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       Object.entries(rawTierDist).map(([k, v]) => [String(k).toUpperCase(), v])
     );
 
-    res.setHeader('Cache-Control', 'private, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-store, private');
 
     return res.status(200).json({
       ok: true,

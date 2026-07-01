@@ -62,6 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .select('game_date, stat')
           .eq('player_id', Number(id))
           .eq('group', 'pitching')
+          .not('stat', 'is', null)
           .order('game_date', { ascending: false })
           .limit(10);
         

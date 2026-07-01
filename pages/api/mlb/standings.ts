@@ -89,7 +89,7 @@ async function edgeHandler(req: Request) {
     console.error('[API/MLB/Standings] Unhandled error:', err);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     });
   }
 }
@@ -144,6 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (err: any) {
     console.error('API Polyfill Error:', err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
 }

@@ -95,6 +95,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (error: any) {
         console.error('[API/MLB/Dashboard] Error:', error);
         res.setHeader('Cache-Control', 'no-store, max-age=0');
-        return res.status(200).json({ error: error?.message || 'Internal Server Error', slateGames: [], topBets: [], lastUpdate: null, todayStr: null });
+        return res.status(200).json({ error: error?.message || 'Internal Server Error', slateGames: [], lastUpdate: null, todayStr: null });
     }
 }

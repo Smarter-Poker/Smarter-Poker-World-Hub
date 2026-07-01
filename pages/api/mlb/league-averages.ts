@@ -13,12 +13,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data, error } = await mlbDb.rpc('get_mlb_league_averages');
     if (error) {
       console.error('[MLB League Averages] rpc error:', error);
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
       return res.status(200).json({ hitter: {}, pitcher: {} });
     }
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json(data || { hitter: {}, pitcher: {} });
   } catch (err) {
     console.error('[MLB League Averages] error:', err);
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(200).json({ hitter: {}, pitcher: {} });
   }
 }

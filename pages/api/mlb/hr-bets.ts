@@ -46,10 +46,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const authStr = Array.isArray(authHeader) ? authHeader[0] : authHeader || '';
   const token = authStr.replace('Bearer ', '').trim();
   if (!token) return res.status(401).json({ error: 'Auth required' });
-  const { data: authData, error: authErr } = await sb.auth.getUser(token);
-  const user = authData?.user;
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired session' });
-  const userId = user.id;
+  let userId: string;
+  try {
+    const { data: authData, error: authErr } = await sb.auth.getUser(token);
+    const user = authData?.user;
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired session' });
+    userId = user.id;
+  } catch {
+    return res.status(401).json({ error: 'Auth verification failed' });
+  }
 
   try {
     if (req.method === 'GET') {

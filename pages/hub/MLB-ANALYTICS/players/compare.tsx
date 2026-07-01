@@ -201,10 +201,12 @@ export default function ComparePage() {
   const { data: hitData } = useSWR('/api/mlb/hitters', fetcher, {
     refreshInterval: 300000,
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
   const { data: pitData } = useSWR('/api/mlb/pitchers', fetcher, {
     refreshInterval: 300000,
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
   const directory: DirPlayer[] = useMemo(() => {
     const h = (hitData?.data || []).map((p: any) => ({
@@ -224,9 +226,11 @@ export default function ComparePage() {
 
   const { data: dA } = useSWR(a ? `/api/mlb/players/${a}` : null, fetcher, {
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
   const { data: dB } = useSWR(b ? `/api/mlb/players/${b}` : null, fetcher, {
     revalidateOnFocus: false,
+    keepPreviousData: true,
   });
 
   const setPick = (slot: 'a' | 'b', id: number | null) => {
