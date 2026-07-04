@@ -21,7 +21,7 @@ function betInputsFromProp(
   // Plausibility clamp (mirrors teams.ts): a model-vs-market gap above 25 points on a
   // prop signals corrupt/degenerate model output (e.g. a team-level probability written
   // into every player row → "catcher 57% to steal, ELITE 97"), not a real edge.
-  if (pMarket != null && Math.abs(pWin - pMarket) > 0.25) return null;
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.15) return null;
   return { pWin, price, pMarket, isOver };
 }
 

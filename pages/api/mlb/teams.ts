@@ -27,7 +27,7 @@ function betInputsFromProp(
   // Plausibility clamp: a model-vs-market gap above 25 points on a prop signals corrupt
   // or degenerate model output (e.g. a team-level probability written into every player
   // row), not a real edge. Refuse to grade such rows.
-  if (pMarket != null && Math.abs(pWin - pMarket) > 0.25) return null;
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.15) return null;
   return { pWin, price, pMarket, isOver };
 }
 
