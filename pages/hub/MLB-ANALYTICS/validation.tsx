@@ -367,8 +367,11 @@ export default function ValidationPage() {
             </div>
 
             <div className="text-[18px] text-slate-400 mb-8 border-l-[3px] border-[#00D4FF] bg-[#1a2332] p-3 rounded-r-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] leading-relaxed">
-              The model's probabilities are more accurate than the no-vig market here (lower Brier)
-              — a real skill signal.
+              {stats.all.modelBrier != null && stats.all.mktBrier != null
+                ? Number(stats.all.modelBrier) < Number(stats.all.mktBrier)
+                  ? "The model's probabilities are more accurate than the no-vig market here (lower Brier) — a real skill signal."
+                  : "The no-vig market is currently more accurate than the model here (lower Brier) — treat model edges with caution."
+                : 'Not enough graded data yet to compare model vs market accuracy.'}
             </div>
 
             {/* roi BY EDGE SIZE - VISUALIZATION */}

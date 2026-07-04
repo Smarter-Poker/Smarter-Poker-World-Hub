@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { getMlbSupabase } from '../../../utils/supabase/mlb';
+import { betScore as canonicalBetScore } from '../../../src/lib/betScore';
 // MLB team ID → team name mapping
 const TEAM_ID_TO_NAME: Record<number, string> = {
   108: 'Los Angeles Angels',
@@ -855,6 +856,7 @@ async function edgeHandler(req: Request) {
           topTotals,
           topHomers,
           officialDate,
+          is_stale: officialDate < new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
         }),
         {
           status: 200,
@@ -938,22 +940,23 @@ async function edgeHandler(req: Request) {
           .slice(0, 10)
           .map((p: any) => {
             const prob = Number(p.prob_over);
-            // Synthesize odds: if best_price exists use it; else derive from prob_over.
-            // HR prob of 20% → +400 implied, 15% → +567 (round to nearest 5).
+            // Synthesize odds only when no real price exists (derived from prob_over),
+            // and FLAG it — a fabricated price must never masquerade as an offered line.
             const calculatedOdds = Math.round(probToAmericanOdds(prob) / 5) * 5;
-            const syntheticPrice = p.best_price != null
-              ? p.best_price
-              : Math.max(350, calculatedOdds); // Floor at +350 to ensure realistic HR lines
-            // bet_score 0-100: scale from 0% HR prob → 0 to 30% HR prob → 100
-            const betScore = Math.min(100, Math.round((prob / 0.30) * 100));
+            const priceEstimated = p.best_price == null;
+            const syntheticPrice = p.best_price != null ? p.best_price : calculatedOdds;
+            // Canonical Bet Score (same math as every other page). The old formula here
+            // (prob/0.30*100) invented its own scale and stamped a 25% HR prob as 100/ELITE.
+            const score = canonicalBetScore(prob, Number(syntheticPrice));
             return {
               ...p,
               market: 'home_run',
               bet_type: 'prop',
               selection: 'over',
               best_price: syntheticPrice,
+              price_estimated: priceEstimated,
               win_confidence: Math.round(prob * 100 * 10) / 10,
-              bet_score: betScore,
+              bet_score: score,
             };
           });
         dedupedHR = validHRProps;
@@ -965,47 +968,25 @@ async function edgeHandler(req: Request) {
       if (teamTotData.data && teamTotData.data.length > 0) dedupedTeamTot = dedupeLatestBets(teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
       if (f5teamTotData.data && f5teamTotData.data.length > 0) {
         dedupedF5TeamTot = dedupeLatestBets(f5teamTotData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-      } else if (dedupedTeamTot.length > 0) {
-        // Synthesize F5 Team Totals from Full Game Team Totals if missing from engine output
-        dedupedF5TeamTot = dedupedTeamTot.map((t: any) => {
-          const match = (t.selection || '').match(/^(home|away)_(over|under)_([\d.]+)$/i);
-          if (!match) return null;
-          const [, side, dir, lineStr] = match;
-          const f5Line = Math.floor(Number(lineStr) * (5/9)) + 0.5;
-          return {
-            ...t,
-            market: 'f5_team_total',
-            selection: `${side}_${dir}_${f5Line}`
-          };
-        }).filter(Boolean).slice(0, 10);
       }
+      // NOTE: F5 team totals / F5 run lines are NO LONGER synthesized from full-game rows.
+      // The old synthesis kept the full-game model_prob/edge/price on a rescaled F5 line —
+      // advertising bets that do not exist at those prices. Empty carousels are honest.
       if (nrfiData.data && nrfiData.data.length > 0) dedupedNrfi = dedupeLatestBets(nrfiData.data).sort((a,b) => b.edge_pts - a.edge_pts).slice(0, 10);
-      
-      // Synthesize F5 Run Lines from Full Game Run Lines if missing
-      if (dedupedF5RL.length === 0 && dedupedRL.length > 0) {
-        dedupedF5RL = dedupedRL.map((r: any) => {
-          const match = (r.selection || '').match(/^(home|away)_([\+\-]?[\d.]+)$/i);
-          if (!match) return null;
-          const [, side, lineStr] = match;
-          const line = Number(lineStr);
-          const f5Line = line > 0 ? 0.5 : -0.5;
-          const sign = f5Line > 0 ? '+' : '';
-          return {
-            ...r,
-            market: 'f5_run_line',
-            selection: `${side}_${sign}${f5Line}`
-          };
-        }).filter(Boolean).slice(0, 10);
-      }
     }
 
       // Inject matchup and win_confidence for pred_market_output rows before enrichment.
+      // bet_score uses the CANONICAL formula (probability x price), not the old ad-hoc
+      // 50 + edge*5 scale which disagreed with every other page.
       const enrichWithMatchupStub = (rows: any[], betType: string): any[] =>
         rows.map((r: any) => ({
           ...r,
           bet_type: r.bet_type || betType,
           win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
-          bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
+          bet_score: r.bet_score ??
+            (r.model_prob != null && r.best_price != null
+              ? canonicalBetScore(Number(r.model_prob), Number(r.best_price))
+              : null),
         }));
 
     const allBetsToEnrich = [
@@ -1074,6 +1055,9 @@ async function edgeHandler(req: Request) {
         topTeamTotals,
         topNrfi,
         officialDate: data?.officialDate || null,
+        is_stale: data?.officialDate
+          ? data.officialDate < new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+          : true,
       }),
       {
         status: 200,

@@ -713,7 +713,7 @@ export default function ModelIntelPage() {
                         : 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]'
                     }`}
                   >
-                    {isGatePassed ? '✓ Passed' : '⏳ Evaluating'}
+                    {isGatePassed ? 'Passed' : 'Evaluating'}
                   </span>
                 )}
               </div>
@@ -753,8 +753,8 @@ export default function ModelIntelPage() {
         {/* Gate status explanation */}
         <p className="text-[11px] text-slate-500 mb-8 relative z-10 leading-relaxed px-1">
           {isGatePassed
-            ? '✅ All Four Thresholds Passed — Value Bets Are Cleared For Real-Money Play.'
-            : '⏳ Evaluating — When Any Threshold Is Unmet, Value Bets Are Research-Grade Only And Not Recommended For Real-Money Play.'}
+            ? 'All Four Thresholds Passed — Value Bets Are Cleared For Real-Money Play.'
+            : 'Evaluating — When Any Threshold Is Unmet, Value Bets Are Research-Grade Only And Not Recommended For Real-Money Play.'}
         </p>
 
         {/* ── Daily Performance Log ── */}

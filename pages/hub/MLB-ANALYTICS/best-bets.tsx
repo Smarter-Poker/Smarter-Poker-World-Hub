@@ -372,7 +372,8 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
   const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
-  const isHomeRun = typeStr.includes('home_run') || typeStr.includes('hr');
+  // Word-boundary match — keeps 'hrr' (Hits+Runs+RBIs) out of the home-run branch.
+  const isHomeRun = typeStr.includes('home_run') || /\bhr\b/.test(typeStr);
   const isTotalBetDetail = typeStr.includes('total') && !isSpread;
   
   if (isMoneyline || isHomeRun) {
@@ -1150,7 +1151,9 @@ const BetCard = ({
   const spreadCheck = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
   const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
   const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
-  const isHomeRun = spreadCheck.includes('home_run') || spreadCheck.includes('hr');
+  // Word-boundary match: 'hrr' (Hits+Runs+RBIs) must NOT be detected as a home-run bet —
+  // substring .includes('hr') hid the 2.5 line and mislabeled the market.
+  const isHomeRun = spreadCheck.includes('home_run') || /\bhr\b/.test(spreadCheck);
   const isTotalBet = (spreadCheck.includes('total') || spreadCheck.includes('nrfi')) && !isSpread;
   
   if (isMoneyline || isHomeRun) {
@@ -1205,7 +1208,9 @@ const BetCard = ({
     marketLabel = 'First 5 Inning Team Total';
   } else if (typeStr.includes('strikeout')) {
     marketLabel = 'Pitcher Strikeouts';
-  } else if (typeStr.includes('home_run') || typeStr.includes('hrr')) {
+  } else if (cleanMarket === 'hrr' || typeStr.includes('hrr')) {
+    marketLabel = 'Hits + Runs + RBIs';
+  } else if (typeStr.includes('home_run') || /\bhr\b/.test(typeStr)) {
     marketLabel = 'Player Home Runs';
   } else if (cleanMarket === 'runs' || typeStr.includes('runs_scored')) {
     marketLabel = 'Player To Score A Run';

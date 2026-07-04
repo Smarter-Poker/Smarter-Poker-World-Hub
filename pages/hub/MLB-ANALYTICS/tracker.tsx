@@ -117,6 +117,7 @@ const GameCard = ({ game }: any) => {
                     ? new Date(game.start_time).toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',
+                        timeZone: 'America/Chicago',
                       })
                     : 'TBD'}
             </div>
@@ -142,7 +143,13 @@ const GameCard = ({ game }: any) => {
                   ? `${game.inning_state || ''} ${game.inning || ''}`
                   : isFinal
                     ? 'F'
-                    : game.start_time || 'TBD'}
+                    : game.start_time
+                      ? new Date(game.start_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZone: 'America/Chicago',
+                        }) + ' CT'
+                      : 'TBD'}
               </span>
             </div>
           </div>

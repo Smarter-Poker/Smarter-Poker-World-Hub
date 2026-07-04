@@ -18,6 +18,10 @@ function betInputsFromProp(
   const pWin = isOver ? probOver : 1 - probOver;
   if (!(pWin > 0 && pWin < 1)) return null;
   const pMarket = mktOver == null ? null : isOver ? mktOver : 1 - mktOver;
+  // Plausibility clamp (mirrors teams.ts): a model-vs-market gap above 25 points on a
+  // prop signals corrupt/degenerate model output (e.g. a team-level probability written
+  // into every player row → "catcher 57% to steal, ELITE 97"), not a real edge.
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.25) return null;
   return { pWin, price, pMarket, isOver };
 }
 
@@ -57,7 +61,12 @@ async function edgeHandler(req: Request) {
     // ── One round-trip. get_mlb_team_detail() returns:
     //    { team, stats, games, matchup: {..., markets:[raw h2h/total/run_line]}, props_raw, slate_date }.
     //    The Bet Score math (the only thing that can't live in SQL) stays here. ──
-    const { data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) } as any);
+    let { data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) } as any);
+    if (error && (error as any).code === '57014') {
+      // Statement timeout under load — the RPC normally completes in ~3s but can cross
+      // the role's statement_timeout when cache-cold. One retry rescues most of these.
+      ({ data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) } as any));
+    }
     const data = dataRaw as any;
     if (error) {
       console.error(`[API/MLB/Teams/${id}] rpc error:`, error.message, error.code, error.details, error.hint);
@@ -143,7 +152,11 @@ async function edgeHandler(req: Request) {
     }
 
     // ── Props: canonical Bet Score per prop, ranked. ──
-    let propsData = ((data.props_raw || []) as any[]).map((p: any) => {
+    // stolen_bases is excluded here exactly as in /api/mlb/props and /api/mlb/teams —
+    // the engine's SB probabilities are team-level, not per-player, and grade absurdly.
+    let propsData = ((data.props_raw || []) as any[])
+      .filter((p: any) => p.prop !== 'stolen_bases' && p.prop_type !== 'stolen_bases')
+      .map((p: any) => {
       const inputs = betInputsFromProp(p);
       let bet_score: number | null = null;
       let bet_tier: string | null = null;

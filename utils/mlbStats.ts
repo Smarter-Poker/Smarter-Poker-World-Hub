@@ -15,7 +15,10 @@ export async function fetchPortfolioStats(mlbDb: any, days?: number, market?: st
 
     if (useRpc) {
         const [rpcRes, riskRes, marketRes, baselineRes, gradeRes, equityRes] = await Promise.all([
-            mlbDb.rpc('get_portfolio_stats', {}),
+            // Named args are REQUIRED: the DB has both get_portfolio_stats() and
+            // get_portfolio_stats(p_days, p_market); calling with {} is ambiguous
+            // (PostgREST PGRST203 / HTTP 300) and silently killed the RPC path.
+            mlbDb.rpc('get_portfolio_stats', { p_days: null, p_market: null }),
             mlbDb.from('sim_risk_metrics').select('*').limit(1).maybeSingle(),
             mlbDb.from('sim_market_summary').select('*').order('bets', { ascending: false }),
             mlbDb.from('sim_baseline_compare').select('*').limit(1).maybeSingle(),

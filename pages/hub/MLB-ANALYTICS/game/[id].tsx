@@ -85,6 +85,10 @@ export default function GameMatchupDashboard() {
     // or if team_id matches (if available)
     const _matched = betsData.bets.filter((b: any) => {
       if ((b.bet_type || '').toLowerCase() === 'prop' || b.player_id != null) return false;
+      // Strict match first: if the bet row carries a game_pk, ONLY that game may claim it.
+      // (Name/team_id matching alone attached STALE bets from other dates and cross-
+      // contaminated doubleheaders — a June slate's picks showed on a July game page.)
+      if (b.game_pk != null) return Number(b.game_pk) === Number(gamePk);
       const h = game.home.toLowerCase();
       const a = game.away.toLowerCase();
       const bMatchup = (b.matchup || '').toLowerCase();
@@ -115,9 +119,12 @@ export default function GameMatchupDashboard() {
 
   const gameProps = useMemo(() => {
     if (!game || !propsData?.props) return [];
-    // Match props by team_id precisely
-    const _mp = propsData.props.filter(
-      (p: any) => p.team_id === game.homeId || p.team_id === game.awayId
+    // Match props by game_pk when present (prevents stale cross-date attachment),
+    // falling back to team_id.
+    const _mp = propsData.props.filter((p: any) =>
+      p.game_pk != null
+        ? Number(p.game_pk) === Number(gamePk)
+        : p.team_id === game.homeId || p.team_id === game.awayId
     );
     const _sp = new Set<string>();
     return _mp.filter((p: any) => {
@@ -153,7 +160,7 @@ export default function GameMatchupDashboard() {
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
           <X className="w-12 h-12 text-[#FF4444] mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.6))' }} />
           <h2 className="text-2xl font-extrabold text-white font-['Rajdhani'] mb-2">Game Not Found</h2>
-          <p className="text-slate-400 text-sm mb-6">This game ID could not be found in today\'s slate or the MLB database.</p>
+          <p className="text-slate-400 text-sm mb-6">This game ID could not be found in the current slate or the MLB database.</p>
           <Link href="/hub/MLB-ANALYTICS" className="inline-block bg-[#1a2332] text-white px-6 py-2 rounded border border-[#3d4f5f] text-sm font-bold tracking-widest hover:bg-[#2a3a4a]">
             Back to Dashboard
           </Link>
@@ -260,6 +267,7 @@ export default function GameMatchupDashboard() {
                       ? new Date(game.firstPitch).toLocaleTimeString('en-US', {
                           hour: 'numeric',
                           minute: '2-digit',
+                          timeZone: 'America/Chicago',
                           timeZoneName: 'short',
                         })
                       : 'TBD'}

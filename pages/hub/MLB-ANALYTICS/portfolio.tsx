@@ -545,7 +545,7 @@ export default function PortfolioPage() {
                       fontSize={12}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={React.useCallback((val: any) => {
+                      tickFormatter={(val: any) => {
                         if (!val) return '';
                         const d = new Date(val);
                         if (isNaN(d.getTime())) return '';
@@ -554,7 +554,7 @@ export default function PortfolioPage() {
                           day: 'numeric',
                           timeZone: 'UTC',
                         });
-                      }, [])}
+                      }}
                     />
                     <YAxis
                       stroke="#64748B"
@@ -562,7 +562,7 @@ export default function PortfolioPage() {
                       tickLine={false}
                       axisLine={false}
                       domain={['auto', 'auto']}
-                      tickFormatter={React.useCallback((val: any) => `${val}`, [])}
+                      tickFormatter={(val: any) => `${val}`}
                     />
                     <Tooltip
                       contentStyle={{
@@ -573,8 +573,8 @@ export default function PortfolioPage() {
                       }}
                       itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
                       labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                      formatter={React.useCallback((value: number) => [formatCurrency(value), 'Bankroll'], [])}
-                      labelFormatter={React.useCallback((label: any) => `Week of ${label}`, [])}
+                      formatter={(value: number) => [formatCurrency(value), 'Bankroll']}
+                      labelFormatter={(label: any) => `Week of ${label}`}
                     />
                     <Area
                       type="monotone"
@@ -924,7 +924,7 @@ export default function PortfolioPage() {
                         tickLine={false}
                         axisLine={false}
                         minTickGap={28}
-                        tickFormatter={React.useCallback((val: any) => {
+                        tickFormatter={(val: any) => {
                           if (!val) return '';
                           const d = new Date(`${val}T00:00:00Z`);
                           if (isNaN(d.getTime())) return '';
@@ -933,7 +933,7 @@ export default function PortfolioPage() {
                             day: 'numeric',
                             timeZone: 'UTC',
                           });
-                        }, [])}
+                        }}
                       />
                       <YAxis
                         stroke="#64748B"
@@ -941,7 +941,7 @@ export default function PortfolioPage() {
                         tickLine={false}
                         axisLine={false}
                         domain={['dataMin', 0]}
-                        tickFormatter={React.useCallback((val: any) => `${val}%`, [])}
+                        tickFormatter={(val: any) => `${val}%`}
                       />
                       <Tooltip
                         contentStyle={{
@@ -952,8 +952,8 @@ export default function PortfolioPage() {
                         }}
                         itemStyle={{ color: '#FF0055', fontWeight: 700 }}
                         labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
-                        formatter={React.useCallback((value: number) => [`${Number(value).toFixed(2)}%`, 'Drawdown'], [])}
-                        labelFormatter={React.useCallback((label: any) => `${fmtDay(label)}`, [])}
+                        formatter={(value: number) => [`${Number(value).toFixed(2)}%`, 'Drawdown']}
+                        labelFormatter={(label: any) => `${fmtDay(label)}`}
                       />
                       <Area
                         type="monotone"

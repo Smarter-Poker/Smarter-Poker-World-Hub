@@ -19,11 +19,15 @@ function betInputsFromProp(
   let isOver: boolean;
   if (mktOver != null) isOver = probOver >= mktOver;
   else if (p.proj_mean != null && p.line != null) isOver = Number(p.proj_mean) > Number(p.line);
-  else isOver = probOver >= 0.5;
+  else return null; // no market AND no projection → unscoreable (was: coin-flip toward OVER)
 
   const pWin = isOver ? probOver : 1 - probOver;
   if (!(pWin > 0 && pWin < 1)) return null;
   const pMarket = mktOver == null ? null : isOver ? mktOver : 1 - mktOver;
+  // Plausibility clamp: a model-vs-market gap above 25 points on a prop signals corrupt
+  // or degenerate model output (e.g. a team-level probability written into every player
+  // row), not a real edge. Refuse to grade such rows.
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.25) return null;
   return { pWin, price, pMarket, isOver };
 }
 
@@ -104,7 +108,7 @@ async function edgeHandler(req: Request) {
         : { data: [], error: null },
       wrap(() => fetchAllRows(() => mlbDb
         .from('pred_props')
-        .select('team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
+        .select('player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
         .gte('as_of_ts', `${slateDate}T00:00:00`)
         .lte('as_of_ts', `${slateDate}T23:59:59`)
         .neq('prop', 'stolen_bases'))),

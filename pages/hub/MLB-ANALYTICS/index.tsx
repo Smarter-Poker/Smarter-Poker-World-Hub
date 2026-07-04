@@ -438,6 +438,7 @@ function FilterBar({
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function MlbSlatePage() {
+  const router = useRouter(); // was missing — header back arrow threw ReferenceError
   const [filters, setFilters] = useState<FilterState>({
     actionable: false,
     propsOnly: false,
