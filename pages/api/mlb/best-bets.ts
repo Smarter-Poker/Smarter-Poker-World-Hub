@@ -196,6 +196,29 @@ const fetchAllRows = async (queryFn: any) => {
     return allData;
   };
 
+// Markets the engine hard-suppresses (UNPROVEN_MARKETS + prohibitive evidence floors in
+// daily_predict.py). pred_best_bets rows for these should never exist, but a rec-string
+// mismatch let some leak onto the card (fixed engine-side 2026-07-05); filter here as
+// defense-in-depth so the UI never advertises an unproven market as a bet.
+const UNPROVEN_MARKETS = new Set([
+  'nrfi',
+  'f5_moneyline',
+  'f5_total',
+  'f5_run_line',
+  'f5_team_total',
+  'team_total',
+]);
+
+// Honest gate status for a pred_market_output row: only a rec that affirmatively says BET
+// (and not NO BET / MODEL ONLY) is a real engine recommendation. Everything else shown in
+// the market carousels is model information, not a bet.
+function gateStatus(rec: any): 'bet' | 'no_bet' | 'model_only' {
+  const s = String(rec || '');
+  if (s.includes('NO BET')) return 'no_bet';
+  if (s.includes('MODEL ONLY') || !s.includes('BET')) return 'model_only';
+  return 'bet';
+}
+
 // Collapse intraday repricing snapshots to the latest as_of_ts per unique bet, so the list and
 // counts reflect ~one row per bet (today: 398 raw rows -> 49 unique bets). Mirrors the dedupe the
 // get_best_bets_stats RPC does server-side; used for the JS fallback path.
@@ -780,7 +803,9 @@ async function edgeHandler(req: Request) {
         console.warn('[MLB Best Bets] Error fetching bets');
       }
 
-      const betsArr = dedupeLatestBets(bets || []);
+      const betsArr = dedupeLatestBets(bets || []).filter(
+        (b: any) => !UNPROVEN_MARKETS.has(String(b.market || ''))
+      );
       const paddedBetsArr = betsArr;
       // Fetch missing categories to guarantee minimum 3 for UI carousels
       let topMoneylines: any[] = [];
@@ -820,6 +845,7 @@ async function edgeHandler(req: Request) {
       rows.map((r: any) => ({
         ...r,
         bet_type: r.bet_type || betType,
+        gate_status: r.gate_status ?? gateStatus(r.rec),
         win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
         bet_score: r.bet_score ?? (r.edge_pts != null ? Math.min(100, Math.max(0, Math.round(50 + Number(r.edge_pts) * 5))) : null),
       }));
@@ -870,7 +896,9 @@ async function edgeHandler(req: Request) {
 
 
     // Process bets from RPC result
-    const rawBets = data?.bets || [];
+    const rawBets = (data?.bets || []).filter(
+      (b: any) => !UNPROVEN_MARKETS.has(String(b.market || ''))
+    );
     let enrichedBets: any[] = [];
 
     // Fetch missing categories to guarantee minimum 3 for UI carousels
@@ -982,6 +1010,7 @@ async function edgeHandler(req: Request) {
         rows.map((r: any) => ({
           ...r,
           bet_type: r.bet_type || betType,
+        gate_status: r.gate_status ?? gateStatus(r.rec),
           win_confidence: r.win_confidence ?? (r.model_prob != null ? Number(r.model_prob) * 100 : null),
           bet_score: r.bet_score ??
             (r.model_prob != null && r.best_price != null
