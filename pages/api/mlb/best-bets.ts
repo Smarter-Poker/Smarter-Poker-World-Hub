@@ -235,6 +235,79 @@ function dedupeLatestBets(rows: any[]): any[] {
   return Array.from(best.values()).sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
 }
 
+// A-tier display work (2026-07-05): attach quote-age (from price_ts stamped by the engine's
+// reprice loop) and gate provenance (basis / kelly_scale from auto_gate's model_meta mirror)
+// to every bet row. Additive only — never throws, never blocks the card.
+const QUOTE_STALE_MIN = 15;
+async function attachQuoteMeta(mlbDb: any, officialDate: string, lists: any[][]) {
+  try {
+    if (!officialDate) return;
+    const startIso = new Date(`${officialDate}T00:00:00.000Z`).toISOString();
+    const endIso = new Date(new Date(startIso).getTime() + 24 * 3600 * 1000).toISOString();
+    const [mktRows, prpRows, metaRes] = await Promise.all([
+      fetchAllRows(() =>
+        mlbDb
+          .from('pred_market_output')
+          .select('game_pk, market, selection, price_ts')
+          .gte('as_of_ts', startIso)
+          .lt('as_of_ts', endIso)
+          .not('price_ts', 'is', null)
+      ).catch(() => []),
+      fetchAllRows(() =>
+        mlbDb
+          .from('pred_props')
+          .select('game_pk, prop, player_id, price_ts')
+          .gte('as_of_ts', startIso)
+          .lt('as_of_ts', endIso)
+          .not('price_ts', 'is', null)
+      ).catch(() => []),
+      mlbDb.from('model_meta').select('value').eq('key', 'gate_config').maybeSingle(),
+    ]);
+    // Latest price_ts per bet identity.
+    const tsMap = new Map<string, string>();
+    const keep = (k: string, ts: any) => {
+      if (!ts) return;
+      const prev = tsMap.get(k);
+      if (!prev || String(ts) > prev) tsMap.set(k, String(ts));
+    };
+    for (const r of mktRows || []) keep(`${r.game_pk}|${r.market}|${r.selection}`, r.price_ts);
+    for (const r of prpRows || []) keep(`${r.game_pk}|${r.prop}|${r.player_id}`, r.price_ts);
+    const gateCfg = metaRes?.data?.value || null;
+    const gateFor = (b: any): any => {
+      if (!gateCfg) return null;
+      const mk = String(b.market || '');
+      if (b.bet_type === 'prop' || b.player_id != null) return gateCfg.props?.[mk] || null;
+      return gateCfg.markets?.[mk === 'moneyline' ? 'h2h' : mk] || null;
+    };
+    const now = Date.now();
+    const stamp = (b: any) => {
+      if (!b || typeof b !== 'object') return;
+      const mk = String(b.market || '');
+      const isProp = b.bet_type === 'prop' || b.player_id != null;
+      const key = isProp
+        ? `${b.game_pk}|${mk}|${b.player_id}`
+        : `${b.game_pk}|${mk === 'moneyline' ? 'h2h' : mk}|${b.selection}`;
+      const ts = b.price_ts || tsMap.get(key);
+      if (ts) {
+        b.price_ts = ts;
+        const ageMin = Math.round((now - Date.parse(String(ts))) / 60000);
+        if (Number.isFinite(ageMin)) {
+          b.quote_age_min = Math.max(0, ageMin);
+          b.quote_stale = b.quote_age_min > QUOTE_STALE_MIN;
+        }
+      }
+      const g = gateFor(b);
+      if (g) {
+        b.gate_basis = g.basis ?? null;
+        b.gate_kelly_scale = g.kelly_scale ?? null;
+      }
+    };
+    for (const list of lists) for (const b of list || []) stamp(b);
+  } catch (e: any) {
+    console.warn('[MLB best-bets] quote-meta attach skipped:', e?.message);
+  }
+}
+
 async function enrichBets(betsArr: BetRow[], mlbDb: any): Promise<BetRow[]> {
   if (!betsArr || betsArr.length === 0) return betsArr;
 
@@ -930,6 +1003,14 @@ async function edgeHandler(req: Request) {
       topHomers = allEnriched.slice(offset, offset + dedupedHR.length);
       offset += dedupedHR.length;
 
+      await attachQuoteMeta(mlbDb, officialDate, [
+        enriched,
+        topMoneylines,
+        topRunlines,
+        topTotals,
+        topHomers,
+      ]);
+
       const totalBets = enriched.length;
       const eliteBets = enriched.filter((b: any) => (b as any).bet_tier === 'ELITE').length;
       // Cap topScore to 100 — raw bet_score values in the DB can exceed 100
@@ -1291,6 +1372,20 @@ async function edgeHandler(req: Request) {
     offset += dedupedTeamTot.length;
     topNrfi = allEnriched.slice(offset, offset + dedupedNrfi.length);
     offset += dedupedNrfi.length;
+
+    await attachQuoteMeta(mlbDb, data?.officialDate, [
+      enrichedBets,
+      topMoneylines,
+      topRunlines,
+      topTotals,
+      topHomers,
+      topF5Runlines,
+      topF5Moneylines,
+      topF5Totals,
+      topF5TeamTotals,
+      topTeamTotals,
+      topNrfi,
+    ]);
 
     // Cap topScore to 100 — raw bet_score values in the DB can exceed 100
     const rawTopScore =

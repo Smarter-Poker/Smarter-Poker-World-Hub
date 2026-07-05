@@ -91,9 +91,9 @@ const MLB_TEAM_IDS: Record<string, number> = {
   // Add full names to prevent MLB default logo fallback
   YANKEES: 147,
   RED_SOX: 111,
-  "RED SOX": 111,
+  'RED SOX': 111,
   BLUE_JAYS: 141,
-  "BLUE JAYS": 141,
+  'BLUE JAYS': 141,
   ORIOLES: 110,
   RAYS: 139,
   ASTROS: 117,
@@ -103,7 +103,7 @@ const MLB_TEAM_IDS: Record<string, number> = {
   GUARDIANS: 114,
   TWINS: 142,
   WHITE_SOX: 145,
-  "WHITE SOX": 145,
+  'WHITE SOX': 145,
   TIGERS: 116,
   ROYALS: 118,
   BRAVES: 144,
@@ -175,24 +175,79 @@ const formatOdds = (o: any) => {
   return num > 0 ? `+${num}` : `${num}`;
 };
 
-
 const TEAM_NICKNAMES = [
-  'Red Sox', 'Blue Jays', 'White Sox', 'Angels', 'Astros', 'Athletics', 
-  'Braves', 'Brewers', 'Cardinals', 'Cubs', 'Diamondbacks', 'Dodgers', 
-  'Giants', 'Guardians', 'Mariners', 'Marlins', 'Mets', 'Nationals', 
-  'Orioles', 'Padres', 'Phillies', 'Pirates', 'Rangers', 'Rays', 'Reds', 
-  'Rockies', 'Royals', 'Tigers', 'Twins', 'Yankees'
+  'Red Sox',
+  'Blue Jays',
+  'White Sox',
+  'Angels',
+  'Astros',
+  'Athletics',
+  'Braves',
+  'Brewers',
+  'Cardinals',
+  'Cubs',
+  'Diamondbacks',
+  'Dodgers',
+  'Giants',
+  'Guardians',
+  'Mariners',
+  'Marlins',
+  'Mets',
+  'Nationals',
+  'Orioles',
+  'Padres',
+  'Phillies',
+  'Pirates',
+  'Rangers',
+  'Rays',
+  'Reds',
+  'Rockies',
+  'Royals',
+  'Tigers',
+  'Twins',
+  'Yankees',
 ];
 
 const ABBR_TO_NICKNAME: Record<string, string> = {
-  NYY: 'Yankees', BOS: 'Red Sox', TOR: 'Blue Jays', BAL: 'Orioles', TBR: 'Rays', TB: 'Rays',
-  HOU: 'Astros', TEX: 'Rangers', OAK: 'Athletics', LAA: 'Angels', SEA: 'Mariners',
-  CLE: 'Guardians', MIN: 'Twins', CWS: 'White Sox', CHW: 'White Sox', DET: 'Tigers',
-  KCR: 'Royals', KC: 'Royals', ATL: 'Braves', NYM: 'Mets', PHI: 'Phillies', MIA: 'Marlins',
-  WSN: 'Nationals', WAS: 'Nationals', MIL: 'Brewers', CHC: 'Cubs', STL: 'Cardinals',
-  CIN: 'Reds', PIT: 'Pirates', LAD: 'Dodgers', SF: 'Giants', SFG: 'Giants', ARI: 'Diamondbacks',
-  AZ: 'Diamondbacks', COL: 'Rockies', SDP: 'Padres', SD: 'Padres', ATH: 'Athletics',
-  WSH: 'Nationals'
+  NYY: 'Yankees',
+  BOS: 'Red Sox',
+  TOR: 'Blue Jays',
+  BAL: 'Orioles',
+  TBR: 'Rays',
+  TB: 'Rays',
+  HOU: 'Astros',
+  TEX: 'Rangers',
+  OAK: 'Athletics',
+  LAA: 'Angels',
+  SEA: 'Mariners',
+  CLE: 'Guardians',
+  MIN: 'Twins',
+  CWS: 'White Sox',
+  CHW: 'White Sox',
+  DET: 'Tigers',
+  KCR: 'Royals',
+  KC: 'Royals',
+  ATL: 'Braves',
+  NYM: 'Mets',
+  PHI: 'Phillies',
+  MIA: 'Marlins',
+  WSN: 'Nationals',
+  WAS: 'Nationals',
+  MIL: 'Brewers',
+  CHC: 'Cubs',
+  STL: 'Cardinals',
+  CIN: 'Reds',
+  PIT: 'Pirates',
+  LAD: 'Dodgers',
+  SF: 'Giants',
+  SFG: 'Giants',
+  ARI: 'Diamondbacks',
+  AZ: 'Diamondbacks',
+  COL: 'Rockies',
+  SDP: 'Padres',
+  SD: 'Padres',
+  ATH: 'Athletics',
+  WSH: 'Nationals',
 };
 
 const stripCity = (fullName: string | null | undefined): string => {
@@ -213,7 +268,10 @@ const stripCity = (fullName: string | null | undefined): string => {
 const formatMatchup = (matchup: string | null | undefined): string => {
   if (!matchup) return '';
   if (matchup.includes(' @ ')) {
-    return matchup.split(' @ ').map(p => stripCity(p.trim()).toUpperCase()).join(' @ ');
+    return matchup
+      .split(' @ ')
+      .map((p) => stripCity(p.trim()).toUpperCase())
+      .join(' @ ');
   }
   return stripCity(matchup).toUpperCase();
 };
@@ -294,7 +352,10 @@ const selectionLabel = (selection: string | null, matchup?: string): string => {
   if (s.startsWith('over')) return 'Over';
   if (s.startsWith('under')) return 'Under';
 
-  let cleanSelection = selection.replace(/_/g, ' ').replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '').trim();
+  let cleanSelection = selection
+    .replace(/_/g, ' ')
+    .replace(/\b(ml|h2h|rl|run line|tot|total|f5|first 5)\b/gi, '')
+    .trim();
   if (cleanSelection.includes(' @ ')) {
     return toTitleCase(formatMatchup(cleanSelection));
   }
@@ -370,12 +431,14 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
   let lineStr = '';
   const resolvedLine = bet.line ?? bet.point ?? bet.handicap;
   const typeStr = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-  const isSpread = typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
-  const isMoneyline = typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
+  const isSpread =
+    typeStr.includes('run_line') || typeStr.includes('runline') || typeStr.includes('spread');
+  const isMoneyline =
+    typeStr.includes('h2h') || typeStr.includes('moneyline') || typeStr.includes('money_line');
   // Word-boundary match — keeps 'hrr' (Hits+Runs+RBIs) out of the home-run branch.
   const isHomeRun = typeStr.includes('home_run') || /\bhr\b/.test(typeStr);
   const isTotalBetDetail = typeStr.includes('total') && !isSpread;
-  
+
   if (isMoneyline || isHomeRun) {
     lineStr = '';
   } else if (isSpread) {
@@ -429,8 +492,6 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
             boxShadow: `0 0 20px ${tierGlow}`,
           }}
         />
-
-        
 
         {/* Hero Section */}
         <div className="flex flex-col items-center pt-5 pb-4 px-4 border-b border-[#2a3a4a] relative overflow-hidden">
@@ -500,9 +561,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
               style={{ fontFamily: '"Rajdhani", sans-serif', fontSize: '22px' }}
             >
               {bet?.player_name ||
-                (isTeamBet
-                  ? selectionLabel(bet?.selection, bet?.matchup)
-                  : bet?.selection) ||
+                (isTeamBet ? selectionLabel(bet?.selection, bet?.matchup) : bet?.selection) ||
                 bet?.team ||
                 'Unknown'}
             </div>
@@ -566,7 +625,21 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                 <div className="text-[16px] font-black text-[#5a6a7a] capitalize tracking-widest mb-0.5 flex items-center gap-1.5">
                   {bet.price_estimated ? 'Est. Odds' : 'Best Odds'}
                   {bet.price_estimated && (
-                    <span className="text-[11px] font-black text-[#FFD700] border border-[#FFD700]/40 bg-[#FFD700]/10 px-1 py-px rounded-sm tracking-wider">EST</span>
+                    <span className="text-[11px] font-black text-[#FFD700] border border-[#FFD700]/40 bg-[#FFD700]/10 px-1 py-px rounded-sm tracking-wider">
+                      EST
+                    </span>
+                  )}
+                  {bet.gate_basis === 'clv-provisional' && (
+                    <span
+                      className="text-[11px] font-black text-[#FFA94D] border border-[#FFA94D]/40 bg-[#FFA94D]/10 px-1 py-px rounded-sm tracking-wider"
+                      title={`Gate opened on closing-line-value evidence, not graded profit yet. Stake scaled to ${
+                        bet.gate_kelly_scale != null ? bet.gate_kelly_scale : 0.5
+                      }x Kelly.`}
+                    >
+                      PROVISIONAL{bet.gate_kelly_scale != null && bet.gate_kelly_scale < 1
+                        ? ` · ${bet.gate_kelly_scale}x KELLY`
+                        : ''}
+                    </span>
                   )}
                 </div>
                 <div
@@ -589,6 +662,16 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {bet.quote_age_min != null && (
+            <div
+              className={`mt-1.5 text-[13px] font-bold tracking-widest capitalize ${
+                bet.quote_stale ? 'text-[#FFA94D]' : 'text-[#5a6a7a]'
+              }`}
+            >
+              Quote age: {bet.quote_age_min} min
+              {bet.quote_stale ? ' — stale, re-check the price before betting' : ''}
             </div>
           )}
         </div>
@@ -720,7 +803,9 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
           if (typeof bet.score_factors === 'string') {
             try {
               factors = JSON.parse(bet.score_factors);
-            } catch (e) { console.error('Failed to parse score_factors', e); }
+            } catch (e) {
+              console.error('Failed to parse score_factors', e);
+            }
           } else if (Array.isArray(bet.score_factors)) {
             factors = bet.score_factors;
           }
@@ -940,13 +1025,27 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-[#111827] border-b border-[#2a3a4a]">
                         <tr>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">Date</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">IP</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">H</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">ER</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">BB</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize">K</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">Pit</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            Date
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            IP
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            H
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            ER
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            BB
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize">
+                            K
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#5a6a7a] capitalize">
+                            Pit
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-[#0a0f1a]">
@@ -963,7 +1062,9 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                             <td className="px-3 py-2 text-white font-medium">{log.ER ?? '-'}</td>
                             <td className="px-3 py-2 text-white font-medium">{log.BB ?? '-'}</td>
                             <td className="px-3 py-2 text-[#00D4FF] font-black">{log.K ?? '-'}</td>
-                            <td className="px-3 py-2 text-slate-400 font-medium">{log.Pitches ?? '-'}</td>
+                            <td className="px-3 py-2 text-slate-400 font-medium">
+                              {log.Pitches ?? '-'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1149,13 +1250,19 @@ const BetCard = ({
   let lineStr = '';
   const resolvedLine = bet.line ?? bet.point ?? bet.handicap;
   const spreadCheck = ((bet.bet_type || '') + ' ' + (bet.market || '')).toLowerCase();
-  const isSpread = spreadCheck.includes('run_line') || spreadCheck.includes('runline') || spreadCheck.includes('spread');
-  const isMoneyline = spreadCheck.includes('h2h') || spreadCheck.includes('moneyline') || spreadCheck.includes('money_line');
+  const isSpread =
+    spreadCheck.includes('run_line') ||
+    spreadCheck.includes('runline') ||
+    spreadCheck.includes('spread');
+  const isMoneyline =
+    spreadCheck.includes('h2h') ||
+    spreadCheck.includes('moneyline') ||
+    spreadCheck.includes('money_line');
   // Word-boundary match: 'hrr' (Hits+Runs+RBIs) must NOT be detected as a home-run bet —
   // substring .includes('hr') hid the 2.5 line and mislabeled the market.
   const isHomeRun = spreadCheck.includes('home_run') || /\bhr\b/.test(spreadCheck);
   const isTotalBet = (spreadCheck.includes('total') || spreadCheck.includes('nrfi')) && !isSpread;
-  
+
   if (isMoneyline || isHomeRun) {
     lineStr = '';
   } else if (isSpread) {
@@ -1252,19 +1359,47 @@ const BetCard = ({
     if (!totalsLogoId) {
       // Nickname/city keyword fallback
       const nicknameMap: Record<string, number> = {
-        brewers: 158, cubs: 112, yankees: 147, 'red sox': 111, 'blue jays': 141,
-        orioles: 110, astros: 117, rangers: 140, athletics: 133, angels: 108,
-        mariners: 136, guardians: 114, twins: 142, 'white sox': 145, tigers: 116,
-        royals: 118, braves: 144, mets: 121, phillies: 143, marlins: 146,
-        nationals: 120, cardinals: 138, reds: 113, pirates: 134, dodgers: 119,
-        giants: 137, diamondbacks: 109, rockies: 115, padres: 135, rays: 139,
+        brewers: 158,
+        cubs: 112,
+        yankees: 147,
+        'red sox': 111,
+        'blue jays': 141,
+        orioles: 110,
+        astros: 117,
+        rangers: 140,
+        athletics: 133,
+        angels: 108,
+        mariners: 136,
+        guardians: 114,
+        twins: 142,
+        'white sox': 145,
+        tigers: 116,
+        royals: 118,
+        braves: 144,
+        mets: 121,
+        phillies: 143,
+        marlins: 146,
+        nationals: 120,
+        cardinals: 138,
+        reds: 113,
+        pirates: 134,
+        dodgers: 119,
+        giants: 137,
+        diamondbacks: 109,
+        rockies: 115,
+        padres: 135,
+        rays: 139,
       };
       for (const [kw, id] of Object.entries(nicknameMap)) {
-        if (lower.includes(kw)) { totalsLogoId = id; break; }
+        if (lower.includes(kw)) {
+          totalsLogoId = id;
+          break;
+        }
       }
     }
   }
-  const effectiveTeamLogoUrl = teamLogoUrl || (isTotalBet && totalsLogoId ? getTeamLogoUrl(totalsLogoId) : null);
+  const effectiveTeamLogoUrl =
+    teamLogoUrl || (isTotalBet && totalsLogoId ? getTeamLogoUrl(totalsLogoId) : null);
   const showTeamLogo = !showPlayerImg && !!effectiveTeamLogoUrl;
 
   // Stats arrays
@@ -1285,9 +1420,17 @@ const BetCard = ({
     if (bet.pitcher_so != null)
       pitcherStats.push({ label: 'K', value: String(bet.pitcher_so), color: '#fff' });
     if (bet.pitcher_k_per_ip != null)
-      pitcherStats.push({ label: 'K/IP', value: Number(bet.pitcher_k_per_ip).toFixed(2), color: '#fff' });
+      pitcherStats.push({
+        label: 'K/IP',
+        value: Number(bet.pitcher_k_per_ip).toFixed(2),
+        color: '#fff',
+      });
     if (bet.pitcher_k_per_g != null)
-      pitcherStats.push({ label: 'K/G', value: Number(bet.pitcher_k_per_g).toFixed(2), color: '#fff' });
+      pitcherStats.push({
+        label: 'K/G',
+        value: Number(bet.pitcher_k_per_g).toFixed(2),
+        color: '#fff',
+      });
     if (bet.pitcher_whip != null)
       pitcherStats.push({
         label: 'WHIP',
@@ -1356,7 +1499,9 @@ const BetCard = ({
         if (typeof navigator !== 'undefined' && navigator.vibrate)
           try {
             navigator.vibrate(8);
-          } catch (e) { console.error('Failed to vibrate', e); }
+          } catch (e) {
+            console.error('Failed to vibrate', e);
+          }
       }}
     >
       {/* Top tier bar */}
@@ -1431,21 +1576,23 @@ const BetCard = ({
           {/* Info */}
           <div className="flex-1 min-w-0 flex flex-col justify-center overflow-visible">
             {/* Ensure one-line display for matchups per requirements */}
-            <div
-              className="font-black text-[#5a6a7a] uppercase mb-0.5 text-[11px] sm:text-[13px] md:text-[15px] lg:text-[17px] tracking-widest whitespace-nowrap"
-            >
+            <div className="font-black text-[#5a6a7a] uppercase mb-0.5 text-[11px] sm:text-[13px] md:text-[15px] lg:text-[17px] tracking-widest whitespace-nowrap">
               {formatMatchup(bet.matchup) || stripCity(bet.team_name) || 'MLB GAME'}
             </div>
             <div
               className="font-black text-white capitalize leading-tight text-[24px] whitespace-normal"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {/* Edge honesty (2026-07-05): carousel rows whose engine rec is NO BET / MODEL ONLY
-                  are model information, not recommendations. */}
+              {/* Edge honesty (2026-07-05): pred_market_output carousel rows whose engine rec is
+                  NO BET / MODEL ONLY are model information, not recommendations. Never say
+                  "Bet The" for a row the gate did not flag. */}
               {bet.gate_status && bet.gate_status !== 'bet'
                 ? `Model View: ${marketLabel}`
                 : `Bet The ${marketLabel}`}
-              <div className="text-[18px] sm:text-[20px] md:text-[24px] font-black mt-1 whitespace-nowrap overflow-visible" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
+              <div
+                className="text-[18px] sm:text-[20px] md:text-[24px] font-black mt-1 whitespace-nowrap overflow-visible"
+                style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}
+              >
                 {(() => {
                   let target = '';
                   if (bet.player_name) {
@@ -1455,10 +1602,13 @@ const BetCard = ({
                   } else {
                     target = selectionLabel(bet?.selection, bet?.matchup).trim();
                     // For totals, append the line value after Over/Under, if it isn't already there
-                    if (isTotalBet && lineStr && !target.endsWith(lineStr)) target = `${target} ${lineStr}`;
+                    if (isTotalBet && lineStr && !target.endsWith(lineStr))
+                      target = `${target} ${lineStr}`;
                   }
                   if (target === '—') target = '';
-                  const oddsStr = bet.price_estimated ? '' : formatOdds(bet.price ?? bet.best_price);
+                  const oddsStr = bet.price_estimated
+                    ? ''
+                    : formatOdds(bet.price ?? bet.best_price);
                   const spreadPart = isSpread ? lineStr : '';
                   return `${target} ${spreadPart} ${oddsStr}`.trim().replace(/\s+/g, ' ');
                 })()}
@@ -1471,17 +1621,25 @@ const BetCard = ({
         {isPitcherProp && typeStr.includes('strikeout') && bet.line != null && (
           <div className="mb-2 bg-[#0a0f1a] border border-[#2a3a4a] rounded-sm p-2 flex items-stretch gap-2">
             <div className="flex-1 flex flex-col justify-center min-w-0">
-              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">BET</div>
+              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">
+                BET
+              </div>
               <div
                 className="text-[19px] font-black text-white leading-tight"
                 style={{ fontFamily: '"Rajdhani", sans-serif' }}
               >
-                {(bet.selection || '').toLowerCase().includes('under') ? 'Under' : (bet.selection || '').toLowerCase().includes('over') ? 'Over' : ''}{' '}
+                {(bet.selection || '').toLowerCase().includes('under')
+                  ? 'Under'
+                  : (bet.selection || '').toLowerCase().includes('over')
+                    ? 'Over'
+                    : ''}{' '}
                 {bet.line} K
               </div>
             </div>
             <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
-              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">PRICE</div>
+              <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">
+                PRICE
+              </div>
               <div
                 className="text-[19px] font-black leading-tight"
                 style={{
@@ -1494,7 +1652,9 @@ const BetCard = ({
             </div>
             {bet.pitcher_k_per_g != null && (
               <div className="border-l border-[#2a3a4a] pl-2 flex flex-col justify-center">
-                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">Season K/G</div>
+                <div className="text-[11px] font-black text-[#5a6a7a] tracking-widest mb-0.5">
+                  Season K/G
+                </div>
                 <div
                   className="text-[19px] font-black text-[#00D4FF] leading-tight"
                   style={{ fontFamily: '"Rajdhani", sans-serif' }}
@@ -1612,9 +1772,15 @@ const CategoryCarousel = ({
       <SectionHeader icon={Icon || Zap} label={title} />
       <MetalFrame className="p-3 md:p-4 bg-transparent border-0 w-full overflow-hidden">
         {/* Mobile Scroller */}
-        <div className="flex md:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory scrollbar-hide -mx-2 px-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div
+          className="flex md:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory scrollbar-hide -mx-2 px-2"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {bets.map((bet, idx) => (
-            <div key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`} className="flex-none w-[85vw] snap-center">
+            <div
+              key={`${bet.game_pk}-${bet.bet_type}-${bet.market}-${bet.selection}-${bet.player_id ?? ''}-${bet.line ?? ''}`}
+              className="flex-none w-[85vw] snap-center"
+            >
               <BetCard
                 bet={bet}
                 rank={idx + 1}
@@ -1680,7 +1846,7 @@ export default function BestBetsPage() {
     window.scrollTo(0, 0);
     window.history.pushState(null, '', `#bet`);
   }, []);
-  
+
   const closeModal = useCallback(() => {
     if (window.location.hash.startsWith('#bet')) {
       window.history.back();
@@ -1697,20 +1863,35 @@ export default function BestBetsPage() {
   // "Most Likely to Win" carousel: highest win-probability favorites.
   // Filtered strictly to ensure NO UNDERDOGS appear here.
   const mostLikelyToWin = useMemo(() => {
-    let source = data?.topMoneylines?.length > 0 ? data.topMoneylines : [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
+    let source =
+      data?.topMoneylines?.length > 0
+        ? data.topMoneylines
+        : [...bets].filter(
+            (b) =>
+              ['line', 'game'].includes(b.bet_type) &&
+              (b.market === 'h2h' || b.market === 'moneyline')
+          );
     return source
       .filter((b) => {
-          const prob = Number(b.win_confidence) || Number(b.model_prob ? Number(b.model_prob) * 100 : 0);
-          // Use win_confidence > 50 (favorites). Do NOT require price < 0 since pred_market_output
-          // underdogs with high model_prob still deserve to show here with their logo.
-          return prob > 50;
+        const prob =
+          Number(b.win_confidence) || Number(b.model_prob ? Number(b.model_prob) * 100 : 0);
+        // Use win_confidence > 50 (favorites). Do NOT require price < 0 since pred_market_output
+        // underdogs with high model_prob still deserve to show here with their logo.
+        return prob > 50;
       })
-      .sort((a, b) => (Number(b.win_confidence) || Number(b.model_prob) * 100 || 0) - (Number(a.win_confidence) || Number(a.model_prob) * 100 || 0))
+      .sort(
+        (a, b) =>
+          (Number(b.win_confidence) || Number(b.model_prob) * 100 || 0) -
+          (Number(a.win_confidence) || Number(a.model_prob) * 100 || 0)
+      )
       .slice(0, 10);
   }, [bets, data]);
 
   const bestMoneyLines = useMemo(() => {
-    const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline'));
+    const filtered = [...bets].filter(
+      (b) =>
+        ['line', 'game'].includes(b.bet_type) && (b.market === 'h2h' || b.market === 'moneyline')
+    );
     const merged = [...filtered, ...(data?.topMoneylines || [])];
     const uniqueMap = new Map();
     for (const b of merged) {
@@ -1720,35 +1901,47 @@ export default function BestBetsPage() {
         uniqueMap.set(betKey, b);
       }
     }
-    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    return Array.from(uniqueMap.values()).sort(
+      (a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)
+    );
   }, [bets, data]);
 
   const bestRunLines = useMemo(() => {
-    const filtered = [...bets].filter((b) => b.bet_type === 'line' && (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread'));
+    const filtered = [...bets].filter(
+      (b) =>
+        b.bet_type === 'line' &&
+        (b.market === 'run_line' || b.market === 'runline' || b.market === 'spread')
+    );
     const merged = [...filtered, ...(data?.topRunlines || [])];
     const uniqueMap = new Map();
     for (const b of merged) {
-      const matchKey = b.game_pk || b.matchup; 
-      const betKey = `${matchKey}-${b.market}`; 
+      const matchKey = b.game_pk || b.matchup;
+      const betKey = `${matchKey}-${b.market}`;
       if (!uniqueMap.has(betKey) || Number(b.bet_score) > Number(uniqueMap.get(betKey).bet_score)) {
         uniqueMap.set(betKey, b);
       }
     }
-    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    return Array.from(uniqueMap.values()).sort(
+      (a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)
+    );
   }, [bets, data]);
 
   const bestTotals = useMemo(() => {
-    const filtered = [...bets].filter((b) => ['line', 'game'].includes(b.bet_type) && b.market === 'total');
+    const filtered = [...bets].filter(
+      (b) => ['line', 'game'].includes(b.bet_type) && b.market === 'total'
+    );
     const merged = [...filtered, ...(data?.topTotals || [])];
     const uniqueMap = new Map();
     for (const b of merged) {
-      const matchKey = b.game_pk || b.matchup; 
-      const betKey = `${matchKey}-${b.market}`; 
+      const matchKey = b.game_pk || b.matchup;
+      const betKey = `${matchKey}-${b.market}`;
       if (!uniqueMap.has(betKey) || Number(b.bet_score) > Number(uniqueMap.get(betKey).bet_score)) {
         uniqueMap.set(betKey, b);
       }
     }
-    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
+    return Array.from(uniqueMap.values()).sort(
+      (a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0)
+    );
   }, [bets, data]);
 
   const mostLikelyToHomer = useMemo(() => {
@@ -1757,7 +1950,9 @@ export default function BestBetsPage() {
       return m === 'home_run' || m === 'hr' || m.includes('home_run');
     });
     const merged = [...filtered, ...(data?.topHomers || [])];
-    const unique = Array.from(new Map(merged.map(b => [`${b.player_id}-${b.selection}-${b.market}`, b])).values());
+    const unique = Array.from(
+      new Map(merged.map((b) => [`${b.player_id}-${b.selection}-${b.market}`, b])).values()
+    );
     return unique.sort((a, b) => (Number(b.bet_score) || 0) - (Number(a.bet_score) || 0));
   }, [bets, data]);
 
@@ -1785,7 +1980,7 @@ export default function BestBetsPage() {
         let m = b.market || 'Other Prop';
         // Normalize f5_ to first_5_ for grouping
         if (m.startsWith('f5_')) m = m.replace('f5_', 'first_5_');
-        
+
         // Skip home runs here since we have a dedicated section
         if (m === 'home_run' || m === 'hr') return;
         // Skip H2H or Moneyline entirely since they shouldn't be rendered as a "Prop" carousel
@@ -1805,18 +2000,27 @@ export default function BestBetsPage() {
         let finalTitle = '';
         if (market.toLowerCase() === 'runs') finalTitle = 'Player Runs Scored';
         else if (market.toLowerCase() === 'earned_runs') finalTitle = 'Pitcher Earned Runs';
-        else if (market.toLowerCase() === 'strikeout' || market.toLowerCase() === 'strikeouts' || market.toLowerCase() === 'pitcher_strikeout') finalTitle = 'Pitcher Strikeouts';
+        else if (
+          market.toLowerCase() === 'strikeout' ||
+          market.toLowerCase() === 'strikeouts' ||
+          market.toLowerCase() === 'pitcher_strikeout'
+        )
+          finalTitle = 'Pitcher Strikeouts';
         else if (market.toLowerCase() === 'hits') finalTitle = 'Best Bets Players To Get A Hit';
-        else if (market.toLowerCase() === 'bases' || market.toLowerCase() === 'total_bases') finalTitle = 'Player Total Bases';
-        else if (market.toLowerCase() === 'rbi' || market.toLowerCase() === 'runs_batted_in') finalTitle = 'Player RBIs';
-        else if (market.toLowerCase() === 'outs' || market.toLowerCase() === 'outs_recorded') finalTitle = 'Pitching Outs';
-        else if (market.toLowerCase() === 'bb' || market.toLowerCase() === 'pitcher_walks') finalTitle = 'Pitcher Walks';
+        else if (market.toLowerCase() === 'bases' || market.toLowerCase() === 'total_bases')
+          finalTitle = 'Player Total Bases';
+        else if (market.toLowerCase() === 'rbi' || market.toLowerCase() === 'runs_batted_in')
+          finalTitle = 'Player RBIs';
+        else if (market.toLowerCase() === 'outs' || market.toLowerCase() === 'outs_recorded')
+          finalTitle = 'Pitching Outs';
+        else if (market.toLowerCase() === 'bb' || market.toLowerCase() === 'pitcher_walks')
+          finalTitle = 'Pitcher Walks';
         else if (market.toLowerCase() === 'team_total') finalTitle = 'Team Total';
         else {
           const titleMarket = market.replace(/_/g, ' ');
-          finalTitle = titleMarket.includes('f5') 
-            ? `Top ${titleMarket.replace('f5', 'F5')}` 
-            : `Top ${titleMarket.replace(/\b\w/g, l => l.toUpperCase())}`;
+          finalTitle = titleMarket.includes('f5')
+            ? `Top ${titleMarket.replace('f5', 'F5')}`
+            : `Top ${titleMarket.replace(/\b\w/g, (l) => l.toUpperCase())}`;
         }
 
         groups.push({ title: finalTitle, bets: sorted });
@@ -1872,7 +2076,6 @@ export default function BestBetsPage() {
     );
   }
 
-  
   if (selectedBet) {
     return <BetDetailView bet={selectedBet} onClose={closeModal} />;
   }
@@ -1923,7 +2126,13 @@ export default function BestBetsPage() {
               </span>
             </h1>
             <p className="m-0 text-[16px] font-black tracking-widest text-[#5a6a7a] uppercase mt-1">
-              Ranked By Bet Score · {officialDate ? (() => { const dt = new Date(`${officialDate}T12:00:00Z`); return `${dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()} ${dt.getMonth() + 1}-${dt.getDate()}-${dt.getFullYear()}`; })() : ''}
+              Ranked By Bet Score ·{' '}
+              {officialDate
+                ? (() => {
+                    const dt = new Date(`${officialDate}T12:00:00Z`);
+                    return `${dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()} ${dt.getMonth() + 1}-${dt.getDate()}-${dt.getFullYear()}`;
+                  })()
+                : ''}
             </p>
           </div>
           <button
@@ -1931,7 +2140,9 @@ export default function BestBetsPage() {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
                 try {
                   navigator.vibrate(15);
-                } catch (e) { console.error('Failed to vibrate', e); }
+                } catch (e) {
+                  console.error('Failed to vibrate', e);
+                }
               }
               setIsGuideOpen(true);
             }}
@@ -2073,28 +2284,30 @@ export default function BestBetsPage() {
                   bets={mostLikelyToHomer}
                   onBetClick={openModal}
                 />
-                
+
                 {/* Dynamically grouped props from pred_best_bets (strikeouts, pitcher_walks, etc.) */}
 
                 {topPropsByMarket
                   .filter((group) => {
                     // Exclude markets that have dedicated sections below
                     const lowerTitle = group.title.toLowerCase();
-                    return !lowerTitle.includes('top runs') && 
-                           !lowerTitle.includes('top earned') &&
-                           !lowerTitle.includes('f5') &&
-                           !lowerTitle.includes('team total') &&
-                           !lowerTitle.includes('f5 team') &&
-                           !lowerTitle.includes('nrfi');
+                    return (
+                      !lowerTitle.includes('top runs') &&
+                      !lowerTitle.includes('top earned') &&
+                      !lowerTitle.includes('f5') &&
+                      !lowerTitle.includes('team total') &&
+                      !lowerTitle.includes('f5 team') &&
+                      !lowerTitle.includes('nrfi')
+                    );
                   })
                   .map((group, idx) => (
-                  <CategoryCarousel
-                    key={idx}
-                    title={group.title}
-                    bets={group.bets}
-                    onBetClick={openModal}
-                  />
-                ))}
+                    <CategoryCarousel
+                      key={idx}
+                      title={group.title}
+                      bets={group.bets}
+                      onBetClick={openModal}
+                    />
+                  ))}
 
                 {/* Section order: Team Total → F5 ML → F5 Total → F5 Team Total → NRFI */}
 
@@ -2169,8 +2382,6 @@ export default function BestBetsPage() {
       </MlbPremiumGate>
 
       <BottomNavBar />
-
-      
     </div>
   );
 }

@@ -50,6 +50,26 @@ async function edgeHandler(req: Request) {
       stats.activeDays = null;
     }
 
+    // CLV digest (2026-07-05): weekly closing-line-value per market and per book from
+    // clv_weekly (written nightly by the engine's clv_report stage; 'book:'-prefixed
+    // rows are the per-book split). Additive — a failure here never blocks the page.
+    try {
+      const { data: clvRows } = await mlbDb
+        .from('clv_weekly')
+        .select('week_start, market, n, avg_clv_pts, avg_clv_cents, beat_close_pct')
+        .order('week_start', { ascending: false })
+        .limit(200);
+      if (clvRows && clvRows.length > 0) {
+        const markets = clvRows.filter((r: any) => !String(r.market).startsWith('book:'));
+        const books = clvRows
+          .filter((r: any) => String(r.market).startsWith('book:'))
+          .map((r: any) => ({ ...r, book: String(r.market).slice(5) }));
+        stats.clv = { markets, books };
+      }
+    } catch (clvErr: any) {
+      console.warn('[MLB validation] clv_weekly fetch skipped:', clvErr?.message);
+    }
+
     return new Response(JSON.stringify({ stats }), {
       status: 200,
       headers: {

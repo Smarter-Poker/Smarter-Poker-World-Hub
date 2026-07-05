@@ -62,6 +62,24 @@ export interface ValidationStats {
     mktBrier: number | null;
   };
   edgeData: EdgeData[];
+  clv?: {
+    markets: Array<{
+      week_start: string;
+      market: string;
+      n: number;
+      avg_clv_pts: number | null;
+      avg_clv_cents: number | null;
+      beat_close_pct: number | null;
+    }>;
+    books: Array<{
+      week_start: string;
+      book: string;
+      n: number;
+      avg_clv_pts: number | null;
+      avg_clv_cents: number | null;
+      beat_close_pct: number | null;
+    }>;
+  };
 }
 
 interface CustomTooltipProps {
@@ -107,7 +125,7 @@ export default function ValidationPage() {
   const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
     refreshInterval: 300000, // 5 min — validation data changes at most once per day
     revalidateOnFocus: false,
-    keepPreviousData: true,  // Prevents chart from blanking when day-filter changes
+    keepPreviousData: true, // Prevents chart from blanking when day-filter changes
   });
 
   const stats: ValidationStats | null = data?.stats || null;
@@ -212,7 +230,11 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {
+                  console.error(e);
+                }
               }
               setDays(7);
             }}
@@ -223,7 +245,11 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {
+                  console.error(e);
+                }
               }
               setDays(30);
             }}
@@ -234,7 +260,11 @@ export default function ValidationPage() {
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                try {
+                  navigator.vibrate(15);
+                } catch (e) {
+                  console.error(e);
+                }
               }
               setDays(null);
             }}
@@ -370,7 +400,7 @@ export default function ValidationPage() {
               {stats.all.modelBrier != null && stats.all.mktBrier != null
                 ? Number(stats.all.modelBrier) < Number(stats.all.mktBrier)
                   ? "The model's probabilities are more accurate than the no-vig market here (lower Brier) — a real skill signal."
-                  : "The no-vig market is currently more accurate than the model here (lower Brier) — treat model edges with caution."
+                  : 'The no-vig market is currently more accurate than the model here (lower Brier) — treat model edges with caution.'
                 : 'Not enough graded data yet to compare model vs market accuracy.'}
             </div>
 
@@ -466,7 +496,11 @@ export default function ValidationPage() {
                       <div className="text-right text-slate-300 font-medium">{row.winPct}%</div>
                       <div
                         className={`text-right font-extrabold ${
-                          Number(row.roi) > 0 ? 'text-[#00D4FF]' : Number(row.roi) < 0 ? 'text-[#FF0055]' : 'text-white'
+                          Number(row.roi) > 0
+                            ? 'text-[#00D4FF]'
+                            : Number(row.roi) < 0
+                              ? 'text-[#FF0055]'
+                              : 'text-white'
                         }`}
                         style={{
                           textShadow:
@@ -495,6 +529,68 @@ export default function ValidationPage() {
               higher roi, but variance in smaller sample sizes can cause non-monotonic returns
               across different edge buckets.
             </div>
+
+            {stats.clv && (stats.clv.markets.length > 0 || stats.clv.books.length > 0) && (
+              <div className="mb-8">
+                <div className="text-[22px] font-extrabold text-white tracking-[1px] mb-2 capitalize">
+                  Closing Line Value — Weekly
+                </div>
+                <div className="text-[16px] text-slate-400 mb-3">
+                  CLV measures whether flagged bets beat the closing price — the strongest
+                  long-run predictor of real edge. Positive pts = the market moved our way.
+                </div>
+                {[
+                  { label: 'By Market', rows: stats.clv.markets, nameKey: 'market' as const },
+                  { label: 'By Book', rows: stats.clv.books, nameKey: 'book' as const },
+                ].map(
+                  (sec) =>
+                    sec.rows.length > 0 && (
+                      <div
+                        key={sec.label}
+                        className="bg-[#0d1117] border border-[#3d4f5f] rounded-xl overflow-hidden mb-4"
+                      >
+                        <div className="grid grid-cols-[1.2fr_1.6fr_0.8fr_1fr_1fr] py-3 px-4 border-b-2 border-[#3d4f5f] bg-[#1a2332] text-[16px] font-bold text-slate-400 capitalize tracking-wider">
+                          <div>Week</div>
+                          <div>{sec.label.replace('By ', '')}</div>
+                          <div className="text-right">N</div>
+                          <div className="text-right">CLV pts</div>
+                          <div className="text-right">Beat Close</div>
+                        </div>
+                        {sec.rows.slice(0, 12).map((row: any, idx: number) => (
+                          <div
+                            key={`${row.week_start}|${row[sec.nameKey]}`}
+                            className={`grid grid-cols-[1.2fr_1.6fr_0.8fr_1fr_1fr] py-2.5 px-4 text-[18px] hover:bg-[#1a2332] transition-colors ${idx < Math.min(sec.rows.length, 12) - 1 ? 'border-b border-[#1a2332]' : ''}`}
+                          >
+                            <div className="text-slate-400 font-medium">{row.week_start}</div>
+                            <div className="text-white font-bold capitalize">
+                              {String(row[sec.nameKey]).replace(/_/g, ' ')}
+                            </div>
+                            <div className="text-right text-slate-300">{row.n}</div>
+                            <div
+                              className={`text-right font-extrabold ${
+                                Number(row.avg_clv_pts) > 0
+                                  ? 'text-[#00D4FF]'
+                                  : Number(row.avg_clv_pts) < 0
+                                    ? 'text-[#FF0055]'
+                                    : 'text-slate-300'
+                              }`}
+                            >
+                              {row.avg_clv_pts == null
+                                ? '—'
+                                : `${Number(row.avg_clv_pts) > 0 ? '+' : ''}${Number(row.avg_clv_pts).toFixed(2)}`}
+                            </div>
+                            <div className="text-right text-slate-300">
+                              {row.beat_close_pct == null
+                                ? '—'
+                                : `${Number(row.beat_close_pct).toFixed(0)}%`}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                )}
+              </div>
+            )}
 
             <div className="text-[17px] text-slate-500 text-center leading-relaxed max-w-[400px] mx-auto border-t border-[#3d4f5f] pt-6 pb-2">
               Win-rate breakeven at -110 is ~52.4%.
