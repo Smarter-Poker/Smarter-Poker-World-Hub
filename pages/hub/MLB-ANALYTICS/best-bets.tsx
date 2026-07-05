@@ -1440,7 +1440,11 @@ const BetCard = ({
               className="font-black text-white capitalize leading-tight text-[24px] whitespace-normal"
               style={{ fontFamily: '"Rajdhani", sans-serif' }}
             >
-              {`Bet The ${marketLabel}`}
+              {/* Edge honesty (2026-07-05): carousel rows whose engine rec is NO BET / MODEL ONLY
+                  are model information, not recommendations. */}
+              {bet.gate_status && bet.gate_status !== 'bet'
+                ? `Model View: ${marketLabel}`
+                : `Bet The ${marketLabel}`}
               <div className="text-[18px] sm:text-[20px] md:text-[24px] font-black mt-1 whitespace-nowrap overflow-visible" style={{ fontFamily: '"Rajdhani", sans-serif', color: '#00D4FF' }}>
                 {(() => {
                   let target = '';
