@@ -239,6 +239,38 @@ function dedupeLatestBets(rows: any[]): any[] {
 // reprice loop) and gate provenance (basis / kelly_scale from auto_gate's model_meta mirror)
 // to every bet row. Additive only — never throws, never blocks the card.
 const QUOTE_STALE_MIN = 15;
+
+// C11 surfacing (2026-07-06): same-game-parlay fair pricing computed by the engine's
+// sgp_pricing stage (Gaussian copula over the sim's joint-correlation matrix) and
+// mirrored into model_meta. Additive and best-effort: date-mismatched or missing data
+// returns [] and the card renders without the section.
+async function fetchSgpSuggestions(mlbDb: any, officialDate: string): Promise<any[]> {
+  try {
+    if (!officialDate) return [];
+    const { data } = await mlbDb
+      .from('model_meta')
+      .select('value')
+      .eq('key', 'sgp_suggestions')
+      .maybeSingle();
+    const v = data?.value;
+    if (!v || v.date !== officialDate || !Array.isArray(v.suggestions)) return [];
+    // Only well-formed, positively-correlated pairs are worth showing.
+    return v.suggestions
+      .filter(
+        (s: any) =>
+          s &&
+          Array.isArray(s.legs) &&
+          s.legs.length === 2 &&
+          s.joint_prob != null &&
+          s.fair_american != null &&
+          (s.corr_bonus_pts ?? 0) > 0
+      )
+      .slice(0, 12);
+  } catch (e: any) {
+    console.warn('[MLB best-bets] sgp suggestions skipped:', e?.message);
+    return [];
+  }
+}
 async function attachQuoteMeta(mlbDb: any, officialDate: string, lists: any[][]) {
   try {
     if (!officialDate) return;
@@ -1010,6 +1042,7 @@ async function edgeHandler(req: Request) {
         topTotals,
         topHomers,
       ]);
+      const sgpSuggestionsFb = await fetchSgpSuggestions(mlbDb, officialDate);
 
       const totalBets = enriched.length;
       const eliteBets = enriched.filter((b: any) => (b as any).bet_tier === 'ELITE').length;
@@ -1032,6 +1065,7 @@ async function edgeHandler(req: Request) {
           topRunlines,
           topTotals,
           topHomers,
+          sgpSuggestions: sgpSuggestionsFb,
           officialDate,
           is_stale:
             officialDate <
@@ -1386,6 +1420,7 @@ async function edgeHandler(req: Request) {
       topTeamTotals,
       topNrfi,
     ]);
+    const sgpSuggestions = await fetchSgpSuggestions(mlbDb, data?.officialDate);
 
     // Cap topScore to 100 — raw bet_score values in the DB can exceed 100
     const rawTopScore =
@@ -1420,6 +1455,7 @@ async function edgeHandler(req: Request) {
         topF5TeamTotals,
         topTeamTotals,
         topNrfi,
+        sgpSuggestions,
         officialDate: data?.officialDate || null,
         is_stale: data?.officialDate
           ? data.officialDate <

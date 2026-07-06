@@ -636,7 +636,8 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
                         bet.gate_kelly_scale != null ? bet.gate_kelly_scale : 0.5
                       }x Kelly.`}
                     >
-                      PROVISIONAL{bet.gate_kelly_scale != null && bet.gate_kelly_scale < 1
+                      PROVISIONAL
+                      {bet.gate_kelly_scale != null && bet.gate_kelly_scale < 1
                         ? ` · ${bet.gate_kelly_scale}x KELLY`
                         : ''}
                     </span>
@@ -2368,6 +2369,65 @@ export default function BestBetsPage() {
               </>
             )}
           </div>
+
+          {/* Same-Game Parlay fair-price guide (C11): copula joint probabilities from the
+              sim's per-game correlation matrix over gate-approved legs. Informational —
+              shows what a correlated 2-leg combo is WORTH so a book's SGP quote can be
+              judged instantly. */}
+          {Array.isArray(data?.sgpSuggestions) && data.sgpSuggestions.length > 0 && (
+            <div className="mx-4 mb-6">
+              <div className="text-[22px] font-black text-white tracking-widest capitalize mb-1">
+                Same-Game Parlays — Fair Price Guide
+              </div>
+              <div className="text-[15px] text-[#5a6a7a] mb-3 leading-relaxed">
+                Correlated combos priced with the model's own game simulation. Only worth
+                betting if your book pays MORE than the fair price shown.
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {data.sgpSuggestions.slice(0, 6).map((s: any) => {
+                  const matchup =
+                    bets.find((b: any) => b.game_pk === s.game_pk)?.matchup || `Game ${s.game_pk}`;
+                  const legLabel = (l: any) =>
+                    `${String(l.market).replace(/_/g, ' ')} ${String(l.selection).replace(/_/g, ' ')}`;
+                  return (
+                    <div
+                      key={`${s.game_pk}-${s.legs.map((l: any) => l.selection).join('-')}`}
+                      className="bg-[#0d1117] border border-[#2a3a4a] rounded-sm p-3"
+                    >
+                      <div className="text-[15px] font-black text-[#5a6a7a] tracking-widest capitalize mb-1">
+                        {matchup}
+                      </div>
+                      <div className="text-[19px] font-black text-white capitalize leading-snug mb-2">
+                        {legLabel(s.legs[0])} <span className="text-[#00D4FF]">+</span>{' '}
+                        {legLabel(s.legs[1])}
+                      </div>
+                      <div className="flex justify-between items-center text-[15px]">
+                        <div className="text-slate-400">
+                          Joint win{' '}
+                          <span className="text-white font-black">
+                            {(Number(s.joint_prob) * 100).toFixed(1)}%
+                          </span>
+                          <span className="text-[#5a6a7a]">
+                            {' '}
+                            (+{Number(s.corr_bonus_pts).toFixed(1)} pts corr)
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[13px] text-[#5a6a7a] tracking-widest capitalize">
+                            Worth betting above
+                          </div>
+                          <div className="text-[24px] font-black text-[#00D4FF]">
+                            {Number(s.fair_american) > 0 ? '+' : ''}
+                            {s.fair_american}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           {bets.length > 0 && (
