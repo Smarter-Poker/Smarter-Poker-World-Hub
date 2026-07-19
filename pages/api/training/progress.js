@@ -67,7 +67,7 @@ export default async function handler(req, res) {
                   .select('level, accuracy_percentage, passed, questions_answered, questions_correct')
                   .eq('user_id', userId)
                   .eq('game_id', gameId)
-                  .order('created_at', { ascending: false })
+                  .order('completed_at', { ascending: false })
                   .limit(500),
               getSupabase()
                   .from('training_progress')
