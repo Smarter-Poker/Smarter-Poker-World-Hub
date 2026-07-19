@@ -240,30 +240,55 @@ export default async function handler(req, res) {
           }
 
           // ─── Push/Fold (Short Stack) ───────────────────────────────────
+          // 2026-07-19 AUDIT PHASE 2: memory_charts_gold now holds COMPUTED
+          // Nash jam/fold equilibria (fictitious play over a Monte-Carlo
+          // 169x169 equity matrix; 6-max chipEV, single-overcall model) for
+          // UTG/MP/CO/BTN/SB first-in shoves at depths 2-25bb, plus the BB
+          // call-vs-SB-jam ranges (villain_action='sb_push'). The old
+          // RFI-threshold heuristic remains only as a last-resort fallback.
           else if (scenario === 'push_fold') {
-              actions = ['Push', 'Fold'];
               const sd = parseInt(stackDepth, 10) || 15;
+              const isBB = pos === 'BB';
+              // Charts exist for UTG/MP/CO/BTN/SB (+BB call); map uncovered seats
+              const chartPos = isBB ? 'BB'
+                  : ['UTG', 'MP', 'CO', 'BTN', 'SB'].includes(pos) ? pos
+                  : pos === 'HJ' || pos === 'MP+1' ? 'MP'
+                  : pos === 'UTG+1' ? 'UTG'
+                  : 'BTN';
+              actions = isBB ? ['Call', 'Fold'] : ['Push', 'Fold'];
 
-              // Try loading from memory_charts_gold (Supabase)
-              const { data: charts } = await getSupabase()
+              // Fetch nearest-depth Nash chart (pick closest, not arbitrary)
+              const { data: chartRows } = await getSupabase()
                   .from('memory_charts_gold')
                   .select('hand_matrix, hero_position, stack_depth')
-                  .eq('hero_position', pos)
-                  .gte('stack_depth', sd - 3)
-                  .lte('stack_depth', sd + 3)
-                  .limit(1)
-                  .maybeSingle();
+                  .eq('hero_position', chartPos)
+                  .eq('villain_action', isBB ? 'sb_push' : 'fold_to_hero')
+                  .eq('game_type', 'Tournament')
+                  .gte('stack_depth', Math.max(2, sd - 5))
+                  .lte('stack_depth', sd + 5)
+                  .limit(20);
 
-              if (charts?.hand_matrix) {
-                  const matrix = charts.hand_matrix;
+              let chart = null;
+              (chartRows || []).forEach(row => {
+                  if (!chart || Math.abs(row.stack_depth - sd) < Math.abs(chart.stack_depth - sd)) {
+                      chart = row;
+                  }
+              });
+
+              if (chart?.hand_matrix) {
+                  const matrix = chart.hand_matrix;
+                  const key = isBB ? 'call' : 'push';
+                  const actionLabel = isBB ? 'Call' : 'Push';
                   allHands.forEach(hand => {
-                      const pushFreq = matrix[hand]?.push || 0;
-                      rangeData[hand] = pushFreq > 0
-                          ? { 'Push': Math.round(pushFreq * 1000) / 10, 'Fold': Math.round((1 - pushFreq) * 1000) / 10 }
+                      const freq = matrix[hand]?.[key] ?? matrix[hand]?.push ?? 0;
+                      rangeData[hand] = freq > 0
+                          ? { [actionLabel]: Math.round(freq * 1000) / 10, 'Fold': Math.round((1 - freq) * 1000) / 10 }
                           : null;
                   });
-                  source = 'memory_charts_gold';
-                  spotLabel = `${pos} Push/Fold ${sd}BB (DB)`;
+                  source = 'nash_computed';
+                  spotLabel = isBB
+                      ? `BB Call vs SB Jam ${chart.stack_depth}BB (Nash)`
+                      : `${pos} Push/Fold ${chart.stack_depth}BB (Nash)`;
               } else {
                   // Fallback: use RFI data at the appropriate stack depth
                   const rfiRange = getRFIByDepth(sd, pos) || {};

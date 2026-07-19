@@ -5,6 +5,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -46,6 +47,25 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (!gameById) {
+                  // 2026-07-19 AUDIT FIX (E2E defect D6): the 107 training games
+                  // live in TRAINING_LIBRARY, not the game_registry table — every
+                  // LevelSelector load 404'd here. Serve the library entry in the
+                  // same shape LevelSelector expects.
+                  const libraryGame = getGameById(slug);
+                  if (libraryGame) {
+                      return res.status(200).json({
+                          id: libraryGame.id,
+                          title: libraryGame.name,
+                          slug: libraryGame.id,
+                          category: libraryGame.category,
+                          engine_type: libraryGame.tags?.includes('gto')
+                              ? 'PIO'
+                              : libraryGame.category === 'PSYCHOLOGY'
+                                ? 'SCENARIO'
+                                : 'PIO',
+                          source: 'training_library',
+                      });
+                  }
                   return res.status(404).json({ error: 'Game not found', slug });
               }
 

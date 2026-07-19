@@ -101,7 +101,11 @@ async function supabaseHealthCheck() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 1500);
 
-        const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+        // 2026-07-19 AUDIT FIX (E2E defect D7): GET /rest/v1/ (root) returns
+        // 401 "Only the service_role API key can be used for this endpoint" on
+        // this project, logging a console error on EVERY page load. The auth
+        // health endpoint is genuinely public and returns 200.
+        const res = await fetch(`${supabaseUrl}/auth/v1/health`, {
             method: 'GET',
             headers: { apikey: anonKey, Accept: 'application/json' },
             signal: controller.signal,

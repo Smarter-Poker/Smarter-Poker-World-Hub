@@ -430,7 +430,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
                     <div style={styles.progressSummary}>
                         <span style={styles.progressText}>
-                            {completedLevels}/10 Levels Completed
+                            {completedLevels}/{levels.length || 12} Levels Completed
                         </span>
                         <div style={styles.progressTrack}>
                             <motion.div

@@ -17,7 +17,6 @@ import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
-import PreflopRangeTrainer from './PreflopRangeTrainer';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
 // ═══ PHASE 16: Performance Analytics Components ═══
@@ -3918,8 +3917,10 @@ function GodModeArenaInner({
               <div style={styles.summaryLabel}>Mistakes</div>
             </div>
             <div style={styles.summaryItem}>
-              <div style={styles.summaryValue}>{avgEVLossPerHand.toFixed(2)}</div>
-              <div style={styles.summaryLabel}>EV/Hand</div>
+              {/* 2026-07-19 (E2E defect D2): this is an EV LOSS metric — the old
+                  bare "EV/Hand" label read as positive EV next to "EV LOSS -X". */}
+              <div style={styles.summaryValue}>-{Math.abs(avgEVLossPerHand).toFixed(2)}</div>
+              <div style={styles.summaryLabel}>EV Loss/Hand</div>
             </div>
           </div>
 
@@ -13088,7 +13089,12 @@ const styles = {
 
 function GodModeArena(props) {
   const { gameId, onExit } = props;
-  if (gameId === 'cash-001') return <PreflopRangeTrainer onExit={onExit} />;
+  // 2026-07-19 AUDIT FIX (E2E defect D3): cash-001 ("Preflop Blueprint" —
+  // the default CASH tile) was hardcoded to an endless PreflopRangeTrainer
+  // that ignored the selected level, had no 20-question structure or
+  // completion screen, and counted non-best picks as correct (always-RAISE
+  // scored 100%). cash-001 has real solver content in the question cache,
+  // so it now runs through the standard leveled arena like every other game.
   if (gameId === 'adv-011') return <SPRTrainer onExit={onExit} />;
   if (gameId === 'quiz-gauntlet') return <QuizGauntlet onExit={onExit} />;
   return <GodModeArenaInner {...props} />;

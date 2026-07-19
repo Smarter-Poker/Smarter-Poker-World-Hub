@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: authData, error: _authErr } = await supabase.auth.getUser(_token);
+          const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
           const _authUser = authData?.user;
           if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
@@ -71,9 +71,13 @@ export default async function handler(req, res) {
 
               // Upsert entry for each period
               for (const period of periods) {
+                  // 2026-07-19 AUDIT FIX (E2E defect D5): training_leaderboard has NO
+                  // total_xp column (XP system removed) — selecting/writing it made
+                  // every read 500 and every upsert fail silently, so the leaderboard
+                  // never loaded AND never updated.
                   const { data: existing } = await supabase
                       .from('training_leaderboard')
-                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds, total_xp')
+                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds')
                       .eq('user_id', userId)
                       .eq('period_type', period.type)
                       .eq('period_key', period.key)
@@ -91,7 +95,6 @@ export default async function handler(req, res) {
                               accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
                               best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
                               perfect_rounds: (existing.perfect_rounds || 0) + (isPerfectRound ? 1 : 0),
-                              total_xp: (existing.total_xp || 0) + earnedXp,
                               updated_at: new Date().toISOString()
                           })
                           .eq('id', existing.id);
@@ -108,8 +111,7 @@ export default async function handler(req, res) {
                               questions_correct: questionsCorrect,
                               accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
                               best_streak: bestStreak || 0,
-                              perfect_rounds: isPerfectRound ? 1 : 0,
-                              total_xp: earnedXp
+                              perfect_rounds: isPerfectRound ? 1 : 0
                           });
                       if (err_training_leaderboard_sql0n) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_sql0n.message);
                   }
@@ -156,6 +158,9 @@ export default async function handler(req, res) {
           }
 
           // Fetch leaderboard - use left join to handle missing profiles
+          // 2026-07-19 AUDIT FIX (E2E defect D5): total_xp column does not exist
+          // (XP system removed) — the old select/order threw 42703 on every
+          // request and the page permanently showed "Unable to load leaderboard".
           const { data: leaderboard, error } = await supabase
               .from('training_leaderboard')
               .select(`
@@ -164,13 +169,13 @@ export default async function handler(req, res) {
                   questions_answered,
                   questions_correct,
                   accuracy,
-                  total_xp,
+                  gtow_score_avg,
                   best_streak
               `)
               .eq('period_type', period)
               .eq('period_key', periodKey)
               .order('accuracy', { ascending: false })
-              .order('total_xp', { ascending: false })
+              .order('questions_correct', { ascending: false })
               .limit(boundedLimit);
 
           if (error) throw error;
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
               accuracy: entry.accuracy,
               sessionsCompleted: entry.sessions_completed,
               questionsCorrect: entry.questions_correct,
-              totalXp: entry.total_xp,
+              gtowScoreAvg: entry.gtow_score_avg,
               bestStreak: entry.best_streak
           }));
 

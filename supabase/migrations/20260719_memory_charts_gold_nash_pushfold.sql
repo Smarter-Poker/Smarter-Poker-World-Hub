@@ -1,0 +1,16 @@
+-- 2026-07-19 Training audit phase 2 (DATA migration, applied via PostgREST
+-- on 2026-07-19): replaced the 48 hand-authored heuristic push/fold rows in
+-- memory_charts_gold with 240 COMPUTED Nash jam/fold equilibrium charts
+-- (fictitious play over a Monte-Carlo 169x169 equity matrix; 6-max chipEV,
+-- single-overcall model; depths 2-25bb).
+--
+--   DELETE FROM memory_charts_gold;  -- 48 heuristic rows
+--   -- + 240 INSERTs from scripts/nash-pushfold/nash_charts.json:
+--   --   200 rows villain_action='fold_to_hero' (UTG/MP/CO/BTN/SB jam)
+--   --    40 rows villain_action='sb_push'      (BB call vs SB jam)
+--
+-- Exact dataset + generator + validation: scripts/nash-pushfold/
+-- (eqmatrix.py, solver.py, nash_charts.json, README.md).
+-- ROLLBACK: DELETE FROM memory_charts_gold; (endpoint falls back to the
+-- derived-from-RFI heuristic path automatically).
+SELECT 1; -- marker migration; data load performed out-of-band as documented

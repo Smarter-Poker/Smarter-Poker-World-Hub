@@ -20,10 +20,16 @@ export function OneSignalProvider({ children }) {
         const initOneSignal = async () => {
             try {
                 // Guard: prevent double-initialization if another provider already init'd
+                // 2026-07-19 AUDIT FIX (E2E defect D10): the flag was only set AFTER
+                // the awaited init completed, so a double-mount (React 18 strict
+                // effects / route remounts) passed this guard twice and logged
+                // "SDK already initialized" errors on every page. Claim the flag
+                // synchronously BEFORE any await.
                 if (window.__oneSignalInitialized) {
                     setIsInitialized(true);
                     return;
                 }
+                window.__oneSignalInitialized = true;
 
                 // Dynamically import OneSignal
                 const OneSignal = (await import('react-onesignal')).default;
@@ -93,6 +99,8 @@ export function OneSignalProvider({ children }) {
                 setPermission(perm ? 'granted' : 'default');
 
             } catch (error) {
+                // Release the init claim so a later mount can retry after a real failure
+                if (typeof window !== 'undefined') window.__oneSignalInitialized = false;
                 console.warn('[App] Handled exception:', error?.message || error);
                 console.warn('OneSignal initialization error:', error);
             }

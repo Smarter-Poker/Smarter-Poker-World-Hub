@@ -348,8 +348,11 @@ export default function useGTOTrainer(
    */
   const deriveSpotType = useCallback((scenario) => {
     if (!scenario) return 'unknown';
-    const ctx = (scenario.context || '').toLowerCase();
-    const title = (scenario.title || '').toLowerCase();
+    // 2026-07-19 AUDIT FIX (E2E defect D4b): scenario.context sometimes
+    // arrives as a non-string (object) — calling .toLowerCase() threw an
+    // unhandled TypeError repeatedly during live play. Coerce defensively.
+    const ctx = (typeof scenario.context === 'string' ? scenario.context : '').toLowerCase();
+    const title = (typeof scenario.title === 'string' ? scenario.title : '').toLowerCase();
     const combined = ctx + ' ' + title;
 
     if (combined.includes('3-bet') || combined.includes('3bet')) return '3bet_defense';
@@ -475,6 +478,13 @@ export default function useGTOTrainer(
         scenario.pot // Pot size for scaling
       );
 
+      // 2026-07-19 AUDIT FIX: selectedText/correctText were declared AFTER
+      // the actionTreeScore block that used selectedText — a temporal-dead-zone
+      // ReferenceError silently swallowed by the try/catch, so the
+      // ActionTreeEngine solver-node score was never computed.
+      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
+      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
+
       // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
       let actionTreeScore = null;
       try {
@@ -498,10 +508,6 @@ export default function useGTOTrainer(
       setLastMoveClassification(moveResult.classification);
       setLastEVLoss(moveResult.evLoss);
       setLastGTOFrequencies(frequencies);
-
-      // Record to GTOW scoring engine
-      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
-      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
       gtowScoring.recordMove({
         classification: moveResult.classification,
         evLoss: moveResult.evLoss,
@@ -1288,7 +1294,14 @@ export default function useGTOTrainer(
       }
 
       // Multi-street hand is done — save summary (persists until next hand feedback dismisses it)
-      setHandSummary(multiStreetHandRef.current.getHandSummary());
+      // 2026-07-19 AUDIT FIX (E2E defect D4a): advanceToNextStreet is async —
+      // by the time it resolves, another code path may have already cleared
+      // multiStreetHandRef, and calling getHandSummary() on null threw an
+      // unhandled TypeError 19 times in one live session. Re-check the ref.
+      const finishedHand = multiStreetHandRef.current;
+      if (finishedHand && typeof finishedHand.getHandSummary === 'function') {
+        setHandSummary(finishedHand.getHandSummary());
+      }
       setIsMultiStreetActive(false);
       multiStreetHandRef.current = null;
     } else {

@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: authData, error: _authErr } = await supabase.auth.getUser(_token);
+          const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
           const _authUser = authData?.user;
           if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
               const { data: existing } = await withRetry(
                   () => supabase
                       .from('training_leaderboard')
-                      .select('id, sessions_completed, questions_answered, questions_correct, total_xp, best_streak')
+                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak')
                       .eq('user_id', userId)
                       .eq('period_type', period.type)
                       .eq('period_key', period.key)
@@ -104,8 +104,9 @@ export default async function handler(req, res) {
                               sessions_completed: existing.sessions_completed + 1,
                               questions_answered: newTotal,
                               questions_correct: newCorrect,
+                              // 2026-07-19 AUDIT FIX: total_xp column does not exist
+                              // (XP removed) — writing it failed every update silently.
                               accuracy: newAccuracy,
-                              total_xp: existing.total_xp + xpEarned,
                               best_streak: Math.max(existing.best_streak, bestStreak),
                               updated_at: new Date().toISOString()
                           })
@@ -125,7 +126,6 @@ export default async function handler(req, res) {
                               questions_answered: questionsAnswered,
                               questions_correct: questionsCorrect,
                               accuracy,
-                              total_xp: xpEarned,
                               best_streak: bestStreak
                           }),
                       { label: `UpdateLB:insert:${period.type}` }

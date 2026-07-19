@@ -351,15 +351,35 @@ export default function useGTOWScore() {
     const sessionScorerRef = useRef(new SessionScorer());
 
     // Derived metrics
+    // ═══ 2026-07-19 AUDIT FIX (E2E defect D2): the previous "additive"
+    // formula (100 + avgImpact*8, clamped to 100) pegged at 100% whenever
+    // positive impacts outweighed negatives — a live session with 7 blunders
+    // + 6 inaccuracies in 42 decisions still displayed "100% GTOW SCORE"
+    // next to "15 MISTAKES" and an F grade, and wrongly triggered the
+    // "score 85%+" daily-challenge diamond award.
+    // New formula: classification-weighted quality average (monotone,
+    // bounded, coherent with the mistake count): BEST=1.0, CORRECT=0.9,
+    // INACCURACY=0.6, WRONG=0.3, BLUNDER=0.0.
     const gtowScore = useMemo(() => {
         if (movesMade === 0) return 100;
-        // ═══ IMPROVED SCORING: Additive approach — more forgiving early game ═══
-        // Average score impact per hand, scaled to visible 0-100 range
-        // A single blunder on hand 1 → ~70% instead of 22%
-        const avgImpact = totalScore / movesMade;
-        const raw = 100 + (avgImpact * 8); // Scale factor of 8 for visible movement
-        return Math.round(Math.max(0, Math.min(100, raw)));
-    }, [totalScore, movesMade]);
+        const WEIGHTS = {
+            [MOVE_CLASSIFICATIONS.BEST]: 1.0,
+            [MOVE_CLASSIFICATIONS.CORRECT]: 0.9,
+            [MOVE_CLASSIFICATIONS.INACCURACY]: 0.6,
+            [MOVE_CLASSIFICATIONS.WRONG]: 0.3,
+            [MOVE_CLASSIFICATIONS.BLUNDER]: 0.0,
+        };
+        let weighted = 0;
+        let counted = 0;
+        Object.entries(classificationCounts || {}).forEach(([cls, count]) => {
+            if (WEIGHTS[cls] !== undefined && count > 0) {
+                weighted += WEIGHTS[cls] * count;
+                counted += count;
+            }
+        });
+        if (counted === 0) return 100;
+        return Math.round(Math.max(0, Math.min(100, (weighted / counted) * 100)));
+    }, [classificationCounts, movesMade]);
 
     const avgEVLossPerHand = useMemo(() => {
         if (handsPlayed === 0) return 0;

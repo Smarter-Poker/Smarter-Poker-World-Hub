@@ -70,6 +70,32 @@ export async function saveSession(sessionData) {
     if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
   });
 
+  // ═══ 2026-07-19 AUDIT FIX (E2E defect D1 — CRITICAL) ═══
+  // Each handHistory entry carried the FULL question object including
+  // rawFrequencies (a per-action x 169-hand solver matrix) and
+  // evData.handEVs (another 169-hand map). 100 such entries blew past the
+  // 1MB Next.js body limit, so POST /api/training/save-session returned
+  // 413 on EVERY level completion — sessions were never saved and the
+  // level-progression system was dead in production. Strip the bulk
+  // matrices; keep everything the review/replay/report consumers read.
+  const compactHandHistory = (handHistory || []).slice(0, 100).map((h) => {
+    if (!h || typeof h !== 'object') return h;
+    const hd = h.handData && typeof h.handData === 'object' ? h.handData : null;
+    return {
+      ...h,
+      handData: hd
+        ? {
+            ...hd,
+            rawFrequencies: undefined,
+            evData:
+              hd.evData && typeof hd.evData === 'object'
+                ? { ...hd.evData, handEVs: undefined }
+                : hd.evData ?? null,
+          }
+        : hd,
+    };
+  });
+
   const payload = {
     gameId,
     gameName,
@@ -85,7 +111,7 @@ export async function saveSession(sessionData) {
     bestStreak,
     levelPassed,
     level: currentLevel,
-    handHistory: handHistory.slice(0, 100),
+    handHistory: compactHandHistory,
     positionStats: posStats,
     classificationCounts: classCounts,
     trainerConfig,

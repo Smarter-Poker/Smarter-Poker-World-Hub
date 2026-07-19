@@ -226,6 +226,9 @@ export function reconcileAnswerKey(q) {
     const bestId = best[0];
     const bestOption = options.find((o, i) => ((o && o.id) || String.fromCharCode(97 + i)) === bestId);
 
+    const prevCorrectAnswer = q.correctAnswer;
+    const prevBars = q.gtoFrequencies && typeof q.gtoFrequencies === 'object' ? q.gtoFrequencies : null;
+
     q.correctAnswer = bestId;
     if (bestOption && bestOption.text) q.correctAnswerText = bestOption.text;
 
@@ -243,6 +246,36 @@ export function reconcileAnswerKey(q) {
         }
     });
     q.gtoFrequencies = pct;
+
+    // ═══ 2026-07-19 (E2E defect D8): if reconciliation materially changed the
+    // answer key or the frequency mix, the row's pre-authored explanation may
+    // still describe the OLD (wrong) strategy — e.g. bars showing Check 100%
+    // next to prose claiming "the solver mixes Check 75% / Bet 25%". Replace
+    // it with a deterministic explanation derived from the solver data itself.
+    const keyChanged = prevCorrectAnswer !== undefined && prevCorrectAnswer !== bestId;
+    const barsChanged =
+        prevBars &&
+        Object.entries(pct).some(([k, v]) => Math.abs((Number(prevBars[k]) || 0) - v) > 10);
+    if (keyChanged || barsChanged) {
+        const label = (id) => {
+            const opt = options.find(
+                (o, i) => ((o && o.id) || String.fromCharCode(97 + i)) === id
+            );
+            return (opt && opt.text) || id;
+        };
+        const bestPct = pct[bestId] || 0;
+        if (bestPct >= 95) {
+            q.explanation = `According to GTO, this is a pure ${label(bestId)} (${bestPct}% frequency).`;
+        } else {
+            const mixText = Object.entries(pct)
+                .filter(([, v]) => v > 0)
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => `${label(k)} ${v}%`)
+                .join(', ');
+            q.explanation = `GTO mixes here: ${mixText}. The highest-frequency play is ${label(bestId)}.`;
+        }
+    }
+
     q.answerKeyReconciled = true;
     return q;
 }

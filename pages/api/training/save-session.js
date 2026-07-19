@@ -24,6 +24,34 @@ function getSupabase() {
     }
     return _supabase;
 }
+
+// 2026-07-19 AUDIT FIX (E2E defect D1): session payloads with 100-hand
+// histories exceeded the 1MB Next.js default body limit -> 413 on every
+// level completion -> sessions never saved. The client now strips the bulk
+// solver matrices, but older cached clients still send fat payloads; accept
+// up to 4MB so their sessions save too.
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '4mb',
+        },
+    },
+};
+
+// Strip the two per-169-hand bulk matrices from a hand-history entry before
+// persisting — they are review-time UI data, not reporting data.
+function compactHandHistoryEntry(h) {
+    if (!h || typeof h !== 'object') return h;
+    const hd = h.handData && typeof h.handData === 'object' ? h.handData : null;
+    if (!hd) return h;
+    const { rawFrequencies: _rf, ...restHd } = hd;
+    const evData =
+        restHd.evData && typeof restHd.evData === 'object'
+            ? (({ handEVs: _he, ...restEv }) => restEv)(restHd.evData)
+            : restHd.evData ?? null;
+    return { ...h, handData: { ...restHd, evData } };
+}
+
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -101,7 +129,10 @@ export default async function handler(req, res) {
               level_passed: levelPassed || false,
               level: level || 1,
               // JSONB fields — Supabase client handles objects natively, DO NOT stringify
-              hand_history: handHistory ? handHistory.slice(0, 100) : [],
+              // 2026-07-19: compact server-side too (older clients send bulk matrices)
+              hand_history: handHistory
+                  ? handHistory.slice(0, 100).map(compactHandHistoryEntry)
+                  : [],
               position_stats: positionStats || {},
               classification_counts: classificationCounts || {},
               trainer_config: trainerConfig || null,
