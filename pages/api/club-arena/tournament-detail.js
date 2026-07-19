@@ -73,6 +73,17 @@ export default async function handler(req, res) {
         }
       }
 
+      // FIX-B9 2026-07-19: the membership check authorizes the caller for clubId,
+      // but tournamentId came from the query string untrusted. Verify the
+      // tournament actually belongs to this club — otherwise a member of club A
+      // could pass clubId=A with a tournamentId from club B and read B's private
+      // registration list (IDOR).
+      const { data: tournClub } = await getSupabase()
+        .from('tournaments').select('club_id').eq('id', tournamentId).maybeSingle();
+      if (!tournClub || tournClub.club_id !== clubId) {
+        return res.status(404).json({ success: false, error: 'Tournament not found in this club' });
+      }
+
       // Load registrations (all statuses except unregistered/refunded)
       const { data: registrations, error: regErr } = await getSupabase()
         .from('tournament_registrations')

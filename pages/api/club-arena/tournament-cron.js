@@ -30,7 +30,10 @@ export default async function handler(req, res) {
       // Only allow GET (cron) or POST with secret
       const cronSecret = process.env.CRON_SECRET;
       const authHeader = req.headers.authorization;
-      if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      // FIX-B4 2026-07-19: fail CLOSED. The old guard (`if (cronSecret && ...)`)
+      // let every request through when CRON_SECRET was unset — an open door to a
+      // job that cancels tournaments and refunds chips. Require the secret.
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
           return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -166,7 +169,7 @@ export default async function handler(req, res) {
                                   }
 
                                   // Notify player
-                                  await notifyUser(supabase, {
+                                  await notifyUser(getSupabase(), {
                                       userId: reg.user_id,
                                       type: 'tournament_cancelled',
                                       title: `❌ Cancelled: ${tourn.name}`,
@@ -220,7 +223,7 @@ export default async function handler(req, res) {
                       .limit(500);
 
                   for (const reg of (regs || [])) {
-                      await notifyUser(supabase, {
+                      await notifyUser(getSupabase(), {
                           userId: reg.user_id,
                           type: 'tournament_reminder',
                           title: `⏰ ${tourn.name} starts in 15 minutes!`,
