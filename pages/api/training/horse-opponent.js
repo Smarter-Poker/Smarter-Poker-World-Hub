@@ -195,7 +195,7 @@ function makeHorseDecision(gameState, personality) {
         return buildDecision('raise', stackSize, 0.85, personality, 'spr_commit');
     }
 
-    // ── Decision tree ─────────────────────────────────────────────────
+    // ── Decision tree ───────────────────────────────────────────────────
 
     // Preflop: use hand tiers
     if (street === 'preflop') {
