@@ -98,10 +98,10 @@ export default async function handler(req, res) {
               // Don't return 500 — fall through to solver engine
           }
 
-          // ═══════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════════
           // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
           // generate LIVE questions from DeterministicGTOEngine (187k+ records)
-          // ═══════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════════
           const cachedQuestions = questions || [];
           let solverQuestions = [];
 

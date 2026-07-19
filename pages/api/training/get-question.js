@@ -69,9 +69,9 @@ export default async function handler(req, res) {
     }
 
     try {
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 1: GET COMPREHENSIVE GAME CONFIGURATION
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
       const game = TRAINING_LIBRARY.find((g) => g.id === gameId);
 
@@ -87,9 +87,9 @@ export default async function handler(req, res) {
       const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
       const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       let seenQuestionIds = [];
       if (userId) {
         const { data: seen } = await getSupabase()
@@ -102,9 +102,9 @@ export default async function handler(req, res) {
         seenQuestionIds = (seen || []).map((s) => s.question_id);
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 3: CACHED QUESTIONS — PRIMARY SOURCE (Phase 92 reorder)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // Cache rows are the canonical truth: pre-rebalanced (Phase 77/78/79/80
       // pedagogical curve), pre-enriched (Phase 83/88 contextual explanations),
       // and pre-validated (Phase 82 integrity audit: 0 issues across 27,413 rows).
@@ -146,9 +146,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       const pioConfig = pioQueryService.getGameConfig(gameId);
 
       if (!question && pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
@@ -171,9 +171,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 5: LEGACY PIO ENGINE — FINAL FALLBACK
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       if (!question) {
         if (preferredEngine === 'SCENARIO') {
           // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
@@ -196,11 +196,11 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       // STEP 4: ENGINE-ONLY — No AI fallback
       // All questions come from DeterministicGTOEngine, PostflopScenarioGenerator,
       // or Supabase cache. If none available, return error.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════════
       if (!question) {
         console.warn(
           `[Training] No question available for ${gameId} level ${level} — all engines returned empty.`
