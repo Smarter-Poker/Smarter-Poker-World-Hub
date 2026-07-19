@@ -1492,7 +1492,7 @@ export default function useGTOTrainer(
     streak,
     bestStreak,
     totalXP,
-    requiredCorrect: getRequiredCorrect(level),
+    requiredCorrect: getRequiredCorrect(level, effectiveQuestionsPerLevel),
     passThreshold: TRAINING_CONFIG.passThresholds[level],
     totalLevels: TOTAL_LEVELS,
 
