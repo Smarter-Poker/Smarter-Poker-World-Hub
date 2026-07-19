@@ -181,3 +181,68 @@ export function apiLog(endpoint) {
         }),
     };
 }
+
+/**
+ * ANSWER-KEY RECONCILIATION (2026-07-19 training-engine audit)
+ * ─────────────────────────────────────────────────────────────
+ * Production `training_question_cache` rows were found internally
+ * inconsistent: 1,572 / 21,700 rows have a `correctAnswer` code that is NOT
+ * the highest-frequency action in the row's own solver `frequencies`, and
+ * many rows carry a `correctAnswerText` label or `gtoFrequencies` bars that
+ * contradict the answer code (e.g. AA on Qc3h5c: frequencies {c:0.49,b16:0.51},
+ * correctAnswer 'c', correctAnswerText 'Bet 16% pot', gtoFrequencies {c:75,b16:25}).
+ * A trainee could pick the objectively highest-frequency action and be marked
+ * wrong, or be shown a label contradicting the grading key.
+ *
+ * This helper makes the served question self-consistent at read time:
+ *   - correctAnswer      := argmax of solver `frequencies` (GTO Wizard rule)
+ *   - correctAnswerText  := the matching option's display text
+ *   - gtoFrequencies     := `frequencies` scaled to whole percentages
+ * Rows without usable `frequencies`, or whose frequency keys don't map onto
+ * the option ids, are returned untouched (never guess).
+ */
+export function reconcileAnswerKey(q) {
+    if (!q || typeof q !== 'object') return q;
+    const freqs = q.frequencies;
+    if (!freqs || typeof freqs !== 'object' || Array.isArray(freqs)) return q;
+
+    const entries = Object.entries(freqs)
+        .filter(([, v]) => typeof v === 'number' && isFinite(v) && v >= 0);
+    if (entries.length < 2) return q; // Nothing to reconcile on 0/1-action rows
+
+    // Frequencies must look like a sane 0-1 (or 0-100) distribution
+    const total = entries.reduce((s, [, v]) => s + v, 0);
+    if (total <= 0) return q;
+    const scale = total > 1.5 && total <= 105 ? 100 : total <= 1.5 ? 1 : null;
+    if (scale === null) return q; // Raw combo weights or corrupt — don't touch
+
+    // Every frequency key must map onto a served option id
+    const options = Array.isArray(q.options) ? q.options : [];
+    const optionIds = new Set(options.map((o, i) => (o && o.id) || String.fromCharCode(97 + i)));
+    if (!entries.every(([k]) => optionIds.has(k))) return q;
+
+    // Argmax = the GTO-correct grading key
+    const best = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const bestId = best[0];
+    const bestOption = options.find((o, i) => ((o && o.id) || String.fromCharCode(97 + i)) === bestId);
+
+    q.correctAnswer = bestId;
+    if (bestOption && bestOption.text) q.correctAnswerText = bestOption.text;
+
+    // Rebuild the displayed frequency bars from the solver distribution.
+    // Normalize by the summed mass so bars always total exactly 100.
+    const pct = {};
+    let acc = 0;
+    entries.forEach(([k, v], i) => {
+        if (i === entries.length - 1) {
+            pct[k] = Math.max(0, 100 - acc);
+        } else {
+            const p = Math.max(0, Math.min(Math.round((v / total) * 100), 100 - acc));
+            pct[k] = p;
+            acc += p;
+        }
+    });
+    q.gtoFrequencies = pct;
+    q.answerKeyReconciled = true;
+    return q;
+}

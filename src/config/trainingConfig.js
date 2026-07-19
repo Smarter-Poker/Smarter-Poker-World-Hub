@@ -43,18 +43,23 @@ export const TRAINING_CONFIG = {
 };
 
 /**
- * Get required correct answers for a level
+ * Get required correct answers for a level.
+ * 2026-07-19 AUDIT FIX: accepts the ACTUAL number of questions served.
+ * useGTOTrainer caps effectiveQuestionsPerLevel to what the API returned
+ * (can be < 20); computing the requirement against a fixed 20 made short
+ * sessions mathematically unpassable (e.g. 10 questions needed 17 correct).
  */
-export function getRequiredCorrect(level) {
+export function getRequiredCorrect(level, totalQuestions = TRAINING_CONFIG.questionsPerLevel) {
     const threshold = TRAINING_CONFIG.passThresholds[level] || Math.round(MASTERY_THRESHOLD * 100);
-    return Math.ceil((threshold / 100) * TRAINING_CONFIG.questionsPerLevel);
+    const total = Math.max(1, totalQuestions || TRAINING_CONFIG.questionsPerLevel);
+    return Math.ceil((threshold / 100) * total);
 }
 
 /**
- * Check if user passed the level
+ * Check if user passed the level (against the actual question count served)
  */
-export function checkLevelPassed(level, correctAnswers) {
-    return correctAnswers >= getRequiredCorrect(level);
+export function checkLevelPassed(level, correctAnswers, totalQuestions = TRAINING_CONFIG.questionsPerLevel) {
+    return correctAnswers >= getRequiredCorrect(level, totalQuestions);
 }
 
 /**
