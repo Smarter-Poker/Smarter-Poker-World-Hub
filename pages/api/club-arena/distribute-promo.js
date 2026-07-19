@@ -95,6 +95,27 @@ export default async function handler(req, res) {
             });
           }
 
+          // ── SECURITY FIX 2026-07-19: downline enforcement ──
+          // Promo chips credit the recipient's cashable chip_balance, so an
+          // agent must only send to players in THEIR OWN downline (mirrors
+          // distribute-chips.js). Previously any agent could funnel club-funded
+          // promo into any member's cashable balance (collusion vector).
+          // Owners/admins may distribute club-wide.
+          if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
+            const { data: targetMember } = await getSupabase()
+              .from('club_members')
+              .select('agent_id')
+              .eq('club_id', clubId)
+              .eq('user_id', targetUserId)
+              .maybeSingle();
+            if (!targetMember || targetMember.agent_id !== user.id) {
+              return res.status(403).json({
+                error: 'You can only distribute promo chips to players in your own downline',
+                rule: 'not_your_downline',
+              });
+            }
+          }
+
           // ── Pre-check: get player status for better error messages ──
           const { data: playerStatus } = await getSupabase().rpc('get_promo_status', {
             p_club_id: clubId,

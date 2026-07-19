@@ -68,7 +68,16 @@ export default async function handler(req, res) {
               .eq('club_id', clubId);
 
           if (filters.actionType) query = query.eq('action_type', filters.actionType);
-          if (filters.userId) query = query.or(`user_id.eq.${filters.userId},target_user_id.eq.${filters.userId}`);
+          // SECURITY FIX 2026-07-19: validate the UUID before interpolating it
+          // into the PostgREST .or() filter (prevents filter injection that
+          // could broaden the OR group). club_id stays AND-ed regardless.
+          if (filters.userId) {
+            const uid = String(filters.userId);
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uid)) {
+              return res.status(400).json({ error: 'Invalid userId filter' });
+            }
+            query = query.or(`user_id.eq.${uid},target_user_id.eq.${uid}`);
+          }
           if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
           if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
 

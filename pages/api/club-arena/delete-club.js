@@ -11,6 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
+const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 let _supabase = null;
 function getSupabase() {
@@ -63,6 +64,34 @@ export default async function handler(req, res) {
       // 2. Confirm name matches
       if (confirmName !== club.name) {
         return res.status(400).json({ success: false, error: 'Club name does not match' });
+      }
+
+      // SECURITY FIX 2026-07-19: audit-log this destructive cascade BEFORE it
+      // runs (was unlogged), capturing a snapshot of members and any non-zero
+      // chip balances that will be destroyed, so the deletion is forensically
+      // reconstructable. (Balance return-to-treasury sweep is a follow-up.)
+      try {
+        const { data: memberSnapshot } = await getSupabase()
+          .from('club_members')
+          .select('user_id, role, chip_balance')
+          .eq('club_id', clubId)
+          .limit(10000);
+        const nonZero = (memberSnapshot || []).filter((m) => Number(m.chip_balance) > 0);
+        await logAudit(getSupabase(), {
+          actionType: 'club_deleted',
+          userId: user.id,
+          clubId,
+          ip: extractIP(req),
+          details: {
+            clubName: club.name,
+            memberCount: (memberSnapshot || []).length,
+            nonZeroBalanceCount: nonZero.length,
+            totalChipsDestroyed: nonZero.reduce((s, m) => s + Number(m.chip_balance || 0), 0),
+            nonZeroBalances: nonZero.slice(0, 200),
+          },
+        });
+      } catch (auditErr) {
+        console.warn('[delete-club] audit log failed (proceeding):', auditErr?.message || auditErr);
       }
 
       // 3. Cascade delete in FK-safe order

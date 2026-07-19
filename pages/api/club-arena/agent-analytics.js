@@ -49,7 +49,31 @@ export default async function handler(req, res) {
       const { clubId, action, agentId, days = 7 } = req.body;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
-      const targetAgent = agentId || user.id;
+      // SECURITY FIX 2026-07-19: this route previously ran with NO authorization
+      // — it authenticated the JWT then queried by the body-supplied clubId/
+      // agentId with no membership/role check, so any authenticated user could
+      // read ANY club's player balances + PII and every agent's commissions.
+      // Gate on the caller's own membership + role (mirrors agent-dashboard.js),
+      // and force an agent to their OWN downline (they cannot inspect a peer by
+      // passing agentId).
+      const { data: callerMember } = await getSupabase()
+        .from('club_members')
+        .select('user_id, role')
+        .eq('club_id', clubId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!callerMember) {
+        return res.status(403).json({ error: 'Not a member of this club' });
+      }
+      const isOwnerAdmin = ['owner', 'admin'].includes(callerMember.role);
+      const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(callerMember.role);
+      if (!isOwnerAdmin && !isAgent) {
+        return res.status(403).json({ error: 'Agent, owner, or admin role required' });
+      }
+
+      // Owners/admins may inspect any agent in their club; agents are pinned to
+      // their own user id regardless of the agentId they pass.
+      const targetAgent = isOwnerAdmin ? agentId || user.id : user.id;
       const daysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
       // ─── PULSE: 7-Day Rolling Metrics ────────────────────────

@@ -75,7 +75,7 @@ export default async function handler(req, res) {
                   .from('cashout_requests')
                   .select('id, amount, status, created_at, updated_at')
                   .eq('club_id', clubId)
-                  .eq('user_id', user.id)
+                  .eq('player_id', user.id)
                   .in('status', ['pending', 'processing'])
                   .order('created_at', { ascending: false });
 
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
                   .from('cashout_requests')
                   .select('id, amount, status, created_at, updated_at, notes')
                   .eq('id', cashoutId)
-                  .eq('user_id', user.id)
+                  .eq('player_id', user.id)
                   .maybeSingle();
 
               if (!cashout) return res.status(404).json({ error: 'Cashout not found' });

@@ -906,6 +906,26 @@ export default async function handler(req, res) {
         const { parentAgentUserId } = req.body;
         if (!parentAgentUserId) return res.status(400).json({ success: false, error: 'parentAgentUserId required' });
 
+        // SECURITY FIX 2026-07-19: an agent may only list THEIR OWN sub-agents.
+        // Previously any active agent could pass any parentAgentUserId and read
+        // a peer's downline financials (business_balance, credit, earnings).
+        // Owners and union admins may inspect any agent's tree.
+        if (parentAgentUserId !== user.id && club.owner_id !== user.id) {
+          let elevated = false;
+          if (club.union_id) {
+            const { data: ua } = await getSupabase()
+              .from('union_admins')
+              .select('user_id')
+              .eq('union_id', club.union_id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            elevated = !!ua;
+          }
+          if (!elevated) {
+            return res.status(403).json({ success: false, error: 'You can only list your own sub-agents' });
+          }
+        }
+
         // Get parent agent record
         const { data: parentAgent } = await getSupabase()
           .from('agents')

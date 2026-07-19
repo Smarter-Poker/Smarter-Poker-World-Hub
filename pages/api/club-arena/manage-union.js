@@ -216,6 +216,30 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Club already belongs to another union' });
         }
 
+        // SECURITY FIX 2026-07-19: require the club owner's CONSENT before
+        // annexing. Previously a union_lead could pull ANY unaffiliated club
+        // (guessable 5-digit code) into their union at 90% commission with
+        // auto-settlement on, with no owner approval. Allow the link only when
+        // the caller owns the club, OR an approved union application exists for
+        // (club, union). This is the consent handshake union-application.js
+        // implements (club owner applies -> union approves).
+        if (club.owner_id !== user.id) {
+          const { data: approvedApp } = await getSupabase()
+            .from('union_applications')
+            .select('id')
+            .eq('club_id', club.id)
+            .eq('union_id', unionId)
+            .eq('status', 'approved')
+            .maybeSingle();
+          if (!approvedApp) {
+            return res.status(403).json({
+              success: false,
+              error:
+                'Club owner has not consented — an approved union application is required before adding this club',
+            });
+          }
+        }
+
         // Add to union_clubs with commission rate
         const clubCommissionRate = payload.clubCommissionRate || 0.90;  // 90% default for clubs
 
@@ -414,9 +438,17 @@ export default async function handler(req, res) {
           .select('club_id')
           .eq('union_id', unionId);
 
+        const unionClubIds = (unionClubs || []).map(uc => uc.club_id);
+        // SECURITY FIX 2026-07-19: a targeted announcement must go to a club
+        // that actually belongs to this union — previously `targetClub` was
+        // used verbatim, letting a union lead inject an announcement into ANY
+        // club's feed on the platform.
         const targetClubIds = targetClub
-          ? [targetClub]
-          : (unionClubs || []).map(uc => uc.club_id);
+          ? (unionClubIds.includes(targetClub) ? [targetClub] : [])
+          : unionClubIds;
+        if (targetClub && targetClubIds.length === 0) {
+          return res.status(403).json({ success: false, error: 'Target club is not in this union' });
+        }
 
         if (targetClubIds.length === 0) {
           return res.status(400).json({ success: false, error: 'No clubs found in this union' });
