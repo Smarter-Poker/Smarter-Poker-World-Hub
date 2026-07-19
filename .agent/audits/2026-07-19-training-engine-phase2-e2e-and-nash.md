@@ -91,3 +91,43 @@ heuristic remains only as last-resort fallback.
 - ICM-aware push/fold (current charts are chipEV; add ICM layer later).
 - Dead-code cluster (GameArena.tsx etc.) still present, documented.
 - Hub inline arena still enters at level 1 (divergent but functional).
+
+## Wave-1 verification pass (same day, follow-up commit)
+
+A three-agent verification swarm (adversarial diff review + live API sweep +
+browser E2E rerun) over phases 1-2 found and this commit fixes:
+
+- CRITICAL: save-session STILL 413'd — the real limiter was an in-handler
+  100KB guard (compacted real sessions are ~400KB); raised to 2MB.
+- CRITICAL: /api/training/progress read `god_mode_user_session` (a table
+  nothing writes) and never returned the `levels` map LevelSelector expects,
+  AND LevelSelector sent no auth header — progress could never display.
+  Endpoint rebuilt from training_level_history + training_progress; header added.
+- Adaptive difficulty mutated `level` mid-session and leaked into
+  persistence/thresholds/labels ("Retry Level 2" after selecting Level 1,
+  completions recorded at the wrong level). useGTOTrainer now separates
+  immutable `selectedLevel` (persistence/thresholds/UI) from adaptive
+  `contentLevel` (question difficulty).
+- spot-drill 500'd on ~90% of calls (exact-count + deep random OFFSET over a
+  2M-row ilike scan timed out) — replaced with an indexed uuid-pivot sample.
+- calculateSessionDiamonds called with the wrong summary shape (threw on
+  every completion; reward always 0) and with the raw level as a multiplier;
+  fixed shape + registry multiplier.
+- Review screen graded by two different systems at once (header "C-" vs card
+  "D") — unified on getScoreGrade(gtowScore).
+- gtow_score_avg was read by leaderboard GET but never written — now
+  maintained as a running average in both write paths; achievements.js
+  total_xp select fixed (column gone); TrainingLeaderboard.tsx rendered
+  "+undefined" (totalXp removed from API) — now shows best streak.
+- Saved-session replays lost the range grid/EV overlay (compaction strips
+  matrices) — HandReplayViewer now refetches the solver matrix on demand via
+  browse-solutions?scenarioHash= (endpoint extended).
+- SessionTracker board.join TypeError on string boards; reconcileAnswerKey
+  barsChanged compared mixed 0-1/0-100 scales; preflop-ranges BB fallback
+  used Push keys under Call/Fold labels; OneSignal prompt no longer shows
+  over /hub/training/arena.
+
+Deferred polish (documented, not blocking): review tab-strip clipping at
+390px, Quit button overlapping arena title, ~250 feature-tab buttons on the
+mobile review screen, absent desktop tile hover state, achievements
+definitions schema mismatch (category vs requirement_type, thresholds all 0).

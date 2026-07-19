@@ -17,7 +17,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
-import { getAuthUser } from '../../lib/authUtils';
+import { getAuthUser, getSessionToken } from '../../lib/authUtils';
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
 
 // ============================================================================
@@ -294,9 +294,15 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             });
 
             // Fetch user progress for this game
+            // 2026-07-19 AUDIT FIX: this fetch sent NO Authorization header, so
+            // the endpoint always returned anonymous defaults — combined with
+            // the dead-table read server-side, progress never displayed.
             let levelProgress: any = {};
             try {
-                const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`);
+                const token = getSessionToken();
+                const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
                 const progressData = await progressRes.json();
                 levelProgress = progressData.levels || {};
             } catch (e) {

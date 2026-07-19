@@ -108,7 +108,9 @@ export function TrainingLeaderboard({ userId, compact = false }) {
                                         {entry.accuracy}% • {entry.questionsCorrect} correct
                                     </div>
                                 </div>
-                                <div style={styles.xp}>+{entry.totalXp} 💎</div>
+                                {/* 2026-07-19: totalXp removed from the API (XP system
+                                    retired) — was rendering "+undefined". Show best streak. */}
+                                <div style={styles.xp}>{entry.bestStreak || 0} streak</div>
                             </motion.div>
                         ))}
                     </AnimatePresence>

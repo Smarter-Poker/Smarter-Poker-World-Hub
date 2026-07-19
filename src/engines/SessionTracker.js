@@ -67,7 +67,12 @@ export function createMoveRecords(sessionId, moves) {
         hand_number: idx + 1,
         street: move.street,
         hero_cards: move.heroCards,
-        board: move.board ? move.board.join(',') : null,
+        // 2026-07-19 AUDIT FIX (wave-1 E2E): move.board sometimes arrives as a
+        // string (already-joined) — calling .join on it threw
+        // "t.board.join is not a function" on session save.
+        board: Array.isArray(move.board) ? move.board.join(',')
+            : typeof move.board === 'string' ? move.board
+            : null,
         action_taken: move.playerAction,
         gto_action: move.gtoAction,
         ev_loss_bb: move.evLoss,

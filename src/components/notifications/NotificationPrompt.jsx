@@ -130,6 +130,13 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                 timerRef.current = setTimeout(() => {
                     // Guard: check mounted + localStorage before showing
                     if (!mountedRef.current) return;
+                    // 2026-07-19 AUDIT FIX (wave-1 E2E): never interrupt an active
+                    // training session — the prompt was overlaying the arena table
+                    // mid-hand and covering the session-review header.
+                    try {
+                        const path = typeof window !== 'undefined' ? window.location.pathname : '';
+                        if (path.startsWith('/hub/training/arena')) return;
+                    } catch (_e) { /* fall through — showing is acceptable */ }
                     try {
                         const check = localStorage.getItem(PROMPT_KEY);
                         // Also check browser's Notification.permission — if already

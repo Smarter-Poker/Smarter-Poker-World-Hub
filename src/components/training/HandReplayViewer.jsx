@@ -51,9 +51,50 @@ export default function HandReplayViewer({ handHistory, onClose }) {
     const [selectedHandIndex, setSelectedHandIndex] = useState(0);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
     const [filterMistakesOnly, setFilterMistakesOnly] = useState(false); // Phase 39: mistakes filter
+    // 2026-07-19: saved sessions are compacted (rawFrequencies/handEVs stripped
+    // to fix the save-session 413) — refetch the solver matrix by scenarioHash
+    // on demand so replays of SAVED hands keep the range grid + EV overlay.
+    const [fetchedMatrices, setFetchedMatrices] = useState({});
 
     const selectedHand = handHistory[selectedHandIndex];
-    const handData = selectedHand?.handData || selectedHand || {};
+    const baseHandData = selectedHand?.handData || selectedHand || {};
+    const fetched = baseHandData.scenarioHash ? fetchedMatrices[baseHandData.scenarioHash] : null;
+    const handData = fetched && !baseHandData.rawFrequencies
+        ? {
+              ...baseHandData,
+              rawFrequencies: fetched.rawFrequencies,
+              evData: { ...(baseHandData.evData || {}), handEVs: fetched.handEVs || null },
+          }
+        : baseHandData;
+
+    React.useEffect(() => {
+        const hash = baseHandData.scenarioHash;
+        if (!hash || baseHandData.rawFrequencies || fetchedMatrices[hash] !== undefined) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { getSessionToken } = await import('../../lib/authUtils');
+                const token = getSessionToken();
+                if (!token) return;
+                const res = await fetch(
+                    `/api/training/browse-solutions?scenarioHash=${encodeURIComponent(hash)}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                const data = await res.json();
+                if (cancelled) return;
+                setFetchedMatrices((prev) => ({
+                    ...prev,
+                    [hash]: data?.spot?.rawFrequencies
+                        ? { rawFrequencies: data.spot.rawFrequencies, handEVs: data.spot.handEVs || null }
+                        : null, // cache misses too, so we don't refetch forever
+                }));
+            } catch (e) {
+                if (!cancelled) setFetchedMatrices((prev) => ({ ...prev, [hash]: null }));
+            }
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [baseHandData.scenarioHash, baseHandData.rawFrequencies]);
     const config = CLASSIFICATION_CONFIG[selectedHand?.classification] || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
 
     // Parse board cards

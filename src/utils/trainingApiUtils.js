@@ -253,9 +253,15 @@ export function reconcileAnswerKey(q) {
     // next to prose claiming "the solver mixes Check 75% / Bet 25%". Replace
     // it with a deterministic explanation derived from the solver data itself.
     const keyChanged = prevCorrectAnswer !== undefined && prevCorrectAnswer !== bestId;
+    // Normalize prev bars to the 0-100 scale before comparing (some legacy rows
+    // stored 0-1 fractions — comparing raw values spuriously flagged changes)
+    const prevVals = prevBars ? Object.values(prevBars).map(Number).filter(isFinite) : [];
+    const prevScale = prevVals.length && Math.max(...prevVals) <= 1.5 ? 100 : 1;
     const barsChanged =
         prevBars &&
-        Object.entries(pct).some(([k, v]) => Math.abs((Number(prevBars[k]) || 0) - v) > 10);
+        Object.entries(pct).some(
+            ([k, v]) => Math.abs((Number(prevBars[k]) || 0) * prevScale - v) > 10
+        );
     if (keyChanged || barsChanged) {
         const label = (id) => {
             const opt = options.find(
