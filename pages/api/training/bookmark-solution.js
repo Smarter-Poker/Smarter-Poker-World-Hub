@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        // ─── GET: Retrieve user's bookmarks ──────────────────────
+        // ─── GET: Retrieve user's bookmarks ──────────────────────────
         if (req.method === 'GET') {
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
             const { data: bookmarks, error } = await getSupabase()
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, bookmarks: bookmarks || [] });
         }
 
-        // ─── POST: Save or delete a bookmark ─────────────────────
+        // ─── POST: Save or delete a bookmark ─────────────────────────
         if (req.method === 'POST') {
             // Body size guard — only accepts spotId, scenarioHash, action, notes
             const bodySize = JSON.stringify(req.body || {}).length;

@@ -57,7 +57,7 @@ export default async function handler(req, res) {
           // Sanitize query params used in Supabase queries
           const safeHash = sanitizeParam(scenarioHash, 200);
 
-          // ─── STRATEGY 1: Exact hash extension ──────────────────────
+          // ─── STRATEGY 1: Exact hash extension ──────────────────────────
           // If nextCard is provided, append it to the current board in the hash
           // to find the child node for the next street.
           if (nextCard) {
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── STRATEGY 2: List available children ────────────────────
+          // ─── STRATEGY 2: List available children ────────────────────────
           // Without nextCard, find all possible child nodes (next street extensions).
           // This powers the Card Selector Modal by showing which cards have data.
           const currentBoard = parseBoardFromHash(safeHash);

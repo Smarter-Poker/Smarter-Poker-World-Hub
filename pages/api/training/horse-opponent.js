@@ -26,7 +26,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-// ── Lazy Supabase (SSG-safe) ──────────────────────────────────────
+// ── Lazy Supabase (SSG-safe) ──────────────────────────────────────────────
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -38,7 +38,7 @@ function getSupabase() {
     return _supabase;
 }
 
-// ── Fallback personalities (when DB is unavailable) ───────────────────
+// ── Fallback personalities (when DB is unavailable) ───────────────────────
 // Horses already have real names & profiles in content_authors table.
 // These fallbacks are last resort only — personality drives AI decisions.
 const FALLBACK_HORSES = [
@@ -52,7 +52,7 @@ const FALLBACK_HORSES = [
     { name: 'GTO_Grinder', personality: { aggression: 4, humor: 6, technical: 7, contrarian: 3, gto: 'balanced', risk: 'moderate' } },
 ];
 
-// ── Preflop hand strength tiers ───────────────────────────────────
+// ── Preflop hand strength tiers ───────────────────────────────────────────
 const PREMIUM_HANDS = new Set(['AA', 'KK', 'QQ', 'JJ', 'AKs', 'AKo']);
 const STRONG_HANDS = new Set(['TT', '99', 'AQs', 'AQo', 'AJs', 'KQs', 'ATs']);
 const MEDIUM_HANDS = new Set(['88', '77', '66', 'AJo', 'KQo', 'KJs', 'QJs', 'JTs', 'ATo', 'A9s', 'A8s', 'KTs']);
@@ -140,7 +140,7 @@ function makeHorseDecision(gameState, personality) {
     const potOdds = betToCall > 0 ? betToCall / (potSize + betToCall) : 0;
     const spr = potSize > 0 ? stackSize / potSize : 10;
 
-    // ── Personality modulation ──────────────────────────────────
+    // ── Personality modulation ──────────────────────────────────────────
     const aggression = (personality?.aggression || 5) / 10;       // 0-1
     const contrarian = (personality?.contrarian || 5) / 10;       // 0-1
     const gtoStyle = personality?.gto || 'balanced';
@@ -189,13 +189,13 @@ function makeHorseDecision(gameState, personality) {
         }
     }
 
-    // ── SPR-aware postflop sizing ─────────────────────────────────
+    // ── SPR-aware postflop sizing ───────────────────────────────────────
     if (street !== 'preflop' && spr < 3 && equity > 0.55 && legalActions.includes('raise')) {
         // Short SPR = commit or fold territory
         return buildDecision('raise', stackSize, 0.85, personality, 'spr_commit');
     }
 
-    // ── Decision tree ───────────────────────────────────────────
+    // ── Decision tree ─────────────────────────────────────────────────
 
     // Preflop: use hand tiers
     if (street === 'preflop') {
@@ -283,7 +283,7 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-    // ── GET: Select a random horse opponent ──────────────────────────
+    // ── GET: Select a random horse opponent ──────────────────────────────
     if (req.method === 'GET') {
         try {
             const sb = getSupabase();

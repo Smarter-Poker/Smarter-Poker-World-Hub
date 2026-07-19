@@ -53,7 +53,7 @@ function checkRateLimit(userId) {
     return entry.count <= RATE_LIMIT;
 }
 
-// ── Auth helper ─────────────────────────────────────────────
+// ── Auth helper ───────────────────────────────────────────────
 async function getUserFromToken(req) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return null;
@@ -73,7 +73,7 @@ async function getUserFromToken(req) {
     }
 }
 
-// ── Scenario hash generator ─────────────────────────────────
+// ── Scenario hash generator ─────────────────────────────────────
 function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street }) {
     const parts = [
         gameType || 'cash',
