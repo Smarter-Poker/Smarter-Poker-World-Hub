@@ -115,21 +115,25 @@ export default function TrainingArenaPage() {
     const [ready, setReady] = useState(false);
     const [fetchError, setFetchError] = useState(null);
 
-    // Resolve user ID
+    // Resolve user ID.
+    // 2026-07-19 AUDIT FIX: previously minted `anon-<ts>` ids for logged-out
+    // visitors, but useGTOTrainer's question APIs all require a Bearer token
+    // (401 otherwise) — anonymous arenas could never load a single question.
+    // Redirect to login and return here afterwards (login.js honors ?redirect=).
     useEffect(() => {
+        if (!router.isReady) return;
         try {
             const authUser = getAuthUser();
             if (authUser?.id) {
                 setUserId(authUser.id);
-            } else {
-                const stored = localStorage.getItem('sb-user-id');
-                setUserId(stored || `anon-${Date.now()}`);
+                setReady(true);
+                return;
             }
         } catch (e) {
-            setUserId(`anon-${Date.now()}`);
+            // fall through to redirect
         }
-        setReady(true);
-    }, []);
+        router.replace(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
+    }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Resolve game name from TRAINING_LIBRARY
     const game = gameId ? getGameById(gameId) : null;

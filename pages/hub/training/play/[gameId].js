@@ -20,34 +20,30 @@ export default function TrainingPlayPage() {
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch current user from Supabase auth
+    // Fetch current user from Supabase auth.
+    // 2026-07-19 AUDIT FIX: this page previously minted `anon-<ts>` user ids
+    // for logged-out visitors, but every training question API requires a
+    // Bearer token (401 otherwise) — so anonymous sessions dead-ended on an
+    // error screen in the arena. Send logged-out users to login and bring
+    // them straight back here afterwards (login.js honors ?redirect=).
     useEffect(() => {
+        if (!router.isReady) return;
         const fetchUser = async () => {
             try {
                 const { getAuthUser } = await import('../../../../src/lib/authUtils');
                 const authUser = getAuthUser();
                 if (authUser?.id) {
                     setUserId(authUser.id);
-                } else {
-                    // Fallback to stored ID
-                    const storedUser = localStorage.getItem('sb-user-id');
-                    if (storedUser) {
-                        setUserId(storedUser);
-                    } else {
-                        // Generate anonymous user ID for demo
-                        const anonId = `anon-${Date.now()}`;
-                        localStorage.setItem('sb-user-id', anonId);
-                        setUserId(anonId);
-                    }
+                    setLoading(false);
+                    return;
                 }
             } catch (e) {
                 console.warn('Error fetching user:', e);
-                setUserId(`anon-${Date.now()}`);
             }
-            setLoading(false);
+            router.replace(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
         };
         fetchUser();
-    }, []);
+    }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading || !gameId) {
         return (
