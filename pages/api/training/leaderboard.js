@@ -77,24 +77,32 @@ export default async function handler(req, res) {
                   // never loaded AND never updated.
                   const { data: existing } = await supabase
                       .from('training_leaderboard')
-                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds')
+                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, perfect_rounds, gtow_score_avg')
                       .eq('user_id', userId)
                       .eq('period_type', period.type)
                       .eq('period_key', period.key)
                       .maybeSingle();
 
+                  // 2026-07-19 (wave-1 sweep C4): gtow_score_avg was read by the GET
+                  // but never written anywhere — maintain a running session average
+                  const sessionScore = typeof gtowScore === 'number' ? gtowScore : (accuracy || 0);
+
                   if (existing) {
                       const newTotal = existing.questions_answered + questionsAnswered;
                       const newCorrect = existing.questions_correct + questionsCorrect;
+                      const prevSessions = existing.sessions_completed || 0;
+                      const prevAvg = Number(existing.gtow_score_avg) || 0;
+                      const newAvg = Math.round(((prevAvg * prevSessions + sessionScore) / (prevSessions + 1)) * 10) / 10;
                       const { error: err_training_leaderboard_iyx6f } = await supabase
                         .from('training_leaderboard')
                         .update({
-                              sessions_completed: existing.sessions_completed + 1,
+                              sessions_completed: prevSessions + 1,
                               questions_answered: newTotal,
                               questions_correct: newCorrect,
                               accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
                               best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
                               perfect_rounds: (existing.perfect_rounds || 0) + (isPerfectRound ? 1 : 0),
+                              gtow_score_avg: newAvg,
                               updated_at: new Date().toISOString()
                           })
                           .eq('id', existing.id);
@@ -111,7 +119,8 @@ export default async function handler(req, res) {
                               questions_correct: questionsCorrect,
                               accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
                               best_streak: bestStreak || 0,
-                              perfect_rounds: isPerfectRound ? 1 : 0
+                              perfect_rounds: isPerfectRound ? 1 : 0,
+                              gtow_score_avg: sessionScore
                           });
                       if (err_training_leaderboard_sql0n) console.warn('[Supabase] Silent mutation failed in training_leaderboard:', err_training_leaderboard_sql0n.message);
                   }

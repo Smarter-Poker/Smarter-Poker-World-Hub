@@ -100,44 +100,38 @@ export default async function handler(req, res) {
 
           const { format, position, stack } = req.query;
 
-          // Build query — get a random offset from total count
-          let countQuery = getSupabase()
-              .from('solved_spots_gold')
-              .select('id', { count: 'exact', head: true });
+          // ═══ 2026-07-19 AUDIT FIX (wave-1 live sweep): the old
+          // exact-count + random-OFFSET sampling scanned deep into a 2M-row
+          // filtered set — statement timeouts made this endpoint 500 on ~90%
+          // of requests. Replace with a uuid-pivot sample: ids are uuid v4
+          // (uniform), so `id >= random-uuid ORDER BY id LIMIT 1` is a single
+          // indexed probe. Wrap-around to the first row if the pivot lands
+          // past the last id. ═══
+          const randomUuid = require('crypto').randomUUID();
 
-          if (format === 'cash') countQuery = countQuery.ilike('game_type', '%cash%');
-          if (format === 'mtt') countQuery = countQuery.ilike('game_type', '%mtt%');
-          if (position) { const safePos = sanitizeParam(position, 10); if (safePos) countQuery = countQuery.ilike('scenario_hash', `%_${safePos}_%`); }
-          if (stack) countQuery = countQuery.eq('stack_depth', parseInt(stack, 10));
+          const buildSpotQuery = (withPivot) => {
+              let q = getSupabase()
+                  .from('solved_spots_gold')
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
+              if (format === 'cash') q = q.ilike('game_type', '%cash%');
+              if (format === 'mtt') q = q.ilike('game_type', '%mtt%');
+              if (position) { const safePos = sanitizeParam(position, 10); if (safePos) q = q.ilike('scenario_hash', `%_${safePos}_%`); }
+              if (stack) q = q.eq('stack_depth', parseInt(stack, 10));
+              if (withPivot) q = q.gte('id', randomUuid);
+              return q.order('id', { ascending: true }).limit(1);
+          };
 
-          const { count, error: countErr } = await countQuery;
-          if (countErr) {
-              console.warn('[SpotDrill] Count error:', countErr);
-              return res.status(500).json({ success: false, error: 'Database error' });
+          let { data: spots, error: spotErr } = await buildSpotQuery(true);
+          if (!spotErr && (!spots || spots.length === 0)) {
+              // Pivot landed past the last matching id — wrap to the start
+              ({ data: spots, error: spotErr } = await buildSpotQuery(false));
           }
-
-          if (!count || count === 0) {
-              return res.status(404).json({ success: false, error: 'No spots found matching filters' });
-          }
-
-          // Pick random offset
-          const randomOffset = Math.floor(Math.random() * count);
-
-          let spotQuery = getSupabase()
-              .from('solved_spots_gold')
-              .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
-
-          if (format === 'cash') spotQuery = spotQuery.ilike('game_type', '%cash%');
-          if (format === 'mtt') spotQuery = spotQuery.ilike('game_type', '%mtt%');
-          if (position) { const safePos = sanitizeParam(position, 10); if (safePos) spotQuery = spotQuery.ilike('scenario_hash', `%_${safePos}_%`); }
-          if (stack) spotQuery = spotQuery.eq('stack_depth', parseInt(stack, 10));
-
-          spotQuery = spotQuery.range(randomOffset, randomOffset).limit(1);
-
-          const { data: spots, error: spotErr } = await spotQuery;
-          if (spotErr || !spots || spots.length === 0) {
+          if (spotErr) {
               console.warn('[SpotDrill] Spot fetch error:', spotErr);
               return res.status(500).json({ success: false, error: 'Failed to fetch spot' });
+          }
+          if (!spots || spots.length === 0) {
+              return res.status(404).json({ success: false, error: 'No spots found matching filters' });
           }
 
           const spot = spots[0];

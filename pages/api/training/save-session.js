@@ -69,8 +69,13 @@ export default async function handler(req, res) {
       }
 
       // Body size guard (100KB max)
+      // 2026-07-19 AUDIT FIX (wave-1 E2E): this in-handler guard was 100KB —
+      // real 20-hand sessions with compacted histories are ~400KB, so EVERY
+      // level completion still 413'd here even after the bodyParser limit was
+      // raised. 2MB comfortably fits compacted histories while still bounding
+      // abuse (bodyParser itself caps at 4MB).
       const bodySize = JSON.stringify(req.body || {}).length;
-      if (bodySize > 102400) {
+      if (bodySize > 2097152) {
           return res.status(413).json({ success: false, error: 'Request body too large' });
       }
 

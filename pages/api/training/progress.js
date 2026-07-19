@@ -28,7 +28,8 @@ const DEFAULT_PROGRESS = {
     health_chips: 100,
     total_hands_played: 0,
     total_correct: 0,
-    total_rounds_completed: 0
+    total_rounds_completed: 0,
+    levels: {}
 };
 
 export default async function handler(req, res) {
@@ -53,22 +54,61 @@ export default async function handler(req, res) {
       const userId = user.id; // From JWT, not query param
 
       try {
-          // Get user session for this game
-          const { data: session, error } = await getSupabase()
-              .from('god_mode_user_session')
-              .select('current_level, highest_level_unlocked, health_chips, total_hands_played, total_correct, total_rounds_completed')
-              .eq('user_id', userId)
-              .eq('game_id', gameId)
-              .maybeSingle();
+          // ═══ 2026-07-19 AUDIT FIX (wave-1 regression sweep) ═══
+          // This endpoint read `god_mode_user_session` — a table NOTHING writes
+          // anymore — and never returned the `levels` map LevelSelector expects
+          // (`progressData.levels`), so every game permanently showed
+          // "Not Attempted / 0 levels completed" no matter how much you played.
+          // Rebuild from the tables save-progress.js actually writes:
+          // training_level_history (per-attempt rows) + training_progress.
+          const [historyResult, progressResult] = await Promise.all([
+              getSupabase()
+                  .from('training_level_history')
+                  .select('level, accuracy_percentage, passed, questions_answered, questions_correct')
+                  .eq('user_id', userId)
+                  .eq('game_id', gameId)
+                  .order('created_at', { ascending: false })
+                  .limit(500),
+              getSupabase()
+                  .from('training_progress')
+                  .select('level, hands_played, correct_answers, total_answers, best_streak')
+                  .eq('user_id', userId)
+                  .eq('game_id', gameId)
+                  .maybeSingle(),
+          ]);
 
-          if (error || !session) {
+          const history = historyResult.data || [];
+          const prog = progressResult.data || null;
+
+          // Build per-level map: attempts, high score, completion
+          const levels = {};
+          let highestPassed = 0;
+          history.forEach(h => {
+              const key = `level_${h.level}`;
+              if (!levels[key]) levels[key] = { attempts: 0, highScore: 0, completed: false };
+              levels[key].attempts += 1;
+              levels[key].highScore = Math.max(levels[key].highScore, Math.round(h.accuracy_percentage || 0));
+              if (h.passed) {
+                  levels[key].completed = true;
+                  highestPassed = Math.max(highestPassed, h.level);
+              }
+          });
+
+          if (history.length === 0 && !prog) {
               return res.status(200).json(DEFAULT_PROGRESS);
           }
 
-          // ═══ LEVEL REGISTRY: Enrich response with level metadata ═══
-          const currentLevelDef = getLevel(session.current_level || 1);
-          const enrichedSession = {
-              ...session,
+          const currentLevel = prog?.level || Math.min(12, highestPassed + 1) || 1;
+          const currentLevelDef = getLevel(currentLevel);
+          return res.status(200).json({
+              current_level: currentLevel,
+              highest_level_unlocked: Math.min(12, highestPassed + 1),
+              health_chips: 100,
+              total_hands_played: prog?.hands_played || 0,
+              total_correct: prog?.correct_answers || 0,
+              total_rounds_completed: history.length,
+              best_streak: prog?.best_streak || 0,
+              levels,
               levelMeta: currentLevelDef ? {
                   name: currentLevelDef.name,
                   tier: currentLevelDef.tier,
@@ -76,9 +116,7 @@ export default async function handler(req, res) {
                   diamondMultiplier: currentLevelDef.diamondMultiplier,
                   accentColor: currentLevelDef.accentColor,
               } : null,
-          };
-
-          return res.status(200).json(enrichedSession);
+          });
 
       } catch (err) {
           console.warn('Error fetching progress:', err);

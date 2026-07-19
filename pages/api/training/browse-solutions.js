@@ -68,16 +68,24 @@ export default async function handler(req, res) {
           // Input validation
           const safeStreet = VALID_STREETS.includes(street) ? street : 'flop';
 
+          // 2026-07-19: also allow lookup by scenario_hash — saved session
+          // histories are compacted (bulk matrices stripped) and the replay
+          // viewer re-fetches the solver matrix by hash on demand.
+          const scenarioHash = req.query.scenarioHash ? sanitizeParam(req.query.scenarioHash, 200) : null;
+
           // If requesting a specific spot's full data
-          if (spotId) {
-              const { data: spot, error } = await getSupabase()
+          if (spotId || scenarioHash) {
+              let spotQuery = getSupabase()
                   .from('solved_spots_gold')
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
-                  .eq('id', spotId)
-                  .maybeSingle();
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
+              spotQuery = spotId
+                  ? spotQuery.eq('id', spotId)
+                  : spotQuery.eq('scenario_hash', scenarioHash).limit(1);
+              const { data: spotRows, error } = await spotQuery;
+              const spot = Array.isArray(spotRows) ? spotRows[0] : spotRows;
 
               if (error || !spot) {
-                  console.warn(`[BrowseSolutions] 404 Error. spotId: "${spotId}", error:`, error);
+                  console.warn(`[BrowseSolutions] 404 Error. spotId: "${spotId || scenarioHash}", error:`, error);
                   return res.status(404).json({ success: false, error: 'Spot not found' });
               }
 
@@ -150,6 +158,9 @@ export default async function handler(req, res) {
                       actions,
                       gridData,
                       handEVs,
+                      // Raw per-action/per-hand solver frequencies — consumed by
+                      // HandReplayViewer's on-demand matrix refetch (2026-07-19)
+                      rawFrequencies: frequencies,
                       handCount: Object.keys(gridData || {}).filter(h => gridData[h] !== null).length,
                       rangeEquity,
                   },

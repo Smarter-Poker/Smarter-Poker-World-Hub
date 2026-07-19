@@ -290,13 +290,15 @@ export default async function handler(req, res) {
                       ? `BB Call vs SB Jam ${chart.stack_depth}BB (Nash)`
                       : `${pos} Push/Fold ${chart.stack_depth}BB (Nash)`;
               } else {
-                  // Fallback: use RFI data at the appropriate stack depth
-                  const rfiRange = getRFIByDepth(sd, pos) || {};
+                  // Fallback: use RFI data at the appropriate stack depth.
+                  // Keys must match `actions` (BB uses Call/Fold labels).
+                  const fbAction = isBB ? 'Call' : 'Push';
+                  const rfiRange = getRFIByDepth(sd, isBB ? 'BB' : pos) || {};
                   const pushThreshold = sd <= 8 ? 0.4 : sd <= 12 ? 0.3 : sd <= 15 ? 0.25 : 0.2;
                   allHands.forEach(hand => {
                       const freq = getHandFrequencies(rfiRange, hand);
                       if (freq.raise >= pushThreshold) {
-                          rangeData[hand] = { 'Push': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 };
+                          rangeData[hand] = { [fbAction]: Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 };
                       } else {
                           rangeData[hand] = null;
                       }

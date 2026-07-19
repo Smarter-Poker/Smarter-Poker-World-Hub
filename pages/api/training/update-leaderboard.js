@@ -83,7 +83,7 @@ export default async function handler(req, res) {
               const { data: existing } = await withRetry(
                   () => supabase
                       .from('training_leaderboard')
-                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak')
+                      .select('id, sessions_completed, questions_answered, questions_correct, best_streak, gtow_score_avg')
                       .eq('user_id', userId)
                       .eq('period_type', period.type)
                       .eq('period_key', period.key)
@@ -91,23 +91,31 @@ export default async function handler(req, res) {
                   { label: `UpdateLB:select:${period.type}` }
               );
 
+              // 2026-07-19 (wave-1 sweep C4): maintain the gtow_score_avg the
+              // GET path displays — xpEarned carries the session GTOW score here
+              const sessionScore = typeof xpEarned === 'number' ? xpEarned : (accuracy || 0);
+
               if (existing) {
                   // Update existing entry
                   const newTotal = existing.questions_answered + questionsAnswered;
                   const newCorrect = existing.questions_correct + questionsCorrect;
                   const newAccuracy = newTotal > 0 ? (newCorrect / newTotal * 100).toFixed(2) : 0;
+                  const prevSessions = existing.sessions_completed || 0;
+                  const prevAvg = Number(existing.gtow_score_avg) || 0;
+                  const newAvg = Math.round(((prevAvg * prevSessions + sessionScore) / (prevSessions + 1)) * 10) / 10;
 
                   await withRetry(
                       () => supabase
                           .from('training_leaderboard')
                           .update({
-                              sessions_completed: existing.sessions_completed + 1,
+                              sessions_completed: prevSessions + 1,
                               questions_answered: newTotal,
                               questions_correct: newCorrect,
                               // 2026-07-19 AUDIT FIX: total_xp column does not exist
                               // (XP removed) — writing it failed every update silently.
                               accuracy: newAccuracy,
                               best_streak: Math.max(existing.best_streak, bestStreak),
+                              gtow_score_avg: newAvg,
                               updated_at: new Date().toISOString()
                           })
                           .eq('id', existing.id),
@@ -126,7 +134,8 @@ export default async function handler(req, res) {
                               questions_answered: questionsAnswered,
                               questions_correct: questionsCorrect,
                               accuracy,
-                              best_streak: bestStreak
+                              best_streak: bestStreak,
+                              gtow_score_avg: sessionScore
                           }),
                       { label: `UpdateLB:insert:${period.type}` }
                   );

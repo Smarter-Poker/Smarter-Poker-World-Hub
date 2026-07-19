@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       const userId = user.id; // From JWT, not request
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
               // Get cumulative stats from database
               const { data: leaderboardData } = await supabase
                   .from('training_leaderboard')
-                  .select('sessions_completed, questions_correct, accuracy, perfect_rounds, total_xp')
+                  .select('sessions_completed, questions_correct, accuracy, perfect_rounds, gtow_score_avg')
                   .eq('user_id', userId)
                   .eq('period_type', 'alltime')
                   .maybeSingle();
@@ -123,7 +123,9 @@ export default async function handler(req, res) {
                   longestStreak: streakData?.longest_streak || 0,
                   totalSessions: leaderboardData?.sessions_completed || 0,
                   totalCorrect: leaderboardData?.questions_correct || 0,
-                  totalXp: leaderboardData?.total_xp || 0,
+                  // 2026-07-19: total_xp column removed (XP retired) — mastery
+                  // progress now proxies cumulative correct answers
+                  totalXp: leaderboardData?.questions_correct || 0,
                   // Perfect rounds from leaderboard (cumulative)
                   perfectRounds: leaderboardData?.perfect_rounds || 0
               };
