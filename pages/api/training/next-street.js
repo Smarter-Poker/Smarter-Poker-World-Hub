@@ -14,6 +14,9 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+// 2026-07-19 engine-audit runtime patches (see that module's header)
+applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';

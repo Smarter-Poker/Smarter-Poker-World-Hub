@@ -10,6 +10,9 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+// 2026-07-19 engine-audit runtime patches (see that module's header)
+applyDeterministicEnginePatches(deterministicEngine);
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
@@ -86,12 +89,16 @@ export default async function handler(req, res) {
 
 
           // Fetch questions from cache
+          // 2026-07-19 ENGINE AUDIT FIX: limiting to questionCount BEFORE the
+          // shuffle meant Postgres returned the same first-N rows every call —
+          // users looped the identical 15 questions per level forever. Over-
+          // fetch the pool, then shuffle, then slice.
           const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
               .select('question_data')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
-              .limit(questionCount);
+              .limit(Math.max(100, questionCount * 3));
 
           if (error) {
               console.warn('[BatchPreload] Supabase error:', error);
@@ -144,11 +151,16 @@ export default async function handler(req, res) {
                   // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
                   // No AI fallback — engines handle all question generation
                   try {
-                      const batch = deterministicEngine.generateBatch(
-                          gameLevel,
-                          Math.min(questionCount - cachedQuestions.length, 15),
-                          gameCfg,
-                      );
+                      // 2026-07-19 ENGINE AUDIT FIX: generateBatch destructures a
+                      // single options object — the old positional call passed the
+                      // level as the object, so gameConfig was undefined and ALL 20
+                      // psychology games returned zero engine questions.
+                      const batch = await deterministicEngine.generateBatch({
+                          gameId,
+                          level: gameLevel,
+                          count: Math.min(questionCount - cachedQuestions.length, 15),
+                          gameConfig: gameCfg,
+                      });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => {
                               if (q.scenario) q.scenario.isPsychology = true;
@@ -178,8 +190,32 @@ export default async function handler(req, res) {
               [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
 
-          // Return exactly the requested count
-          const batch = shuffled.slice(0, questionCount);
+          // ═══ 2026-07-19 ENGINE AUDIT FIX — ANSWER-CLASS BALANCE ═══
+          // Live sampling showed 73% of served questions graded "Check" as
+          // correct — a user who always checks passes levels. When the pool
+          // allows it, interleave passive-answer and aggressive-answer
+          // questions so no single action dominates the answer key.
+          const isAggressiveAnswer = (q) => {
+              const ca = q?.question_data?.correctAnswer || '';
+              return /^b|^r|allin|jam|push/i.test(String(ca));
+          };
+          const aggressive = shuffled.filter(isAggressiveAnswer);
+          const passive = shuffled.filter(q => !isAggressiveAnswer(q));
+          let batch;
+          if (aggressive.length > 0 && passive.length > 0) {
+              batch = [];
+              let ai = 0, pi = 0;
+              while (batch.length < questionCount && (ai < aggressive.length || pi < passive.length)) {
+                  // Alternate, preferring whichever class is underrepresented so far
+                  const takeAggressive =
+                      ai < aggressive.length && (pi >= passive.length || batch.length % 2 === 1);
+                  if (takeAggressive) batch.push(aggressive[ai++]);
+                  else batch.push(passive[pi++]);
+              }
+          } else {
+              // Only one class available in the pool — serve what exists
+              batch = shuffled.slice(0, questionCount);
+          }
 
           // ═══ ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ═══
           const enrichedBatch = batch.map(q => {

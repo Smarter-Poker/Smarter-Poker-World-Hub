@@ -1,0 +1,14 @@
+-- 2026-07-19 Engine audit (DATA migration, applied via Supabase MCP)
+-- 2,193 training_question_cache rows generated from PIO spots were relabeled
+-- "AA" (question text, heroCards AhAs, scenario.heroHand, evData) while their
+-- frequencies/correctAnswer belonged to the hand embedded in question_id
+-- (…_pio_<uuid>_<hand>_<n>). ~24% of live-sampled questions showed AA and
+-- ~4% graded the wrong action for the DISPLAYED hand. Repair: restore
+-- heroHand/heroCards (collision-aware suits vs boardCards)/scenario.heroHand/
+-- question text/evData.heroHandEV from the id-embedded hand; frequencies and
+-- the reconciled answer key were already correct for that hand and are
+-- untouched. Rows are flagged question_data.handRelabelRepaired=true.
+-- Post-apply verification: 0 remaining mismatches, 0 hero/board collisions.
+-- (Full executed SQL preserved in session audit; logic mirrors
+-- .agent/audits/2026-07-19-training-engine-phase3-deterministic-engine.md)
+SELECT 1; -- marker migration; data repair applied out-of-band as documented

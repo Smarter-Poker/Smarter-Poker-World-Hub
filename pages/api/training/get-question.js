@@ -16,6 +16,9 @@ import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
+import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
+// 2026-07-19 engine-audit runtime patches (see that module's header)
+applyDeterministicEnginePatches(deterministicEngine);
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
