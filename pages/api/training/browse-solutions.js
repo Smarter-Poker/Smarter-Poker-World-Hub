@@ -85,22 +85,35 @@ export default async function handler(req, res) {
               const actions = matrix.actions || [];
               const frequencies = matrix.frequencies || {};
 
-              // Build full 13×13 grid data for every hand
+              // Build full 13×13 grid data for every hand.
+              // 2026-07-19 AUDIT FIX: the `cash` and `spin` families (~2.1M rows)
+              // store RAW combo weights instead of normalized 0-1 frequencies —
+              // the old `freq * 1000 / 10` rendered values like "5018%".
+              // Normalize per hand: if a hand's action mass exceeds 1, divide
+              // each action by the hand total so the mix always sums to 100%.
               const allHands = getAllHands();
               const gridData = {};
               allHands.forEach(hand => {
-                  gridData[hand] = {};
+                  const raw = {};
+                  let handTotal = 0;
                   let hasData = false;
                   actions.forEach(action => {
                       const freq = frequencies[action]?.[hand];
                       if (freq !== undefined && freq >= 0) {
-                          gridData[hand][action] = Math.round(freq * 1000) / 10; // 0-100 with 1 decimal
+                          raw[action] = freq;
+                          handTotal += freq;
                           hasData = true;
                       }
                   });
                   if (!hasData) {
                       gridData[hand] = null; // Hand not in range
+                      return;
                   }
+                  const divisor = handTotal > 1.001 ? handTotal : 1;
+                  gridData[hand] = {};
+                  Object.entries(raw).forEach(([action, freq]) => {
+                      gridData[hand][action] = Math.round((freq / divisor) * 1000) / 10; // 0-100, 1 decimal
+                  });
               });
 
               // Get EV data from matrix

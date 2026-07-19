@@ -39,16 +39,19 @@ export default async function handler(req, res) {
 
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
-            const { data: authData } = await getSupabase().auth.getUser(token);
+            // 2026-07-19 AUDIT FIX: previous code referenced an undeclared
+            // `error` variable here — every authenticated request threw a
+            // ReferenceError and the endpoint 500'd unconditionally.
+            const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
             const user = authData?.user;
-            if (!error && user) userId = user.id;
+            if (!authErr && user) userId = user.id;
         }
 
         if (!userId) {
             return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        // ─── GET: Retrieve user's bookmarks ──────────────────────────
+        // ─── GET: Retrieve user's bookmarks ──────────────────────
         if (req.method === 'GET') {
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
             const { data: bookmarks, error } = await getSupabase()
@@ -67,7 +70,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, bookmarks: bookmarks || [] });
         }
 
-        // ─── POST: Save or delete a bookmark ─────────────────────────
+        // ─── POST: Save or delete a bookmark ─────────────────────
         if (req.method === 'POST') {
             // Body size guard — only accepts spotId, scenarioHash, action, notes
             const bodySize = JSON.stringify(req.body || {}).length;

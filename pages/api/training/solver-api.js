@@ -53,23 +53,27 @@ function checkRateLimit(userId) {
     return entry.count <= RATE_LIMIT;
 }
 
-// ── Auth helper ─────────────────────────────────────────────────
+// ── Auth helper ─────────────────────────────────────────────
 async function getUserFromToken(req) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return null;
     const token = auth.replace('Bearer ', '');
 
     try {
-        const { data: authData } = await getSupabase().auth.getUser(token);
+        // 2026-07-19 AUDIT FIX: previous code referenced an undeclared
+        // `error` variable — the ReferenceError was swallowed by this catch,
+        // so getUserFromToken always returned null and the endpoint 401'd
+        // on every request, even with a valid token.
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
         const user = authData?.user;
-        if (error || !user) return null;
+        if (authErr || !user) return null;
         return user;
     } catch {
         return null;
     }
 }
 
-// ── Scenario hash generator ─────────────────────────────────────
+// ── Scenario hash generator ─────────────────────────────────
 function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street }) {
     const parts = [
         gameType || 'cash',
