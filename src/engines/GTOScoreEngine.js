@@ -267,22 +267,35 @@ function _evLossToScore(evLoss) {
  * @returns {{ diamonds: number, breakdown: Object }}
  */
 export function calculateSessionDiamonds(summary, levelMultiplier = 1.0) {
+    // 2026-07-19 AUDIT FIX (wave-1 E2E): callers pass two different summary
+    // shapes ({handsPlayed, gtoScore, breakdown.correct} vs the legacy
+    // {totalMoves, score, correctMoves}) — the legacy shape threw
+    // "Cannot read properties of undefined (reading 'correct')" on every
+    // arena session completion, so the reward was always 0. Accept both.
+    // Also clamp the multiplier: a caller once passed the raw LEVEL (1-12)
+    // where a 1.0-2.0 registry multiplier belongs.
+    const handsPlayed = summary.handsPlayed ?? summary.totalMoves ?? 0;
+    const gtoScore = summary.gtoScore ?? summary.score ?? 0;
+    const bestStreak = summary.bestStreak ?? 0;
+    const correctCount = summary.breakdown?.correct ?? summary.correctMoves ?? 0;
+    const safeMultiplier = Math.max(0.5, Math.min(2.0, Number(levelMultiplier) || 1.0));
+
     const base = 10; // Base diamonds per hand
-    const handDiamonds = summary.handsPlayed * base;
+    const handDiamonds = handsPlayed * base;
 
     // Score bonus: higher GTO score = more diamonds
-    const scoreBonus = summary.gtoScore >= 90 ? 2.0
-        : summary.gtoScore >= 80 ? 1.5
-        : summary.gtoScore >= 70 ? 1.2
+    const scoreBonus = gtoScore >= 90 ? 2.0
+        : gtoScore >= 80 ? 1.5
+        : gtoScore >= 70 ? 1.2
         : 1.0;
 
     // Streak bonus
-    const streakBonus = Math.min(50, summary.bestStreak * 5);
+    const streakBonus = Math.min(50, bestStreak * 5);
 
     // Accuracy bonus
-    const accuracyBonus = summary.breakdown.correct * 5;
+    const accuracyBonus = correctCount * 5;
 
-    const total = Math.round((handDiamonds * scoreBonus + streakBonus + accuracyBonus) * levelMultiplier);
+    const total = Math.round((handDiamonds * scoreBonus + streakBonus + accuracyBonus) * safeMultiplier);
 
     return {
         diamonds: total,
@@ -291,7 +304,7 @@ export function calculateSessionDiamonds(summary, levelMultiplier = 1.0) {
             scoreBonus: Math.round(handDiamonds * (scoreBonus - 1)),
             streakBonus,
             accuracyBonus,
-            levelMultiplier,
+            levelMultiplier: safeMultiplier,
         },
     };
 }

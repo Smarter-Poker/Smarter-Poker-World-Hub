@@ -18,6 +18,7 @@ import TRAINING_CONFIG, {
 } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 import { eventBus } from '../engine/EventBus';
+import { getScoreGrade, getScoreColor } from '../engines/GTOScoreEngine';
 import { trainingSounds } from '../utils/trainingSounds';
 import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 
@@ -2130,8 +2131,19 @@ export default function useGTOTrainer(
     },
     // ═══ PHASE 255: Session grade ═══
     getSessionGrade: () => {
+      // 2026-07-19 AUDIT FIX (wave-1 E2E): the review screen graded via TWO
+      // systems at once — this returned deterministicEngine's internal grade
+      // while other panels graded gtowScore, so one screen showed "C-" and
+      // "D" simultaneously. Single source of truth: grade the GTOW score.
       try {
-        return deterministicEngine.getSessionGrade();
+        const score = Number(gtowScoring.gtowScore) || 0;
+        const GRADE_LABELS = {
+          S: 'GTO Master', 'A+': 'Elite', A: 'Excellent', 'B+': 'Strong',
+          B: 'Solid', 'C+': 'Developing', C: 'Learning', D: 'Struggling',
+          F: 'Review Fundamentals',
+        };
+        const g = getScoreGrade(score);
+        return { grade: g, label: GRADE_LABELS[g] || '', color: getScoreColor(score) };
       } catch (e) {
         return { grade: '-', label: 'N/A', color: '#64748b' };
       }
