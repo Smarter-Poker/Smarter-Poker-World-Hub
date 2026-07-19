@@ -134,20 +134,32 @@ export default async function handler(req, res) {
       });
 
       if (rpcErr) {
+        // fn_request_cashout RAISES on failure (insufficient balance, duplicate
+        // pending, etc.) — surface that as the error, not a generic 500.
         console.warn('[request-cashout] RPC Error:', rpcErr);
-        throw rpcErr;
-      }
-
-      if (!result?.success) {
-        const isBalanceErr = result?.error === 'Insufficient balance';
-        return res.status(isBalanceErr ? 400 : 409).json({ 
-            success: false, 
-            error: result?.error || 'Cashout request failed',
-            details: result
+        const msg = rpcErr.message || '';
+        const isBalanceErr = /insufficient/i.test(msg);
+        const isDuplicate = /duplicate|already|pending/i.test(msg);
+        return res.status(isBalanceErr ? 400 : isDuplicate ? 409 : 500).json({
+          success: false,
+          error: isBalanceErr
+            ? 'Insufficient balance'
+            : isDuplicate
+              ? 'You already have a pending cashout request'
+              : 'Cashout request failed',
         });
       }
 
-      const cashoutId = result.cashout_id;
+      // FIX-C1 2026-07-19: fn_request_cashout RETURNS a bare uuid (the new
+      // cashout id) on success and RAISES on failure. The old code tested
+      // `result.success` (undefined on a scalar) so EVERY successful request
+      // returned 409 "failed" — while the RPC had already committed the escrow
+      // debit + pending row. Players were charged, told it failed, and retried,
+      // multiplying the debit. A returned id (any non-error result) = success.
+      const cashoutId = typeof result === 'string' ? result : result?.cashout_id || result?.id;
+      if (!cashoutId) {
+        return res.status(409).json({ success: false, error: 'Cashout request failed' });
+      }
 
       // Removed manual chip_transactions log — handled atomically by fn_request_cashout
 
