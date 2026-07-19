@@ -79,6 +79,14 @@ export default function useGTOTrainer(
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questionNumber, setQuestionNumber] = useState(1);
   const [level, setLevel] = useState(initialLevel);
+  // ═══ 2026-07-19 AUDIT FIX (wave-1 regression sweep): adaptive difficulty
+  // mutates `level` mid-session (crushing 5 in a row bumps it +1), which then
+  // leaked into progress persistence, pass thresholds, and UI labels — a user
+  // who SELECTED Level 1 could get their completion recorded as Level 2 and
+  // see "Retry Level 2". `selectedLevel` is the immutable level the user
+  // entered with: use it for persistence/thresholds/labels; keep `level` as
+  // the adaptive CONTENT difficulty only. ═══
+  const [selectedLevel] = useState(initialLevel);
   const [loading, setLoading] = useState(true); // Start true until pre-load completes
   const [error, setError] = useState(null);
 
@@ -1159,7 +1167,9 @@ export default function useGTOTrainer(
         };
 
         // Calculate diamond rewards using LevelRegistry multipliers
-        const diamondsEarned = getDiamondReward(level, correctCount, bestStreak > 5 ? 2 : 0);
+        // 2026-07-19: persist against the level the user SELECTED, not the
+        // adaptive content level (see selectedLevel note at declaration)
+        const diamondsEarned = getDiamondReward(selectedLevel, correctCount, bestStreak > 5 ? 2 : 0);
 
         const response = await fetch('/api/training/save-progress', {
           method: 'POST',
@@ -1167,7 +1177,7 @@ export default function useGTOTrainer(
           body: JSON.stringify({
             userId,
             gameId,
-            level,
+            level: selectedLevel,
             questionsAnswered: effectiveQuestionsPerLevel,
             questionsCorrect: correctCount,
             accuracy,
@@ -1315,7 +1325,7 @@ export default function useGTOTrainer(
     if (questionNumber >= effectiveQuestionsPerLevel) {
       // Level complete
       const accuracy = Math.round((correctCount / effectiveQuestionsPerLevel) * 100);
-      const passed = checkLevelPassed(level, correctCount, effectiveQuestionsPerLevel);
+      const passed = checkLevelPassed(selectedLevel, correctCount, effectiveQuestionsPerLevel);
 
       setLevelPassed(passed);
       setGameComplete(true);
@@ -1493,7 +1503,10 @@ export default function useGTOTrainer(
     currentQuestion,
     questionNumber,
     totalQuestions: effectiveQuestionsPerLevel,
-    level,
+    // 2026-07-19: `level` = the user-selected level (stable, for UI labels +
+    // persistence); `contentLevel` = adaptive difficulty actually being served
+    level: selectedLevel,
+    contentLevel: level,
     loading,
     error,
 
@@ -1505,8 +1518,8 @@ export default function useGTOTrainer(
     streak,
     bestStreak,
     totalXP,
-    requiredCorrect: getRequiredCorrect(level, effectiveQuestionsPerLevel),
-    passThreshold: TRAINING_CONFIG.passThresholds[level],
+    requiredCorrect: getRequiredCorrect(selectedLevel, effectiveQuestionsPerLevel),
+    passThreshold: TRAINING_CONFIG.passThresholds[selectedLevel],
     totalLevels: TOTAL_LEVELS,
 
     // ═══ MASTERY GATE: Server-verified mastery state ═══
