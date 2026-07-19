@@ -462,14 +462,14 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // PHASE 28: Dead code removed — 7 deprecated functions with 0 callers:
 // buildOptionsFromActions, getPIOQuestion, generateQuestionFromChart,
 // generateChartQuestionWithGrok, buildPIOOptions, getChartQuestion,
 // getScenarioQuestion
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // Operation Grok-Sweep (2026-05): generateQuestionWithGrok() removed.
 //
 // This was a ~180-line LLM-fallback that hallucinated training questions when
@@ -482,7 +482,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
 // We are now committed to the rule: no AI hallucinations for GTO math. The
 // SCENARIO/psychology branch in /api/training/explain-answer.js is the ONLY
 // remaining LLM call for the training pipeline, and it uses grok-3-mini.
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Enrich a legacy cached question with all GTO Wizard-level fields.
