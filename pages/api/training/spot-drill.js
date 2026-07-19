@@ -31,7 +31,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ─── Helpers ──────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 
 
@@ -154,14 +154,31 @@ export default async function handler(req, res) {
               });
           }
 
+          // 2026-07-19 AUDIT FIX: `cash`/`spin` game_type families store RAW
+          // combo weights (not 0-1 frequencies). Normalize per hand so the
+          // ">10% frequency" filter and displayed percentages are correct
+          // for every family. Argmax (the graded answer) is scale-invariant.
+          const normalizedFreq = (hand) => {
+              const raw = {};
+              let handTotal = 0;
+              for (const action of actions) {
+                  const f = frequencies[action]?.[hand] || 0;
+                  raw[action] = f;
+                  handTotal += f;
+              }
+              const divisor = handTotal > 1.001 ? handTotal : 1;
+              const out = {};
+              for (const action of actions) out[action] = raw[action] / divisor;
+              return out;
+          };
+
           // Pick a random hand that has frequency data
           const allHands = Object.keys(frequencies[actions[0]] || {});
           const handsWithData = allHands.filter(hand => {
-              // Find the highest freq action for this hand
+              const norm = normalizedFreq(hand);
               let maxFreq = 0;
               for (const action of actions) {
-                  const freq = frequencies[action]?.[hand] || 0;
-                  if (freq > maxFreq) maxFreq = freq;
+                  if (norm[action] > maxFreq) maxFreq = norm[action];
               }
               return maxFreq > 0.1; // Hand must have a clear action (>10% frequency)
           });
@@ -180,9 +197,10 @@ export default async function handler(req, res) {
           let correctAction = actions[0];
           let correctFreq = 0;
           const actionBreakdown = {};
+          const handFreqs = normalizedFreq(randomHand);
 
           for (const action of actions) {
-              const freq = frequencies[action]?.[randomHand] || 0;
+              const freq = handFreqs[action] || 0;
               actionBreakdown[action] = Math.round(freq * 1000) / 10; // percentage
               if (freq > correctFreq) {
                   correctFreq = freq;

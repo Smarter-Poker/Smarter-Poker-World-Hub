@@ -87,16 +87,21 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: 'Failed to record seen question' });
       }
 
-      // Record the answer for stats. NOTE: training_answers schema is
-      // currently {id, user_id, game_id, question_id, answer_id NOT NULL,
-      // is_correct, level, answered_at}. Phase 14 spot-metadata columns
-      // (hero_position, villain_position, street, classification, ev_loss,
-      // spot_type) were never actually added by migration, so prior
-      // inserts hit Postgres 42703 ("column ... does not exist") which the
-      // earlier missing-error-check pattern silently swallowed — that is
-      // why this table had 0 rows. Strip those columns from the insert.
-      // Re-add them under a column-existence check once the schema is
-      // extended.
+      // Record the answer for stats.
+      // 2026-07-19 AUDIT FIX: Phase 14 spot-metadata columns (hero_position,
+      // villain_position, street, classification, ev_loss, spot_type) are now
+      // real — added by migration training_answers_spot_metadata_columns.
+      // useGTOTrainer already POSTs this metadata on every answer; persisting
+      // it is what powers smart-practice weak-spot targeting and the
+      // position/street/mistake breakdowns in analytics.js.
+      const {
+        heroPosition = null,
+        villainPosition = null,
+        street = null,
+        classification = null,
+        evLoss = 0,
+        spotType = null,
+      } = req.body || {};
       const insertResult = await withRetry(
         () =>
           getSupabase().from('training_answers').insert({
@@ -107,6 +112,12 @@ export default async function handler(req, res) {
             is_correct: isCorrect,
             level: level,
             answered_at: new Date().toISOString(),
+            hero_position: typeof heroPosition === 'string' ? heroPosition.slice(0, 10) : null,
+            villain_position: typeof villainPosition === 'string' ? villainPosition.slice(0, 10) : null,
+            street: typeof street === 'string' ? street.slice(0, 12) : null,
+            classification: typeof classification === 'string' ? classification.slice(0, 32) : null,
+            ev_loss: typeof evLoss === 'number' && isFinite(evLoss) ? evLoss : 0,
+            spot_type: typeof spotType === 'string' ? spotType.slice(0, 40) : null,
           }),
         { label: 'RecordQuestion:insert' }
       );

@@ -9,6 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -22,22 +23,18 @@ function getSupabase() {
     return _supabase;
 }
 
-// Training games catalog (simplified - could be pulled from DB)
-const TRAINING_GAMES = [
-    { id: 'cash_001', name: 'Preflop Ranges 101', category: 'preflop', difficulty: 'beginner' },
-    { id: 'cash_002', name: 'Opening Ranges', category: 'preflop', difficulty: 'beginner' },
-    { id: 'cash_003', name: '3-Bet Defense', category: 'preflop', difficulty: 'intermediate' },
-    { id: 'cash_004', name: 'C-Bet Sizing', category: 'postflop', difficulty: 'intermediate' },
-    { id: 'cash_005', name: 'Check-Raise Spots', category: 'postflop', difficulty: 'advanced' },
-    { id: 'cash_006', name: 'Turn Barrel Strategy', category: 'postflop', difficulty: 'advanced' },
-    { id: 'cash_007', name: 'River Bluff Catching', category: 'postflop', difficulty: 'advanced' },
-    { id: 'cash_008', name: 'Pot Odds Mastery', category: 'math', difficulty: 'beginner' },
-    { id: 'cash_009', name: 'Implied Odds', category: 'math', difficulty: 'intermediate' },
-    { id: 'cash_010', name: 'Equity Realization', category: 'math', difficulty: 'advanced' },
-    { id: 'mtt_001', name: 'ICM Fundamentals', category: 'tournament', difficulty: 'intermediate' },
-    { id: 'mtt_002', name: 'Bubble Play', category: 'tournament', difficulty: 'advanced' },
-    { id: 'mtt_003', name: 'Final Table Push/Fold', category: 'tournament', difficulty: 'advanced' },
-];
+// 2026-07-19 AUDIT FIX: catalog was 13 hardcoded ids with underscores
+// ('cash_001') that never matched real game ids ('cash-001', 'mtt-001', ...)
+// written by jarvis_training_sessions — so history matching silently no-op'd
+// and every user looked like a new user. Build the catalog from the real
+// 100+ game TRAINING_LIBRARY instead.
+const difficultyLabel = (d) => (d <= 2 ? 'beginner' : d === 3 ? 'intermediate' : 'advanced');
+const TRAINING_GAMES = (TRAINING_LIBRARY || []).map((g) => ({
+    id: g.id,
+    name: g.name,
+    category: (g.category || 'CASH').toLowerCase(),
+    difficulty: difficultyLabel(g.difficulty || 3),
+}));
 
 export default async function handler(req, res) {
   try {
@@ -53,7 +50,7 @@ export default async function handler(req, res) {
       const supabase = getSupabase();
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
       const _authUser = authData?.user;
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 

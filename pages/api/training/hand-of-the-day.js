@@ -8,7 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withTiming } from '../../../src/utils/trainingApiUtils';
+import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
@@ -97,6 +97,10 @@ export default async function handler(req, res) {
         // MAP question_data to the daily challenge display format
         // ═══════════════════════════════════════════════════════════════
         const qd = cached.question_data;
+        // 2026-07-19 AUDIT FIX: ~7% of cache rows carry a correctAnswer /
+        // correctAnswerText contradicting their own solver `frequencies` —
+        // and this endpoint grades by TEXT. Reconcile before mapping.
+        reconcileAnswerKey(qd);
         const scenario = qd.scenario || {};
 
         // Phase 93: Prefer scenario.heroHand (canonical, matches explanation prose)
@@ -221,7 +225,17 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'dailyId required' });
         }
 
-        const { data, error } = await getSupabase()
+        // 2026-07-19 AUDIT FIX: check for an existing completion FIRST so the
+        // 25-diamond reward is credited exactly once per user per day.
+        const { data: existing } = await getSupabase()
+          .from('training_daily_challenge')
+          .select('user_id')
+          .eq('user_id', userId)
+          .eq('daily_id', dailyId)
+          .maybeSingle();
+        const alreadyCompleted = !!existing;
+
+        const { error } = await getSupabase()
           .from('training_daily_challenge')
           .upsert(
             {
@@ -248,11 +262,31 @@ export default async function handler(req, res) {
           });
         }
 
-        // Emit diamond reward for daily challenge completion
+        // 2026-07-19 AUDIT FIX: the endpoint previously RETURNED
+        // `diamondsEarned: 25` without ever crediting the diamonds — clients
+        // told users they earned a reward that never landed. Credit for real
+        // via the same RPC save-progress uses, only on first completion.
+        let diamondsEarned = 0;
+        if (!alreadyCompleted) {
+          const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: 25,
+            p_type: 'training_reward',
+            p_description: `Hand of the Day: ${dailyId}`,
+            p_reference_id: `hotd_${userId}_${dailyId}`,
+          });
+          if (rpcErr) {
+            console.warn('[HandOfTheDay] Diamond credit failed:', rpcErr.message);
+          } else {
+            diamondsEarned = 25;
+          }
+        }
+
         return res.status(200).json({
           success: true,
-          message: 'Daily challenge completed!',
-          diamondsEarned: 25,
+          message: alreadyCompleted ? 'Daily challenge already completed today' : 'Daily challenge completed!',
+          diamondsEarned,
+          alreadyCompleted,
         });
       } catch (error) {
         console.warn('[HandOfTheDay] Error:', error.message);
