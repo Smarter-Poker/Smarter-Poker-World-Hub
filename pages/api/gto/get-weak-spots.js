@@ -71,7 +71,6 @@ export default async function handler(req, res) {
           console.warn('[GetWeakSpots] Error:', error);
           return res.status(500).json({
               success: false, error: 'Failed to analyze weak spots',
-              success: false
           });
       }
 

@@ -222,7 +222,9 @@ async function checkCachedImage(cacheKey) {
             return data.publicUrl;
         }
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        // 2026-07-19 AUDIT FIX: previous code called reportApiError(error, req)
+        // but `req` is not in scope in this helper — the inner ReferenceError
+        // silently ate the Sentry report. A cache miss is expected flow anyway.
         // File doesn't exist, continue to generate
     }
     return null;

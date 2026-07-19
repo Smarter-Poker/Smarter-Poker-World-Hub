@@ -4,16 +4,30 @@
  * Uses event_type='train_this_spot' and event_data jsonb for context.
  * Lightweight fire-and-forget analytics — never blocks the user.
  *
- * Body: { ref, vid, title, source, tags, matchedGameIds, userId }
+ * Body: { ref, vid, title, source, tags, matchedGameIds }
+ *
+ * 2026-07-19 AUDIT FIX:
+ *  - Was a raw `@supabase/supabase-js` import with a module-scope
+ *    createClient() (violates repo rules #3 and #4). Now uses the patched
+ *    supabaseServerClient behind an SSG-safe lazy getter.
+ *  - Was trusting `req.body.userId` (IDOR — any caller could attribute
+ *    events to any user). user_id now comes only from a verified JWT when
+ *    one is supplied; anonymous events log with user_id = null.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-);
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -21,14 +35,26 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { ref, vid, title, source, tags, matchedGameIds, userId } = req.body || {};
+        const { ref, vid, title, source, tags, matchedGameIds } = req.body || {};
 
         if (!ref || !vid) {
             return res.status(400).json({ error: 'ref and vid are required' });
         }
 
-        const { error } = await supabaseAdmin.from('training_events').insert({
-            user_id: userId || null,
+        // Identity from verified JWT only — never from the request body
+        let userId = null;
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+            try {
+                const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+                if (!authErr && authData?.user) userId = authData.user.id;
+            } catch (_e) {
+                // Anonymous logging is fine — analytics must never block
+            }
+        }
+
+        const { error } = await getSupabase().from('training_events').insert({
+            user_id: userId,
             event_type: 'train_this_spot',
             event_data: {
                 source_ref: ref,                             // 'video-library' | 'reels' | 'sandbox'
