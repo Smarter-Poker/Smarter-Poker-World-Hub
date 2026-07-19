@@ -17,7 +17,7 @@ import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConf
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Deterministic hash for seeded fallback data ──
@@ -69,9 +69,9 @@ export default async function handler(req, res) {
     }
 
     try {
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 1: GET COMPREHENSIVE GAME CONFIGURATION
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
       const game = TRAINING_LIBRARY.find((g) => g.id === gameId);
 
@@ -87,9 +87,9 @@ export default async function handler(req, res) {
       const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
       const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       let seenQuestionIds = [];
       if (userId) {
         const { data: seen } = await getSupabase()
@@ -102,9 +102,9 @@ export default async function handler(req, res) {
         seenQuestionIds = (seen || []).map((s) => s.question_id);
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 3: CACHED QUESTIONS — PRIMARY SOURCE (Phase 92 reorder)
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // Cache rows are the canonical truth: pre-rebalanced (Phase 77/78/79/80
       // pedagogical curve), pre-enriched (Phase 83/88 contextual explanations),
       // and pre-validated (Phase 82 integrity audit: 0 issues across 27,413 rows).
@@ -146,9 +146,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       const pioConfig = pioQueryService.getGameConfig(gameId);
 
       if (!question && pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
@@ -171,9 +171,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 5: LEGACY PIO ENGINE — FINAL FALLBACK
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       if (!question) {
         if (preferredEngine === 'SCENARIO') {
           // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
@@ -196,11 +196,11 @@ export default async function handler(req, res) {
         }
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       // STEP 4: ENGINE-ONLY — No AI fallback
       // All questions come from DeterministicGTOEngine, PostflopScenarioGenerator,
       // or Supabase cache. If none available, return error.
-      // ═══════════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════════
       if (!question) {
         console.warn(
           `[Training] No question available for ${gameId} level ${level} — all engines returned empty.`
@@ -462,14 +462,14 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // PHASE 28: Dead code removed — 7 deprecated functions with 0 callers:
 // buildOptionsFromActions, getPIOQuestion, generateQuestionFromChart,
 // generateChartQuestionWithGrok, buildPIOOptions, getChartQuestion,
 // getScenarioQuestion
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // Operation Grok-Sweep (2026-05): generateQuestionWithGrok() removed.
 //
 // This was a ~180-line LLM-fallback that hallucinated training questions when
@@ -482,7 +482,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
 // We are now committed to the rule: no AI hallucinations for GTO math. The
 // SCENARIO/psychology branch in /api/training/explain-answer.js is the ONLY
 // remaining LLM call for the training pipeline, and it uses grok-3-mini.
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * Enrich a legacy cached question with all GTO Wizard-level fields.
@@ -496,6 +496,12 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
  */
 function enrichLegacyCachedQuestion(q, gameConfig, level, gameType) {
   if (!q) return q;
+
+  // ═══ 2026-07-19 AUDIT FIX: reconcile answer key with solver frequencies
+  // BEFORE enrichment. ~7% of cached rows had correctAnswer /
+  // correctAnswerText / gtoFrequencies contradicting their own
+  // `frequencies` distribution (grading key vs displayed label vs bars). ═══
+  reconcileAnswerKey(q);
 
   const scenario = q.scenario || {};
   const options = q.options || [];

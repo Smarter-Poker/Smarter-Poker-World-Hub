@@ -8,7 +8,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
@@ -98,10 +98,10 @@ export default async function handler(req, res) {
               // Don't return 500 — fall through to solver engine
           }
 
-          // ═══════════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════
           // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
           // generate LIVE questions from DeterministicGTOEngine (187k+ records)
-          // ═══════════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════
           const cachedQuestions = questions || [];
           let solverQuestions = [];
 
@@ -188,6 +188,12 @@ export default async function handler(req, res) {
 
               // Track whether we had to fabricate any data
               let dataQuality = 'SOLVER_EXACT';
+
+              // ═══ 2026-07-19 AUDIT FIX: reconcile answer key with solver
+              // frequencies BEFORE any enrichment. ~7% of cached rows had a
+              // correctAnswer/correctAnswerText/gtoFrequencies that
+              // contradicted their own `frequencies` distribution. ═══
+              reconcileAnswerKey(qData);
 
               const scenario = qData.scenario || {};
               const options = qData.options || [];
