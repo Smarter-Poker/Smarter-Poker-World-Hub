@@ -37,12 +37,35 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+  // FIX-C-AUTOSETTLE 2026-07-19: the weekly auto-close cron (settlement-history
+  // auto_close) calls this endpoint with an x-admin-secret header, but this
+  // handler previously required a Bearer user token — so EVERY cron settlement
+  // 401'd and agent commissions were never computed. Accept the admin secret as
+  // a cron auth path, acting AS the club owner (settlement is an owner action),
+  // so the ownership check + all audit fields resolve naturally with a valid id.
+  const adminSecret = req.headers['x-admin-secret'];
+  const isAdminCall =
+    !!adminSecret && !!process.env.ADMIN_ROUTE_SECRET && adminSecret === process.env.ADMIN_ROUTE_SECRET;
 
-  const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
-  const user = authData?.user;
-  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+  let user;
+  if (isAdminCall) {
+    const bodyClubId = req.body?.clubId;
+    if (!bodyClubId) return res.status(400).json({ success: false, error: 'clubId required' });
+    const { data: ownerClub } = await supabaseAdmin
+      .from('clubs')
+      .select('owner_id')
+      .eq('id', bodyClubId)
+      .maybeSingle();
+    if (!ownerClub?.owner_id) return res.status(404).json({ success: false, error: 'Club not found' });
+    user = { id: ownerClub.owner_id };
+  } else {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    user = authData?.user;
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+  }
 
   // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
   const validation = validateSettlement(req.body);
