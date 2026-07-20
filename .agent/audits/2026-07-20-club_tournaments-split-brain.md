@@ -68,3 +68,42 @@ appear fully superseded. Path forward is a product call:
 Recommendation: RETIRE, pending confirmation that no live World Hub UI still links to
 these routes. This is destructive + cross-repo + money-adjacent (buy-ins/prize pools) →
 Tier-3, plan-and-confirm before executing.
+
+## Reachability addendum (2026-07-20) — premise partially CORRECTED
+
+A follow-up reachability sweep found the "9 dead consumers + legacy engine" framing is
+too broad. Corrected picture:
+
+- **`src/lib/poker-engine/` is LIVE core infrastructure, NOT deletable.** `GameController.js`,
+  `RateLimiter`, `RakeConfig`, `Deck`, `HandEvaluator`, etc. are imported by ~50 live
+  `pages/api/club-arena/*` and all `pages/api/poker/engine/*` routes. Only the *tournament
+  code paths inside* GameController (`createTournament` ~1970, `_recoverTournaments` ~2350)
+  and `TournamentBridge.js` / `TournamentController.js` touch `club_tournaments` — and they
+  are reachable only through GameController + `index.js` re-exports. Removing them is
+  in-file surgery on live infra, not a file delete.
+- **The live Club Arena SPA calls NONE of these World Hub routes** (confirmed: grep of
+  `club-arena/src` for these endpoint paths = 0 hits; the SPA's `TournamentService.ts`
+  uses Supabase `tournaments` directly).
+- **Cleanly orphaned (no caller in either repo) — safe leaf-route deletes:**
+  `tournaments.js`, `tournament-detail.js`, `tournament-cron.js`, `union-dashboard.js`,
+  `union-games.js`. (`tournament-cron.js` is also wired to NO scheduler in-repo — not
+  `vercel.json`, not `openclaw-cron-dispatcher.py`, not any workflow.)
+- **LIVE consumers that must be REPOINTED/surgically fixed, not deleted:**
+  `pages/api/poker/engine/tournament.js` (live; called by `LivePokerTable.jsx`; has a
+  `club_tournaments` cold-start fallback at line ~134); `pages/hub/my-tournaments.js`
+  (live; reached by notification deep-links in `trainingNotifications.js`; realtime-
+  subscribes to `club_tournaments`); and GameController's tournament paths.
+- **Shared helpers imported by the orphaned routes are used platform-wide — DO NOT delete:**
+  `supabaseServerClient`, `poker-engine/RateLimiter`, `apiRateLimit`, `sentryWrap`,
+  `club-arena/notify`, `club-arena/idempotency`, `club-arena/redteam-validation`,
+  `settlement-lock`, `contracts/orb4_syndicate`.
+
+**OPEN QUESTION for the executing agent:** is the World Hub *native* poker frontend
+(`pages/hub/poker/table/[tableId].js` + `LivePokerTable.jsx`, which use World Hub's own
+`src/lib/poker-engine`) still live, or itself superseded by Club Arena? If it is live and
+runs tournaments through World Hub's GameController, then GameController's tournament paths
+must be **repointed to `tournaments`**, not deleted. This must be resolved before Phase 2.
+
+**Execution constraint:** this retirement needs `next build` + browser testing of the live
+World Hub poker table — which the current cloud sandbox cannot run. It is therefore handed
+off (see `.agent/handoffs/2026-07-20-retire-club_tournaments.md`) for a build-capable agent.
