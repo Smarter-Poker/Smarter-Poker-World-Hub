@@ -1,5 +1,18 @@
 # Handoff: Retire the legacy `club_tournaments` tournament subsystem
 
+> **EXECUTED 2026-07-20 by the originating session — no external agent needed.**
+> The sandbox build blocker was solved (deps installed from source repo, canvas
+> system libs, Node 20 for the webpack build, patch-next.js patch 6), so all
+> three phases ran here:
+> - Phases 1-2: WH commit `420a0c2d` — DEPLOY_VERIFIED:true, SHA_MATCHED:true.
+> - Phase 3: migration `drop_legacy_club_tournaments_20260720` applied;
+>   club_tournaments + tournament_entries + tournament_mystery_draws dropped;
+>   rake_records.tournament_id repointed to tournaments(id) ON DELETE SET NULL.
+> - Open question resolved by evidence: the WH engine had created no tournament
+>   since 2026-03 (all 6 rows were E2E tests), so GameController tournament
+>   paths were retired (createTournament -> clear error, recovery no-oped),
+>   engine/tournament.js state fallback + my-tournaments realtime repointed.
+
 Date: 2026-07-20
 From: Claude (fable-5), Club Arena engine session (cloud sandbox — cannot run `next build` / browser test)
 Decision: Dan approved RETIRE (2026-07-20).

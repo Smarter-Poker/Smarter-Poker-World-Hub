@@ -107,3 +107,19 @@ must be **repointed to `tournaments`**, not deleted. This must be resolved befor
 **Execution constraint:** this retirement needs `next build` + browser testing of the live
 World Hub poker table — which the current cloud sandbox cannot run. It is therefore handed
 off (see `.agent/handoffs/2026-07-20-retire-club_tournaments.md`) for a build-capable agent.
+
+## RESOLUTION (2026-07-20) — retirement EXECUTED, all phases complete
+
+- Phases 1-2 shipped in WH commit `420a0c2d` (git-safe-push.sh: DEPLOY_VERIFIED:true,
+  SHA_MATCHED:true). Orphaned routes + tournament controller/bridge archived to
+  archive/legacy-club-tournaments/; live consumers repointed to canonical tournaments;
+  GameController zombie recovery eliminated.
+- Phase 3: migration `drop_legacy_club_tournaments_20260720` applied with pre-flight
+  assertions. club_tournaments (6 E2E test rows from 2026-03-10), tournament_entries (0
+  rows) and tournament_mystery_draws (0 rows) dropped; rake_records.tournament_id FK
+  repointed to tournaments(id) ON DELETE SET NULL. Post-apply verified: all three
+  to_regclass NULL, FK target = tournaments, 19 canonical tournaments RUNNING untouched.
+- Incidental find fixed en route: patch-next.js patch 6 (nextFontManifest.pages guard) —
+  patch 3's {} fallback left .pages undefined, crashing webpack export on a random page
+  per run. Also documented: the WH webpack build requires Node 20 (Node 22 crashes the
+  /_not-found export); Vercel matches Node 20.
