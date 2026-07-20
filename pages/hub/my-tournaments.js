@@ -59,11 +59,14 @@ export default function MyTournaments() {
                 }
             });
 
-        // Also listen for tournament status changes (cancellations, completions)
+        // Also listen for tournament status changes (cancellations, completions).
+        // 2026-07-20 club-arena retirement: repointed from the legacy
+        // club_tournaments table (dead since 2026-03) to canonical tournaments —
+        // status changes now happen there, so this channel fires again.
         const tournChannel = supabase
             .channel(`my-tournaments-status:${authUser.id}`)
             .on('postgres_changes', {
-                event: 'UPDATE', schema: 'public', table: 'club_tournaments',
+                event: 'UPDATE', schema: 'public', table: 'tournaments',
             }, (payload) => {
                 // Only revalidate if this tournament is in our list
                 const knownIds = (swrData || []).map(r => r.tournament_id);

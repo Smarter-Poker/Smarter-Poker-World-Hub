@@ -35,8 +35,6 @@ const ENDPOINT_LIMITS = {
   'club-arena/public-clubs': 60,
   'club-arena/settlement-history': 60,
   'club-arena/smart-recommendations': 60,
-  'club-arena/tournament-detail': 60,
-  'club-arena/tournaments': 60,
   'club-arena/table-templates': 30,
   'club-arena/waitlist': 30,
   'club-arena/audit-trail': 60,
@@ -59,7 +57,6 @@ const ENDPOINT_LIMITS = {
   'club-arena/club-branding': 10,
   'club-arena/accept-tos': 10,
   'club-arena/agent-credit': 20,
-  'club-arena/tournament-cron': 30,
 
   // ─── Club Arena — Destructive / Financial (tight) ──────────
   'club-arena/mint-chips': 10,

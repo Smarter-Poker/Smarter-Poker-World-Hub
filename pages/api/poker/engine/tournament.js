@@ -128,10 +128,14 @@ export default async function handler(req, res) {
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
           let state = controller.getTournamentState(tournamentId);
 
-          // Cold-start fallback: if tournament not in memory, read basic state from DB
+          // Cold-start fallback: if tournament not in memory, read basic state from DB.
+          // 2026-07-20 club-arena retirement: repointed from the legacy
+          // club_tournaments table (dead since 2026-03) to the canonical
+          // tournaments table (column map: buy_in -> buy_in_amount).
+          // tournament_registrations.tournament_id already FKs to tournaments.
           if (!state) {
             const { data: row } = await getSupabase()
-              .from('club_tournaments')
+              .from('tournaments')
               .select('*, tournament_registrations(user_id, status, registered_at)')
               .eq('id', tournamentId)
               .maybeSingle();
@@ -144,11 +148,11 @@ export default async function handler(req, res) {
               tournamentId,
               name: row.name,
               status: row.status,
-              buyIn: row.buy_in,
+              buyIn: row.buy_in_amount,
               startingChips: row.starting_chips,
               maxPlayers: row.max_players,
               entries: (row.tournament_registrations || []).filter(r => r.status !== 'cancelled').length,
-              prizePool: 0,
+              prizePool: row.prize_pool || 0,
               tables: [],
               _fromDb: true, // Flag so UI knows this is a DB snapshot, not live state
             });

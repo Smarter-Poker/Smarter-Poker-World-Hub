@@ -31,8 +31,12 @@ const { LobbyManager } = require('./LobbyManager');
 const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('./TableManager');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
-const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS } = require('./TournamentController');
-const { TournamentBridge } = require('./TournamentBridge');
+// 2026-07-20 club-arena retirement: the tournament controller + bridge classes
+// were removed. Tournaments run exclusively on the Club Arena engine (Hetzner)
+// against the canonical `tournaments` table; the World Hub engine's tournament
+// subsystem wrote to the legacy `club_tournaments` table (dead since 2026-03).
+// createTournament now returns a clear error and _recoverTournaments is a
+// no-op. Archived copies: archive/legacy-club-tournaments/.
 const { AntiCheat } = require('./AntiCheat');
 const { AntiCheatMonitor } = require('./AntiCheatMonitor');
 const { ClubLedger } = require('./ClubLedger');
@@ -1917,88 +1921,15 @@ class GameController {
   /**
    * Create a tournament.
    */
-  async createTournament(config) {
-    await this._ensureInit();
-    const {
-      tournamentId: existingId, // Accept pre-created tournament ID from API
-      name, clubId, unionId, type = 'mtt', variant = 'nlh',
-      buyIn = 100, buyinAmount, buyinFee = 0,
-      startingChips = 10000, maxPlayers = 100,
-      maxTableSize = 9, blindStructure, lateRegLevels = 6,
-      rebuyEnabled = false, allowsRebuys, rebuyLevels = 4, maxRebuys = 1,
-      rebuyCost, rebuyChips, addonEnabled = false, allowsAddon, addonCost, addonChips,
-      guaranteedPrize = 0, payoutStructure, sngSize = 6,
-      levelDuration = 15, actionTime = 30, timeBankSeconds = 30,
-      autoStartDelay = 3000, breakSchedule,
-      // Bounty config
-      bountyType = 'none', bountyAmount = 0,
-      mysteryThreshold = 0, mysteryTiers,
-    } = config;
-
-    const resolvedBuyIn = buyinAmount || buyIn;
-
-    // If tournamentId was passed (API already created the DB record), use it
-    let tournamentId = existingId || null;
-
-    // Only create DB record if not already created by the API
-    if (!tournamentId && this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from('club_tournaments')
-          .insert({
-            name, club_id: clubId, union_id: unionId, type, variant,
-            buy_in: resolvedBuyIn, starting_chips: startingChips, max_players: maxPlayers,
-            status: 'registering',
-            settings: {
-              maxTableSize, blindStructure, lateRegLevels,
-              rebuyEnabled: allowsRebuys || rebuyEnabled, rebuyLevels, maxRebuys,
-              rebuyCost, rebuyChips,
-              addonEnabled: allowsAddon || addonEnabled, addonCost, addonChips,
-              guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule,
-              bountyType, bountyAmount, mysteryThreshold, mysteryTiers
-            },
-          })
-          .select('id').maybeSingle();
-        if (!error && data) tournamentId = data.id;
-      } catch (err) { console.warn('[GameController] Tournament DB insert:', err.message); }
-    }
-
-    if (!tournamentId) {
-      tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    }
-
-    const controller = new TournamentController({
-      tournamentId, name, clubId, unionId,
-      tournamentType: TOURNAMENT_TYPE[type?.toUpperCase()] || TOURNAMENT_TYPE.MTT,
-      variant: VARIANT_MAP[variant] || 'holdem',
-      buyIn: resolvedBuyIn, buyinFee, startingChips, maxPlayers, maxTableSize, blindStructure, lateRegLevels,
-      allowsRebuys: allowsRebuys || rebuyEnabled, rebuyEndLevel: rebuyLevels, maxRebuys,
-      rebuyCost: rebuyCost || resolvedBuyIn, rebuyChips: rebuyChips || startingChips,
-      allowsAddon: allowsAddon || addonEnabled, addonCost, addonChips: addonChips || startingChips,
-      guaranteedPrize, payoutStructure, sngSize,
-      levelDuration: (levelDuration || 15) * 60000, actionTime: (actionTime || 30) * 1000,
-      timeBankSeconds: (timeBankSeconds || 30) * 1000, autoStartDelay: autoStartDelay || 3000,
-      breakSchedule,
-      // Bounty config
-      bountyType, bountyAmount, mysteryThreshold, mysteryTiers,
-      // Club chip ledger — handles payouts, rebuys, addons, bounty credits
-      ledger: this.ledger,
-      supabase: this.supabase,
-    });
-
-    const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
-    await bridge.wire();
-    this._tournaments.set(tournamentId, { controller, bridge });
-    console.debug(`[GameController] Tournament created: ${tournamentId} (${name})`);
-
-    // ─── Phase 2: Auto-Register Horses on Creation ───
-    // Horses will evaluate the buyIn and their physical club_members balance,
-    // then register autonomously if they can afford it.
-    this.autoRegisterHorses(tournamentId).catch(err => {
-      console.warn(`[GameController] Auto-registration failed for ${tournamentId}:`, err);
-    });
-
-    return { success: true, tournamentId };
+  async createTournament(_config) {
+    // 2026-07-20 club-arena retirement: the World Hub engine no longer runs
+    // tournaments. Tournaments are created and run by the Club Arena engine
+    // (Hetzner) against the canonical `tournaments` table. The old path here
+    // wrote to the legacy `club_tournaments` table (dead since 2026-03).
+    return {
+      success: false,
+      error: 'Tournaments have moved to Club Arena. Create tournaments at smarter.poker/hub/club-arena.',
+    };
   }
 
   async registerForTournament(tournamentId, playerId, playerName, options = {}) {
@@ -2330,92 +2261,12 @@ class GameController {
    * @private
    */
   async _recoverTournaments() {
-    if (!this.supabase) return;
-    try {
-      const { data: rows, error } = await this.supabase
-        .from('club_tournaments')
-        .select('*, tournament_registrations(user_id, status)')
-        .in('status', ['registering', 'late_reg', 'running', 'break', 'final_table'])
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error || !rows || rows.length === 0) {
-        console.debug('[GameController] No active tournaments to recover');
-        return;
-      }
-
-      for (const row of rows) {
-        try {
-          const s = row.settings || {};
-          const controller = new TournamentController({
-            tournamentId: row.id,
-            name: row.name,
-            clubId: row.club_id,
-            unionId: row.union_id,
-            tournamentType: TOURNAMENT_TYPE[row.type?.toUpperCase()] || TOURNAMENT_TYPE.MTT,
-            variant: VARIANT_MAP[row.variant] || 'holdem',
-            buyIn: row.buy_in || 0,
-            startingChips: row.starting_chips || 10000,
-            maxPlayers: row.max_players || 100,
-            maxTableSize: s.maxTableSize || 9,
-            blindStructure: s.blindStructure,
-            lateRegLevels: s.lateRegLevels || 6,
-            allowsRebuys: s.rebuyEnabled || false,
-            rebuyEndLevel: s.rebuyLevels || 4,
-            maxRebuys: s.maxRebuys || 1,
-            rebuyCost: s.rebuyCost || row.buy_in || 0,
-            rebuyChips: s.rebuyChips || row.starting_chips || 10000,
-            allowsAddon: s.addonEnabled || false,
-            addonCost: s.addonCost,
-            addonChips: s.addonChips || row.starting_chips || 10000,
-            guaranteedPrize: s.guaranteedPrize || 0,
-            payoutStructure: s.payoutStructure,
-            sngSize: s.sngSize || 6,
-            levelDuration: (s.levelDuration || 15) * 60000,
-            actionTime: (s.actionTime || 30) * 1000,
-            timeBankSeconds: (s.timeBankSeconds || 30) * 1000,
-            autoStartDelay: s.autoStartDelay || 3000,
-            breakSchedule: s.breakSchedule,
-            bountyType: s.bountyType || 'none',
-            bountyAmount: s.bountyAmount || 0,
-            ledger: this.ledger,
-            supabase: this.supabase,
-          });
-
-          // Restore status and registrations from DB
-          controller.status = row.status;
-
-          // Re-populate entries from tournament_registrations
-          if (row.tournament_registrations?.length > 0) {
-            for (const reg of row.tournament_registrations) {
-              if (reg.status === 'registered' || reg.status === 'active') {
-                controller.entries = controller.entries || new Map();
-                controller.entries.set(reg.user_id, {
-                  playerId: reg.user_id,
-                  status: reg.status,
-                  stack: row.starting_chips || 10000,
-                  rebuys: 0,
-                  addonTaken: false,
-                  totalInvested: row.buy_in || 0,
-                  clubId: row.club_id,
-                });
-              }
-            }
-          }
-
-          const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
-          await bridge.wire();
-          this._tournaments.set(row.id, { controller, bridge });
-          console.debug(`[GameController] Recovered tournament: ${row.id} (${row.name}, ${row.status}, ${row.tournament_registrations?.length || 0} entries)`);
-        } catch (err) {
-          console.warn(`[GameController] Failed to recover tournament ${row.id}:`, err.message);
-        }
-      }
-
-      console.debug(`[GameController] Recovered ${rows.length} tournaments from DB`);
-    } catch (err) {
-      console.warn('[GameController] Tournament recovery failed:', err.message);
-    }
+    // 2026-07-20 club-arena retirement: no-op. The old implementation
+    // reconstructed TournamentController instances from the legacy
+    // club_tournaments table on every cold start — including a stale
+    // 'running' row from 2026-03 (a zombie tournament revived at every boot).
+    // Tournaments now run exclusively on the Club Arena engine.
+    return;
   }
 
   /** @private */

@@ -25,9 +25,9 @@ const CardAssets = require('./CardAssets');
 // Phase 4
 const { GameController, getController, getControllerSync } = require('./GameController');
 
-// Phase 10
-const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS, DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE, SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES } = require('./TournamentController');
-const { TournamentBridge } = require('./TournamentBridge');
+// Phase 10 (2026-07-20 club-arena retirement: TournamentController +
+// TournamentBridge removed — tournaments run on the Club Arena engine.
+// Archived copies: archive/legacy-club-tournaments/.)
 const { ClubLedger, TRANSACTION_TYPE } = require('./ClubLedger');
 
 // Phase 48f: Autonomy & Resilience Layer
@@ -56,11 +56,7 @@ module.exports = {
   // Phase 4
   GameController, getController, getControllerSync,
   
-  // Phase 10: Tournament Engine + Club Ledger
-  TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS,
-  DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE,
-  SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES,
-  TournamentBridge,
+  // Phase 10: Club Ledger (tournament engine retired 2026-07-20 — Club Arena owns tournaments)
   ClubLedger, TRANSACTION_TYPE,
 
   // Phase 48f: Autonomy & Resilience Layer
