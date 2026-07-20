@@ -160,3 +160,31 @@ if (fs.existsSync(buildIndex2Path)) {
 } else {
   console.log('   ⚠️ build/index.js path not found, skipping patch 5.');
 }
+
+// ── 6. Patch pages/_document.js nextFontManifest.pages undefined crash ────────
+// 2026-07-20: during `next build --webpack` export, workers intermittently
+// receive a next-font manifest whose `.pages` is undefined. _document's
+// getNextFontLinkTags only guards `!nextFontManifest`, so
+// `nextFontManifest.pages['/_app']` throws
+// "TypeError: Cannot read properties of undefined (reading '/_app')" and the
+// export fails on a RANDOM page each run (observed: /admin/wallet-align,
+// /hub/social-media). Guard `.pages` too — worst case is missing font preload
+// links for that render, which is cosmetic.
+const documentPath = path.resolve(__dirname, '../node_modules/next/dist/pages/_document.js');
+if (fs.existsSync(documentPath)) {
+  let content = fs.readFileSync(documentPath, 'utf8');
+  const fontTarget = `function getNextFontLinkTags(nextFontManifest, dangerousAsPath, assetPrefix = '', assetQueryString = '') {
+    if (!nextFontManifest) {`;
+  const fontReplace = `function getNextFontLinkTags(nextFontManifest, dangerousAsPath, assetPrefix = '', assetQueryString = '') {
+    if (!nextFontManifest || !nextFontManifest.pages) {`;
+  if (content.includes(fontTarget) && !content.includes('!nextFontManifest.pages')) {
+    console.log('   🩹 Patching: pages/_document.js nextFontManifest.pages guard...');
+    content = content.replace(fontTarget, fontReplace);
+    fs.writeFileSync(documentPath, content, 'utf8');
+    console.log('   ✅ pages/_document.js nextFontManifest.pages guard patched successfully!');
+  } else {
+    console.log('   ✅ pages/_document.js nextFontManifest.pages guard is already patched or healthy.');
+  }
+} else {
+  console.log('   ⚠️ pages/_document.js path not found, skipping patch 6.');
+}
