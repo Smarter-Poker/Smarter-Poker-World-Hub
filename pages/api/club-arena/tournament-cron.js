@@ -136,7 +136,7 @@ export default async function handler(req, res) {
 
                           const { data: regsToRefund } = await getSupabase()
                               .from('tournament_registrations')
-                              .select('id, user_id, buy_in_amount')
+                              .select('id, user_id, buy_in_amount, buy_in_fee')
                               .eq('tournament_id', tourn.id)
                               .eq('status', 'registered');
 
@@ -148,12 +148,14 @@ export default async function handler(req, res) {
                                   // marked it refunded regardless, so any
                                   // unlock failure permanently lost the
                                   // player's buy-in with no record.
-                                  const { error: unlockErr } = await getSupabase().rpc('unlock_chips_from_table', {
+                                  // FIX-B5: refund the FULL charge (buy-in + fee) —
+                                  // a cancelled tournament earned no rake.
+                                  const unlockErr = (await getSupabase().rpc('unlock_chips_from_table', {
                                       p_user_id: reg.user_id,
                                       p_club_id: tourn.club_id,
                                       p_table_id: tourn.id,
-                                      p_amount: reg.buy_in_amount,
-                                  });
+                                      p_amount: Number(reg.buy_in_amount || 0) + Number(reg.buy_in_fee || 0),
+                                  })).error;
                                   if (unlockErr) {
                                       console.warn('[TournCron] unlock failed for', reg.user_id, 'in tournament', tourn.id, '(skipping mark-refunded so a future cron run retries):', unlockErr?.message || unlockErr);
                                       continue; // Try next registration; this one stays 'registered' for retry.

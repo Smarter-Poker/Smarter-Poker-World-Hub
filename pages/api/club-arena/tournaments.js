@@ -431,11 +431,13 @@ export default async function handler(req, res) {
           // STILL marked 'unregistered' below and the counter decremented,
           // leaving the player permanently short their buy-in with no record
           // they ever paid it.
+          // FIX-B5: refund the FULL charge (buy-in + fee) — unregistering before
+          // the tournament runs means no rake was earned.
           const { error: unlockErr } = await getSupabase().rpc('unlock_chips_from_table', {
             p_user_id: user.id,
             p_club_id: tourn.club_id,
             p_table_id: tournamentId,
-            p_amount: reg.buy_in_amount,
+            p_amount: Number(reg.buy_in_amount || 0) + Number(reg.buy_in_fee || 0),
           });
           if (unlockErr) {
             console.warn('[tournaments/unregister] unlock_chips_from_table failed (refund NOT issued):', unlockErr?.message || unlockErr);
@@ -650,13 +652,18 @@ export default async function handler(req, res) {
           const failedRefunds = [];
 
           for (const reg of (registrations || [])) {
+            // FIX-B5 2026-07-19: refund the FULL charge (buy-in + fee). A
+            // cancelled tournament never ran, so no rake was earned — the fee is
+            // returned too. reg.buy_in_amount used to be read from a NON-EXISTENT
+            // column (undefined -> refunded 0); both are now persisted per entry.
+            const refundAmount = Number(reg.buy_in_amount || 0) + Number(reg.buy_in_fee || 0);
             try {
               // Step A: Refund chips (release the lock)
               const { data: refundResult, error: refundErr } = await getSupabase().rpc('unlock_chips_from_table', {
                 p_user_id: reg.user_id,
                 p_club_id: tourn.club_id,
                 p_table_id: tournamentId,
-                p_amount: reg.buy_in_amount,
+                p_amount: refundAmount,
               });
 
               if (refundErr) throw new Error(refundErr.message);
@@ -668,10 +675,10 @@ export default async function handler(req, res) {
 
               if (updateErr) throw new Error(updateErr.message);
 
-              refundResults.push({ userId: reg.user_id, amount: reg.buy_in_amount, success: true });
+              refundResults.push({ userId: reg.user_id, amount: refundAmount, success: true });
             } catch (refErr) {
               console.warn(`[Tournament] Refund FAILED for user ${reg.user_id}:`, refErr.message);
-              failedRefunds.push({ userId: reg.user_id, amount: reg.buy_in_amount, error: 'Refund failed' });
+              failedRefunds.push({ userId: reg.user_id, amount: refundAmount, error: 'Refund failed' });
             }
           }
 
