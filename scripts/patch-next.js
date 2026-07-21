@@ -231,3 +231,32 @@ for (const rel of [
     console.log('   ⚠️ manifests-singleton path not found, skipping patch 7.');
   }
 }
+
+// ── 8. Patch manifests-singleton entry-files branch (undefined section) ───────
+// 2026-07-21: completes patch 7. The proxy's moduleLoading/entryCSSFiles/
+// entryJSFiles branch returns `currentManifest[prop]` unguarded — when the
+// route's registered manifest lacks that section, callers index the undefined
+// return ("Cannot read properties of undefined (reading '<abs path>/app/layout')")
+// and the /_not-found export dies intermittently. Return an empty object
+// instead: callers then find no CSS/JS entries for the path and skip them,
+// which is the correct degraded behavior.
+for (const rel of [
+  '../node_modules/next/dist/server/app-render/manifests-singleton.js',
+  '../node_modules/next/dist/esm/server/app-render/manifests-singleton.js',
+]) {
+  const manifestsPath8 = path.resolve(__dirname, rel);
+  if (fs.existsSync(manifestsPath8)) {
+    let content = fs.readFileSync(manifestsPath8, 'utf8');
+    const target8 = 'return currentManifest[prop];';
+    const replace8 = 'return currentManifest[prop] || {};';
+    if (content.includes(target8)) {
+      content = content.split(target8).join(replace8);
+      fs.writeFileSync(manifestsPath8, content, 'utf8');
+      console.log(`   ✅ manifests-singleton entry-files guard patched (${rel.includes('/esm/') ? 'esm' : 'cjs'}).`);
+    } else {
+      console.log(`   ✅ manifests-singleton entry-files already patched or healthy (${rel.includes('/esm/') ? 'esm' : 'cjs'}).`);
+    }
+  } else {
+    console.log('   ⚠️ manifests-singleton path not found, skipping patch 8.');
+  }
+}
