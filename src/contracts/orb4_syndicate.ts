@@ -100,10 +100,24 @@ export const BBJPayoutSchema = z.object({
     loserId: UUID,
     clubId: UUID,
     poolId: z.string().max(100).optional(),
+    // BBJ UNIFICATION 2026-07-21: client-generated UUID per payout event —
+    // unique-indexed in union_wallet_transactions so a retry can never pay
+    // the same jackpot twice.
+    payoutEventId: UUID.optional(),
     tableShare: z.number().min(0).max(1).optional(),
 }).strict();
 
 export type BBJPayout = z.infer<typeof BBJPayoutSchema>;
+
+// ─── Fund BBJ Pool Contract (BBJ unification 2026-07-21) ──────
+export const FundBBJPoolSchema = z.object({
+    action: z.literal('fund_bbj_pool'),
+    unionId: UUID,
+    amount: PositiveChipAmount,
+    notes: SafeNotes,
+}).strict();
+
+export type FundBBJPool = z.infer<typeof FundBBJPoolSchema>;
 
 // ─── Wallet Transfer Contract ─────────────────────────────────
 export const WalletTransferSchema = z.object({
@@ -130,6 +144,7 @@ export const UnionWalletSchema = z.discriminatedUnion('action', [
     WalletTransferSchema.extend({ action: z.literal('send_to_club') }),
     WalletTransferSchema.extend({ action: z.literal('move_rake_to_chips') }),
     BBJPayoutSchema,
+    FundBBJPoolSchema,
 ]);
 
 // ─── Mint Chips Contract ──────────────────────────────────────
