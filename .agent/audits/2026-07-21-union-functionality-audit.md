@@ -124,3 +124,35 @@ patch 7 — the /_not-found export flake is now guarded on both proxy branches.
 Also caught: an edit splice left an unclosed legacy block in union-wallet.js
 that node --check tolerated but SWC crashed on natively — direct
 swc.transform() is now a proven fast bisect tool for native build crashes.
+
+## IMPROVE pass (2026-07-21, Dan: "IMPROVE THIS IN EVERY WAY POSSIBLE") — SHIPPED
+
+WH 24959f9a (DEPLOY_VERIFIED) + CA 7316aa58; migration
+union_money_ops_hardening_20260721 applied.
+
+Money-ops hardening — the union money layer is now fully atomic AND replay-proof:
+- fn_union_send_to_club_atomic + fn_union_move_rake_to_chips_atomic replace the
+  last two route-chained transfers (debit+credit+ledgers, one transaction; no
+  compensating-rollback JS remains anywhere in the union layer).
+- Universal DB-level idempotency: all five union money RPCs accept p_op_id;
+  a generalized unique index (union_id, tx_type, period_id) rejects replays
+  inside the transaction. The route passes the client X-Idempotency-Key as the
+  op id — end-to-end dedup across serverless instances and cache expiry.
+  LIVE-VERIFIED: same op id twice on a 1-chip move -> second call duplicate:true,
+  exactly one chip moved. Old RPC signatures dropped (no ambiguous overloads).
+
+Leave-union workflow (was approve/deny with no way to ever submit):
+- manage-union request_leave (club-owner auth, dup-pending guard, sanitized
+  reason); zod action added. Union page's button turns into "Request to Leave"
+  when your club is in that union; Dashboard applications tab gains a Leave
+  Requests panel with lead-only Approve Exit / Deny.
+
+UX/perf/cleanliness:
+- Live jackpot: Dashboard subscribes to bbj_pools UPDATEs — BBJ tiles tick in
+  realtime as engine contributions land.
+- get_transactions cursor pagination (before/hasMore/nextBefore).
+- Dead code removed: RevenueSplitEditor + UnionSettingsPanel (never mounted)
+  and getUnionSettings/updateUnionSettings (hardcoded; the update would have
+  wiped sibling settings keys). Barrel now exports only the live modal.
+- Engine: logBBJCollection per-club pool-id cache (5-min TTL) — one query per
+  raked hand instead of two; pivot check still reads the live balance.
