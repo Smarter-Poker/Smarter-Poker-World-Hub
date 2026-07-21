@@ -170,6 +170,9 @@ export const ManageUnionAction = z.enum([
     'list_leave',
     'approve_leave',
     'deny_leave',
+    // IMPROVE 2026-07-21: club owners submit leave requests (the approve/deny
+    // side existed but nothing could ever create one).
+    'request_leave',
 ]);
 
 export const UnionSettingsSchema = z.object({

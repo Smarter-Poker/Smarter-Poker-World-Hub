@@ -166,122 +166,81 @@ export default async function handler(req, res) {
       return res.status(403).json({ success: false, error: 'Union Lead access required for fund transfers' });
     }
 
-    // ── SEND_TO_CLUB — chip_balance -> club treasury (CONCURRENCY-HARDENED) ──
+    // MONEY-OPS HARDENING 2026-07-21: every transfer below is a single atomic
+    // RPC (debit + credit + ledgers in one transaction) with DB-level replay
+    // protection. The client's X-Idempotency-Key header doubles as the stable
+    // operation id — a retry of the same submission is rejected by a unique
+    // index inside the transaction, across serverless instances and cache
+    // expiry. No more compensating-rollback chains.
+    const opId = req.headers['x-idempotency-key'] || null;
+
+    // ── SEND_TO_CLUB — chip_balance -> club treasury (atomic) ───────────────
     if (action === 'send_to_club') {
       const { clubId, amount, notes } = payload;
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
       const amt = amount; // Already validated as positive integer <= 1B by Zod
 
-      // Verify club is in this union
-      const { data: uc } = await supabaseAdmin
-        .from('union_clubs')
-        .select('club_id')
-        .eq('union_id', unionId)
-        .eq('club_id', clubId)
-        .maybeSingle();
-      if (!uc) return res.status(403).json({ success: false, error: 'Club is not in this union' });
-
       const { data: club } = await supabaseAdmin
         .from('clubs').select('id, name').eq('id', clubId).maybeSingle();
       if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
-      // MANDATE 1: Concurrency-safe debit→credit with rollback on failure.
-      // Step 1: Debit union chip_balance (atomic RPC with internal FOR UPDATE lock)
-      const { error: debitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
+      const txNote = (notes?.trim() || `Union transfer to ${club.name}`).slice(0, 500).replace(/[;'"\\]/g, '');
+      const { data: sendRes, error: sendErr } = await supabaseAdmin.rpc('fn_union_send_to_club_atomic', {
         p_union_id: unionId,
-        p_wallet: 'chip_balance',
-        p_amount: amt,
-      });
-      if (debitErr) {
-        console.warn('[union-wallet] send_to_club debit failed:', debitErr.message);
-        return res.status(400).json({ success: false, error: 'Insufficient union balance' });
-      }
-
-      // Step 2: Credit club treasury — ROLLBACK debit if this fails
-      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
         p_club_id: clubId,
         p_amount: amt,
+        p_notes: txNote,
+        p_created_by: auth.user.id,
+        p_op_id: opId,
       });
-      if (creditErr) {
-        console.warn('[union-wallet] send_to_club credit failed, rolling back debit:', creditErr.message);
-        await supabaseAdmin.rpc('fn_union_credit_wallet', {
-          p_union_id: unionId,
-          p_wallet: 'chip_balance',
-          p_amount: amt,
-        }).catch(rbErr => console.warn('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
-        return res.status(500).json({ success: false, error: 'Transfer failed (rolled back)' });
+      if (sendErr || sendRes?.success === false) {
+        const msg = sendErr?.message || sendRes?.error || 'Transfer failed';
+        if (sendRes?.duplicate) {
+          return res.status(409).json({ success: false, error: 'This transfer was already processed' });
+        }
+        console.warn('[union-wallet] send_to_club failed:', msg);
+        const status = String(msg).includes('insufficient') || String(msg).includes('not in this union') ? 400 : 500;
+        return res.status(status).json({ success: false, error: msg });
       }
-
-      // Ledger entries (fire-and-forget, transfer already succeeded)
-      const txNote = (notes?.trim() || `Union transfer to ${club.name}`).slice(0, 500).replace(/[;'"\\]/g, '');
-      const { error: unionTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
-        union_id: unionId,
-        wallet: 'chip_balance',
-        direction: 'debit',
-        amount: amt,
-        tx_type: 'manual_transfer',
-        club_id: clubId,
-        notes: txNote,
-        created_by: auth.user.id,
-      });
-      if (unionTxErr) console.warn('[union-wallet] Failed to log union wallet tx:', unionTxErr.message);
-
-      const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
-        club_id: clubId,
-        amount: amt,
-        transaction_type: 'union_transfer',
-        notes: txNote,
-        metadata: { union_id: unionId },
-      });
-      if (chipTxErr) console.warn('[union-wallet] Failed to log chip tx:', chipTxErr.message);
 
       return res.json({
         success: true,
         message: `${amt.toLocaleString()} chips sent to ${club.name}`,
         amount: amt,
         clubName: club.name,
+        unionBalanceAfter: sendRes.union_balance_after,
       });
     }
 
-    // ── MOVE_RAKE_TO_CHIPS — rake_wallet -> chip_balance (CONCURRENCY-HARDENED) ─
+    // ── MOVE_RAKE_TO_CHIPS — rake_wallet -> chip_balance (atomic) ───────────
     if (action === 'move_rake_to_chips') {
       const { amount, notes } = payload;
       const amt = amount; // Validated by Zod
 
-      // MANDATE 1: Debit first, credit second, rollback on failure.
-      const { error: debitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
-        p_union_id: unionId,
-        p_wallet: 'rake_wallet',
-        p_amount: amt,
-      });
-      if (debitErr) {
-        console.warn('[union-wallet] move_rake_to_chips debit failed:', debitErr.message);
-        return res.status(400).json({ success: false, error: 'Insufficient rake wallet balance' });
-      }
-
-      const { error: creditErr } = await supabaseAdmin.rpc('fn_union_credit_wallet', {
-        p_union_id: unionId,
-        p_wallet: 'chip_balance',
-        p_amount: amt,
-      });
-      if (creditErr) {
-        console.warn('[union-wallet] move_rake_to_chips credit failed, rolling back:', creditErr.message);
-        await supabaseAdmin.rpc('fn_union_credit_wallet', {
-          p_union_id: unionId,
-          p_wallet: 'rake_wallet',
-          p_amount: amt,
-        }).catch(rbErr => console.warn('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
-        return res.status(500).json({ success: false, error: 'Move failed (rolled back)' });
-      }
-
       const txNote = (notes?.trim() || `Moved ${amt.toLocaleString()} from rake wallet to chip balance`).slice(0, 500).replace(/[;'"\\]/g, '');
-      const { error: moveTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert([
-        { union_id: unionId, wallet: 'rake_wallet', direction: 'debit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
-        { union_id: unionId, wallet: 'chip_balance', direction: 'credit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
-      ]);
-      if (moveTxErr) console.warn('[union-wallet] Failed to log move rake tx:', moveTxErr.message);
+      const { data: moveRes, error: moveErr } = await supabaseAdmin.rpc('fn_union_move_rake_to_chips_atomic', {
+        p_union_id: unionId,
+        p_amount: amt,
+        p_notes: txNote,
+        p_created_by: auth.user.id,
+        p_op_id: opId,
+      });
+      if (moveErr || moveRes?.success === false) {
+        const msg = moveErr?.message || moveRes?.error || 'Move failed';
+        if (moveRes?.duplicate) {
+          return res.status(409).json({ success: false, error: 'This move was already processed' });
+        }
+        console.warn('[union-wallet] move_rake_to_chips failed:', msg);
+        const status = String(msg).includes('insufficient') ? 400 : 500;
+        return res.status(status).json({ success: false, error: msg });
+      }
 
-      return res.json({ success: true, message: txNote });
+      return res.json({
+        success: true,
+        message: txNote,
+        rakeAfter: moveRes.rake_after,
+        chipAfter: moveRes.chip_after,
+      });
     }
 
     // ── PROCESS_BBJ_PAYOUT — atomic BBJ jackpot distribution (CONCURRENCY-HARDENED) ─
@@ -433,9 +392,13 @@ export default async function handler(req, res) {
         p_promo_pct: fundSplitOk ? fPromo : 25,
         p_notes: notes || null,
         p_created_by: auth.user.id,
+        p_op_id: opId,
       });
       if (fundErr || fundRes?.success === false) {
         const msg = fundErr?.message || fundRes?.error || 'BBJ pool funding failed';
+        if (fundRes?.duplicate) {
+          return res.status(409).json({ success: false, error: 'This funding was already processed' });
+        }
         console.warn('[union-wallet] fund_bbj_pool failed:', msg);
         const status = String(msg).includes('insufficient') ? 400 : 500;
         return res.status(status).json({ success: false, error: msg });
@@ -449,19 +412,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── GET_TRANSACTIONS — paginated history ────────────────────────────────
+    // ── GET_TRANSACTIONS — cursor-paginated history ─────────────────────────
+    // IMPROVE 2026-07-21: cursor pagination (pass `before` = the oldest
+    // created_at from the previous page to fetch the next page). hasMore lets
+    // the client render a Load More control.
     if (action === 'get_transactions') {
       const filterWallet = payload.wallet; // Validated enum by Zod
+      const before = typeof req.body.before === 'string' ? req.body.before : null;
+      const PAGE = 100;
       let query = supabaseAdmin
         .from('union_wallet_transactions')
         .select('*, clubs(name)')
         .eq('union_id', unionId)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(PAGE + 1);
       if (filterWallet) query = query.eq('wallet', filterWallet);
+      if (before) query = query.lt('created_at', before);
       const { data: txns, error: txnErr } = await query;
       if (txnErr) throw txnErr;
-      return res.json({ success: true, transactions: txns || [] });
+      const page = (txns || []).slice(0, PAGE);
+      return res.json({
+        success: true,
+        transactions: page,
+        hasMore: (txns || []).length > PAGE,
+        nextBefore: page.length > 0 ? page[page.length - 1].created_at : null,
+      });
     }
 
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });

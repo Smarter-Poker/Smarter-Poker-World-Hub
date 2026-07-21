@@ -130,6 +130,61 @@ export default async function handler(req, res) {
       // All other actions require unionId
       if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
 
+      // ═══════════════════════════════════════════════════════════════
+      // REQUEST LEAVE — CLUB OWNER (not union admin) asks to exit the union.
+      // IMPROVE 2026-07-21: the approve/deny side existed but nothing could
+      // ever SUBMIT a leave request. Sits before the union-admin gate because
+      // the caller is a club owner.
+      // ═══════════════════════════════════════════════════════════════
+      if (action === 'request_leave') {
+        if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+
+        const { data: leaveClub } = await getSupabase()
+          .from('clubs')
+          .select('id, name, owner_id, union_id')
+          .eq('id', clubId)
+          .maybeSingle();
+        if (!leaveClub) return res.status(404).json({ success: false, error: 'Club not found' });
+        if (leaveClub.owner_id !== user.id) {
+          return res.status(403).json({ success: false, error: 'Only the club owner can request to leave' });
+        }
+        if (leaveClub.union_id !== unionId) {
+          return res.status(400).json({ success: false, error: 'Club is not in this union' });
+        }
+
+        const { data: existingLeave } = await getSupabase()
+          .from('union_leave_requests')
+          .select('id')
+          .eq('union_id', unionId)
+          .eq('club_id', clubId)
+          .eq('status', 'pending')
+          .maybeSingle();
+        if (existingLeave) {
+          return res.status(409).json({ success: false, error: 'A leave request is already pending' });
+        }
+
+        const safeReason = (payload.message?.trim() || '').replace(/[;'"\\<>]/g, '').slice(0, 500);
+        const { data: leaveRow, error: leaveErr } = await getSupabase()
+          .from('union_leave_requests')
+          .insert({
+            union_id: unionId,
+            club_id: clubId,
+            club_name: leaveClub.name,
+            reason: safeReason || null,
+            status: 'pending',
+            requested_at: new Date().toISOString(),
+          })
+          .select('id')
+          .maybeSingle();
+        if (leaveErr) throw leaveErr;
+
+        return res.status(200).json({
+          success: true,
+          leaveRequestId: leaveRow?.id || null,
+          message: 'Leave request submitted — the union lead will review it.',
+        });
+      }
+
       // Verify caller is union admin (with owner fallback)
       let callerAdmin;
       const { data: adminRow } = await getSupabase()
