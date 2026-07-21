@@ -682,7 +682,7 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 
   # Intelligent skip for docs/scripts changes only
-  APP_FILES_CHANGED=$(git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -vE '\.(md|sh|yml|txt|csv)$|^scripts/|^\.github/' || true)
+  APP_FILES_CHANGED=$(git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -vE '\.(md|sh|yml|txt|csv|sql)$|^scripts/|^\.github/|^supabase/' || true)
   if [ "$BUILD_CHECK" = false ] && [ -n "$APP_FILES_CHANGED" ]; then
     echo "⚠️  WARNING: You passed --skip-build, but application logic files were modified!"
     echo "   Enforcing BUILD_CHECK=true to prevent TDZ and syntax errors from reaching production."
