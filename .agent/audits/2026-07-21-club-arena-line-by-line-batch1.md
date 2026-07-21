@@ -106,6 +106,47 @@ to the club TREASURY (not the player's main wallet).
    (processPayment). Until then the suspension cron sees no invoices and never
    suspends. This is a scoped follow-on project, flagged for Dan.
 
+## Engine batch (Hetzner) — SHIPPED + VERIFIED via auto-deploy-hetzner.yml
+
+Deploy path: push server/** to origin/main -> auto-deploy-hetzner.yml (SSH from
+GitHub runners) -> docker rebuild + restart. Verified each deploy from the DB:
+the engine's hand_history writes pause together across all tables during the
+container restart (a detectable gap), then resume. The RakebackSettler deploy is
+additionally proven by the daemon_state watermark row it wrote in production.
+All engine changes covered by 197 passing vitest tests (4 new regression tests).
+
+- Big Blind Ante dead-money fix (74570d45): the BB fronts the whole table's ante;
+  it was being refunded to the BB as a phantom uncalled bet (returnUncalledBet
+  compared total invested) AND would otherwise form a BB-only side pot
+  (calculatePots keyed off total invested). New deadInvested field segregates
+  dead money (BBA, traditional antes, dead SB); returnUncalledBet + calculatePots
+  now use LIVE invested and fold dead money into the main pot. +2 regression tests.
+- Atomic seat-leave cash-out (790ee192): markSeatAsLeft did a read-then-upsert
+  wallet credit (lost chips under concurrent credits). Now atomic_credit_wallet
+  _and_log; the seat is NOT vacated if the credit fails (no chip destruction).
+- ChannelHub reconnect guard (790ee192): removeConnection now ignores a stale
+  socket close after the user reconnected (was blinding the new connection).
+  +2 regression tests.
+- RakebackSettler durable high-water-mark (517cf7a1 + migration daemon_state_hwm
+  _20260721 + seed): lastSettledAt was in-memory, so every restart re-scanned the
+  7-day fallback window and re-INCREMENTED player_stats (rakeback_periods already
+  had a Round 45 recompute fix; player_stats did not). Watermark now persisted to
+  daemon_state (exclusive .gt cursor); restart resumes exactly where it stopped.
+  Live-verified: watermark advanced + persisted in prod immediately after deploy.
+- BBJ on Run-It-Twice (06e87364): dealAndResolveRIT collected the BBJ fee but
+  never ran detectBBJHit, so a bad beat on a RIT hand could never win the jackpot.
+  RULE (Dan): FIRST BOARD ONLY. Now populates showdown state for board 0 before
+  finalizeRunout so the existing (tested) HAND_COMPLETE BBJ block evaluates it.
+- Hand-for-hand re-pause timer (bd03f68b): stopHandForHandSync did not clear
+  handForHandRePauseTimer, so on bubble burst a pending timer re-paused the
+  just-resumed engines and froze the tournament. Now cleared in
+  stopHandForHandSync + the callback guards on running && handForHandActive.
+
+## Engine deferred (documented)
+
+- Elimination checker N+1: per-seat tournament_players UPDATE every 5s. Perf, not
+  correctness; proper fix is a bulk-update RPC (migration) — deferred.
+
 ## Still to verify (remaining subagent candidates, unverified)
 
 Engine: HandController Big Blind Ante refund (headline — needs deep
