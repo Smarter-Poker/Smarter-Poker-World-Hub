@@ -98,6 +98,32 @@ export default async function handler(req, res) {
         });
         if (adminErr) throw adminErr;
 
+        // UNION AUDIT FIX 2026-07-21: provision the union's money infrastructure
+        // at creation. Previously neither the union_wallets row (the REAL wallet
+        // store all money RPCs operate on) nor a union-level bbj_pools row (the
+        // shared jackpot the engine contributes to and get_bbj_pool reads) was
+        // ever created — union rake landed via RPC upsert, but the shared BBJ
+        // silently skipped contributions forever ("no pool found").
+        const { error: walletSeedErr } = await getSupabase()
+          .from('union_wallets')
+          .insert({ union_id: union.id })
+          .select('id')
+          .maybeSingle();
+        if (walletSeedErr && walletSeedErr.code !== '23505') {
+          console.warn('[manage-union] union_wallets seed failed:', walletSeedErr.message);
+        }
+        const { error: bbjSeedErr } = await getSupabase()
+          .from('bbj_pools')
+          .insert({
+            union_id: union.id, status: 'active', pool_amount: 0,
+            main_balance: 0, backup_balance: 0, promo_balance: 0,
+          })
+          .select('id')
+          .maybeSingle();
+        if (bbjSeedErr && bbjSeedErr.code !== '23505') {
+          console.warn('[manage-union] union bbj_pools seed failed:', bbjSeedErr.message);
+        }
+
         return res.status(200).json({ success: true, union });
       }
 

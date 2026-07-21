@@ -118,8 +118,19 @@ export default async function handler(req, res) {
       if (club.owner_id !== user.id) return res.status(403).json({ success: false, error: 'Only the club owner can apply' });
       if (club.union_id) return res.status(400).json({ success: false, error: 'Club is already in a union' });
 
-      const union = await getMidwayUnionId();
-      if (!union) return res.status(500).json({ success: false, error: 'Midway Union not found on this platform' });
+      // UNION AUDIT FIX 2026-07-21: accept an explicit target unionId (the SPA
+      // apply-to-join flow targets ANY union, not just Midway). The Midway
+      // ILIKE lookup remains only as the legacy fallback for old callers.
+      let union = null;
+      if (bodyUnionId) {
+        const { data: target } = await supabaseAdmin
+          .from('unions').select('id, name, owner_id').eq('id', bodyUnionId).maybeSingle();
+        if (!target) return res.status(404).json({ success: false, error: 'Union not found' });
+        union = target;
+      } else {
+        union = await getMidwayUnionId();
+        if (!union) return res.status(500).json({ success: false, error: 'Midway Union not found on this platform' });
+      }
 
       // Check for existing pending application
       const { data: existing } = await supabaseAdmin
@@ -170,7 +181,15 @@ export default async function handler(req, res) {
     if (action === 'status') {
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
-      const union = await getMidwayUnionId();
+      // UNION AUDIT FIX 2026-07-21: honor explicit unionId; Midway fallback for legacy.
+      let union = null;
+      if (bodyUnionId) {
+        const { data: target } = await supabaseAdmin
+          .from('unions').select('id, name').eq('id', bodyUnionId).maybeSingle();
+        union = target;
+      } else {
+        union = await getMidwayUnionId();
+      }
       if (!union) return res.status(200).json({ success: true, application: null });
 
       const { data: app } = await supabaseAdmin

@@ -23,7 +23,10 @@ const supabaseAdmin = createClient(
 );
 
 async function verifyUnionLead(token, unionId) {
-  const { data: authData } = await supabaseAdmin.auth.getUser(token);
+  // UNION AUDIT FIX 2026-07-21: `error` was referenced without being destructured,
+  // throwing ReferenceError on EVERY request — the entire union wallet API
+  // returned 500 since ORB-4 shipped.
+  const { data: authData, error } = await supabaseAdmin.auth.getUser(token);
   const user = authData?.user;
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
@@ -86,14 +89,24 @@ export default async function handler(req, res) {
 
   try {
     // ── GET_BALANCES ────────────────────────────────────────────────────────
+    // UNION AUDIT FIX 2026-07-21: balances were read from the LEGACY wallet
+    // columns on `unions` (all zero). Every money RPC (fn_union_debit_wallet,
+    // fn_union_credit_wallet, increment_union_wallet, fn_union_send_chips_to_club)
+    // operates on the `union_wallets` table — that is the real store. Read it.
     if (action === 'get_balances') {
       const { data: union } = await supabaseAdmin
         .from('unions')
-        .select('id, name, chip_balance, rake_wallet, bbj_wallet, promo_wallet, backup_bbj_balance')
+        .select('id, name, backup_bbj_balance')
         .eq('id', unionId)
         .maybeSingle();
 
       if (!union) return res.status(404).json({ success: false, error: 'Union not found' });
+
+      const { data: wallet } = await supabaseAdmin
+        .from('union_wallets')
+        .select('chip_balance, rake_wallet, bbj_wallet, promo_wallet, insurance_wallet, total_rake_collected, total_settlements')
+        .eq('union_id', unionId)
+        .maybeSingle();
 
       const { data: recentTxns } = await supabaseAdmin
         .from('union_wallet_transactions')
@@ -102,15 +115,25 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false })
         .limit(100);
 
+      const w = wallet || {};
       return res.json({
         success: true,
         wallets: {
-          chip_balance: Number(union.chip_balance || 0),
-          rake_wallet: Number(union.rake_wallet || 0),
-          bbj_wallet: Number(union.bbj_wallet || 0),
-          promo_wallet: Number(union.promo_wallet || 0),
+          chip_balance: Number(w.chip_balance || 0),
+          rake_wallet: Number(w.rake_wallet || 0),
+          bbj_wallet: Number(w.bbj_wallet || 0),
+          promo_wallet: Number(w.promo_wallet || 0),
+          insurance_wallet: Number(w.insurance_wallet || 0),
           backup_bbj_balance: Number(union.backup_bbj_balance || 0),
-          total: Number(union.chip_balance || 0) + Number(union.rake_wallet || 0) + Number(union.bbj_wallet || 0) + Number(union.promo_wallet || 0) + Number(union.backup_bbj_balance || 0),
+          total_rake_collected: Number(w.total_rake_collected || 0),
+          total_settlements: Number(w.total_settlements || 0),
+          total:
+            Number(w.chip_balance || 0) +
+            Number(w.rake_wallet || 0) +
+            Number(w.bbj_wallet || 0) +
+            Number(w.promo_wallet || 0) +
+            Number(w.insurance_wallet || 0) +
+            Number(union.backup_bbj_balance || 0),
         },
         recentTransactions: recentTxns || [],
       });
@@ -250,6 +273,42 @@ export default async function handler(req, res) {
         .eq('union_id', unionId).eq('club_id', payoutClubId).maybeSingle();
       if (!ucCheck) return res.status(403).json({ success: false, error: 'Club is not in this union' });
 
+      // UNION AUDIT FIX 2026-07-21 (dedup): claim the payout BEFORE moving money.
+      // When poolId is provided, insert the bbj_payout ledger row first —
+      // a partial unique index on (union_id, tx_type, period_id) makes a
+      // duplicate claim fail atomically, so the same jackpot can never be paid
+      // twice even across serverless instances / idempotency-cache expiry.
+      let claimRowId = null;
+      if (poolId) {
+        const { data: claim, error: claimErr } = await supabaseAdmin
+          .from('union_wallet_transactions')
+          .insert({
+            union_id: unionId, wallet: 'bbj_wallet', direction: 'debit',
+            amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
+            period_id: poolId,
+            notes: 'BBJ payout claim (pending)',
+            created_by: auth.user.id,
+          })
+          .select('id')
+          .maybeSingle();
+        if (claimErr) {
+          if (claimErr.code === '23505') {
+            return res.status(409).json({ success: false, error: 'This BBJ payout was already processed' });
+          }
+          console.warn('[union-wallet] BBJ claim insert failed:', claimErr.message);
+          return res.status(500).json({ success: false, error: 'BBJ payout claim failed' });
+        }
+        claimRowId = claim?.id || null;
+      }
+      const releaseClaim = async () => {
+        if (claimRowId) {
+          await supabaseAdmin.from('union_wallet_transactions').delete().eq('id', claimRowId)
+            .then(({ error: relErr }) => {
+              if (relErr) console.warn('[union-wallet] BBJ claim release failed:', relErr.message);
+            });
+        }
+      };
+
       // MANDATE 1: Sequential debit→credits with full rollback chain.
       // Step 1: Debit union bbj_wallet (RPC uses internal FOR UPDATE lock)
       const { error: bbjDebitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
@@ -259,13 +318,31 @@ export default async function handler(req, res) {
       });
       if (bbjDebitErr) {
         console.warn('[union-wallet] BBJ payout debit failed:', bbjDebitErr.message);
+        await releaseClaim();
         return res.status(400).json({ success: false, error: 'Insufficient BBJ pool balance' });
       }
 
-      // Calculate shares (standard BBJ split)
-      const loserShare = Math.round(payout * 0.5 * 100) / 100;
-      const winnerShare = Math.round(payout * 0.25 * 100) / 100;
-      const tblShare = Math.round(payout * 0.25 * 100) / 100;
+      // UNION AUDIT FIX 2026-07-21 (split): honor the union's configured BBJ
+      // split (manage-union update_settings stores bbj_main_pct/bbj_backup_pct/
+      // bbj_promo_pct, validated to total 100: main -> loser, backup -> winner,
+      // promo -> table). Previously hardcoded 50/25/25, silently ignoring the
+      // admin's configuration. Falls back to 50/25/25 when unset.
+      const { data: unionCfg } = await supabaseAdmin
+        .from('unions').select('settings').eq('id', unionId).maybeSingle();
+      const cfg = unionCfg?.settings || {};
+      const mainPct = Number(cfg.bbj_main_pct);
+      const backupPct = Number(cfg.bbj_backup_pct);
+      const promoPct = Number(cfg.bbj_promo_pct);
+      const splitConfigured =
+        Number.isFinite(mainPct) && Number.isFinite(backupPct) && Number.isFinite(promoPct) &&
+        mainPct >= 0 && backupPct >= 0 && promoPct >= 0 &&
+        Math.round(mainPct + backupPct + promoPct) === 100;
+      const loserPct = splitConfigured ? mainPct / 100 : 0.5;
+      const winnerPct = splitConfigured ? backupPct / 100 : 0.25;
+      const loserShare = Math.round(payout * loserPct * 100) / 100;
+      const winnerShare = Math.round(payout * winnerPct * 100) / 100;
+      // Table share takes the remainder so the three shares always sum to payout.
+      const tblShare = Math.round((payout - loserShare - winnerShare) * 100) / 100;
       let credited = 0;
 
       // Step 2: Credit loser (biggest share)
@@ -277,6 +354,7 @@ export default async function handler(req, res) {
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
         }).catch(rb => console.warn('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
+        await releaseClaim();
         return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
       }
       credited += loserShare;
@@ -294,6 +372,7 @@ export default async function handler(req, res) {
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
         }).catch(rb => console.warn('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
+        await releaseClaim();
         return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
       }
       credited += winnerShare;
@@ -309,14 +388,23 @@ export default async function handler(req, res) {
         credited += tblShare;
       }
 
-      // Ledger entries
-      const { error: bbjTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
-        union_id: unionId, wallet: 'bbj_wallet', direction: 'debit',
-        amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
-        notes: `BBJ payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare})`,
-        created_by: auth.user.id,
-      });
-      if (bbjTxErr) console.warn('[union-wallet] Failed to log BBJ payout tx:', bbjTxErr.message);
+      // Ledger: finalize the claim row when we made one; otherwise insert fresh.
+      const finalNote = `BBJ payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare})`;
+      if (claimRowId) {
+        const { error: bbjTxErr } = await supabaseAdmin
+          .from('union_wallet_transactions')
+          .update({ notes: finalNote })
+          .eq('id', claimRowId);
+        if (bbjTxErr) console.warn('[union-wallet] Failed to finalize BBJ payout tx:', bbjTxErr.message);
+      } else {
+        const { error: bbjTxErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
+          union_id: unionId, wallet: 'bbj_wallet', direction: 'debit',
+          amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
+          notes: finalNote,
+          created_by: auth.user.id,
+        });
+        if (bbjTxErr) console.warn('[union-wallet] Failed to log BBJ payout tx:', bbjTxErr.message);
+      }
 
       return res.json({
         success: true,

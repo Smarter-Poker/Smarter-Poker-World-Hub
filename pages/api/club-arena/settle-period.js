@@ -421,26 +421,32 @@ export default async function handler(req, res) {
           console.warn('[settle-period] union hold debit failed (treasury shortfall):', holdDebitErr.message);
           // Skip union credit — don't create chips from thin air
         } else {
-          // Credit the hold amount into the union's rake_wallet
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          // UNION AUDIT FIX 2026-07-21 (conservation): the union credit was
+          // fire-and-forget — if it failed after the treasury debit succeeded,
+          // the hold amount vanished (club debited, union never credited).
+          // Await it and REFUND the treasury on failure so chips are conserved.
+          const { error: holdCreditErr } = await supabaseAdmin.rpc('fn_union_credit_wallet', {
             p_union_id: club.union_id,
             p_wallet: 'rake_wallet',
             p_amount: unionHold,
-          }).catch(e => console.warn('[settle-period] union rake_wallet credit error:', e.message));
-
-          // Ledger entry for union wallet
-          const { error: uWalletErr } = await supabaseAdmin.from('union_wallet_transactions').insert({
-            union_id: club.union_id,
-            wallet: 'rake_wallet',
-            direction: 'credit',
-            amount: unionHold,
-            tx_type: 'settlement_hold',
-            club_id: clubId,
-            period_id: pid,
-            notes: `Settlement hold from ${club.name} — Period #${period.period_number} (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake)`,
+            p_tx_type: 'settlement_hold',
+            p_club_id: clubId,
+            p_period_id: pid,
           });
-          if (uWalletErr) console.warn('[settle-period] union wallet tx insert error:', uWalletErr.message);
-
+          if (holdCreditErr) {
+            console.warn('[settle-period] union rake_wallet credit failed, refunding treasury:', holdCreditErr.message);
+            const { error: refundErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
+              p_club_id: clubId,
+              p_amount: unionHold,
+            });
+            if (refundErr) {
+              console.error('[settle-period] CRITICAL: union hold refund ALSO failed — treasury debited, union not credited:', refundErr.message);
+            }
+            // Continue the settlement either way — the hold is skipped, not fatal.
+          } else {
+          // NOTE: fn_union_credit_wallet writes the union_wallet_transactions
+          // audit row itself (tx_type/club/period passed above) — the old
+          // manual insert here would double-log, so it was removed.
           const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
             club_id: clubId,
             amount: unionHold,
@@ -478,6 +484,7 @@ export default async function handler(req, res) {
             transferred_at: new Date().toISOString(),
           });
           if (invoiceErr) console.warn('[settle-period] Invoice insert error:', invoiceErr.message);
+          } // end else (credit succeeded)
         } // end else (debit succeeded)
       }
 
