@@ -321,7 +321,13 @@ const nextConfig = {
     // [2026-05-18 cost-opt] cpus raised 1→2 to cut wall-clock build time.
     // NOTE: cpus is a webpack-specific option; Turbopack ignores it harmlessly.
     // Retained so that any webpack fallback invocation still benefits from it.
-    cpus: 2,
+    // [2026-07-21] BUILD_CPUS env override: constrained build environments
+    // (2-core sandboxes) hit an export-worker race in the App Router
+    // /_not-found prerender ("Cannot read properties of undefined (reading
+    // 'next/dist/client/components/builtin/layout')") under parallel export.
+    // BUILD_CPUS=1 serializes the export and avoids it. Vercel is unaffected
+    // (env not set there -> default 2).
+    cpus: process.env.BUILD_CPUS ? Number(process.env.BUILD_CPUS) : 2,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
