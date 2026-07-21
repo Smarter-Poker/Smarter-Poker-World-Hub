@@ -95,3 +95,32 @@ Build-infra fixes made en route (needed to ship):
 - In-memory idempotency (5-min per-instance TTL) still fronts non-BBJ transfers;
   BBJ payouts now have hard DB dedup. Extending DB-level dedup to send_to_club /
   move_rake_to_chips would require a client-supplied stable operation id.
+
+## BUILD IT follow-up (2026-07-21, Dan-approved) — both deferred items SHIPPED
+
+BBJ unification (WH ad93e98b + CA 197d23be, migration union_bbj_pool_unification_20260721):
+- bbj_pools is now the ONE jackpot ledger. process_bbj_payout pays from the
+  union's shared pool via atomic fn_union_bbj_pool_payout (pool debit + player
+  club-chip credits + treasury table share, one transaction, configured split);
+  union_wallets.bbj_wallet retired from the payout path. Dedup keys on a
+  per-event payoutEventId UUID (the old poolId key would have limited each pool
+  to a single payout ever).
+- NEW fund_bbj_pool action + fn_union_fund_bbj_pool: union bank -> shared
+  jackpot, split per union BBJ settings, atomic with ledger row. Dashboard has
+  a lead-only Fund BBJ Pool card; BBJ tiles read the live pool.
+- Live verification: 1-chip fund confirmed bank debit + pool credit + ledger
+  row on the production union. The seeded pool had ALREADY accrued 16,688
+  chips from real hands in ~24h — the engine-fed shared jackpot is working.
+
+Real financials (CA 197d23be):
+- UnionService.getSettlementReport now reports from the actual money ledger:
+  union tax = real settlement_hold credits per club; per-club rake derived at
+  the union_rake_hold rate; net union revenue = holds + engine rake credits;
+  settled vs pending clubs distinguished by ledger presence. Agent commissions
+  / player rakeback are club-internal and report 0 instead of fabrications.
+
+Build-infra: patch-next.js patch 8 (entry-files manifest guard) completes
+patch 7 — the /_not-found export flake is now guarded on both proxy branches.
+Also caught: an edit splice left an unclosed legacy block in union-wallet.js
+that node --check tolerated but SWC crashed on natively — direct
+swc.transform() is now a proven fast bisect tool for native build crashes.
