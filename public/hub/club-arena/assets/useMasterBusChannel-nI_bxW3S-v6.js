@@ -1,2 +1,0 @@
-import{r as n}from"./vendor-react-1ylW9eih-v6.js";import{m as a}from"./index-DCkFryY2-v6.js";function R({channelName:s,table:c,filter:t,event:o,onPayload:u,enabled:f=!0}){const C=n.useRef(u);n.useEffect(()=>{C.current=u},[u]),n.useEffect(()=>!f||!s||!t?void 0:(a.getOrCreateChannel(s).on("postgres_changes",{event:o,schema:"public",table:c,filter:t},r=>{C.current(r)}).subscribe((r,e)=>{r==="CHANNEL_ERROR"&&(`${s}`,e!=null&&e.message)}),()=>{a.removeRegisteredChannel(s)}),[s,c,t,o,f])}export{R as u};
-//# sourceMappingURL=useMasterBusChannel-nI_bxW3S-v6.js.map
