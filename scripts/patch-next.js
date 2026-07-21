@@ -188,3 +188,46 @@ if (fs.existsSync(documentPath)) {
 } else {
   console.log('   ⚠️ pages/_document.js path not found, skipping patch 6.');
 }
+
+// ── 7. Patch app-render/manifests-singleton.js partial-manifest crash ─────────
+// 2026-07-21: during `next build --webpack` export of the App Router
+// /_not-found page, the proxied client-reference-manifest lookup crashes with
+//   "TypeError: Cannot read properties of undefined (reading '<module id>')"
+// (observed ids: 'next/dist/client/components/builtin/layout', later the
+// project's app/layout after one was added). Root cause: the mapping proxy
+// guards `currentManifest == null` but NOT `currentManifest[prop]` — when a
+// route registers a manifest missing the requested section (clientModules /
+// ssrModuleMapping / ...), the `[id]` read throws and the whole export fails
+// nondeterministically. Guard the section too: a missing section simply means
+// "no entry here", which the surrounding code already handles by falling
+// through to the other manifests / returning undefined.
+for (const rel of [
+  '../node_modules/next/dist/server/app-render/manifests-singleton.js',
+  '../node_modules/next/dist/esm/server/app-render/manifests-singleton.js',
+]) {
+  const manifestsPath = path.resolve(__dirname, rel);
+  if (fs.existsSync(manifestsPath)) {
+    let content = fs.readFileSync(manifestsPath, 'utf8');
+    let changed = false;
+    const guardTarget1 = 'if (currentManifest == null ? void 0 : currentManifest[prop][id]) {';
+    const guardReplace1 = 'if ((currentManifest == null ? void 0 : currentManifest[prop]) && currentManifest[prop][id]) {';
+    if (content.includes(guardTarget1)) {
+      content = content.split(guardTarget1).join(guardReplace1);
+      changed = true;
+    }
+    const guardTarget2 = 'const entry = manifest[prop][id];';
+    const guardReplace2 = 'const entry = (manifest[prop] || {})[id];';
+    if (content.includes(guardTarget2)) {
+      content = content.split(guardTarget2).join(guardReplace2);
+      changed = true;
+    }
+    if (changed) {
+      fs.writeFileSync(manifestsPath, content, 'utf8');
+      console.log(`   ✅ manifests-singleton partial-manifest guard patched (${rel.includes('/esm/') ? 'esm' : 'cjs'}).`);
+    } else {
+      console.log(`   ✅ manifests-singleton already patched or healthy (${rel.includes('/esm/') ? 'esm' : 'cjs'}).`);
+    }
+  } else {
+    console.log('   ⚠️ manifests-singleton path not found, skipping patch 7.');
+  }
+}
