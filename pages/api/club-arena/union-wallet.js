@@ -383,17 +383,6 @@ export default async function handler(req, res) {
         return res.status(status).json({ success: false, error: msg });
       }
 
-      // Step 2: Credit loser (biggest share)
-      const { error: loserErr } = await supabaseAdmin.rpc('fn_credit_chips', {
-        p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
-      });
-      if (loserErr) {
-        console.warn('[union-wallet] BBJ loser credit failed, rolling back:', loserErr.message);
-        await supabaseAdmin.rpc('fn_union_credit_wallet', {
-          p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
-        }).catch(rb => console.warn('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
-        await releaseClaim();
-        return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
       // Ledger: finalize the claim row when we made one; otherwise insert fresh.
       const finalNote = `BBJ pool payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare}) — pool balance after: ${poolRes?.pool_balance_after ?? 'n/a'}`;
       if (claimRowId) {
