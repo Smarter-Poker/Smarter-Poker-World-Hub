@@ -69,22 +69,42 @@ information_schema) before any fix — the subagent reports contain misdiagnoses
   UI pages) reads/writes a phantom table behind a circuit-breaker that silently
   returns []. This is an architecture gap, not a one-liner — see Needs-decision.
 
-## Needs Dan's decision (verified real, but the correct fix is a product fork)
+## Batch 2 — Dan's decisions resolved + shipped (CA SHA 80e3137)
 
-- CreditService phantom table: either (a) create `credit_invoices` with the
-  expected schema + RLS + the settlement-generation logic that populates it, or
-  (b) remap CreditService onto settlement_invoices' entity model. Product call.
+Dan chose: (1) build the real credit_invoices table; (2) leave-club moves chips
+to the club TREASURY (not the player's main wallet).
 
-- ClubsService.leaveClub (src/services/ClubsService.ts:373-395): on leave it
-  calls atomic_deduct_wallet_and_log(userId, member.chip_balance) — DEBITING the
-  player's MAIN wallet by their club chip balance, labeled "return chips to
-  treasury". joinClub never debits the main wallet, so club chip_balance is
-  funded by a separate deposit flow; debiting the main wallet on leave is wrong
-  on both direction and account (should move club chips to the club treasury,
-  and via a service-role RPC since club money tables are service-role-write-only).
-  Also the boolean return is unchecked (membership is deleted even if the RPC
-  returns false). Not fixed: the correct target/direction is a product decision;
-  a half-fix could destroy player money.
+1. leave-club fixed (migration leave_club_to_treasury_20260721 +
+   ClubsService.leaveClub): new SECURITY DEFINER fn_member_leave_to_treasury
+   moves the member's chip_balance into clubs.chip_treasury (the store the SPA
+   shows as the club "bank" in DynamicWallet/ClubLobby), logs chip_transactions,
+   and deletes the club_members row — one atomic transaction. leaveClub calls it,
+   checks success, throws on failure. The old code DEBITED the player's main
+   wallet (wrong account + direction) and deleted membership even when the RPC
+   returned false. Operates on canonical club_members (club_memberships is a VIEW
+   over it). Migration assertion green; tsc clean.
+
+2. credit_invoices subsystem built (migration credit_invoices_subsystem_20260721
+   + CreditService): created credit_invoices + credit_payments tables (real
+   schema, FKs, indexes, CHECK constraints), RLS (agent reads own; writes
+   service-role-only), and two SECURITY DEFINER RPCs — fn_generate_credit_invoice
+   (idempotent per agent+period) and fn_apply_credit_payment (atomic invoice
+   update + payment row, recomputes partial/paid + paid_at from the locked row).
+   CreditService repointed: generateSundayInvoice -> RPC; processPayment now
+   READS credit_invoices (was reading the wrong settlement_invoices table) and
+   applies the payment via the RPC (was a split direct-update + separate
+   credit_payments insert that could diverge). Migration assertions green; tsc
+   clean.
+
+   FOLLOW-ON (not done — feature is code-correct but not end-to-end live): the
+   invoice generator (generateSundayInvoice) and the pay flow (processPayment)
+   are wired but UNCALLED — there is no server-side weekly cron generating
+   invoices and no agent-facing UI to view/pay them. To make the feature live:
+   (a) add a World Hub cron (Open Claw) that calls fn_generate_credit_invoice
+   for each agent with debt every billing period; (b) build the agent UI in
+   AgentFinancialPortal to list invoices (getAgentInvoices) and pay them
+   (processPayment). Until then the suspension cron sees no invoices and never
+   suspends. This is a scoped follow-on project, flagged for Dan.
 
 ## Still to verify (remaining subagent candidates, unverified)
 
