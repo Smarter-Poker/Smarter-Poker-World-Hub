@@ -1,28 +1,14 @@
 """
 Harvester for the Smarter-Poker GTO training dataset.
 
-Runs on the Windows solver machines. It plugs into whatever WORKING PioSOLVER
-UPI transport the machine already has (Machine 1's or Machine 2's wrapper) via a
-single `pio(cmd)->str` callable, so we don't re-solve the transport problem.
-This module owns the part that MUST be identical on both machines: the harvest
-sequence, the parsers, and the strategy_matrix_v2 JSON shape.
+Plugs into the machine's working PioSOLVER UPI transport via a single
+`pio(cmd)->str` callable. Owns the parsers + the strategy_matrix_v2 JSON shape
+(identical on both machines). build_setup_commands(pot, eff, rake) is
+parameterized so each phase (cash vs tournament vs blind depth) sends Pio its own
+set_pot / set_eff_stack / set_rake + the matching tree.
 
-Per solved (matchup x flop) tree it extracts decision nodes (r:0 = OOP flop, and
-r:0:c = IP c-bet after check). No full-tree dump -> no print_all_strats crash,
-no C++ parser. A few UPI calls, milliseconds each.
-
-strategy_matrix_v2 (clean, self-describing; fixes the two documented corruptions
-- per-hand action sums now == 1, and EVs are real chip EVs in bb, not equity):
-  {
-    node, board, street, hero, position, oop_player, ip_player,
-    pot_bb, eff_stack_bb, rake,
-    actions:[{code,key,size_pct}],
-    frequencies:{code:[1326 floats 0..1]},   # sum across codes == 1 per hand
-    hand_evs_bb:[1326],                       # calc_ev Array0 /100
-    ev_oop_bb, ev_ip_bb, exploitability_pct,
-    combo_order, tree_geometry, solver
-  }
-Combo order is the verified map (2c2d=0 .. AhAs=1325).
+strategy_matrix_v2: per-hand action sums == 1; real chip EVs in bb; dead combos null.
+Combo order: card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325.
 """
 import json
 import tree_gen  # canonical shared geometry (build_lines)
@@ -35,25 +21,25 @@ STACK_BB = 100
 GEOMETRY_TAG = "srp_prod_v1"
 
 
-def build_setup_commands(board, oop_weights, ip_weights):
+def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750, rake="0 0 0 0"):
     """UPI commands to configure + build + solve one SRP spot on `board`.
-    oop_weights/ip_weights: space-separated 1326-weight strings."""
+    pot/eff in chips, rake as Pio's set_rake args -> different per cash/MTT/depth."""
     cmds = [
-        "set_pot 0 0 %d" % POT_CHIPS,     # machine: use its exact pot/eff command names
-        "set_eff_stack %d" % EFF_CHIPS,
+        "set_pot 0 0 %d" % pot,           # machine: use its exact pot/eff command names
+        "set_eff_stack %d" % eff,
         "set_board %s" % board,
         "set_range OOP %s" % oop_weights,
         "set_range IP %s" % ip_weights,
         "set_isomorphism 1 0",
         "clear_lines",
     ]
-    cmds += ["add_line " + " ".join(str(x) for x in ln) for ln in tree_gen.build_lines()]
-    cmds += ["build_tree", "set_rake 0 0 0 0", "go 0.5", "wait_for_solver"]
+    cmds += ["add_line " + " ".join(str(x) for x in ln) for ln in tree_gen.build_lines(pot, eff)]
+    cmds += ["build_tree", "set_rake %s" % rake, "go 0.5", "wait_for_solver"]
     return cmds
 
 
 def parse_children(raw, parent="r:0"):
-    """Ordered action codes among children of `parent` (e.g. ['c','b182','b412'])."""
+    """Ordered action codes among children of `parent`."""
     codes = []
     pref = parent + ":"
     for tok in raw.split():
@@ -67,7 +53,7 @@ def parse_strategy(raw, action_codes):
     numeric = []
     for ln in raw.splitlines():
         parts = ln.split()
-        if len(parts) >= 1000:  # a 1326-number strategy line
+        if len(parts) >= 1000:
             numeric.append([float(x) for x in parts])
     if len(numeric) != len(action_codes):
         raise ValueError("strategy lines %d != actions %d" % (len(numeric), len(action_codes)))
@@ -97,14 +83,10 @@ def action_meta(code):
 
 def harvest_node(pio, node, player, board, position, oop_player, ip_player,
                  ev_oop_bb, ev_ip_bb, exploit_pct):
-    """Harvest one decision node for `player` (OOP|IP) -> (scenario_hash, strategy_matrix_v2).
-    node='r:0' player='OOP' -> the OOP (e.g. BB) flop decision.
-    node='r:0:c' player='IP' -> the IP (e.g. BTN) c-bet decision after OOP checks.
-    Both nodes have pot 550 so bet sizes stay 33%/75%."""
+    """Harvest one decision node for `player` (OOP|IP) -> (scenario_hash, strategy_matrix_v2)."""
     codes = parse_children(pio("show_children %s" % node), parent=node)
     freqs = parse_strategy(pio("show_strategy %s" % node), codes)
     hand_ev_chips = parse_ev_array0(pio("calc_ev %s %s" % (player, node)))
-    # dead combos read nan -> JSON null (Postgres jsonb rejects NaN)
     hand_evs_bb = [None if v != v else round(v / CHIPS_PER_BB, 4) for v in hand_ev_chips]
     sm = {
         "node": node, "board": board, "street": "flop", "hero": player,

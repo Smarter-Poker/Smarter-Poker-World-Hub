@@ -1,24 +1,18 @@
 """
 SMARTER-POKER SOLVER ORCHESTRATOR  (launch once; runs until every phase is done)
 ================================================================================
-One command per machine. It:
-  1. SELF-TESTS PioSOLVER on startup (solves the known spot001 and checks the
-     answer against the verified value; ABORTS if the engine is wrong).
-  2. Reads phases.json from the repo (so new phases I commit are picked up with
-     NO re-prompt), and works through every phase IN ORDER.
-  3. Per flop solve: harvests flop + turn nodes (canonical 75% c-bet-called line),
-     VALIDATES (per-hand action sums == 1), writes strategy_matrix_v2 straight to
-     the DB, saves backup/<hash>.json. Deletes NOTHING; the .cfr stays on disk.
-  4. Is fully RESUMABLE (skips rows already v2) and splits work across the two
-     machines automatically (M1 = even boards, M2 = odd boards).
-  5. Writes a HEARTBEAT to solver_status every spot so progress is monitorable.
-  6. AUTO-ADVANCES: when all committed phases are done it idles and re-reads
-     phases.json every 10 min, starting new phases the moment they appear.
+One command per machine. Self-tests, then works through phases.json (fetched live
+from the repo), auto-advancing with no re-prompt. Each phase carries its OWN
+game config -> pot_chips (antes), eff_chips (blind depth), rake (cash vs
+tournament), ranges (format/depth) -> so cash and tournament and each stack solve
+completely different games. Per flop solve it also harvests the turn rows off the
+same tree. Writes strategy_matrix_v2 straight to the DB (deletes nothing;
+resumable; 2-machine auto-split; heartbeat to solver_status).
 
 SETUP (once):
   set SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
   set SUPABASE_SERVICE_ROLE_KEY=<service role key>
-  put tree_gen.py + pio_harvest.py next to this file (or let it fetch them).
+  python make_ranges.py            (writes ranges/*.txt)
   wire the two stubs below (pio + read_results) to your UPI wrapper.
 RUN:
   MACHINE 1:  python orchestrate.py M1 2 0
@@ -44,10 +38,6 @@ def read_results():
 # ===================================================
 
 
-def _get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=HEAD), timeout=60) as r:
-        return r.read().decode()
-
 def _rest(method, path, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(URL + "/rest/v1/" + path, data=data, headers=HEAD, method=method)
@@ -59,11 +49,8 @@ def fetch_text(name):
         return r.read().decode()
 
 def ensure_ranges():
-    """Fetch the committed range generator and (re)build ranges/ locally, so new
-    matchups added to make_ranges.py auto-propagate without re-prompting."""
     try:
-        src = fetch_text("make_ranges.py")
-        open("make_ranges.py", "w").write(src)
+        open("make_ranges.py", "w").write(fetch_text("make_ranges.py"))
         import subprocess
         subprocess.run([sys.executable, "make_ranges.py"], check=True)
     except Exception as e:
@@ -73,29 +60,32 @@ def load_range(name):
     return open(os.path.join("ranges", name)).read().strip()
 
 DECK = [r + s for r in "AKQJT98765432" for s in "cdhs"]
-# Canonical SRP continuation (75% c-bet called). OOP=first-to-act (e.g. BB); IP=opener.
-NODE_TMPL = {"OOP": {"flop": "r:0",   "turn": "r:0:c:b412:c:%s"},
-             "IP":  {"flop": "r:0:c", "turn": "r:0:c:b412:c:%s:c"}}
-HASH_PFX = {"flop": "", "turn": "turn_"}
 
 def turn_cards(flop):
     on = {flop[i:i+2] for i in range(0, len(flop), 2)}
     return [c for c in DECK if c not in on]
 
+def node_templates(pot):
+    """Canonical SRP continuation (75% c-bet called); c-bet code derived from THIS
+    phase's pot so the paths are correct at any stack/pot."""
+    cb = int(round(pot * 0.75))
+    return {"OOP": {"flop": "r:0",   "turn": "r:0:c:b%d:c:%%s" % cb},
+            "IP":  {"flop": "r:0:c", "turn": "r:0:c:b%d:c:%%s:c" % cb}}
+
 def expand_targets(ph, flop):
-    """[(node, hero, position, full_board, scenario_hash)] for each street in the phase."""
     gt, stack = ph["game_type"], ph["stack"]
+    tmpl = node_templates(ph.get("pot_chips", 550))
     out = []
     for street in ph.get("streets", ["flop"]):
         for t in ph["harvest"]:
             hero, pos = t["hero"], t["position"]
             if street == "flop":
-                out.append((NODE_TMPL[hero]["flop"], hero, pos, flop,
+                out.append((tmpl[hero]["flop"], hero, pos, flop,
                             "%s_%s_%dbb_%s" % (gt, pos, stack, flop)))
             elif street == "turn":
                 for tc in turn_cards(flop):
                     b4 = flop + tc
-                    out.append((NODE_TMPL[hero]["turn"] % tc, hero, pos, b4,
+                    out.append((tmpl[hero]["turn"] % tc, hero, pos, b4,
                                 "turn_%s_%s_%dbb_%s" % (gt, pos, stack, b4)))
     return out
 
@@ -132,15 +122,13 @@ def boards_for(gt, stack, street, positions):
             boards.add(r["scenario_hash"].rsplit("_", 1)[-1])
     return sorted(boards)
 
-def solve(board, oop_w, ip_w):
-    for cmd in h.build_setup_commands(board, oop_w, ip_w):
+def solve(board, oop_w, ip_w, pot=550, eff=9750, rake="0 0 0 0"):
+    for cmd in h.build_setup_commands(board, oop_w, ip_w, pot, eff, rake):
         pio(cmd)
 
 def self_test():
     print("[selftest] solving spot001 Qh7s2c (BTN-vs-BB)...")
-    oop_w = load_range("BBflat_vs_BTN_100.txt")
-    ip_w = load_range("RFI_BTN_100.txt")
-    solve("Qh7s2c", oop_w, ip_w)
+    solve("Qh7s2c", load_range("BBflat_vs_BTN_100.txt"), load_range("RFI_BTN_100.txt"))
     ev_oop, ev_ip, expl = read_results()
     _, sm = h.harvest_node(pio, "r:0", "OOP", "Qh7s2c", "BB", "BB", "BTN", ev_oop, ev_ip, expl)
     v = h.validate_row(sm)
@@ -148,7 +136,7 @@ def self_test():
     print("[selftest] ev_oop=%.3f (expect ~1.961)  frac_ok=%.4f  -> %s"
           % (ev_oop, v["frac_ok"], "PASS" if ok else "FAIL"))
     if not ok:
-        raise SystemExit("SELF-TEST FAILED - Pio output does not match the verified value; aborting so no bad data is written.")
+        raise SystemExit("SELF-TEST FAILED - Pio output != verified value; aborting so no bad data is written.")
 
 def main():
     heartbeat("startup", "", 0, 0, 0, "self-test")
@@ -169,6 +157,7 @@ def main():
                 continue
             oop_w = load_range(ph["oop_range"])
             ip_w = load_range(ph["ip_range"])
+            pot = ph.get("pot_chips", 550); eff = ph.get("eff_chips", 9750); rake = ph.get("rake", "0 0 0 0")
             for board in mine:  # board == flop
                 todo = []
                 for node, hero, pos, full, sh in expand_targets(ph, board):
@@ -178,7 +167,7 @@ def main():
                 if not todo:
                     continue
                 try:
-                    solve(board, oop_w, ip_w)
+                    solve(board, oop_w, ip_w, pot, eff, rake)
                     ev_oop, ev_ip, expl = read_results()
                 except Exception as e:
                     print("[solve-error]", board, e); heartbeat(ph["id"], board, spots, wrote, bad, "solve error: %s" % e); continue
@@ -200,7 +189,7 @@ def main():
                 heartbeat(ph["id"], board, spots, wrote, bad, "running")
         if not did_work:
             heartbeat("idle", "", spots, wrote, bad, "all committed phases complete; polling for new phases")
-            print("[%s] all phases complete (%d spots, %d rows). Polling for new phases in 10 min..." % (MID, spots, wrote))
+            print("[%s] all phases complete (%d spots, %d rows). Polling in 10 min..." % (MID, spots, wrote))
             time.sleep(600)
 
 if __name__ == "__main__":
