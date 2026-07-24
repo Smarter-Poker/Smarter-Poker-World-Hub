@@ -6,10 +6,9 @@ One command per machine. It:
      answer against the verified value; ABORTS if the engine is wrong).
   2. Reads phases.json from the repo (so new phases I commit are picked up with
      NO re-prompt), and works through every phase IN ORDER.
-  3. Per spot: builds the locked tree, solves to 0.5%, HARVESTS the required
-     node(s), VALIDATES (per-hand action sums == 1), writes strategy_matrix_v2
-     straight to the DB, and saves a local backup/<hash>.json. Deletes NOTHING;
-     the .cfr stays on disk.
+  3. Per flop solve: harvests flop + turn nodes (canonical 75% c-bet-called line),
+     VALIDATES (per-hand action sums == 1), writes strategy_matrix_v2 straight to
+     the DB, saves backup/<hash>.json. Deletes NOTHING; the .cfr stays on disk.
   4. Is fully RESUMABLE (skips rows already v2) and splits work across the two
      machines automatically (M1 = even boards, M2 = odd boards).
   5. Writes a HEARTBEAT to solver_status every spot so progress is monitorable.
@@ -72,6 +71,33 @@ def ensure_ranges():
 
 def load_range(name):
     return open(os.path.join("ranges", name)).read().strip()
+
+DECK = [r + s for r in "AKQJT98765432" for s in "cdhs"]
+# Canonical SRP continuation (75% c-bet called). OOP=first-to-act (e.g. BB); IP=opener.
+NODE_TMPL = {"OOP": {"flop": "r:0",   "turn": "r:0:c:b412:c:%s"},
+             "IP":  {"flop": "r:0:c", "turn": "r:0:c:b412:c:%s:c"}}
+HASH_PFX = {"flop": "", "turn": "turn_"}
+
+def turn_cards(flop):
+    on = {flop[i:i+2] for i in range(0, len(flop), 2)}
+    return [c for c in DECK if c not in on]
+
+def expand_targets(ph, flop):
+    """[(node, hero, position, full_board, scenario_hash)] for each street in the phase."""
+    gt, stack = ph["game_type"], ph["stack"]
+    out = []
+    for street in ph.get("streets", ["flop"]):
+        for t in ph["harvest"]:
+            hero, pos = t["hero"], t["position"]
+            if street == "flop":
+                out.append((NODE_TMPL[hero]["flop"], hero, pos, flop,
+                            "%s_%s_%dbb_%s" % (gt, pos, stack, flop)))
+            elif street == "turn":
+                for tc in turn_cards(flop):
+                    b4 = flop + tc
+                    out.append((NODE_TMPL[hero]["turn"] % tc, hero, pos, b4,
+                                "turn_%s_%s_%dbb_%s" % (gt, pos, stack, b4)))
+    return out
 
 def row_state(sh):
     _, txt = _rest("GET", "solved_spots_gold?scenario_hash=eq.%s&select=solved_v2_at" % sh)
@@ -143,23 +169,22 @@ def main():
                 continue
             oop_w = load_range(ph["oop_range"])
             ip_w = load_range(ph["ip_range"])
-            for board in mine:
-                targets = []
-                for t in ph["harvest"]:
-                    sh = "%s_%s_%dbb_%s" % (gt, t["position"], stack, board)
+            for board in mine:  # board == flop
+                todo = []
+                for node, hero, pos, full, sh in expand_targets(ph, board):
                     ex, done = row_state(sh)
                     if ex and not done:
-                        targets.append((t, sh))
-                if not targets:
+                        todo.append((node, hero, pos, full, sh))
+                if not todo:
                     continue
                 try:
                     solve(board, oop_w, ip_w)
                     ev_oop, ev_ip, expl = read_results()
                 except Exception as e:
                     print("[solve-error]", board, e); heartbeat(ph["id"], board, spots, wrote, bad, "solve error: %s" % e); continue
-                for t, sh in targets:
+                for node, hero, pos, full, sh in todo:
                     try:
-                        _, sm = h.harvest_node(pio, t["node"], t["hero"], board, t["position"],
+                        _, sm = h.harvest_node(pio, node, hero, full, pos,
                                                ph["oop_player"], ph["ip_player"], ev_oop, ev_ip, expl)
                         v = h.validate_row(sm)
                         json.dump({"scenario_hash": sh, "strategy_matrix_v2": sm, "_qc": v},
@@ -171,7 +196,7 @@ def main():
                     except Exception as e:
                         bad += 1; print("[harvest-error]", sh, e)
                 spots += 1; did_work = True
-                print("[%s] %s %s ev_oop=%.3f wrote=%d bad=%d" % (MID, ph["id"], board, ev_oop, wrote, bad))
+                print("[%s] %s flop=%s targets=%d ev_oop=%.3f wrote=%d bad=%d" % (MID, ph["id"], board, len(todo), ev_oop, wrote, bad))
                 heartbeat(ph["id"], board, spots, wrote, bad, "running")
         if not did_work:
             heartbeat("idle", "", spots, wrote, bad, "all committed phases complete; polling for new phases")
