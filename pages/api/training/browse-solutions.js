@@ -1,6 +1,6 @@
 /**
  * API: Browse Solutions — Query solver data for the Solutions Browser
- * ═══════════════════════════════════════════════════════════════════════════
+ * ════════════════════════════════════════════════════════════════════
  * GET /api/training/browse-solutions
  * 
  * Query params:
@@ -22,8 +22,9 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, extractPositionFromHash, getAllHands, sanitizeParam, VALID_STREETS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ── Lazy Supabase getter (SSG-safe) ─────────────────
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
           if (spotId || scenarioHash) {
               let spotQuery = getSupabase()
                   .from('solved_spots_gold')
-                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
+                  .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, strategy_matrix_v2');
               spotQuery = spotId
                   ? spotQuery.eq('id', spotId)
                   : spotQuery.eq('scenario_hash', scenarioHash).limit(1);
@@ -85,18 +86,19 @@ export default async function handler(req, res) {
               const spot = Array.isArray(spotRows) ? spotRows[0] : spotRows;
 
               if (error || !spot) {
-                  console.warn(`[BrowseSolutions] 404 Error. spotId: "${spotId || scenarioHash}", error:`, error);
+                  console.warn(`[BrowseSolutions] 404 Error. spotId: \"${spotId || scenarioHash}\", error:`, error);
                   return res.status(404).json({ success: false, error: 'Spot not found' });
               }
 
-              const matrix = spot.strategy_matrix || {};
+              // Prefer rebuilt PioSOLVER data (strategy_matrix_v2) when present
+              const matrix = (spot.strategy_matrix_v2 ? v2ToAppMatrix(spot.strategy_matrix_v2) : null) || spot.strategy_matrix || {};
               const actions = matrix.actions || [];
               const frequencies = matrix.frequencies || {};
 
               // Build full 13×13 grid data for every hand.
               // 2026-07-19 AUDIT FIX: the `cash` and `spin` families (~2.1M rows)
               // store RAW combo weights instead of normalized 0-1 frequencies —
-              // the old `freq * 1000 / 10` rendered values like "5018%".
+              // the old `freq * 1000 / 10` rendered values like \"5018%\".
               // Normalize per hand: if a hand's action mass exceeds 1, divide
               // each action by the hand total so the mix always sums to 100%.
               const allHands = getAllHands();
