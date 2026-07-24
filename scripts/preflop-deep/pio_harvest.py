@@ -1,5 +1,5 @@
 """
-Root-node harvester for the Smarter-Poker GTO training dataset.
+Harvester for the Smarter-Poker GTO training dataset.
 
 Runs on the Windows solver machines. It plugs into whatever WORKING PioSOLVER
 UPI transport the machine already has (Machine 1's or Machine 2's wrapper) via a
@@ -7,14 +7,14 @@ single `pio(cmd)->str` callable, so we don't re-solve the transport problem.
 This module owns the part that MUST be identical on both machines: the harvest
 sequence, the parsers, and the strategy_matrix_v2 JSON shape.
 
-Per solved (matchup x flop) tree it extracts ONLY the flop root node (r:0), which
-is the scenario the trainer stores and grades. No full-tree dump -> no
-print_all_strats crash, no C++ parser. A few UPI calls, milliseconds each.
+Per solved (matchup x flop) tree it extracts decision nodes (r:0 = OOP flop, and
+r:0:c = IP c-bet after check). No full-tree dump -> no print_all_strats crash,
+no C++ parser. A few UPI calls, milliseconds each.
 
 strategy_matrix_v2 (clean, self-describing; fixes the two documented corruptions
 - per-hand action sums now == 1, and EVs are real chip EVs in bb, not equity):
   {
-    node, board, street, position(oop hero), oop_player, ip_player,
+    node, board, street, hero, position, oop_player, ip_player,
     pot_bb, eff_stack_bb, rake,
     actions:[{code,key,size_pct}],
     frequencies:{code:[1326 floats 0..1]},   # sum across codes == 1 per hand
@@ -95,18 +95,19 @@ def action_meta(code):
     return {"code": code, "key": code, "size_pct": None}
 
 
-def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_bb, exploit_pct):
-    """Query the solved tree's root and build the strategy_matrix_v2 dict + scenario_hash.
-    `pio` is the machine's UPI callable; ev/exploit scalars are read by the machine
-    from calc_results (already in bb / percent)."""
-    codes = parse_children(pio("show_children r:0"))
-    freqs = parse_strategy(pio("show_strategy r:0"), codes)
-    hand_ev_chips = parse_ev_array0(pio("calc_ev OOP r:0"))
+def harvest_node(pio, node, player, board, position, oop_player, ip_player,
+                 ev_oop_bb, ev_ip_bb, exploit_pct):
+    """Harvest one decision node for `player` (OOP|IP) -> (scenario_hash, strategy_matrix_v2).
+    node='r:0' player='OOP' -> the OOP (e.g. BB) flop decision.
+    node='r:0:c' player='IP' -> the IP (e.g. BTN) c-bet decision after OOP checks.
+    Both nodes have pot 550 so bet sizes stay 33%/75%."""
+    codes = parse_children(pio("show_children %s" % node), parent=node)
+    freqs = parse_strategy(pio("show_strategy %s" % node), codes)
+    hand_ev_chips = parse_ev_array0(pio("calc_ev %s %s" % (player, node)))
     # dead combos read nan -> JSON null (Postgres jsonb rejects NaN)
     hand_evs_bb = [None if v != v else round(v / CHIPS_PER_BB, 4) for v in hand_ev_chips]
-    tree_lines = [t for t in pio("show_all_lines").split() if t.startswith("r:0")]
     sm = {
-        "node": "r:0", "board": board, "street": "flop",
+        "node": node, "board": board, "street": "flop", "hero": player,
         "position": position, "oop_player": oop_player, "ip_player": ip_player,
         "pot_bb": POT_CHIPS / CHIPS_PER_BB, "eff_stack_bb": EFF_CHIPS / CHIPS_PER_BB, "rake": 0,
         "actions": [action_meta(c) for c in codes],
@@ -118,6 +119,11 @@ def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_b
     }
     scenario_hash = "%s_%s_%dbb_%s" % (GAME_TYPE, position, STACK_BB, board)
     return scenario_hash, sm
+
+
+def harvest_root(pio, board, position, oop_player, ip_player, ev_oop_bb, ev_ip_bb, exploit_pct):
+    return harvest_node(pio, "r:0", "OOP", board, position, oop_player, ip_player,
+                        ev_oop_bb, ev_ip_bb, exploit_pct)
 
 
 def validate_row(sm):
