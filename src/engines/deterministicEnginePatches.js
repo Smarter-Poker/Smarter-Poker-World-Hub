@@ -1,6 +1,6 @@
 /**
- * DETERMINISTIC ENGINE AUDIT PATCHES — 2026-07-19
- * ═══════════════════════════════════════════════════════════════════════════
+ * DETERMINISTIC ENGINE AUDIT PATCHES — 2026-07-19 (v2 reader flip 2026-07-24)
+ * ════════════════════════════════════════════════════════════════════
  * WHY THIS FILE EXISTS: DeterministicGTOEngine.js is ~967KB, which exceeds
  * what the current agent push path can transit in one piece, so the phase-3
  * engine-audit fixes are applied here as runtime patches on the exported
@@ -8,6 +8,11 @@
  * git push touches the engine file next, MERGE THESE PATCHES INTO THE CLASS
  * and delete this module (see .agent/handoffs/2026-07-19-solved-spots-gold-
  * reingest.md and .agent/audits/2026-07-19-training-engine-phase3-*.md).
+ *
+ * 2026-07-24: the rebuilt PioSOLVER pipeline writes clean per-combo data to
+ * solved_spots_gold.strategy_matrix_v2. fetchSolverPool + queryNextStreet now
+ * PREFER strategy_matrix_v2 (converted to the legacy per-class shape via
+ * v2ToAppMatrix) when present, and fall back to the sanitized v1 otherwise.
  *
  * WHAT THE PATCHES FIX (all confirmed by live audit):
  * 1. fetchSolverPool called .eq('street', null) when getStreetForLevel
@@ -20,7 +25,7 @@
  *    "correct" answer for many hands. sanitizeStrategyMatrix() keeps a hand
  *    only when its in-range values form a CREDIBLE distribution (sum≈1, or a
  *    pure ≥0.98 action) and renormalizes; non-credible hands are removed so
- *    the engine can never serve them.
+ *    the engine can never serve them. (v2 rows are already clean.)
  * 3. Answer-class bias: live sampling showed "always Check" scored 73%.
  *    buildQuestionFromScenario now alternates the preferred answer class
  *    (aggressive/passive) across questionIndex via bounded retries.
@@ -30,10 +35,11 @@
  *    FORCED through question building (clean null when the hand has no
  *    credible data), true child preferred via suffix match, approximate
  *    boards flagged isApproximateBoard.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ════════════════════════════════════════════════════════════════════
  */
 
 import { parseBoardFromHash } from '../utils/trainingApiUtils';
+import { v2ToAppMatrix } from '../utils/v2Matrix';
 
 // ── Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ────
 export function toHandClass(h) {
@@ -51,6 +57,15 @@ export function toHandClass(h) {
 }
 
 const isAggressiveAction = (a) => /^b|^r|allin|jam|push/i.test(String(a || ''));
+
+/** Prefer strategy_matrix_v2 (rebuilt PioSOLVER data) when present. Mutates row. */
+function preferV2(row) {
+    if (row && row.strategy_matrix_v2) {
+        const m = v2ToAppMatrix(row.strategy_matrix_v2);
+        if (m) row.strategy_matrix = m;
+    }
+    return row;
+}
 
 /**
  * Sanitize a strategy_matrix IN PLACE (idempotent):
@@ -146,7 +161,7 @@ export function applyDeterministicEnginePatches(engine) {
     const originalFetchSolverPool = engine.fetchSolverPool.bind(engine);
     const originalBuild = engine.buildQuestionFromScenario.bind(engine);
 
-    // ── PATCH 1+2: street-null guard + matrix sanitization at the source ──
+    // ── PATCH 1+2: street-null guard + v2 preference + matrix sanitization ──
     engine.fetchSolverPool = async function patchedFetchSolverPool(
         gameConfig, level, limit = 25, targetStreet = null, routingParams = {}
     ) {
@@ -162,7 +177,7 @@ export function applyDeterministicEnginePatches(engine) {
             for (const depth of effectiveStackDepths) {
                 let q = this.db
                     .from('solved_spots_gold')
-                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                     .eq('game_type', gameConfig.pioGameType)
                     .eq('stack_depth', depth);
                 if (street) q = q.eq('street', street); // FIX: never .eq('street', null)
@@ -190,7 +205,8 @@ export function applyDeterministicEnginePatches(engine) {
                 }
             }
 
-            // Sanitize every matrix; drop rows left with no credible hands
+            // Prefer rebuilt v2 data, then sanitize; drop rows with no credible hands
+            allData.forEach(row => preferV2(row));
             allData.forEach(row => sanitizeStrategyMatrix(row.strategy_matrix));
             allData = allData.filter(row => {
                 const f = row.strategy_matrix?.frequencies || {};
@@ -256,7 +272,7 @@ export function applyDeterministicEnginePatches(engine) {
             // True child node: hash ENDS WITH the full board
             const { data: exactMatches } = await this.db
                 .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                 .eq('game_type', gameConfig.pioGameType)
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
@@ -264,6 +280,7 @@ export function applyDeterministicEnginePatches(engine) {
                 .limit(5);
 
             for (const scenario of exactMatches || []) {
+                preferV2(scenario);
                 const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
                 if (question) return question;
             }
@@ -272,7 +289,7 @@ export function applyDeterministicEnginePatches(engine) {
             const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
             const { data: partialMatches } = await this.db
                 .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix, strategy_matrix_v2')
                 .eq('game_type', gameConfig.pioGameType)
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
@@ -308,6 +325,7 @@ export function applyDeterministicEnginePatches(engine) {
                 // Walk candidates nearest-first until one has credible data for
                 // the user's hand
                 for (const { scenario, dist } of scored.slice(0, 10)) {
+                    preferV2(scenario);
                     const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0, heroHand || null);
                     if (question) {
                         question.scenario.board = boardCards.join(' ');
