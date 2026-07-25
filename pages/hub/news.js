@@ -34,7 +34,7 @@ async function fireConfetti(opts) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Calendar, PlayCircle } from 'lucide-react';
 
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -314,6 +314,11 @@ export default function NewsHub() {
         if (router.query.source) {
             const src = router.query.source;
             setSourceFilters(prev => ({ ...prev, [src]: true }));
+            setActiveSection('news');
+        } else if (router.query.tab) {
+            setActiveSection(router.query.tab);
+        } else if (router.query.filter) {
+            setActiveSection(router.query.filter);
         }
     }, [router.query]);
     const [email, setEmail] = useState('');
@@ -333,8 +338,8 @@ export default function NewsHub() {
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
-        notifications: true,
-        autoRefresh: false
+        pushNotifications: true,
+        emailDigest: false
     });
 
 
@@ -382,11 +387,11 @@ export default function NewsHub() {
                 console.warn('Failed to save preference:', error);
             }
         }
-    }, [preferences]);
+    }, [preferences, userId]);
 
     const menuConfig = getMenuConfig('news', user, preferences, {
-        setNotifications: (val) => updatePreference('notifications', val),
-        setAutoRefresh: (val) => updatePreference('autoRefresh', val)
+        setPushNotifications: (val) => updatePreference('pushNotifications', val),
+        setEmailDigest: (val) => updatePreference('emailDigest', val)
     });
 
     //  INTRO VIDEO STATE
@@ -920,7 +925,7 @@ export default function NewsHub() {
                                 </div>
                             )}
 
-                            {activeSection === 'news' ? (
+                            {activeSection === 'news' && (
                                 <>
                                     {/* News Grid - 6 Source-Specific Boxes */}
                                     <section className="news-section">
@@ -1058,9 +1063,12 @@ export default function NewsHub() {
                                         ) : (
                                             <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
                                         )}
+                                        )}
                                     </section>
                                 </>
-                            ) : (
+                            )}
+                            
+                            {activeSection === 'reels' && (
                                 /* Reels Section - Full View */
                                 <section className="reels-section">
                                     <h2 className="section-title">
@@ -1086,6 +1094,91 @@ export default function NewsHub() {
                                             ))}
                                         </div>
                                     )}
+                                </section>
+                            )}
+
+                            {activeSection === 'videos' && (
+                                <section className="videos-section" style={{ padding: '20px 0' }}>
+                                    <h2 className="section-title">
+                                        <PlayCircle size={18} /> Poker Videos
+                                    </h2>
+                                    <p className="section-desc">
+                                        The latest video content from top poker channels.
+                                    </p>
+                                    {videos.length === 0 ? (
+                                        <div className="no-results">
+                                            <PlayCircle size={48} />
+                                            <p>No Videos Available Yet.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="videos-grid">
+                                            {videos.map(video => (
+                                                <VideoCard key={video.id || video.youtube_id} video={video} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+
+                            {activeSection === 'events' && (
+                                <section className="events-section" style={{ padding: '20px 0' }}>
+                                    <h2 className="section-title">
+                                        <Calendar size={18} /> Upcoming Events
+                                    </h2>
+                                    <div className="events-list-full" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {events.map(event => (
+                                            <div key={event.id} className="event-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
+                                                <div className="event-date" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '8px 16px', borderRadius: '8px', textAlign: 'center', minWidth: '80px' }}>
+                                                    <div className="month" style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>{new Date(event.event_date || new Date()).toLocaleString('default', { month: 'short' })}</div>
+                                                    <div className="day" style={{ fontSize: '24px', fontWeight: 'bold' }}>{new Date(event.event_date || new Date()).getDate()}</div>
+                                                </div>
+                                                <div className="event-details" style={{ flex: 1 }}>
+                                                    <h4 style={{ margin: '0 0 4px', fontSize: '16px' }}>{event.name || 'Event'}</h4>
+                                                    <p style={{ margin: 0, color: '#888', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} /> {event.location || 'TBA'}</p>
+                                                </div>
+                                                {(event.buy_in || event.guarantee) && (
+                                                    <div className="event-meta" style={{ textAlign: 'right' }}>
+                                                        {event.buy_in && <div className="buy-in" style={{ color: '#22c55e', fontWeight: 'bold' }}>{event.buy_in}</div>}
+                                                        {event.guarantee && <div className="guarantee" style={{ color: '#fbbf24', fontSize: '12px' }}>{event.guarantee}</div>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {events.length === 0 && (
+                                            <div className="no-results">
+                                                <Calendar size={48} />
+                                                <p>No Events Available Yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+                            )}
+
+                            {(activeSection === 'bookmarks' || activeSection === 'later') && (
+                                <section className="news-section">
+                                    <h2 className="section-title" style={{ padding: '0 20px', marginBottom: '20px' }}>
+                                        {activeSection === 'bookmarks' ? <BookmarkCheck size={18} /> : <Clock size={18} />}
+                                        {activeSection === 'bookmarks' ? ' Bookmarked Articles' : ' Read Later'}
+                                    </h2>
+                                    <div className={viewMode === 'list' ? 'news-grid news-grid-list' : 'news-grid'}>
+                                        {news.filter(a => activeSection === 'bookmarks' ? bookmarks.includes(a.id) : readArticles.includes(a.id)).map((article, index) => (
+                                            <NewsBox
+                                                key={article.id}
+                                                article={article}
+                                                index={index}
+                                                onOpen={openArticle}
+                                                isBookmarked={bookmarks.includes(article.id)}
+                                                onBookmark={toggleBookmark}
+                                                onShare={handleShare}
+                                                isRead={readArticles.includes(article.id)}
+                                            />
+                                        ))}
+                                        {news.filter(a => activeSection === 'bookmarks' ? bookmarks.includes(a.id) : readArticles.includes(a.id)).length === 0 && (
+                                            <div className="no-results" style={{ gridColumn: '1 / -1' }}>
+                                                <p>No articles found in {activeSection === 'bookmarks' ? 'Bookmarks' : 'Read Later'}.</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </section>
                             )}
                         </main>
