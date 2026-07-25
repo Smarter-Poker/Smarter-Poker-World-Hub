@@ -30,8 +30,13 @@ async function main() {
   await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
 
   console.log('Navigating to Poker News...');
-  await page.goto('https://smarter.poker/hub/news', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.goto('https://smarter.poker/hub/news', { waitUntil: 'load', timeout: 30000 });
   await page.waitForTimeout(3000); // Give JS time to hydrate and load data
+  
+  // Hide OneSignal overlay which blocks clicks
+  await page.evaluate(() => {
+    document.querySelectorAll('[id^="onesignal"]').forEach(el => el.style.display = 'none');
+  });
 
   async function testMenu(menuName, screenshotName) {
     console.log(`\n--- Testing ${menuName} ---`);
@@ -39,8 +44,8 @@ async function main() {
     // The hamburger menu button might be in the UniversalHeader or within the news header. 
     // Let's try to click the one that looks like a menu button.
     try {
-        const hamburgerBtn = page.locator('button:has(svg.lucide-menu), .hamburger-button').first();
-        await hamburgerBtn.click({ timeout: 5000 });
+        const hamburgerBtn = page.locator('button[aria-label="Open Menu"]').first();
+        await hamburgerBtn.click({ timeout: 5000, force: true });
         await page.waitForTimeout(1500); // Wait for menu slide-in animation
         
         // Take screenshot of open menu
@@ -49,7 +54,7 @@ async function main() {
         console.log(`Saved menu screenshot to ${menuShotPath}`);
 
         // Click menu item
-        await page.locator(`text="${menuName}"`).first().click({ timeout: 5000 });
+        await page.locator(`text="${menuName}"`).first().click({ timeout: 5000, force: true });
         
         // Wait for the route to change and page to re-render
         await page.waitForTimeout(2500); 
@@ -71,7 +76,7 @@ async function main() {
 
   console.log('\n--- Testing Toggles ---');
   try {
-      await page.locator('button:has(svg.lucide-menu), .hamburger-button').first().click();
+      await page.locator('button[aria-label="Open Menu"]').first().click({ force: true });
       await page.waitForTimeout(1500);
       await page.screenshot({ path: '/Users/smarter.poker/.gemini/antigravity/brain/1fae7edf-4610-444d-b8e7-838326b3c6c5/test-toggles.png' });
       console.log(`Saved toggles screenshot`);

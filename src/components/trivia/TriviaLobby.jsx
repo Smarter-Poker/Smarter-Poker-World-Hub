@@ -37,7 +37,7 @@ const MODE_CARDS = [
         glowColor: '#f97316',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/mtt-scenarios.png?v=rembg1'
+        image: '/images/trivia/mtt-scenarios.png?v=rembg2'
     },
     {
         id: 'cash',
@@ -48,7 +48,7 @@ const MODE_CARDS = [
         glowColor: '#31a24c',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/cash-game.png?v=rembg1'
+        image: '/images/trivia/cash-game.png?v=rembg2'
     },
     {
         id: 'icm',
@@ -59,7 +59,7 @@ const MODE_CARDS = [
         glowColor: '#2374e1',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/icm-chip-ev.png?v=rembg1'
+        image: '/images/trivia/icm-chip-ev.png?v=rembg2'
     },
     // ROW 2 - Core Trivia
     {
@@ -395,7 +395,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
             >
                 <img
-                    src="/images/trivia/daily-trivia-header-final.png"
+                    src="/images/trivia/daily-trivia-header-final.png?v=2"
                     alt="Daily Trivia - 10 Questions Fresh Every Day"
                     className="daily-trivia-banner__image"
                 />
