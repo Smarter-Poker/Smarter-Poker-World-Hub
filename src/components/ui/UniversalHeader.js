@@ -791,8 +791,8 @@ export default function UniversalHeader({
                 }
 
                 .hamburger-btn {
-                    width: 72px;
-                    height: 72px;
+                    width: 144px;
+                    height: 144px;
                     background: transparent;
                     border: none;
                     display: flex;
@@ -1045,7 +1045,7 @@ export default function UniversalHeader({
                             className="hamburger-btn"
                             aria-label="Open Menu"
                         >
-                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/btn-hamburger-nobg.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     {!hideLeftIcon && (
@@ -1054,7 +1054,7 @@ export default function UniversalHeader({
                             className="header-img-btn header-nav-btn"
                         >
                             <img
-                                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub.png'}
+                                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-nobg.png'}
                                 alt={pageDepth >= 2 ? 'Back' : 'Hub'}
                                 style={{ height: '100%', width: '100%', objectFit: 'contain' }}
                             />
@@ -1064,7 +1064,7 @@ export default function UniversalHeader({
 
                 {/* CENTER: Brand Text — centered between nav and icons */}
                 <div className="header-center">
-                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img hide-mobile" style={{ height: 28, objectFit: 'contain' }} />
+                    <img src="/images/brand-text-trimmed.png" alt="Smarter.Poker" className="brand-text-img hide-mobile" style={{ height: 120, objectFit: 'contain' }} />
                     {router.pathname.includes('/messenger') && (
                         <span className="hide-mobile" style={{ marginLeft: 8, fontSize: 16, display: 'flex', alignItems: 'center' }} title="Securely Encrypted">🔒</span>
                     )}
@@ -1079,7 +1079,7 @@ export default function UniversalHeader({
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
                     >
-                        <img src="/images/header-wallet.png" alt="Wallet" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                        <img src="/images/header-wallet-trimmed.png" alt="Wallet" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                     </button>
 
                     {/* VIP Card Icon — only for VIP members */}
@@ -1091,7 +1091,7 @@ export default function UniversalHeader({
                             title="VIP Member"
                         >
                                 <img
-                                    src="/images/vip-card.png"
+                                    src="/images/vip-card-trimmed.png"
                                     alt="VIP Member"
                                     style={{ width: 40, height: 40, objectFit: 'contain' }}
                                 />
@@ -1122,7 +1122,7 @@ export default function UniversalHeader({
 
                     {/* Messages - Custom Metallic Messenger icon — Sovereign Redirect (no popup) */}
                     <button onClick={() => { window.location.href = '/hub/messenger'; }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
-                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                            <img src="/images/header-messenger-trimmed.png" alt="Messages" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
@@ -1142,7 +1142,7 @@ export default function UniversalHeader({
 
                     {/* Settings - Custom Metallic Gear icon */}
                     <button onClick={() => onSettingsClick ? onSettingsClick() : openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
-                            <img src="/images/header-settings.png" alt="Settings" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                            <img src="/images/header-settings-trimmed.png" alt="Settings" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                     </button>
 
                     {/* Live Help - Hidden on mobile */}
@@ -1162,7 +1162,7 @@ export default function UniversalHeader({
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                        <img src="/images/header-help-trimmed.png" alt="Live Help" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                     </button>
 
 
