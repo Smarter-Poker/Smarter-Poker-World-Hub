@@ -536,8 +536,13 @@ export default function ValidationPage() {
                   Closing Line Value — Weekly
                 </div>
                 <div className="text-[16px] text-slate-400 mb-3">
+<<<<<<< Updated upstream
                   CLV measures whether flagged bets beat the closing price — the strongest
                   long-run predictor of real edge. Positive pts = the market moved our way.
+=======
+                  CLV measures whether flagged bets beat the closing price — the strongest long-run
+                  predictor of real edge. Positive pts = the market moved our way.
+>>>>>>> Stashed changes
                 </div>
                 {[
                   { label: 'By Market', rows: stats.clv.markets, nameKey: 'market' as const },

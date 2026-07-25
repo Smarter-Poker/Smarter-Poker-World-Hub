@@ -2380,8 +2380,13 @@ export default function BestBetsPage() {
                 Same-Game Parlays — Fair Price Guide
               </div>
               <div className="text-[15px] text-[#5a6a7a] mb-3 leading-relaxed">
+<<<<<<< Updated upstream
                 Correlated combos priced with the model's own game simulation. Only worth
                 betting if your book pays MORE than the fair price shown.
+=======
+                Correlated combos priced with the model's own game simulation. Only worth betting if
+                your book pays MORE than the fair price shown.
+>>>>>>> Stashed changes
               </div>
               <div className="grid md:grid-cols-2 gap-3">
                 {data.sgpSuggestions.slice(0, 6).map((s: any) => {

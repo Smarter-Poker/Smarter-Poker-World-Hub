@@ -33,7 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // every player with a bat profile (575+ pitchers) which polluted the hitters
     // directory (Verlander listed as a hitter) and doubled the payload. Two-way
     // players (TWP) are kept.
+<<<<<<< Updated upstream
     const data = await fetchAllRows(() => mlbDb.from('v_hitter_profile').select('*').neq('position', 'P'));
+=======
+    const data = await fetchAllRows(() =>
+      mlbDb.from('v_hitter_profile').select('*').neq('position', 'P')
+    );
+>>>>>>> Stashed changes
 
     // Success: Cache heavily
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
