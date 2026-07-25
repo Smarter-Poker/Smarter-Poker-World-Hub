@@ -19,11 +19,15 @@ function betInputsFromProp(
   let isOver: boolean;
   if (mktOver != null) isOver = probOver >= mktOver;
   else if (p.proj_mean != null && p.line != null) isOver = Number(p.proj_mean) > Number(p.line);
-  else isOver = probOver >= 0.5;
+  else return null; // no market AND no projection → unscoreable (was: coin-flip toward OVER)
 
   const pWin = isOver ? probOver : 1 - probOver;
   if (!(pWin > 0 && pWin < 1)) return null;
   const pMarket = mktOver == null ? null : isOver ? mktOver : 1 - mktOver;
+  // Plausibility clamp: a model-vs-market gap above 25 points on a prop signals corrupt
+  // or degenerate model output (e.g. a team-level probability written into every player
+  // row), not a real edge. Refuse to grade such rows.
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.15) return null;
   return { pWin, price, pMarket, isOver };
 }
 
@@ -86,34 +90,60 @@ async function edgeHandler(req: Request) {
       aggFloor = d.toISOString().slice(0, 10);
     }
 
-    const wrap = async (fn: () => Promise<any[]>) => { try { return { data: await fn(), error: null }; } catch (e) { return { data: null, error: e }; } };
+    const wrap = async (fn: () => Promise<any[]>) => {
+      try {
+        return { data: await fn(), error: null };
+      } catch (e) {
+        return { data: null, error: e };
+      }
+    };
     const recentPropsIso = `${slateDate}T00:00:00`;
 
     const [profRes, dimRes, aggRes, propsRes, hittersRes, pitchersRes, defRes] = await Promise.all([
-      wrap(() => fetchAllRows(() => mlbDb.from('v_team_profile').select('*').order('name', { ascending: true }))),
-      wrap(() => fetchAllRows(() => mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'))),
+      wrap(() =>
+        fetchAllRows(() =>
+          mlbDb.from('v_team_profile').select('*').order('name', { ascending: true })
+        )
+      ),
+      wrap(() =>
+        fetchAllRows(() => mlbDb.from('dim_teams').select('team_id, name, abbr, league, division'))
+      ),
       aggFloor
-        ? wrap(() => fetchAllRows(() => mlbDb
-            .from('agg_team')
-            .select(
-              'team_id, window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa'
+        ? wrap(() =>
+            fetchAllRows(() =>
+              mlbDb
+                .from('agg_team')
+                .select(
+                  'team_id, window_kind, as_of, era, fip, xfip, siera, pitching_war, avg, obp, slg, ops, hr, sb, wrc_plus, woba, hitting_war, def, uzr, drs, oaa'
+                )
+                .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
+                .gte('as_of', aggFloor)
+                .order('as_of', { ascending: false })
             )
-            .in('window_kind', ['season', 'fg_hitting', 'fg_pitching'])
-            .gte('as_of', aggFloor)
-            .order('as_of', { ascending: false })))
+          )
         : { data: [], error: null },
-      wrap(() => fetchAllRows(() => mlbDb
-        .from('pred_props')
-        .select('team_id, player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts')
-        .gte('as_of_ts', `${slateDate}T00:00:00`)
-        .lte('as_of_ts', `${slateDate}T23:59:59`)
-        .neq('prop', 'stolen_bases'))),
+      wrap(() =>
+        fetchAllRows(() =>
+          mlbDb
+            .from('pred_props')
+            .select(
+              'player_id, prop, line, proj_mean, prob_over, market_novig_over, best_price, edge_pts'
+            )
+            .gte('as_of_ts', `${slateDate}T00:00:00`)
+            .lte('as_of_ts', `${slateDate}T23:59:59`)
+            .neq('prop', 'stolen_bases')
+        )
+      ),
       wrap(() => fetchAllRows(() => mlbDb.from('v_hitter_profile').select('player_id, team_id'))),
       wrap(() => fetchAllRows(() => mlbDb.from('v_pitcher_profile').select('player_id, team_id'))),
       // Team defense (OAA/DRS/Def) + bullpen ERA/WHIP — one row per team_id.
-      wrap(() => fetchAllRows(() => mlbDb
-        .from('v_mlb_team_defense_bullpen')
-        .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip, hitting_war, pitching_war'))),
+      wrap(() =>
+        fetchAllRows(() =>
+          mlbDb
+            .from('v_mlb_team_defense_bullpen')
+            .select('team_id, oaa, drs, def, bullpen_era, bullpen_whip, hitting_war, pitching_war')
+        )
+      ),
     ]);
 
     if (profRes.error) {
@@ -239,7 +269,12 @@ async function edgeHandler(req: Request) {
     };
     const teamGrade = new Map<string, Grade>();
     for (const p of propsData) {
-      const teamId = p.team_id != null ? String(p.team_id) : (p.player_id != null ? playerToTeam.get(String(p.player_id)) : undefined);
+      const teamId =
+        p.team_id != null
+          ? String(p.team_id)
+          : p.player_id != null
+            ? playerToTeam.get(String(p.player_id))
+            : undefined;
       if (!teamId) continue;
       const inputs = betInputsFromProp(p);
       if (!inputs) continue;
@@ -342,7 +377,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
       ? req.headers['x-forwarded-proto'][0]
-      : (req.headers['x-forwarded-proto'] || 'http');
+      : req.headers['x-forwarded-proto'] || 'http';
     const protocol = rawProto.split(',')[0].trim();
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url}`;

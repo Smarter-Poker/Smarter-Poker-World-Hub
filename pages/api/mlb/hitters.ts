@@ -29,8 +29,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const mlbDb = getMlbSupabase();
     // Use fetchAllRows and query the view directly to bypass the 1000-row PostgREST limit
-    // and avoid overloaded RPC ambiguity.
-    const data = await fetchAllRows(() => mlbDb.from('v_hitter_profile').select('*'));
+    // and avoid overloaded RPC ambiguity. Exclude pure pitchers — the view contains
+    // every player with a bat profile (575+ pitchers) which polluted the hitters
+    // directory (Verlander listed as a hitter) and doubled the payload. Two-way
+    // players (TWP) are kept.
+    const data = await fetchAllRows(() =>
+      mlbDb.from('v_hitter_profile').select('*').neq('position', 'P')
+    );
 
     // Success: Cache heavily
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
