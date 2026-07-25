@@ -63,9 +63,15 @@ function FavoriteVenue({ venue, rank }) {
       </div>
       <div className="flex-1">
         <p className="font-medium text-white">{venue.name}</p>
-        <p className="text-sm text-[#64748B]">{venue.sessions} sessions</p>
+        {/* 2026-07-25 audit fix: favorite_venues rows carry id/name/city/state
+            only — show location instead of undefined session counts. */}
+        <p className="text-sm text-[#64748B]">
+          {venue.sessions != null
+            ? `${venue.sessions} sessions`
+            : [venue.city, venue.state].filter(Boolean).join(', ') || 'Recent venue'}
+        </p>
       </div>
-      <p className="text-sm text-[#64748B]">{venue.hours}h</p>
+      {venue.hours != null && <p className="text-sm text-[#64748B]">{venue.hours}h</p>}
     </div>
   );
 }
@@ -96,11 +102,29 @@ export default function PlayerProfilePage() {
         .then(rec => { if (rec.success) setRecommendations(rec.data?.recommendations || []); })
         .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
+    // 2026-07-25 audit fix: achievements live at data.profile.achievements (not
+    // data.achievements), stats come back snake_case (total_sessions,
+    // total_hours, ...), and favorite venues ride on the profile — the old
+    // reads all resolved to undefined/[]. Guard missing fields to 0/empty.
+    const rawStats = statsData.success ? (statsData.data?.stats || null) : null;
+    const mappedStats = rawStats ? {
+      totalSessions: rawStats.total_sessions ?? 0,
+      totalHours: rawStats.total_hours ?? 0,
+      totalBuyins: rawStats.total_buyins ?? 0,
+      avgSession: (rawStats.total_sessions > 0 && rawStats.total_hours != null)
+        ? Math.round((rawStats.total_hours / rawStats.total_sessions) * 10) / 10
+        : 0,
+      compBalance: rawStats.total_comps_earned ?? 0
+    } : null;
+    const rawAchievements = profileData.success
+      ? (profileData.data?.profile?.achievements || profileData.data?.achievements || [])
+      : [];
     return {
       profile: profileData.success ? profileData.data?.profile : null,
-      achievements: profileData.success ? (profileData.data?.achievements || []) : [],
-      stats: statsData.success ? statsData.data?.stats : null,
-      favoriteVenues: statsData.success ? (statsData.data?.favoriteVenues || []) : []
+      // API only returns earned achievements — mark them unlocked for the UI.
+      achievements: rawAchievements.map(a => ({ ...a, unlocked: a.unlocked ?? true })),
+      stats: mappedStats,
+      favoriteVenues: profileData.success ? (profileData.data?.profile?.favorite_venues || []) : []
     };
   });
   const profile = swrData?.profile || null;

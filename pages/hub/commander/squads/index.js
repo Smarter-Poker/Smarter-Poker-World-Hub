@@ -114,9 +114,15 @@ export default function SquadsPage() {
   // useEffect NOW AFTER useSWR so refreshSquads is initialized first
   useEffect(() => {
     if (!user?.id) return;
+    // 2026-07-25 audit fix: was subscribed to commander_tournament_entries
+    // (copy-paste bug) — squads live in commander_waitlist_groups /
+    // commander_waitlist_group_members.
     const ch = supabase
       .channel(`squads-list:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist_group_members', filter: `player_id=eq.${user.id}` }, () => {
+        refreshSquads();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist_groups' }, () => {
         refreshSquads();
       })
       .subscribe();

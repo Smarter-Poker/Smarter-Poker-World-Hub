@@ -113,6 +113,10 @@ export default function CreateSquadPage() {
     setLoading(true);
     try {
       const token = getAccessToken();
+      // 2026-07-25 audit fix: the API derives the leader from the Bearer user —
+      // send only the fields it accepts (name + game details + member_ids)
+      // instead of spreading formData (which leaked the raw members objects),
+      // and surface the server's error message from the response body.
       const res = await fetch('/api/commander/squads', {
         method: 'POST',
         headers: {
@@ -120,23 +124,34 @@ export default function CreateSquadPage() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...formData,
+          name: formData.name,
+          venue_id: formData.venue_id,
+          game_type: formData.game_type,
+          stakes: formData.stakes,
+          prefer_same_table: formData.prefer_same_table,
+          accept_split: formData.accept_split,
           member_ids: formData.members.map(m => m.id)
         })
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : '') || `Request failed (${res.status})`;
+        throw new Error(msg);
+      }
       if (data.success) {
         busEmit.dataMutated('squads');
-        router.push(`/hub/commander/squads/${data.data?.squad?.id || ''}`);
+        // 2026-07-25 audit fix: handle both {squad:{id}} and {squad_id} shapes.
+        const squadId = data.data?.squad?.id || data.data?.squad_id || '';
+        router.push(`/hub/commander/squads/${squadId}`);
       } else {
         setErrorMessage(data.error?.message || 'Failed to create squad');
         setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
       console.warn('Create failed:', err);
-      setErrorMessage('Failed to create squad. Please try again.');
+      // 2026-07-25 audit fix: show the server's message when available.
+      setErrorMessage(err?.message || 'Failed to create squad. Please try again.');
       setTimeout(() => setErrorMessage(null), 4000);
     } finally {
       setLoading(false);
