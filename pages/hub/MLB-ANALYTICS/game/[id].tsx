@@ -3,7 +3,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useMemo, useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { Target, Loader2, Zap, X, TrendingUp, TrendingDown, Minus, Info, Activity, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Target,
+  Loader2,
+  Zap,
+  X,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Info,
+  Activity,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import MlbSubNav from '../../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
@@ -23,9 +35,16 @@ const TIER_HEX: Record<string, string> = {
 };
 
 const PROP_LABELS: Record<string, string> = {
-  home_run: 'Home Run', hits: 'Hits', hrr: 'H+R+RBI', total_bases: 'Total Bases',
-  rbi: 'RBIs', runs: 'Runs', walks: 'Walks',
-  earned_runs: 'Earned Runs', pitcher_strikeouts: 'Pitcher Ks', pitcher_walks: 'Pitcher BB',
+  home_run: 'Home Run',
+  hits: 'Hits',
+  hrr: 'H+R+RBI',
+  total_bases: 'Total Bases',
+  rbi: 'RBIs',
+  runs: 'Runs',
+  walks: 'Walks',
+  earned_runs: 'Earned Runs',
+  pitcher_strikeouts: 'Pitcher Ks',
+  pitcher_walks: 'Pitcher BB',
   strikeouts: 'Strikeouts',
 };
 const propLabel = (p?: string | null) =>
@@ -51,10 +70,14 @@ export default function GameMatchupDashboard() {
   });
   const { data: specificGameData, error: specificGameErr } = useSWR(
     gamePk && (dashData?.error || !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk))
-      ? `/api/mlb/game/${gamePk}` : null, fetcher, {
+      ? `/api/mlb/game/${gamePk}`
+      : null,
+    fetcher,
+    {
       refreshInterval: 120000,
       keepPreviousData: true,
-    });
+    }
+  );
   // Fetch bets and props — model output updates daily, check every 5 min
   const { data: betsData, error: betsErr } = useSWR('/api/mlb/best-bets', fetcher, {
     refreshInterval: 300000,
@@ -66,7 +89,7 @@ export default function GameMatchupDashboard() {
   });
 
   // Only block the whole page on the game header data — bets/props load independently.
-  const isLoading = (!dashData && !dashErr && !specificGameData && !specificGameErr);
+  const isLoading = !dashData && !dashErr && !specificGameData && !specificGameErr;
 
   const game: GameCard | undefined = useMemo(() => {
     if (!gamePk) return undefined;
@@ -150,18 +173,42 @@ export default function GameMatchupDashboard() {
   }
 
   // Game not found (API returned error or not in today's slate and not in DB)
-  const gameNotFound = !isLoading && !game && (specificGameData?.error || (dashData && !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk)));
+  const gameNotFound =
+    !isLoading &&
+    !game &&
+    (specificGameData?.error ||
+      (dashData && !dashData?.slateGames?.find((g: any) => g.gamePk === gamePk)));
   if (gameNotFound) {
     return (
       <div className="min-h-screen bg-[#060B14] text-[#E0E7FF] pb-[70px] w-full max-w-[100vw] overflow-x-hidden box-border">
-        <SEOHead title="Game Not Found — MLB Analytics | Smarter.Poker" description="This game was not found in the MLB database." />
+        <SEOHead
+          title="Game Not Found — MLB Analytics | Smarter.Poker"
+          description="This game was not found in the MLB database."
+        />
         <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
         <MlbSubNav />
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+<<<<<<< Updated upstream
           <X className="w-12 h-12 text-[#FF4444] mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.6))' }} />
           <h2 className="text-2xl font-extrabold text-white font-['Rajdhani'] mb-2">Game Not Found</h2>
           <p className="text-slate-400 text-sm mb-6">This game ID could not be found in the current slate or the MLB database.</p>
           <Link href="/hub/MLB-ANALYTICS" className="inline-block bg-[#1a2332] text-white px-6 py-2 rounded border border-[#3d4f5f] text-sm font-bold tracking-widest hover:bg-[#2a3a4a]">
+=======
+          <X
+            className="w-12 h-12 text-[#FF4444] mb-4"
+            style={{ filter: 'drop-shadow(0 0 8px rgba(255,68,68,0.6))' }}
+          />
+          <h2 className="text-2xl font-extrabold text-white font-['Rajdhani'] mb-2">
+            Game Not Found
+          </h2>
+          <p className="text-slate-400 text-sm mb-6">
+            This game ID could not be found in the current slate or the MLB database.
+          </p>
+          <Link
+            href="/hub/MLB-ANALYTICS"
+            className="inline-block bg-[#1a2332] text-white px-6 py-2 rounded border border-[#3d4f5f] text-sm font-bold tracking-widest hover:bg-[#2a3a4a]"
+          >
+>>>>>>> Stashed changes
             Back to Dashboard
           </Link>
         </div>
@@ -449,7 +496,11 @@ export default function GameMatchupDashboard() {
                       className="bg-[#0A101C] p-4 rounded-lg border border-[#1A2436] flex items-center justify-between hover:border-[#00D4FF]/40 transition-colors cursor-pointer focus:outline-none focus:border-[#00D4FF]/60"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Link href={`/hub/MLB-ANALYTICS/players/${prop.player_id}`} className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          href={`/hub/MLB-ANALYTICS/players/${prop.player_id}`}
+                          className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={playerHeadshot(prop.player_id) || teamLogo(prop.team_id) || ''}
@@ -465,7 +516,13 @@ export default function GameMatchupDashboard() {
                         </Link>
                         <div className="flex flex-col min-w-0 justify-end pb-1">
                           <span className="text-[21px] text-[#8BA4D5] capitalize tracking-wider">
-                            {propLabel(prop?.prop)} {String(prop?.side || '').toLowerCase() === 'under' ? 'U' : String(prop?.side || '').toLowerCase() === 'over' ? 'O' : ''} {prop?.line}
+                            {propLabel(prop?.prop)}{' '}
+                            {String(prop?.side || '').toLowerCase() === 'under'
+                              ? 'U'
+                              : String(prop?.side || '').toLowerCase() === 'over'
+                                ? 'O'
+                                : ''}{' '}
+                            {prop?.line}
                           </span>
                         </div>
                       </div>
@@ -499,15 +556,7 @@ export default function GameMatchupDashboard() {
 }
 
 // ── Player-prop detail modal ───────────────────────────────────────────────────
-function PropModal({
-  prop,
-  game,
-  onClose,
-}: {
-  prop: any;
-  game: GameCard;
-  onClose: () => void;
-}) {
+function PropModal({ prop, game, onClose }: { prop: any; game: GameCard; onClose: () => void }) {
   const [showLogs, setShowLogs] = useState(false);
 
   // Close on Escape
@@ -586,7 +635,13 @@ function PropModal({
               </h3>
               <p className="text-[17px] text-[#8BA4D5] font-['Rajdhani'] tracking-wider">
                 {prop.team_abbr ? `${prop.team_abbr} · ` : ''}
-                {propLabel(prop?.prop)} {String(prop?.side || '').toLowerCase() === 'under' ? 'Under' : String(prop?.side || '').toLowerCase() === 'over' ? 'Over' : ''} {prop?.line}
+                {propLabel(prop?.prop)}{' '}
+                {String(prop?.side || '').toLowerCase() === 'under'
+                  ? 'Under'
+                  : String(prop?.side || '').toLowerCase() === 'over'
+                    ? 'Over'
+                    : ''}{' '}
+                {prop?.line}
                 {'  ·  '}
                 {fmtOdds(prop.odds ?? prop.price)}
               </p>
@@ -602,7 +657,11 @@ function PropModal({
               className="text-[30px] font-extrabold font-['Rajdhani'] leading-none"
               style={{ color: tierColor }}
             >
-              {prop.bet_score != null ? (Number(prop.bet_score) % 1 !== 0 ? Number(prop.bet_score).toFixed(1) : prop.bet_score) : '—'}
+              {prop.bet_score != null
+                ? Number(prop.bet_score) % 1 !== 0
+                  ? Number(prop.bet_score).toFixed(1)
+                  : prop.bet_score
+                : '—'}
             </p>
             <p className="text-[13px] font-bold mt-1" style={{ color: tierColor }}>
               {prop.bet_tier || ''}
@@ -632,7 +691,11 @@ function PropModal({
           {prop.score_verdict && (
             <div
               className="rounded-lg px-4 py-3 text-[16px] font-bold font-['Rajdhani'] tracking-wide"
-              style={{ color: tierColor, background: `${tierColor}14`, border: `1px solid ${tierColor}40` }}
+              style={{
+                color: tierColor,
+                background: `${tierColor}14`,
+                border: `1px solid ${tierColor}40`,
+              }}
             >
               {prop.score_verdict}
             </div>
@@ -721,13 +784,27 @@ function PropModal({
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-[#111827] border-b border-[#1A2436]">
                         <tr>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">Date</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">IP</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">H</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">ER</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">BB</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize font-['Rajdhani']">K</th>
-                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">Pit</th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            Date
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            IP
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            H
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            ER
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            BB
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#00D4FF] capitalize font-['Rajdhani']">
+                            K
+                          </th>
+                          <th className="px-3 py-2 font-black tracking-wider text-[#8BA4D5] capitalize font-['Rajdhani']">
+                            Pit
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-[#060B14]">
@@ -744,7 +821,9 @@ function PropModal({
                             <td className="px-3 py-2 text-white font-medium">{log.ER ?? '-'}</td>
                             <td className="px-3 py-2 text-white font-medium">{log.BB ?? '-'}</td>
                             <td className="px-3 py-2 text-[#00D4FF] font-black">{log.K ?? '-'}</td>
-                            <td className="px-3 py-2 text-slate-400 font-medium">{log.Pitches ?? '-'}</td>
+                            <td className="px-3 py-2 text-slate-400 font-medium">
+                              {log.Pitches ?? '-'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
