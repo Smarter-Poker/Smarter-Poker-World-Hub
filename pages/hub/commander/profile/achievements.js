@@ -23,8 +23,15 @@ export default function AchievementsPage() {
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
     const token = getAccessToken();
     if (!token) return null;
+    // 2026-07-25 audit fix: achievements live at data.profile.achievements
+    // (not data.achievements) and the API only returns earned ones — mark
+    // them unlocked so the unlocked/locked filters and progress bar work.
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => d.success ? (d.data?.achievements || []) : []);
+      .then(r => r.json())
+      .then(d => {
+        const list = d.success ? (d.data?.profile?.achievements || d.data?.achievements || []) : [];
+        return list.map(a => ({ ...a, unlocked: a.unlocked ?? true }));
+      });
   });
   const achievements = swrData || [];
 

@@ -143,7 +143,9 @@ export default function PlayerNotificationsPage() {
       const _authToken = getAccessToken();
       const token = _authToken;
 
-      await fetch(`/api/commander/notifications/${notification.id}`, {
+      // 2026-07-25 audit fix: check res.ok — a 4xx/5xx previously left the
+      // optimistic "read" state in place even though the server rejected it.
+      const res = await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -151,6 +153,7 @@ export default function PlayerNotificationsPage() {
         },
         body: JSON.stringify({ read_at: new Date().toISOString() })
       });
+      if (!res.ok) throw new Error(`Mark read failed (${res.status})`);
       busEmit.dataMutated('notifications');
     } catch (err) {
       console.warn('Mark read failed:', err);
@@ -158,6 +161,7 @@ export default function PlayerNotificationsPage() {
       setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, read_at: null } : n)
       );
+      refreshNotifications();
     }
   }
 
@@ -170,15 +174,19 @@ export default function PlayerNotificationsPage() {
       const _authToken = getAccessToken();
       const token = _authToken;
 
-      await fetch(`/api/commander/notifications/${notification.id}`, {
+      // 2026-07-25 audit fix: check res.ok — a failed DELETE previously left
+      // the notification hidden locally while it still existed server-side.
+      const res = await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
       busEmit.dataMutated('notifications');
     } catch (err) {
       console.warn('Delete failed:', err);
       // Revert on error
       setNotifications(prevNotifications);
+      refreshNotifications();
     }
   }
 
@@ -193,15 +201,18 @@ export default function PlayerNotificationsPage() {
       const _authToken = getAccessToken();
       const token = _authToken;
 
-      await fetch('/api/commander/notifications/mark-all-read', {
+      // 2026-07-25 audit fix: check res.ok so a rejected mark-all-read reverts.
+      const res = await fetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Mark all read failed (${res.status})`);
       busEmit.dataMutated('notifications');
     } catch (err) {
       console.warn('Mark all read failed:', err);
       // Revert on error
       setNotifications(prevNotifications);
+      refreshNotifications();
     }
   }
 

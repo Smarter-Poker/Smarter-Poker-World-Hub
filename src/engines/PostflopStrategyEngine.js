@@ -829,7 +829,8 @@ export function classifyHandClass(holeCards, board) {
     const maxBoardRank = Math.max(...boardRanks.map(r => RANK_VALS[r] || 0));
     const hasOvercards = heroRanks.filter(r => (RANK_VALS[r] || 0) > maxBoardRank).length >= 2;
 
-    if (hasOvercards) return 'overcards';
+    // On the river unimproved overcards are just air — the river matrices have no 'overcards' row
+    if (hasOvercards) return street === 'river' ? 'air' : 'overcards';
 
     // Check for backdoor draws (flop only)
     if (street === 'flop' && draws.outs >= 1) return 'backdoor';
@@ -861,7 +862,7 @@ export function classifyBoardTexture(boardAnalysis) {
 
     // Broadway dry (all cards T+)
     const RANK_VALS = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
-    if (boardAnalysis.cards && boardAnalysis.cards.every(c => (RANK_VALS[c[0]] || 0) >= 10)) {
+    if (boardAnalysis.board && boardAnalysis.board.every(c => (RANK_VALS[c[0]] || 0) >= 10)) {
         return 'broadway_dry';
     }
 
@@ -897,7 +898,7 @@ export function classifyTurnRunout(flopAnalysis, turnAnalysis, turnCard) {
     }
 
     // Check if overcard
-    const flopCards = flopAnalysis.cards || [];
+    const flopCards = flopAnalysis.board || [];
     const maxFlopRank = Math.max(...flopCards.map(c => RANK_VALS[c?.[0]] || 0));
     if (turnRank > maxFlopRank && turnRank >= 11) { // J+ overcard
         return 'overcard';
@@ -971,7 +972,10 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
             drawInfo: draws,
             isEnhanced: true,
         };
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+        return getCbetStrategy(board, posContext, holeCards);
+    }
 }
 
 /**
@@ -1053,8 +1057,13 @@ export function getEnhancedRiverStrategy(holeCards, board, posContext, prevActio
             category = 'bluff_catcher';
         }
 
+        // Bluff catchers face a call/fold decision, not a bet/check one
+        const action = category === 'bluff_catcher'
+            ? (madeHand.strength >= 0.25 ? ACTIONS.CALL : ACTIONS.FOLD)
+            : (betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK);
+
         return {
-            action: betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK,
+            action,
             frequency: Math.round(betFreq * 100) / 100,
             sizing: BET_SIZES[sizingKey],
             sizingKey,

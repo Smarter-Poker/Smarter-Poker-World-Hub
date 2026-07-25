@@ -44,8 +44,8 @@ export function calculateActionEVs(params) {
 
     // Combined equity estimate (made hand strength + draw equity)
     const equity = Math.min(0.95, Math.max(0.05,
-        madeHand.strength * 0.7 + (draws.equity || 0) * 0.3 + madeHand.strength
-    ) / 2);
+        madeHand.strength * 0.7 + (draws.equity || 0) * 0.3
+    ));
 
     const facingBet = currentBet > 0;
     const actions = {};

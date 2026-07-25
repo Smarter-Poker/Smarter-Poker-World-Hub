@@ -298,13 +298,18 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             // the endpoint always returned anonymous defaults — combined with
             // the dead-table read server-side, progress never displayed.
             let levelProgress: any = {};
+            let highestUnlocked = 1;
             try {
                 const token = getSessionToken();
                 const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`, {
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
                 const progressData = await progressRes.json();
-                levelProgress = progressData.levels || {};
+                levelProgress = progressData?.levels || {};
+                highestUnlocked = progressData?.levels?.highestUnlocked
+                    ?? progressData?.highest_level_unlocked
+                    ?? progressData?.progress?.highest_level_unlocked
+                    ?? 1;
             } catch (e) {
                 console.warn('[LevelSelector] Progress fetch failed, showing default levels');
             }
@@ -318,8 +323,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 const progress = levelProgress[levelKey] || {};
                 const prevProgress = i > 1 ? (levelProgress[`level_${i - 1}`] || {}) : null;
 
-                // Lock logic: Level 1 always unlocked, others need previous level ≥85%
-                const isUnlocked = i === 1 || (prevProgress?.highScore || 0) >= PASSING_GRADES[i - 2];
+                // Lock logic: Level 1 always unlocked, others unlock via server-reported
+                // highest_level_unlocked or previous level high score ≥ passing grade
+                const isUnlocked = i === 1 || i <= highestUnlocked || (prevProgress?.highScore || 0) >= PASSING_GRADES[i - 2];
                 const isCompleted = (progress.highScore || 0) >= PASSING_GRADES[i - 1];
 
                 const regLevel = getLevel(i);

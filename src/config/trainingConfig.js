@@ -65,9 +65,9 @@ export function checkLevelPassed(level, correctAnswers, totalQuestions = TRAININ
 /**
  * Get diamond reward for completing a level
  */
-export function getDiamondReward(level, correctAnswers, streakBonus = 0) {
+export function getDiamondReward(level, correctAnswers, streakBonus = 0, totalQuestions = TRAINING_CONFIG.questionsPerLevel) {
     const multiplier = TRAINING_CONFIG.diamondMultipliers[level] || 1.0;
-    const accuracy = correctAnswers / TRAINING_CONFIG.questionsPerLevel;
+    const accuracy = correctAnswers / totalQuestions;
     const baseDiamonds = 5;
     const accuracyBonus = accuracy >= 1.0 ? 10 : accuracy >= 0.9 ? 5 : accuracy >= 0.85 ? 3 : 0;
     return Math.round((baseDiamonds + accuracyBonus + streakBonus) * multiplier);

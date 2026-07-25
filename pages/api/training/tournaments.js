@@ -102,7 +102,7 @@ export default async function handler(req, res) {
                   const now = new Date().toISOString();
                   query = query.eq('status', 'live')
                       .limit(100);
-              } else if (status === 'upcoming') {
+              } else if (status === 'scheduled' || status === 'upcoming') {
                   query = query.eq('status', 'scheduled')
                       .limit(100);
               } else if (status === 'completed') {
@@ -314,7 +314,7 @@ export default async function handler(req, res) {
 
       // PUT: Submit tournament results
       if (req.method === 'PUT') {
-          const { tournamentId, score, accuracy, timeTaken, questionsAnswered, questionsCorrect } = req.body;
+          let { tournamentId, score, accuracy, timeTaken, questionsAnswered, questionsCorrect } = req.body;
           // userId from JWT (set at top of handler)
 
           if (!tournamentId) {
@@ -337,6 +337,12 @@ export default async function handler(req, res) {
               if (entry.status === 'completed') {
                   return res.status(400).json({ success: false, error: 'Already submitted results' });
               }
+
+              // Clamp self-reported results to sane bounds before scoring
+              accuracy = Math.max(0, Math.min(100, Number(accuracy) || 0));
+              timeTaken = Math.max(0, Number(timeTaken) || 0);
+              questionsAnswered = Math.max(0, Number(questionsAnswered) || 0);
+              questionsCorrect = Math.min(Math.max(0, Number(questionsCorrect) || 0), questionsAnswered);
 
               // Calculate score (accuracy * 100 + time bonus)
               const timeBonus = Math.max(0, 300 - (timeTaken || 0)); // Bonus for faster completion

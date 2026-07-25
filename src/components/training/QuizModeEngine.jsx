@@ -43,7 +43,7 @@ const QUESTION_BANK = [
   { type: 'ev', q: 'Pot is 100bb. You bet 50bb. Opponent needs to fold at least X% for a pure bluff to profit.', options: ['25%', '33%', '40%', '50%'], correct: 1, explanation: 'Bet/(Bet+Pot) = 50/(50+100) = 33%. Villain needs to fold 33%+ for your bluff to be profitable.' },
 
   // Concept questions
-  { type: 'concept', q: 'What is "range advantage"?', options: ['Having more nut hands', 'Higher average equity', 'More combo draws', 'Better position'], correct: 0, explanation: 'Range advantage means having more strong/nutted combinations in your range on a given board texture.' },
+  { type: 'concept', q: 'What is "range advantage"?', options: ['Having more nut hands', 'Higher average equity', 'More combo draws', 'Better position'], correct: 1, explanation: 'Range advantage means your whole range has higher average equity on a board. Having more nut combos is nut advantage — a related but distinct concept.' },
   { type: 'concept', q: 'In a 3-bet pot, the 3-bettor typically has what advantage on most boards?', options: ['Position', 'Range advantage', 'Stack advantage', 'Information'], correct: 1, explanation: 'The 3-bettor has range advantage on most boards because their range is narrower and stronger.' },
   { type: 'concept', q: 'What does "polarized" mean in poker strategy?', options: ['Playing only premium hands', 'Betting with only strong hands and bluffs, not medium strength', 'Always raising or folding', 'Playing from the blinds'], correct: 1, explanation: 'A polarized range contains strong value hands and bluffs, with medium-strength hands checking.' },
 ];
@@ -60,6 +60,9 @@ export default function QuizModeEngine() {
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const timerRef = useRef(null);
+  // Keep a ref to the latest handleAnswer so the timeout in the interval
+  // never calls a stale closure
+  const handleAnswerRef = useRef(null);
 
   // Start quiz
   const startQuiz = useCallback(() => {
@@ -87,8 +90,8 @@ export default function QuizModeEngine() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          // Auto-wrong on timeout
-          handleAnswer(-1);
+          // Auto-wrong on timeout (via ref to avoid stale closure)
+          handleAnswerRef.current?.(-1);
           return 0;
         }
         return prev - 1;
@@ -105,11 +108,13 @@ export default function QuizModeEngine() {
     const isCorrect = optIdx === q?.correct;
     const timeBonus = difficulty.timer > 0 ? Math.round(timeLeft / difficulty.timer * 50) : 0;
     const streakBonus = isCorrect ? streak * 10 : 0;
-    const basePoints = isCorrect ? 100 : 0;
+    const basePoints = 100;
+    // Wrong answers (including timeouts) score zero — no time bonus leaks
+    const points = isCorrect ? basePoints + timeBonus + streakBonus : 0;
 
     setAnswers(prev => [...prev, {
       question: q, selected: optIdx, correct: isCorrect,
-      points: basePoints + timeBonus + streakBonus,
+      points,
       timeLeft, streak: isCorrect ? streak + 1 : 0,
     }]);
 
@@ -123,6 +128,8 @@ export default function QuizModeEngine() {
       setStreak(0);
     }
   }, [selected, questions, currentQ, timeLeft, streak, difficulty]);
+
+  handleAnswerRef.current = handleAnswer;
 
   const nextQuestion = useCallback(() => {
     if (currentQ + 1 >= questions.length) {

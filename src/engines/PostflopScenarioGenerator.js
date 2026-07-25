@@ -39,6 +39,7 @@ import {
     BET_SIZES,
     ACTIONS,
 } from './PostflopStrategyEngine';
+import { lookupCheckRaiseStrategy } from '../config/postflopSolverData';
 
 // ── Scenario Templates ───────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ function generateBoard(heroCards, numCards, seed) {
  * Convert hand notation (e.g., "AKs") to specific cards,
  * picking random suits that don't conflict with the board.
  */
-function resolveHeroCards(handNotation, existingDeadCards = []) {
+function resolveHeroCards(handNotation, existingDeadCards = [], seed) {
     const combos = handToCards(handNotation);
     if (!combos || combos.length === 0) return null;
 
@@ -121,7 +122,11 @@ function resolveHeroCards(handNotation, existingDeadCards = []) {
     const valid = combos.filter(combo => !combo.some(c => dead.has(c)));
     if (valid.length === 0) return null;
 
-    return valid[Math.floor(Math.random() * valid.length)];
+    // Deterministic suit choice when a seed is provided (matches board seeding)
+    const idx = Number.isFinite(seed)
+        ? Math.abs(Math.floor(seed)) % valid.length
+        : Math.floor(Math.random() * valid.length);
+    return valid[idx];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -140,7 +145,7 @@ export function generateLevel8() {
         for (let handIdx = 0; handIdx < HERO_HANDS.length; handIdx++) {
             const handNotation = HERO_HANDS[handIdx];
             const seed = 8000 + id * 7 + handIdx * 13; // deterministic but varied
-            const heroCards = resolveHeroCards(handNotation);
+            const heroCards = resolveHeroCards(handNotation, [], seed);
             if (!heroCards) continue;
 
             const board = generateBoard(heroCards, 3, seed);
@@ -149,25 +154,45 @@ export function generateLevel8() {
 
             const madeHand = classifyMadeHand(heroCards, board);
             const draws = classifyDraws(heroCards, board);
+            // Enrich with hand class for granular training
+            const handClass = classifyHandClass(heroCards, board);
 
             // Get GTO strategy — use ENHANCED solver-data lookup
             let strategy;
             if (matchup.isPFR) {
                 strategy = getEnhancedCbetStrategy(board, matchup.posContext, heroCards);
             } else {
-                // As defender, the primary decision is check-raise vs call vs fold
-                strategy = getCheckRaiseStrategy(board, heroCards, 0.33);
+                // As defender, use the calibrated check-raise matrix so options
+                // and correctAction come from the same solver source
+                const textureKey = classifyBoardTexture(boardAnalysis);
+                const xr = lookupCheckRaiseStrategy(textureKey, handClass);
+                strategy = {
+                    raiseFreq: xr.raise,
+                    callFreq: xr.call,
+                    foldFreq: xr.fold,
+                    shouldRaise: xr.raise >= xr.call && xr.raise >= xr.fold,
+                    raiseSizing: xr.raiseSizing,
+                    boardTexture: textureKey,
+                    reason: `${handClass} on ${textureKey} — XR ${Math.round(xr.raise * 100)}% / call ${Math.round(xr.call * 100)}% / fold ${Math.round(xr.fold * 100)}%`,
+                    isEnhanced: true,
+                };
             }
-            // Enrich with hand class for granular training
-            const handClass = classifyHandClass(heroCards, board);
 
             // Build the options the player will see
             const options = buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards);
 
-            // Determine the correct action
-            const correctAction = matchup.isPFR
-                ? (strategy.shouldBet ? 'bet' : 'check')
-                : (strategy.shouldRaise ? 'raise' : (madeHand.strength >= 0.15 || draws.outs >= 4 ? 'call' : 'fold'));
+            // Determine the correct action (defender: argmax of the same matrix
+            // frequencies buildFlopOptions uses, so the two always agree)
+            let correctAction;
+            if (matchup.isPFR) {
+                correctAction = strategy.shouldBet ? 'bet' : 'check';
+            } else {
+                const raisePct = Math.round((strategy.raiseFreq || 0) * 100);
+                const callPct = Math.round((strategy.callFreq || 0) * 100);
+                const foldPct = Math.max(0, 100 - raisePct - callPct);
+                const maxPct = Math.max(raisePct, callPct, foldPct);
+                correctAction = raisePct === maxPct ? 'raise' : (callPct === maxPct ? 'call' : 'fold');
+            }
 
             scenarios.push({
                 id: `l8-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
@@ -393,7 +418,7 @@ export function generateLevel9() {
         for (let handIdx = 0; handIdx < HERO_HANDS.length; handIdx++) {
             const handNotation = HERO_HANDS[handIdx];
             const seed = 9000 + id * 11 + handIdx * 17;
-            const heroCards = resolveHeroCards(handNotation);
+            const heroCards = resolveHeroCards(handNotation, [], seed);
             if (!heroCards) continue;
 
             const board = generateBoard(heroCards, 4, seed);
@@ -467,7 +492,7 @@ export function generateLevel10() {
         for (let handIdx = 0; handIdx < HERO_HANDS.length; handIdx++) {
             const handNotation = HERO_HANDS[handIdx];
             const seed = 10000 + id * 13 + handIdx * 19;
-            const heroCards = resolveHeroCards(handNotation);
+            const heroCards = resolveHeroCards(handNotation, [], seed);
             if (!heroCards) continue;
 
             const board = generateBoard(heroCards, 5, seed);
@@ -476,8 +501,9 @@ export function generateLevel10() {
 
             const madeHand = classifyMadeHand(heroCards, board);
 
-            // Mix of scenarios: some where hero was aggressor, some where hero checked
-            const prevAction = id % 3 === 0 ? 'check' : 'bet';
+            // Mix of scenarios: some where hero was aggressor, some where hero checked.
+            // Callers (non-PFR) never barreled, so their line is always check/call.
+            const prevAction = matchup.isPFR ? (id % 3 === 0 ? 'check' : 'bet') : 'check';
 
             // Use ENHANCED solver-data lookup for river
             const strategy = getEnhancedRiverStrategy(heroCards, board, matchup.posContext, prevAction);
@@ -485,11 +511,30 @@ export function generateLevel10() {
 
             const options = buildRiverOptions(strategy, madeHand, prevAction);
 
+            // Narrative must match hero's role in the hand
+            let lineNarrative;
+            if (!matchup.isPFR) {
+                lineNarrative = 'Hero called the flop and turn.';
+            } else if (prevAction === 'bet') {
+                lineNarrative = 'Hero bet flop+turn, villain called.';
+            } else {
+                lineNarrative = 'Both checked to river.';
+            }
+            let description = `${matchup.context}. ${lineNarrative} Board: ${board.join(' ')}.`;
+
+            // Bluff catchers face a bet: correctAction must match the call/fold
+            // option marked isCorrect in buildRiverOptions (strength >= 0.25 → call)
+            let correctAction = strategy.action;
+            if (strategy.category === 'bluff_catcher') {
+                correctAction = madeHand.strength >= 0.25 ? 'call' : 'fold';
+                description += ' Villain bets river.';
+            }
+
             scenarios.push({
                 id: `l10-river-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
                 level: 10,
                 title: `River: ${handNotation} — ${matchup.context}`,
-                description: `${matchup.context}. ${prevAction === 'bet' ? 'Hero bet flop+turn, villain called.' : 'Both checked to river.'} Board: ${board.join(' ')}.`,
+                description,
                 tip: strategy.reason,
                 heroCards,
                 heroHand: handNotation,
@@ -506,7 +551,7 @@ export function generateLevel10() {
                 handClass,
                 madeHand,
                 options,
-                correctAction: strategy.action,
+                correctAction,
                 strategy,
                 sizeDistribution: strategy.sizeDistribution || null,
                 prevAction,

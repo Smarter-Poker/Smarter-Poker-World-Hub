@@ -93,9 +93,13 @@ export default function SquadDetailPage() {
   // Realtime listener — live updates for squads/[id].js
   useEffect(() => {
     if (!id) return;
+    // 2026-07-25 audit fix: was subscribed to commander_tournament_entries
+    // (copy-paste bug) — this squad's data lives in commander_waitlist_groups
+    // and commander_waitlist_group_members, keyed by group id.
     const ch = supabase
       .channel(`squad:${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_tournament_entries', filter: `tournament_id=eq.${id}` }, () => { fetchSquad(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist_group_members', filter: `group_id=eq.${id}` }, () => { fetchSquad(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist_groups', filter: `id=eq.${id}` }, () => { fetchSquad(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);

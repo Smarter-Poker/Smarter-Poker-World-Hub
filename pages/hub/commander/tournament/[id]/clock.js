@@ -130,6 +130,9 @@ export default function TournamentClockDisplay() {
   }
 
   return (
+    // 2026-07-25 audit fix: CommanderPageShell moved here from StatCard, which
+    // wrapped every stat tile in its own shell (stacking fixed hamburger menus).
+    <CommanderPageShell>
     <>
       <SEOHead
         title="Tournament Clock"
@@ -226,17 +229,16 @@ export default function TournamentClockDisplay() {
         )}
       </div>
     </>
+    </CommanderPageShell>
   );
 }
 
 function StatCard({ icon: Icon, label, value }) {
   return (
-    <CommanderPageShell>
     <div className="text-center">
       <Icon className="w-8 h-8 text-[#64748B] mx-auto mb-2" />
       <p className="text-3xl font-bold text-white">{value}</p>
       <p className="text-sm text-[#64748B] uppercase tracking-wide">{label}</p>
     </div>
-    </CommanderPageShell>
   );
 }

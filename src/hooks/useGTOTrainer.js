@@ -39,21 +39,90 @@ function applyDifficultyToQuestion(question, difficultyMode) {
   if (!question || !question.options || difficultyMode === 'standard') return question;
   try {
     const potSize = question.scenario?.pot || 10;
+    // Normalize each option to the canonical action token simplifyActions matches on
+    // ('fold'|'check'|'call'|'bet'|'raise'|'allin') — raw ids like 'b33'/'x'/'f' or
+    // display text like 'Bet 33%' would otherwise never match and get dropped.
+    const tokenOf = (o) => {
+      const id = String(o.id || '').toLowerCase();
+      const text = String(o.text || '').toLowerCase();
+      if (id === 'f' || id === 'fold' || id === 'simple_fold' || text.startsWith('fold')) return 'fold';
+      if (id === 'x' || id === 'check' || text.startsWith('check')) return 'check';
+      if (id === 'c' || id === 'call' || text.startsWith('call')) return 'call';
+      if (id === 'allin' || id === 'push' || text.includes('all-in') || text.includes('all in') || text.startsWith('push') || text.startsWith('shove') || text.startsWith('jam')) return 'allin';
+      if (/^r\d*$/.test(id) || id === 'raise' || text.startsWith('raise') || text.includes('3-bet') || text.includes('4-bet')) return 'raise';
+      if (/^b\d*$/.test(id) || id === 'bet' || text.startsWith('bet')) return 'bet';
+      return text.split(' ')[0] || id;
+    };
+    const enriched = question.options.map((o) => ({
+      id: o.id,
+      text: o.text,
+      action: tokenOf(o),
+      frequency: question.gtoFrequencies?.[o.id] || 0,
+    }));
     const simplified = simplifyActions(
-      question.options.map((o) => ({
-        id: o.id,
-        text: o.text,
-        action: o.text?.toLowerCase?.() || o.id,
-        frequency: question.gtoFrequencies?.[o.id] || 0,
-      })),
+      enriched,
       difficultyMode === 'simple' ? DIFFICULTY.SIMPLE : DIFFICULTY.GROUPED,
       potSize
     );
     if (simplified && simplified.length > 0) {
+      // simplifyActions returns { action, label, amount?, mappedFrom?, isSimplified }
+      // where mappedFrom is an array of the original option objects it collapsed.
+      // Passive entries (check/call/fold) carry no mappedFrom — recover their
+      // original option ids via the canonical token.
+      const idsByToken = {};
+      for (const o of enriched) {
+        if (!idsByToken[o.action]) idsByToken[o.action] = [];
+        idsByToken[o.action].push(o.id);
+      }
+      const memberIds = (s) => {
+        const fromMapped = (s.mappedFrom || [])
+          .map((m) => (typeof m === 'string' ? m : m.id))
+          .filter(Boolean);
+        if (fromMapped.length) return fromMapped;
+        if (s.isSimplified && (s.label === 'Raise' || s.label === 'Bet')) {
+          return [
+            ...(idsByToken.bet || []),
+            ...(idsByToken.raise || []),
+            ...(idsByToken.allin || []),
+          ];
+        }
+        return idsByToken[s.action] || [];
+      };
+      const newOptions = simplified.map((s) => ({
+        id: s.id || s.action,
+        text: s.text || s.label,
+      }));
+      // Remap correctAnswer onto the simplified option that covers the original id
+      const origCorrect = question.correctAnswer;
+      let newCorrect = origCorrect;
+      const owner = simplified.find(
+        (s) =>
+          memberIds(s).includes(origCorrect) || s.action === origCorrect || s.id === origCorrect
+      );
+      if (owner) newCorrect = owner.id || owner.action;
+      // Fail-safe: if the correct answer cannot be mapped onto a simplified
+      // option, serve the question unsimplified rather than unwinnable.
+      if (!newOptions.some((o) => o.id === newCorrect)) return question;
+      // Aggregate frequencies onto simplified ids
+      let newFreqs = question.gtoFrequencies;
+      if (question.gtoFrequencies) {
+        newFreqs = {};
+        for (const s of simplified) {
+          const key = s.id || s.action;
+          newFreqs[key] = memberIds(s).reduce(
+            (sum, m) => sum + (question.gtoFrequencies[m] || 0),
+            0
+          );
+        }
+      }
       return {
         ...question,
-        options: simplified.map((s) => ({ id: s.id, text: s.text })),
+        options: newOptions,
+        correctAnswer: newCorrect,
+        gtoFrequencies: newFreqs,
         _originalOptions: question.options,
+        _originalCorrect: origCorrect,
+        _originalFrequencies: question.gtoFrequencies,
         _difficultyApplied: difficultyMode,
       };
     }
@@ -65,6 +134,9 @@ function applyDifficultyToQuestion(question, difficultyMode) {
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
+
+// classifyMove returns lowercase classifications — compare in lowercase everywhere
+const MISTAKE_CLASSES = ['inaccuracy', 'wrong', 'blunder'];
 
 export default function useGTOTrainer(
   gameId,
@@ -180,12 +252,25 @@ export default function useGTOTrainer(
   }, [gameId, level, effectiveQuestionsPerLevel, trainerConfig]);
 
   /**
+   * Resolve the active difficulty mode (Simple/Grouped/Standard) —
+   * same resolution order used everywhere a question is served.
+   */
+  const resolveDifficultyMode = useCallback(() => {
+    return (
+      trainerConfig?.difficultyMode ||
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) ||
+      'standard'
+    );
+  }, [trainerConfig]);
+
+  /**
    * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
    * Eliminates all Grok AI dependency — pure solver data only
    */
-  const fetchSingleQuestion = useCallback(async () => {
+  const fetchSingleQuestion = useCallback(async (levelOverride = null) => {
     if (!gameId) return;
 
+    const effectiveLevel = levelOverride ?? level;
     setLoading(true);
     setError(null);
     setShowFeedback(false);
@@ -193,7 +278,7 @@ export default function useGTOTrainer(
     try {
       const params = new URLSearchParams({
         gameId,
-        level: level.toString(),
+        level: effectiveLevel.toString(),
         count: '1',
       });
 
@@ -216,23 +301,26 @@ export default function useGTOTrainer(
         throw new Error(data.error || 'No solver data available');
       }
 
-      setCurrentQuestion(data.questions[0]);
+      setCurrentQuestion(applyDifficultyToQuestion(data.questions[0], resolveDifficultyMode()));
     } catch (err) {
       console.warn('[GTOTrainer] Fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [gameId, level]);
+  }, [gameId, level, resolveDifficultyMode]);
 
   /**
    * 🚀 BATCH PRE-LOAD ALL QUESTIONS AT ONCE
    * Fetches all 25 questions when game starts
    * No more individual loading - instant question serving
    */
-  const preloadAllQuestions = useCallback(async () => {
+  const preloadAllQuestions = useCallback(async (levelOverride = null) => {
     if (!gameId) return;
 
+    // levelOverride avoids stale-closure fetches when callers change the
+    // level state and preload in the same tick (startNextLevel/resetGame)
+    const effectiveLevel = levelOverride ?? level;
     setLoading(true);
     setError(null);
 
@@ -269,7 +357,7 @@ export default function useGTOTrainer(
         // STANDARD MODE — use batch-preload
         params = new URLSearchParams({
           gameId,
-          level: level.toString(),
+          level: effectiveLevel.toString(),
           count: effectiveQuestionsPerLevel.toString(),
         });
 
@@ -298,7 +386,7 @@ export default function useGTOTrainer(
 
         apiUrl = `/api/training/batch-preload?${params}`;
         console.debug(
-          `[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`
+          `[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${effectiveLevel}`
         );
       }
 
@@ -321,14 +409,16 @@ export default function useGTOTrainer(
         console.warn('[GTOTrainer] Pre-load failed, using single-question mode');
         setPreloadComplete(false);
         setLoading(false);
-        return fetchSingleQuestion();
+        return fetchSingleQuestion(effectiveLevel);
       }
 
       console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
       setPreloadedQuestions(data.questions);
       setPreloadComplete(true);
-      setCurrentQuestion(data.questions[0]);
+      // Apply difficulty simplification to the first question too (later
+      // questions get it in nextQuestion)
+      setCurrentQuestion(applyDifficultyToQuestion(data.questions[0], resolveDifficultyMode()));
 
       // Bug 5 fix: Cap question count at actual returned count to prevent game never ending
       if (data.questions.length < effectiveQuestionsPerLevel) {
@@ -343,9 +433,16 @@ export default function useGTOTrainer(
       console.warn('[GTOTrainer] Pre-load error:', err);
       setPreloadComplete(false);
       setLoading(false);
-      return fetchSingleQuestion();
+      return fetchSingleQuestion(effectiveLevel);
     }
-  }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel, fetchSingleQuestion]);
+  }, [
+    gameId,
+    level,
+    trainerConfig,
+    effectiveQuestionsPerLevel,
+    fetchSingleQuestion,
+    resolveDifficultyMode,
+  ]);
 
   // ═══ PHASE 14: WEAK-SPOT ANALYSIS STATE ═══
   // Tracks per-position, per-street, per-spotType accuracy for smart targeting
@@ -400,7 +497,7 @@ export default function useGTOTrainer(
       map[key] = { total: 0, mistakes: 0, position, street, spotType };
     }
     map[key].total++;
-    if (['INACCURACY', 'WRONG', 'BLUNDER'].includes(classification)) {
+    if (MISTAKE_CLASSES.includes((classification || '').toLowerCase())) {
       map[key].mistakes++;
     }
   }, []);
@@ -462,10 +559,11 @@ export default function useGTOTrainer(
     async (selectedOptionId) => {
       if (!currentQuestion || showFeedback) return;
 
-      const isCorrect = selectedOptionId === currentQuestion.correctAnswer;
       const correctAnswer = currentQuestion.correctAnswer;
       const options = currentQuestion.options || [];
       const scenario = currentQuestion.scenario || {};
+      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
+      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
 
       // ═══ PREFER REAL PIO DATA, FALL BACK TO SIMULATED ═══
       const hasPIOData =
@@ -487,12 +585,12 @@ export default function useGTOTrainer(
         scenario.pot // Pot size for scaling
       );
 
-      // 2026-07-19 AUDIT FIX: selectedText/correctText were declared AFTER
-      // the actionTreeScore block that used selectedText — a temporal-dead-zone
-      // ReferenceError silently swallowed by the try/catch, so the
-      // ActionTreeEngine solver-node score was never computed.
-      const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
-      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
+      // Mixed-strategy grading: when solver frequencies exist, any action the
+      // solver plays at meaningful frequency grades as correct — derive from
+      // the classification instead of exact-id match.
+      const isCorrect = moveResult
+        ? ['best', 'correct'].includes((moveResult.classification || '').toLowerCase())
+        : selectedOptionId === currentQuestion.correctAnswer;
 
       // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
       let actionTreeScore = null;
@@ -517,12 +615,16 @@ export default function useGTOTrainer(
       setLastMoveClassification(moveResult.classification);
       setLastEVLoss(moveResult.evLoss);
       setLastGTOFrequencies(frequencies);
+
+      // Record to GTOW scoring engine
       gtowScoring.recordMove({
         classification: moveResult.classification,
         evLoss: moveResult.evLoss,
         frequencyDiff: moveResult.frequencyDiff,
         isRealData: moveResult.isRealData || false,
         handData: {
+          // Stable per-hand id so multi-street decisions count as ONE hand
+          handId: currentQuestion.id || `q_${level}_${questionNumber}`,
           heroCards: currentQuestion.heroCards || scenario.heroHand,
           board: scenario.board,
           heroPosition: scenario.heroPosition || scenario.position,
@@ -549,9 +651,18 @@ export default function useGTOTrainer(
       });
 
       // Save full question for mistake replay
-      const isMistakeMove = ['INACCURACY', 'WRONG', 'BLUNDER'].includes(moveResult.classification);
+      const isMistakeMove = MISTAKE_CLASSES.includes(
+        (moveResult?.classification || '').toLowerCase()
+      );
       if (isMistakeMove) {
-        mistakeQuestionsRef.current.push({ ...currentQuestion });
+        mistakeQuestionsRef.current.push({
+          ...currentQuestion,
+          _mistakeMeta: {
+            classification: moveResult.classification,
+            evLoss: moveResult.evLoss || 0,
+            chosenAction: selectedOptionId,
+          },
+        });
       }
 
       // Phase 75: Update adaptive difficulty tracking
@@ -736,9 +847,19 @@ export default function useGTOTrainer(
       }
 
       // Update legacy scores
+      // Multi-street: questionNumber only advances once per hand, so only the
+      // FIRST street answer of a hand may credit correctCount. Continuation
+      // streets (recordAction already called at least once on the active hand)
+      // must not inflate the numerator past the question denominator.
+      const isStreetContinuation =
+        multiStreetHandRef.current &&
+        !multiStreetHandRef.current.isComplete &&
+        (multiStreetHandRef.current.streetActions?.length || 0) > 0;
       let currentStreakCount = (prevStreak) => prevStreak; // fallback
       if (isCorrect) {
-        setCorrectCount((prev) => prev + 1);
+        if (!isStreetContinuation) {
+          setCorrectCount((prev) => prev + 1);
+        }
         setStreak((prev) => {
           const newStreak = prev + 1;
           if (newStreak > bestStreak) setBestStreak(newStreak);
@@ -1031,6 +1152,10 @@ export default function useGTOTrainer(
         pot: Math.round(hand.pot).toString(),
         stackDepth: hand.stackDepth.toString(),
       });
+      // Pass hero's actual cards so the server deals a consistent runout
+      if (Array.isArray(hand.heroCards) && hand.heroCards.length > 0) {
+        params.set('heroCards', hand.heroCards.join(','));
+      }
 
       const response = await fetch(`/api/training/next-street?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1123,12 +1248,12 @@ export default function useGTOTrainer(
           villainPosition: scenario.villainPosition || 'BB',
           street: scenario.street || 'flop',
           spotType: deriveSpotType(scenario),
-          classification: 'WRONG', // All items in mistakeQuestionsRef are mistakes
-          evLoss: 0,
+          classification: q._mistakeMeta?.classification?.toUpperCase() || 'WRONG',
+          evLoss: q._mistakeMeta?.evLoss || 0,
           heroHand: q.heroCards ? q.heroCards.join('') : scenario.heroHand || '',
           board: q.boardCards ? q.boardCards.join(' ') : scenario.board || '',
           correctAction: q.correctAnswerText || q.correctAnswer || '',
-          chosenAction: '',
+          chosenAction: q._mistakeMeta?.chosenAction || '',
         };
       });
 
@@ -1169,8 +1294,13 @@ export default function useGTOTrainer(
 
         // Calculate diamond rewards using LevelRegistry multipliers
         // 2026-07-19: persist against the level the user SELECTED, not the
-        // adaptive content level (see selectedLevel note at declaration)
-        const diamondsEarned = getDiamondReward(selectedLevel, correctCount, bestStreak > 5 ? 2 : 0);
+        // adaptive content level; denominator honors the actual question count
+        const diamondsEarned = getDiamondReward(
+          selectedLevel,
+          correctCount,
+          bestStreak > 5 ? 2 : 0,
+          effectiveQuestionsPerLevel
+        );
 
         const response = await fetch('/api/training/save-progress', {
           method: 'POST',
@@ -1298,7 +1428,7 @@ export default function useGTOTrainer(
       !multiStreetHandRef.current.isComplete
     ) {
       // Hero didn't fold — try to advance to next street
-      const isFold = lastSelectedAction === 'f' || lastSelectedAction === 'simple_fold';
+      const isFold = ['f', 'fold', 'simple_fold'].includes(lastSelectedAction);
       if (!isFold) {
         const advanced = await advanceToNextStreet();
         if (advanced) return; // Successfully moved to next street
@@ -1325,7 +1455,10 @@ export default function useGTOTrainer(
 
     if (questionNumber >= effectiveQuestionsPerLevel) {
       // Level complete
-      const accuracy = Math.round((correctCount / effectiveQuestionsPerLevel) * 100);
+      const accuracy = Math.min(
+        100,
+        Math.round((correctCount / effectiveQuestionsPerLevel) * 100)
+      );
       const passed = checkLevelPassed(selectedLevel, correctCount, effectiveQuestionsPerLevel);
 
       setLevelPassed(passed);
@@ -1411,7 +1544,7 @@ export default function useGTOTrainer(
       );
       setPreloadedQuestions(cache.questions);
       setPreloadComplete(true);
-      setCurrentQuestion(cache.questions[0]);
+      setCurrentQuestion(applyDifficultyToQuestion(cache.questions[0], resolveDifficultyMode()));
       if (cache.questions.length < effectiveQuestionsPerLevel) {
         setEffectiveQuestionsPerLevel(cache.questions.length);
       }
@@ -1419,9 +1552,17 @@ export default function useGTOTrainer(
       nextLevelCacheRef.current = null; // Clear used cache
     } else {
       setPreloadComplete(false);
-      preloadAllQuestions();
+      // Pass nextLevel explicitly — the level state update above hasn't
+      // committed yet, so the closure's `level` would be stale
+      preloadAllQuestions(nextLevel);
     }
-  }, [levelPassed, level, preloadAllQuestions, effectiveQuestionsPerLevel]);
+  }, [
+    levelPassed,
+    level,
+    preloadAllQuestions,
+    effectiveQuestionsPerLevel,
+    resolveDifficultyMode,
+  ]);
 
   /**
    * Retry current level
@@ -1435,8 +1576,13 @@ export default function useGTOTrainer(
     setLevelPassed(false);
     setPreloadComplete(false);
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
+    // Reset per-session scoring + tracking state
+    gtowScoring.resetScore();
+    mistakeQuestionsRef.current = [];
+    adaptiveCheckpointRef.current = 5;
+    prefetchTriggeredRef.current = false;
     preloadAllQuestions();
-  }, [preloadAllQuestions, baseQuestionsPerLevel]);
+  }, [preloadAllQuestions, baseQuestionsPerLevel, gtowScoring]);
 
   /**
    * Retrain only the hands the player got wrong.
@@ -1484,20 +1630,32 @@ export default function useGTOTrainer(
     setCorrectCount(0);
     setStreak(0);
     setBestStreak(0);
-    setTotalXP(0);
     setGameComplete(false);
     setLevelPassed(false);
     setPreloadComplete(false);
     setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
-    preloadAllQuestions();
-  }, [preloadAllQuestions, baseQuestionsPerLevel]);
+    // Reset per-session scoring + tracking state
+    gtowScoring.resetScore();
+    mistakeQuestionsRef.current = [];
+    adaptiveCheckpointRef.current = 5;
+    prefetchTriggeredRef.current = false;
+    // Pass level 1 explicitly — setLevel(1) hasn't committed yet
+    preloadAllQuestions(1);
+  }, [preloadAllQuestions, baseQuestionsPerLevel, gtowScoring]);
 
-  // 🚀 Pre-load all questions on mount
+  // 🚀 Pre-load all questions on mount / gameId change ONLY.
+  // Ref pattern: preloadAllQuestions changes identity whenever level or
+  // effectiveQuestionsPerLevel change (e.g. adaptive difficulty mid-game),
+  // and having it in the dep array re-fired the effect mid-game, wiping the
+  // in-progress question set. Level transitions call preloadAllQuestions
+  // explicitly (startNextLevel/retryLevel/resetGame), so no re-fire is needed.
+  const preloadRef = useRef(preloadAllQuestions);
+  preloadRef.current = preloadAllQuestions;
   useEffect(() => {
     if (gameId) {
-      preloadAllQuestions();
+      preloadRef.current();
     }
-  }, [gameId, preloadAllQuestions]); // Only pre-load on gameId change
+  }, [gameId]);
 
   return {
     // Current state
@@ -1877,20 +2035,6 @@ export default function useGTOTrainer(
         return [];
       }
     },
-    // ═══ PHASE 215: Hints ═══
-    generateHints: (scenario, heroHand, board, handActions, correctAction) => {
-      try {
-        return deterministicEngine.generateHints(
-          scenario,
-          heroHand,
-          board,
-          handActions,
-          correctAction
-        );
-      } catch (e) {
-        return [];
-      }
-    },
     // ═══ PHASE 216: Explanation ratings ═══
     rateExplanation: (handId, rating, feedback) => {
       try {
@@ -1964,14 +2108,6 @@ export default function useGTOTrainer(
     generateSmartRecap: (qNum) => {
       try {
         return deterministicEngine.generateSmartRecap(qNum);
-      } catch (e) {
-        return null;
-      }
-    },
-    // ═══ PHASE 226: Range equity estimation ═══
-    estimateEquityVsRange: (handStrength, street, rangeType) => {
-      try {
-        return deterministicEngine.estimateEquityVsRange(handStrength, street, rangeType);
       } catch (e) {
         return null;
       }

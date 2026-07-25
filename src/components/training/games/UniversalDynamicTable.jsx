@@ -493,8 +493,9 @@ const ACTION_LABELS_SHORT = {
 // F11: STREAK TOAST COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StreakToast({ message, show }) {
-    if (!show) return null;
+// NOTE: mount/unmount is controlled by the call site inside <AnimatePresence>
+// so the exit animation can run — do not early-return null in here.
+function StreakToast({ message }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: -40, scale: 0.8 }}
@@ -561,6 +562,31 @@ const SEAT_CONFIGS = {
         { id: 0, name: 'BTN/SB', x: 50, y: 78 }, // Hero: Center bottom
         { id: 1, name: 'BB', x: 50, y: 22 },     // Villain: Top center
     ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEALER BUTTON POSITIONS — canonical percentages from
+// DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md (hero + v1..v8 clockwise from hero)
+// ═══════════════════════════════════════════════════════════════════════════
+const DEALER_BUTTON_POSITIONS = {
+    hero: { left: 50.49, top: 75.74 },
+    v1: { left: 28.73, top: 71.38 },
+    v2: { left: 27.26, top: 55.15 },
+    v3: { left: 27.85, top: 31.73 },
+    v4: { left: 35.05, top: 15.28 },
+    v5: { left: 62.55, top: 14.74 },
+    v6: { left: 73.14, top: 31.95 },
+    v7: { left: 72.70, top: 54.06 },
+    v8: { left: 71.96, top: 71.60 },
+};
+
+// Map SEAT_CONFIGS index → law position key per table size (approximate:
+// the law's v1..v8 run clockwise from hero, nearest match to each seat's x/y)
+const DEALER_BUTTON_SEAT_KEYS = {
+    9: ['hero', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'],
+    6: ['hero', 'v2', 'v3', 'v4', 'v6', 'v7'],
+    3: ['hero', 'v3', 'v6'],
+    2: ['hero', 'v4'],
 };
 
 // Position name mapping for display
@@ -700,8 +726,8 @@ function getHeroSeatIndex(heroPosition, playerCount) {
             'BB': 2, 'BIG BLIND': 2,
             'UTG': 3,
             'UTG+1': 4,
-            'MP': 5, 'MIDDLE': 5,
-            'MP+1': 6,
+            'MP': 5, 'MIDDLE': 5, 'UTG+2': 5,
+            'MP+1': 6, 'LJ': 6, 'LOJACK': 6,
             'HJ': 7, 'HIJACK': 7,
             'CO': 8, 'CUTOFF': 8,
         },
@@ -709,17 +735,18 @@ function getHeroSeatIndex(heroPosition, playerCount) {
             'BTN': 0, 'BUTTON': 0,
             'SB': 1, 'SMALL BLIND': 1,
             'BB': 2, 'BIG BLIND': 2,
-            'UTG': 3,
+            'UTG': 3, 'LJ': 3, 'LOJACK': 3,
             'HJ': 4, 'HIJACK': 4, 'MP': 4, 'MIDDLE': 4,
             'CO': 5, 'CUTOFF': 5,
         },
         3: {
-            'BTN': 0, 'BUTTON': 0,
+            'BTN': 0, 'BUTTON': 0, 'BTN/SB': 0,
             'SB': 1, 'SMALL BLIND': 1,
             'BB': 2, 'BIG BLIND': 2,
         },
         2: {
             'BTN': 0, 'BUTTON': 0, 'BTN/SB': 0,
+            'SB': 0, 'SMALL BLIND': 0,
             'BB': 1, 'BIG BLIND': 1,
         }
     };
@@ -843,6 +870,10 @@ const ACTION_COLORS = {
 function LoadingSkeleton() {
     return (
         <div style={loadingStyles.container}>
+            {/* The pulse keyframes normally live in the main component's style
+                block, which is NOT rendered while loading — define them here
+                so the skeleton shimmer actually animates. */}
+            <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
             <div style={loadingStyles.questionBar}>
                 <div style={loadingStyles.pulse} />
             </div>
@@ -967,9 +998,9 @@ function FrequencyBar({ frequency, color, show }) {
 // CLASSIFICATION FLASH BANNER — GTO Wizard-style instant feedback overlay
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ClassificationFlashBanner({ classification, evLoss, show }) {
-    if (!show || !classification) return null;
-
+// NOTE: rendered conditionally by the call site inside <AnimatePresence> —
+// the show/null decision lives there so the exit animation can run.
+function ClassificationFlashBanner({ classification, evLoss }) {
     const config = CLASSIFICATION_CONFIG[classification];
     if (!config) return null;
 
@@ -977,7 +1008,6 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
     const isBestOrCorrect = classification === 'best' || classification === 'correct';
 
     return (
-        <AnimatePresence>
             <motion.div
                 key={classification}
                 initial={{ opacity: 0, y: -30, scale: 0.9 }}
@@ -1049,7 +1079,6 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                     </span>
                 )}
             </motion.div>
-        </AnimatePresence>
     );
 }
 
@@ -1374,6 +1403,16 @@ function UniversalDynamicTable({
     const villainAction = scenario.action || scenario.villainAction || '';
     const street = scenario.street || '';
 
+    // Fix: clamp the rendered board to the active street so a scenario whose
+    // board string already contains turn/river cards doesn't leak them early.
+    const visibleBoard = useMemo(() => {
+        const s = ((isMultiStreetActive ? currentStreet : street) || '').toLowerCase();
+        if (s === 'preflop') return [];
+        if (s === 'flop') return boardCards.slice(0, 3);
+        if (s === 'turn') return boardCards.slice(0, 4);
+        return boardCards;
+    }, [boardCards, street, currentStreet, isMultiStreetActive]);
+
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
         if (showFeedback) return null;
@@ -1602,53 +1641,9 @@ function UniversalDynamicTable({
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
     // This is the SINGLE keyboard handler. Do NOT add duplicates.
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            // Don't intercept if user is typing in an input
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            const key = e.key;
-
-            // During feedback: Space/Enter = next hand
-            if (showFeedback && (key === ' ' || key === 'Enter')) {
-                e.preventDefault();
-                if (onNextHand) onNextHand();
-                return;
-            }
-
-            // During question: 1-9 = select answer by index (supports variable action count)
-            if (!showFeedback && !selectedAnswer) {
-                const keyNum = parseInt(key);
-                if (keyNum >= 1 && keyNum <= 9) {
-                    e.preventDefault();
-                    const opts = options || []; // Use SHUFFLED options
-                    if (opts[keyNum - 1]) {
-                        const optId = opts[keyNum - 1].id || opts[keyNum - 1];
-                        handleAnswer(optId);
-                    }
-                    return;
-                }
-                // F/C/R shortcuts for fold/check-call/raise
-                const lower = key.toLowerCase();
-                if (lower === 'f') {
-                    const opts = options || [];
-                    const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
-                    if (foldOpt) handleAnswer(foldOpt.id || foldOpt);
-                } else if (lower === 'c') {
-                    const opts = options || [];
-                    const checkCallOpt = opts.find(o => /check|call/i.test(o.text || o.label || ''));
-                    if (checkCallOpt) handleAnswer(checkCallOpt.id || checkCallOpt);
-                } else if (lower === 'r') {
-                    const opts = options || [];
-                    const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || o.label || ''));
-                    if (raiseOpt) handleAnswer(raiseOpt.id || raiseOpt);
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question, handleAnswer]);
+    // BUG FIX: moved below displayOptions/handleAnswerWithGrouping so keyboard
+    // input drives the exact same option list and answer path as the on-screen
+    // action buttons (previously it used the raw `options` + handleAnswer).
 
     // ═══════════════════════════════════════════════════════════════════════
     // (ALL DYNAMIC DATA EXTRACTION moved above — before hooks that use them)
@@ -1665,32 +1660,28 @@ function UniversalDynamicTable({
             setNewStreetCardIndex(-1);
             setStreetHistory([]);
             setShowHandSummary(false);
-            // Stagger card deal sounds for board cards
-            if (boardCards && boardCards.length > 0) {
-                boardCards.forEach((_, i) => {
-                    setTimeout(() => SoundEngine.play('deal'), 120 * i + 200);
-                });
-            }
+            // NOTE: per-card deal sounds are played by the board cards'
+            // onAnimationComplete handler — do NOT schedule them here too.
         }
-    }, [questionNumber, boardCards]);
+    }, [questionNumber]);
 
     // ═══ MULTI-STREET: Detect street transitions and track new cards ═══
     useEffect(() => {
         if (!isMultiStreetActive) {
-            prevBoardCardsRef.current = boardCards;
+            prevBoardCardsRef.current = visibleBoard;
             return;
         }
 
         const prevCards = prevBoardCardsRef.current;
-        const currCards = boardCards;
+        const currCards = visibleBoard;
 
         // Detect if a new card was dealt (board grew by 1 card)
         if (currCards.length > prevCards.length && prevCards.length > 0) {
             const newCardIdx = prevCards.length; // The new card is at this index
             setNewStreetCardIndex(newCardIdx);
 
-            // Play deal sound for the new card with a dramatic delay
-            setTimeout(() => SoundEngine.play('card_flip'), 400);
+            // NOTE: the new card's flip sound plays via onAnimationComplete
+            // on the board card itself — no separate scheduler here.
 
             // Track street history for the progress indicator
             setStreetHistory(prev => {
@@ -1706,7 +1697,15 @@ function UniversalDynamicTable({
         }
 
         prevBoardCardsRef.current = currCards;
-    }, [boardCards, isMultiStreetActive]);
+    }, [visibleBoard, isMultiStreetActive]);
+
+    // Fix: synchronous new-street-card detection — track the previous board
+    // length (per question) in a ref so the render pass can tell new cards
+    // from existing ones without waiting for state to catch up.
+    const prevBoardLenRef = useRef({ qn: null, len: 0 });
+    useEffect(() => {
+        prevBoardLenRef.current = { qn: questionNumber, len: visibleBoard.length };
+    }, [questionNumber, visibleBoard]);
 
     // Track street changes for history
     useEffect(() => {
@@ -1745,8 +1744,23 @@ function UniversalDynamicTable({
     // Find hero seat index based on position
     const heroSeatIndex = getHeroSeatIndex(heroPosition, playerCount);
 
+    // Resolve the named villain through the SAME alias-aware mapping as hero
+    // so alias positions (MP on 6-max, SB heads-up, LJ, etc.) keep their seat.
+    const villainSeatIndex = villainPosition ? getHeroSeatIndex(villainPosition, playerCount) : -1;
+
     // Button is always at seat 0
     const getButtonSeatIndex = 0;
+
+    // LAW: dealer button seat — hero if hero is on the button, else the named
+    // villain if they are, else the layout's BTN seat (seat 0 in all configs).
+    const dealerButtonSeatIndex = (() => {
+        const hp = (heroPosition || '').toUpperCase().trim();
+        if (hp === 'BTN' || hp === 'BUTTON' || hp === 'BTN/SB') return heroSeatIndex;
+        const vp = (villainPosition || '').toUpperCase().trim();
+        if (vp === 'BTN' || vp === 'BUTTON' || vp === 'BTN/SB') return villainSeatIndex;
+        const btnIdx = seats.findIndex(s => (s.name || '').toUpperCase().startsWith('BTN'));
+        return btnIdx >= 0 ? btnIdx : 0;
+    })();
 
     // Generate STABLE villain stacks — relative to heroStack with ±variance
     const generateVillainStack = useMemo(() => {
@@ -1757,16 +1771,12 @@ function UniversalDynamicTable({
         };
     }, [questionNumber, heroStack]);
 
-    // GAP-6: Effective stack (smallest of hero and all active villains)
+    // GAP-6: Effective stack — uses the scenario's real villain stack (falls
+    // back to heroStack) instead of fabricating per-seat stacks, so SPR math
+    // matches the stacks actually rendered on the table.
     const effectiveStack = useMemo(() => {
-        const villainStacks = seats
-            .filter((_, i) => i !== heroSeatIndex)
-            .map((_, i) => {
-                const seed = (questionNumber || 1) * 13 + i * 7;
-                return 30 + (seed % 120);
-            });
-        return Math.min(heroStack, ...villainStacks);
-    }, [heroStack, seats, heroSeatIndex, questionNumber]);
+        return Math.min(heroStack, villainStack || heroStack);
+    }, [heroStack, villainStack]);
 
     // GAP-2: SPR calculation
     const spr = useMemo(() => {
@@ -1876,7 +1886,8 @@ function UniversalDynamicTable({
 
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
     const handleAnswerWithGrouping = useCallback((answerId) => {
-        if (showFeedback) return;
+        // Guard against double-answers (mirrors the keyboard path's guard)
+        if (showFeedback || selectedAnswer) return;
         // If using grouped/simple mode, resolve back to the best solver action
         let resolvedId = answerId;
         if (activeDifficultyMode !== 'standard' && difficultyActionMapping[answerId]) {
@@ -1886,7 +1897,75 @@ function UniversalDynamicTable({
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed });
         try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer]);
+    }, [showFeedback, selectedAnswer, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer]);
+
+    // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-9, F/C/R, Space/Enter)
+    // Uses the SAME displayOptions list + handleAnswerWithGrouping path as the
+    // rendered action buttons so keyboard answers can never diverge from clicks.
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Don't intercept if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const key = e.key;
+
+            // During feedback: Space/Enter = next hand
+            if (showFeedback && (key === ' ' || key === 'Enter')) {
+                e.preventDefault();
+                if (onNextHand) onNextHand();
+                return;
+            }
+
+            // During question: 1-9 = select answer by index (supports variable action count)
+            if (!showFeedback && !selectedAnswer) {
+                const keyNum = parseInt(key);
+                if (keyNum >= 1 && keyNum <= 9) {
+                    e.preventDefault();
+                    const opts = displayOptions || []; // Same list as the rendered buttons
+                    if (opts[keyNum - 1]) {
+                        const optId = opts[keyNum - 1].id || opts[keyNum - 1];
+                        handleAnswerWithGrouping(optId);
+                    }
+                    return;
+                }
+                // F/C/R shortcuts for fold/check-call/raise
+                const lower = key.toLowerCase();
+                if (lower === 'f') {
+                    const opts = displayOptions || [];
+                    const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
+                    if (foldOpt) handleAnswerWithGrouping(foldOpt.id || foldOpt);
+                } else if (lower === 'c') {
+                    const opts = displayOptions || [];
+                    const checkCallOpt = opts.find(o => /check|call/i.test(o.text || o.label || ''));
+                    if (checkCallOpt) handleAnswerWithGrouping(checkCallOpt.id || checkCallOpt);
+                } else if (lower === 'r') {
+                    const opts = displayOptions || [];
+                    const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || o.label || ''));
+                    if (raiseOpt) handleAnswerWithGrouping(raiseOpt.id || raiseOpt);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showFeedback, selectedAnswer, onNextHand, displayOptions, handleAnswerWithGrouping]);
+
+    // Fix 16: single source of truth for RNG cumulative frequency ranges —
+    // built from displayOptions order so the pre-answer chips and the
+    // feedback indicator always map the roll to the same action.
+    const rngRanges = useMemo(() => {
+        let cumulative = 0;
+        const ranges = [];
+        (displayOptions || []).slice(0, 9).forEach(opt => {
+            const id = opt.id || opt;
+            const freq = displayFrequencies[id] || computedFrequencies[id] || 0;
+            if (freq <= 0) return;
+            const start = cumulative + 1;
+            cumulative += freq;
+            ranges.push({ id, text: typeof opt === 'string' ? opt : (opt.text || ''), start, end: cumulative });
+        });
+        return ranges;
+    }, [displayOptions, displayFrequencies, computedFrequencies]);
 
     // Compute move classification for feedback display
     const computedClassification = useMemo(() => {
@@ -2069,6 +2148,10 @@ function UniversalDynamicTable({
         return '';
     }, [street, boardCards.length]);
 
+    // Pot shown on the felt — preflop spots without an explicit pot show the
+    // posted blinds (SB 0.5 + BB 1) instead of nothing.
+    const displayPot = pot || (streetLabel === 'PREFLOP' ? 1.5 : 0);
+
     // Build context string (e.g., "BTN vs BB • 3-Bet Pot • Flop")
     const contextString = useMemo(() => {
         // If scenario has a rich context (from DeterministicGTOEngine), use it
@@ -2088,6 +2171,13 @@ function UniversalDynamicTable({
     // GTOW Score color
     const scoreColor = gtowScore >= 80 ? 'var(--sp-accent-green)' : gtowScore >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
+    // TRAIN-FEEDBACK-SNAPSHOT-1 (extended): feedback-gated JSX must read the
+    // question that was ANSWERED, not the live prop (which the parent may have
+    // already swapped to the preloaded next hand). Use fq/fScenario inside any
+    // showFeedback-gated block instead of question/question.scenario.
+    const fq = getFeedbackQuestion() || question;
+    const fScenario = fq?.scenario || {};
+
     // ═══════════════════════════════════════════════════════════════════════
     // RENDER
     // ═══════════════════════════════════════════════════════════════════════
@@ -2102,6 +2192,10 @@ function UniversalDynamicTable({
             {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+                @keyframes pulse-glow {
+                    0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.4); }
+                    50% { box-shadow: 0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.6); }
+                }
                 @media (min-width: 900px) {
                     .gto-trainer-container {
                         max-width: 900px !important;
@@ -2119,14 +2213,21 @@ function UniversalDynamicTable({
             `}</style>
             {/* F11: Streak Toast */}
             <AnimatePresence>
-                <StreakToast message={streakToast} show={!!streakToast} />
+                {streakToast && <StreakToast key="streak-toast" message={streakToast} />}
             </AnimatePresence>
-            {/* F14: Classification Flash Banner */}
-            <ClassificationFlashBanner
-                classification={moveClassification}
-                evLoss={evLoss}
-                show={showFeedback}
-            />
+            {/* F14: Classification Flash Banner — null-condition hoisted to the
+                call site so AnimatePresence can run the exit animation; uses
+                computedClassification (the value actually shown in feedback)
+                instead of the raw moveClassification prop. */}
+            <AnimatePresence>
+                {showFeedback && computedClassification && (
+                    <ClassificationFlashBanner
+                        key={`flash-${questionNumber}`}
+                        classification={computedClassification}
+                        evLoss={evLoss}
+                    />
+                )}
+            </AnimatePresence>
             {/* F15: Running EV Loss Ticker */}
             <EVLossTicker
                 totalEVLoss={totalSessionEVLoss}
@@ -2626,7 +2727,11 @@ function UniversalDynamicTable({
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
                         const isButton = index === getButtonSeatIndex;
-                        const stackSize = isHero ? heroStack : generateVillainStack(index);
+                        // The named villain shows the scenario's real stack; other
+                        // seats fall back to the generated filler stack.
+                        const stackSize = isHero
+                            ? heroStack
+                            : (index === villainSeatIndex && villainStack ? villainStack : generateVillainStack(index));
                         // Determine if this villain has folded
                         const villainFolded = !isHero && actionHistory.some(
                             a => a.position?.toUpperCase() === seat.name?.toUpperCase() && /fold/i.test(a.action)
@@ -2637,15 +2742,17 @@ function UniversalDynamicTable({
                             || (villainPosition?.toUpperCase() === seat.name?.toUpperCase() && villainAction ? { action: villainAction } : null)
                         ) : null;
 
-                        // GAP 1 FIX: Only show Hero + villain(s) who acted or are the named villain
-                        const isActiveVillain = villainPosition?.toUpperCase() === seat.name?.toUpperCase()
+                        // GAP 1 FIX: Only show Hero + villain(s) who acted or are the named villain.
+                        // Alias-aware: the named villain resolves via villainSeatIndex (same
+                        // mapping as hero) so 'MP'/'SB'/'LJ' aliases don't make villains vanish.
+                        const isActiveVillain = index === villainSeatIndex
                             || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
                         if (!isHero && !isActiveVillain) return null;
 
                         // Phase 13: Strict Standalone Table override — force Hero exact bottom edge, Villain exact top edge
                         const activeCount = seats.filter((s, i) => {
                             if (i === heroSeatIndex) return true;
-                            return villainPosition?.toUpperCase() === s.name?.toUpperCase()
+                            return i === villainSeatIndex
                                 || actionHistory.some(a => a.position?.toUpperCase() === s.name?.toUpperCase());
                         }).length;
                         let seatX = seat.x;
@@ -2724,7 +2831,7 @@ function UniversalDynamicTable({
                                         whiteSpace: 'nowrap',
                                         letterSpacing: 0.5,
                                     }}>
-                                        {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
+                                        {isHero ? (playerName || 'HERO') : (index === villainSeatIndex ? (villainPosition || seat.name) : (seat.name || 'Villain'))}
                                     </div>
                                     <div style={{
                                         fontSize: 13,
@@ -2734,11 +2841,13 @@ function UniversalDynamicTable({
                                         {stackSize} bb
                                     </div>
 
-                                    {/* Dealer Button — REMOVED for centering (position shown in scenario text) */}
+                                    {/* Dealer Button — rendered at table level per
+                                        DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md (see below the seat map) */}
 
                                 </motion.div>
 
-                                    {/* Hero: face-up cards — CENTERED below badge */}
+                                    {/* Hero: face-up cards — CENTERED below badge.
+                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a golden halo. */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
                                             display: 'flex',
@@ -2746,6 +2855,8 @@ function UniversalDynamicTable({
                                             gap: 3,
                                             marginTop: 2,
                                             zIndex: 5,
+                                            borderRadius: 8,
+                                            animation: 'pulse-glow 2s ease-in-out infinite',
                                         }}>
                                             {heroCards[0] && (
                                                 <motion.img
@@ -2784,14 +2895,20 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* Villain: face-down cards — CENTERED below badge */}
-                                    {!isHero && !villainFolded && (
+                                    {/* Villain: face-down cards — CENTERED below badge.
+                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a golden halo;
+                                        folded hands stay visible but grey out. */}
+                                    {!isHero && (
                                         <div style={{
                                             display: 'flex',
                                             justifyContent: 'center',
                                             gap: 2,
                                             marginTop: 2,
                                             zIndex: 1,
+                                            borderRadius: 8,
+                                            ...(villainFolded
+                                                ? { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }
+                                                : { animation: 'pulse-glow 2s ease-in-out infinite' }),
                                         }}>
                                             <div style={{
                                                 width: 28, height: 40, borderRadius: 4,
@@ -2821,21 +2938,59 @@ function UniversalDynamicTable({
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Villain action speech bubble (computed above, now rendered).
+                                        Entries come from scenario actionHistory ({ position, action,
+                                        amount?/size? }) or the fallback { action: villainAction }. */}
+                                    {villainSeatAction && villainSeatAction.action && (
+                                        <div style={styles.villainActionBubble}>
+                                            {villainSeatAction.action}{(villainSeatAction.amount ?? villainSeatAction.size) ? ` ${villainSeatAction.amount ?? villainSeatAction.size}` : ''}
+                                            <div style={styles.speechTail} />
+                                        </div>
+                                    )}
                                 </motion.div>
                         );
                     })}
                 </div>
 
+                {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
+                {(() => {
+                    const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
+                    const lawKey = keys[dealerButtonSeatIndex] || 'hero';
+                    const btnPos = DEALER_BUTTON_POSITIONS[lawKey] || DEALER_BUTTON_POSITIONS.hero;
+                    return (
+                        <div style={{
+                            ...styles.dealerButton,
+                            top: `${btnPos.top}%`,
+                            left: `${btnPos.left}%`,
+                        }}>
+                            D
+                        </div>
+                    );
+                })()}
+
                 {/* BOARD CARDS — Multi-street-aware dealing animation */}
-                {boardCards.length > 0 && (
+                {visibleBoard.length > 0 && (
                     <div style={{...styles.boardCards, ...m.boardCards}}>
-                        {boardCards.map((card, i) => {
-                            const isNewStreetCard = isMultiStreetActive && i === newStreetCardIndex && i >= 3;
-                            const isExistingCard = isMultiStreetActive && newStreetCardIndex >= 0 && i < newStreetCardIndex;
+                        {(() => {
+                            // Stable per-hand key: multi-street streets share the same
+                            // questionNumber (see the reset effect), so existing street
+                            // cards keep their identity and never re-deal mid-hand.
+                            const handKey = isMultiStreetActive
+                                ? `ms-${questionNumber}`
+                                : (question?.id || question?.scenario?.id || `q-${questionNumber}`);
+                            // Synchronous previous-board length (per question) — a card is
+                            // "new" when the board grew past the previous street's length.
+                            const prevBoardLen = prevBoardLenRef.current.qn === questionNumber
+                                ? prevBoardLenRef.current.len
+                                : 0;
+                            return visibleBoard.map((card, i) => {
+                            const isNewStreetCard = isMultiStreetActive && prevBoardLen > 0 && i >= prevBoardLen;
+                            const isExistingCard = isMultiStreetActive && prevBoardLen > 0 && i < prevBoardLen;
 
                             return (
                                 <motion.div
-                                    key={`${card}-${i}-${questionNumber}`}
+                                    key={`${handKey}-${card}-${i}`}
                                     initial={isExistingCard
                                         ? { y: 0, rotateY: 0, scale: 1, opacity: 1 } // Existing cards: no re-animation
                                         : isNewStreetCard
@@ -2882,12 +3037,13 @@ function UniversalDynamicTable({
                                     )}
                                 </motion.div>
                             );
-                        })}
+                            });
+                        })()}
 
                         {/* Street separator line between flop and turn/river */}
-                        {isMultiStreetActive && boardCards.length > 3 && (
+                        {isMultiStreetActive && visibleBoard.length > 3 && (
                             <div style={{
-                                position: 'absolute', left: `${(3 / boardCards.length) * 100}%`,
+                                position: 'absolute', left: `${(3 / visibleBoard.length) * 100}%`,
                                 top: '10%', height: '80%', width: 1,
                                 background: 'rgba(251, 146, 60, 0.3)',
                                 pointerEvents: 'none',
@@ -2897,7 +3053,7 @@ function UniversalDynamicTable({
                 )}
 
                 {/* PREFLOP: Deck placeholder when no board cards */}
-                {boardCards.length === 0 && (
+                {visibleBoard.length === 0 && (
                     <div style={{...styles.boardCards, ...m.boardCards}}>
                         <motion.div
                             animate={{ opacity: [0.3, 0.5, 0.3] }}
@@ -2916,8 +3072,9 @@ function UniversalDynamicTable({
                     </div>
                 )}
 
-                {/* POT DISPLAY — Clean centered display (GAP 5) */}
-                {pot > 0 && (
+                {/* POT DISPLAY — Clean centered display (GAP 5).
+                    Preflop scenarios without an explicit pot default to the blinds (1.5bb). */}
+                {displayPot > 0 && (
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -2933,7 +3090,7 @@ function UniversalDynamicTable({
                             boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
                             flexShrink: 0,
                         }} />
-                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: 'var(--sp-fg)' }}>Pot: {pot} bb</span>
+                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: 'var(--sp-fg)' }}>Pot: {displayPot} bb</span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
@@ -3186,31 +3343,21 @@ function UniversalDynamicTable({
                         }}>
                             🎲 {rngRoll}
                         </span>
-                        {(() => {
-                            // Build cumulative ranges
-                            let cumulative = 0;
-                            return displayOptions.slice(0, 9).map(opt => {
-                                const id = opt.id || opt;
-                                const freq = displayFrequencies[id] || computedFrequencies[id] || 0;
-                                if (freq <= 0) return null;
-                                const rangeStart = cumulative + 1;
-                                cumulative += freq;
-                                const rangeEnd = cumulative;
-                                const isTarget = rngRoll >= rangeStart && rngRoll <= rangeEnd;
-                                const text = typeof opt === 'string' ? opt : (opt.text || '');
-                                return (
-                                    <span key={id} style={{
-                                        fontSize: 9, fontWeight: 700,
-                                        color: isTarget ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
-                                        background: isTarget ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                                        border: `1px solid ${isTarget ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                                        padding: '2px 6px', borderRadius: 6,
-                                    }}>
-                                        {text.toUpperCase()} ({rangeStart}-{rangeEnd})
-                                    </span>
-                                );
-                            }).filter(Boolean);
-                        })()}
+                        {/* Fix 16: ranges come from the shared rngRanges memo */}
+                        {rngRanges.map(r => {
+                            const isTarget = rngRoll >= r.start && rngRoll <= r.end;
+                            return (
+                                <span key={r.id} style={{
+                                    fontSize: 9, fontWeight: 700,
+                                    color: isTarget ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
+                                    background: isTarget ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                                    border: `1px solid ${isTarget ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                    padding: '2px 6px', borderRadius: 6,
+                                }}>
+                                    {r.text.toUpperCase()} ({r.start}-{r.end})
+                                </span>
+                            );
+                        })}
                     </motion.div>
                 )}
                 {/* Countdown Timer — Enable via trainer config or settings */}
@@ -3280,8 +3427,8 @@ function UniversalDynamicTable({
                     // TRAIN-WIRE-UDT-ACTIONBTN-1: precomputed slots fed into shared ActionButton
                     const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
                     const betSizeNum = betMatch ? parseFloat(betMatch[1]) : null;
-                    const evRaw = (showFeedback && question?.evData?.actionEVs)
-                        ? (question.evData.actionEVs[optionId] ?? question.evData.actionEVs[optionId?.toLowerCase()])
+                    const evRaw = (showFeedback && fq?.evData?.actionEVs)
+                        ? (fq.evData.actionEVs[optionId] ?? fq.evData.actionEVs[optionId?.toLowerCase()])
                         : null;
                     const evNum = typeof evRaw === 'number' ? evRaw : null;
                     const sizeKey = isVeryCompact ? 'veryCompact' : (isCompact ? 'compact' : 'md');
@@ -3397,11 +3544,15 @@ function UniversalDynamicTable({
                 ))}
             </div>
 
+            {/* F4: mode panels — single AnimatePresence wrapper so their
+                exit={{...}} props actually animate on unmount */}
+            <AnimatePresence>
             {/* F4: RANGE MODE — Show range grid when mode is active */}
             {activeMode === 'range' && !showFeedback && (() => {
                 try {
                     return (
                         <motion.div
+                            key="mode-panel-range"
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -3439,6 +3590,7 @@ function UniversalDynamicTable({
                 try {
                     return (
                         <motion.div
+                            key="mode-panel-strategy"
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -3482,6 +3634,7 @@ function UniversalDynamicTable({
                 try {
                     return (
                         <motion.div
+                            key="mode-panel-settings"
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -3507,6 +3660,7 @@ function UniversalDynamicTable({
                     return null;
                 }
             })()}
+            </AnimatePresence>
 
             {/* INLINE FEEDBACK — Table stays visible, results shown below action bar */}
             {showFeedback && (
@@ -3660,24 +3814,19 @@ function UniversalDynamicTable({
                             <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700, letterSpacing: 0.5 }}>RNG</span>
                             <span style={{ color: 'var(--sp-fg)', fontWeight: 600 }}>
                                 {(() => {
-                                    let cumulative = 0;
-                                    for (const [actionId, freq] of Object.entries(computedFrequencies || {})) {
-                                        cumulative += freq;
-                                        if (rngRoll <= cumulative) {
-                                            const opt = options.find(o => o.id === actionId);
-                                            return `→ ${opt?.text || actionId}`;
-                                        }
-                                    }
-                                    return `→ ${options[0]?.text || 'Check'}`;
+                                    // Fix 16: resolve the roll against the SAME cumulative
+                                    // ranges shown on the pre-answer chips (rngRanges).
+                                    const hit = rngRanges.find(r => rngRoll >= r.start && rngRoll <= r.end);
+                                    return `→ ${hit?.text || rngRanges[0]?.text || 'Check'}`;
                                 })()}
                             </span>
                         </div>
                     )}
 
                     {/* Phase 44: EV Loss Summary — "Your action: +X BB | Optimal: +Y BB | Cost: Z BB" */}
-                    {showFeedback && question?.evData?.actionEVs && selectedAnswer && correctAnswer && selectedAnswer !== correctAnswer && (() => {
-                        const selEV = question.evData.actionEVs[selectedAnswer] ?? question.evData.actionEVs[selectedAnswer?.toLowerCase()];
-                        const corEV = question.evData.actionEVs[correctAnswer] ?? question.evData.actionEVs[correctAnswer?.toLowerCase()];
+                    {showFeedback && fq?.evData?.actionEVs && selectedAnswer && correctAnswer && selectedAnswer !== correctAnswer && (() => {
+                        const selEV = fq.evData.actionEVs[selectedAnswer] ?? fq.evData.actionEVs[selectedAnswer?.toLowerCase()];
+                        const corEV = fq.evData.actionEVs[correctAnswer] ?? fq.evData.actionEVs[correctAnswer?.toLowerCase()];
                         if (selEV === undefined || corEV === undefined) return null;
                         const evCost = corEV - selEV;
                         if (evCost <= 0) return null; // No cost (shouldn't happen for wrong answers)
@@ -3803,7 +3952,7 @@ function UniversalDynamicTable({
                     )}
 
                     {/* Per-Action EV Comparison */}
-                    {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs || {}).length > 0 && (
+                    {fq?.evData?.actionEVs && Object.keys(fq.evData.actionEVs || {}).length > 0 && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -3819,10 +3968,10 @@ function UniversalDynamicTable({
                             </div>
                             {options.slice(0, 9).map(opt => {
                                 const optId = opt.id || opt;
-                                const ev = question.evData.actionEVs[optId];
+                                const ev = fq.evData.actionEVs[optId];
                                 if (ev === undefined) return null;
-                                const maxEV = Math.max(...Object.values(question.evData.actionEVs || {}).filter(v => typeof v === 'number'));
-                                const minEV = Math.min(...Object.values(question.evData.actionEVs || {}).filter(v => typeof v === 'number'));
+                                const maxEV = Math.max(...Object.values(fq.evData.actionEVs || {}).filter(v => typeof v === 'number'));
+                                const minEV = Math.min(...Object.values(fq.evData.actionEVs || {}).filter(v => typeof v === 'number'));
                                 const range = maxEV - minEV || 1;
                                 const barWidth = Math.max(5, ((ev - minEV) / range) * 100);
                                 const isOptimal = optId === correctAnswer;
@@ -3875,7 +4024,7 @@ function UniversalDynamicTable({
                             const corIsRaise = corA.startsWith('r');
 
                             // Hand strength context
-                            const hCat = question?.handCategory || '';
+                            const hCat = fq?.handCategory || '';
                             const hcLow = hCat.toLowerCase();
                             const hasDraw = hcLow.includes('draw') || hcLow.includes('oesd') || hcLow.includes('gutshot');
                             const hasMonster = hcLow.includes('set') || hcLow.includes('two pair') || hcLow.includes('straight') || hcLow.includes('flush') || hcLow.includes('full house');
@@ -3957,7 +4106,7 @@ function UniversalDynamicTable({
                         // back to the auto-generated abstract template (which is scenario-free).
                         // TRAIN-FEEDBACK-SNAPSHOT-1: route through the snapshot so the guard
                         // validates against the question that was actually answered.
-                        const explanationOk = explanationMatchesScenario(explanation, getFeedbackQuestion()?.scenario);
+                        const explanationOk = explanationMatchesScenario(explanation, fScenario);
                         const displayExplanation = (explanation && explanationOk) ? explanation : (() => {
                             if (!moveClassification) return null;
                             if (moveClassification === 'best') {
@@ -4011,7 +4160,7 @@ function UniversalDynamicTable({
                                     >
                                         {showWhyDrawer ? 'Hide Details' : 'Why?'}
                                     </button>
-                                    {question?.rawFrequencies && (
+                                    {fq?.rawFrequencies && (
                                         <button
                                             onClick={() => setShowRangeGrid(!showRangeGrid)}
                                             style={{
@@ -4028,12 +4177,12 @@ function UniversalDynamicTable({
                                 </div>
                                 {/* Phase 33: Range Matrix Viewer */}
                                 <AnimatePresence>
-                                    {showRangeGrid && question?.rawFrequencies && (
+                                    {showRangeGrid && fq?.rawFrequencies && (
                                         <RangeMatrixViewer
-                                            rawFrequencies={question.rawFrequencies}
+                                            rawFrequencies={fq.rawFrequencies}
                                             correctAnswer={correctAnswer}
                                             show={showRangeGrid}
-                                            heroHand={question?.heroHand || question?.scenario?.heroHand}
+                                            heroHand={fq?.heroHand || fScenario.heroHand}
                                         />
                                     )}
                                 </AnimatePresence>
@@ -4058,9 +4207,9 @@ function UniversalDynamicTable({
                                                 </div>
 
                                                 {/* Phase 53: Hand category for context */}
-                                                {question?.handCategory && (
+                                                {fq?.handCategory && (
                                                     <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: 'var(--sp-accent-purple)' }}>
-                                                        Your hand: {question.handCategory}
+                                                        Your hand: {fq.handCategory}
                                                     </div>
                                                 )}
 
@@ -4126,19 +4275,19 @@ function UniversalDynamicTable({
                                                 )}
 
                                                 {/* Board texture context — Phase 29: uses engine's rich description when available */}
-                                                {(boardTexture || question?.scenario?.board) && (
+                                                {(boardTexture || fScenario.board) && (
                                                     <div style={{ marginBottom: 4 }}>
                                                         <strong style={{ color: 'var(--sp-fg-muted)' }}>Board:</strong>{' '}
                                                         {(() => {
                                                             // Try to extract rich texture from question text (engine generates it)
-                                                            const qText = question?.question || '';
+                                                            const qText = fq?.question || '';
                                                             const textureMatch = qText.match(/\(([^)]*(?:Wet|Dry|Semi-wet|monotone|rainbow|two-tone|ace-high|king-high|broadway|low|mid-range)[^)]*)\)/i);
                                                             if (textureMatch) return textureMatch[1];
                                                             // Fallback to basic classifier
                                                             if (boardTexture) return `${boardTexture.suitTexture}${boardTexture.connectTexture ? ` + ${boardTexture.connectTexture}` : ''}`;
                                                             return '';
                                                         })()}.
-                                                        {heroPosition && ` Hero ${heroPosition}${question?.scenario?.villainPosition ? ` vs ${question.scenario.villainPosition}` : ''}.`}
+                                                        {heroPosition && ` Hero ${heroPosition}${fScenario.villainPosition ? ` vs ${fScenario.villainPosition}` : ''}.`}
                                                     </div>
                                                 )}
 
@@ -4156,15 +4305,15 @@ function UniversalDynamicTable({
                                                 )}
 
                                                 {/* Phase 53: Full EV comparison table when available */}
-                                                {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs || {}).length > 1 && (
+                                                {fq?.evData?.actionEVs && Object.keys(fq.evData.actionEVs || {}).length > 1 && (
                                                     <div style={{ marginTop: 6, marginBottom: 4 }}>
                                                         <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-fg-muted)', letterSpacing: 0.5, marginBottom: 3 }}>EV BY ACTION</div>
-                                                        {Object.entries(question.evData.actionEVs || {})
+                                                        {Object.entries(fq.evData.actionEVs || {})
                                                             .sort(([, a], [, b]) => b - a)
                                                             .map(([action, ev]) => {
                                                                 const isOptimal = action === correctAnswer;
                                                                 const isSelected = action === selectedAnswer;
-                                                                const optText = question?.options?.find(o => o.id === action)?.text || action;
+                                                                const optText = fq?.options?.find(o => o.id === action)?.text || action;
                                                                 const evNum = typeof ev === 'number' ? ev : 0;
                                                                 return (
                                                                     <div key={action} style={{
@@ -4197,7 +4346,7 @@ function UniversalDynamicTable({
                                                         <span>{street.charAt(0).toUpperCase() + street.slice(1)}</span>
                                                         <span>Pot: {pot} BB</span>
                                                         {spr && <span>SPR: {spr}</span>}
-                                                        {question?.scenario?.stackDepth && <span>Stack: {question.scenario.stackDepth}bb</span>}
+                                                        {fScenario.stackDepth && <span>Stack: {fScenario.stackDepth}bb</span>}
                                                     </div>
                                                 )}
                                             </div>
@@ -4237,7 +4386,7 @@ function UniversalDynamicTable({
 
                             {/* Key takeaway — guarded by TRAIN-FEEDBACK-SYNC-1 */}
                             {/* TRAIN-FEEDBACK-SNAPSHOT-1: snapshot-based check */}
-                            {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, getFeedbackQuestion()?.scenario) && (
+                            {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, fScenario) && (
                                 <div style={{
                                     padding: '6px 10px', marginBottom: 6,
                                     background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(251, 191, 36, 0.06)',
@@ -4337,8 +4486,8 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getTeachingPrinciple) return null;
-                                    const sc = question?.scenario || {};
-                                    const p = getTeachingPrinciple(sc.street || 'flop', sc.nodeType || '', structuredExplanation?.correctAction || question?.correctAnswer || '', question?.handCategory || '', sc.texture || '');
+                                    const sc = fScenario;
+                                    const p = getTeachingPrinciple(sc.street || 'flop', sc.nodeType || '', structuredExplanation?.correctAction || fq?.correctAnswer || '', fq?.handCategory || '', sc.texture || '');
                                     if (!p || !p.principle) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.04)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-green)' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-green)' }}>PRINCIPLE: </span>{p.principle}
@@ -4348,7 +4497,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getPositionReminder) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     const r = getPositionReminder(sc.heroPosition || sc.position || '', sc.street || 'flop', sc.nodeType || '');
                                     if (!r || !r.tip) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
@@ -4359,7 +4508,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getTextureStrategyGuide) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     if (!sc.texture && !sc.boardTexture) return null;
                                     const g = getTextureStrategyGuide(sc.texture || sc.boardTexture || '', sc.street || 'flop', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!g || !g.strategy) return null;
@@ -4371,7 +4520,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getSPRStrategyGuide) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     if (!sc.potSize && !sc.stackDepth) return null;
                                     const spr = getSPRStrategyGuide(sc.potSize || sc.estimatedPot || 0, sc.stackDepth || sc.effectiveStack || 100);
                                     if (!spr || !spr.guidance) return null;
@@ -4383,7 +4532,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getVillainRangeNarration) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     const n = getVillainRangeNarration(sc.street || 'flop', sc.nodeType || '', sc.villainActions || sc.actionSequence || []);
                                     if (!n || !n.narration) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(239,68,68,0.04)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.1)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-red)' }}>
@@ -4394,8 +4543,8 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getMultiStreetPlanningGuide) return null;
-                                    const sc = question?.scenario || {};
-                                    const plan = getMultiStreetPlanningGuide(sc.street || 'flop', question?.handCategory || '', structuredExplanation?.correctAction || question?.correctAnswer || '', sc.potSize || 0, sc.stackDepth || 100);
+                                    const sc = fScenario;
+                                    const plan = getMultiStreetPlanningGuide(sc.street || 'flop', fq?.handCategory || '', structuredExplanation?.correctAction || fq?.correctAnswer || '', sc.potSize || 0, sc.stackDepth || 100);
                                     if (!plan || !plan.plan) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(59,130,246,0.04)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.1)', fontSize: 9, lineHeight: 1.5, color: '#93c5fd' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: 'var(--sp-accent-blue)' }}>STREET PLAN: </span>{plan.plan}
@@ -4406,8 +4555,8 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!classifyHandStrength) return null;
-                                    const sc = question?.scenario || {};
-                                    const hs = classifyHandStrength(question?.handCategory || '', sc.boardTexture || sc.texture || '', sc.street || 'flop');
+                                    const sc = fScenario;
+                                    const hs = classifyHandStrength(fq?.handCategory || '', sc.boardTexture || sc.texture || '', sc.street || 'flop');
                                     if (!hs) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${hs.color}08`, borderRadius: 8, border: `1px solid ${hs.color}22`, fontSize: 9, lineHeight: 1.5, color: hs.color }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HAND: {hs.icon} {hs.label.toUpperCase()} </span>{hs.description}
@@ -4418,8 +4567,8 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!estimateEquityVsRange) return null;
-                                    const sc = question?.scenario || {};
-                                    const eq = estimateEquityVsRange(question?.handCategory || '', sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', sc.villainPosition || '');
+                                    const sc = fScenario;
+                                    const eq = estimateEquityVsRange(fq?.handCategory || '', sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!eq) return null;
                                     const eqColor = eq.equity >= 60 ? 'var(--sp-accent-green)' : eq.equity >= 40 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
@@ -4432,7 +4581,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getRangeConstructionDrill) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
                                     if (!drill) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-purple)' }}>
@@ -4445,7 +4594,7 @@ function UniversalDynamicTable({
                             {(() => {
                                 try {
                                     if (!getHandReadingDrill) return null;
-                                    const sc = question?.scenario || {};
+                                    const sc = fScenario;
                                     const drill = getHandReadingDrill(sc.street || 'flop');
                                     if (!drill) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: 'var(--sp-accent-amber)' }}>
@@ -4458,9 +4607,9 @@ function UniversalDynamicTable({
                             {/* Phase 301: Optimal Line Narration */}
                             {(() => {
                                 try {
-                                    if (!getOptimalLineNarration || !structuredExplanation?.isCorrect === undefined) return null;
+                                    if (!getOptimalLineNarration || structuredExplanation?.isCorrect === undefined) return null;
                                     // TRAIN-FEEDBACK-SNAPSHOT-1: build narration against the snapshot
-                                    const fbQuestion = getFeedbackQuestion();
+                                    const fbQuestion = fq;
                                     const sc = fbQuestion?.scenario || {};
                                     const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', fbQuestion?.handCategory || '');
                                     if (!narr) return null;
@@ -4476,7 +4625,7 @@ function UniversalDynamicTable({
                     )}
 
                     {/* Range Grid (when raw frequencies available) */}
-                    {question?.rawFrequencies && (
+                    {fq?.rawFrequencies && (
                         <div style={{ width: '100%' }}>
                             <div style={{
                                 fontSize: 10, color: 'var(--sp-fg-muted)', padding: '3px 8px',
@@ -4494,8 +4643,8 @@ function UniversalDynamicTable({
                                     );
                                 })}
                             </div>
-                            {question?.rawFrequencies && (() => {
-                                const actions = Object.keys(question.rawFrequencies || {});
+                            {fq?.rawFrequencies && (() => {
+                                const actions = Object.keys(fq.rawFrequencies || {});
                                 const gridData = {};
                                 const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
                                 for (let r = 0; r < 13; r++) {
@@ -4507,7 +4656,7 @@ function UniversalDynamicTable({
                                         const handFreqs = {};
                                         let hasAny = false;
                                         actions.forEach(action => {
-                                            const freq = question.rawFrequencies[action]?.[hand];
+                                            const freq = fq.rawFrequencies[action]?.[hand];
                                             if (freq !== undefined && freq > 0) {
                                                 handFreqs[action] = Math.round(freq * 1000) / 10;
                                                 hasAny = true;
@@ -4516,7 +4665,7 @@ function UniversalDynamicTable({
                                         gridData[hand] = hasAny ? handFreqs : null;
                                     }
                                 }
-                                const hCards = question?.heroCards || question?.cards;
+                                const hCards = fq?.heroCards || fq?.cards;
                                 let heroHand = null;
                                 if (hCards && hCards.length >= 2) {
                                     const r1 = hCards[0]?.[0]?.toUpperCase();
@@ -4783,7 +4932,7 @@ function UniversalDynamicTable({
                                     ))}
                                 </div>
                                 <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>
-                                    {computedDifficulty.label} difficulty • Next hand in 2s...
+                                    {computedDifficulty.label} difficulty • Session complete
                                 </div>
                                 {/* PHASE 6: Review Mistakes Button */}
                                 {sessionMistakesListRef.current.length > 0 && (
@@ -4810,6 +4959,82 @@ function UniversalDynamicTable({
                 </motion.div>
             )
             }
+
+            {/* PHASE 6: Mistake Review overlay — wired to the Review N Mistakes button */}
+            {showMistakeReview && (() => {
+                const mistakes = sessionMistakesListRef.current || [];
+                if (mistakes.length === 0) return null;
+                const idx = Math.min(mistakeReviewIndex, mistakes.length - 1);
+                const mk = mistakes[idx];
+                const navBtnStyle = {
+                    padding: '8px 16px', borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: 'var(--sp-fg)', fontSize: 11, fontWeight: 700,
+                    cursor: 'pointer', letterSpacing: 0.5,
+                };
+                return (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 500,
+                        background: 'rgba(5,10,20,0.95)',
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        gap: 12, padding: 20,
+                    }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                            Mistake {idx + 1} / {mistakes.length}
+                        </div>
+                        <div style={{
+                            width: '100%', maxWidth: 360, padding: '12px 16px',
+                            background: 'rgba(255,255,255,0.04)', borderRadius: 10,
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', flexDirection: 'column', gap: 6,
+                        }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
+                                Hand: {(mk.heroCards || []).join(' ') || '?'}{mk.heroPosition ? ` (${mk.heroPosition})` : ''}
+                            </div>
+                            {Array.isArray(mk.boardCards) && mk.boardCards.length > 0 && (
+                                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>Board: {mk.boardCards.join(' ')}</div>
+                            )}
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-red)' }}>You: {mk.selectedAnswer ?? '-'}</div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>Correct: {mk.correctAnswer ?? '-'}</div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-amber)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                {mk.classification || 'mistake'}{mk.evLoss > 0 ? ` · -${mk.evLoss.toFixed(2)} BB` : ''}
+                            </div>
+                            {mk.explanation && (
+                                <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>{mk.explanation}</div>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => setMistakeReviewIndex(i => Math.max(0, i - 1))}
+                                disabled={idx === 0}
+                                style={{ ...navBtnStyle, opacity: idx === 0 ? 0.4 : 1 }}
+                            >
+                                Prev
+                            </button>
+                            <button
+                                onClick={() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))}
+                                disabled={idx >= mistakes.length - 1}
+                                style={{ ...navBtnStyle, opacity: idx >= mistakes.length - 1 ? 0.4 : 1 }}
+                            >
+                                Next
+                            </button>
+                            <button
+                                onClick={() => setShowMistakeReview(false)}
+                                style={{
+                                    ...navBtnStyle,
+                                    border: '1px solid rgba(239,68,68,0.4)',
+                                    background: 'rgba(239,68,68,0.1)',
+                                    color: 'var(--sp-accent-red)',
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
         </div >
     );
 }
@@ -4820,6 +5045,7 @@ function UniversalDynamicTable({
 
 const styles = {
     container: {
+        position: 'relative',
         width: '100%',
         height: '100vh',
         display: 'flex',
@@ -5412,23 +5638,23 @@ const styles = {
         fontWeight: '600',
     },
 
-    // ── INLINE FEEDBACK (replaces old full-screen overlay)
+    // ── INLINE FEEDBACK (genuinely inline panel below the action bar —
+    //    the table stays visible above; this panel scrolls internally)
     feedbackInline: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999,
-        background: 'rgba(5,10,20,0.97)',
-        backdropFilter: 'blur(8px)',
+        position: 'relative',
+        width: '100%',
+        maxHeight: '48vh',
+        overflowY: 'auto',
+        background: 'rgba(5,10,20,0.92)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12,
+        boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
         gap: 8,
         padding: '24px 20px',
-        overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         maxWidth: 800,
         marginLeft: 'auto',

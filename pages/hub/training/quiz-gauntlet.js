@@ -38,7 +38,7 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 function genPotOdds() {
   const pot = [60, 80, 100, 120, 150][Math.floor(Math.random() * 5)];
   const bet = Math.round(pot * [0.33, 0.5, 0.75, 1.0][Math.floor(Math.random() * 4)]);
-  const answer = Math.round((bet / (pot + bet)) * 100);
+  const answer = Math.round((bet / (pot + 2 * bet)) * 100);
   return {
     topic: 'Pot Odds',
     icon: '📐',
@@ -47,8 +47,8 @@ function genPotOdds() {
     unit: '%',
     tolerance: 2,
     question: `Villain bets **${bet}** into a **${pot}** chip pot. What are your pot odds?`,
-    hint: 'Bet ÷ (Pot + Bet) × 100',
-    explanation: `${bet} / (${pot} + ${bet}) = ${bet} / ${pot + bet} = **${answer}%**`,
+    hint: 'Call ÷ (Pot + Bet + Call) × 100',
+    explanation: `${bet} / (${pot} + ${bet} + ${bet}) = ${bet} / ${pot + 2 * bet} = **${answer}%**`,
   };
 }
 function genMDF() {
@@ -87,7 +87,7 @@ function genEV() {
 function genBreakEven() {
   const pot = [80, 100, 120][Math.floor(Math.random() * 3)];
   const bet = Math.round(pot * [0.5, 0.75, 1.0][Math.floor(Math.random() * 3)]);
-  const answer = Math.round((bet / (pot + bet)) * 100);
+  const answer = Math.round((bet / (pot + 2 * bet)) * 100);
   return {
     topic: 'Break-Even',
     icon: '⚖️',
@@ -96,8 +96,8 @@ function genBreakEven() {
     unit: '%',
     tolerance: 2,
     question: `Bet **${bet}**, pot **${pot}**. Min equity to break even on a call?`,
-    hint: 'Call ÷ (Pot + Call) × 100',
-    explanation: `${bet} / (${pot + bet}) = **${answer}%**`,
+    hint: 'Call ÷ (Pot + Bet + Call) × 100',
+    explanation: `${bet} / (${pot + 2 * bet}) = **${answer}%**`,
   };
 }
 
@@ -126,7 +126,7 @@ function calcScore(isCorrect, timeLeft, combo) {
   return Math.round((base + timeBonus) * comboMult);
 }
 
-export default function QuizGauntlet() {
+export default function QuizGauntlet({ onExit } = {}) {
   useTrainingBus('quiz-gauntlet');
   const fb = useTrainingFeedback();
   const router = useRouter();
@@ -283,7 +283,7 @@ export default function QuizGauntlet() {
       <div style={C.page}>
         <div style={{ maxWidth: 580, margin: '0 auto' }}>
           <button
-            onClick={() => router.push('/hub/training')}
+            onClick={() => (onExit ? onExit() : router.push('/hub/training'))}
             style={{
               background: 'none',
               border: 'none',
@@ -744,7 +744,7 @@ export default function QuizGauntlet() {
                     PLAY AGAIN ⚡
                   </button>
                   <button
-                    onClick={() => router.push('/hub/training')}
+                    onClick={() => (onExit ? onExit() : router.push('/hub/training'))}
                     style={{
                       flex: 1,
                       padding: 14,

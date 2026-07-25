@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+      const { data: authData, error: authErr } = await supabase.auth['getUser'](token);
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       const userId = user.id; // From JWT, not request
@@ -230,6 +230,7 @@ export default async function handler(req, res) {
                   periods,
                   weekly,
                   monthly,
+                  challenges: [...(weekly || []), ...(monthly || [])],
                   totalCompleted: challenges.filter(c => c.completed).length,
                   totalClaimed: challenges.filter(c => c.claimed).length,
                   debug: { avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak }
@@ -261,7 +262,7 @@ export default async function handler(req, res) {
               // Get active challenges (narrow select to needed columns)
               const { data: definitions } = await supabase
                   .from('training_challenge_definitions')
-                  .select('id, name, challenge_type, metric, target_value, diamond_reward, description')
+                  .select('id, name, challenge_type, metric, target_type, target_category, target_value, diamond_reward, description')
                   .eq('is_active', true)
                   .limit(100);
 

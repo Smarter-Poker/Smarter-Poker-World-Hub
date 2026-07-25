@@ -291,6 +291,8 @@ export default function ServicesPage() {
   const router = useRouter();
 
   const [selectedType, setSelectedType] = useState(null);
+  // 2026-07-25 audit fix: surface submit/cancel failures to the user.
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const { user, checking: authChecking } = useRequireAuth('/hub/commander/services');
   useTrainingBus('services');
@@ -343,29 +345,40 @@ export default function ServicesPage() {
         })
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
+      // 2026-07-25 audit fix: failures were logged and swallowed — the user
+      // never learned the request didn't go through. Surface the server error.
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         busEmit.dataMutated('services');
         setSelectedType(null);
         refreshServices();
+      } else {
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : '') || `Request failed (${res.status})`;
+        setErrorMessage(msg);
+        setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
       console.warn('Submit failed:', err);
+      setErrorMessage('Could not send request. Please try again.');
+      setTimeout(() => setErrorMessage(null), 4000);
     }
   }
 
   async function handleCancelRequest(requestId) {
     try {
       const token = getAccessToken();
-      await fetch(`/api/commander/services/${requestId}`, {
+      // 2026-07-25 audit fix: check res.ok and surface cancel failures too.
+      const res = await fetch(`/api/commander/services/${requestId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error(`Cancel failed (${res.status})`);
       busEmit.dataMutated('services');
       refreshServices();
     } catch (err) {
       console.warn('Cancel failed:', err);
+      setErrorMessage('Could not cancel request. Please try again.');
+      setTimeout(() => setErrorMessage(null), 4000);
     }
   }
 
@@ -412,6 +425,13 @@ export default function ServicesPage() {
       </Head>
 
       <div className="cmd-page">
+        {/* 2026-07-25 audit fix: error banner for failed service mutations. */}
+        {errorMessage && (
+          <div className="fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center font-bold bg-[#EF4444]/20 border-b-2 border-[#EF4444] text-[#EF4444] uppercase tracking-wide">
+            {errorMessage}
+          </div>
+        )}
+
         {/* Header */}
         <header className="cmd-header-full text-white">
           <div className="max-w-lg mx-auto px-4 py-6">

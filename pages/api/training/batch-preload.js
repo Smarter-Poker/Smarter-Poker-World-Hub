@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
       try {
           const questionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
-          const gameLevel = Math.min(10, Math.max(1, parseInt(level, 10) || 1));
+          const gameLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
 
           // ═══ PHASE 15: Parse targeting params ═══
           const targetPositions = rawTargetPositions
@@ -93,9 +93,22 @@ export default async function handler(req, res) {
           // shuffle meant Postgres returned the same first-N rows every call —
           // users looped the identical 15 questions per level forever. Over-
           // fetch the pool, then shuffle, then slice.
+          // ═══ SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ═══
+          let seenIds = new Set();
+          try {
+              const { data: seen } = await getSupabase()
+                  .from('user_seen_questions')
+                  .select('question_id')
+                  .eq('user_id', _authUser.id)
+                  .eq('game_id', gameId)
+                  .limit(2000);
+              seenIds = new Set((seen || []).map((r) => r.question_id));
+          } catch (e) { /* non-blocking */ }
+
+          // Fetch questions from cache (over-fetch so seen-filtering has room)
           const { data: questions, error } = await getSupabase()
               .from('training_question_cache')
-              .select('question_data')
+              .select('id, question_data')
               .eq('game_id', gameId)
               .eq('level', gameLevel)
               .limit(Math.max(100, questionCount * 3));
@@ -109,7 +122,20 @@ export default async function handler(req, res) {
           // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
           // generate LIVE questions from DeterministicGTOEngine (187k+ records)
           // ═══════════════════════════════════════════════════════════════════
-          const cachedQuestions = questions || [];
+          // Filter out already-seen questions, but never drop below the
+          // requested count — repeats beat 404s.
+          const rows = (questions || []).slice(0, questionCount * 3);
+          const fresh = seenIds.size > 0
+              ? rows.filter((r) => !seenIds.has(r.id) && !seenIds.has(r.question_data?.id))
+              : rows;
+          const usable = [...(fresh.length >= questionCount ? fresh : rows)];
+          // Shuffle BEFORE slicing so the same first-N cache rows are not
+          // served on every call (2026-07-19 engine-audit intent preserved)
+          for (let i = usable.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [usable[i], usable[j]] = [usable[j], usable[i]];
+          }
+          const cachedQuestions = usable.slice(0, questionCount);
           let solverQuestions = [];
 
           if (cachedQuestions.length < questionCount) {
@@ -159,7 +185,8 @@ export default async function handler(req, res) {
                           gameId,
                           level: gameLevel,
                           count: Math.min(questionCount - cachedQuestions.length, 15),
-                          gameConfig: gameCfg,
+                          gameConfig: pioConfig || gameCfg || { id: gameId, sourceOfTruth: 'SCENARIO' },
+                          seenIds: Array.from(seenIds),
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => {
@@ -225,18 +252,20 @@ export default async function handler(req, res) {
               // Track whether we had to fabricate any data
               let dataQuality = 'SOLVER_EXACT';
 
-              // ═══ 2026-07-19 AUDIT FIX: reconcile answer key with solver
-              // frequencies BEFORE any enrichment. ~7% of cached rows had a
-              // correctAnswer/correctAnswerText/gtoFrequencies that
-              // contradicted their own `frequencies` distribution. ═══
+              // 2026-07-19 AUDIT FIX: reconcile answer key with solver
+              // frequencies BEFORE any enrichment.
               reconcileAnswerKey(qData);
 
-              const scenario = qData.scenario || {};
+              const scenario = (qData.scenario && typeof qData.scenario === 'object') ? qData.scenario : {};
+              if (typeof qData.scenario === 'string') qData.scenarioText = qData.scenario;
               const options = qData.options || [];
               const correctAnswer = qData.correctAnswer;
 
+              // Psychology questions get no poker-context fabrication
+              const isPsych = String(gameId).startsWith('psy-') || scenario.isPsychology === true;
+
               // 1. Ensure heroCards
-              if (!qData.heroCards || !Array.isArray(qData.heroCards) || qData.heroCards.length < 2) {
+              if (!isPsych && (!qData.heroCards || !Array.isArray(qData.heroCards) || qData.heroCards.length < 2)) {
                   const heroHand = scenario.heroHand || qData.heroHand || '';
                   if (heroHand && heroHand.length >= 4) {
                       qData.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
@@ -248,7 +277,7 @@ export default async function handler(req, res) {
               }
 
               // 2. Ensure boardCards
-              if (!qData.boardCards || !Array.isArray(qData.boardCards) || qData.boardCards.length === 0) {
+              if (!isPsych && (!qData.boardCards || !Array.isArray(qData.boardCards) || qData.boardCards.length === 0)) {
                   const boardStr = (scenario.board || '').replace(/\s+/g, '');
                   if (boardStr.length >= 6) {
                       const cards = [];
@@ -328,10 +357,11 @@ export default async function handler(req, res) {
                       qData.gtoFrequencies = {};
                       let remaining = 100;
 
-                      // Map options directly to their intended string IDs based on source indices
-                      const mappedOptions = options.map((opt, idx) => ({
-                          id: opt.id || String.fromCharCode(97 + idx),
-                          isCorrect: (opt.id || String.fromCharCode(97 + idx)) === correctAnswer
+                      // Map normalized options to their ids (options are normalized above,
+                      // so ids here match the opt_N ids the client receives)
+                      const mappedOptions = qData.options.map((opt, idx) => ({
+                          id: opt.id || `opt_${idx}`,
+                          isCorrect: (opt.id || `opt_${idx}`) === correctAnswer
                       }));
 
                       // 1. Target the correct answer
@@ -366,7 +396,7 @@ export default async function handler(req, res) {
               }
 
               // 4. Ensure evData — deterministic estimates based on position + pot
-              if (!qData.evData) {
+              if (!isPsych && !qData.evData) {
                   const pot = scenario.pot || 10;
                   const positionBonus = { 'BTN': 0.65, 'CO': 0.58, 'MP': 0.50, 'UTG': 0.45, 'SB': 0.42, 'BB': 0.48 };
                   const posMult = positionBonus[scenario.heroPosition] || 0.52;
@@ -378,21 +408,23 @@ export default async function handler(req, res) {
                   };
               }
 
-              // 5. Fill scenario gaps
-              if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
-              if (!scenario.villainPosition) scenario.villainPosition = 'BB';
-              if (!scenario.pot) scenario.pot = 12;
-              if (!scenario.heroStack) scenario.heroStack = 100;
-              if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
-              if (!scenario.street) {
-                  scenario.street = qData.boardCards?.length === 3 ? 'flop'
-                      : qData.boardCards?.length === 4 ? 'turn' : 'river';
+              // 5. Fill scenario gaps (skip for psychology — no poker context to fabricate)
+              if (!isPsych) {
+                  if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
+                  if (!scenario.villainPosition) scenario.villainPosition = 'BB';
+                  if (!scenario.pot) scenario.pot = 12;
+                  if (!scenario.heroStack) scenario.heroStack = 100;
+                  if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
+                  if (!scenario.street) {
+                      scenario.street = qData.boardCards?.length === 3 ? 'flop'
+                          : qData.boardCards?.length === 4 ? 'turn' : 'river';
+                  }
+                  // ═══ SANITIZE: Clamp pot/stacks to prevent absurd values ═══
+                  // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
+                  scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);
+                  scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 500);
+                  scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 500);
               }
-              // ═══ SANITIZE: Clamp pot/stacks to prevent absurd values ═══
-              // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
-              scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);
-              scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 500);
-              scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 500);
               qData.scenario = scenario;
               if (!qData.source) qData.source = 'CACHED_SCENARIO';
               // IMP-5: Tag data quality for frontend confidence indicators

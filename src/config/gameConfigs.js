@@ -34,7 +34,7 @@ export const GAME_CONFIGS = {
     'mtt-019': { players: 9, format: '9-Max Tournament', stackDepth: '8-15BB', gameType: 'tournament', engine: 'PIO' }, // Stop & go
     'mtt-020': { players: 9, format: '9-Max PKO', stackDepth: '20-40BB', gameType: 'tournament', engine: 'PIO' }, // Multi-way bounty
     'mtt-021': { players: 9, format: '9-Max Tournament', stackDepth: '15-30BB', gameType: 'tournament', engine: 'PIO' }, // Check-shove
-    'mtt-022': { players: 9, format: '9-Max Tournament', stackDepth: '20-40BB', gameType: 'tournament', engine: 'SCENARIO' }, // Clock management
+    'mtt-022': { players: 9, format: '9-Max Tournament', stackDepth: '20-40BB', gameType: 'tournament', engine: 'PIO' }, // Clock management
     'mtt-023': { players: 9, format: '9-Max Tournament', stackDepth: '30-60BB', gameType: 'tournament', engine: 'PIO' }, // Late reg
     'mtt-024': { players: 9, format: '9-Max Tournament', stackDepth: '25-50BB', gameType: 'tournament', engine: 'PIO' }, // Triple barrel
     'mtt-025': { players: 9, format: '9-Max Tournament', stackDepth: '10-100BB', gameType: 'tournament', engine: 'PIO' }, // Full simulation

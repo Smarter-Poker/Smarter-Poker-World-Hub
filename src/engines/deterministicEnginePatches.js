@@ -188,13 +188,22 @@ export function applyDeterministicEnginePatches(engine) {
             if (allData.length === 0) return null;
 
             if (spotTypes && spotTypes.length > 0) {
+                // (^|_) anchors: \b never matches inside underscore-delimited
+                // scenario hashes ('_' is a word character), so the \b versions
+                // silently matched nothing.
                 const spotTypePatterns = {
-                    'rfi': /\b(rfi|open|raise_first)\b/i,
-                    'vs3bet': /\b(vs_?3bet|facing_?3bet|3bet_def)\b/i,
-                    'bb_defense': /\b(bb_def|bb_vs|big_blind)\b/i,
-                    'cold_call': /\b(cold_call|flat|overcall)\b/i,
-                    '4bet': /\b(4bet|four_bet)\b/i,
-                    'squeeze': /\b(squeeze|sqz)\b/i,
+                    'rfi': /(^|_)(rfi|open|raise_first)(_|$)/i,
+                    'vs3bet': /(^|_)(vs_?3bet|facing_?3bet|3bet_def|3b)(_|$)/i,
+                    'bb_defense': /(^|_)(bb_def|bb_vs|big_blind)(_|$)/i,
+                    'cold_call': /(^|_)(cold_call|flat|overcall)(_|$)/i,
+                    '4bet': /(^|_)(4bet|four_bet|4b)(_|$)/i,
+                    'squeeze': /(^|_)(squeeze|sqz)(_|$)/i,
+                    'cbet': /(^|_)(cbet|c_?bet|flop_bet)(_|$)/i,
+                    'turn_barrel': /(^|_)(barrel|turn_bet|double_barrel)(_|$)/i,
+                    'river_bluff': /(^|_)(river|bluff|triple_barrel)(_|$)/i,
+                    'check_raise': /(^|_)(check_?raise|xr)(_|$)/i,
+                    'turn_probe': /(^|_)(probe|turn_lead)(_|$)/i,
+                    'river_value': /(^|_)(river_value|thin_value|value_bet)(_|$)/i,
                 };
                 const patterns = spotTypes.map(st => spotTypePatterns[st]).filter(Boolean);
                 if (patterns.length > 0) {

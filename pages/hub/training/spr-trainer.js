@@ -36,7 +36,7 @@ const HAND_STRENGTHS = [
     id: 'monsters',
     label: 'Monster Hand',
     desc: 'Straight, Flush, Full House, Quads, Straight Flush',
-    commit_to: 0,
+    commit_to: Infinity, // monsters commit at any SPR
   },
   { id: 'set', label: 'Set (Trips)', desc: 'Three of a kind using a pocket pair', commit_to: 13 },
   {
@@ -92,7 +92,9 @@ function getExplanation(spr, handId, correct) {
     spr <= 1 ? 'micro (0-1)' : spr <= 4 ? 'low (1-4)' : spr <= 13 ? 'medium (4-13)' : 'high (13+)';
   const lines = [
     `SPR = ${Number.isFinite(spr) ? (Number.isFinite(Number(spr)) ? Number(spr) : 0).toFixed(1) : '?'} — This is a **${sprZone}** SPR.`,
-    `With ${hs?.label}, you can profitably commit stacks when SPR ≤ ${hs?.commit_to}.`,
+    Number.isFinite(hs?.commit_to)
+      ? `With ${hs?.label}, you can profitably commit stacks when SPR ≤ ${hs?.commit_to}.`
+      : `With ${hs?.label}, you can profitably commit stacks at any SPR.`,
   ];
   if (correct === 'commit') lines.push('✅ **Commit**: Stack-off is profitable. Get the money in.');
   else if (correct === 'neutral')
@@ -123,7 +125,7 @@ const ACTION_CONFIG = {
   fold: { label: '❌ FOLD', color: 'var(--sp-accent-red)', sub: 'Give up — SPR too high' },
 };
 
-export default function SPRTrainer() {
+export default function SPRTrainer({ onExit } = {}) {
   useTrainingBus('spr-trainer');
   const fb = useTrainingFeedback();
   const router = useRouter();
@@ -261,7 +263,7 @@ export default function SPRTrainer() {
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <button
-              onClick={() => router.push('/hub/training')}
+              onClick={() => (onExit ? onExit() : router.push('/hub/training'))}
               style={{
                 background: 'none',
                 border: 'none',

@@ -205,6 +205,14 @@ export function classifyMadeHand(holeCards, board) {
         const pairValue = eval5.kickers[0]; // the paired rank
         const kicker = heroValues.find(v => v !== pairValue) || heroValues[0];
 
+        // Board-paired "pair" — hero holds neither the pair card nor a pocket pair,
+        // so the pair belongs entirely to the board. That's high card, not top pair.
+        const heroHasPairCard = heroValues.includes(pairValue);
+        const heroPocketPair = heroValues[0] === heroValues[1];
+        if (!heroHasPairCard && !heroPocketPair) {
+            return { category: MADE_HANDS.NOTHING, description: 'High Card', strength: 0.10 };
+        }
+
         // Overpair (pocket pair > all board cards)
         if (heroValues[0] === heroValues[1] && heroValues[0] > topBoardCard) {
             return { category: MADE_HANDS.OVERPAIR, description: 'Overpair', strength: 0.55 };
@@ -212,7 +220,9 @@ export function classifyMadeHand(holeCards, board) {
 
         // Top pair
         if (pairValue === topBoardCard) {
-            if (kicker >= 14) return { category: MADE_HANDS.TOP_PAIR_TOP, description: 'Top Pair Top Kicker', strength: 0.50 };
+            // With top pair of aces the best kicker is a king; otherwise an ace
+            const topKickerThreshold = pairValue === 14 ? 13 : 14;
+            if (kicker >= topKickerThreshold) return { category: MADE_HANDS.TOP_PAIR_TOP, description: 'Top Pair Top Kicker', strength: 0.50 };
             if (kicker >= 12) return { category: MADE_HANDS.TOP_PAIR_GOOD, description: 'Top Pair Good Kicker', strength: 0.45 };
             return { category: MADE_HANDS.TOP_PAIR_WEAK, description: 'Top Pair Weak Kicker', strength: 0.40 };
         }
@@ -264,26 +274,22 @@ export function classifyDraws(holeCards, board) {
     let bestStraightDraw = DRAWS.NONE;
     let straightOuts = 0;
 
-    // Check each possible 5-card window
+    // Count distinct completing ranks across every 5-card window.
+    // 2+ distinct completing ranks = 8 outs (OESD-equivalent, incl. double gutshots),
+    // exactly 1 = 4-out gutshot. Normalize ace-low (1) to 14 so it isn't counted twice.
+    const completing = new Set();
     for (let target = 1; target <= 10; target++) {
         const window = [target, target + 1, target + 2, target + 3, target + 4];
-        const haveCount = window.filter(v => values.includes(v)).length;
         const need = window.filter(v => !values.includes(v));
+        if (need.length === 1) completing.add(need[0] === 1 ? 14 : need[0]);
+    }
 
-        if (haveCount === 4 && need.length === 1) {
-            // Check if open-ended or gutshot
-            if (need[0] === window[0] || need[0] === window[4]) {
-                if (bestStraightDraw !== DRAWS.OESD) {
-                    bestStraightDraw = DRAWS.OESD;
-                    straightOuts = 8;
-                }
-            } else {
-                if (bestStraightDraw === DRAWS.NONE) {
-                    bestStraightDraw = DRAWS.GUTSHOT;
-                    straightOuts = 4;
-                }
-            }
-        }
+    if (completing.size >= 2) {
+        bestStraightDraw = DRAWS.OESD;
+        straightOuts = 8;
+    } else if (completing.size === 1) {
+        bestStraightDraw = DRAWS.GUTSHOT;
+        straightOuts = 4;
     }
 
     if (bestStraightDraw !== DRAWS.NONE) {

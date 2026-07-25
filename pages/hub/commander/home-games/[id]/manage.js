@@ -49,7 +49,6 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
     if (!eventData.scheduled_date) return;
 
     setSubmitting(true);
-    const datetime = `${eventData.scheduled_date}T${eventData.scheduled_time}:00`;
 
     try {
         const token = getAccessToken();
@@ -60,13 +59,18 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           Authorization: `Bearer ${token}`,
           'X-Idempotency-Key': idemKeyRef.current,
         },
+        // 2026-07-25 audit fix: the events API requires scheduled_date and
+        // start_time as SEPARATE fields (packing the time into scheduled_date
+        // broke creation) and expects special_rules, not notes — same mapping
+        // create.js uses.
         body: JSON.stringify({
           group_id: group.id,
-          scheduled_date: datetime,
+          scheduled_date: eventData.scheduled_date,
+          start_time: eventData.scheduled_time,
           stakes: eventData.stakes,
           game_type: eventData.game_type,
           max_players: eventData.max_players,
-          notes: eventData.notes
+          special_rules: eventData.notes || undefined
         })
       });
 
@@ -206,17 +210,20 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
   return (
     <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
-        {member.avatar_url ? (
-          <img src={member.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} />
+        {/* 2026-07-25 audit fix: avatar_url lives on the nested profiles row. */}
+        {member.profiles?.avatar_url ? (
+          <img src={member.profiles.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} />
         ) : (
           <Users className="w-5 h-5 text-[#22D3EE]" />
         )}
       </div>
 
       <div className="flex-1">
-        <p className="font-medium text-white">{member.display_name || 'Member'}</p>
+        {/* 2026-07-25 audit fix: members API returns nested profiles:user_id
+            (display_name, avatar_url) and joined_at — flat fields were undefined. */}
+        <p className="font-medium text-white">{member.profiles?.display_name || 'Member'}</p>
         <p className="text-sm text-[#64748B]">
-          {isPending ? 'Pending approval' : `Joined ${new Date(member.created_at).toLocaleDateString()}`}
+          {isPending ? 'Pending approval' : `Joined ${new Date(member.joined_at || member.created_at).toLocaleDateString()}`}
         </p>
       </div>
 
@@ -475,14 +482,22 @@ export default function ManageHomeGamePage() {
   async function handleApproveMember(member) {
     try {
         const token = getAccessToken();
-      await fetch(`/api/commander/home-games/groups/${id}/members`, {
-        method: 'PATCH',
+      // 2026-07-25 audit fix: members API only allows PUT (was PATCH → 405)
+      // and updateMembership expects {member_id, action} — not {status}.
+      // Also check res.ok so a rejected approval is surfaced instead of silent.
+      const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ member_id: member.id, status: 'approved' })
+        body: JSON.stringify({ member_id: member.id, action: 'approve' })
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't approve member (${res.status})`;
+        throw new Error(msg);
+      }
       busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
@@ -492,7 +507,8 @@ export default function ManageHomeGamePage() {
   }
 
   async function handleRemoveMember(member) {
-    if (!confirm(`Remove ${member.display_name || 'this member'}?`)) return;
+    // 2026-07-25 audit fix: display_name is on the nested profiles row.
+    if (!confirm(`Remove ${member.profiles?.display_name || 'this member'}?`)) return;
 
     // bug-hunt-zero/B-MGR-6: same silent-failure pattern. DELETE goes
     // through, server says no (403 — not the host, 404 — already gone,
@@ -501,9 +517,16 @@ export default function ManageHomeGamePage() {
     // forever and wonders why it doesn't work.
     try {
         const token = getAccessToken();
-      const res = await fetch(`/api/commander/home-games/groups/${id}/members?member_id=${member.id}`, {
+      // 2026-07-25 audit fix: leaveOrRemove reads member_id from the request
+      // BODY, not the query string — the query-param form removed the caller
+      // (self-leave path) instead of the targeted member.
+      const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ member_id: member.id })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -1072,9 +1095,11 @@ export default function ManageHomeGamePage() {
                   <MemberRow
                     key={member.id}
                     member={member}
-                    isHost={member.user_id === group?.host_id}
+                    // 2026-07-25 audit fix: commander_home_groups rows have
+                    // owner_id, not host_id — host badge never rendered.
+                    isHost={member.user_id === group?.owner_id}
                     onRemove={handleRemoveMember}
-                    onMessage={member.user_id !== group?.host_id ? handleStartDm : undefined}
+                    onMessage={member.user_id !== group?.owner_id ? handleStartDm : undefined}
                   />
                 ))}
               </div>

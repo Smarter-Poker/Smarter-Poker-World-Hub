@@ -35,6 +35,9 @@ import {
 } from './PostflopScenarioGenerator';
 import { calculateActionEVs } from './EVCalculator';
 
+// ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
+import { getPsychologyQuestions } from '../data/psychologyQuestionBank';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION CODE → HUMAN-READABLE LABEL MAPPING
 // ═══════════════════════════════════════════════════════════════════════════
@@ -390,8 +393,14 @@ export class DeterministicGTOEngine {
 
         const source = gameConfig.sourceOfTruth;
 
-        // ═══ POSTFLOP L8-L10: Route to PostflopScenarioGenerator ═══
-        if (level >= 8 && level <= 10) {
+        // ═══ SCENARIO (psychology + table selection): deterministic question bank ═══
+        if (source === 'SCENARIO' || gameConfig.engine === 'SCENARIO') {
+            const batch = this.generateScenarioBatch({ gameId, level, count: 1, seenIds });
+            return batch[0] || null;
+        }
+
+        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
+        if (level >= 8 && source !== 'ICMIZER') {
             return this.generateFromPostflopEngine(gameConfig, level, seenIds);
         }
 
@@ -424,20 +433,28 @@ export class DeterministicGTOEngine {
      * Generate a postflop training question from the PostflopScenarioGenerator.
      * Converts engine scenario format → standard training question format.
      */
-    generateFromPostflopEngine(gameConfig, level, seenIds = []) {
+    generateFromPostflopEngine(gameConfig, level, seenIds = [], presetScenario = null) {
         try {
-            const scenario = getRandomPostflopScenario(level);
+            let scenario = presetScenario || getRandomPostflopScenario(level);
             if (!scenario) {
                 console.warn(`[DeterministicEngine] No postflop scenario for L${level}`);
                 return null;
             }
 
             // Build unique ID to avoid repeats
-            const scenarioId = `postflop_L${level}_${scenario.heroCards.join('')}_${scenario.board.join('')}`;
+            let scenarioId = `postflop_L${level}_${scenario.heroCards.join('')}_${scenario.board.join('')}`;
             if (seenIds.includes(scenarioId)) {
-                // Try again with a filter to get a different scenario
-                const altScenario = getRandomPostflopScenario(level);
-                if (!altScenario) return null;
+                // Re-roll up to 10 times for an unseen scenario
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    const altScenario = getRandomPostflopScenario(level);
+                    if (!altScenario) break;
+                    const altId = `postflop_L${level}_${altScenario.heroCards.join('')}_${altScenario.board.join('')}`;
+                    if (!seenIds.includes(altId)) {
+                        scenario = altScenario;
+                        scenarioId = altId;
+                        break;
+                    }
+                }
             }
 
             // Map scenario options to standard question format
@@ -446,11 +463,15 @@ export class DeterministicGTOEngine {
                 text: opt.label || opt.action,
                 action: opt.action,
                 frequency: opt.frequency || 0,
+                ...(opt.feedback !== undefined ? { feedback: opt.feedback } : {}),
             }));
 
-            // Find correct answer (highest frequency action)
-            const correctOption = options.reduce((best, opt) =>
-                opt.frequency > best.frequency ? opt : best, options[0]);
+            // Prefer the generator's flagged correct option; fall back to highest frequency
+            const flaggedIdx = (scenario.options || []).findIndex(o => o.isCorrect);
+            const correctOption = (flaggedIdx >= 0 && options[flaggedIdx])
+                ? options[flaggedIdx]
+                : options.reduce((best, opt) =>
+                    opt.frequency > best.frequency ? opt : best, options[0]);
 
             // Build GTO frequencies map { "a": 45, "b": 30, "c": 25 }
             const gtoFrequencies = {};
@@ -465,32 +486,37 @@ export class DeterministicGTOEngine {
             const heroStr = scenario.heroCards.map(c => c.toUpperCase()).join(' ');
 
             // Build question text
+            // Scenario field contract: vsPosition (string), boardTexture/madeHand/draws
+            // are objects with description fields, tip (string), stackDepth (number)
+            const villainPos = scenario.vsPosition || scenario.villainPosition || 'Villain';
             const contextParts = [];
             if (scenario.lastAction) contextParts.push(scenario.lastAction);
-            if (scenario.boardTexture) contextParts.push(`Board: ${scenario.boardTexture}`);
-            if (scenario.madeHand) contextParts.push(`You have: ${scenario.madeHand}`);
-            if (scenario.draws && scenario.draws.length > 0) contextParts.push(`Draws: ${scenario.draws.join(', ')}`);
+            if (scenario.boardTexture?.description) contextParts.push(`Board: ${scenario.boardTexture.description}`);
+            if (scenario.madeHand?.description) contextParts.push(`You have: ${scenario.madeHand.description}`);
+            if (scenario.draws?.outs > 0) {
+                contextParts.push(`Draws: ${scenario.draws.description || `${scenario.draws.outs} outs`}`);
+            }
 
             const question = {
                 id: scenarioId,
                 type: 'PIO',
                 source: 'POSTFLOP_ENGINE',
-                question: `${streetLabel} Decision — ${scenario.position} vs ${scenario.villainPosition}`,
+                question: `${streetLabel} Decision — ${scenario.position} vs ${villainPos}`,
                 scenario: {
                     title: `${streetLabel} Play`,
                     context: contextParts.join(' | '),
                     heroPosition: scenario.position,
-                    villainPosition: scenario.villainPosition,
+                    villainPosition: villainPos,
                     pot: scenario.potSize || 6,
-                    heroStack: scenario.stackSize || 100,
-                    villainStack: scenario.stackSize || 100,
+                    heroStack: scenario.stackDepth || scenario.stackSize || 100,
+                    villainStack: scenario.stackDepth || scenario.stackSize || 100,
                     street: scenario.street,
                     board: boardStr,
                     heroHand: heroStr,
                     // ═══ POSTFLOP-SPECIFIC FIELDS ═══
-                    boardTexture: scenario.boardTexture || null,
-                    madeHand: scenario.madeHand || null,
-                    draws: scenario.draws || [],
+                    boardTexture: scenario.boardTexture?.description || null,
+                    madeHand: scenario.madeHand?.description || null,
+                    draws: scenario.draws || null,
                     isPFR: scenario.isPFR !== undefined ? scenario.isPFR : true,
                     spotType: scenario.spotType || null,
                 },
@@ -499,7 +525,7 @@ export class DeterministicGTOEngine {
                 options,
                 correctAnswer: correctOption.id,
                 correctAnswerText: correctOption.text,
-                explanation: scenario.explanation || `GTO ${correctOption.text} at ${correctOption.frequency}% frequency on this ${scenario.boardTexture || ''} board.`,
+                explanation: scenario.tip || scenario.strategy?.reason || scenario.explanation || `GTO ${correctOption.text} at ${correctOption.frequency}% frequency on this ${scenario.boardTexture?.description || ''} board.`,
                 gtoFrequencies,
                 level,
                 // EV data from EVCalculator if available
@@ -516,7 +542,7 @@ export class DeterministicGTOEngine {
     /**
      * Generate a batch of postflop questions for L8-L10.
      */
-    generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty) {
+    generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty, gameConfig = null) {
         const questions = [];
         const usedIds = new Set();
 
@@ -539,7 +565,7 @@ export class DeterministicGTOEngine {
 
             if (!scenario) continue;
 
-            const q = this.generateFromPostflopEngine({ pioStackDepth: 100 }, level, [...usedIds]);
+            const q = this.generateFromPostflopEngine(gameConfig || { pioStackDepth: 100 }, level, [...usedIds], scenario);
             if (!q) continue;
             if (usedIds.has(q.id)) continue;
 
@@ -910,15 +936,48 @@ export class DeterministicGTOEngine {
     }
 
     /**
+     * Generate a batch of SCENARIO (psychology / table-selection) questions
+     * from the deterministic psychology question bank. No DB, no AI, no
+     * randomness — pure curated content scaled to level.
+     */
+    generateScenarioBatch({ gameId, level, count = 15, seenIds = [] }) {
+        try {
+            const questions = getPsychologyQuestions(gameId, level, count, seenIds);
+            return questions || [];
+        } catch (err) {
+            console.warn('[DeterministicEngine] Scenario bank failed:', err?.message || err);
+            return [];
+        }
+    }
+
+    /**
      * Generate a batch of N questions from solver data
      * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
-    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths }) {
+    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths, seenIds = [] }) {
         if (!gameConfig) return [];
 
-        // ═══ POSTFLOP L8-L10: Route to PostflopScenarioGenerator ═══
-        if (level >= 8 && level <= 10) {
-            return this.generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty);
+        // ═══ SCENARIO (psychology + table selection): deterministic question bank ═══
+        if (gameConfig.sourceOfTruth === 'SCENARIO' || gameConfig.engine === 'SCENARIO') {
+            return this.generateScenarioBatch({ gameId, level, count, seenIds });
+        }
+
+        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
+        if (level >= 8 && gameConfig.sourceOfTruth !== 'ICMIZER') {
+            return this.generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty, gameConfig);
+        }
+
+        // ═══ ICMIZER: Push/fold chart questions — the solver pool has no ICM spots ═══
+        if (gameConfig.sourceOfTruth === 'ICMIZER') {
+            const chartQuestions = [];
+            const seenAccumulated = [];
+            for (let i = 0; i < count; i++) {
+                const q = await this.generateFromCharts(gameConfig, level, seenAccumulated);
+                if (!q) break;
+                chartQuestions.push(q);
+                seenAccumulated.push(q.id);
+            }
+            return chartQuestions;
         }
 
         const questions = [];
@@ -1061,6 +1120,8 @@ export class DeterministicGTOEngine {
                 const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
 
                 if (question) {
+                    // Override generic scenario values with the actual hand state
+                    this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
                     console.debug(`[DeterministicEngine] ✅ Multi-street: found ${street} data for board ${boardStr}`);
                     return question;
                 }
@@ -1130,6 +1191,8 @@ export class DeterministicGTOEngine {
                     // Override board with our actual board (partial match may have different turn/river)
                     question.scenario.board = boardCards.join(' ');
                     question.boardCards = boardCards;
+                    // Override generic scenario values with the actual hand state
+                    this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
                     console.debug(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
                     return question;
                 }
@@ -1143,6 +1206,25 @@ export class DeterministicGTOEngine {
         } catch (err) {
             console.warn('[DeterministicEngine] queryNextStreet error:', err.message);
             return null;
+        }
+    }
+
+    /**
+     * Apply the actual hand state (pot, positions, stacks) to a question built
+     * from a matched solver scenario, which carries generic defaults.
+     */
+    _applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth } = {}) {
+        if (!question || !question.scenario) return;
+        if (pot != null) {
+            question.scenario.pot = pot;
+            question.estimatedPot = pot;
+        }
+        if (heroPosition) question.scenario.heroPosition = heroPosition;
+        if (villainPosition) question.scenario.villainPosition = villainPosition;
+        if (stackDepth != null) {
+            question.scenario.stackDepth = stackDepth;
+            question.scenario.heroStack = stackDepth;
+            question.scenario.villainStack = stackDepth;
         }
     }
 
@@ -1187,12 +1269,16 @@ export class DeterministicGTOEngine {
             // Query across all effective stack depths (multi-depth for MTT games)
             let allData = [];
             for (const depth of effectiveStackDepths) {
-                const { data, error } = await this.db
+                let query = this.db
                     .from('solved_spots_gold')
                     .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                     .eq('game_type', gameConfig.pioGameType)
-                    .eq('stack_depth', depth)
-                    .eq('street', street)
+                    .eq('stack_depth', depth);
+                // Only filter by street when one is specified (null = all streets)
+                if (street) {
+                    query = query.eq('street', street);
+                }
+                const { data, error } = await query
                     .limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
 
                 if (!error && data && data.length > 0) {
@@ -1208,13 +1294,21 @@ export class DeterministicGTOEngine {
             // ═══ SOLVER SCENARIO MAP: Filter by spotTypes if provided ═══
             // SpotTypes map to scenario_hash patterns (e.g., 'rfi' matches scenarios with RFI action)
             if (spotTypes && spotTypes.length > 0) {
+                // Underscore-delimited hashes: \b never matches inside snake_case,
+                // so anchor tokens with (^|_) ... (_|$) instead.
                 const spotTypePatterns = {
-                    'rfi': /\b(rfi|open|raise_first)\b/i,
-                    'vs3bet': /\b(vs_?3bet|facing_?3bet|3bet_def)\b/i,
-                    'bb_defense': /\b(bb_def|bb_vs|big_blind)\b/i,
-                    'cold_call': /\b(cold_call|flat|overcall)\b/i,
-                    '4bet': /\b(4bet|four_bet)\b/i,
-                    'squeeze': /\b(squeeze|sqz)\b/i,
+                    'rfi': /(^|_)(rfi|open|raise_first)(_|$)/i,
+                    'vs3bet': /(^|_)(vs_?3bet|facing_?3bet|3bet_def|3b)(_|$)/i,
+                    'bb_defense': /(^|_)(bb_def|bb_vs|big_blind)(_|$)/i,
+                    'cold_call': /(^|_)(cold_call|flat|overcall)(_|$)/i,
+                    '4bet': /(^|_)(4bet|four_bet|4b)(_|$)/i,
+                    'squeeze': /(^|_)(squeeze|sqz)(_|$)/i,
+                    'cbet': /(^|_)(cbet|c_?bet|flop_bet)(_|$)/i,
+                    'turn_barrel': /(^|_)(barrel|turn_bet|double_barrel)(_|$)/i,
+                    'river_bluff': /(^|_)(river|bluff|triple_barrel)(_|$)/i,
+                    'check_raise': /(^|_)(check_?raise|xr)(_|$)/i,
+                    'turn_probe': /(^|_)(probe|turn_lead)(_|$)/i,
+                    'river_value': /(^|_)(river_value|thin_value|value_bet)(_|$)/i,
                 };
                 const patterns = spotTypes
                     .map(st => spotTypePatterns[st])
@@ -1229,6 +1323,8 @@ export class DeterministicGTOEngine {
                     if (filtered.length > 0) {
                         allData = filtered;
                         console.debug(`[DeterministicEngine] 🎯 SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
+                    } else {
+                        console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} matched 0 scenarios, falling through with full pool`);
                     }
                 }
             }
@@ -1415,6 +1511,14 @@ export class DeterministicGTOEngine {
             validActions.forEach(action => {
                 gtoFrequencies[action] = Math.round(gtoFrequencies[action] * factor);
             });
+            // Assign rounding residual to the highest-frequency action so the sum is exactly 100
+            const newSum = validActions.reduce((s, a) => s + (gtoFrequencies[a] || 0), 0);
+            const residual = 100 - newSum;
+            if (residual !== 0 && validActions.length > 0) {
+                const topAction = validActions.reduce((best, a) =>
+                    (gtoFrequencies[a] || 0) > (gtoFrequencies[best] || 0) ? a : best, validActions[0]);
+                gtoFrequencies[topAction] += residual;
+            }
         }
 
         // ═══ COMPUTE EV DATA (Real solver values + per-action approximation) ═══
@@ -1476,11 +1580,18 @@ export class DeterministicGTOEngine {
         }
 
         // ═══ BUILD EXPLANATION (deterministic, no AI) ═══
+        // Derive game category for tournament-only notes (ICM / bubble factor)
+        const catSource = `${gameConfig?.gameId || gameConfig?.id || ''} ${gameConfig?.category || ''} ${gameConfig?.pioGameType || ''}`.toUpperCase();
+        const gameCategory = catSource.includes('MTT') ? 'MTT'
+            : catSource.includes('SPIN') ? 'SPINS'
+            : catSource.includes('CASH') ? 'CASH'
+            : null;
+
         const explanation = this.buildExplanation(heroHand, board, scenario.street,
             optimalAction, handActions, heroHandEV, validActions,
             { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth,
               potType: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition).potType,
-              actionEVs });
+              actionEVs, gameCategory });
 
         // ═══ DETERMINE MIXED STRATEGY CORRECTNESS ═══
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
@@ -1537,6 +1648,9 @@ export class DeterministicGTOEngine {
             explanation,
             difficulty: level,
             heroHand,
+            // Consumers read these at the top level (not just nested in evData)
+            actionEVs,
+            estimatedPot,
             // Phase 51: Hand categorization for replay display
             handCategory: this.categorizeHand(heroHand, board),
         };
@@ -1557,8 +1671,17 @@ export class DeterministicGTOEngine {
 
             if (error || !charts || charts.length === 0) return null;
 
-            const chart = charts[Math.floor(Math.random() * charts.length)];
-            return this.buildChartQuestion(chart, level);
+            // Honor seenIds: retry up to 8 times when the built question collides
+            const safeSeen = Array.isArray(seenIds) ? seenIds : [];
+            let lastQuestion = null;
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const chart = charts[Math.floor(Math.random() * charts.length)];
+                const q = this.buildChartQuestion(chart, level);
+                if (!q) continue;
+                lastQuestion = q;
+                if (!safeSeen.includes(q.id)) return q;
+            }
+            return lastQuestion;
         } catch (err) {
             console.warn('[DeterministicEngine] Chart query error:', err.message);
             return null;
@@ -1581,7 +1704,7 @@ export class DeterministicGTOEngine {
         };
 
         return {
-            id: `chart_${chart.id || chart.chart_id}_${heroHand}_${Date.now()}`,
+            id: `chart_${chart.id || chart.chart_id}_${heroHand}`,
             type: 'CHART',
             source: 'DETERMINISTIC_SOLVER',
             scenario: {
@@ -1607,15 +1730,13 @@ export class DeterministicGTOEngine {
             correctAnswerText: correctAction === 'push' ? 'Push All-In' : 'Fold',
             frequencies: { push: pushFreq, fold: 1 - pushFreq },
             gtoFrequencies,
+            // Charts have no real EV data — zero out so the client falls back
+            // to simulated EV loss instead of treating frequency as EV.
             evData: {
-                heroHandEV: pushFreq,
-                optimalEV: Math.max(pushFreq, 1 - pushFreq),
-                handEVs: {},
+                heroHandEV: 0,
+                optimalEV: 0,
+                handEVs: null,
                 heroHand,
-                actionEVs: {
-                    push: Math.round(pushFreq * 100) / 100,
-                    fold: 0,  // Fold EV is always 0 (you give up your equity)
-                },
             },
             explanation: this.buildChartExplanation(heroHand, chart, pushFreq, correctAction),
             difficulty: level,
@@ -1673,13 +1794,16 @@ export class DeterministicGTOEngine {
         }
 
         // ═══ POSTFLOP NODE DETECTION ═══
+        // A fold option means hero is facing a bet — check this FIRST, since
+        // 'c' means call (not check) whenever fold is present.
+        if (hasFold && (hasCall || hasRaise || hasAllin)) return 'hero_faces_bet';
+        if (hasFold && hasCheck && (hasBet || hasGenericBet)) return 'hero_faces_bet';
+
         // Check + Bet options → hero can bet or check (acting first or IP after villain checks)
         if (hasCheck && (hasBet || hasGenericBet)) return 'hero_bets_or_checks';
         if (hasCheck && !hasBet && !hasFold) return 'hero_bets_or_checks'; // Pure check node
         if (actionSet.has('x') && (hasBet || hasGenericBet)) return 'hero_bets_or_checks';
 
-        // Fold + Call/Raise → hero is facing a bet
-        if (hasFold && (hasCall || hasRaise || hasAllin)) return 'hero_faces_bet';
         if (hasFold && (hasBet || hasGenericBet)) return 'hero_faces_bet'; // Some solvers use 'b' for raise
 
         // ═══ Phase 30: Handle edge case where 'c' means call in postflop context ═══
@@ -2381,7 +2505,7 @@ export class DeterministicGTOEngine {
         const valueThickNote = this._getValueThicknessNote(handStrength, optimalAction, street);
         const mergedPolarNote = this._getMergedVsPolarizedNote(optimalAction, handStrength, street, freq);
         const nodeLockNote = this._getNodeLockingNote(handStrength, optimalAction, street);
-        const icmNote = this._getICMNote(ctx.stackDepth, handStrength, optimalAction);
+        const icmNote = this._getICMNote(ctx.stackDepth, handStrength, optimalAction, ctx.gameCategory || null);
         const blindVsBlindNote = this._getBlindVsBlindNote(ctx.heroPosition, ctx.villainPosition, ctx.nodeType, optimalAction);
 
         // ═══ Phase 176-200 notes ═══
@@ -2856,7 +2980,7 @@ export class DeterministicGTOEngine {
                 if (street === 'river') return 'Bluffing with a missed flush draw — converting busted equity into fold equity on the river.';
                 return 'Semi-bluffing with a flush draw — betting now gives fold equity plus equity when called.';
             }
-            if (hs.includes('OESD') || hs.includes('double gutshot')) {
+            if (hs.includes('oesd') || hs.includes('double gutshot')) {
                 if (street === 'river') return 'Bluffing with a missed straight draw — converting busted equity into a river bluff.';
                 if (texture.straightDrawHeavy) return 'Semi-bluffing with 8 straight outs on a rundown board — villain has draws too, so fold equity is lower but your equity is real. Bet to deny their draws.';
                 return 'Semi-bluffing with 8 straight outs — enough equity to make betting very profitable.';
@@ -3476,7 +3600,7 @@ export class DeterministicGTOEngine {
         } else if (hs.includes('flush draw') || hs.includes('nut flush draw')) {
             estEquity = 36; // 9 outs ≈ 36% with two cards, 19% with one
             if (street === 'turn') estEquity = 19;
-        } else if (hs.includes('OESD') || hs.includes('double gutshot')) {
+        } else if (hs.includes('oesd') || hs.includes('double gutshot')) {
             estEquity = 32; // 8 outs ≈ 32% with two cards, 17% with one
             if (street === 'turn') estEquity = 17;
         } else if (hs.includes('gutshot')) {
@@ -3507,7 +3631,7 @@ export class DeterministicGTOEngine {
                 if (street === 'flop') return `Pot odds math: 9 flush outs × 4 = ~36% equity (rule of 4). You need ~25-33% equity to call most bet sizes — this is a clear call.`;
                 if (street === 'turn') return `Pot odds math: 9 flush outs × 2 = ~18% equity (rule of 2). Marginal on pot odds alone, but implied odds when the flush hits make this profitable.`;
             }
-            if (hs.includes('OESD') || hs.includes('double gutshot')) {
+            if (hs.includes('oesd') || hs.includes('double gutshot')) {
                 if (street === 'flop') return `Pot odds math: 8 straight outs × 4 = ~32% equity (rule of 4). Sufficient to call most standard bet sizes.`;
                 if (street === 'turn') return `Pot odds math: 8 outs × 2 = ~16% equity (rule of 2). Needs implied odds to justify — when the straight completes, you should win a large pot.`;
             }
@@ -3565,7 +3689,7 @@ export class DeterministicGTOEngine {
         if (street === 'flop') {
             if (isBet) {
                 const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house');
-                const hasDraw = hs.includes('draw') || hs.includes('OESD') || hs.includes('flush draw') || hs.includes('gutshot');
+                const hasDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('flush draw') || hs.includes('gutshot');
                 const isTopPair = hs.includes('top pair') || hs.includes('overpair');
 
                 if (sizePct >= 60 && isNutted) {
@@ -3595,7 +3719,7 @@ export class DeterministicGTOEngine {
                 }
             }
             if (isCall) {
-                if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('OESD')) {
+                if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
                     return 'Multi-street plan: Call the flop with a draw → re-evaluate on the turn. If the draw completes, raise or bet for value. If not, decide based on pot odds.';
                 }
                 if (hs.includes('set') || hs.includes('two pair')) {
@@ -3608,7 +3732,7 @@ export class DeterministicGTOEngine {
         if (street === 'turn') {
             if (isBet) {
                 const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house');
-                const hasDraw = hs.includes('draw') || hs.includes('OESD') || hs.includes('flush draw');
+                const hasDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('flush draw');
 
                 if (sizePct >= 60 && sizePct <= 75) {
                     if (isNutted) return 'Multi-street plan: 60-75% turn bet sets up a pot-sized river shove — geometric sizing to get stacks in by the river.';
@@ -3858,7 +3982,7 @@ export class DeterministicGTOEngine {
             }
 
             // Semi-bluffing with draw + blockers
-            if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('OESD') || hs.includes('gutshot')) {
+            if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd') || hs.includes('gutshot')) {
                 if (hasAce && isSuited && (threeFlush || fourFlush)) {
                     return 'Blocker effect: Your suited ace blocks villain\'s nut flush — they\'re less likely to have the nuts, making your semi-bluff more effective.';
                 }
@@ -4062,7 +4186,7 @@ export class DeterministicGTOEngine {
         const rankVal = r => '23456789TJQKA'.indexOf(r);
         const v1 = rankVal(r1), v2 = rankVal(r2);
         const isConnected = Math.abs(v1 - v2) <= 2 && !isPair;
-        const isBroadway = v1 >= 9 && v2 >= 9; // T+
+        const isBroadway = v1 >= 8 && v2 >= 8; // T+ (T is index 8)
         const isPremium = isPair && v1 >= 10; // JJ+
         const isSuperPremium = isPair && v1 >= 11; // QQ+
         const isAx = r1 === 'A' || r2 === 'A';
@@ -4171,7 +4295,7 @@ export class DeterministicGTOEngine {
                 }
                 if (isFold) {
                     if (freq >= 0.95) {
-                        if (!hasAce && !hasKing) return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue, and no blockers to villain's premium range (AA/KK/AK).${stackContext}`;
+                        if (!isAx && !isKx) return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue, and no blockers to villain's premium range (AA/KK/AK).${stackContext}`;
                         return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue against a polarized 3-bet range. Pot odds don't justify calling.${stackContext}`;
                     }
                     const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
@@ -6458,13 +6582,13 @@ export class DeterministicGTOEngine {
         if (street === 'turn' && board.length >= 4) {
             const flopCards = board.slice(0, 3);
             const turnCard = board[3];
-            return this._describeCardImpact(flopCards, turnCard, 'turn');
+            return this._describeCardImpactV2(flopCards, turnCard, 'turn');
         }
 
         if (street === 'river' && board.length >= 5) {
             const turnBoard = board.slice(0, 4);
             const riverCard = board[4];
-            return this._describeCardImpact(turnBoard, riverCard, 'river');
+            return this._describeCardImpactV2(turnBoard, riverCard, 'river');
         }
 
         return '';
@@ -6473,7 +6597,7 @@ export class DeterministicGTOEngine {
     /**
      * Phase 95: Describe the impact of a new card on the existing board.
      */
-    _describeCardImpact(existingBoard, newCard, streetName) {
+    _describeCardImpactV2(existingBoard, newCard, streetName) {
         if (!newCard || !existingBoard || existingBoard.length < 3) return '';
 
         const newRank = newCard[0]?.toUpperCase();
@@ -6854,10 +6978,10 @@ export class DeterministicGTOEngine {
         const isKx = (r1 === 'K' || r2 === 'K') && !isAx;
 
         // Value 3-bets
-        if (isPair && v1 >= 10) { // JJ+
+        if (isPair && v1 >= 9) { // JJ+ (J is index 9)
             return `3-bet for value: ${heroHand} is always in the value 3-bet range — too strong to flat and risk multiway pots.`;
         }
-        if (isAx && (Math.max(v1, v2) >= 11 || (isSuited && Math.max(v1, v2) >= 9))) { // AK, AQs+
+        if (isAx && (Math.min(v1, v2) >= 11 || (isSuited && Math.min(v1, v2) >= 10))) { // AK, AQs+
             return `3-bet for value: ${heroHand} — strong enough to 3-bet vs most positions. Building the pot preflop with a premium hand.`;
         }
 
@@ -6870,7 +6994,7 @@ export class DeterministicGTOEngine {
         }
 
         // Flatting hands
-        if (isPair && v1 >= 5 && v1 <= 9) { // 77-TT
+        if (isPair && v1 >= 5 && v1 <= 8) { // 77-TT
             return `Medium pairs typically flat a raise rather than 3-bet — set mining value is highest when you see a flop, and 3-betting builds an awkward pot with a hand that's often behind.`;
         }
 
@@ -7648,6 +7772,32 @@ export class DeterministicGTOEngine {
 
         return score;
     }
+
+    /**
+     * Normalize categorizeHand() free-text output into a snake_case token
+     * so the Phase 126+ helpers can compare against their enum values.
+     */
+    _getHandToken(handStrength) {
+        const hc = (handStrength || '').toLowerCase();
+        if (hc.includes('straight flush') || hc.includes('quads') || hc.includes('four of a kind')) return 'nuts';
+        if (hc.includes('full house')) return 'full_house';
+        if (hc.includes('flush') && !hc.includes('draw')) return 'flush';
+        if (hc.includes('straight') && !hc.includes('draw')) return 'straight';
+        if (hc.includes('set') || hc.includes('trips') || hc.includes('three of a kind')) return 'set';
+        if (hc.includes('two pair')) return 'two_pair';
+        if (hc.includes('overpair')) return 'overpair';
+        if (hc.includes('top pair, top kicker') || hc.includes('top pair top kicker')) return 'top_pair_top_kicker';
+        if (hc.includes('top pair')) return 'top_pair';
+        if (hc.includes('middle pair') || hc.includes('second pair')) return 'middle_pair';
+        if (hc.includes('bottom pair') || hc.includes('weak pair') || hc.includes('underpair') || hc.includes('pocket pair')) return 'weak_pair';
+        if (hc.includes('combo draw')) return 'combo_draw';
+        if (hc.includes('flush draw')) return 'flush_draw';
+        if (hc.includes('oesd') || hc.includes('open-ended')) return 'oesd';
+        if (hc.includes('gutshot')) return 'gutshot';
+        if (hc.includes('overcard')) return 'overcards';
+        return 'air';
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // PHASE 126: MULTI-WAY POT ADJUSTMENTS
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7659,13 +7809,14 @@ export class DeterministicGTOEngine {
     _getMultiWayNote(nodeType, potType, handStrength, optimalAction) {
         if (!potType || !potType.toLowerCase().includes('multi')) return '';
         const a = (optimalAction || '').toLowerCase();
-        const isStrong = ['nuts', 'second_nuts', 'overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set', 'trips', 'straight', 'flush', 'full_house'].includes(handStrength);
-        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set', 'trips', 'straight', 'flush', 'full_house'].includes(handToken);
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair', 'weak_pair'].includes(handToken);
 
         if (a === 'f' && isMedium) {
             return '🎯 Multi-way pot: medium-strength hands lose significant value with multiple opponents — more players means someone likely has you beat. Folding marginal hands is correct.';
         }
-        if (a.startsWith('r') && isStrong) {
+        if (this._isAggressiveAction(a) && isStrong) {
             return 'Multi-way pot: with a strong hand, bet for value against multiple opponents who may each have some equity. Thin value goes up when facing wide ranges.';
         }
         if (a === 'call' || a === 'x') {
@@ -7685,10 +7836,9 @@ export class DeterministicGTOEngine {
     _getBetSizingTellNote(nodeType, street, optimalAction) {
         if (!optimalAction) return '';
         const a = optimalAction.toLowerCase();
-        // Extract sizing from action like 'r50' or 'r125'
-        const match = a.match(/r(\d+)/);
-        if (!match) return '';
-        const sizePct = parseInt(match[1]);
+        // Extract sizing from action like 'r50', 'b33', or 'r125'
+        const sizePct = this._actionSizePct(a);
+        if (sizePct == null) return '';
 
         if (sizePct <= 33) {
             return `Small bet (${sizePct}% pot): signals a merged/depolarized range. Villain bets this size with both value and marginal hands — your bluff-catching threshold is lower. Defend wider.`;
@@ -7718,10 +7868,11 @@ export class DeterministicGTOEngine {
         const isIP = this._isInPosition(heroPosition, villainPosition);
         if (!isIP) return ''; // Check-back only applies IP
 
-        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair'].includes(handStrength);
-        const isStrong = ['overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set'].includes(handStrength);
-        const isWeak = ['high_card', 'ace_high', 'underpair'].includes(handStrength);
-        const isDry = texture && (texture.isDry || texture.flushDraws === 0);
+        const handToken = this._getHandToken(handStrength);
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair'].includes(handToken);
+        const isStrong = ['overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set'].includes(handToken);
+        const isWeak = ['high_card', 'ace_high', 'underpair', 'weak_pair', 'overcards', 'air'].includes(handToken);
+        const isDry = texture && (texture.dry || !(texture.flushy || texture.monotone));
 
         if (isMedium && street === 'flop') {
             return '🎯 Check-back for pot control: medium-strength hands benefit from seeing another card cheaply. Betting risks getting raised off the best hand or building a pot you can\'t win.';
@@ -7749,11 +7900,11 @@ export class DeterministicGTOEngine {
     _getDelayedCBetNote(optimalAction, handStrength, street, nodeType, texture) {
         if (street !== 'turn') return '';
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
+        if (!this._isAggressiveAction(a)) return '';
         // This is relevant when the PFR checked flop and now bets turn
         if (nodeType !== 'delayed_cbet' && nodeType !== 'probe') return '';
 
-        const isDrawy = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isDrawy = texture && (texture.wet || texture.flushy || texture.monotone);
         const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair'].includes(handStrength);
 
         if (isDrawy) {
@@ -7779,8 +7930,9 @@ export class DeterministicGTOEngine {
         const isIP = this._isInPosition(heroPosition, villainPosition);
         if (!isIP) return '';
 
-        const isWeak = ['high_card', 'ace_high', 'underpair', 'gutshot', 'backdoor_flush_draw'].includes(handStrength);
-        const hasDraw = ['gutshot', 'oesd', 'flush_draw', 'backdoor_flush_draw', 'combo_draw'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isWeak = ['high_card', 'ace_high', 'underpair', 'gutshot', 'backdoor_flush_draw', 'weak_pair', 'overcards', 'air'].includes(handToken);
+        const hasDraw = ['gutshot', 'oesd', 'flush_draw', 'backdoor_flush_draw', 'combo_draw'].includes(handToken);
 
         if (isWeak) {
             return '🎯 Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last — if villain shows weakness by checking, you can bluff profitably.';
@@ -7800,14 +7952,15 @@ export class DeterministicGTOEngine {
      */
     _getRaiseVsCallNote(optimalAction, handStrength, street, nodeType, texture) {
         const a = (optimalAction || '').toLowerCase();
-        const isRaise = a.startsWith('r') || a === 'allin';
+        const isRaise = this._isAggressiveAction(a);
         const isCall = a === 'call';
         if (!isRaise && !isCall) return '';
 
-        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'straight', 'flush'].includes(handStrength);
-        const isDraw = ['oesd', 'flush_draw', 'combo_draw'].includes(handStrength);
-        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair'].includes(handStrength);
-        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const handToken = this._getHandToken(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'straight', 'flush'].includes(handToken);
+        const isDraw = ['oesd', 'flush_draw', 'combo_draw'].includes(handToken);
+        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair'].includes(handToken);
+        const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
 
         if (isRaise && isStrong && isWet) {
             return 'Raise for value + protection: on a wet board, strong hands should raise to deny equity to draws. Calling lets villain realize their equity cheaply.';
@@ -7880,11 +8033,12 @@ export class DeterministicGTOEngine {
     _getRiverDecisionNote(optimalAction, handStrength, street, nodeType) {
         if (street !== 'river') return '';
         const a = (optimalAction || '').toLowerCase();
-        const isStrong = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips'].includes(handStrength);
-        const isMedium = ['two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair'].includes(handStrength);
-        const isWeak = ['high_card', 'ace_high', 'underpair', 'bottom_pair', 'missed_draw'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips'].includes(handToken);
+        const isMedium = ['two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair'].includes(handToken);
+        const isWeak = ['high_card', 'ace_high', 'underpair', 'bottom_pair', 'missed_draw', 'weak_pair', 'overcards', 'air'].includes(handToken);
 
-        if (a.startsWith('r') || a === 'allin') {
+        if (this._isAggressiveAction(a)) {
             if (isStrong) return 'River value bet: with a strong hand, bet for maximum value. Choose a size that gets called by enough worse hands — balance between frequency and size.';
             if (isWeak) return '🎯 River bluff: with a weak hand, betting turns your hand into a bluff. The key question: does villain fold enough to make this profitable? Target their bluff-catching range.';
             if (isMedium) return 'River thin value: a medium-strength bet targeting worse hands that might call. Be careful — if villain only calls with better, this is a losing bet.';
@@ -7961,7 +8115,7 @@ export class DeterministicGTOEngine {
     _getPotGeometryNote(estimatedPot, stackDepth, street, optimalAction) {
         if (!estimatedPot || !stackDepth || street === 'preflop') return '';
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
+        if (!this._isAggressiveAction(a)) return '';
 
         const remainingBets = street === 'flop' ? 3 : street === 'turn' ? 2 : 1;
         if (remainingBets <= 0) return '';
@@ -8000,8 +8154,11 @@ export class DeterministicGTOEngine {
     _getRangeVsNutAdvantageNote(heroPosition, villainPosition, texture, street, nodeType) {
         if (street === 'preflop' || !texture) return '';
         const isIP = this._isInPosition(heroPosition, villainPosition);
-        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
-        const boardHighRank = texture.highCard ? '23456789TJQKA'.indexOf(texture.highCard) : 0;
+        const isPFR = nodeType === 'hero_bets_or_checks';
+        // texture.highCard is a boolean — derive the actual high rank from lowestRank + spread
+        const boardHighRank = (typeof texture.lowestRank === 'number' && typeof texture.spread === 'number')
+            ? texture.lowestRank + texture.spread
+            : (texture.highCard ? 11 : 0);
 
         // High boards favor PFR (Ace/King high)
         if (boardHighRank >= 11 && isPFR) { // K+ high
@@ -8027,11 +8184,11 @@ export class DeterministicGTOEngine {
      */
     _getBoardInteractionNote(heroPosition, villainPosition, texture, nodeType, street) {
         if (street === 'preflop' || !texture) return '';
-        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
+        const isPFR = nodeType === 'hero_bets_or_checks';
         const isCaller = !isPFR;
-        const isMonotone = texture.isMonotone;
-        const isPaired = texture.isPaired;
-        const isConnected = texture.connectivity && texture.connectivity === 'connected';
+        const isMonotone = texture.monotone;
+        const isPaired = texture.paired;
+        const isConnected = texture.connected;
 
         if (isMonotone && isCaller) {
             return 'Board interaction: monotone boards favor the caller\'s range — callers have more suited hands in their range, giving them more flush draws and made flushes.';
@@ -8055,9 +8212,10 @@ export class DeterministicGTOEngine {
     _getEquityDistributionNote(handStrength, optimalAction, street, nodeType) {
         if (street === 'preflop') return '';
         const a = (optimalAction || '').toLowerCase();
-        const isNutted = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight'].includes(handStrength);
-        const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
-        const isMedium = ['top_pair', 'overpair', 'middle_pair', 'second_pair', 'top_pair_weak_kicker'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isNutted = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight'].includes(handToken);
+        const isAir = ['high_card', 'ace_high', 'missed_draw', 'overcards', 'air'].includes(handToken);
+        const isMedium = ['top_pair', 'overpair', 'middle_pair', 'second_pair', 'top_pair_weak_kicker'].includes(handToken);
 
         if (isNutted && (a.startsWith('r') || a === 'allin')) {
             return 'Equity distribution: you\'re at the top of your range. Your hand beats nearly everything villain can have. Size for maximum value — go big against their calling range.';
@@ -8089,8 +8247,8 @@ export class DeterministicGTOEngine {
 
         // Track deviation direction
         const actionStrength = { 'f': 0, 'x': 1, 'call': 2, 'check': 1 };
-        const chosenStr = chosen.startsWith('r') ? 3 : (actionStrength[chosen] ?? 1);
-        const correctStr = correct.startsWith('r') ? 3 : (actionStrength[correct] ?? 1);
+        const chosenStr = this._isAggressiveAction(chosen) ? 3 : (actionStrength[chosen] ?? 1);
+        const correctStr = this._isAggressiveAction(correct) ? 3 : (actionStrength[correct] ?? 1);
 
         if (chosenStr < correctStr) {
             if (chosen === 'f') {
@@ -8377,17 +8535,18 @@ export class DeterministicGTOEngine {
         const evDiff = correctEV - chosenEV;
         if (evDiff <= 0) return null; // No loss
 
+        // actionEVs are already bb-scaled — evDiff IS the bb loss (no pot re-scaling)
         const pot = estimatedPot || 1;
-        const evLossBB = evDiff * pot;
+        const evLossBB = evDiff;
         const evLossPct = ((evDiff / (Math.abs(correctEV) || 1)) * 100).toFixed(1);
 
         let severity = 'minor';
-        if (evLossBB > 10) severity = 'major';
-        else if (evLossBB > 3) severity = 'significant';
+        if (evLossBB > 3) severity = 'major';
+        else if (evLossBB > 1) severity = 'significant';
 
         return {
             evLossBB: evLossBB.toFixed(1),
-            evLossPctPot: ((evDiff * 100)).toFixed(1) + '% of pot',
+            evLossPctPot: pot > 0 ? ((evDiff / pot) * 100).toFixed(1) + '% of pot' : '0% of pot',
             severity,
             message: `EV loss: ~${evLossBB.toFixed(1)}bb (${evLossPct}% of optimal EV). ${severity === 'major' ? 'This is a costly mistake — focus on this spot.' : severity === 'significant' ? 'Moderate leak that adds up over time.' : 'Small loss, but fixing it improves your win rate.'}`,
         };
@@ -8589,14 +8748,15 @@ export class DeterministicGTOEngine {
      */
     generateActionHeatmap(nodeType, street) {
         if (!this._mistakeTracker) return null;
-        const actions = ['fold', 'call', 'raise', 'check'];
+        const actions = ['fold', 'call', 'raise', 'check', 'bet'];
         const streets = ['preflop', 'flop', 'turn', 'river'];
         const heatmap = {};
 
         for (const s of streets) {
             heatmap[s] = {};
             for (const a of actions) {
-                const key = `${s}:${a.charAt(0)}`;
+                // Tracker compound keys use full-word action buckets (see _getActionBucket)
+                const key = `${s}:${a}`;
                 const data = this._mistakeTracker[key];
                 heatmap[s][a] = data ? {
                     total: data.total,
@@ -8647,11 +8807,11 @@ export class DeterministicGTOEngine {
         const strengthOrder = [
             'nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips',
             'two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker',
-            'middle_pair', 'second_pair', 'third_pair', 'bottom_pair', 'underpair',
-            'ace_high', 'high_card', 'missed_draw',
+            'middle_pair', 'second_pair', 'third_pair', 'bottom_pair', 'weak_pair', 'underpair',
+            'ace_high', 'high_card', 'overcards', 'missed_draw', 'air',
             'combo_draw', 'oesd', 'flush_draw', 'gutshot', 'backdoor_flush_draw',
         ];
-        const idx = strengthOrder.indexOf(handStrength);
+        const idx = strengthOrder.indexOf(this._getHandToken(handStrength));
         if (idx < 0) return '';
 
         const totalCategories = strengthOrder.length;
@@ -8675,8 +8835,9 @@ export class DeterministicGTOEngine {
     _getNutBlockerBluffNote(heroHand, board, handStrength, optimalAction, street) {
         if (street === 'preflop' || !board || board.length < 3) return '';
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
-        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair', 'bottom_pair'].includes(handStrength);
+        if (!this._isAggressiveAction(a)) return '';
+        const handToken = this._getHandToken(handStrength);
+        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair', 'bottom_pair', 'weak_pair', 'overcards', 'air'].includes(handToken);
         if (!isWeak) return ''; // Only relevant for bluffs
 
         const boardSuits = board.map(c => c[1]);
@@ -8718,10 +8879,10 @@ export class DeterministicGTOEngine {
      */
     _getEquityDenialNote(optimalAction, handStrength, street, texture) {
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
+        if (!this._isAggressiveAction(a)) return '';
         if (street === 'preflop' || street === 'river') return ''; // No equity denial on river
 
-        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
         const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker'].includes(handStrength);
 
         if (isMedium && isWet) {
@@ -8749,7 +8910,9 @@ export class DeterministicGTOEngine {
 
         const outs = handStrength === 'combo_draw' ? 15 : handStrength === 'flush_draw' ? 9 : handStrength === 'oesd' ? 8 : 4;
         const equity = street === 'flop' ? (outs * 4) : (outs * 2); // Rule of 4/2
-        const potOddsNeeded = (100 / (100 + (estimatedPot || 10))).toFixed(0);
+        // Assume a ~2/3 pot bet: required equity = bet / (pot + 2 * bet)
+        const bet = (estimatedPot || 10) * 0.67;
+        const potOddsNeeded = ((bet / ((estimatedPot || 10) + 2 * bet)) * 100).toFixed(0);
 
         if (equity >= parseInt(potOddsNeeded)) {
             return `Pot odds justify the call: ${outs} outs = ~${equity}% equity. You need ~${potOddsNeeded}% to call profitably. Direct pot odds are sufficient.`;
@@ -8765,6 +8928,17 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
+     * True when the action is a bet ('b33'), raise ('r50'), or all-in.
+     * Solver action ids use both 'b' and 'r' prefixes for aggressive actions.
+     */
+    _isAggressiveAction(a) { a = (a || '').toLowerCase(); return a.startsWith('b') || a.startsWith('r') || a === 'allin'; }
+
+    /**
+     * Extract the bet/raise size (% of pot) from a 'b<n>' or 'r<n>' action id.
+     */
+    _actionSizePct(a) { const m = (a || '').toLowerCase().match(/^[br](\d+)$/); return m ? parseInt(m[1], 10) : null; }
+
+    /**
      * Phase 158: Track user's aggression factor per street.
      * AF = (bets + raises) / calls. Optimal ~2-3.
      */
@@ -8773,7 +8947,7 @@ export class DeterministicGTOEngine {
         if (!this._aggressionTracker[street]) this._aggressionTracker[street] = { betsRaises: 0, calls: 0, total: 0 };
         const a = (action || '').toLowerCase();
         this._aggressionTracker[street].total++;
-        if (a.startsWith('r') || a === 'allin') this._aggressionTracker[street].betsRaises++;
+        if (this._isAggressiveAction(a)) this._aggressionTracker[street].betsRaises++;
         else if (a === 'call') this._aggressionTracker[street].calls++;
     }
 
@@ -8804,7 +8978,7 @@ export class DeterministicGTOEngine {
         this._preflopStats.hands++;
         const a = (action || '').toLowerCase();
         if (a !== 'f') this._preflopStats.vpip++; // Voluntarily put money in pot
-        if (a.startsWith('r') || a === 'allin') this._preflopStats.pfr++; // Preflop raise
+        if (this._isAggressiveAction(a)) this._preflopStats.pfr++; // Preflop raise
     }
 
     getPreflopStats() {
@@ -8897,9 +9071,10 @@ export class DeterministicGTOEngine {
      */
     _getMultiStreetBluffNote(optimalAction, handStrength, street, texture) {
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
-        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair'].includes(handStrength);
-        const hasDraw = ['oesd', 'flush_draw', 'combo_draw', 'gutshot'].includes(handStrength);
+        if (!this._isAggressiveAction(a)) return '';
+        const handToken = this._getHandToken(handStrength);
+        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair', 'weak_pair', 'overcards', 'air'].includes(handToken);
+        const hasDraw = ['oesd', 'flush_draw', 'combo_draw', 'gutshot'].includes(handToken);
 
         if (street === 'flop' && (isWeak || hasDraw)) {
             return 'Multi-street planning: when you start bluffing the flop, have a plan for turn and river. Which turn cards do you barrel? Which do you give up? Good bluffs have clear barrel-or-give-up criteria.';
@@ -8924,10 +9099,9 @@ export class DeterministicGTOEngine {
         const node = (nodeType || '').toLowerCase();
         if (!node.includes('xr') && !node.includes('check_raise')) return '';
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r')) return '';
+        if (!this._isAggressiveAction(a)) return '';
 
-        const match = a.match(/r(\d+)/);
-        const sizePct = match ? parseInt(match[1]) : 0;
+        const sizePct = this._actionSizePct(a) ?? 0;
 
         if (street === 'flop') {
             if (sizePct <= 250) return `Check-raise to ${sizePct}%: standard sizing on the flop. A 3x check-raise puts villain in a tough spot — they need a strong hand to continue.`;
@@ -8952,13 +9126,13 @@ export class DeterministicGTOEngine {
     _getRiverOverbetNote(optimalAction, handStrength, street, stackDepth, estimatedPot) {
         if (street !== 'river') return '';
         const a = (optimalAction || '').toLowerCase();
-        const match = a.match(/r(\d+)/);
-        if (!match) return '';
-        const sizePct = parseInt(match[1]);
+        const sizePct = this._actionSizePct(a);
+        if (sizePct == null) return '';
         if (sizePct <= 100) return ''; // Not an overbet
 
-        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
-        const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handToken);
+        const isAir = ['high_card', 'ace_high', 'missed_draw', 'overcards', 'air'].includes(handToken);
 
         if (isNuts) {
             return `River overbet for value (${sizePct}% pot): with the nuts, overbetting extracts maximum value. Villain's calling range narrows but each call pays more. This is optimal when you have a hand that beats everything but the absolute nuts.`;
@@ -8978,11 +9152,12 @@ export class DeterministicGTOEngine {
      */
     _getValueThicknessNote(handStrength, optimalAction, street) {
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
+        if (!this._isAggressiveAction(a)) return '';
 
-        const isThickValue = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips'].includes(handStrength);
-        const isThinValue = ['two_pair', 'overpair', 'top_pair_top_kicker'].includes(handStrength);
-        const isVeryThin = ['top_pair', 'top_pair_weak_kicker', 'middle_pair'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isThickValue = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips'].includes(handToken);
+        const isThinValue = ['two_pair', 'overpair', 'top_pair_top_kicker'].includes(handToken);
+        const isVeryThin = ['top_pair', 'top_pair_weak_kicker', 'middle_pair'].includes(handToken);
 
         if (isThickValue) {
             return 'Thick value: your hand beats a large portion of villain\'s range. Size bigger to extract maximum value — you can afford to be called by worse hands frequently.';
@@ -9005,13 +9180,13 @@ export class DeterministicGTOEngine {
      */
     _getMergedVsPolarizedNote(optimalAction, handStrength, street, freq) {
         const a = (optimalAction || '').toLowerCase();
-        if (!a.startsWith('r') && a !== 'allin') return '';
-        const match = a.match(/r(\d+)/);
-        const sizePct = match ? parseInt(match[1]) : 50;
+        if (!this._isAggressiveAction(a)) return '';
+        const sizePct = this._actionSizePct(a) ?? 50;
 
-        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker', 'middle_pair'].includes(handStrength);
-        const isStrong = ['nuts', 'second_nuts', 'flush', 'straight', 'set'].includes(handStrength);
-        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker', 'middle_pair'].includes(handToken);
+        const isStrong = ['nuts', 'second_nuts', 'flush', 'straight', 'set'].includes(handToken);
+        const isWeak = ['high_card', 'ace_high', 'missed_draw', 'underpair', 'weak_pair', 'overcards', 'air'].includes(handToken);
 
         if (sizePct <= 33 && freq >= 0.6) {
             if (isMedium) return 'Merged betting range: small sizing + high frequency = a merged/depolarized range. You\'re betting both value hands and medium hands at this size. Villain should defend wide.';
@@ -9045,7 +9220,9 @@ export class DeterministicGTOEngine {
     /**
      * Phase 168: ICM (Independent Chip Model) pressure explanation.
      */
-    _getICMNote(stackDepth, handStrength, optimalAction) {
+    _getICMNote(stackDepth, handStrength, optimalAction, category = null) {
+        // ICM only applies in tournament formats — never emit for cash games
+        if (category !== 'MTT' && category !== 'SPINS') return '';
         // ICM notes shown for tournament-like stack depths
         if (!stackDepth || stackDepth > 60) return ''; // Only relevant at shorter stacks
         if (!this._sessionStats || this._sessionStats.total % 12 !== 0) return '';
@@ -9067,7 +9244,9 @@ export class DeterministicGTOEngine {
     /**
      * Phase 169: Explain bubble factor for tournament contexts.
      */
-    _getBubbleFactorNote(stackDepth) {
+    _getBubbleFactorNote(stackDepth, category = null) {
+        // Bubble factor only applies in tournament formats — never emit for cash games
+        if (category !== 'MTT' && category !== 'SPINS') return '';
         if (!stackDepth || stackDepth > 50) return '';
         if (!this._sessionStats || this._sessionStats.total % 18 !== 0) return '';
 
@@ -9230,16 +9409,20 @@ export class DeterministicGTOEngine {
     /**
      * Phase 177: Refine mistake classification with EV-based magnitude.
      */
-    classifyMistakeMagnitude(chosenAction, correctAction, handActions, actionEVs) {
+    classifyMistakeMagnitude(chosenAction, correctAction, handActions, actionEVs, estimatedPot = 0) {
         const chosenFreq = handActions?.[chosenAction] || 0;
         const correctFreq = handActions?.[correctAction] || 1;
 
         // Check if EV data available
         if (actionEVs && actionEVs[chosenAction] != null && actionEVs[correctAction] != null) {
             const evGap = actionEVs[correctAction] - actionEVs[chosenAction];
-            if (evGap <= 0.02) return { classification: 'TRIVIAL', desc: 'Negligible EV difference — both plays are essentially equal.' };
-            if (evGap <= 0.10) return { classification: 'INACCURACY', desc: 'Small EV loss — acceptable in real-time play.' };
-            if (evGap <= 0.30) return { classification: 'MISTAKE', desc: 'Moderate EV loss — worth studying this spot.' };
+            // actionEVs are bb-scaled — convert the gap to a pot fraction before
+            // comparing against the pot-fraction thresholds below
+            const pot = estimatedPot || 0;
+            const gapPctPot = pot > 0 ? evGap / pot : evGap;
+            if (gapPctPot <= 0.02) return { classification: 'TRIVIAL', desc: 'Negligible EV difference — both plays are essentially equal.' };
+            if (gapPctPot <= 0.10) return { classification: 'INACCURACY', desc: 'Small EV loss — acceptable in real-time play.' };
+            if (gapPctPot <= 0.30) return { classification: 'MISTAKE', desc: 'Moderate EV loss — worth studying this spot.' };
             return { classification: 'BLUNDER', desc: 'Significant EV loss — this is a major leak to fix.' };
         }
 
@@ -9321,9 +9504,9 @@ export class DeterministicGTOEngine {
         if (!texture) return null;
 
         const questions = [];
-        questions.push({ q: 'Is this board wet or dry?', a: texture.flushDraws > 0 || texture.straightDraws > 0 ? 'Wet' : 'Dry', explain: texture.flushDraws > 0 ? 'Flush draws present' : texture.straightDraws > 0 ? 'Straight draws present' : 'No obvious draws' });
-        questions.push({ q: 'How many flush draws are possible?', a: `${texture.flushDraws || 0}`, explain: texture.isMonotone ? 'Monotone board — flush already possible' : `${texture.flushDraws || 0} two-tone suits` });
-        questions.push({ q: 'Is the board paired?', a: texture.isPaired ? 'Yes' : 'No', explain: texture.isPaired ? 'Board has a pair — full houses and trips possible' : 'No pair on board' });
+        questions.push({ q: 'Is this board wet or dry?', a: texture.wet ? 'Wet' : 'Dry', explain: texture.flushy || texture.monotone ? 'Flush draws present' : texture.straightDrawHeavy || texture.straightPossible ? 'Straight draws present' : 'No obvious draws' });
+        questions.push({ q: 'Is a flush draw possible?', a: (texture.flushy || texture.monotone) ? 'Yes' : 'No', explain: texture.monotone ? 'Monotone board — flush already possible' : texture.flushy ? 'Three of one suit on board' : 'Not enough of one suit for a flush' });
+        questions.push({ q: 'Is the board paired?', a: texture.paired ? 'Yes' : 'No', explain: texture.paired ? 'Board has a pair — full houses and trips possible' : 'No pair on board' });
 
         return questions;
     }
@@ -9337,8 +9520,10 @@ export class DeterministicGTOEngine {
      */
     generateRangeQuiz(position) {
         const ranges = {
-            'UTG': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AJs', 'KQs'],
+            'UTG': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', 'AKs', 'AKo', 'AQs', 'AQo', 'AJs', 'ATs', 'KQs', 'KJs', 'QJs', 'JTs'],
+            'HJ': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AKo', 'AQs', 'AQo', 'AJs', 'ATs', 'KQs', 'KQo', 'KJs', 'QJs', 'JTs'],
             'CO': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AKo', 'AQs', 'AQo', 'AJs', 'ATs', 'A9s', 'KQs', 'KQo', 'KJs', 'QJs', 'JTs', 'T9s'],
+            'SB': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AKo', 'AQs', 'AQo', 'AJs', 'ATs', 'A9s', 'KQs', 'KQo', 'KJs', 'QJs', 'JTs', 'T9s'],
             'BTN': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', 'AKs', 'AKo', 'AQs', 'AQo', 'AJs', 'AJo', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'KQs', 'KQo', 'KJs', 'KJo', 'KTs', 'K9s', 'QJs', 'QJo', 'QTs', 'Q9s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '65s'],
         };
         const range = ranges[position] || ranges['CO'];
@@ -9373,7 +9558,7 @@ export class DeterministicGTOEngine {
         const scenarios = [
             { pot: 10, bet: 5, outs: 9, street: 'turn', answer: 'Call', explain: '9 outs × 2 = 18% equity. Need 5/(10+5+5) = 25%. Close but implied odds make it a call.' },
             { pot: 20, bet: 10, outs: 8, street: 'flop', answer: 'Call', explain: '8 outs × 4 = 32% equity (2 streets). Need 10/(20+10+10) = 25%. Easy call.' },
-            { pot: 15, bet: 15, outs: 4, street: 'river', answer: 'Fold', explain: '4 outs × 2 = 8% equity. Need 15/(15+15+15) = 33%. Way too expensive.' },
+            { pot: 15, bet: 15, outs: 4, street: 'turn', answer: 'Fold', explain: '4 outs × 2 = 8% equity. Need 15/(15+15+15) = 33%. Way too expensive.' },
             { pot: 30, bet: 10, outs: 15, street: 'flop', answer: 'Raise', explain: '15 outs × 4 = 60% equity. You\'re a favorite — raise for value!' },
             { pot: 8, bet: 8, outs: 6, street: 'turn', answer: 'Fold', explain: '6 outs × 2 = 12% equity. Need 8/(8+8+8) = 33%. Not enough equity to call.' },
         ];
@@ -9444,7 +9629,7 @@ export class DeterministicGTOEngine {
         if (a === 'f') return 'fold';
         if (a === 'call') return 'call';
         if (a === 'x' || a === 'check') return 'check';
-        if (a.startsWith('r') || a === 'allin') return 'raise';
+        if (this._isAggressiveAction(a)) return 'raise';
         return a;
     }
 
@@ -9906,13 +10091,13 @@ export class DeterministicGTOEngine {
 
         return {
             status: 'healthy',
-            version: '3.2.0-phase250',
+            version: '4.2.0-phase350',
             questionsAnswered: statsCount,
             mistakeTrackerDimensions: trackerDims,
             conceptsTracked: concepts,
             handHistorySize: historySize,
             memoryEstimate: `~${Math.round((historySize * 200 + trackerDims * 50 + concepts * 30) / 1024)}KB`,
-            features: 250,
+            features: 350,
         };
     }
 
@@ -9933,10 +10118,11 @@ export class DeterministicGTOEngine {
             'nuts': 95, 'second_nuts': 90, 'full_house': 88, 'flush': 82, 'straight': 78,
             'set': 75, 'trips': 72, 'two_pair': 65, 'overpair': 60, 'top_pair_top_kicker': 55,
             'top_pair': 50, 'top_pair_weak_kicker': 45, 'middle_pair': 35, 'second_pair': 30,
-            'third_pair': 25, 'bottom_pair': 20, 'underpair': 18, 'ace_high': 15, 'high_card': 10,
+            'third_pair': 25, 'bottom_pair': 20, 'weak_pair': 20, 'underpair': 18, 'ace_high': 15,
+            'overcards': 15, 'high_card': 10, 'air': 10,
             'combo_draw': 55, 'oesd': 40, 'flush_draw': 38, 'gutshot': 20, 'missed_draw': 5,
         };
-        const equity = strengthOrder[handStrength] || 30;
+        const equity = strengthOrder[this._getHandToken(handStrength)] ?? 30;
 
         if (equity >= 70) return 'Equity bucket: TOP — your hand is in the strongest portion of your range. This equity bucket almost always bets for value. The question is sizing, not whether to bet.';
         if (equity >= 45) return 'Equity bucket: MIDDLE — your hand has decent equity but isn\'t a clear value bet or fold. These hands often check for pot control or bet small as a merge.';
@@ -10110,8 +10296,9 @@ export class DeterministicGTOEngine {
         const node = (nodeType || '').toLowerCase();
         if (!node.includes('facing') && !node.includes('bet')) return '';
 
-        const isMedium = ['top_pair', 'top_pair_weak_kicker', 'middle_pair', 'second_pair', 'overpair'].includes(handStrength);
-        const isWeak = ['bottom_pair', 'underpair', 'ace_high', 'high_card'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isMedium = ['top_pair', 'top_pair_weak_kicker', 'middle_pair', 'second_pair', 'overpair'].includes(handToken);
+        const isWeak = ['bottom_pair', 'underpair', 'ace_high', 'high_card', 'weak_pair', 'overcards', 'air'].includes(handToken);
 
         if (a === 'call' && isMedium) {
             return 'Check-call: your hand beats bluffs but loses to value. Calling keeps villain\'s bluffs in your range. Key question: does villain bluff enough to justify calling?';
@@ -10140,7 +10327,7 @@ export class DeterministicGTOEngine {
         if (!node.includes('donk') && !node.includes('facing_lead')) return '';
         const a = (optimalAction || '').toLowerCase();
 
-        if (a.startsWith('r')) {
+        if (this._isAggressiveAction(a)) {
             return 'Facing donk bet — raise: donk bets are often polarized or merged-weak. Raising puts maximum pressure. Your raising range should include strong value hands and semi-bluffs with good equity.';
         }
         if (a === 'call') {
@@ -10162,10 +10349,10 @@ export class DeterministicGTOEngine {
     _getSlowPlayChecklistNote(optimalAction, handStrength, street, texture) {
         const a = (optimalAction || '').toLowerCase();
         if (a !== 'x' && a !== 'check' && a !== 'call') return '';
-        const isMonster = ['nuts', 'second_nuts', 'full_house', 'set', 'flush', 'straight'].includes(handStrength);
+        const isMonster = ['nuts', 'second_nuts', 'full_house', 'set', 'flush', 'straight'].includes(this._getHandToken(handStrength));
         if (!isMonster) return '';
 
-        const isDry = texture && !texture.flushDraws && !texture.straightDraws;
+        const isDry = texture && texture.dry && !(texture.flushy || texture.monotone);
         const criteria = [];
         if (isDry) criteria.push('✅ Dry board (villain has few draws)');
         else criteria.push('❌ Wet board (draws can outdraw you — prefer betting)');
@@ -10188,9 +10375,8 @@ export class DeterministicGTOEngine {
      */
     _getOverbetChecklistNote(optimalAction, handStrength, street, texture, stackDepth, estimatedPot) {
         const a = (optimalAction || '').toLowerCase();
-        const match = a.match(/r(\d+)/);
-        if (!match || parseInt(match[1]) <= 100) return '';
-        const sizePct = parseInt(match[1]);
+        const sizePct = this._actionSizePct(a);
+        if (sizePct == null || sizePct <= 100) return '';
 
         const criteria = [];
         const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
@@ -10200,7 +10386,7 @@ export class DeterministicGTOEngine {
         if (isAir) criteria.push('✅ Air — overbet as a bluff to maximize fold equity');
         if (street === 'river') criteria.push('✅ River — maximum polarization');
         if (stackDepth && estimatedPot && stackDepth > estimatedPot * 2) criteria.push('✅ Deep enough stacks for overbet');
-        if (texture && texture.isDry) criteria.push('✅ Dry/static board — ranges are clearer');
+        if (texture && texture.dry) criteria.push('✅ Dry/static board — ranges are clearer');
 
         if (criteria.length >= 3) {
             return `Overbet criteria (${sizePct}% pot): ${criteria.join('. ')}. Multiple conditions met — overbet is well-justified.`;
@@ -10243,15 +10429,15 @@ export class DeterministicGTOEngine {
         const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'flush', 'straight', 'full_house'].includes(handStrength);
 
         if (street === 'flop') {
-            if (isStrong && a.startsWith('r')) return `EV source (flop): ~30% of your total hand EV comes from flop betting. Building the pot early with strong hands sets up larger bets on later streets.`;
+            if (isStrong && this._isAggressiveAction(a)) return `EV source (flop): ~30% of your total hand EV comes from flop betting. Building the pot early with strong hands sets up larger bets on later streets.`;
             return '';
         }
         if (street === 'turn') {
-            if (isStrong && a.startsWith('r')) return `EV source (turn): the turn is where the most EV is generated in a hand. Pot is larger, ranges are narrower, and strong hands extract significant value.`;
+            if (isStrong && this._isAggressiveAction(a)) return `EV source (turn): the turn is where the most EV is generated in a hand. Pot is larger, ranges are narrower, and strong hands extract significant value.`;
             return '';
         }
         if (street === 'river') {
-            if (a.startsWith('r') && isStrong) return `EV source (river): river value bets capture the final portion of the hand's EV. Sizing correctly here — not too big to fold out everything, not too small to leave money behind.`;
+            if (this._isAggressiveAction(a) && isStrong) return `EV source (river): river value bets capture the final portion of the hand's EV. Sizing correctly here — not too big to fold out everything, not too small to leave money behind.`;
             if (a === 'call') return `EV source (river): river calls with bluff-catchers generate EV by catching villain's bluffs. The value comes from correct bluff-catching frequency.`;
             return '';
         }
@@ -10331,7 +10517,7 @@ export class DeterministicGTOEngine {
      * Phase 215: Progressive hints before revealing the answer.
      * Hint 1: vague, Hint 2: more specific, Hint 3: almost reveals.
      */
-    generateHints(scenario, heroHand, board, handActions, correctAction) {
+    _legacyGenerateHints(scenario, heroHand, board, handActions, correctAction) {
         const hints = [];
         const a = (correctAction || '').toLowerCase();
         const street = scenario.street || 'flop';
@@ -10453,6 +10639,7 @@ export class DeterministicGTOEngine {
 
         if (isCorrect) {
             this._challengeMode.currentStreak++;
+            this._challengeMode.maxStreak = Math.max(this._challengeMode.maxStreak || 0, this._challengeMode.currentStreak);
             this._challengeMode.streakMultiplier = 1 + (this._challengeMode.currentStreak * 0.25);
             const timeBonus = timeMs < 5000 ? 1.5 : timeMs < 10000 ? 1.2 : 1.0;
             const points = Math.round(100 * this._challengeMode.streakMultiplier * timeBonus);
@@ -10473,7 +10660,7 @@ export class DeterministicGTOEngine {
             questionsAnswered: this._challengeMode.questionsAnswered,
             elapsed: elapsed.toFixed(0) + 's',
             avgPointsPerQuestion: this._challengeMode.questionsAnswered > 0 ? (this._challengeMode.score / this._challengeMode.questionsAnswered).toFixed(0) : 0,
-            bestStreak: this._challengeMode.currentStreak, // Could track max separately
+            bestStreak: this._challengeMode.maxStreak || this._challengeMode.currentStreak || 0,
         };
     }
 
@@ -10635,8 +10822,9 @@ export class DeterministicGTOEngine {
     _getSolverLineNote(street, optimalAction, nodeType, handStrength) {
         const a = (optimalAction || '').toLowerCase();
         const node = (nodeType || '').toLowerCase();
-        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handStrength);
-        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair'].includes(handStrength);
+        const handToken = this._getHandToken(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handToken);
+        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair'].includes(handToken);
 
         if (street === 'flop' && isStrong) {
             if (a.startsWith('r')) return 'Solver line: strong hands typically bet flop → bet turn → bet/check river (depending on runout). Fast-playing builds the pot for a big river bet.';
@@ -10748,7 +10936,7 @@ export class DeterministicGTOEngine {
      * Phase 226: Approximate equity vs villain's range based on hand strength.
      * Uses pre-computed equity tables for common matchups.
      */
-    estimateEquityVsRange(handStrength, street, villainRangeType) {
+    _legacyEstimateEquityVsRange(handStrength, street, villainRangeType) {
         // Pre-computed approximate equities for common matchups
         const equities = {
             'nuts': { wide: 95, medium: 92, tight: 85 },
@@ -10841,7 +11029,7 @@ export class DeterministicGTOEngine {
             'top_pair': `Top pair is the backbone of postflop play. Its value depends heavily on your kicker. TPTK (top pair top kicker) is much stronger than TPWK (weak kicker). On wet boards, bet for protection. On dry boards, pot control may be optimal.`,
         };
 
-        return deepDives[handStrength] || '';
+        return deepDives[this._getHandToken(handStrength)] || '';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10922,10 +11110,10 @@ export class DeterministicGTOEngine {
         const node = (nodeType || '').toLowerCase();
 
         // Only show coaching for betting/raising decisions
-        if (!a.startsWith('r') && a !== 'allin') return '';
+        if (!this._isAggressiveAction(a)) return '';
 
         const isIP = node.includes('ip') || node.includes('btn') || node.includes('co');
-        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
         const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handStrength);
 
         if (isIP && isWet && isStrong) {
@@ -10946,7 +11134,7 @@ export class DeterministicGTOEngine {
      */
     recommendBetSizing(handStrength, street, texture, estimatedPot, stackDepth) {
         if (!estimatedPot) return null;
-        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
         const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
         const isStrong = ['flush', 'straight', 'set', 'two_pair', 'overpair'].includes(handStrength);
         const isMedium = ['top_pair_top_kicker', 'top_pair'].includes(handStrength);
@@ -10984,10 +11172,13 @@ export class DeterministicGTOEngine {
         if (street === 'preflop' || !texture) return '';
         let score = 50; // Neutral baseline
 
-        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
-        const highCard = texture.highCard ? '23456789TJQKA'.indexOf(texture.highCard) : 0;
-        const isMonotone = texture.isMonotone;
-        const isPaired = texture.isPaired;
+        const isPFR = nodeType === 'hero_bets_or_checks';
+        // texture.highCard is a boolean — derive the actual high rank from lowestRank + spread
+        const highCard = (typeof texture.lowestRank === 'number' && typeof texture.spread === 'number')
+            ? texture.lowestRank + texture.spread
+            : (texture.highCard ? 11 : 0);
+        const isMonotone = texture.monotone;
+        const isPaired = texture.paired;
 
         // PFR advantages
         if (isPFR) {
@@ -11048,7 +11239,7 @@ export class DeterministicGTOEngine {
      * Phase 235: Quick equity estimate for hero's hand vs estimated villain range.
      */
     _getEquityEstimateNote(handStrength, street, nodeType, optimalAction) {
-        const eq = this.estimateEquityVsRange(handStrength, street, 'medium');
+        const eq = this.estimateEquityVsRange(handStrength, street, nodeType || '');
         if (!eq) return '';
         const equity = parseInt(eq.equity);
         const a = (optimalAction || '').toLowerCase();
@@ -11150,7 +11341,8 @@ export class DeterministicGTOEngine {
      */
     calculateOptimalBluffRatio(betSizePctPot) {
         if (!betSizePctPot) return null;
-        const ratio = betSizePctPot / (100 + betSizePctPot);
+        // Bluff fraction = b / (pot + 2b): the caller risks b to win pot + b
+        const ratio = betSizePctPot / (100 + 2 * betSizePctPot);
         const bluffPct = (ratio * 100).toFixed(0);
         const valuePct = (100 - ratio * 100).toFixed(0);
 
@@ -15611,40 +15803,39 @@ export class DeterministicGTOEngine {
      */
     _heuristicGTOFrequencies(heroHand, boardCards, position, street, potBB) {
         const freqs = {};
-        const isIP = ['BTN', 'CO', 'HJ', 'SB'].includes(position);
+        // SB is out of position postflop — do not treat it as IP
+        const isIP = ['BTN', 'CO', 'HJ'].includes(position);
 
         // Classify board texture
         const texture = this.classifyBoardTexture(boardCards);
         const textureType = texture?.type || 'STANDARD';
 
-        // Base frequencies by texture
+        // Base frequencies by texture.
+        // These are check/bet nodes (hero is not facing a bet), so fold is not
+        // a legal action — former 'f' weight is folded into 'x'.
         if (textureType.includes('DRY') || textureType.includes('RAINBOW')) {
             // Dry board = more checking, small bets
-            freqs['x'] = 0.40;
+            freqs['x'] = 0.45;
             freqs['b33'] = 0.35;
             freqs['b50'] = 0.15;
             freqs['b75'] = 0.05;
-            freqs['f'] = 0.05;
         } else if (textureType.includes('MONOTONE')) {
             // Monotone = polarized
-            freqs['x'] = 0.55;
+            freqs['x'] = 0.70;
             freqs['b75'] = 0.20;
             freqs['b33'] = 0.10;
-            freqs['f'] = 0.15;
         } else if (textureType.includes('CONNECTED') || textureType.includes('WET')) {
-            // Wet = larger sizes, more folding
-            freqs['x'] = 0.30;
+            // Wet = larger sizes, more checking
+            freqs['x'] = 0.45;
             freqs['b50'] = 0.25;
             freqs['b75'] = 0.20;
             freqs['b33'] = 0.10;
-            freqs['f'] = 0.15;
         } else {
             // Standard
-            freqs['x'] = 0.35;
+            freqs['x'] = 0.45;
             freqs['b33'] = 0.25;
             freqs['b50'] = 0.20;
             freqs['b75'] = 0.10;
-            freqs['f'] = 0.10;
         }
 
         // Position adjustments
@@ -15658,7 +15849,6 @@ export class DeterministicGTOEngine {
             freqs['x'] = (freqs['x'] || 0) + 0.10;
             freqs['b75'] = (freqs['b75'] || 0) + 0.05;
             freqs['b33'] = (freqs['b33'] || 0) - 0.10;
-            freqs['f'] = (freqs['f'] || 0) - 0.05;
         }
 
         // Normalize

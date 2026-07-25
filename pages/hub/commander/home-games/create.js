@@ -506,6 +506,17 @@ export default function CreateHomeGamePage() {
                       t.entries_cap === '' || t.entries_cap == null
                         ? null
                         : Number(t.entries_cap) || null,
+                    // 2026-07-25 audit fix: the Recurring Tournament toggle's
+                    // recurring/recurring_days were collected but silently
+                    // dropped here — persist the host's intent so it isn't
+                    // lost. NOTE: server-side generation of recurring
+                    // instances from these fields is future work; today only
+                    // rows with a scheduled_date become real events.
+                    recurring: !!t.recurring,
+                    recurring_days:
+                      t.recurring && Array.isArray(t.recurring_days)
+                        ? t.recurring_days
+                        : [],
                   }))
               : undefined,
         },
@@ -1606,6 +1617,14 @@ export default function CreateHomeGamePage() {
                                 );
                               })}
                             </div>
+                            {/* 2026-07-25 audit fix: recurring rows without a
+                                first date never become real events — tell the
+                                host the date above is required to schedule. */}
+                            {!t.scheduled_date && (
+                              <p className="text-xs text-[#F59E0B] mt-2">
+                                Set the Date above for the first occurrence — recurring days are saved with your group, but the tournament is only scheduled once a first date is chosen.
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>

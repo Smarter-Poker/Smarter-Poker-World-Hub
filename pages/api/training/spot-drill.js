@@ -42,6 +42,20 @@ function getStreetFromBoard(board) {
     return 'Preflop';
 }
 
+// Map raw solver action codes ('c', 'f', 'x', 'b33', 'r250', 'allin') to
+// display labels so options, gtoAction, and grading share one vocabulary
+const codeToLabel = (a) => {
+    if (a === 'c') return 'Call';
+    if (a === 'f') return 'Fold';
+    if (a === 'x') return 'Check';
+    const m = /^b(\d+)$/.exec(a);
+    if (m) return `Bet ${m[1]}%`;
+    const r = /^r(\d+)$/.exec(a);
+    if (r) return `Raise ${r[1]}%`;
+    if (a === 'allin') return 'All-In';
+    return a;
+};
+
 // Standard GTO action distractor pool
 const ACTION_POOL = [
     'Bet 33%', 'Bet 50%', 'Bet 66%', 'Bet 75%', 'Bet 100%', 'Bet 125%', 'Bet 150%',
@@ -205,7 +219,16 @@ export default async function handler(req, res) {
           const board = parseBoardFromHash(spot.scenario_hash);
           const heroPosition = extractPositionFromHash(spot.scenario_hash);
           const street = getStreetFromBoard(board);
-          const options = generateOptions(correctAction, actions);
+          // Map raw solver codes to display labels and dedupe (e.g. 'c' -> 'Call'
+          // colliding with pool 'Call') so grading compares like-for-like
+          const displayCorrect = codeToLabel(correctAction);
+          const displayActions = [...new Set(actions.map(codeToLabel))];
+          const displayBreakdown = {};
+          for (const [action, pct] of Object.entries(actionBreakdown)) {
+              const label = codeToLabel(action);
+              displayBreakdown[label] = Math.round(((displayBreakdown[label] || 0) + pct) * 10) / 10;
+          }
+          const options = generateOptions(displayCorrect, displayActions);
 
           return res.status(200).json({
               success: true,
@@ -217,9 +240,9 @@ export default async function handler(req, res) {
                   stackDepth: spot.stack_depth,
                   gameType: spot.game_type,
                   heroHand: randomHand,
-                  gtoAction: correctAction,
+                  gtoAction: displayCorrect,
                   gtoFrequency: Math.round(correctFreq * 1000) / 10,
-                  actionBreakdown,
+                  actionBreakdown: displayBreakdown,
                   options,
               },
           });

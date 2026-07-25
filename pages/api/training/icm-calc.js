@@ -41,6 +41,8 @@ function getSupabase() {
  * @returns {number[]} ICM equity for each player in dollars
  */
 function computeICM(stacks, prizes) {
+    // More prizes than players inflates every equity — truncate to player count
+    prizes = (prizes || []).slice(0, stacks.length);
     const n = stacks.length;
     const totalChips = stacks.reduce((sum, s) => sum + s, 0);
 

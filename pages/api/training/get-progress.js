@@ -80,10 +80,13 @@ export default async function handler(req, res) {
           }
 
           // Calculate overall stats
+          // Fail-safe column fallbacks: rows are written with total_answers /
+          // correct_answers; older rows may carry the legacy column names.
+          const getMastery = (p) => p.mastery_percentage ?? (p.total_answers > 0 ? Math.round((p.correct_answers / p.total_answers) * 100) : 0);
           const totalGamesPlayed = (data || []).length;
-          const totalGamesMastered = (data || []).filter(p => p.mastery_percentage === 100).length
-          const totalQuestionsAnswered = (data || []).reduce((sum, p) => sum + (p.total_questions_answered || 0), 0);
-          const totalCorrect = (data || []).reduce((sum, p) => sum + (p.total_correct || 0), 0);
+          const totalGamesMastered = (data || []).filter(p => getMastery(p) === 100).length
+          const totalQuestionsAnswered = (data || []).reduce((sum, p) => sum + (p.total_answers ?? p.total_questions_answered ?? 0), 0);
+          const totalCorrect = (data || []).reduce((sum, p) => sum + (p.correct_answers ?? p.total_correct ?? 0), 0);
           const overallAccuracy = totalQuestionsAnswered > 0
               ? Math.round((totalCorrect / totalQuestionsAnswered) * 100)
               : 0;

@@ -8,7 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 import { formatScenario } from '../../utils/formatScenario';
 
@@ -174,6 +174,19 @@ const styles = {
         maxWidth: '400px',
         lineHeight: '1.5',
     },
+
+    nextButton: {
+        marginTop: '20px',
+        padding: '12px 32px',
+        background: 'linear-gradient(135deg, #164e63, #0f2847)',
+        border: '2px solid #22d3ee',
+        borderRadius: '8px',
+        color: '#22d3ee',
+        fontSize: '16px',
+        fontWeight: '700',
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+    },
 };
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -187,10 +200,18 @@ export default function GTOQuestionCard({
     showFeedback = false,
     feedbackResult = null, // 'correct' | 'wrong'
     explanation = '',
+    onNextHand = null,
 }) {
     const [hoveredId, setHoveredId] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
     const { viewMode } = useTrainingSettings();
+
+    // Reset selection/hover when a new question arrives so stale
+    // highlights don't carry over between questions
+    useEffect(() => {
+        setSelectedId(null);
+        setHoveredId(null);
+    }, [question]);
 
     // BUG-D FIX: Fisher-Yates shuffle options per question to eliminate position bias
     const shuffledOptions = useMemo(() => {
@@ -298,6 +319,11 @@ export default function GTOQuestionCard({
                     </div>
                     {explanation && (
                         <div style={styles.explanationText}>{explanation}</div>
+                    )}
+                    {onNextHand && (
+                        <button style={styles.nextButton} onClick={onNextHand}>
+                            Next Question
+                        </button>
                     )}
                 </div>
             )}

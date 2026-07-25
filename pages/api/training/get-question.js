@@ -32,6 +32,21 @@ function hashSeed(str) {
   return Math.abs(h);
 }
 
+// ── Hand notation → concrete cards (e.g. 'AKs' → ['As','Ks']) ──
+function heroHandToCards(heroHand) {
+  if (!heroHand || heroHand.length < 2) return ['As', 'Ks'];
+  // Already exact cards like 'AhKs'
+  if (heroHand.length >= 4 && /^[2-9TJQKAtjqka][shdc]/.test(heroHand)) {
+    return [heroHand.substring(0, 2), heroHand.substring(2, 4)];
+  }
+  const r1 = heroHand[0].toUpperCase();
+  const r2 = heroHand[1].toUpperCase();
+  if (r1 === r2) return [`${r1}s`, `${r2}h`]; // Pair: 'AA' → ['As','Ah']
+  const suited = heroHand[2] === 's' || heroHand[2] === 'S';
+  if (suited) return [`${r1}s`, `${r2}s`]; // Suited: 'AKs' → ['As','Ks']
+  return [`${r1}s`, `${r2}h`]; // Offsuit/unspecified: 'AKo'/'AK' → ['As','Kh']
+}
+
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
 function getSupabase() {
@@ -62,7 +77,7 @@ export default async function handler(req, res) {
 
     const { gameId: rawGameId, level: rawLevel = 1, engineType: rawEngine = 'PIO' } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
-    const level = Math.min(10, Math.max(1, parseInt(rawLevel, 10) || 1));
+    const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));
     const engineType = ['PIO', 'CHART', 'SCENARIO'].includes(rawEngine) ? rawEngine : 'PIO';
     // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
     const userId = _authUser.id;
@@ -427,7 +442,8 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         action: scenario.street !== 'preflop' ? 'Villain checks' : '',
       },
       // Add heroCards in the format expected by UniversalDynamicTable
-      heroCards: heroHand ? [heroHand.substring(0, 2), heroHand.substring(2, 4)] : ['As', 'Ks'],
+      // (heroHand here is notation like 'AKs' — convert, don't substring-split)
+      heroCards: heroHandToCards(heroHand),
       question: `You hold ${formatHand(heroHand)} on the ${scenario.street} with board ${scenario.board.join(' ')}. Stack: ${scenario.stackDepth}BB. What is the GTO play?`,
       options: readableActions.slice(0, 4).map((a) => ({
         id: a.id,

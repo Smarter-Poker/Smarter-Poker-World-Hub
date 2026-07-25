@@ -57,11 +57,15 @@ async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, p
             .maybeSingle();
 
         if (existing) {
-            // Update existing entry
-            const newGamesCompleted = (existing.total_games_completed || 0) + (passed ? 1 : 0);
-            const newAccuracy = newGamesCompleted > 0
-                ? ((existing.average_accuracy || 0) * (existing.total_games_completed || 0) + accuracy) / newGamesCompleted
-                : accuracy;
+            // Update existing entry.
+            // Only fold accuracy into the running average when the denominator
+            // grows (passed) — otherwise failed sessions inflate the average.
+            const gamesCompleted = existing.total_games_completed || 0;
+            const existingAvg = existing.average_accuracy || 0;
+            const newGamesCompleted = gamesCompleted + (passed ? 1 : 0);
+            const newAccuracy = passed
+                ? ((existingAvg * gamesCompleted) + accuracy) / newGamesCompleted
+                : existingAvg;
 
             await sb.from('training_leaderboard')
                 .update({
@@ -234,7 +238,7 @@ export default async function handler(req, res) {
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
                           p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}`
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`
                       });
                       if (rpcErr) {
                           console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);
@@ -310,7 +314,7 @@ export default async function handler(req, res) {
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
                           p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
-                          p_reference_id: `progress_${userId}_${gameId}_${level}`
+                          p_reference_id: `progress_${userId}_${gameId}_${level}_${new Date().toISOString().slice(0, 10)}`
                       });
                       if (rpcErr) {
                           console.warn('[SaveProgress] Diamond RPC error:', rpcErr.message);

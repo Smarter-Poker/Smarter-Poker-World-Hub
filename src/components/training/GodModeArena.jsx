@@ -408,11 +408,7 @@ import HUSNGSolver from './HUSNGSolver';
 import SessionCoachingEngine from './SessionCoachingEngine';
 import StrategyNodeInspector from './StrategyNodeInspector';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
-import {
-  SessionScorer,
-  calculateSessionDiamonds,
-  getScoreGrade,
-} from '../../engines/GTOScoreEngine';
+import { calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -426,11 +422,10 @@ import useGTOTrainer from '../../hooks/useGTOTrainer';
 import useSpacedRepetition from '../../hooks/useSpacedRepetition';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
-import TRAINING_CONFIG, { getDiamondReward } from '../../config/trainingConfig';
+import { getDiamondReward } from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
-import { getGameById } from '../../data/TRAINING_LIBRARY';
-import { enqueueMutation } from '../../engine/OfflineSyncQueue';
-import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import { getGameConfig as getGameEngineConfig } from '../../config/gameConfigs';
+import { eventBus, EventType } from '../../engine/EventBus';
 // Extracted utilities
 import { saveSession } from './utils/saveSession';
 import { checkSpeedBonus } from './utils/achievementChecker';
@@ -605,11 +600,8 @@ function ClassificationSVGIcon({ icon, size = 14, color = 'currentColor' }) {
 }
 
 function getEngineType(gameId) {
-  const game = getGameById(gameId);
-  if (!game) return 'PIO';
-  if (game.category === 'PSYCHOLOGY') return 'SCENARIO';
-  if (game.tags?.includes('gto') || game.tags?.includes('math')) return 'PIO';
-  return 'CHART';
+  const cfg = getGameEngineConfig?.(gameId);
+  return cfg?.engine || 'PIO';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2747,9 +2739,8 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
           border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
         }}
       >
-        <span style={{ fontSize: 14, color: '#60a5fa' }}>◆</span>
         <span style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#94a3b8' }}>
-          {achieved ? '+25' : '25'}
+          {achieved ? 'Goal met' : 'Goal'}
         </span>
       </div>
     </motion.div>
@@ -3143,6 +3134,9 @@ function GodModeArenaInner({
     error: null,
     importedQuestion: null,
   });
+  // Local feedback for imported hands — they are graded here, not by the hook,
+  // so the imported question's answer is never compared against the trainer queue.
+  const [importedFeedback, setImportedFeedback] = useState(null);
   const [flashcardState, setFlashcardState] = useState({
     category: null,
     cards: [],
@@ -3175,7 +3169,7 @@ function GodModeArenaInner({
     achievementsCheckedRef.current = true;
 
     const achievements = checkAllAchievements({
-      currentStreak: bestStreak,
+      currentStreak: streak,
       bestStreak,
       accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
       questionsAnswered: totalQuestions,
@@ -3189,6 +3183,7 @@ function GodModeArenaInner({
     }
   }, [
     gameComplete,
+    streak,
     bestStreak,
     correctCount,
     totalQuestions,
@@ -3466,6 +3461,12 @@ function GodModeArenaInner({
     speedBonusDiamonds,
   ]);
 
+  // Restart actions (retryLevel/retrainMistakes/startNextLevel) reset gameComplete
+  // but not gamePhase — return to playing so the review screen doesn't dead-end
+  useEffect(() => {
+    if (!gameComplete && gamePhase === 'review') setGamePhase('playing');
+  }, [gameComplete, gamePhase]);
+
   // Session timer
   const sessionStartRef = useRef(Date.now());
   const [sessionElapsed, setSessionElapsed] = useState(0);
@@ -3522,20 +3523,42 @@ function GodModeArenaInner({
     speedBonusDiamonds,
   ]);
 
+  // Reset one-shot session refs whenever a new run starts (retry/retrain/next level)
+  // so coaching, achievements, and session save all fire again on the next completion
+  useEffect(() => {
+    if (!gameComplete) {
+      coachingFetchedRef.current = false;
+      achievementsCheckedRef.current = false;
+      sessionSavedRef.current = false;
+      sessionStartRef.current = Date.now();
+      setAiCoaching(null);
+    }
+  }, [gameComplete]);
+
   // Wrapped nextQuestion with transition guard
   const handleNextQuestion = useCallback(() => {
     if (isTransitioning) return;
     setIsTransitioning(true);
     // Small delay for visual breathing room
     setTimeout(() => {
+      // Clear any one-off imported hand so the trainer queue resumes
+      if (importState.importedQuestion) {
+        setImportState((s) => ({ ...s, importedQuestion: null }));
+        setImportedFeedback(null);
+        setIsTransitioning(false);
+        return; // imported hand was a one-off; resume the queue without skipping
+      }
       nextQuestion();
       setIsTransitioning(false);
     }, 350);
-  }, [nextQuestion, isTransitioning]);
+  }, [nextQuestion, isTransitioning, importState.importedQuestion]);
 
   // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
   useEffect(() => {
     const handler = (e) => {
+      if (gamePhase !== 'playing') return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
       if (showFeedback && e.key === ' ') {
         e.preventDefault();
         handleNextQuestion();
@@ -3546,13 +3569,13 @@ function GodModeArenaInner({
         if (idx >= 0 && idx < currentQuestion.options.length) {
           e.preventDefault();
           const opt = currentQuestion.options[idx];
-          submitAnswer(opt.id || opt);
+          handleSubmitAnswer(opt.id || opt);
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [showFeedback, currentQuestion, submitAnswer, handleNextQuestion]);
+  }, [gamePhase, showFeedback, currentQuestion, handleSubmitAnswer, handleNextQuestion]);
 
   // F5: Mixed strategy adherence tracking
   const mixedStrategyScore = useMemo(() => {
@@ -3592,6 +3615,34 @@ function GodModeArenaInner({
     if (filteredOptions === currentQuestion.options) return currentQuestion;
     return { ...currentQuestion, options: filteredOptions };
   }, [currentQuestion, filteredOptions]);
+
+  // ═══ IMPORTED-HAND LOCAL GRADING ═══
+  // When an imported hand is being displayed, grade against IT (not the hook's
+  // currentQuestion) and drive feedback from local state.
+  const iqActive = !!importState.importedQuestion;
+  const handleImportedAnswer = useCallback(
+    (optionId) => {
+      const iq = importState.importedQuestion;
+      if (!iq || importedFeedback) return;
+      const isRight = optionId === iq.correctAnswer;
+      setImportedFeedback({
+        result: isRight ? 'correct' : 'wrong',
+        explanation: iq.explanation || '',
+      });
+    },
+    [importState.importedQuestion, importedFeedback]
+  );
+  const fxOnAnswer = iqActive ? handleImportedAnswer : submitAnswer;
+  const fxShowFeedback = iqActive ? importedFeedback != null : showFeedback;
+  const fxFeedbackResult = iqActive ? (importedFeedback?.result ?? null) : feedbackResult;
+  const fxExplanation = iqActive ? (importedFeedback?.explanation ?? '') : explanation;
+  const fxMoveClassification = iqActive
+    ? (importedFeedback ? (importedFeedback.result === 'correct' ? 'best' : 'wrong') : null)
+    : moveClassification;
+  const fxGtoFrequencies = iqActive
+    ? (importState.importedQuestion?.gtoFrequencies || null)
+    : gtoFrequencies;
+  const fxEvLoss = iqActive ? 0 : evLoss;
 
   // ═══════════════════════════════════════════════════════════════════════
   // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
@@ -3669,7 +3720,13 @@ function GodModeArenaInner({
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             {isAuthError && (
               <button
-                onClick={() => (window.top.location.href = '/auth/login')}
+                onClick={() => {
+                  try {
+                    window.top.location.href = '/auth/login';
+                  } catch (err) {
+                    window.location.href = '/auth/login';
+                  }
+                }}
                 style={{
                   padding: '12px 24px',
                   borderRadius: 10,
@@ -3808,7 +3865,7 @@ function GodModeArenaInner({
 
           {/* DIAMOND REWARD CARD */}
           {(() => {
-            const baseReward = getDiamondReward(currentLevel, correctCount, bestStreak > 5 ? 2 : 0);
+            const baseReward = getDiamondReward(currentLevel, correctCount, bestStreak > 5 ? 2 : 0, totalQuestions || undefined);
             const bonusReward = speedBonusDiamonds || 0;
             const totalReward = baseReward + bonusReward;
             return (
@@ -3931,7 +3988,10 @@ function GodModeArenaInner({
               gap: 0,
               marginBottom: 16,
               borderRadius: 8,
-              overflow: 'hidden',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              flexWrap: 'nowrap',
+              WebkitOverflowScrolling: 'touch',
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
@@ -4112,7 +4172,7 @@ function GodModeArenaInner({
               { id: 'donkdef', label: 'Donk Def' },
               { id: 'mergerng', label: 'Range Type' },
               { id: 'balance', label: 'Balance+' },
-              { id: 'nodelock', label: 'Node Lock+' },
+              { id: 'nodelockguide', label: 'Node Lock+' },
               { id: 'polarizer', label: 'Polarizer' },
               { id: 'eqbucket', label: 'EQ Bucket' },
               { id: 'obbluff', label: 'OB Bluff' },
@@ -4151,7 +4211,7 @@ function GodModeArenaInner({
               { id: 'rvr2', label: 'RvR+' },
               { id: 'eqdist', label: 'EQ Dist' },
               { id: 'evcalc', label: 'EV Calc' },
-              { id: 'sessrev', label: 'Sess Rev' },
+              { id: 'sessrevtool', label: 'Sess Rev' },
               { id: 'leakanal', label: 'Leak Ana' },
               { id: 'studyplan', label: 'Study+' },
               { id: 'progress', label: 'Progress' },
@@ -4219,8 +4279,9 @@ function GodModeArenaInner({
                 key={tab.id}
                 onClick={() => setReviewTab(tab.id)}
                 style={{
-                  flex: 1,
-                  padding: '10px 0',
+                  flex: '0 0 auto',
+                  whiteSpace: 'nowrap',
+                  padding: '10px 12px',
                   background: reviewTab === tab.id ? 'rgba(0, 212, 255, 0.15)' : 'rgba(0,0,0,0.2)',
                   color: reviewTab === tab.id ? '#00d4ff' : '#64748b',
                   border: 'none',
@@ -4762,7 +4823,7 @@ function GodModeArenaInner({
 
                   // Position-based tips
                   if (weakestPosition && positionAccuracy) {
-                    const weakAcc = positionAccuracy[weakestPosition];
+                    const weakAcc = positionAccuracy[weakestPosition]?.accuracy;
                     if (weakAcc !== undefined && weakAcc < 50) {
                       tips.push({
                         priority: 2,
@@ -4775,9 +4836,10 @@ function GodModeArenaInner({
                   // Street-based tips
                   if (streetAccuracy) {
                     const streets = Object.entries(streetAccuracy || {}).filter(
-                      ([, acc]) => acc < 50
+                      ([, v]) => (v?.accuracy ?? 100) < 50
                     );
-                    streets.forEach(([st, acc]) => {
+                    streets.forEach(([st, v]) => {
+                      const acc = v.accuracy;
                       if (st === 'preflop')
                         tips.push({
                           priority: 2,
@@ -5586,9 +5648,12 @@ function GodModeArenaInner({
                   whileTap={{ scale: 0.97 }}
                   onClick={async () => {
                     try {
+                      const token = getSessionToken();
+                      const headers = { 'Content-Type': 'application/json' };
+                      if (token) headers['Authorization'] = `Bearer ${token}`;
                       const res = await fetch('/api/training/share', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers,
                         body: JSON.stringify({
                           userId,
                           shareType: 'session_complete',
@@ -5607,8 +5672,10 @@ function GodModeArenaInner({
                       });
                       if (res.ok) {
                         setShareStatus('success');
-                        setTimeout(() => setShareStatus(null), 3000);
+                      } else {
+                        setShareStatus('error');
                       }
+                      setTimeout(() => setShareStatus(null), 3000);
                     } catch (e) {
                       console.warn('[Share] Error:', e);
                       setShareStatus('error');
@@ -9959,29 +10026,19 @@ function GodModeArenaInner({
                       {handHistory.slice(0, 10).map((hand, i) => {
                         const hd = hand.handData || hand;
                         const cls = hand.classification || 'wrong';
-                        const clsColor =
-                          cls === 'gto_perfect'
-                            ? '#22c55e'
-                            : cls === 'acceptable'
-                              ? '#eab308'
-                              : '#ef4444';
+                        const clsColor = CLASSIFICATION_CONFIG[cls]?.color || '#ef4444';
                         return (
                           <button
                             key={i}
                             onClick={() => {
-                              const spotData = {
+                              setGameTreeData({
                                 actions: hd.gtoFrequencies || {},
-                                scenario: hd,
-                                boardCards: hd.boardCards,
-                              };
-                              const tree = buildDetailedGameTree(
-                                spotData,
-                                hd.heroHand,
-                                hd.heroPosition,
-                                hd.villainPosition,
-                                hd.street
-                              );
-                              setGameTreeData(tree);
+                                street: hd.street,
+                                heroPosition: hd.heroPosition,
+                                heroHand: hd.heroHand,
+                                board: hd.board,
+                                boardCards: hd.board,
+                              });
                             }}
                             style={{
                               padding: '4px 10px',
@@ -10102,6 +10159,10 @@ function GodModeArenaInner({
           {/* ═══ TAB: ANALYTICS — Cross-Session Dashboard ═══ */}
           {reviewTab === 'analytics' && (
             <>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+                Sample data preview - cross-session analytics will populate as you complete more
+                sessions
+              </div>
               <CrossSessionAnalytics sessionHistory={[]} />
             </>
           )}
@@ -11151,7 +11212,7 @@ function GodModeArenaInner({
               <BalancingFrequencies />
             </>
           )}
-          {reviewTab === 'nodelock' && (
+          {reviewTab === 'nodelockguide' && (
             <>
               <NodeLockingGuide />
             </>
@@ -11383,7 +11444,7 @@ function GodModeArenaInner({
             </>
           )}
 
-          {reviewTab === 'sessrev' && (
+          {reviewTab === 'sessrevtool' && (
             <>
               <SessionReviewTool />
             </>
@@ -12572,14 +12633,14 @@ function GodModeArenaInner({
                   gameId={gameId}
                   gameName={gameName}
                   streak={streak}
-                  question={questionWithFilteredOptions}
+                  question={importState.importedQuestion || questionWithFilteredOptions}
                   level={currentLevel}
                   questionNumber={questionNumber}
                   totalQuestions={totalQuestions}
-                  onAnswer={submitAnswer}
-                  showFeedback={showFeedback}
-                  feedbackResult={feedbackResult}
-                  explanation={explanation}
+                  onAnswer={fxOnAnswer}
+                  showFeedback={fxShowFeedback}
+                  feedbackResult={fxFeedbackResult}
+                  explanation={fxExplanation}
                   structuredExplanation={structuredExplanation}
                   // Phase 261-280: Deep coaching callbacks
                   getTeachingPrinciple={getTeachingPrinciple}
@@ -12605,9 +12666,9 @@ function GodModeArenaInner({
                   getPreDecisionPreview={getPreDecisionPreview}
                   getKeyConceptReminders={getKeyConceptReminders}
                   // GTOW scoring props
-                  moveClassification={moveClassification}
-                  evLoss={evLoss}
-                  gtoFrequencies={gtoFrequencies}
+                  moveClassification={fxMoveClassification}
+                  evLoss={fxEvLoss}
+                  gtoFrequencies={fxGtoFrequencies}
                   gtowScore={gtowScore}
                   totalSessionEVLoss={totalEVLoss}
                   sessionMistakes={sessionMistakes}
@@ -12646,6 +12707,7 @@ function GodModeArenaInner({
   }
 
   // Default layout with header/footer for games without custom UIs
+  const headerScoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -12654,7 +12716,7 @@ function GodModeArenaInner({
         </button>
         <div style={styles.gameTitle}>{gameName || 'Training'}</div>
         <div style={styles.stats}>
-          <span style={{ color: scoreColor, fontWeight: 'bold' }}>{gtowScore}% Score</span>
+          <span style={{ color: headerScoreColor, fontWeight: 'bold' }}>{gtowScore}% Score</span>
         </div>
       </div>
 
@@ -12671,17 +12733,17 @@ function GodModeArenaInner({
             gameId={gameId}
             gameName={gameName}
             streak={streak}
-            question={questionWithFilteredOptions}
+            question={importState.importedQuestion || questionWithFilteredOptions}
             level={currentLevel}
             questionNumber={questionNumber}
             totalQuestions={totalQuestions}
-            onAnswer={submitAnswer}
-            showFeedback={showFeedback}
-            feedbackResult={feedbackResult}
-            explanation={explanation}
-            moveClassification={moveClassification}
-            evLoss={evLoss}
-            gtoFrequencies={gtoFrequencies}
+            onAnswer={fxOnAnswer}
+            showFeedback={fxShowFeedback}
+            feedbackResult={fxFeedbackResult}
+            explanation={fxExplanation}
+            moveClassification={fxMoveClassification}
+            evLoss={fxEvLoss}
+            gtoFrequencies={fxGtoFrequencies}
             gtowScore={gtowScore}
             totalSessionEVLoss={totalEVLoss}
             sessionMistakes={sessionMistakes}
@@ -12696,7 +12758,14 @@ function GodModeArenaInner({
             weakestPosition={weakestPosition}
             // Phase 49: Live leak detection
             mistakePatterns={mistakePatterns}
-            onNextHand={nextQuestion}
+            onNextHand={() => {
+              if (importState.importedQuestion) {
+                setImportState((s) => ({ ...s, importedQuestion: null }));
+                setImportedFeedback(null);
+                return; // one-off imported hand; resume queue without skipping
+              }
+              nextQuestion();
+            }}
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
             handSummary={handSummary}
@@ -12739,8 +12808,6 @@ function GodModeArenaInner({
 // ═══════════════════════════════════════════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════════════════════════════════════════
-
-const scoreColor = '#22c55e'; // Default, overridden dynamically in render
 
 const styles = {
   fullScreenContainer: {

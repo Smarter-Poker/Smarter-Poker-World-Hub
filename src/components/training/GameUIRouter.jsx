@@ -21,7 +21,8 @@ const GAME_TYPE_MAP = {
     'cash-007': '6max', 'cash-008': '6max', 'cash-009': '6max',
     'cash-010': '6max', 'cash-011': '6max', 'cash-012': '6max',
     'cash-013': '6max', 'cash-014': '6max', 'cash-015': '6max',
-    'cash-016': '6max', 'cash-017': '6max', 'cash-018': '6max',
+    'cash-016': '6max', 'cash-017': '6max',
+    'cash-018': 'heads-up', // Blind vs Blind (2-player heads-up cash)
     'cash-019': '6max', 'cash-020': '6max',
     'cash-021': '6max', 'cash-022': '6max', 'cash-023': '6max',
     'cash-024': '6max', 'cash-025': '6max',
@@ -41,7 +42,8 @@ const GAME_TYPE_MAP = {
 
     // Spins/SNG Games (3-Max) — 10 games
     'spins-001': 'spins', 'spins-002': 'spins', 'spins-003': 'spins',
-    'spins-004': 'spins', 'spins-005': 'spins', 'spins-006': 'spins',
+    'spins-004': 'heads-up', // SNG Endgame (2-player heads-up)
+    'spins-005': 'spins', 'spins-006': 'spins',
     'spins-007': 'spins', 'spins-008': 'spins', 'spins-009': 'spins',
     'spins-010': 'spins',
 

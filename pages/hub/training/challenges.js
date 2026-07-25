@@ -123,11 +123,11 @@ export default function ChallengesPage() {
 
     try {
       const res = await authedFetch('/api/training/challenges', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           challengeId: challenge.id,
+          periodKey: challenge.periodKey,
         }),
       });
 
@@ -138,9 +138,10 @@ export default function ChallengesPage() {
         refreshChallenges((prev) =>
           prev.map((c) => (c.id === challenge.id ? { ...c, claimed: true } : c))
         );
-        busEmit.diamondsEarned(data.diamondsAwarded, `Challenge: ${challenge.title}`);
+        const diamondsAwarded = data.claimed?.diamondsAwarded ?? 0;
+        busEmit.diamondsEarned(diamondsAwarded, `Challenge: ${challenge.title}`);
         busEmit.celebration('confetti');
-        alert(`+${data.diamondsAwarded} diamonds claimed!`);
+        alert(`+${diamondsAwarded} diamonds claimed!`);
       }
     } catch (error) {
       console.warn('Claim error:', error);

@@ -17,12 +17,12 @@ function resolveOrb(id: string): OrbConfig | undefined {
 
 // Default 6 cards when no user data exists
 const DEFAULT_FOOTER_CARDS = [
-    'social-media',
-    'video-library',
-    'club-arena',
+    'bankroll-manager',
+    'preflop-charts',
+    'poker-near-me',
+    'marketplace',
+    'personal-assistant',
     'training',
-    'trivia',
-    'diamond-arena',
 ];
 
 interface UserPreferences {

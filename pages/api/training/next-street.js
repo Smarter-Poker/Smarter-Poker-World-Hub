@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId, heroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition } = req.query;
+      const { gameId, heroHand, heroCards: rawHeroCards, boardCards, street, pot, stackDepth, heroPosition, villainPosition } = req.query;
 
       if (!gameId || !street || !boardCards) {
           return res.status(400).json({ success: false, error: 'gameId, street, and boardCards are required' });
@@ -69,8 +69,18 @@ export default async function handler(req, res) {
           const SUITS = ['s', 'h', 'd', 'c'];
           const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
           const deadCards = new Set([...parsedBoardCards.map(c => c.toLowerCase())]);
+          // Prefer real hero cards when provided (comma-separated, e.g. 'Ah,Kd')
+          const CARD_RE = /^[2-9TJQKA][shdc]$/;
+          const parsedHeroCards = rawHeroCards
+              ? String(rawHeroCards).split(',').map(c => c.trim()).filter(Boolean)
+              : [];
+          const realHeroCards = parsedHeroCards.length === 2 && parsedHeroCards.every(c => CARD_RE.test(c))
+              ? parsedHeroCards
+              : null;
           // Add hero hand cards to dead cards
-          if (heroHand && heroHand.length >= 2) {
+          if (realHeroCards) {
+              realHeroCards.forEach(c => deadCards.add(c.toLowerCase()));
+          } else if (heroHand && heroHand.length >= 2) {
               const r1 = heroHand[0], r2 = heroHand[1];
               const suffix = heroHand.length >= 3 ? heroHand[2] : '';
               if (r1 === r2) { deadCards.add(`${r1}h`); deadCards.add(`${r2}s`); }

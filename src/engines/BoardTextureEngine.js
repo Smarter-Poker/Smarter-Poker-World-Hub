@@ -48,7 +48,10 @@ export function analyzeFlushTexture(board) {
                   maxCount === 2 ? FLUSH_TEXTURE.TWO_TONE :
                   FLUSH_TEXTURE.RAINBOW;
     } else {
-        texture = maxCount >= 3 ? FLUSH_TEXTURE.MONOTONE :
+        // 4-5 card boards: 3 of a suit just makes a flush possible (three-flush),
+        // not a monotone board — bucket it as two-tone. Monotone requires 4+ of
+        // one suit or the entire board sharing a suit.
+        texture = (maxCount >= 4 || maxCount === board.length) ? FLUSH_TEXTURE.MONOTONE :
                   maxCount >= 2 ? FLUSH_TEXTURE.TWO_TONE :
                   FLUSH_TEXTURE.RAINBOW;
     }

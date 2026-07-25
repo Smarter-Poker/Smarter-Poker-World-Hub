@@ -54,11 +54,11 @@ export const GAME_ICONS = {
 
 // Category definitions with colors
 export const CATEGORIES = {
-    MTT: { id: 'mtt', name: 'MTT', color: '#FF6B35', icon: '🏆', count: 25 },
+    MTT: { id: 'mtt', name: 'MTT', color: '#FF6B35', icon: '🏆', count: 27 },
     CASH: { id: 'cash', name: 'Cash', color: '#4CAF50', icon: '💵', count: 25 },
     SPINS: { id: 'spins', name: 'Spins', color: '#FFD700', icon: '⚡', count: 10 },
     PSYCHOLOGY: { id: 'psychology', name: 'Psychology', color: '#9C27B0', icon: '🧠', count: 20 },
-    ADVANCED: { id: 'advanced', name: 'Advanced', color: '#2196F3', icon: '🤖', count: 20 },
+    ADVANCED: { id: 'advanced', name: 'Advanced', color: '#2196F3', icon: '🤖', count: 25 },
 };
 
 // Complete 100-game library
@@ -204,7 +204,7 @@ export const getGameById = (id) =>
 
 // Find game by slug (e.g., "blind-vs-blind")
 export const getGameBySlug = (slug) =>
-    TRAINING_LIBRARY.find(g => toSlug(g.name) === slug || g.id === slug);
+    TRAINING_LIBRARY.find(g => g.id === slug) || TRAINING_LIBRARY.find(g => toSlug(g.name) === slug);
 
 export const getGamesByTag = (tag) =>
     TRAINING_LIBRARY.filter(g => g.tags?.includes(tag));

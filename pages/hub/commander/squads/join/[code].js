@@ -26,19 +26,22 @@ export default function SquadJoinPage() {
     fetchSquad();
   }, [code, authChecking]);
 
+  // 2026-07-25 audit fix: this page was calling the HOME-GAMES join API — squad
+  // invite codes never resolved. Lookup and join both live at
+  // /api/commander/squads/join/[code] (GET returns {success,data:{squad}},
+  // POST joins and returns {success,data:{squad_id}}).
   async function fetchSquad(signal) {
     try {
       const token = getAccessToken();
-      const res = await fetch(`/api/commander/home-games/join/${code}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`/api/commander/squads/join/${code}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success && data.group) {
-        setSquad(data.group);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.data?.squad) {
+        setSquad(data.data.squad);
         setStatus('found');
       } else {
-        setError(data.error || 'Squad not found');
+        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Squad not found');
         setStatus('error');
       }
     } catch (err) {
@@ -51,23 +54,23 @@ export default function SquadJoinPage() {
     setJoining(true);
     try {
       const token = getAccessToken();
-      const res = await fetch(`/api/commander/home-games/join/${code}`, {
+      const res = await fetch(`/api/commander/squads/join/${code}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         }
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         busEmit.dataMutated('squads');
         setStatus('joined');
+        const squadId = data.data?.squad_id || squad?.id || '';
         setTimeout(() => {
-          router.push(`/hub/commander/squads/${squad?.id || ''}`);
+          router.push(`/hub/commander/squads/${squadId}`);
         }, 1500);
       } else {
-        setError(data.error || 'Failed to join');
+        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Failed to join');
         setStatus('error');
       }
     } catch (err) {

@@ -84,10 +84,25 @@ export class SessionScorer {
      * @param {string} move.gtoAction - GTO optimal action
      * @param {number} move.evLoss - EV loss in BB
      * @param {number} [move.score] - Score (0-100) if pre-calculated
+     * @param {string} [move.classification] - Precomputed 5-tier classification
+     *   ('best'/'correct'/'inaccuracy'/'wrong'/'blunder'); mapped onto the
+     *   engine's tiers instead of re-deriving from EV thresholds
      * @returns {{ classification: Object, sessionScore: number, streak: number }}
      */
     recordMove(move) {
-        const classification = classifyMove(move.evLoss);
+        let classification;
+        if (move.classification) {
+            const tierMap = {
+                best: MOVE_CLASSIFICATIONS.CORRECT,
+                correct: MOVE_CLASSIFICATIONS.CORRECT,
+                inaccuracy: MOVE_CLASSIFICATIONS.INACCURACY,
+                wrong: MOVE_CLASSIFICATIONS.MISTAKE,
+                blunder: MOVE_CLASSIFICATIONS.BLUNDER,
+            };
+            classification = tierMap[String(move.classification).toLowerCase()] || classifyMove(move.evLoss);
+        } else {
+            classification = classifyMove(move.evLoss);
+        }
         const score = move.score ?? _evLossToScore(move.evLoss);
 
         const entry = {

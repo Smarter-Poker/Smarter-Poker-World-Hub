@@ -85,6 +85,10 @@ export default function ResponsibleGamingPage() {
     daily_limit: null, weekly_limit: null, monthly_limit: null,
     session_duration_limit: null, loss_limit: null, alerts_enabled: true
   });
+  // 2026-07-25 audit fix: exclusion/setExclusion were used throughout the render
+  // and handleSelfExclude but never declared (ReferenceError on mount).
+  // Holds the selected exclusion duration: 1 | 7 | 30 | 90 | 'permanent' | null.
+  const [exclusion, setExclusion] = useState(null);
   const [activeExclusion, setActiveExclusion] = useState(null);
   const [showExclusionConfirm, setShowExclusionConfirm] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);

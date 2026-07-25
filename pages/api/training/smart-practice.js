@@ -188,7 +188,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
                 targetPositions: [],
                 targetStreet: null,
                 priority: 2,
-                config: { suggestedLevel: Math.min(maxLevel + 1, 10) },
+                config: { suggestedLevel: Math.min(maxLevel + 1, 12) },
                 reason: 'consistent_high_performance',
                 stats: { avgScore, consecutivePasses: recent3.length },
             });

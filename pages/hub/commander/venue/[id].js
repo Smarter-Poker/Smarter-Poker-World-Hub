@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
+// 2026-07-25 audit fix: needed for the authenticated public-join call.
+import { getAccessToken } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 export default function VenueDetail() {
@@ -94,14 +96,26 @@ export default function VenueDetail() {
 
   // Handle join waitlist
   async function handleJoinWaitlist(gameType, stakes) {
+    // 2026-07-25 audit fix: /api/commander/waitlist POST is staff-only — players
+    // must use /api/commander/waitlist/public-join with a Bearer token (same
+    // endpoint + body shape as waitlist/[venueId].js).
+    const token = getAccessToken();
+    if (!token) {
+      router.push(`/auth/login?redirect=/hub/commander/venue/${id}`);
+      return;
+    }
+
     setJoining(`${gameType}-${stakes}`);
 
     try {
-      const res = await fetch('/api/commander/waitlist', {
+      const res = await fetch('/api/commander/waitlist/public-join', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
-          venue_id: id,
+          venue_id: parseInt(id),
           game_type: gameType,
           stakes: stakes
         })
@@ -111,9 +125,13 @@ export default function VenueDetail() {
       const data = await res.json();
 
       if (data.success) {
+        // 2026-07-25 audit fix: public-join may not return position/estimated_wait
+        // — read them defensively instead of crashing the success path.
         setMessage({
           type: 'success',
-          text: `Joined waitlist! position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`
+          text: data.data?.position != null
+            ? `Joined waitlist! position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`
+            : 'Joined waitlist!'
         });
         fetchData();
       } else {

@@ -135,8 +135,11 @@ export default function PlayerTournamentsHub() {
     ]);
     if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
     const [tourData, myData] = await Promise.all([tourRes.json(), myRes.json()]);
-    setMyRegistrations((myData.registrations || []).map(r => r.tournament_id));
-    return tourData.tournaments || [];
+    // 2026-07-25 audit fix: API returns {success, data:{tournaments}} and
+    // {success, data:{registrations}} — old code read top-level keys and always got [].
+    const registrations = myData?.data?.registrations || myData?.registrations || [];
+    setMyRegistrations(registrations.map(r => r.tournament_id));
+    return tourData?.data?.tournaments || tourData?.tournaments || [];
   });
   const tournaments = swrData || [];
 

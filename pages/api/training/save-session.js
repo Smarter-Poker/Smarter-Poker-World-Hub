@@ -162,6 +162,7 @@ export default async function handler(req, res) {
           // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
           // SECURITY: Server-side cap — max legitimate speed bonus is ~50 diamonds
           const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
+          let speedBonusAwarded = 0;
           if (safeSpeedBonus > 0) {
               try {
                   // Use RPC to atomically increment diamonds.
@@ -177,7 +178,7 @@ export default async function handler(req, res) {
                       p_amount: safeSpeedBonus,
                       p_type: 'speed_bonus',
                       p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}diamonds`,
-                      p_reference_id: `speed_${userId}_${parsedGameId}_${parsedLevel || 0}_${_dayBucket}`
+                      p_reference_id: `speed_${userId}_${parsedGameId}_${level || 0}_${_dayBucket}`
                   });
 
                   if (rpcErr) {
@@ -194,10 +195,13 @@ export default async function handler(req, res) {
                             .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
                               .eq('id', userId);
                           if (err_profiles_yjrym) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_yjrym.message);
+                          else speedBonusAwarded = safeSpeedBonus;
                       }
+                  } else {
+                      speedBonusAwarded = safeSpeedBonus;
                   }
 
-                  console.info(`[SaveSession] Speed bonus diamonds awarded: ${safeSpeedBonus}`);
+                  console.info(`[SaveSession] Speed bonus diamonds awarded: ${speedBonusAwarded}`);
               } catch (diamondErr) {
                   console.warn('[SaveSession] Diamond award failed (non-blocking):', diamondErr.message);
               }
@@ -215,7 +219,7 @@ export default async function handler(req, res) {
                   gtowScore: parsedGtowScore,
                   handsPlayed: parsedHandsPlayed,
                   totalEVLoss: parsedTotalEVLoss,
-                  speedBonusAwarded: safeSpeedBonus,
+                  speedBonusAwarded,
               },
           });
 

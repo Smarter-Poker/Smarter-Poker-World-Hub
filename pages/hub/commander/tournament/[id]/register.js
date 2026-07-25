@@ -8,7 +8,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../../src/lib/authUtils';
+// 2026-07-25 audit fix: added getAuthUser for the entries-list fallback check.
+import { getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
@@ -65,9 +66,21 @@ export default function TournamentRegisterPage() {
         setTournament(tournamentData.data.tournament);
       }
 
-      if (entriesData.success && entriesData.data.my_entry) {
-        setMyEntry(entriesData.data.my_entry);
-        setRegistered(true);
+      // 2026-07-25 audit fix: keep ?check_my_entry=true but also fall back to
+      // scanning data.entries for the caller's own entry by player_id.
+      if (entriesData.success) {
+        let entry = entriesData.data?.my_entry || null;
+        if (!entry) {
+          const userId = getAuthUser()?.id;
+          const entries = entriesData.data?.entries || [];
+          if (userId) {
+            entry = entries.find(e => e.player_id === userId && e.status !== 'cancelled') || null;
+          }
+        }
+        if (entry) {
+          setMyEntry(entry);
+          setRegistered(true);
+        }
       }
     } catch (err) {
       console.warn('Failed to fetch tournament:', err);
@@ -128,9 +141,15 @@ export default function TournamentRegisterPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/commander/tournaments/${id}/entries/${myEntry.id}`, {
+      // 2026-07-25 audit fix: entries DELETE lives at .../entries and reads
+      // {entry_id} from the JSON body (the /entries/:entryId route does not exist).
+      const res = await fetch(`/api/commander/tournaments/${id}/entries`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ entry_id: myEntry.id })
       });
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -182,6 +201,9 @@ export default function TournamentRegisterPage() {
   const isFull = tournament.max_entries && tournament.current_entries >= tournament.max_entries;
 
   return (
+    // 2026-07-25 audit fix: CommanderPageShell moved here from DetailRow, which
+    // wrapped every detail row in its own shell (stacking fixed hamburger menus).
+    <CommanderPageShell>
     <>
       <SEOHead
                 title="Tournament Registration"
@@ -353,12 +375,12 @@ export default function TournamentRegisterPage() {
         </main>
       </div>
     </>
+    </CommanderPageShell>
   );
 }
 
 function DetailRow({ icon: Icon, label, value }) {
   return (
-    <CommanderPageShell>
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3 text-[#64748B]">
         <Icon className="w-5 h-5" />
@@ -366,6 +388,5 @@ function DetailRow({ icon: Icon, label, value }) {
       </div>
       <span className="font-medium text-white">{value}</span>
     </div>
-    </CommanderPageShell>
   );
 }

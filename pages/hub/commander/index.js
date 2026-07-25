@@ -109,8 +109,11 @@ export default function CommanderHub() {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
-          if (json.success && json.data && json.data.length > 0) {
-            setHasClubPage(json.data[0].id);
+          // 2026-07-25 audit fix: /api/social/pages may return {data:{pages:[...]}}
+          // or {data:[...]} — normalize both shapes (venues/[id].js handles both too).
+          const pages = Array.isArray(json.data) ? json.data : (json.data?.pages || []);
+          if (json.success && pages.length > 0) {
+            setHasClubPage(pages[0].id);
           } else {
             setHasClubPage(false);
           }

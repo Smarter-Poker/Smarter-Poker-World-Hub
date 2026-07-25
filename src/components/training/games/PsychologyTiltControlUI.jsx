@@ -15,9 +15,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import GTOQuestionCard from '../GTOQuestionCard';
 
-export default function PsychologyTiltControlUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level }) {
+export default function PsychologyTiltControlUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level, onNextHand }) {
     if (!question) return null;
 
+    const hasMetadata = Boolean(question?.metadata);
     const metadata = question.metadata || {};
     const {
         tiltLevel = 'Medium',
@@ -37,7 +38,8 @@ export default function PsychologyTiltControlUI({ question, onAnswer, showFeedba
 
     return (
         <div style={styles.wrapper}>
-            {/* Tilt Meter */}
+            {/* Tilt Meter — only meaningful when the question carries emotional metadata */}
+            {hasMetadata && (
             <div style={styles.tiltSection}>
                 <div style={styles.tiltHeader}>
                     <span style={styles.tiltLabel}>Tilt Level</span>
@@ -66,6 +68,7 @@ export default function PsychologyTiltControlUI({ question, onAnswer, showFeedba
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Standard Millionaire Question UI */}
             <GTOQuestionCard
@@ -77,6 +80,7 @@ export default function PsychologyTiltControlUI({ question, onAnswer, showFeedba
                 showFeedback={showFeedback}
                 feedbackResult={feedbackResult}
                 explanation={explanation}
+                onNextHand={onNextHand}
             />
         </div>
     );

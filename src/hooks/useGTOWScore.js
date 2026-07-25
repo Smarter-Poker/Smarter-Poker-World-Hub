@@ -350,6 +350,10 @@ export default function useGTOWScore() {
     // ═══ Phase GTO-CLONE: SessionScorer from GTOScoreEngine ═══
     const sessionScorerRef = useRef(new SessionScorer());
 
+    // Multi-street hands report one move per street — only count a new hand
+    // when the hand identifier changes
+    const lastHandIdRef = useRef(null);
+
     // Derived metrics
     // ═══ 2026-07-19 AUDIT FIX (E2E defect D2): the previous "additive"
     // formula (100 + avgImpact*8, clamped to 100) pegged at 100% whenever
@@ -419,7 +423,13 @@ export default function useGTOWScore() {
             MOVE_CLASSIFICATIONS.BLUNDER,
         ].includes(classification);
 
-        setHandsPlayed(prev => prev + 1);
+        // Only increment handsPlayed when the hand id changes (multi-street
+        // hands record one move per street but are still a single hand)
+        const handKey = handData?.handId ?? handData?.scenarioHash ?? null;
+        if (handKey === null || handKey !== lastHandIdRef.current) {
+            setHandsPlayed(prev => prev + 1);
+            lastHandIdRef.current = handKey;
+        }
         setMovesMade(prev => prev + 1);
         if (isMistake) setMistakeCount(prev => prev + 1);
         setTotalEVLoss(prev => Math.round((prev + evLoss) * 100) / 100);
@@ -491,6 +501,7 @@ export default function useGTOWScore() {
         try {
             sessionScorerRef.current.recordMove({
                 handId: handData?.handId || `hand_${Date.now()}`,
+                classification,
                 street: handData?.street || 'preflop',
                 heroCards: handData?.heroCards || '',
                 board: handData?.board || [],
@@ -519,6 +530,7 @@ export default function useGTOWScore() {
         setLastClassification(null);
         setPositionStats({});
         setStreetStats({});
+        lastHandIdRef.current = null;
         // ═══ Phase GTO-CLONE: Reset SessionScorer ═══
         sessionScorerRef.current.reset();
     }, []);

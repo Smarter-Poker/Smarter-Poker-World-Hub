@@ -776,8 +776,23 @@ export function lookupCbetStrategy(boardTexture, handClass, position) {
 /**
  * Get the check-raise strategy for a specific hand class on a specific board texture.
  */
+// Textures missing from FLOP_CHECKRAISE_MATRIX map to their closest family member
+const CHECKRAISE_TEXTURE_FALLBACK = {
+  dry_rainbow_low: 'dry_rainbow_high',
+  two_tone_low: 'two_tone_high',
+  monotone_low: 'monotone_high',
+  paired_low: 'paired_high',
+  broadway_dry: 'dry_rainbow_high',
+  low_connected: 'connected_wet',
+};
+
 export function lookupCheckRaiseStrategy(boardTexture, handClass) {
-  const textureData = FLOP_CHECKRAISE_MATRIX[boardTexture];
+  let textureData = FLOP_CHECKRAISE_MATRIX[boardTexture];
+  if (!textureData) {
+    // Fall back to the same texture family before the generic default
+    const familyTexture = CHECKRAISE_TEXTURE_FALLBACK[boardTexture];
+    textureData = familyTexture ? FLOP_CHECKRAISE_MATRIX[familyTexture] : null;
+  }
   if (!textureData) {
     // Fallback
     return { raise: 0.08, call: 0.40, fold: 0.52, raiseSizing: '3x' };
@@ -815,7 +830,9 @@ export function lookupRiverStrategy(boardState, handClass, position) {
 export function lookupFacingBetStrategy(street, betSizeCategory, handClass) {
   const streetData = FACING_BET_MATRIX[street];
   if (!streetData) return { call: 0.33, raise: 0.05, fold: 0.62 };
-  const sizeData = streetData[betSizeCategory];
+  // Fall back to the largest available sizing row (e.g. overbet → pot) so strong
+  // hands facing an overbet degrade to the pot-size strategy, not a fold-heavy generic.
+  const sizeData = streetData[betSizeCategory] || streetData.pot || streetData.large || null;
   if (!sizeData) return { call: 0.33, raise: 0.05, fold: 0.62 };
   return sizeData[handClass] || { call: 0.33, raise: 0.05, fold: 0.62 };
 }
