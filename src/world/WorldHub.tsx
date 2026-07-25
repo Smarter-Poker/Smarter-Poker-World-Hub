@@ -79,15 +79,7 @@ interface FooterCardProps {
     isIntroComplete: boolean;
 }
 
-// Holographic edge glow colors (cyan/blue/green/white only)
-const HOLO_EDGE_COLORS = [
-    { main: 'rgba(0, 212, 255, 0.6)', glow: 'rgba(0, 212, 255, 0.3)' },   // Electric Cyan
-    { main: 'rgba(0, 255, 136, 0.6)', glow: 'rgba(0, 255, 136, 0.3)' },   // Neon Green
-    { main: 'rgba(0, 191, 255, 0.6)', glow: 'rgba(0, 191, 255, 0.3)' },   // Deep Sky Blue
-    { main: 'rgba(77, 210, 255, 0.6)', glow: 'rgba(77, 210, 255, 0.3)' }, // Light Cyan
-    { main: 'rgba(0, 255, 159, 0.6)', glow: 'rgba(0, 255, 159, 0.3)' },   // Mint Green
-    { main: 'rgba(255, 255, 255, 0.6)', glow: 'rgba(200, 255, 255, 0.3)' }, // Ice White
-];
+
 
 function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) {
     const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
@@ -101,11 +93,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
         }
     }, [isIntroComplete, index, hasAnimatedIn]);
 
-    // Each card gets a unique edge glow color
-    const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
 
-    // Static values - footer cards do NOT float (only main carousel floats)
-    const edgeOpacity = 0.5;
 
     return (
         <div
@@ -132,44 +120,14 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 e.currentTarget.style.transform = `translateY(0px) scale(1)`;
             }}
         >
-            {/* Holographic pedestal glow */}
-            <div
-                style={{
-                    position: 'absolute',
-                    bottom: 25,
-                    width: 160,
-                    height: 45,
-                    borderRadius: '50%',
-                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
-                    filter: 'blur(8px)',
-                    opacity: edgeOpacity,
-                    transform: 'rotateX(70deg)',
-                }}
-            />
-
-            {/* 3D Glass Card Container */}
+            {/* Card Container */}
             <div
                 style={{
                     position: 'relative',
                     width: '100%',
                     maxWidth: 186,
-                    transformStyle: 'preserve-3d',
                 }}
             >
-
-                {/* Card bottom edge - visible 3D glass thickness */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: 3,
-                        bottom: -6,
-                        width: 'calc(100% - 6px)',
-                        height: 10,
-                        background: 'linear-gradient(90deg, rgba(50, 150, 200, 0.4), rgba(0, 180, 255, 0.3), rgba(100, 200, 255, 0.3))',
-                        borderRadius: '0 0 6px 6px',
-                        transform: 'rotateX(90deg) translateZ(3px)',
-                    }}
-                />
 
                 {/* Main card face */}
                 <div
