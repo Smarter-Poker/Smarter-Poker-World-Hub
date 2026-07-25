@@ -1218,7 +1218,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
-                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: 640, margin: '0 auto' }}
                 >
                 {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER — Image-Backed Layout
