@@ -363,7 +363,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // UI STATE
     // ═══════════════════════════════════════════════════════════════════════
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [introVideo, setIntroVideo] = useState<{ videoUrl: string; targetRoute: string } | null>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
     // LOGIN DETECTION — Cinematic intro ONLY on login, not navigation
@@ -595,24 +594,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
-        // Intro video config - same as handleOrbSelect
-        const introVideos: Record<string, string> = {
-            'trivia': '/videos/trivia-intro.mp4',
-            'diamond-arena': '/videos/diamond-arena-intro.mp4',
-            'my-clubs': '/videos/my-clubs-intro.mp4',
-        };
-
         const targetRoute = `/hub/${cardId}`;
 
-        // Immediately start prefetching the page while video plays
-        router.prefetch(targetRoute);
-
-        if (introVideos[cardId]) {
-            // Show intro video before navigating (page preloads in hidden iframe + prefetch)
-            setIntroVideo({ videoUrl: introVideos[cardId], targetRoute });
-        } else {
-            router.push(targetRoute);
-        }
+        router.push(targetRoute);
     };
 
     // Handle main carousel card click → Navigate to that world page
@@ -621,13 +605,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         triggerHaptic('heavy');
         recordCardVisit(orbId);
         selectOrb(orbId as any);
-
-        // Intro video config - add videos for specific orbs here
-        const introVideos: Record<string, string> = {
-            'trivia': '/videos/trivia-intro.mp4',
-            'diamond-arena': '/videos/diamond-arena-intro.mp4',
-            'my-clubs': '/videos/my-clubs-intro.mp4',
-        };
 
         const targetRoute = `/hub/${orbId}`;
 
@@ -657,15 +634,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
-        // Immediately start prefetching the page while video plays
-        router.prefetch(targetRoute);
-
-        if (introVideos[orbId]) {
-            // Show intro video before navigating (page preloads in hidden iframe + prefetch)
-            setIntroVideo({ videoUrl: introVideos[orbId], targetRoute });
-        } else {
-            router.push(targetRoute);
-        }
+        router.push(targetRoute);
     };
 
     // Handle HUD icon navigation
@@ -698,75 +667,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 {CinematicIntroComponent}
             </HubErrorBoundary>
 
-            {/* INTRO VIDEO OVERLAY - Plays before navigating to specific pages */}
-            {introVideo && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    background: '#000',
-                    zIndex: 99999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    {/* Hidden iframe to preload the target page while video plays */}
-                    <iframe
-                        src={introVideo.targetRoute}
-                        style={{
-                            position: 'absolute',
-                            width: 1,
-                            height: 1,
-                            opacity: 0,
-                            pointerEvents: 'none',
-                            border: 'none',
-                        }}
-                        aria-hidden="true"
-                    />
-                    <video
-                        autoPlay
-                        playsInline
-                        onEnded={() => {
-                            const targetRoute = introVideo.targetRoute;
-                            setIntroVideo(null);
-                            router.push(targetRoute);
-                        }}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'contain',
-                        }}
-                    >
-                        <source src={introVideo.videoUrl} type="video/mp4" />
-                    </video>
-                    {/* Skip button */}
-                    <button
-                        onClick={() => {
-                            const targetRoute = introVideo.targetRoute;
-                            setIntroVideo(null);
-                            router.push(targetRoute);
-                        }}
-                        style={{
-                            position: 'absolute',
-                            bottom: 40,
-                            right: 40,
-                            padding: '12px 24px',
-                            background: 'rgba(0, 212, 255, 0.2)',
-                            border: '1px solid rgba(0, 212, 255, 0.6)',
-                            borderRadius: 8,
-                            color: '#00d4ff',
-                            fontSize: 16,
-                            fontFamily: 'Orbitron, sans-serif',
-                            cursor: 'pointer',
-                            backdropFilter: 'blur(10px)',
-                        }}
-                    >
-                        SKIP ▶
-                    </button>
-                </div>
-            )}
 
             <div style={{
                 position: 'fixed',
