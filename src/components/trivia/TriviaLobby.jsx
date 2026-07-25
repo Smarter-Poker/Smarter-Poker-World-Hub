@@ -71,7 +71,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/poker-history.png?v=rembg1'
+        image: '/images/trivia/poker-history.png?v=rembg2'
     },
     {
         id: 'tournaments',
@@ -82,7 +82,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
         perfectBonus: null,
-        image: '/images/trivia/tournaments.png?v=rembg1'
+        image: '/images/trivia/tournaments.png?v=rembg2'
     },
     {
         id: 'pro',
@@ -93,7 +93,7 @@ const MODE_CARDS = [
         glowColor: '#9D4EDD',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/pro-knowledge.png?v=rembg1'
+        image: '/images/trivia/pro-knowledge.png?v=rembg2'
     },
     // ROW 3 - Challenge Modes
     {
