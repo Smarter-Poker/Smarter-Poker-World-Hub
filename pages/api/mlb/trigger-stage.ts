@@ -24,9 +24,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const mainDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const mainDb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const { data: { user: localUser } } = await mainDb.auth.getUser(token || '');
+    const {
+      data: { user: localUser },
+    } = await mainDb.auth.getUser(token || '');
     if (!localUser) return res.status(401).json({ error: 'Auth required' });
 
     // Validate admin permissions
@@ -41,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const mlbDb = getMlbSupabase();
-    
+
     let timeoutId: NodeJS.Timeout | undefined;
     const timeoutPromise = new Promise((_, reject) => {
       timeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
@@ -50,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. Check for existing pending or running stage
     const checkPromise = mlbDb
       .from('pipeline_runs')
-      .select('id, status')
+      .select('id, status, run_ts')
       .eq('stage', stage)
       .in('status', ['pending', 'running']);
 
@@ -69,7 +74,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (existingRuns && existingRuns.length > 0) {
-      return res.status(409).json({ error: `Stage ${stage} is already ${existingRuns[0].status}.` });
+      // Auto-expire abandoned rows: a 'pending' row nothing ever picked up (or a
+      // 'running' row from a crashed run) older than 2h would otherwise brick this
+      // button forever (a pending 'predict' row from 06-25 did exactly that).
+      const cutoff = Date.now() - 2 * 3600 * 1000;
+      const staleIds = (existingRuns as any[])
+        .filter((r: any) => !r.run_ts || new Date(r.run_ts).getTime() < cutoff)
+        .map((r: any) => r.id);
+      if (staleIds.length === existingRuns.length) {
+        await mlbDb
+          .from('pipeline_runs')
+          .update({ status: 'error', notes: 'Auto-expired: never consumed within 2h' } as any)
+          .in('id', staleIds);
+      } else {
+        return res
+          .status(409)
+          .json({ error: `Stage ${stage} is already ${existingRuns[0].status}.` });
+      }
     }
 
     // 2. Insert new pending run
@@ -77,13 +98,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const insertTimeoutPromise = new Promise((_, reject) => {
       insertTimeoutId = setTimeout(() => reject(new Error('Database Timeout')), 8000);
     });
-    
+
     const insertPromise = mlbDb.from('pipeline_runs').insert({
       stage: stage,
       step: stage,
       status: 'pending',
       run_ts: new Date().toISOString(),
-      notes: `Manually triggered by user ${localUser.id}`
+      notes: `Manually triggered by user ${localUser.id}`,
     } as any);
 
     let insertError;

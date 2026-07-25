@@ -117,6 +117,7 @@ const GameCard = ({ game }: any) => {
                     ? new Date(game.start_time).toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',
+                        timeZone: 'America/Chicago',
                       })
                     : 'TBD'}
             </div>
@@ -142,7 +143,13 @@ const GameCard = ({ game }: any) => {
                   ? `${game.inning_state || ''} ${game.inning || ''}`
                   : isFinal
                     ? 'F'
-                    : game.start_time || 'TBD'}
+                    : game.start_time
+                      ? new Date(game.start_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZone: 'America/Chicago',
+                        }) + ' CT'
+                      : 'TBD'}
               </span>
             </div>
           </div>
@@ -230,16 +237,21 @@ export default function TrackerPage() {
         description="Follow every MLB game in real time on Smarter.Poker. Live scores, inning-by-inning updates, game status, and model edge alerts for all 2025 MLB games."
         canonical="/hub/MLB-ANALYTICS/tracker"
         ogImage="/images/mlb/og.png"
-      
-                jsonLd={{
-                "@context": "https://schema.org",
-                "@type": "Dataset",
-                "name": "MLB Live Game Tracker — Today's Slate",
-                "description": "Live MLB game scores, win probabilities, line movements, and real-time AI bet tracking for every game on today's slate.",
-                "url": "https://smarter.poker/hub/MLB-ANALYTICS/tracker",
-                "provider": { "@type": "Organization", "name": "Smarter.Poker", "url": "https://smarter.poker" }
-            }}
-            />
+
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Dataset',
+          name: "MLB Live Game Tracker — Today's Slate",
+          description:
+            "Live MLB game scores, win probabilities, line movements, and real-time AI bet tracking for every game on today's slate.",
+          url: 'https://smarter.poker/hub/MLB-ANALYTICS/tracker',
+          provider: {
+            '@type': 'Organization',
+            name: 'Smarter.Poker',
+            url: 'https://smarter.poker',
+          },
+        }}
+      />
 
       <UniversalHeader pageDepth={2} onBackClick={() => router.push('/hub/MLB-ANALYTICS')} />
       <MlbSubNav />
@@ -305,7 +317,9 @@ export default function TrackerPage() {
                 if (navigator.vibrate)
                   try {
                     navigator.vibrate(15);
-                  } catch (e) { console.error(e); }
+                  } catch (e) {
+                    console.error(e);
+                  }
               }}
               className={`min-h-[44px] px-5 py-2 rounded-sm border-[2px] text-[17px] font-extrabold tracking-widest whitespace-nowrap cursor-pointer touch-manipulation transition-all capitalize ${
                 filter === f

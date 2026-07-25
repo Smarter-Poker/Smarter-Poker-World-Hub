@@ -83,7 +83,7 @@ export default function PnLChart({ data }: PnLChartProps) {
               'Cumulative P&L',
             ];
           }}
-          labelFormatter={(label) => `📅 ${fmtDate(String(label))}`}
+          labelFormatter={(label) => `${fmtDate(String(label))}`}
         />
         <Area
           type="monotone"

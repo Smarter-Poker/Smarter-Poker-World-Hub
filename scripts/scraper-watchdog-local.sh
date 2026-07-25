@@ -38,9 +38,9 @@ if [ "$LOG_SIZE" -gt 5242880 ]; then
   log "Log rotated (was ${LOG_SIZE} bytes)"
 fi
 
-# macOS notification
+# macOS notification (disabled)
 notify() {
-  osascript -e "display notification \"$1\" with title \"🔧 Scraper Watchdog\" sound name \"Sosumi\"" 2>/dev/null
+  : # osascript -e "display notification \"$1\" with title \"🔧 Scraper Watchdog\" sound name \"Sosumi\"" 2>/dev/null
 }
 
 # Discord webhook alert (fires even when Mac is sleeping)

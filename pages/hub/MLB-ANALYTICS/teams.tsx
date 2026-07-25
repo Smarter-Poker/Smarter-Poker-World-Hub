@@ -384,7 +384,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                         textShadow: '0 0 8px rgba(245,158,11,0.6)',
                       }}
                     >
-                      ⚡ DIV LEADER
+                      DIV LEADER
                     </span>
                   )}
                   {isHot && (
@@ -557,7 +557,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 }}
               >
                 {/* TIER 1 — Win Predictors */}
-                <div className="drawer-section-header">🏆 WIN PREDICTORS</div>
+                <div className="drawer-section-header">WIN PREDICTORS</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="W-L" color="#94A3B8" /></span>
@@ -584,7 +584,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 </div>
 
                 {/* TIER 2 — Pitching */}
-                <div className="drawer-section-header" style={{ marginTop: 16 }}>🔥 PITCHING</div>
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>PITCHING</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="ERA" color="#94A3B8" /></span>
@@ -609,7 +609,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 </div>
 
                 {/* TIER 3 — Offense */}
-                <div className="drawer-section-header" style={{ marginTop: 16 }}>⚙️ OFFENSE</div>
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>OFFENSE</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="OPS" color="#94A3B8" /></span>
@@ -642,7 +642,7 @@ const TeamCardComponent = React.memo(({ team, isDivLeader = false }: { team: any
                 </div>
 
                 {/* TIER 4 — Defense & Situational */}
-                <div className="drawer-section-header" style={{ marginTop: 16 }}>🛡️ DEFENSE & SITUATIONAL</div>
+                <div className="drawer-section-header" style={{ marginTop: 16 }}>DEFENSE & SITUATIONAL</div>
                 <div className="drawer-grid">
                   <div className="drawer-row">
                     <span className="drawer-label"><StatLabel label="Home" color="#94A3B8" /></span>

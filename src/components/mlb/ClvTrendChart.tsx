@@ -63,7 +63,7 @@ export default function ClvTrendChart({ data }: ClvTrendChartProps) {
           itemStyle={{ color, fontWeight: 700 }}
           labelStyle={{ color: '#F8FAFC', marginBottom: '4px', fontWeight: 600 }}
           formatter={(v: number) => [`${v > 0 ? '+' : ''}${Number(v).toFixed(2)} pts`, '14-Day Avg CLV']}
-          labelFormatter={(label) => `📅 ${fmtDate(String(label))}`}
+          labelFormatter={(label) => `${fmtDate(String(label))}`}
         />
         <Line
           type="monotone"

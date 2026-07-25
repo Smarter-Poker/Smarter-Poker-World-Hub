@@ -18,6 +18,10 @@ function betInputsFromProp(
   const pWin = isOver ? probOver : 1 - probOver;
   if (!(pWin > 0 && pWin < 1)) return null;
   const pMarket = mktOver == null ? null : isOver ? mktOver : 1 - mktOver;
+  // Plausibility clamp (mirrors teams.ts): a model-vs-market gap above 25 points on a
+  // prop signals corrupt/degenerate model output (e.g. a team-level probability written
+  // into every player row → "catcher 57% to steal, ELITE 97"), not a real edge.
+  if (pMarket != null && Math.abs(pWin - pMarket) > 0.15) return null;
   return { pWin, price, pMarket, isOver };
 }
 
@@ -57,14 +61,36 @@ async function edgeHandler(req: Request) {
     // ── One round-trip. get_mlb_team_detail() returns:
     //    { team, stats, games, matchup: {..., markets:[raw h2h/total/run_line]}, props_raw, slate_date }.
     //    The Bet Score math (the only thing that can't live in SQL) stays here. ──
-    const { data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', { p_team_id: Number(id) } as any);
+    let { data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', {
+      p_team_id: Number(id),
+    } as any);
+    if (error && (error as any).code === '57014') {
+      // Statement timeout under load — the RPC normally completes in ~3s but can cross
+      // the role's statement_timeout when cache-cold. One retry rescues most of these.
+      ({ data: dataRaw, error } = await mlbDb.rpc('get_mlb_team_detail', {
+        p_team_id: Number(id),
+      } as any));
+    }
     const data = dataRaw as any;
     if (error) {
-      console.error(`[API/MLB/Teams/${id}] rpc error:`, error.message, error.code, error.details, error.hint);
-      return new Response(JSON.stringify({ error: 'Internal server error', rpc_error: error.message, rpc_code: error.code }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.error(
+        `[API/MLB/Teams/${id}] rpc error:`,
+        error.message,
+        error.code,
+        error.details,
+        error.hint
+      );
+      return new Response(
+        JSON.stringify({
+          error: 'Internal server error',
+          rpc_error: error.message,
+          rpc_code: error.code,
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
     if (!data || !data.team) {
       return new Response(JSON.stringify({ notFound: true }), {
@@ -102,7 +128,9 @@ async function edgeHandler(req: Request) {
       const totalRow =
         markets
           .filter((r) => r.market === 'total' && r.best_price != null)
-          .sort((a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity))[0] || null;
+          .sort(
+            (a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity)
+          )[0] || null;
       const rlRow =
         markets
           .filter(
@@ -111,7 +139,9 @@ async function edgeHandler(req: Request) {
               String(r.selection).startsWith(`${side}_`) &&
               r.best_price != null
           )
-          .sort((a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity))[0] || null;
+          .sort(
+            (a, b) => (Number(b.edge_pts) || -Infinity) - (Number(a.edge_pts) || -Infinity)
+          )[0] || null;
       const total: any = betObj(totalRow);
       if (total && totalRow) {
         const [sd, ln] = String(totalRow.selection).split('_');
@@ -143,39 +173,43 @@ async function edgeHandler(req: Request) {
     }
 
     // ── Props: canonical Bet Score per prop, ranked. ──
-    let propsData = ((data.props_raw || []) as any[]).map((p: any) => {
-      const inputs = betInputsFromProp(p);
-      let bet_score: number | null = null;
-      let bet_tier: string | null = null;
-      let ev_pct: number | null = null;
-      let pWin: number | null = null;
-      let price: number | null = null;
-      let pMarket: number | null = null;
-      let isOver: boolean | null = null;
-      if (inputs) {
-        bet_score = betScore(inputs.pWin, inputs.price);
-        bet_tier = tier(bet_score);
-        ev_pct = (inputs.pWin * americanToDecimal(inputs.price) - 1) * 100;
-        pWin = inputs.pWin;
-        price = inputs.price;
-        pMarket = inputs.pMarket;
-        isOver = inputs.isOver;
-      }
-      return {
-        ...p,
-        player_name: p.full_name || `Player #${p.player_id}`,
-        team_abbr: teamAbbr,
-        prop_type: p.prop,
-        model_proj: p.proj_mean,
-        side: isOver == null ? null : isOver ? 'OVER' : 'UNDER',
-        p_win: pWin,
-        price,
-        p_market: pMarket,
-        bet_score,
-        bet_tier,
-        ev_pct,
-      };
-    });
+    // stolen_bases is excluded here exactly as in /api/mlb/props and /api/mlb/teams —
+    // the engine's SB probabilities are team-level, not per-player, and grade absurdly.
+    let propsData = ((data.props_raw || []) as any[])
+      .filter((p: any) => p.prop !== 'stolen_bases' && p.prop_type !== 'stolen_bases')
+      .map((p: any) => {
+        const inputs = betInputsFromProp(p);
+        let bet_score: number | null = null;
+        let bet_tier: string | null = null;
+        let ev_pct: number | null = null;
+        let pWin: number | null = null;
+        let price: number | null = null;
+        let pMarket: number | null = null;
+        let isOver: boolean | null = null;
+        if (inputs) {
+          bet_score = betScore(inputs.pWin, inputs.price);
+          bet_tier = tier(bet_score);
+          ev_pct = (inputs.pWin * americanToDecimal(inputs.price) - 1) * 100;
+          pWin = inputs.pWin;
+          price = inputs.price;
+          pMarket = inputs.pMarket;
+          isOver = inputs.isOver;
+        }
+        return {
+          ...p,
+          player_name: p.full_name || `Player #${p.player_id}`,
+          team_abbr: teamAbbr,
+          prop_type: p.prop,
+          model_proj: p.proj_mean,
+          side: isOver == null ? null : isOver ? 'OVER' : 'UNDER',
+          p_win: pWin,
+          price,
+          p_market: pMarket,
+          bet_score,
+          bet_tier,
+          ev_pct,
+        };
+      });
     propsData.sort(
       (a: any, b: any) =>
         (b.bet_score || 0) - (a.bet_score || 0) ||
@@ -223,7 +257,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const rawProto = Array.isArray(req.headers['x-forwarded-proto'])
       ? req.headers['x-forwarded-proto'][0]
-      : (req.headers['x-forwarded-proto'] || 'http');
+      : req.headers['x-forwarded-proto'] || 'http';
     const protocol = rawProto.split(',')[0].trim();
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url}`;

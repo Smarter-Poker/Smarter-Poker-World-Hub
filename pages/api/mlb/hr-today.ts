@@ -28,7 +28,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const asOf = (latestRow as any).as_of_ts;
 
-    async function fetchAllRows(build: () => any, pageSize = 1000, maxRows = 20000): Promise<any[]> {
+    async function fetchAllRows(
+      build: () => any,
+      pageSize = 1000,
+      maxRows = 20000
+    ): Promise<any[]> {
       let all: any[] = [];
       for (let from = 0; from < maxRows; from += pageSize) {
         const { data, error } = await build().range(from, from + pageSize - 1);
@@ -89,7 +93,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    return res.status(200).json({ as_of: asOf, leaders, stale: false });
+    // stale was previously hardcoded false — a 5-day-old slate was flagged "fresh".
+    // Mirror hr-tracker's rule: anything older than 36h is stale.
+    const stale = asOf ? Date.now() - new Date(asOf).getTime() > 36 * 3600 * 1000 : true;
+    return res.status(200).json({ as_of: asOf, leaders, stale });
   } catch (error: any) {
     console.error('[hr-today] error:', error?.message || error);
     res.setHeader('Cache-Control', 'no-store, max-age=0');
