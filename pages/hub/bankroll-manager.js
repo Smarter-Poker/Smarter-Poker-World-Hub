@@ -153,26 +153,6 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) 
 function DayPassCountdown({ expiresAt }) {
   const [timeLeft, setTimeLeft] = useState('');
 
-  useEffect(() => {
-    if (!expiresAt) return;
-    const target = new Date(expiresAt).getTime();
-
-    const update = () => {
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0) {
-        setTimeLeft('Expired');
-        return;
-      }
-      const h = Math.floor(diff / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      setTimeLeft(`${h}h ${m}m`);
-    };
-
-    update();
-    const interval = setInterval(update, 60000); // update every minute
-    return () => clearInterval(interval);
-  }, [expiresAt]);
 
   if (!expiresAt || timeLeft === 'Expired') return null;
 
@@ -355,26 +335,13 @@ export default function BankrollManagerPage() {
     });
   }, [entries, gameTypeFilter]);
 
-  const [showIntro, setShowIntro] = useState(false);
   useEffect(() => {
     if (!sessionStorage.getItem('bankroll-manager-intro-seen')) {
       setShowIntro(true);
     }
   }, []);
-  const introVideoRef = useRef(null);
 
-  // Mark intro as seen when it ends
-  const handleIntroEnd = useCallback(() => {
-    sessionStorage.setItem('bankroll-manager-intro-seen', 'true');
-    setShowIntro(false);
-  }, []);
 
-  // Attempt to unmute video after it starts playing
-  const handleIntroPlay = useCallback(() => {
-    if (introVideoRef.current) {
-      introVideoRef.current.muted = false;
-    }
-  }, []);
 
   // Initialize bankroll for new users
   useEffect(() => {
@@ -761,58 +728,7 @@ export default function BankrollManagerPage() {
 
   return (
     <PageTransition>
-      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-      {showIntro && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 99999,
-          background: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <video
-            ref={introVideoRef}
-            src="/videos/bankroll-manager-intro.mp4"
-            autoPlay
-            muted
-            playsInline
-            onPlay={handleIntroPlay}
-            onEnded={handleIntroEnd}
-            onError={handleIntroEnd}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain'
-            }}
-          />
-          {/* Skip button */}
-          <button
-            onClick={handleIntroEnd}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              padding: '8px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderRadius: 20,
-              color: 'white',
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: 'pointer',
-              zIndex: 100000
-            }}
-          >
-            Skip
-          </button>
-        </div>
-      )}
+      
       <SEOHead
         title="Bankroll Manager — Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
