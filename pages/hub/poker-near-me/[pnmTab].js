@@ -747,6 +747,29 @@ export default function PokerNearMePage({ initialTab }) {
     locationEnabled: true,
     showNewcomerFriendly: true,
   });
+
+  // Intro video state - ONLY show when navigated directly from World Hub card click
+  // NOT when navigating via lobby pods (which add ?tab= params)
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // If there's a tab param in the URL, user came from lobby — never play intro
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tab')) {
+        // Consume the flag so it doesn't stick around
+        sessionStorage.removeItem('poker-near-me-from-hub');
+        return false;
+      }
+      // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
+      const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
+      if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
+        // Consume the flag immediately so it doesn't replay on refresh
+        sessionStorage.removeItem('poker-near-me-from-hub');
+        return true;
+      }
+    }
+    return false;
+  });
+  const introVideoRef = useRef(null);
   const cityDebounceRef = useRef(null);
 
   // ─── Tab-specific tutorial state ───
@@ -803,7 +826,16 @@ export default function PokerNearMePage({ initialTab }) {
     setMenuOpen(false);
   }, [activeTab]);
 
+  const handleIntroEnd = useCallback(() => {
+    sessionStorage.setItem('poker-near-me-intro-seen', 'true');
+    setShowIntro(false);
+  }, []);
 
+  const handleIntroPlay = useCallback(() => {
+    if (introVideoRef.current) {
+      introVideoRef.current.muted = false;
+    }
+  }, []);
 
   const [filters, setFilters] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -3289,7 +3321,60 @@ export default function PokerNearMePage({ initialTab }) {
   return (
     <>
       {/* Intro video overlay */}
-
+      {showIntro && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+            background: '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <video
+            ref={introVideoRef}
+            src="/videos/poker-near-me-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            preload="none"
+            poster="/images/pnm-poster.jpg"
+            onPlay={handleIntroPlay}
+            onEnded={handleIntroEnd}
+            onError={handleIntroEnd}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+          />
+          <button
+            onClick={handleIntroEnd}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              padding: '8px 20px',
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 20,
+              color: 'white',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              zIndex: 100000,
+            }}
+          >
+            Skip
+          </button>
+        </div>
+      )}
 
       <SEOHead
         title={

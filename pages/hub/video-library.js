@@ -341,7 +341,28 @@ export default function VideoLibraryPage() {
         captions: false
     });
 
+    //  INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('video-library-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
 
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('video-library-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
+
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // TIER 3 REALTIME: Video Library Updates (P3: also syncs watchProgress Map)
@@ -809,7 +830,58 @@ export default function VideoLibraryPage() {
 
     return (
         <PageTransition>
-            
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/video-library-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onPlay={handleIntroPlay}
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <SEOHead
                 title="Poker Video Library — Watch & Learn"
                 description="Curated Poker Video Library With Strategy Content, Tournament Coverage, And Training Videos. Track Your Watch History And Get AI Tactical Analysis."

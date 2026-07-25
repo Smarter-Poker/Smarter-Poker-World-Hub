@@ -50,9 +50,9 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
             const tex = loader.load(imageUrl, (loadedTex) => {
                 loadedTex.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-                // Crop out the black margin by zooming in 8% (repeat 0.92, offset 0.04)
-                loadedTex.repeat.set(0.92, 0.92);
-                loadedTex.offset.set(0.04, 0.04);
+                // Show full image - no repeat/offset adjustments
+                loadedTex.repeat.set(1, 1);
+                loadedTex.offset.set(0, 0);
                 loadedTex.needsUpdate = true;
             });
             tex.colorSpace = THREE.SRGBColorSpace;

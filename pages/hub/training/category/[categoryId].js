@@ -62,7 +62,7 @@ export default function CategoryPage() {
     const { categoryId } = router.query;
     const { getGameProgress } = useTrainingProgress();
     useTrainingBus('training-category', { categoryId });
-
+    const [showIntro, setShowIntro] = useState(false);
     const [pendingGame, setPendingGame] = useState(null);
 
     const categoryMeta = CATEGORY_META[categoryId] || {};
@@ -74,6 +74,14 @@ export default function CategoryPage() {
         setShowIntro(true);
     };
 
+    // After intro, navigate to game
+    const handleIntroComplete = () => {
+        setShowIntro(false);
+        if (pendingGame) {
+            router.push(`/hub/training/play/${pendingGame.id}`);
+            setPendingGame(null);
+        }
+    };
 
     // Handle back
     const handleBack = () => {
@@ -105,6 +113,13 @@ export default function CategoryPage() {
                 title="Training Category"
                 description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
+            />
+
+            {/* Intro Splash */}
+            <GameIntroSplash
+                isVisible={showIntro}
+                game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
+                onComplete={handleIntroComplete}
             />
 
             <div className="training-category-page" style={styles.page}>

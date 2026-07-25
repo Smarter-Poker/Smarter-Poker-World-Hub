@@ -135,6 +135,56 @@ function LinkPreviewCard({ url }) {
   const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!url) return;
+
+    // Check in-memory cache first to avoid duplicate network requests
+    if (linkPreviewCache.has(url)) {
+      setMetadata(linkPreviewCache.get(url));
+      setLoading(false);
+      return;
+    }
+
+    const fetchMetadata = async () => {
+      try {
+        let data;
+        // Deduplicate: if a request for this URL is already in-flight, await it
+        if (linkPreviewInflight.has(url)) {
+          data = await linkPreviewInflight.get(url);
+        } else {
+          const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`).then((r) =>
+            r.json()
+          );
+          linkPreviewInflight.set(url, promise);
+          data = await promise;
+          linkPreviewInflight.delete(url);
+        }
+        // Only cache if we got useful data (allows retry on empty fallback responses)
+        if (data && (data.image || data.title)) {
+          setLinkPreviewCache(url, data);
+        }
+        setMetadata(data);
+      } catch (error) {
+        console.warn('Failed to fetch link metadata:', error);
+        linkPreviewInflight.delete(url);
+        // Fallback to basic info
+        try {
+          const urlObj = new URL(url);
+          setMetadata({
+            title: urlObj.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Link',
+            description: null,
+            image: null,
+            siteName: urlObj.hostname.replace(/^www\./, ''),
+          });
+        } catch (e) {
+          console.warn('[App] Handled exception:', e?.message || e);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchMetadata();
+  }, [url]);
 
   if (loading) {
     return (
@@ -8581,11 +8631,16 @@ function SocialMediaPage() {
     });
   }, []);
 
+  //  INTRO VIDEO STATE - Video plays while page loads in background
+  // Only show once per session (not on every reload)
+  // SSR-safe: always start false on server, check sessionStorage on client mount
+  const [showIntro, setShowIntro] = useState(false);
   useEffect(() => {
     if (!sessionStorage.getItem('social-intro-seen')) {
       setShowIntro(true);
     }
   }, []);
+  const introVideoRef = useRef(null);
 
   // BUG FIX (2026-04-30 per Dan): on iOS Safari, simply unmounting the
   // <video> element does NOT free a queued audio buffer that the browser
@@ -8596,8 +8651,32 @@ function SocialMediaPage() {
   // before unmount, AND track skipped state in a ref so any late-firing
   // onPlay event doesn't re-unmute.
   const introSkippedRef = useRef(false);
+  const handleIntroEnd = useCallback(() => {
+    introSkippedRef.current = true;
+    sessionStorage.setItem('social-intro-seen', 'true');
+    const v = introVideoRef.current;
+    if (v) {
+      try {
+        v.pause();
+        v.muted = true;
+        v.removeAttribute('src');
+        v.load(); // forces the browser to drop the buffered audio
+      } catch (_) {
+        /* best effort */
+      }
+    }
+    setShowIntro(false);
+  }, []);
 
-
+  // Unmute video after first play event — but ONLY if the user hasn't
+  // already skipped. Without this guard, a buffered onPlay event fired
+  // post-skip would re-unmute and the queued audio would play.
+  const handleIntroPlay = useCallback(() => {
+    if (introSkippedRef.current) return;
+    if (introVideoRef.current) {
+      introVideoRef.current.muted = false;
+    }
+  }, []);
 
   // Bottom nav visibility - hide when scrolling down, show when scrolling up
   useEffect(() => {
@@ -10558,7 +10637,7 @@ function SocialMediaPage() {
   }, [user?.id]);
 
   // Only show loading skeleton if intro is done and still loading
-  if (loading)
+  if (loading && !showIntro)
     return (
       <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
         <style>{`
@@ -10649,7 +10728,60 @@ function SocialMediaPage() {
 
   return (
     <PageTransition>
-      
+      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {showIntro && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+            background: '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <video
+            ref={introVideoRef}
+            src="/videos/social-media-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            onPlay={handleIntroPlay}
+            onEnded={handleIntroEnd}
+            onError={handleIntroEnd}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+          />
+          {/* Skip button */}
+          <button
+            onClick={handleIntroEnd}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              padding: '8px 20px',
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 20,
+              color: 'white',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              zIndex: 100000,
+            }}
+          >
+            Skip
+          </button>
+        </div>
+      )}
       <SEOHead
         title="Social Hub - Poker Community & Feed"
         description="Connect With Poker Players Worldwide. Share Updates, Follow Friends, Join Discussions, And Build Your Poker Network On The Smarter.Poker Social Hub."
