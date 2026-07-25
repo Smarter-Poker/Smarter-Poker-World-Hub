@@ -16,10 +16,22 @@ import { explain } from '../../../src/lib/betScore';
 export type Tier = 'ELITE' | 'STRONG' | 'LEAN' | 'THIN' | 'PASS';
 
 export const TIER_STYLE: Record<Tier, { text: string; chip: string }> = {
-  ELITE: { text: 'text-[#00D4FF] drop-shadow-[0_0_8px_rgba(0,212,255,0.8)]', chip: 'border-[#00D4FF]/50 bg-[#00D4FF]/10 shadow-[0_0_15px_rgba(0,212,255,0.2)]' },
-  STRONG: { text: 'text-[#34D399] drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]', chip: 'border-[#34D399]/50 bg-[#34D399]/10 shadow-[0_0_15px_rgba(52,211,153,0.2)]' },
-  LEAN: { text: 'text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]', chip: 'border-[#38BDF8]/50 bg-[#38BDF8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' },
-  THIN: { text: 'text-[#F59E0B] drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]', chip: 'border-[#F59E0B]/50 bg-[#F59E0B]/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' },
+  ELITE: {
+    text: 'text-[#00D4FF] drop-shadow-[0_0_8px_rgba(0,212,255,0.8)]',
+    chip: 'border-[#00D4FF]/50 bg-[#00D4FF]/10 shadow-[0_0_15px_rgba(0,212,255,0.2)]',
+  },
+  STRONG: {
+    text: 'text-[#34D399] drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]',
+    chip: 'border-[#34D399]/50 bg-[#34D399]/10 shadow-[0_0_15px_rgba(52,211,153,0.2)]',
+  },
+  LEAN: {
+    text: 'text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]',
+    chip: 'border-[#38BDF8]/50 bg-[#38BDF8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]',
+  },
+  THIN: {
+    text: 'text-[#F59E0B] drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]',
+    chip: 'border-[#F59E0B]/50 bg-[#F59E0B]/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
+  },
   PASS: { text: 'text-[#64748B]', chip: 'border-[#3d4f5f] bg-[#0a0f16]' },
 };
 
@@ -144,7 +156,8 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       mlEv = homeExp.evPct;
       mlFactors = homeExp.factors.map((f: any) => f.text).join('\n');
       const teamName = g.home.split(' ').pop() || 'Hold';
-      const priceStr = g.avgHomeLine != null ? (g.avgHomeLine > 0 ? `+${g.avgHomeLine}` : `${g.avgHomeLine}`) : '';
+      const priceStr =
+        g.avgHomeLine != null ? (g.avgHomeLine > 0 ? `+${g.avgHomeLine}` : `${g.avgHomeLine}`) : '';
       mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
       mlSide = 'home';
     } else {
@@ -153,7 +166,8 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
       mlEv = awayExp.evPct;
       mlFactors = awayExp.factors.map((f: any) => f.text).join('\n');
       const teamName = g.away.split(' ').pop() || 'Hold';
-      const priceStr = g.avgAwayLine != null ? (g.avgAwayLine > 0 ? `+${g.avgAwayLine}` : `${g.avgAwayLine}`) : '';
+      const priceStr =
+        g.avgAwayLine != null ? (g.avgAwayLine > 0 ? `+${g.avgAwayLine}` : `${g.avgAwayLine}`) : '';
       mlRec = mlScore > 0 ? `${teamName} ${priceStr}`.trim() : teamName;
       mlSide = 'away';
     }
@@ -195,7 +209,8 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
     // Price fallback: use avg spread odds when best_price unavailable
     const rlFallbackPrice = sel.startsWith('home') ? g.avgHomeSpreadOdds : g.avgAwaySpreadOdds;
     const priceStr = validRlPrice ? fmtPrice(g.runLineBet.price) : fmtPrice(rlFallbackPrice);
-    rlRec = rlScore > 0 ? `${teamName} ${lineStr} ${priceStr}`.trim() : `${teamName} ${lineStr}`.trim();
+    rlRec =
+      rlScore > 0 ? `${teamName} ${lineStr} ${priceStr}`.trim() : `${teamName} ${lineStr}`.trim();
   }
 
   // O/U
@@ -242,7 +257,14 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
   const cells = [
     { label: 'Money Line', score: mlScore, tier: mlTier, rec: mlRec, ev: mlEv, factors: mlFactors },
     { label: 'Run Line', score: rlScore, tier: rlTier, rec: rlRec, ev: rlEv, factors: rlFactors },
-    { label: 'Over / Under', score: ouScore, tier: ouTier, rec: ouRec, ev: ouEv, factors: ouFactors },
+    {
+      label: 'Over / Under',
+      score: ouScore,
+      tier: ouTier,
+      rec: ouRec,
+      ev: ouEv,
+      factors: ouFactors,
+    },
   ];
 
   // modelPending = pipeline has NOT run for this game yet (no pred_market_output rows at all).
@@ -255,67 +277,66 @@ function MarketGradesPanel({ g }: { g: GameCard }) {
 
       {/* 3-column grade grid */}
       <div className="grid grid-cols-3 gap-2 mb-3 px-4 md:px-0">
-        {modelPending ? (
-          ['Money Line', 'Run Line', 'Over / Under'].map((label) => (
-            <div
-              key={label}
-              className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-1 py-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
-            >
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-3 opacity-90">
-                {label}
-              </span>
-              <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse mb-2" />
-              <span className="text-[14px] font-black text-amber-400/80 tracking-widest uppercase">
-                Pending
-              </span>
-            </div>
-          ))
-        ) : (
-          cells.map(({ label, score, tier, rec, ev, factors }) => {
-            const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
-            const hasEdge = score > 0;
-            return (
+        {modelPending
+          ? ['Money Line', 'Run Line', 'Over / Under'].map((label) => (
               <div
                 key={label}
-                title={factors}
-                className={`flex flex-col items-center justify-center rounded-sm border px-1 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${!hasEdge ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+                className="flex flex-col items-center justify-center rounded-sm border border-[#2a3a4a] bg-[#0a0a15] px-1 py-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]"
               >
-                {/* Market label */}
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-80">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#7a8a9a] mb-3 opacity-90">
                   {label}
                 </span>
-
-                {/* Score — massive hero number */}
-                <span
-                  className={`text-[52px] font-black leading-none tabular-nums tracking-tight ${hasEdge ? st.text : 'text-slate-700'}`}
-                >
-                  {hasEdge ? score : '—'}
+                <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse mb-2" />
+                <span className="text-[14px] font-black text-amber-400/80 tracking-widest uppercase">
+                  Pending
                 </span>
-
-                {/* Tier badge */}
-                <span
-                  className={`text-[13px] font-black uppercase tracking-widest mt-0.5 ${hasEdge ? st.text : 'text-slate-600'}`}
-                >
-                  {tier}
-                </span>
-
-                {/* Recommendation */}
-                <span className="text-[13px] font-bold capitalize tracking-wide mt-2 text-center leading-snug text-white w-full px-1">
-                  {hasEdge ? rec : 'No Edge'}
-                </span>
-
-                {/* EV% */}
-                {hasEdge && ev !== 0 && (
-                  <span
-                    className={`text-[14px] font-black tracking-wide mt-0.5 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
-                  >
-                    {ev > 0 ? '+' : ''}{ev}% EV
-                  </span>
-                )}
               </div>
-            );
-          })
-        )}
+            ))
+          : cells.map(({ label, score, tier, rec, ev, factors }) => {
+              const st = TIER_STYLE[tier] || TIER_STYLE.PASS;
+              const hasEdge = score > 0;
+              return (
+                <div
+                  key={label}
+                  title={factors}
+                  className={`flex flex-col items-center justify-center rounded-sm border px-1 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] ${!hasEdge ? 'border-[#2a3a4a] bg-[#0a0a15]' : st.chip}`}
+                >
+                  {/* Market label */}
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#7a8a9a] mb-1 opacity-80">
+                    {label}
+                  </span>
+
+                  {/* Score — massive hero number */}
+                  <span
+                    className={`text-[52px] font-black leading-none tabular-nums tracking-tight ${hasEdge ? st.text : 'text-slate-700'}`}
+                  >
+                    {hasEdge ? score : '—'}
+                  </span>
+
+                  {/* Tier badge */}
+                  <span
+                    className={`text-[13px] font-black uppercase tracking-widest mt-0.5 ${hasEdge ? st.text : 'text-slate-600'}`}
+                  >
+                    {tier}
+                  </span>
+
+                  {/* Recommendation */}
+                  <span className="text-[13px] font-bold capitalize tracking-wide mt-2 text-center leading-snug text-white w-full px-1">
+                    {hasEdge ? rec : 'No Edge'}
+                  </span>
+
+                  {/* EV% */}
+                  {hasEdge && ev !== 0 && (
+                    <span
+                      className={`text-[14px] font-black tracking-wide mt-0.5 ${ev > 0 ? 'text-[#00C853]' : 'text-red-400'}`}
+                    >
+                      {ev > 0 ? '+' : ''}
+                      {ev}% EV
+                    </span>
+                  )}
+                </div>
+              );
+            })}
       </div>
 
       {/* See Prop Bets — div button avoids nested <a> inside the parent Link */}
@@ -366,7 +387,12 @@ function FilterBar({
 
       {/* Actionable */}
       <button
-        onClick={() => { try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15); } catch {} onFilter({ ...filters, actionable: !filters.actionable }); }}
+        onClick={() => {
+          try {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
+          } catch {}
+          onFilter({ ...filters, actionable: !filters.actionable });
+        }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.actionable
             ? 'bg-[#0d1117] border-[#00D4FF] shadow-[0_0_10px_rgba(0,212,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -385,7 +411,12 @@ function FilterBar({
 
       {/* Props Only */}
       <button
-        onClick={() => { try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15); } catch {} onFilter({ ...filters, propsOnly: !filters.propsOnly }); }}
+        onClick={() => {
+          try {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
+          } catch {}
+          onFilter({ ...filters, propsOnly: !filters.propsOnly });
+        }}
         className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded-sm transition-all ${
           filters.propsOnly
             ? 'bg-[#0d1117] border-[#00BFFF] shadow-[0_0_10px_rgba(0,191,255,0.3),inset_0_2px_4px_rgba(0,0,0,0.5)]'
@@ -445,9 +476,9 @@ export default function MlbSlatePage() {
     minEdge: 0,
   });
   const { data, error, mutate, isValidating } = useSWR('/api/mlb/dashboard', fetcher, {
-    refreshInterval: 60000,  // Auto-refresh every 60s — picks up live scores and model updates
+    refreshInterval: 60000, // Auto-refresh every 60s — picks up live scores and model updates
     revalidateOnFocus: true, // Refresh when user returns to the tab
-    keepPreviousData: true,  // Prevents game cards from blanking during revalidation
+    keepPreviousData: true, // Prevents game cards from blanking during revalidation
   });
 
   const isLoading = !data && !error;
@@ -501,7 +532,9 @@ export default function MlbSlatePage() {
       />
       <UniversalHeader
         pageDepth={2}
-        onBackClick={() => { router.push('/hub'); }}
+        onBackClick={() => {
+          router.push('/hub');
+        }}
       />
       <MlbSubNav />
 
@@ -524,19 +557,23 @@ export default function MlbSlatePage() {
 
           <div className="flex flex-col items-center mt-3 mb-4 gap-3">
             <p className="text-[21px] text-[#5a6a7a] font-bold tracking-widest capitalize bg-[#0d1117] px-3 py-1 rounded-sm border border-[#2a3a4a] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
-              {isLoading ? 'Loading...' : (() => {
-                if (!date) return 'NO DATA';
-                const d = new Date(date + 'T00:00:00'); // Force local interpretation of the date string
-                const formattedDate = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                const day = d.getDate();
-                const suffix = ["th", "st", "nd", "rd"][day % 10 > 3 ? 0 : (day % 100 - day % 10 !== 10) ? day % 10 : 0];
-                return `${formattedDate}${suffix}`.toUpperCase();
-              })()}
-              {!isLoading && (
-                <span className="ml-2">
-                  ({fullSlate.length} TODAY)
-                </span>
-              )}
+              {isLoading
+                ? 'Loading...'
+                : (() => {
+                    if (!date) return 'NO DATA';
+                    const d = new Date(date + 'T00:00:00'); // Force local interpretation of the date string
+                    const formattedDate = d.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                    });
+                    const day = d.getDate();
+                    const suffix = ['th', 'st', 'nd', 'rd'][
+                      day % 10 > 3 ? 0 : (day % 100) - (day % 10) !== 10 ? day % 10 : 0
+                    ];
+                    return `${formattedDate}${suffix}`.toUpperCase();
+                  })()}
+              {!isLoading && <span className="ml-2">({fullSlate.length} TODAY)</span>}
             </p>
           </div>
 
@@ -568,8 +605,6 @@ export default function MlbSlatePage() {
             </p>
           </div>
         )}
-
-
 
         {/* ── Loading Spinner ─────────────────────── */}
         {isLoading && (
@@ -616,7 +651,10 @@ export default function MlbSlatePage() {
                   <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                     <span
                       className="text-white font-black tracking-wider sm:tracking-[0.15em] capitalize group-hover:text-[#00D4FF] transition-colors drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] whitespace-nowrap text-left"
-                      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 'clamp(11px, 3.2vw, 24px)' }}
+                      style={{
+                        fontFamily: "'Rajdhani', sans-serif",
+                        fontSize: 'clamp(11px, 3.2vw, 24px)',
+                      }}
                     >
                       {g.away} @ {g.home}
                     </span>
@@ -680,13 +718,25 @@ export default function MlbSlatePage() {
                         </div>
                         {g.awayStarter ? (
                           <span className="flex flex-col leading-tight min-w-0">
-                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">P: {g.awayStarter.name}</span>
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">
+                              P: {g.awayStarter.name}
+                            </span>
                             {g.awayStarter.wins != null && (
-                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.awayStarter.wins}-{g.awayStarter.losses}{g.awayStarter.era != null ? ` · ${g.awayStarter.era.toFixed(2)} ERA` : ''}{g.awayStarter.whip != null ? ` · ${g.awayStarter.whip.toFixed(2)} WHIP` : ''}</span>
+                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">
+                                {g.awayStarter.wins}-{g.awayStarter.losses}
+                                {g.awayStarter.era != null
+                                  ? ` · ${g.awayStarter.era.toFixed(2)} ERA`
+                                  : ''}
+                                {g.awayStarter.whip != null
+                                  ? ` · ${g.awayStarter.whip.toFixed(2)} WHIP`
+                                  : ''}
+                              </span>
                             )}
                           </span>
                         ) : (
-                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">P: TBA</span>
+                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">
+                            P: TBA
+                          </span>
                         )}
                       </div>
                     </div>
@@ -723,13 +773,25 @@ export default function MlbSlatePage() {
                         </div>
                         {g.homeStarter ? (
                           <span className="flex flex-col leading-tight min-w-0">
-                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">P: {g.homeStarter.name}</span>
+                            <span className="text-[20px] text-[#c5d0dc] font-bold capitalize ">
+                              P: {g.homeStarter.name}
+                            </span>
                             {g.homeStarter.wins != null && (
-                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">{g.homeStarter.wins}-{g.homeStarter.losses}{g.homeStarter.era != null ? ` · ${g.homeStarter.era.toFixed(2)} ERA` : ''}{g.homeStarter.whip != null ? ` · ${g.homeStarter.whip.toFixed(2)} WHIP` : ''}</span>
+                              <span className="text-[16px] text-[#8a9ba8] font-semibold tracking-wide">
+                                {g.homeStarter.wins}-{g.homeStarter.losses}
+                                {g.homeStarter.era != null
+                                  ? ` · ${g.homeStarter.era.toFixed(2)} ERA`
+                                  : ''}
+                                {g.homeStarter.whip != null
+                                  ? ` · ${g.homeStarter.whip.toFixed(2)} WHIP`
+                                  : ''}
+                              </span>
                             )}
                           </span>
                         ) : (
-                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">P: TBA</span>
+                          <span className="text-[20px] text-[#8a9ba8] font-bold capitalize">
+                            P: TBA
+                          </span>
                         )}
                       </div>
                     </div>
@@ -806,7 +868,9 @@ export default function MlbSlatePage() {
                           )}
                           <span
                             className={`font-black leading-none ${topLabel ? 'text-[15px]' : 'text-[17px]'} ${
-                              highlighted ? 'text-[#00D4FF] drop-shadow-[0_0_4px_rgba(0,212,255,0.6)]' : 'text-white'
+                              highlighted
+                                ? 'text-[#00D4FF] drop-shadow-[0_0_4px_rgba(0,212,255,0.6)]'
+                                : 'text-white'
                             }`}
                           >
                             {mainVal}
@@ -828,16 +892,24 @@ export default function MlbSlatePage() {
                           </div>
                           {/* Total */}
                           <div className="flex flex-col gap-2">
-                            {pill(`O ${displayTotalLine ?? ''}`, fmt(overOdds), !!ouPickedOver, 'ou-over')}
-                            {pill(`U ${displayTotalLine ?? ''}`, fmt(underOdds), !!ouPickedUnder, 'ou-under')}
+                            {pill(
+                              `O ${displayTotalLine ?? ''}`,
+                              fmt(overOdds),
+                              !!ouPickedOver,
+                              'ou-over'
+                            )}
+                            {pill(
+                              `U ${displayTotalLine ?? ''}`,
+                              fmt(underOdds),
+                              !!ouPickedUnder,
+                              'ou-under'
+                            )}
                           </div>
                         </div>
                       );
                     })()}
                   </div>
                 </div>
-
-
 
                 {/* ── Market Grades + Prop Bets Button ─── */}
                 <MarketGradesPanel g={g} />
