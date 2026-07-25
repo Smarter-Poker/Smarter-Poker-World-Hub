@@ -105,7 +105,7 @@ const MODE_CARDS = [
         glowColor: '#f02849',
         diamondReward: '10+',
         perfectBonus: null,
-        image: '/images/trivia/survival-mode.png?v=rembg1'
+        image: '/images/trivia/survival-mode-v2.png'
     },
     {
         id: 'endless',
@@ -116,7 +116,7 @@ const MODE_CARDS = [
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
         perfectBonus: null,
-        image: '/images/trivia/endless-mode.png?v=rembg1'
+        image: '/images/trivia/endless-mode-v2.png'
     },
     {
         id: 'mixed',
@@ -127,7 +127,7 @@ const MODE_CARDS = [
         glowColor: '#00D4FF',
         diamondReward: '1/Q',
         perfectBonus: null,
-        image: '/images/trivia/mixed-mode.png?v=rembg1'
+        image: '/images/trivia/mixed-mode-v2.png'
     },
     // ROW 4 - Competitive
     {
