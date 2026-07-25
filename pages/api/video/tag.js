@@ -37,7 +37,7 @@ const PLAYER_HINTS = [
 ];
 
 async function generateTagsWithGrok(videoTitle, source, type, duration) {
-    const apiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+    const apiKey = (process.env.GROK_API_KEY || process.env.XAI_API_KEY || '').trim();
     if (!apiKey) {
         // Fallback: derive basic tags from title without AI
         return deriveTagsFromTitle(videoTitle, source, type, duration);

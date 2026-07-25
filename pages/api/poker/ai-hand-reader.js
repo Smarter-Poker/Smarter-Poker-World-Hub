@@ -28,7 +28,7 @@ export const config = {
     },
 };
 
-const GROK_API_KEY = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
+const GROK_API_KEY = (process.env.GROK_API_KEY || process.env.XAI_API_KEY || '').trim();
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
 const EXTRACTION_PROMPT = `You are a poker hand history reader. Analyze this screenshot of a poker hand and extract the following data in JSON format:

@@ -16,7 +16,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
  * Response: { success, logoUrl?, error? }
  */
 
-const XAI_API_KEY = process.env.XAI_API_KEY || '';
+const XAI_API_KEY = (process.env.XAI_API_KEY || '').trim();
 const XAI_API_URL = 'https://api.x.ai/v1/images/generations';
 const TARGET_LOGO_SIZE = 340;
 

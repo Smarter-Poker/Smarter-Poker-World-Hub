@@ -32,7 +32,7 @@ function getSupabase() {
 }
 
 const VENUE_SCRAPER_SECRET = process.env.VENUE_SCRAPER_SECRET;
-const MANUS_API_KEY = process.env.MANUS_API_KEY;
+const MANUS_API_KEY = (process.env.MANUS_API_KEY || '').trim();
 const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.im/v1';
 
 // How many venues per Manus task (cost optimization)

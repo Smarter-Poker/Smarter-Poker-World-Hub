@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 }
 
 async function analyzeDocument(imageBase64) {
-    const GROK_API_KEY = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+    const GROK_API_KEY = (process.env.XAI_API_KEY || process.env.GROK_API_KEY || '').trim();
 
     if (!GROK_API_KEY) {
         throw new Error('Document scanning is not configured. Missing API key.');

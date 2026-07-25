@@ -146,7 +146,7 @@ export function initAntiGravitySync() {
     bootState.timestamp = new Date().toISOString();
     bootState.errors = [];
 
-    const antigravityEnabled = process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED !== 'false';
+    const antigravityEnabled = (process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED || '').trim() !== 'false';
     bootState.antigravityEnabled = antigravityEnabled;
 
     // Synchronous steps only — no await
@@ -183,7 +183,7 @@ export async function initAntiGravity() {
         bootState.errors = [];
 
         // Step 1: Check if Anti-Gravity is enabled via env var
-        const antigravityEnabled = process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED !== 'false';
+        const antigravityEnabled = (process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED || '').trim() !== 'false';
         bootState.antigravityEnabled = antigravityEnabled;
 
         if (!antigravityEnabled) {

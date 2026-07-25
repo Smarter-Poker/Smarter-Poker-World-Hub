@@ -14,7 +14,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const MANUS_API_KEY = process.env.MANUS_API_KEY || '';
+const MANUS_API_KEY = (process.env.MANUS_API_KEY || '').trim();
 const MANUS_API_URL = 'https://api.manus.ai/v1/tasks';
 const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 

@@ -17,7 +17,7 @@ const GITHUB_REPO = 'Smarter-Poker-World-Hub';
 
 export default async function handler(req, res) {
   const vercelToken = process.env.VERCEL_TOKEN;
-  const ghPat = process.env.GH_PAT;
+  const ghPat = (process.env.GH_PAT || '').trim();
 
   if (!vercelToken) {
     return res.status(500).json({ error: 'VERCEL_TOKEN not set' });

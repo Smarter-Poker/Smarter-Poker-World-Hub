@@ -63,7 +63,7 @@ async function geocodeWithNominatim(locationStr) {
  * Requires NEXT_PUBLIC_GOOGLE_MAPS_KEY env var.
  */
 async function geocodeWithGoogle(locationStr) {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+    const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '').trim();
     if (!apiKey) return null;
 
     try {

@@ -226,7 +226,7 @@ STYLE: Premium, futuristic, metal-framed poker solver UI. High-tech dark theme. 
     const response = await fetch('https://api.x.ai/v1/images/generations', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+            'Authorization': `Bearer ${(process.env.XAI_API_KEY || '').trim()}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
