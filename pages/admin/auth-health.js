@@ -15,36 +15,34 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * [2026-07-25] REACHABILITY FIX. The old getServerSideProps demanded an
+ * `Authorization: Bearer` header — which browsers never attach to page
+ * navigations — so every human admin was redirect-looped through
+ * /auth/login forever and this dashboard was unreachable except via curl.
+ * (That's a big part of how outages stayed invisible: the red badges
+ * rendered to no one.)
+ *
+ * Now: the x-admin-secret curl path still gets full SSR data. Browsers get
+ * a client-mode shell that fetches /api/admin/auth-health-data with the
+ * Bearer token from localStorage.
+ */
 export async function getServerSideProps({ req }) {
-    // Same auth gate as /admin/signup-health
     const adminSecret = req.headers['x-admin-secret'];
     const envSecret = process.env.ADMIN_ROUTE_SECRET;
     const hasAdminSecret = envSecret && adminSecret === envSecret;
 
     if (!hasAdminSecret) {
-        const auth = req.headers.authorization;
-        if (!auth?.startsWith('Bearer ')) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/auth-health', permanent: false } };
-        }
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!url || !anonKey || !srKey) return { props: { error: 'Server misconfigured' } };
-
-        const sb = createClient(url, anonKey);
-        const { data: u, error: ue } = await sb.auth.getUser(auth.slice(7));
-        if (ue || !u?.user) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/auth-health', permanent: false } };
-        }
-        const adm = createClient(url, srKey);
-        const { data: profile } = await adm.from('profiles').select('is_admin').eq('id', u.user.id).maybeSingle();
-        if (!profile?.is_admin) return { props: { error: 'Forbidden — admin only' } };
+        // Browser path — render the client-mode shell; auth happens against
+        // /api/admin/auth-health-data with the localStorage token.
+        return { props: { clientMode: true } };
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const srKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
     if (!url || !srKey) return { props: { error: 'Server misconfigured' } };
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
@@ -61,6 +59,14 @@ export async function getServerSideProps({ req }) {
             generatedAt: new Date().toISOString(),
         },
     };
+}
+
+function readLocalAccessToken() {
+    try {
+        return JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null')?.access_token || null;
+    } catch (_e) {
+        return null;
+    }
 }
 
 const fmtAge = (iso) => {
@@ -90,7 +96,55 @@ function FlowCard({ name, runs, ok, failed, lastRun, expectedCadenceMin }) {
     );
 }
 
-export default function AuthHealthDashboard({ health, heartbeats = [], error, generatedAt }) {
+export default function AuthHealthDashboard(props) {
+    const [state, setState] = useState({
+        loading: !!props.clientMode,
+        health: props.health || null,
+        heartbeats: props.heartbeats || [],
+        error: props.error || null,
+        generatedAt: props.generatedAt || null,
+    });
+
+    useEffect(() => {
+        if (!props.clientMode) return;
+        let cancelled = false;
+        (async () => {
+            const token = readLocalAccessToken();
+            if (!token) {
+                window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/auth-health'));
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/auth-health-data?view=auth', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.status === 401) {
+                    window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/auth-health'));
+                    return;
+                }
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    if (!cancelled) setState((s) => ({ ...s, loading: false, error: json.error || `HTTP ${res.status}` }));
+                    return;
+                }
+                if (!cancelled) {
+                    setState({
+                        loading: false,
+                        health: json.health,
+                        heartbeats: json.heartbeats || [],
+                        error: json.error || null,
+                        generatedAt: json.generatedAt,
+                    });
+                }
+            } catch (e) {
+                if (!cancelled) setState((s) => ({ ...s, loading: false, error: e?.message || 'Failed to load health data' }));
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [props.clientMode]);
+
+    const { loading, health, heartbeats, error, generatedAt } = state;
+    if (loading) return <main style={S.page}><div style={S.err}>Loading auth health…</div></main>;
     if (error) return <main style={S.page}><div style={S.err}>{error}</div></main>;
     if (!health) return <main style={S.page}><div style={S.err}>No health data yet — wait for first probe runs (5–15 min after deploy).</div></main>;
 

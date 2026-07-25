@@ -131,33 +131,39 @@ export default function LoginPage() {
                 localStorage.removeItem('smarter-poker-remember-me');
             }
 
-            // ── [Phase 6.1.23] MFA challenge gate — DISABLED ───────────────
-            // MFA enrollment is not yet live for any users. This probe was
-            // randomly redirecting users to /auth/mfa because the
-            // user_mfa_factors table or mfa_required flag returned unexpected
-            // values. Re-enable this block once MFA enrollment is deployed.
-            //
-            // try {
-            //     const [factorRes, profileRes] = await Promise.all([
-            //         supabase
-            //             .from('user_mfa_factors')
-            //             .select('enabled')
-            //             .eq('user_id', data.user.id)
-            //             .maybeSingle(),
-            //         supabase
-            //             .from('profiles')
-            //             .select('mfa_required')
-            //             .eq('id', data.user.id)
-            //             .maybeSingle(),
-            //     ]);
-            //     const hasMfa = !!factorRes?.data?.enabled;
-            //     const mfaRequired = !!profileRes?.data?.mfa_required;
-            //     if (hasMfa || mfaRequired) {
-            //         const next = encodeURIComponent(getRedirectUrl());
-            //         router.push(`/auth/mfa?next=${next}`);
-            //         return;
-            //     }
-            // } catch (mfaProbeErr) { console.warn('[App] Handled exception:', mfaProbeErr?.message || mfaProbeErr); }
+            // ── [Phase 6.1.23] MFA challenge gate — RE-ENABLED 2026-07-25 ──
+            // The old version was disabled because loose truthiness checks
+            // ("returned unexpected values") randomly bounced users to
+            // /auth/mfa. Hardened re-enable:
+            //   1. STRICT equality — only enabled === true / mfa_required
+            //      === true trigger the challenge. Nulls, RLS denials, query
+            //      errors, and missing rows all FAIL OPEN (no redirect), so
+            //      a broken table can never lock users out of login.
+            //   2. The whole probe is try/catch'd — a throw skips MFA rather
+            //      than blocking sign-in.
+            // Without this gate, a user who enrolls 2FA in settings gets NO
+            // challenge at login — enrollment was shipped as pure theater.
+            try {
+                const [factorRes, profileRes] = await Promise.all([
+                    supabase
+                        .from('user_mfa_factors')
+                        .select('enabled')
+                        .eq('user_id', data.user.id)
+                        .maybeSingle(),
+                    supabase
+                        .from('profiles')
+                        .select('mfa_required')
+                        .eq('id', data.user.id)
+                        .maybeSingle(),
+                ]);
+                const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
+                const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
+                if (hasMfa || mfaRequired) {
+                    const next = encodeURIComponent(getRedirectUrl());
+                    router.push(`/auth/mfa?next=${next}`);
+                    return;
+                }
+            } catch (mfaProbeErr) { console.warn('[login] MFA probe failed open:', mfaProbeErr?.message || mfaProbeErr); }
 
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');

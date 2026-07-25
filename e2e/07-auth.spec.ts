@@ -68,26 +68,70 @@ test.describe('Auth — Signup Page', () => {
 });
 
 test.describe('Auth — Route Protection', () => {
-  test('accessing /hub/profile without auth redirects to login', async ({ page }) => {
-    await page.goto('/hub/profile');
+  // [2026-07-25] Rewritten: both tests here previously asserted tautologies
+  // (`expect(a || !a)` and `expect(url).toBeTruthy()`) that could never fail.
+  // What we actually care about: protected pages must not 5xx for anonymous
+  // visitors, and must not hang beyond the auth-guard budget.
+  test('anonymous /hub/profile does not 5xx', async ({ page }) => {
+    const response = await page.goto('/hub/profile');
     await page.waitForLoadState('domcontentloaded');
-
-    // Should either show the page (if public) or redirect to auth
-    const url = page.url();
-    const isProtected = url.includes('/auth') || url.includes('/login');
-    const isPublic = !isProtected;
-
-    // Either outcome is valid — the key is no 500 error
-    expect(isProtected || isPublic).toBeTruthy();
+    expect(response, 'no response for /hub/profile').toBeTruthy();
+    expect(response!.status(), 'server error rendering /hub/profile for anonymous visitor').toBeLessThan(500);
   });
 
-  test('accessing /hub/settings without auth redirects', async ({ page }) => {
-    await page.goto('/hub/settings');
+  test('anonymous /hub/settings does not 5xx', async ({ page }) => {
+    const response = await page.goto('/hub/settings');
     await page.waitForLoadState('domcontentloaded');
+    expect(response, 'no response for /hub/settings').toBeTruthy();
+    expect(response!.status(), 'server error rendering /hub/settings for anonymous visitor').toBeLessThan(500);
+  });
 
-    const url = page.url();
-    // Should not crash
-    expect(url).toBeTruthy();
+  test('/auth/signin safety-net redirects to /auth/login preserving query', async ({ page }) => {
+    await page.goto('/auth/signin?redirect=%2Fhub');
+    await page.waitForURL(/\/auth\/login/, { timeout: 8000 });
+    expect(page.url()).toContain('/auth/login');
+    expect(page.url()).toContain('redirect=');
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  GOOGLE OAUTH CHAIN — REGRESSION GUARD (added 2026-07-25)             ║
+// ║                                                                       ║
+// ║  Catches the outage class where the Supabase custom auth domain       ║
+// ║  (auth.smarter.poker) dies at the TLS/edge layer: GoTrue still 302s   ║
+// ║  to Google, Google approves, and the browser strands on the dead      ║
+// ║  callback host — while password login (and every password-based       ║
+// ║  probe) stays green. We verify the full advertised chain:             ║
+// ║  /authorize → Google redirect → callback host answers over TLS.       ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+test.describe('Auth — Google OAuth chain', () => {
+  test('GoTrue /authorize 302s to Google and the advertised callback host is alive', async ({ request }) => {
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    test.skip(!supabaseUrl, 'NEXT_PUBLIC_SUPABASE_URL not set');
+
+    const res = await request.get(
+      `${supabaseUrl}/auth/v1/authorize?provider=google`,
+      { maxRedirects: 0 },
+    );
+    expect(res.status(), 'authorize should 302 to the provider — is the Google provider enabled?')
+      .toBeGreaterThanOrEqual(300);
+    expect(res.status()).toBeLessThan(400);
+
+    const location = res.headers()['location'] || '';
+    const redirectUri = new URL(location).searchParams.get('redirect_uri');
+    expect(redirectUri, `authorize Location missing redirect_uri: ${location.slice(0, 140)}`).toBeTruthy();
+
+    const cbHost = new URL(redirectUri!).host;
+    let health = null;
+    try {
+      health = await request.get(`https://${cbHost}/auth/v1/health`);
+    } catch (_netErr) {
+      health = null;
+    }
+    expect(health, `OAuth callback host ${cbHost} is UNREACHABLE (TLS/DNS) — every Google sign-in strands after consent`).toBeTruthy();
+    // 2xx healthy; 401 = reachable GoTrue behind apikey gate (TLS + routing proven)
+    expect([200, 401]).toContain(health!.status());
   });
 });
 

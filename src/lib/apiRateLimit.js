@@ -25,20 +25,12 @@ if (typeof setInterval !== 'undefined') {
     if (interval.unref) interval.unref();
 }
 
-function getIdentifier(req) {
-    // Per-user rate limiting: use the LAST 32 chars of the JWT (signature segment).
-    // The FIRST chars are always the same standard header for all Supabase tokens.
-    const auth = req.headers?.authorization;
-    if (auth?.startsWith('Bearer ') && auth.length > 39) {
-        return 'u:' + auth.slice(-32);
-    }
-
-    // Fallback to IP — prefer x-real-ip (set by Vercel infra, not spoofable by client).
+function getIpIdentifier(req) {
+    // Prefer x-real-ip (set by Vercel infra, not spoofable by client).
     // x-forwarded-for leftmost value is client-controlled and trivially spoofed.
     const realIp = req.headers?.['x-real-ip'];
     if (realIp) return 'ip:' + realIp.trim();
 
-    // Last resort: rightmost x-forwarded-for value (last trusted hop added by infrastructure)
     const forwarded = req.headers?.['x-forwarded-for'];
     if (forwarded) {
         const parts = forwarded.split(',');
@@ -48,32 +40,70 @@ function getIdentifier(req) {
     return 'ip:' + (req.socket?.remoteAddress || 'unknown');
 }
 
-export function rateLimit(req, { max = 60, windowMs = 60_000, scope = '' } = {}) {
-    const id = getIdentifier(req);
-    const endpoint = (req.url?.split('?')[0] || '') + scope;
-    const key = `${id}::${endpoint}`;
-    const now = Date.now();
+function getTokenIdentifier(req) {
+    // Per-user bucketing: LAST 32 chars of the JWT (signature segment —
+    // unique per user+session; the first chars are the same header for all
+    // Supabase tokens). NOTE: this value is attacker-supplied and NOT
+    // verified here, which is why the IP bucket below is always enforced too.
+    const auth = req.headers?.authorization;
+    if (auth?.startsWith('Bearer ') && auth.length > 39) {
+        return 'u:' + auth.slice(-32);
+    }
+    return null;
+}
 
+function bumpBucket(key, now, windowMs) {
     let entry = store.get(key);
     if (!entry || now > entry.reset) {
         entry = { count: 0, reset: now + windowMs };
     }
-
     entry.count++;
     store.set(key, entry);
+    return entry;
+}
 
-    const remaining = Math.max(0, max - entry.count);
-    const ok = entry.count <= max;
+// Headroom multiplier for the IP bucket when a Bearer token is present, so
+// legitimate shared-IP users (offices, CGNAT) don't starve each other.
+const IP_HEADROOM = 5;
+
+export function rateLimit(req, { max = 60, windowMs = 60_000, scope = '' } = {}) {
+    // [2026-07-25] DUAL-BUCKET enforcement. The old implementation keyed
+    // SOLELY on the Bearer header when one was present — but that value is
+    // attacker-supplied and unvalidated, so sending a random 40-char Bearer
+    // per request minted a fresh bucket every time: unlimited signup spam on
+    // unauthenticated endpoints, and TOTP brute-force via refresh-token
+    // rotation on the MFA endpoints. The IP bucket is now ALWAYS enforced;
+    // the token bucket is enforced additionally when present.
+    const endpoint = (req.url?.split('?')[0] || '') + scope;
+    const now = Date.now();
+
+    const tokenId = getTokenIdentifier(req);
+    const ipId = getIpIdentifier(req);
+
+    const results = [];
+    if (tokenId) {
+        const entry = bumpBucket(`${tokenId}::${endpoint}`, now, windowMs);
+        results.push({ max, remaining: Math.max(0, max - entry.count), ok: entry.count <= max, reset: entry.reset });
+    }
+    {
+        const ipMax = tokenId ? max * IP_HEADROOM : max;
+        const entry = bumpBucket(`${ipId}::${endpoint}`, now, windowMs);
+        results.push({ max: ipMax, remaining: Math.max(0, ipMax - entry.count), ok: entry.count <= ipMax, reset: entry.reset });
+    }
+
+    // Report the failing bucket if any, else the tightest one.
+    const rep = results.find((r) => !r.ok) ||
+        results.reduce((a, b) => (a.remaining <= b.remaining ? a : b));
 
     return {
-        ok,
-        remaining,
-        reset: entry.reset,
-        retryAfter: ok ? undefined : Math.ceil((entry.reset - now) / 1000),
+        ok: rep.ok,
+        remaining: rep.remaining,
+        reset: rep.reset,
+        retryAfter: rep.ok ? undefined : Math.ceil((rep.reset - now) / 1000),
         headers: {
-            'X-RateLimit-Limit': String(max),
-            'X-RateLimit-Remaining': String(remaining),
-            'X-RateLimit-Reset': String(Math.floor(entry.reset / 1000)),
+            'X-RateLimit-Limit': String(rep.max),
+            'X-RateLimit-Remaining': String(rep.remaining),
+            'X-RateLimit-Reset': String(Math.floor(rep.reset / 1000)),
         },
     };
 }

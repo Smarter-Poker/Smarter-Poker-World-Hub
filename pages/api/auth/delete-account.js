@@ -4,8 +4,14 @@
  * Auth: Bearer token required
  *
  * Deletes user profile data from Supabase and signs out the auth user.
- * The Supabase auth user is soft-deleted (disabled) rather than hard-deleted
- * to preserve referential integrity and allow recovery within 30 days.
+ *
+ * [2026-07-25] DOC CORRECTION: this endpoint HARD-DELETES. It removes the
+ * user's rows and then calls auth.admin.deleteUser() — there is NO disabled
+ * state, NO 30-day grace window, and NO recovery. The previous docstring
+ * promised soft-delete + recovery that the code never implemented; any UX
+ * copy or support script based on that promise was wrong. If a grace window
+ * is ever wanted, implement ban/disable + a scheduled purge — don't just
+ * edit this comment back.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit } from '../../../src/lib/apiRateLimit';

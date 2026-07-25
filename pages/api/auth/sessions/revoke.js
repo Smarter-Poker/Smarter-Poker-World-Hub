@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -17,6 +18,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });
@@ -55,9 +57,15 @@ export default async function handler(req, res) {
               return res.status(500).json({ error: 'Failed to revoke session' });
           }
 
+          // Honesty: this removes the device from the tracked list only.
+          // Supabase does not expose per-device token revocation here, so
+          // the other device's tokens remain valid until expiry. Do NOT tell
+          // the user their session was "revoked" — that's a false security
+          // promise (the exact wording a phished user relies on).
           return res.status(200).json({
               success: true,
-              message: 'Session revoked successfully'
+              tokensInvalidated: false,
+              message: 'Device removed from your session list. Its sign-in remains valid until it expires — change your password to force sign-out everywhere.'
           });
 
       } catch (error) {

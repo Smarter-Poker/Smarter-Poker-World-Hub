@@ -93,7 +93,11 @@ export default async function handler(req, res) {
             reasons.push(`${errors1h} trigger errors in 1h`);
         }
 
-        return res.status(200).json({
+        // [2026-07-25] Status-code honesty: external uptime monitors key on
+        // HTTP codes, not response bodies. Returning 200 while degraded is
+        // how "zero signups for 9 days" stayed invisible. warn stays 200 so
+        // low-traffic hours don't page anyone.
+        return res.status(status === 'degraded' ? 503 : 200).json({
             status,
             reasons,
             counts: {

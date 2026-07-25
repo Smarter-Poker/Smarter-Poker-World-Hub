@@ -810,8 +810,12 @@ export default function SignUpPage() {
         e.preventDefault();
         setError('');
 
-        if (verificationCode.length < 4) {
-            setError('Please Enter The 4-Digit Verification Code');
+        // [2026-07-25] Supabase email OTP tokens are 6 digits. This screen
+        // previously said "4-Digit" with maxLength=4, which made it
+        // IMPOSSIBLE to type a valid code — the only working path was the
+        // email link. (The SMS phone OTP really is 4 digits — different flow.)
+        if (verificationCode.length < 6) {
+            setError('Please Enter The 6-Digit Verification Code');
             return;
         }
 
@@ -1376,8 +1380,8 @@ export default function SignUpPage() {
                                         type="text"
                                         inputMode="numeric"
                                         value={verificationCode}
-                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                        placeholder="• • • •"
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        placeholder="• • • • • •"
                                         style={{
                                             ...styles.inputSingle,
                                             textAlign: 'center',
@@ -1385,7 +1389,7 @@ export default function SignUpPage() {
                                             fontFamily: 'Orbitron, monospace',
                                             letterSpacing: '12px',
                                         }}
-                                        maxLength={4}
+                                        maxLength={6}
                                         autoComplete="one-time-code"
                                         autoFocus
                                     />
@@ -1395,9 +1399,9 @@ export default function SignUpPage() {
                                     type="submit"
                                     style={{
                                         ...styles.submitButton,
-                                        opacity: verifying || verificationCode.length < 4 ? 0.7 : 1,
+                                        opacity: verifying || verificationCode.length < 6 ? 0.7 : 1,
                                     }}
-                                    disabled={verifying || verificationCode.length < 4}
+                                    disabled={verifying || verificationCode.length < 6}
                                 >
                                     {verifying ? 'Verifying...' : 'Verify Email'}
                                 </button>

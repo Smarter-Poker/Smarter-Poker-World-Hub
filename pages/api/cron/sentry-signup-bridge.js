@@ -26,15 +26,28 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 
 let Sentry;
+let sentryIsStub = false;
 try {
     // eslint-disable-next-line global-require, import/no-extraneous-dependencies
     Sentry = require('@sentry/nextjs');
 } catch (_) {
+    sentryIsStub = true;
     Sentry = {
         captureMessage: () => null,
         captureException: () => null,
         withScope: (cb) => cb({ setTag: () => null, setContext: () => null, setLevel: () => null, setFingerprint: () => null }),
     };
+}
+
+// True only when events will actually be transmitted. If the SDK failed to
+// load OR loaded but was never initialized (no client), captureMessage is a
+// silent no-op — in that state we must NOT stamp rows as forwarded.
+function sentryReady() {
+    if (sentryIsStub) return false;
+    try {
+        if (typeof Sentry.getClient === 'function') return !!Sentry.getClient();
+    } catch (_) { /* fall through */ }
+    return true; // older SDK without getClient — assume initialized
 }
 
 let _admin = null;
@@ -84,6 +97,20 @@ export default async function handler(req, res) {
             });
         }
 
+        // [2026-07-25] Guard: stamping forwarded_to_sentry while Sentry is a
+        // no-op silently DESTROYS the alert trail (rows are never re-scanned).
+        // Bail without stamping so the next run retries once Sentry works.
+        if ((rows || []).length > 0 && !sentryReady()) {
+            const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+                probe_name: 'sentry-signup-bridge',
+                status: 'failed',
+                duration_ms: Date.now() - startedAt,
+                details: { reason: 'sentry_unavailable', pending: rows.length },
+            });
+            if (hbErr) console.warn('[sentry-bridge] heartbeat insert failed:', hbErr.message);
+            return res.status(200).json({ status: 'sentry_unavailable', pending: rows.length });
+        }
+
         for (const row of rows || []) {
             try {
                 Sentry.withScope((scope) => {
@@ -107,6 +134,12 @@ export default async function handler(req, res) {
                     );
                 });
 
+                // Flush before stamping — on Vercel the lambda can freeze
+                // before the SDK's async transport transmits the event.
+                if (typeof Sentry.flush === 'function') {
+                    await Sentry.flush(2000).catch(() => null);
+                }
+
                 // Mark forwarded
                 const { error: updateErr } = await admin
                     .from('signup_errors')
@@ -122,13 +155,17 @@ export default async function handler(req, res) {
             }
         }
 
-        // Heartbeat
-        await admin.from('probe_heartbeats').insert({
-            probe_name: 'sentry-signup-bridge',
-            status: failed > 0 ? 'partial' : 'ok',
-            duration_ms: Date.now() - startedAt,
-            details: { forwarded, failed, scanned: rows?.length || 0 },
-        }).catch(() => null);
+        // Heartbeat — supabase-js builders resolve with {error}, they do NOT
+        // reject, so .catch() was dead code and insert failures were silent.
+        {
+            const { error: hbErr } = await admin.from('probe_heartbeats').insert({
+                probe_name: 'sentry-signup-bridge',
+                status: failed > 0 ? 'partial' : 'ok',
+                duration_ms: Date.now() - startedAt,
+                details: { forwarded, failed, scanned: rows?.length || 0 },
+            });
+            if (hbErr) console.warn('[sentry-bridge] heartbeat insert failed:', hbErr.message);
+        }
 
         return res.status(200).json({
             status: failed > 0 ? 'partial' : 'ok',

@@ -18,6 +18,18 @@ import { useState, useEffect } from 'react';
 // Storage key used by Supabase client (must match supabase.ts config)
 const AUTH_STORAGE_KEY = 'smarter-poker-auth';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// [2026-07-25] SUPABASE_URL / SUPABASE_ANON_KEY exports
+// Multiple call sites do `import { SUPABASE_ANON_KEY } from '.../authUtils'`.
+// next.config.js force-aliases src/lib/authUtils.js -> THIS file, so if these
+// constants only live in authUtils.js every bundled import silently resolves
+// to `undefined` (regression B-AUTH-EXPORTS-1, resurrected by the alias).
+// .trim() is mandatory, not cosmetic: the Vercel prod env values carry a
+// literal trailing "\n" that makes fetch() throw on the apikey header.
+// ═══════════════════════════════════════════════════════════════════════════
+export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
+export const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo').trim();
+
 /**
  * Get the current authenticated user from localStorage.
  * This bypasses the Supabase client entirely to avoid AbortError.
@@ -279,11 +291,7 @@ export async function getFreshAccessToken(): Promise<string | null> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) return null;
 
-        // .trim() required: Vercel prod env values carry a literal trailing
-        // "\n" — untrimmed, the apikey header below throws in fetch() and
-        // token refresh silently fails. Keep in sync with src/lib/supabase.ts.
-        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+        // Module-level SUPABASE_URL / SUPABASE_ANON_KEY are pre-trimmed.
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
 
         try {
@@ -389,7 +397,24 @@ export async function authedFetch(url: string, options: RequestInit = {}): Promi
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    return fetch(url, { ...options, headers });
+    const resp = await fetch(url, { ...options, headers });
+
+    // [2026-07-25] MFA step-up wiring. middleware.ts answers admin write
+    // requests without a fresh mfa_session cookie with
+    // 403 { requiresMfa: true }. The original design referenced a global
+    // fetch wrapper in src/lib/api.js that never existed, so users hit an
+    // unexplained 403 with no path to the challenge page. Handle it here —
+    // the one choke point most authed API calls already flow through.
+    if (resp.status === 403 && typeof window !== 'undefined') {
+        try {
+            const peek = await resp.clone().json();
+            if (peek && peek.requiresMfa === true) {
+                const next = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.assign(`/auth/mfa?stepup=1&next=${next}`);
+            }
+        } catch { /* non-JSON 403 — fall through to caller */ }
+    }
+    return resp;
 }
 
 /**

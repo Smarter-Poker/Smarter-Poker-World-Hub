@@ -33,12 +33,12 @@ const RESTRICTED_STATES = ['WA', 'UT', 'LA', 'ID', 'MT', 'SD', 'IN', 'MI', 'MS',
 // Auth paths that must remain reachable from every region.
 const AUTH_PATHS = ['/auth/signup', '/auth/login', '/auth/callback', '/auth/quick'];
 
-// The base URL we probe — defaults to the deployment's own VERCEL_URL,
-// falls back to the public domain.
+// [2026-07-25] Probe the PUBLIC domain, not VERCEL_URL. The deployment URL
+// misses production-domain-level failures (DNS, alias, CDN) and can sit
+// behind deployment protection (401), poisoning results either way. The
+// public domain is what actual users hit.
 function getBaseUrl(req) {
-    return process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : (process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker');
+    return (process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker').trim();
 }
 
 export const config = { maxDuration: 30 };
@@ -54,7 +54,12 @@ export default async function handler(req, res) {
     const checks = [];
 
     try {
-        for (const state of RESTRICTED_STATES) {
+        // [2026-07-25] The old version looped 10 states x 4 paths = 40
+        // byte-identical fetches: X-Probe-Region does nothing (Vercel's edge
+        // sets request.geo before our function runs — see comment below), so
+        // the state dimension tested nothing while implying restricted-state
+        // coverage. One pass over the 4 paths gives identical signal.
+        {
             for (const path of AUTH_PATHS) {
                 const url = `${base}${path}`;
                 let status = 'unknown';
@@ -77,7 +82,6 @@ export default async function handler(req, res) {
                         redirect: 'manual',
                         headers: {
                             'User-Agent': 'smarter-poker-probe/1.0',
-                            'X-Probe-Region': state,
                         },
                     });
                     httpCode = r.status;
@@ -87,7 +91,15 @@ export default async function handler(req, res) {
                             blocked = true;
                             status = 'geo-blocked';
                         } else {
-                            status = 'redirected';
+                            // A redirect anywhere other than the same path
+                            // (e.g. trailing-slash normalization) means auth
+                            // pages are being detoured — that's a failure.
+                            let samePath = false;
+                            try {
+                                const locPath = new URL(loc, base).pathname.replace(/\/$/, '');
+                                samePath = locPath === path.replace(/\/$/, '');
+                            } catch (_) { /* unparseable location -> foreign */ }
+                            status = samePath ? 'ok' : 'redirected-foreign';
                         }
                     } else if (r.status === 200) {
                         status = 'ok';
@@ -97,11 +109,20 @@ export default async function handler(req, res) {
                 } catch (e) {
                     status = `error:${e?.message || 'fetch failed'}`;
                 }
-                checks.push({ state, path, httpCode, status, blocked });
+                checks.push({ path, httpCode, status, blocked });
             }
         }
 
-        const failures = checks.filter((c) => c.blocked || c.status.startsWith('error') || c.status.startsWith('http-5'));
+        // [2026-07-25] 4xx now counts as FAILURE. The old filter only caught
+        // 5xx, so "signup page deleted → 404 on every check" reported
+        // status:'ok' — the exact 2026-05-02 incident class this probe
+        // family exists to catch. Foreign redirects likewise.
+        const failures = checks.filter((c) =>
+            c.blocked ||
+            c.status.startsWith('error') ||
+            c.status === 'redirected-foreign' ||
+            (c.httpCode >= 400)
+        );
 
         return res.status(failures.length ? 503 : 200).json({
             status: failures.length ? 'failed' : 'ok',

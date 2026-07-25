@@ -28,6 +28,15 @@ const CRITICAL_AUTH_FILES = [
     'pages/auth/forgot-password.js',
     'pages/auth/reset-password.js',
     'pages/api/auth/ensure-profile.js',
+    // [2026-07-25] extended coverage — every file here has 404'd or silently
+    // regressed at least once, or is a single point of failure for a flow.
+    'pages/auth/signin.js',          // safety-net redirect → /auth/login
+    'pages/auth/quick.js',           // emergency signup page
+    'pages/auth/mfa.js',             // 2FA challenge page
+    'pages/api/auth/quick-signup.js',
+    'pages/api/auth/mfa/challenge.js',
+    'src/lib/supabase.ts',           // the real Supabase client
+    'src/lib/authUtils.ts',          // webpack-aliased target of authUtils.js
 ];
 
 // Routes that the auth flows reference. If any of these strings is in the
@@ -39,7 +48,72 @@ const AUTH_ROUTE_TARGETS = [
     { route: '/auth/signup',          mustExist: 'pages/auth/signup.js' },
     { route: '/auth/forgot-password', mustExist: 'pages/auth/forgot-password.js' },
     { route: '/auth/reset-password',  mustExist: 'pages/auth/reset-password.js' },
+    { route: '/auth/signin',          mustExist: 'pages/auth/signin.js' },
+    { route: '/auth/quick',           mustExist: 'pages/auth/quick.js' },
+    { route: '/auth/mfa',             mustExist: 'pages/auth/mfa.js' },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT-REGRESSION GUARDS
+// Each entry pins a specific hard-won fix in place. If a refactor removes the
+// pattern, the build fails with a message explaining WHY the pattern matters.
+// These are cheap regex checks on file contents — not style policing; every
+// one of them maps to a real production incident or a verified prod bug.
+// ═══════════════════════════════════════════════════════════════════════════
+const CONTENT_GUARDS = [
+    {
+        file: 'src/lib/supabase.ts',
+        pattern: /NEXT_PUBLIC_SUPABASE_ANON_KEY\?\.trim\(\)/,
+        why: 'Anon key must be .trim()ed — the prod Vercel env value ends with a literal \n that breaks fetch headers.',
+    },
+    {
+        file: 'src/lib/authUtils.ts',
+        pattern: /export const SUPABASE_ANON_KEY[\s\S]{0,400}\.trim\(\)/,
+        why: 'authUtils.ts must export a TRIMMED SUPABASE_ANON_KEY — next.config.js aliases authUtils.js to this file, so callers importing the constant get undefined without this export (B-AUTH-EXPORTS-1).',
+    },
+    {
+        file: 'pages/api/auth/quick-signup.js',
+        pattern: /NEXT_PUBLIC_SUPABASE_ANON_KEY[^;]*\.trim\(\)/,
+        why: 'Emergency signup endpoint 500s on every request if the anon key is not trimmed (trailing \n in prod env).',
+    },
+    {
+        file: 'pages/auth/login.js',
+        pattern: /enabled === true/,
+        why: 'MFA login gate must use STRICT === true checks (loose truthiness caused random /auth/mfa redirects and got the gate disabled once already).',
+    },
+    {
+        file: 'pages/auth/callback.js',
+        pattern: /exchangeCodeForSession/,
+        why: 'PKCE code exchange is how Google OAuth completes — removing it breaks every OAuth sign-in.',
+    },
+    {
+        file: 'pages/auth/forgot-password.js',
+        pattern: /\/auth\/callback\?next=/,
+        why: 'Recovery emails must carry ?next=/auth/reset-password so users still reach the reset form if the email template uses {{ .ConfirmationURL }} instead of {{ .TokenHash }}.',
+    },
+    {
+        file: 'pages/api/cron/login-probe.js',
+        pattern: /oauth_chain/,
+        why: 'The OAuth-chain health check is what catches a dead custom auth domain (auth.smarter.poker TLS outage, 2026-07-25) — password probes alone stay green during that failure.',
+    },
+    {
+        file: 'pages/auth/signup.js',
+        pattern: /maxLength=\{6\}/,
+        why: 'Email OTP input must accept 6 digits — Supabase email tokens are 6 digits; maxLength=4 made code entry impossible (fixed 2026-07-25).',
+    },
+];
+
+test('content-regression guards hold', () => {
+    for (const { file, pattern, why } of CONTENT_GUARDS) {
+        const full = path.join(REPO_ROOT, file);
+        assert.ok(fs.existsSync(full), `${file} missing (guard: ${why})`);
+        const content = fs.readFileSync(full, 'utf8');
+        assert.ok(
+            pattern.test(content),
+            `${file} no longer matches ${pattern} — ${why}`,
+        );
+    }
+});
 
 test('auth-critical files exist on disk', () => {
     const missing = CRITICAL_AUTH_FILES.filter(
