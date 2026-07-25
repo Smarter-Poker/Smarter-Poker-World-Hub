@@ -1073,32 +1073,6 @@ export default function UniversalHeader({
 
                 {/* RIGHT: Orb Icons */}
                 <div className="header-right">
-                    {/* Diamond Wallet Icon */}
-                    <button
-                        onClick={() => setIsWalletOpen(true)}
-                        className="orb-btn"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                        title="Diamond Wallet"
-                    >
-                        <img src="/images/header-wallet-v4.png" alt="Wallet" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
-                    </button>
-
-                    {/* VIP Card Icon — only for VIP members */}
-                    {isVipDisplay && (
-                        <button
-                            onClick={() => openOverlay('diamond-store')}
-                            className="orb-btn"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            title="VIP Member"
-                        >
-                                <img
-                                    src="/images/vip-card-v4.png"
-                                    alt="VIP Member"
-                                    style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
-                                />
-                        </button>
-                    )}
-
                     {/* Avatar/Profile */}
                     <div
                         className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
@@ -1120,6 +1094,32 @@ export default function UniversalHeader({
                             {!displayAvatar && (isMounted ? activeName.charAt(0).toUpperCase() || '?' : '')}
                         </span>
                     </div>
+
+                    {/* Diamond Wallet Icon */}
+                    <button
+                        onClick={() => setIsWalletOpen(true)}
+                        className="orb-btn"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        title="Diamond Wallet"
+                    >
+                        <img src="/images/header-wallet-v4.png" alt="Wallet" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                    </button>
+
+                    {/* VIP Card Icon — only for VIP members */}
+                    {isVipDisplay && (
+                        <button
+                            onClick={() => openOverlay('diamond-store')}
+                            className="orb-btn"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            title="VIP Member"
+                        >
+                                <img
+                                    src="/images/vip-card-v5.png"
+                                    alt="VIP Member"
+                                    style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+                                />
+                        </button>
+                    )}
 
                     {/* Messages - Custom Metallic Messenger icon — Sovereign Redirect (no popup) */}
                     <button onClick={() => { window.location.href = '/hub/messenger'; }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
