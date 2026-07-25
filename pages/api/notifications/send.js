@@ -12,8 +12,8 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 
-const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+const ONESIGNAL_APP_ID = (process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '').trim();
+const ONESIGNAL_REST_API_KEY = (process.env.ONESIGNAL_REST_API_KEY || '').trim();
 
 let _supabase = null;
 function getSupabase() {
@@ -57,6 +57,28 @@ export default async function handler(req, res) {
           }
           if (!externalUserIds?.length && !playerIds?.length) {
               return res.status(400).json({ success: false, error: 'Must specify target user(s) for notification' });
+          }
+
+          // [2026-07-25] AUTH GAP FIX: previously a JWT caller could push an
+          // arbitrary title/message/url to up to 5 ARBITRARY user IDs (spam /
+          // phishing vector). A non-admin may now only target THEMSELVES by
+          // external_id. playerIds (raw OneSignal device IDs) aren't tied to a
+          // user server-side, so non-admins can't use them at all. Call
+          // notifications (isCall) legitimately target another user, so they
+          // remain allowed but are constrained to a single recipient.
+          const isSelfOnly =
+              Array.isArray(externalUserIds) &&
+              externalUserIds.length === 1 &&
+              externalUserIds[0] === user.id;
+          const isSingleCall =
+              req.body?.isCall === true &&
+              Array.isArray(externalUserIds) &&
+              externalUserIds.length === 1;
+          if (!isSelfOnly && !isSingleCall) {
+              return res.status(403).json({
+                  success: false,
+                  error: 'You can only send notifications to yourself.',
+              });
           }
       }
 
@@ -193,14 +215,17 @@ export default async function handler(req, res) {
               body: JSON.stringify(notification),
           });
 
-          if (!response.ok) throw new Error(`Request failed (${response.status})`);
-          const result = await response.json();
+          // [2026-07-25] Removed the unconditional throw that made the
+          // detailed error branch below dead code and swallowed OneSignal's
+          // actual error body into a generic 500.
+          const result = await response.json().catch(() => ({}));
 
           if (!response.ok) {
               console.warn('OneSignal error:', result);
               return res.status(response.status).json({
-                  error: result.errors?.[0] || 'Failed to send notification',
-                  details: result
+                  success: false,
+                  error: result.errors?.[0] || `OneSignal request failed (${response.status})`,
+                  details: result,
               });
           }
 

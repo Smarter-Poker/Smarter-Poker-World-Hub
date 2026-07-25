@@ -12,6 +12,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import twilio from 'twilio';
+import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -27,9 +28,16 @@ function getSupabase() {
 }
 
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+// [2026-07-25] .trim() is load-bearing, not cosmetic: the prod Vercel values
+// for all three TWILIO_* vars end with a literal trailing "\n". Untrimmed, the
+// account SID lands in the Twilio REST URL path (→ ERR_UNESCAPED_CHARACTERS),
+// the auth token corrupts the Basic-auth header (→ 401), and the "from" number
+// is rejected as non-E.164. Net effect before this fix: send-otp 500'd on every
+// call in prod, and because signup REQUIRES phone verification, NOBODY could
+// complete the full signup form.
+const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
+const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
+const twilioPhone = (process.env.TWILIO_PHONE_NUMBER || '').trim();
 
 let _twilioClient = null;
 function getTwilioClient() {
@@ -126,15 +134,15 @@ export default async function handler(req, res) {
               });
           }
 
-          // ── Delete any existing OTP for this phone ───────────────────────
-          const { error: err_sms_otp_codes_trhoz } = await supabase
-            .from('sms_otp_codes')
-            .delete()
-              .eq('phone', cleanPhone);
-          if (err_sms_otp_codes_trhoz) console.warn('[Supabase] Silent mutation failed in sms_otp_codes:', err_sms_otp_codes_trhoz.message);
+          // [2026-07-25] REMOVED the per-phone delete-all that used to run here.
+          // It wiped the rows the rate-limit count (above) depends on, so the
+          // MAX_CODES_PER_HOUR cap was dead code — a phone could be SMS-pumped
+          // without limit. verify-otp only ever checks the NEWEST row and
+          // enforces expires_at, so leaving prior (soon-expiring) rows in place
+          // is safe: they can't be verified, they just make the cap functional.
 
-          // ── Generate & store new 4-digit OTP ─────────────────────────────
-          const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+          // ── Generate & store new 4-digit OTP (crypto-strong, not Math.random) ──
+          const otpCode = crypto.randomInt(1000, 10000).toString();
 
           const { error: insertError } = await supabase
               .from('sms_otp_codes')
