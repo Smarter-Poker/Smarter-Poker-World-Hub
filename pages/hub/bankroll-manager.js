@@ -356,11 +356,7 @@ export default function BankrollManagerPage() {
   }, [entries, gameTypeFilter]);
 
   const [showIntro, setShowIntro] = useState(false);
-  useEffect(() => {
-    if (!sessionStorage.getItem('bankroll-manager-intro-seen')) {
-      setShowIntro(true);
-    }
-  }, []);
+  // Intro video removed by request
   const introVideoRef = useRef(null);
 
   // Mark intro as seen when it ends

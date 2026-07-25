@@ -36,13 +36,8 @@ export default function PersonalAssistantPage() {
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
-  // Intro video - only show once per session
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('personal-assistant-intro-seen');
-    }
-    return false;
-  });
+  // Intro video removed by request
+  const [showIntro, setShowIntro] = useState(false);
   const introVideoRef = useRef(null);
 
   const handleIntroEnd = useCallback(() => {

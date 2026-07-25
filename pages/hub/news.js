@@ -389,14 +389,8 @@ export default function NewsHub() {
         setAutoRefresh: (val) => updatePreference('autoRefresh', val)
     });
 
-    //  INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('news-intro-seen');
-        }
-        return false;
-    });
+    //  INTRO VIDEO STATE
+    const [showIntro, setShowIntro] = useState(false);
     const introVideoRef = useRef(null);
 
     // Mark intro as seen when it ends

@@ -748,27 +748,8 @@ export default function PokerNearMePage({ initialTab }) {
     showNewcomerFriendly: true,
   });
 
-  // Intro video state - ONLY show when navigated directly from World Hub card click
-  // NOT when navigating via lobby pods (which add ?tab= params)
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window !== 'undefined') {
-      // If there's a tab param in the URL, user came from lobby — never play intro
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('tab')) {
-        // Consume the flag so it doesn't stick around
-        sessionStorage.removeItem('poker-near-me-from-hub');
-        return false;
-      }
-      // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
-      const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
-      if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
-        // Consume the flag immediately so it doesn't replay on refresh
-        sessionStorage.removeItem('poker-near-me-from-hub');
-        return true;
-      }
-    }
-    return false;
-  });
+  // Intro video removed by request
+  const [showIntro, setShowIntro] = useState(false);
   const introVideoRef = useRef(null);
   const cityDebounceRef = useRef(null);
 
