@@ -279,8 +279,11 @@ export async function getFreshAccessToken(): Promise<string | null> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) return null;
 
-        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        // .trim() required: Vercel prod env values carry a literal trailing
+        // "\n" — untrimmed, the apikey header below throws in fetch() and
+        // token refresh silently fails. Keep in sync with src/lib/supabase.ts.
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
 
         try {

@@ -30,8 +30,14 @@ import { useRouter } from 'next/router';
 // — the build-safety check correctly flags this. Adding `export` makes the
 // actual symbol available without changing runtime behavior in files that
 // already had fallbacks.
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+// [2026-07-25] .trim() is REQUIRED here, not cosmetic: the Vercel prod env
+// values for NEXT_PUBLIC_SUPABASE_ANON_KEY (and several other vars) contain a
+// literal trailing "\n" (visible via `vercel env pull`). supabase.ts already
+// trims; this file did not — so any raw fetch() that puts SUPABASE_ANON_KEY in
+// an `apikey`/Authorization header can throw "Invalid header value" or 401
+// in production builds. Keep the trim in sync with src/lib/supabase.ts.
+export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
+export const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo').trim();
 
 
 /**

@@ -55,14 +55,8 @@ def rotate_log():
 
 
 def notify(msg):
-    """macOS notification."""
-    try:
-        subprocess.run([
-            'osascript', '-e',
-            f'display notification "{msg}" with title "🔧 Scraper Watchdog" sound name "Sosumi"'
-        ], capture_output=True, timeout=5)
-    except Exception:
-        pass
+    """macOS notification (disabled)."""
+    pass
 
 
 def launchctl_restart(plist_label):
