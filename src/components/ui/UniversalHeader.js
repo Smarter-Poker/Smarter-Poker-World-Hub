@@ -1045,7 +1045,7 @@ export default function UniversalHeader({
                             className="hamburger-btn"
                             aria-label="Open Menu"
                         >
-                            <img src="/images/hamburger-icon.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     {!hideLeftIcon && (
@@ -1131,7 +1131,7 @@ export default function UniversalHeader({
 
                     {/* Messages - Custom Metallic Messenger icon — Sovereign Redirect (no popup) */}
                     <button onClick={() => { window.location.href = '/hub/messenger'; }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
-                            <img src="/images/messenger-icon.png" alt="Messages" style={{ width: '180%', height: '180%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '180%', height: '180%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
