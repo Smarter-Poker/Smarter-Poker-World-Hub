@@ -36,25 +36,7 @@ export default function PersonalAssistantPage() {
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
-  // Intro video - only show once per session
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('personal-assistant-intro-seen');
-    }
-    return false;
-  });
-  const introVideoRef = useRef(null);
 
-  const handleIntroEnd = useCallback(() => {
-    sessionStorage.setItem('personal-assistant-intro-seen', 'true');
-    setShowIntro(false);
-  }, []);
-
-  const handleIntroPlay = useCallback(() => {
-    if (introVideoRef.current) {
-      introVideoRef.current.muted = false;
-    }
-  }, []);
 
   // Real data hooks
   const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
@@ -108,20 +90,7 @@ export default function PersonalAssistantPage() {
   return (
     <PageTransition>
       {/* Intro Video Overlay */}
-      {showIntro && (
-        <div style={S.introOverlay}>
-          <video
-            ref={introVideoRef}
-            src="/videos/personal-assistant-intro.mp4"
-            autoPlay muted playsInline
-            onPlay={handleIntroPlay}
-            onEnded={handleIntroEnd}
-            onError={handleIntroEnd}
-            style={{ ...S.introVideo, objectFit: 'contain' }}
-          />
-          <button onClick={handleIntroEnd} style={S.skipBtn}>Skip</button>
-        </div>
-      )}
+
 
       <SEOHead
         title="Personal Poker Assistant - Jarvis AI"
