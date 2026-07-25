@@ -123,7 +123,7 @@ test.describe('Auth — Google OAuth chain', () => {
     expect(redirectUri, `authorize Location missing redirect_uri: ${location.slice(0, 140)}`).toBeTruthy();
 
     const cbHost = new URL(redirectUri!).host;
-    let health = null;
+    let health: any = null;
     try {
       health = await request.get(`https://${cbHost}/auth/v1/health`);
     } catch (_netErr) {
