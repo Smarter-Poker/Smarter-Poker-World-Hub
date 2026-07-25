@@ -855,9 +855,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                             {/* Premium Lighting — Cyan/Blue/Green palette only */}
                             <ambientLight intensity={0.4} />
                             <pointLight position={[0, 12, 15]} intensity={2.5} color="#ffffff" />
-                            <pointLight position={[-15, 5, 8]} intensity={0.6} color="#00d4ff" />
-                            <pointLight position={[15, 5, 8]} intensity={0.6} color="#00ff88" />
-                            <pointLight position={[0, -10, 10]} intensity={0.3} color="#0088ff" />
+                            <pointLight position={[-15, 5, 8]} intensity={0.3} color="#ffffff" />
+                            <pointLight position={[15, 5, 8]} intensity={0.3} color="#ffffff" />
+                            <pointLight position={[0, -10, 10]} intensity={0.2} color="#ffffff" />
                             <spotLight
                                 position={[0, 20, 12]}
                                 angle={0.5}
@@ -869,7 +869,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                             <directionalLight
                                 position={[0, 5, -15]}
                                 intensity={0.4}
-                                color="#00d4ff"
+                                color="#ffffff"
                             />
 
                             {/* Launch Pad Animation */}
