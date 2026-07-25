@@ -733,5 +733,13 @@ const sentryOptions = {
 // On a 950+ page repo this consumes 1-2GB of build RAM and tips us over the
 // Vercel 8GB container limit. Runtime Sentry.init() in sentry.client.config.js
 // still captures all thrown errors — only build-time auto-instrumentation is skipped.
-const pwaConfig = nextConfig;
+// [2026-07-25] APPLY the PWA wrapper. It was constructed above with the
+// carefully-tuned NetworkOnly runtimeCaching rules (the "Dan-fix mobile
+// white-screen" mitigations), but the export line read `module.exports =
+// nextConfig`, so withPWA was never applied and NONE of the service-worker /
+// caching config took effect in production. Wrapping here activates it.
+// withPWA already self-disables when not on Vercel (`disable: !process.env.VERCEL`),
+// so local `next dev` is unaffected. withSentryConfig stays intentionally
+// bypassed (build-time OOM); runtime Sentry is wired via src/instrumentation*.js.
+const pwaConfig = withPWA(nextConfig);
 module.exports = pwaConfig;
