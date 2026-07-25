@@ -114,14 +114,16 @@ function MemberCard({ member, isHost, onMessage }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
-        {member.avatar_url ? (
-          <img src={member.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+        {/* 2026-07-25 audit fix: members API returns nested profiles:user_id
+            (display_name, avatar_url) — flat fields were always undefined. */}
+        {member.profiles?.avatar_url ? (
+          <img src={member.profiles.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         ) : (
           <Users className="w-5 h-5 text-[#22D3EE]" />
         )}
       </div>
       <div className="flex-1">
-        <p className="font-medium text-white">{member.display_name || 'Member'}</p>
+        <p className="font-medium text-white">{member.profiles?.display_name || 'Member'}</p>
         <p className="text-sm text-[#64748B]">{member.role || 'player'}</p>
       </div>
       {isHost && (
@@ -519,7 +521,9 @@ export default function HomeGameDetailPage() {
     );
   }
 
-  const isHost = group.host_id === currentUserId;
+  // 2026-07-25 audit fix: commander_home_groups rows have owner_id, not
+  // host_id — the old comparison made isHost always false for the owner.
+  const isHost = group.owner_id === currentUserId;
   const isMember = !!userMembership;
 
   return (
@@ -565,7 +569,7 @@ export default function HomeGameDetailPage() {
               )}
               {!isHost && isMember && (
                 <button
-                  onClick={() => handleStartDm(group.host_id)}
+                  onClick={() => handleStartDm(group.owner_id)} // 2026-07-25 audit fix: owner_id, not host_id
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                   title="Message Host"
                 >
@@ -642,7 +646,9 @@ export default function HomeGameDetailPage() {
               the cash-games list below so they don't appear twice. */}
           <TournamentList
             tournaments={tournaments}
-            mode="host"
+            // 2026-07-25 audit fix: host mode (Edit/Cancel controls) only for
+            // the group owner — plain members get the read-only player view.
+            mode={isHost ? 'host' : 'player'}
             title="Upcoming Tournaments"
             onEdit={() => router.push(`/hub/commander/home-games/${id}/manage?tab=tournaments`)}
             onCancel={async (t) => {
@@ -716,7 +722,8 @@ export default function HomeGameDetailPage() {
                 <MemberCard
                   key={member.id}
                   member={member}
-                  isHost={member.user_id === group.host_id}
+                  // 2026-07-25 audit fix: owner_id, not host_id
+                  isHost={member.user_id === group.owner_id}
                   onMessage={member.user_id !== currentUserId ? () => handleStartDm(member.user_id) : undefined}
                 />
               ))}
@@ -966,21 +973,31 @@ export default function HomeGameDetailPage() {
               Share this code with players you want to invite
             </p>
 
-            <div className="flex items-center gap-2 p-4 bg-[#0D192E] rounded-lg mb-4">
-              <span className="flex-1 text-center text-2xl font-mono font-bold text-white tracking-wider">
-                {group.invite_code || 'ABC123'}
-              </span>
-              <button
-                onClick={copyInviteCode}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-              >
-                {copied ? (
-                  <Check className="w-5 h-5 text-[#10B981]" />
-                ) : (
-                  <Copy className="w-5 h-5 text-[#64748B]" />
-                )}
-              </button>
-            </div>
+            {/* 2026-07-25 audit fix: no more hardcoded 'ABC123' fallback — when the
+                group has no invite code, explain instead of showing a fake code. */}
+            {group.invite_code ? (
+              <div className="flex items-center gap-2 p-4 bg-[#0D192E] rounded-lg mb-4">
+                <span className="flex-1 text-center text-2xl font-mono font-bold text-white tracking-wider">
+                  {group.invite_code}
+                </span>
+                <button
+                  onClick={copyInviteCode}
+                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                >
+                  {copied ? (
+                    <Check className="w-5 h-5 text-[#10B981]" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-[#64748B]" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#0D192E] rounded-lg mb-4">
+                <p className="text-sm text-[#64748B] text-center">
+                  This group does not have an invite code yet. Ask the host to generate one from the manage page.
+                </p>
+              </div>
+            )}
 
             <button
               onClick={() => setShowShareModal(false)}
