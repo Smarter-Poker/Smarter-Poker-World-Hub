@@ -41,6 +41,22 @@ export default async function handler(req, res) {
               return res.status(401).json({ error: 'Invalid session' });
           }
 
+          // [2026-07-25] Refuse to overwrite an ENABLED factor with a bare
+          // session token. Without this check, a stolen access token could
+          // rotate the victim's TOTP secret (upsert below flips
+          // enabled=false and hands the caller a fresh secret) — bypassing
+          // the disable endpoint's requirement to present a current code.
+          const { data: existingFactor } = await getSupabase()
+              .from('user_mfa_factors')
+              .select('enabled')
+              .eq('user_id', user.id)
+              .maybeSingle();
+          if (existingFactor?.enabled === true) {
+              return res.status(409).json({
+                  error: 'Two-factor authentication is already enabled. Disable it first (requires a current code) before re-enrolling.',
+              });
+          }
+
           // Generate TOTP secret
           const secret = speakeasy.generateSecret({
               name: `Smarter.Poker (${user.email})`,

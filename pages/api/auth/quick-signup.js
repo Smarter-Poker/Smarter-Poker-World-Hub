@@ -25,8 +25,14 @@
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// [2026-07-25] .trim() is load-bearing: the prod Vercel value of
+// NEXT_PUBLIC_SUPABASE_ANON_KEY ends with a literal "\n". Untrimmed, the
+// apikey/Authorization headers below make fetch() throw TypeError on every
+// request — i.e. the designated EMERGENCY signup endpoint 500'd for
+// everyone, exactly when the main flow was broken enough for someone to
+// need it.
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
+const SUPABASE_ANON = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
 export const config = { maxDuration: 15 };
 
@@ -49,6 +55,11 @@ export default async function handler(req, res) {
         }
         if (!password || typeof password !== 'string' || password.length < 10) {
             return res.status(400).json({ error: 'Password must be at least 10 characters' });
+        }
+        if (password.length > 72) {
+            // bcrypt silently truncates at 72 bytes — reject instead of
+            // storing a password that differs from what the user typed.
+            return res.status(400).json({ error: 'Password must be 72 characters or fewer' });
         }
         if (!first_name || !last_name) {
             return res.status(400).json({ error: 'First and last name required' });

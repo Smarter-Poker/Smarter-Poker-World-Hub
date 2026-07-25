@@ -19,43 +19,23 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
+ * send Bearer headers on page navigations, so the old SSR gate redirect-
+ * looped every human admin through /auth/login forever. The x-admin-secret
+ * curl path keeps SSR data; browsers get a client-mode shell that calls
+ * /api/admin/auth-health-data?view=signup with the localStorage token.
+ */
 export async function getServerSideProps({ req, res }) {
-    // Auth: same posture as /api/admin — admin secret OR is_admin flag
     const adminSecret = req.headers['x-admin-secret'];
     const envSecret = process.env.ADMIN_ROUTE_SECRET;
     const hasAdminSecret = envSecret && adminSecret === envSecret;
 
     if (!hasAdminSecret) {
-        // Bearer + is_admin path
-        const auth = req.headers.authorization;
-        if (!auth?.startsWith('Bearer ')) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/signup-health', permanent: false } };
-        }
-        const token = auth.slice(7);
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!url || !anonKey) {
-            return { props: { error: 'Server misconfigured (missing Supabase env)' } };
-        }
-        const sb = createClient(url, anonKey);
-        const { data: userData, error: uErr } = await sb.auth.getUser(token);
-        if (uErr || !userData?.user) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/signup-health', permanent: false } };
-        }
-        // Check is_admin
-        const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!srKey) return { props: { error: 'Server missing service role key' } };
-        const adminClient = createClient(url, srKey);
-        const { data: profile } = await adminClient
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', userData.user.id)
-            .maybeSingle();
-        if (!profile?.is_admin) {
-            return { props: { error: 'Forbidden — admin only' } };
-        }
+        return { props: { clientMode: true } };
     }
 
     // ── Fetch the dashboard data ──
@@ -111,7 +91,72 @@ function fmtAge(iso) {
     return Math.round(ms / 86400_000) + 'd ago';
 }
 
-export default function SignupHealthDashboard({ health, heartbeats = [], errors = [], error, generatedAt }) {
+function readLocalAccessToken() {
+    try {
+        return JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null')?.access_token || null;
+    } catch (_e) {
+        return null;
+    }
+}
+
+export default function SignupHealthDashboard(props) {
+    const [state, setState] = useState({
+        loading: !!props.clientMode,
+        health: props.health || null,
+        heartbeats: props.heartbeats || [],
+        errors: props.errors || [],
+        error: props.error || null,
+        generatedAt: props.generatedAt || null,
+    });
+
+    useEffect(() => {
+        if (!props.clientMode) return;
+        let cancelled = false;
+        (async () => {
+            const token = readLocalAccessToken();
+            if (!token) {
+                window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/signup-health'));
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/auth-health-data?view=signup', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.status === 401) {
+                    window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/signup-health'));
+                    return;
+                }
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    if (!cancelled) setState((s) => ({ ...s, loading: false, error: json.error || `HTTP ${res.status}` }));
+                    return;
+                }
+                if (!cancelled) {
+                    setState({
+                        loading: false,
+                        health: json.health,
+                        heartbeats: json.heartbeats || [],
+                        errors: json.errors || [],
+                        error: json.error || null,
+                        generatedAt: json.generatedAt,
+                    });
+                }
+            } catch (e) {
+                if (!cancelled) setState((s) => ({ ...s, loading: false, error: e?.message || 'Failed to load health data' }));
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [props.clientMode]);
+
+    const { loading, health, heartbeats, errors, error, generatedAt } = state;
+    if (loading) {
+        return (
+            <main style={S.page}>
+                <h1 style={S.h1}>Signup Health</h1>
+                <div style={S.errBox}>Loading…</div>
+            </main>
+        );
+    }
     if (error) {
         return (
             <main style={S.page}>

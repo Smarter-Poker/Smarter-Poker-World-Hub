@@ -43,7 +43,15 @@ export default function ForgotPasswordPage() {
             const { error: resetErr } = await supabase.auth.resetPasswordForEmail(safeEmail, {
                 // The email link points here. /auth/callback handles the OTP /
                 // PKCE exchange and forwards to /auth/reset-password.
-                redirectTo: `${window.location.origin}/auth/callback`,
+                // [2026-07-25] ?next= added: without it, the routing to
+                // /auth/reset-password depends ENTIRELY on the email template
+                // using {{ .TokenHash }}&type=recovery. If the template
+                // uses/reverts to the default {{ .ConfirmationURL }}, the
+                // callback receives only ?code=, the recovery branch never
+                // runs, and the user lands logged-in on /hub without ever
+                // seeing the new-password form. callback.js honours
+                // same-origin ?next= for both link formats.
+                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`,
             });
 
             // ── Account-enumeration defense ─────────────────────────────────

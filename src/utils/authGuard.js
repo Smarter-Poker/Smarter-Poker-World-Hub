@@ -42,10 +42,12 @@ class CircuitBreaker {
 
         try {
             const result = await fn();
-            // Success - reset if we were half-open
+            // Success — ALWAYS reset the failure count. Previously failures
+            // only reset in HALF_OPEN, so 5 transient errors spread over the
+            // process lifetime permanently opened the circuit.
+            this.failures = 0;
             if (this.state === 'HALF_OPEN') {
                 this.state = 'CLOSED';
-                this.failures = 0;
             }
             return result;
         } catch (error) {
@@ -223,10 +225,12 @@ export async function ensureAuth(supabase, maxWaitMs = 5000) {
 
     while (Date.now() - startTime < maxWaitMs) {
         try {
+            let definitiveNoSession = false;
             const result = await circuit.execute(
                 async () => {
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
+                    if (!session) definitiveNoSession = true;
                     return session?.user || null;
                 },
                 // Fallback: return persisted session
@@ -236,6 +240,14 @@ export async function ensureAuth(supabase, maxWaitMs = 5000) {
             if (result?.id) {
                 persistSession(result);
                 return result;
+            }
+
+            // getSession answered SUCCESSFULLY with "no session" — that's a
+            // definitive logged-out state, not a transient failure. Exit now.
+            // Previously every anonymous visitor polled here for the full
+            // maxWaitMs (5s) before guarded pages redirected to login.
+            if (definitiveNoSession) {
+                return null;
             }
         } catch (e) {
             console.warn('[AUTH_GUARD] Exception:', e.message);

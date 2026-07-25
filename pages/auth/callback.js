@@ -203,6 +203,24 @@ export default function AuthCallback() {
 
                 const dest = nextPath || (isCommanderOrigin ? '/commander/dashboard' : '/hub');
 
+                // ── 7.5 MFA challenge gate (parity with password login) ──
+                // [2026-07-25] OAuth sign-ins must not silently bypass a
+                // user's enabled second factor. STRICT === true checks: any
+                // error / null / RLS denial fails OPEN so a broken table can
+                // never strand a sign-in on this screen.
+                try {
+                    const [factorRes, profileRes] = await Promise.all([
+                        supabase.from('user_mfa_factors').select('enabled').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('mfa_required').eq('id', user.id).maybeSingle(),
+                    ]);
+                    const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
+                    const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
+                    if (hasMfa || mfaRequired) {
+                        setStatus('Two-factor check…');
+                        return setTimeout(() => router.replace(`/auth/mfa?next=${encodeURIComponent(dest)}`), 300);
+                    }
+                } catch (_mfaErr) { /* fail open — never block the callback */ }
+
                 try {
                     if (typeof window !== 'undefined') {
                         window.sessionStorage.setItem('just_authenticated', 'true');

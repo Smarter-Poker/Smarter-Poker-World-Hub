@@ -27,9 +27,11 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { code } = req.body;
+          // Coerce: clients may send the code as a JSON number, where
+          // .length is undefined and the old check rejected valid codes.
+          const code = String(req.body?.code ?? '').trim();
 
-          if (!code || code.length !== 6) {
+          if (!/^\d{6}$/.test(code)) {
               return res.status(400).json({ error: 'Invalid verification code' });
           }
 
@@ -50,12 +52,19 @@ export default async function handler(req, res) {
           // Get stored secret
           const { data: mfaData, error: mfaError } = await getSupabase()
               .from('user_mfa_factors')
-              .select('secret')
+              .select('secret, enabled')
               .eq('user_id', user.id)
               .maybeSingle();
 
           if (mfaError || !mfaData) {
               return res.status(404).json({ error: '2FA not set up. Call /api/auth/mfa/setup first.' });
+          }
+
+          // Already enabled → refuse. Re-verifying would silently regenerate
+          // and replace ALL backup codes with a bare session token; backup
+          // code rotation must go through an explicit, step-up-gated flow.
+          if (mfaData.enabled === true) {
+              return res.status(409).json({ error: 'Two-factor authentication is already enabled.' });
           }
 
           // Verify the code

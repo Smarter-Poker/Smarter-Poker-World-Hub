@@ -72,13 +72,17 @@ export default function MfaChallengePage() {
         e?.preventDefault?.();
         setError(null);
 
+        // Backup codes are 8 hex chars (see /api/auth/mfa/verify.js —
+        // crypto.randomBytes(4).toString('hex')). Strip EVERYTHING that
+        // isn't alphanumeric so users who type dash-grouped formats
+        // (A1B2-C3D4) still verify.
         const cleaned = useBackup
-            ? String(code).replace(/\s+/g, '').toUpperCase()
+            ? String(code).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
             : String(code).replace(/\s+/g, '');
 
         if (useBackup) {
-            if (cleaned.length < 8) {
-                setError('Backup codes are 10 characters long.');
+            if (cleaned.length !== 8) {
+                setError('Backup codes are 8 characters (letters and numbers).');
                 return;
             }
         } else {
@@ -177,7 +181,7 @@ export default function MfaChallengePage() {
                             inputMode={useBackup ? 'text' : 'numeric'}
                             autoComplete="one-time-code"
                             maxLength={useBackup ? 12 : 6}
-                            placeholder={useBackup ? 'A1B2-C3D4-EF' : '123456'}
+                            placeholder={useBackup ? 'A1B2C3D4' : '123456'}
                             value={code}
                             onChange={(e) => setCode(e.target.value)}
                             disabled={isLoading}

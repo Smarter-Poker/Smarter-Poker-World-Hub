@@ -105,7 +105,11 @@ export default async function handler(req, res) {
           if (email) {
               const { data: emailMatch, error: emailCheckError } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, full_name, email, created_at')
+                  // avatar_url MUST be in this select: the merge below guards
+                  // with `!emailMatch.avatar_url`, which was always true when
+                  // the column wasn't selected — silently overwriting existing
+                  // users' custom avatars with their Google picture.
+                  .select('id, username, full_name, email, avatar_url, created_at')
                   .ilike('email', email.trim())
                   .maybeSingle();
 
@@ -251,7 +255,11 @@ export default async function handler(req, res) {
           // ── MySpace Tom: Auto-friend + auto-follow Dan Bekavac for every new user ──
           const DAN_BEKAVAC_ID = '47965354-0e56-43ef-931c-ddaab82af765';
           if (user_id !== DAN_BEKAVAC_ID) {
-          (async () => {
+          // [2026-07-25] AWAITED, not fire-and-forget: on Vercel the lambda
+          // freezes the moment the response is sent, so an unawaited promise
+          // here silently never completed for a fraction of signups (missing
+          // auto-friend rows, no log trail). Two upserts cost ~50ms.
+          await (async () => {
               try {
                 const [friendResult, followResult] = await Promise.all([
                   // Bidirectional friendship (accepted immediately)

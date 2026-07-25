@@ -26,8 +26,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const POSTHOG_CDN = 'https://us-assets.i.posthog.com/static/array.js';
 const POSTHOG_HOST = 'https://us.i.posthog.com';
+// .trim() guards against the trailing-"\n" pattern present in several prod
+// Vercel env values (would corrupt the PostHog project key).
+const POSTHOG_KEY = (process.env.NEXT_PUBLIC_POSTHOG_KEY || '').trim();
 
 let _loaded = false;
 let _loadPromise = null;
@@ -39,7 +41,7 @@ function isBrowser() {
 }
 
 function isEnabled() {
-    return isBrowser() && !!process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    return isBrowser() && !!POSTHOG_KEY;
 }
 
 /**
@@ -82,7 +84,7 @@ function loadPosthog() {
         })(window, document);
 
         // Initialize PostHog with the project key.
-        window.posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+        window.posthog.init(POSTHOG_KEY, {
             api_host: POSTHOG_HOST,
             person_profiles: 'identified_only',
             capture_pageview: true,
@@ -111,6 +113,19 @@ function loadPosthog() {
                 },
             },
         });
+
+        // SPA pageviews: capture_pageview only fires on full document loads.
+        // Hook the Pages Router so client-side navigations register too —
+        // without this, multi-route funnels (signup -> first_login) undercount.
+        try {
+            // eslint-disable-next-line global-require
+            const Router = require('next/router').default;
+            if (Router?.events?.on) {
+                Router.events.on('routeChangeComplete', () => {
+                    try { window.posthog?.capture('$pageview'); } catch (_e) { /* ignore */ }
+                });
+            }
+        } catch (_routerErr) { /* not in a Next.js context (unit tests) */ }
 
         // Flush any queued calls
         _loaded = true;
