@@ -105,15 +105,19 @@ export default function PlayerCheckInPage() {
         })
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      // 2026-07-25 audit fix: Bearer header + {venue_id, check_in_type} were
+      // already correct here; the remaining bug was that a 4xx/5xx response
+      // surfaced as a generic "Connection error" instead of the server message.
+      const data = await res.json().catch(() => ({}));
 
-      if (data.success) {
+      if (res.ok && data.success) {
         setCheckedIn(true);
       } else {
-        setError(data.error?.message || 'Check-in failed. Please see staff.');
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : '') || `Check-in failed (${res.status}). Please see staff.`;
+        setError(msg);
       }
     } catch (err) {
+      console.warn('Check-in failed:', err);
       setError('Connection error. Please try again.');
     } finally {
       setCheckingIn(false);

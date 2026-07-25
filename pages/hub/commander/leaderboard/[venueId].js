@@ -66,21 +66,37 @@ export default function LeaderboardPage() {
   const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
   // SWR — parallel fetch, re-fires when metric/period/venueId changes
-  const swrKey = venueId ? `/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}` : null;
+  // 2026-07-25 audit fix: /api/commander/leaderboards/{id} takes a LEADERBOARD
+  // id, not a venue id, and returns {leaderboard, entries, total_entries} with
+  // no success flag. List the venue's boards first, pick the first active one,
+  // then fetch its entries by leaderboard id.
+  const swrKey = venueId ? `/api/commander/leaderboards?venue_id=${venueId}&metric=${metric}&period=${period}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeaderboard } = useSWR(swrKey, async () => {
-    const [leaderboardRes, promosRes, venueRes, listRes] = await Promise.all([
-      fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`).catch(() => ({ ok: false })),
+    const safeJson = async (res) => (res && res.ok && typeof res.json === 'function') ? res.json().catch(() => ({})) : {};
+    const [listRes, promosRes, venueRes] = await Promise.all([
+      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`).catch(() => ({ ok: false })),
       fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`).catch(() => ({ ok: false })),
-      fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false })),
-      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`).catch(() => ({ ok: false }))
+      fetch(`/api/commander/venues/${venueId}`).catch(() => ({ ok: false }))
     ]);
-    if (!leaderboardRes.ok) throw new Error(`Request failed (${leaderboardRes.status})`);
-    const [lb, pr, vn, ls] = await Promise.all([leaderboardRes.json(), promosRes.json(), venueRes.json(), listRes.json()]);
+    if (!listRes.ok) throw new Error(`Request failed (${listRes.status || 'network'})`);
+    const [ls, pr, vn] = await Promise.all([safeJson(listRes), safeJson(promosRes), safeJson(venueRes)]);
+    const boards = ls.leaderboards || ls.data?.leaderboards || [];
+    const board = boards.find(b => b.status === 'active') || boards[0] || null;
+
+    let entries = [];
+    if (board?.id) {
+      const detailRes = await fetch(`/api/commander/leaderboards/${board.id}`).catch(() => ({ ok: false }));
+      if (detailRes.ok) {
+        const detail = await detailRes.json().catch(() => ({}));
+        entries = Array.isArray(detail.entries) ? detail.entries : [];
+      }
+    }
+
     return {
-      leaderboard: lb.success ? (lb.data?.entries || []) : [],
+      leaderboard: entries,
       promotions: pr.success ? (pr.data?.promotions || []) : [],
       venue: vn.success || vn.venue ? (vn.venue || vn.data?.venue) : null,
-      leaderboardsList: ls.leaderboards || []
+      leaderboardsList: boards
     };
   });
   const leaderboard = swrData?.leaderboard || [];
@@ -229,17 +245,20 @@ export default function LeaderboardPage() {
                 description: `Top players this ${period}`
               }}
               entries={leaderboard.map((player, idx) => ({
+                // 2026-07-25 audit fix: real entries rows already carry rank,
+                // score and a nested profiles object — prefer those, keep the
+                // old flat fields as fallbacks, default missing numbers to 0.
                 id: player.id,
-                rank: idx + 1,
-                player_id: player.id,
-                profiles: {
+                rank: player.rank ?? idx + 1,
+                player_id: player.player_id || player.id,
+                profiles: player.profiles || {
                   display_name: player.display_name || player.player_name,
                   avatar_url: player.avatar_url
                 },
-                hours_played: player.total_hours || 0,
-                sessions_count: player.sessions || 0,
-                points_earned: player.points || 0,
-                score: player.total_buyins || 0
+                hours_played: player.hours_played ?? player.total_hours ?? 0,
+                sessions_count: player.sessions_count ?? player.sessions ?? 0,
+                points_earned: player.points_earned ?? player.points ?? 0,
+                score: player.score ?? player.total_buyins ?? 0
               }))}
             />
           )}

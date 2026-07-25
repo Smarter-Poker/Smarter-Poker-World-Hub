@@ -118,10 +118,13 @@ export default function PlayerHomeGamesHub() {
     }
 
     // Days ahead filter
+    // 2026-07-25 audit fix: group rows have no scheduled_date — new Date(undefined)
+    // is Invalid Date and the comparison filtered everything out. Only apply the
+    // cutoff to items that actually carry a scheduled_date.
     if (filters.daysAhead) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() + filters.daysAhead);
-      result = result.filter(game => new Date(game.scheduled_date) <= cutoffDate);
+      result = result.filter(game => !game.scheduled_date || new Date(game.scheduled_date) <= cutoffDate);
     }
 
     setFilteredGames(result);
@@ -132,7 +135,10 @@ export default function PlayerHomeGamesHub() {
     setIsLoading(true);
     try {
       const token = getAccessToken();
-      const res = await fetch('/api/commander/home-games/groups?visibility=public,friends', {
+      // 2026-07-25 audit fix: this feeds the 'My Games' tab but was fetching public
+      // groups (the visibility=public,friends param is unsupported). Use
+      // my_groups=true with the Bearer token to get the caller's own groups.
+      const res = await fetch('/api/commander/home-games/groups?my_groups=true', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
