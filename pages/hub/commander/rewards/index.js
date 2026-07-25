@@ -12,7 +12,8 @@ import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditC
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 import { supabase } from '../../../../src/lib/supabase';
-import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
+// 2026-07-25 audit fix: getAuthUser added as a fallback source for player_id.
+import { useRequireAuth, getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -103,11 +104,15 @@ export default function PlayerRewardsPage() {
       balance: bal.success ? (bal.data?.balance || 0) : 0,
       lifetimeEarned: bal.success ? (bal.data?.lifetime_earned || 0) : 0,
       hoursPlayed: bal.success ? (bal.data?.total_hours || 0) : 0,
+      // 2026-07-25 audit fix: keep the per-venue balance rows — redemption is
+      // venue-scoped, so the redeem call needs a venue_id from this list.
+      venueBalances: bal.success ? (bal.data?.balances || []) : [],
       transactions: tx.success ? (tx.data?.transactions || []) : [],
       earnRate: rates.success ? (rates.data?.rate_per_hour || 1) : 1
     };
   });
   const balance = swrData?.balance || 0;
+  const venueBalances = swrData?.venueBalances || [];
   const lifetimeEarned = swrData?.lifetimeEarned || 0;
   const hoursPlayed = swrData?.hoursPlayed || 0;
   const transactions = swrData?.transactions || [];
@@ -152,7 +157,20 @@ export default function PlayerRewardsPage() {
       return;
     }
 
-    const finalAmount = Math.min(parsed, balance);
+    // 2026-07-25 audit fix: the redeem API requires {venue_id, player_id,
+    // amount, redemption_type} — the old {category, amount} body always 400'd.
+    // This page has no single venue context, so redeem against the venue
+    // balance being spent: the first venue whose balance covers the amount
+    // (falling back to the largest balance; the list is sorted descending).
+    const playerId = user?.id || getAuthUser()?.id;
+    const target = venueBalances.find(b => parseFloat(b.current_balance || 0) >= parsed) || venueBalances[0];
+    if (!playerId || !target?.venue_id) {
+      setComingSoonMessage('No venue balance available to redeem');
+      handleRedeemCancel();
+      setTimeout(() => setComingSoonMessage(null), 3000);
+      return;
+    }
+    const finalAmount = Math.min(parsed, parseFloat(target.current_balance || 0));
 
     try {
       const token = getAccessToken();
@@ -163,19 +181,23 @@ export default function PlayerRewardsPage() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          category: category.id,
-          amount: finalAmount
+          venue_id: target.venue_id,
+          player_id: playerId,
+          amount: finalAmount,
+          redemption_type: category.id,
+          description: `${category.label} redemption`
         })
       });
 
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         busEmit.dataMutated('rewards');
         setComingSoonMessage(`Successfully redeemed $${finalAmount} for ${category.label}!`);
         refreshRewards(); // Refresh data
       } else {
-        setComingSoonMessage(data.error || 'Redemption failed');
+        // 2026-07-25 audit fix: surface the server's error message.
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : '') || `Redemption failed (${res.status})`;
+        setComingSoonMessage(msg);
       }
     } catch (err) {
       console.warn('Redeem failed:', err);

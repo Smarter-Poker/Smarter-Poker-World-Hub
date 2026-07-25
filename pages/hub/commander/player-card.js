@@ -23,6 +23,9 @@ const TIER_COLORS = {
 export default function PlayerCard() {
   const router = useRouter();
   const [qrData, setQrData] = useState(null);
+  // 2026-07-25 audit fix: real scannable QR image (data URL) — the old SVG
+  // dot pattern was decorative and could not be read by any scanner.
+  const [qrImageUrl, setQrImageUrl] = useState(null);
   const [qrRefresh, setQrRefresh] = useState(0);
   const intervalRef = useRef(null);
 
@@ -62,6 +65,15 @@ export default function PlayerCard() {
     // Base64 encode for QR
     const encoded = btoa(payload);
     setQrData(encoded);
+    // 2026-07-25 audit fix: encode the SAME payload into a real QR image via
+    // the qrcode package so kiosks can actually scan it.
+    import('qrcode')
+      .then(QRCode => (QRCode.default || QRCode).toDataURL(encoded, { width: 180, margin: 1 }))
+      .then(url => setQrImageUrl(url))
+      .catch(err => {
+        console.warn('[player-card] QR render failed:', err?.message || err);
+        setQrImageUrl(null);
+      });
   };
 
   const quickActions = [
@@ -142,30 +154,18 @@ export default function PlayerCard() {
             {/* QR Code */}
             <div style={{ background: 'white', margin: '0 16px 16px', borderRadius: 14, padding: 16, textAlign: 'center' }}>
               <div style={{ display: 'inline-block', padding: 8, background: 'white', borderRadius: 8 }}>
-                {qrData ? (
+                {qrData && qrImageUrl ? (
                   <div style={{ position: 'relative' }}>
-                    {/* QR code rendered as SVG pattern */}
-                    <svg width="180" height="180" viewBox="0 0 180 180">
-                      {/* QR frame corners */}
-                      <rect x="10" y="10" width="50" height="50" rx="4" fill="none" stroke="#1C2526" strokeWidth="4" />
-                      <rect x="18" y="18" width="34" height="34" rx="2" fill="#1C2526" />
-                      <rect x="120" y="10" width="50" height="50" rx="4" fill="none" stroke="#1C2526" strokeWidth="4" />
-                      <rect x="128" y="18" width="34" height="34" rx="2" fill="#1C2526" />
-                      <rect x="10" y="120" width="50" height="50" rx="4" fill="none" stroke="#1C2526" strokeWidth="4" />
-                      <rect x="18" y="128" width="34" height="34" rx="2" fill="#1C2526" />
-                      {/* Data dots - generated from qrData hash */}
-                      {Array.from({ length: 64 }, (_, i) => {
-                        const col = (i % 8);
-                        const row = Math.floor(i / 8);
-                        const x = 68 + col * 8;
-                        const y = 68 + row * 8;
-                        const show = qrData.charCodeAt(i % qrData.length) % 3 !== 0;
-                        return show ? <rect key={i} x={x} y={y} width="6" height="6" fill="#1C2526" rx="1" /> : null;
-                      })}
-                      {/* Center logo */}
-                      <circle cx="90" cy="90" r="14" fill="white" stroke="#1877F2" strokeWidth="2" />
-                      <text x="90" y="95" textAnchor="middle" fill="#1877F2" fontSize="14" fontWeight="900">♠</text>
-                    </svg>
+                    {/* 2026-07-25 audit fix: real scannable QR (qrcode package)
+                        encoding the same qrData payload — replaces the
+                        decorative SVG dot pattern scanners couldn't read. */}
+                    <img
+                      src={qrImageUrl}
+                      alt="Player check-in QR code"
+                      width={180}
+                      height={180}
+                      style={{ display: 'block' }}
+                    />
                     <div style={{ position: 'absolute', bottom: -4, right: -4 }}>
                       <button onClick={() => setQrRefresh(r => r + 1)}
                         style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>

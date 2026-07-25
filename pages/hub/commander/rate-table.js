@@ -8,6 +8,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+// 2026-07-25 audit fix: use the standard auth helper ('smarter-poker-auth' key)
+// instead of the nonexistent 'sb-access-token' localStorage key.
+import { getAccessToken } from '../../../src/lib/authUtils';
 import {
   ArrowLeft, Flame, Smile, Zap, Star, Send, CheckCircle2, Loader2
 } from 'lucide-react';
@@ -27,9 +30,10 @@ export default function RateTable() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // 2026-07-25 audit fix: submit errors were swallowed — surface them.
+  const [error, setError] = useState(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('sb-access-token') : null;
+  const getToken = () => typeof window !== 'undefined' ? getAccessToken() : null;
 
   const handleSubmit = async () => {
 
@@ -37,8 +41,13 @@ export default function RateTable() {
 
     if (!venue_id || !table_number) return;
     setSubmitting(true);
+    setError(null);
     try {
       const token = getToken();
+      if (!token) {
+        router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
       const res = await fetch('/api/commander/table-ratings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -53,10 +62,18 @@ export default function RateTable() {
           comment: comment.trim() || null
         })
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
-      if (json.success) setDone(true);
-    } catch (err) { console.warn(err); }
+      // 2026-07-25 audit fix: surface submit failures instead of swallowing them.
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
+        setDone(true);
+      } else {
+        const msg = json.error?.message || (typeof json.error === 'string' ? json.error : '') || `Failed to submit rating (${res.status})`;
+        setError(msg);
+      }
+    } catch (err) {
+      console.warn(err);
+      setError('Connection error. Please try again.');
+    }
     finally { setSubmitting(false); }
   };
 
@@ -142,6 +159,13 @@ export default function RateTable() {
               placeholder="How Was The Table?"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
+
+          {/* 2026-07-25 audit fix: submit error surfaced in the UI. */}
+          {error && (
+            <div style={{ background: '#FDECEA', border: '1px solid #EF4444', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#B91C1C', textAlign: 'center' }}>
+              {error}
+            </div>
+          )}
 
           <button onClick={handleSubmit} disabled={submitting}
             style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 16, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
