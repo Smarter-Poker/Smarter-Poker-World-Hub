@@ -50,9 +50,10 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
             const tex = loader.load(imageUrl, (loadedTex) => {
                 loadedTex.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
-                // Show full image - no repeat/offset adjustments
-                loadedTex.repeat.set(1, 1);
-                loadedTex.offset.set(0, 0);
+                // Mathematically exact crop: removes the 8.33% black border baked into the original images
+                // to perfectly expose only the 2:3 brushed nickel frames without any distortion.
+                loadedTex.repeat.set(0.8335, 1);
+                loadedTex.offset.set(0.0832, 0);
                 loadedTex.needsUpdate = true;
             });
             tex.colorSpace = THREE.SRGBColorSpace;
