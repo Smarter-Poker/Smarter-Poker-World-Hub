@@ -341,14 +341,8 @@ export default function VideoLibraryPage() {
         captions: false
     });
 
-    //  INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('video-library-intro-seen');
-        }
-        return false;
-    });
+    // Intro video removed by request
+    const [showIntro, setShowIntro] = useState(false);
     const introVideoRef = useRef(null);
 
     // Mark intro as seen when it ends

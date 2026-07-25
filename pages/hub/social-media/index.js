@@ -8631,15 +8631,8 @@ function SocialMediaPage() {
     });
   }, []);
 
-  //  INTRO VIDEO STATE - Video plays while page loads in background
-  // Only show once per session (not on every reload)
-  // SSR-safe: always start false on server, check sessionStorage on client mount
+  // Intro video removed by request
   const [showIntro, setShowIntro] = useState(false);
-  useEffect(() => {
-    if (!sessionStorage.getItem('social-intro-seen')) {
-      setShowIntro(true);
-    }
-  }, []);
   const introVideoRef = useRef(null);
 
   // BUG FIX (2026-04-30 per Dan): on iOS Safari, simply unmounting the

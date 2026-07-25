@@ -70,17 +70,12 @@ export default function CategoryPage() {
 
     // Handle game click
     const handleGameClick = (game) => {
-        setPendingGame(game);
-        setShowIntro(true);
+        router.push(`/hub/training/play/${game.id}`);
     };
 
     // After intro, navigate to game
     const handleIntroComplete = () => {
         setShowIntro(false);
-        if (pendingGame) {
-            router.push(`/hub/training/play/${pendingGame.id}`);
-            setPendingGame(null);
-        }
     };
 
     // Handle back
