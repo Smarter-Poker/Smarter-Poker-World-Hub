@@ -95,11 +95,15 @@ export default function PlayerHistoryPage() {
   const { data: swrData, isLoading: loading } = useSWR(
     `/api/commander/sessions?period=${filter}`,
     async (url) => {
+      // 2026-07-25 audit fix: the Bearer header was already present here (the
+      // API now uses it to scope results to the caller); this fix stops sending
+      // "Bearer null" when logged out and reads the sessions list defensively.
       const token = getAccessToken();
-      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      return fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
         .then(r => r.json())
         .then(data => {
-          const sessionList = data.success ? (data.data?.sessions || []) : [];
+          const rawList = data?.data?.sessions ?? data?.sessions ?? [];
+          const sessionList = data?.success && Array.isArray(rawList) ? rawList : [];
           const totalSessions = sessionList.length;
           const totalMinutes = sessionList.reduce((sum, s) => sum + (s.total_time_minutes || 0), 0);
           const totalBuyins = sessionList.reduce((sum, s) => sum + (s.total_buyin || 0), 0);

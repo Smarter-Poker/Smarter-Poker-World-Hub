@@ -118,9 +118,22 @@ export default function LeaguesPage() {
     ]);
     if (!allRes.ok) throw new Error(`Request failed (${allRes.status})`);
     const [all, my] = await Promise.all([allRes.json(), myRes.json()]);
+    // 2026-07-25 audit fix: /leagues/my returns raw commander_league_standings
+    // rows (points/rank + nested commander_leagues) — map them into the shape
+    // MyLeagueCard renders (id/name/my_rank/my_points/events_played). Before,
+    // league.name/my_rank/my_points were always undefined and the card click
+    // navigated with the standings-row id instead of the league id.
+    const myRows = my.success ? (my.data?.leagues || []) : [];
+    const myLeaguesMapped = myRows.map(row => ({
+      id: row.league_id || row.commander_leagues?.id,
+      name: row.commander_leagues?.name || 'League',
+      my_rank: row.rank ?? null,
+      my_points: row.points ?? 0,
+      events_played: row.events_played ?? 0
+    })).filter(l => l.id);
     return {
       leagues: all.success ? (all.data?.leagues || []) : [],
-      myLeagues: my.success ? (my.data?.leagues || []) : []
+      myLeagues: myLeaguesMapped
     };
   });
   const leagues = swrData?.leagues || [];
