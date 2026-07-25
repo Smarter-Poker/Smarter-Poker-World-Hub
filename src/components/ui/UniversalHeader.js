@@ -1065,7 +1065,7 @@ export default function UniversalHeader({
 
                 {/* CENTER: Brand Text — centered between nav and icons */}
                 <div className="header-center">
-                    <img src="/images/brand-text-clean.png" alt="Smarter.Poker" className="brand-text-img hide-mobile" style={{ height: 28, objectFit: 'contain' }} />
+                    <img src="/images/brand-text-clean.png" alt="Smarter.Poker" className="brand-text-img hide-mobile" style={{ height: 40, objectFit: 'contain' }} />
                     {router.pathname.includes('/messenger') && (
                         <span className="hide-mobile" style={{ marginLeft: 8, fontSize: 16, display: 'flex', alignItems: 'center' }} title="Securely Encrypted">🔒</span>
                     )}
