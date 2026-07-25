@@ -25,7 +25,10 @@ import MlbSubNav from '../../../src/components/ui/MlbSubNav';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { logError } from '@/utils/logger';
 
-class ChartErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+class ChartErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -128,47 +131,51 @@ interface MetricBoxProps {
   isLoading?: boolean;
 }
 
-const MetricBox = React.memo(({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
-  <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)]">
-    <div className="text-[17px] font-bold text-slate-400 tracking-widest mb-2 capitalize">
-      {title}
-    </div>
-    <div
-      className="text-3xl sm:text-4xl font-extrabold"
-      style={{
-        color: isLoading ? '#00D4FF' : valueColor,
-        textShadow:
-          isLoading || valueColor !== '#FFFFFF'
-            ? `0 0 10px ${isLoading ? '#00D4FF' : valueColor}80`
-            : 'none',
-        fontFamily: '"Rajdhani", sans-serif',
-      }}
-    >
-      {isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#00D4FF]" /> : value}
-    </div>
-    {sub && (
-      <div className="text-[18px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
-        {isLoading ? '--' : sub}
+const MetricBox = React.memo(
+  ({ title, value, sub, valueColor = '#FFFFFF', isLoading }: MetricBoxProps) => (
+    <div className="bg-[#0d1117] border-[2px] border-[#3d4f5f] rounded-xl p-4 flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_10px_rgba(0,0,0,0.5)] transition-all hover:border-[#00D4FF] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5),0_0_15px_rgba(0,212,255,0.2)]">
+      <div className="text-[17px] font-bold text-slate-400 tracking-widest mb-2 capitalize">
+        {title}
       </div>
-    )}
-  </div>
-));
+      <div
+        className="text-3xl sm:text-4xl font-extrabold"
+        style={{
+          color: isLoading ? '#00D4FF' : valueColor,
+          textShadow:
+            isLoading || valueColor !== '#FFFFFF'
+              ? `0 0 10px ${isLoading ? '#00D4FF' : valueColor}80`
+              : 'none',
+          fontFamily: '"Rajdhani", sans-serif',
+        }}
+      >
+        {isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#00D4FF]" /> : value}
+      </div>
+      {sub && (
+        <div className="text-[18px] text-slate-500 mt-1 font-bold tracking-widest capitalize">
+          {isLoading ? '--' : sub}
+        </div>
+      )}
+    </div>
+  )
+);
 MetricBox.displayName = 'MetricBox';
 
-const SectionTitle = React.memo(({ children, tag }: { children: React.ReactNode; tag?: string }) => (
-  <h2
-    className="text-[30px] font-extrabold text-white mb-4 flex items-center gap-2 tracking-widest relative z-10"
-    style={{ fontFamily: '"Rajdhani", sans-serif' }}
-  >
-    <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
-    {children}
-    {tag && (
-      <span className="text-slate-400 font-bold tracking-widest text-[17px] border border-[#3d4f5f] rounded px-1.5 py-0.5">
-        {tag}
-      </span>
-    )}
-  </h2>
-));
+const SectionTitle = React.memo(
+  ({ children, tag }: { children: React.ReactNode; tag?: string }) => (
+    <h2
+      className="text-[30px] font-extrabold text-white mb-4 flex items-center gap-2 tracking-widest relative z-10"
+      style={{ fontFamily: '"Rajdhani", sans-serif' }}
+    >
+      <div className="w-1 h-[18px] bg-[#00D4FF] rounded-sm shadow-[0_0_8px_rgba(0,212,255,0.6)]" />
+      {children}
+      {tag && (
+        <span className="text-slate-400 font-bold tracking-widest text-[17px] border border-[#3d4f5f] rounded px-1.5 py-0.5">
+          {tag}
+        </span>
+      )}
+    </h2>
+  )
+);
 SectionTitle.displayName = 'SectionTitle';
 
 const fetcher = async (url: string) => {
@@ -245,20 +252,29 @@ export default function PortfolioPage() {
   const csvHref = `/api/mlb/portfolio-csv?${daysFilter ? `days=${daysFilter}&` : ''}market=${marketFilter}`;
 
   // Kelly-vs-flat: Kelly final = last daily end_bankroll; flat from baseline view.
-  const { kellyFinal, startBankroll, flatFinal, kellyGrowth, flatGrowth, kellyMultiple } = React.useMemo(() => {
-    const lastEq = equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
-    const kFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
-    const sBankroll = baseline ? Number(baseline.starting_bankroll) : (data?.currentBankroll != null ? data.currentBankroll - (data.totalPnl || 0) : 1000);
-    const fFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
-    return {
-      kellyFinal: kFinal,
-      startBankroll: sBankroll,
-      flatFinal: fFinal,
-      kellyGrowth: kFinal != null && sBankroll > 0 ? (kFinal / sBankroll - 1) * 100 : null,
-      flatGrowth: fFinal != null && sBankroll > 0 ? (fFinal / sBankroll - 1) * 100 : null,
-      kellyMultiple: kFinal != null && fFinal && fFinal !== sBankroll ? (kFinal - sBankroll) / (fFinal - sBankroll) : null,
-    };
-  }, [equityDaily, baseline, data?.currentBankroll, data?.totalPnl]);
+  const { kellyFinal, startBankroll, flatFinal, kellyGrowth, flatGrowth, kellyMultiple } =
+    React.useMemo(() => {
+      const lastEq =
+        equityDaily.length > 0 ? equityDaily[equityDaily.length - 1].end_bankroll : null;
+      const kFinal = lastEq != null && !Number.isNaN(Number(lastEq)) ? Number(lastEq) : null;
+      const sBankroll = baseline
+        ? Number(baseline.starting_bankroll)
+        : data?.currentBankroll != null
+          ? data.currentBankroll - (data.totalPnl || 0)
+          : 1000;
+      const fFinal = baseline ? Number(baseline.flat_final_bankroll) : null;
+      return {
+        kellyFinal: kFinal,
+        startBankroll: sBankroll,
+        flatFinal: fFinal,
+        kellyGrowth: kFinal != null && sBankroll > 0 ? (kFinal / sBankroll - 1) * 100 : null,
+        flatGrowth: fFinal != null && sBankroll > 0 ? (fFinal / sBankroll - 1) * 100 : null,
+        kellyMultiple:
+          kFinal != null && fFinal && fFinal !== sBankroll
+            ? (kFinal - sBankroll) / (fFinal - sBankroll)
+            : null,
+      };
+    }, [equityDaily, baseline, data?.currentBankroll, data?.totalPnl]);
 
   const hasError = !!error || !!data?.error;
 
@@ -387,7 +403,11 @@ export default function PortfolioPage() {
                     key={d}
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                        try {
+                          navigator.vibrate(15);
+                        } catch (e) {
+                          console.error(e);
+                        }
                       }
                       setDaysFilter(d);
                     }}
@@ -400,7 +420,11 @@ export default function PortfolioPage() {
                 <button
                   onClick={() => {
                     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                      try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                      try {
+                        navigator.vibrate(15);
+                      } catch (e) {
+                        console.error(e);
+                      }
                     }
                     setDaysFilter(null);
                   }}
@@ -424,7 +448,11 @@ export default function PortfolioPage() {
                     key={m.val}
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch (e) { console.error(e); }
+                        try {
+                          navigator.vibrate(15);
+                        } catch (e) {
+                          console.error(e);
+                        }
                       }
                       setMarketFilter(m.val);
                     }}
@@ -519,6 +547,7 @@ export default function PortfolioPage() {
                   <Loader2 className="w-12 h-12 animate-spin text-[#00D4FF]" />
                 </div>
               )}
+<<<<<<< Updated upstream
             <div
               className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10"
               role="img"
@@ -590,6 +619,82 @@ export default function PortfolioPage() {
                 </ResponsiveContainer>
               )}
             </div>
+=======
+              <div
+                className="bg-[#0d1117] border-[3px] border-[#3d4f5f] rounded-xl p-6 mb-8 h-[350px] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden z-10"
+                role="img"
+                aria-label="Cumulative bankroll equity curve by week"
+              >
+                {weeklyCurve.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-slate-500 font-bold tracking-widest text-[18px] capitalize">
+                    No Equity Curve Data Available
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ChartErrorBoundary>
+                      <AreaChart
+                        data={weeklyCurve}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="colorBankroll" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#00D4FF" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
+                        <XAxis
+                          dataKey="weekOf"
+                          stroke="#64748B"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(val: any) => {
+                            if (!val) return '';
+                            const d = new Date(val);
+                            if (isNaN(d.getTime())) return '';
+                            return d.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              timeZone: 'UTC',
+                            });
+                          }}
+                        />
+                        <YAxis
+                          stroke="#64748B"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          domain={['auto', 'auto']}
+                          tickFormatter={(val: any) => `${val}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#0a0a15',
+                            border: '1px solid #00D4FF',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
+                          }}
+                          itemStyle={{ color: '#00D4FF', fontWeight: 700 }}
+                          labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
+                          formatter={(value: number) => [formatCurrency(value), 'Bankroll']}
+                          labelFormatter={(label: any) => `Week of ${label}`}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="bankroll"
+                          stroke="#00D4FF"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorBankroll)"
+                          activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0a0a15', strokeWidth: 2 }}
+                        />
+                      </AreaChart>
+                    </ChartErrorBoundary>
+                  </ResponsiveContainer>
+                )}
+              </div>
+>>>>>>> Stashed changes
             </div>
 
             {/* ───────── FULL BACKTEST ANALYTICS (filter-independent) ───────── */}
@@ -906,6 +1011,7 @@ export default function PortfolioPage() {
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <ChartErrorBoundary>
+<<<<<<< Updated upstream
                     <AreaChart
                       data={equityDaily}
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -964,6 +1070,69 @@ export default function PortfolioPage() {
                         fill="url(#colorDrawdown)"
                       />
                     </AreaChart>
+=======
+                      <AreaChart
+                        data={equityDaily}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="colorDrawdown" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#FF0055" stopOpacity={0.0} />
+                            <stop offset="95%" stopColor="#FF0055" stopOpacity={0.4} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2a3a4a" vertical={false} />
+                        <XAxis
+                          dataKey="day"
+                          stroke="#64748B"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          minTickGap={28}
+                          tickFormatter={(val: any) => {
+                            if (!val) return '';
+                            const d = new Date(`${val}T00:00:00Z`);
+                            if (isNaN(d.getTime())) return '';
+                            return d.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              timeZone: 'UTC',
+                            });
+                          }}
+                        />
+                        <YAxis
+                          stroke="#64748B"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          domain={['dataMin', 0]}
+                          tickFormatter={(val: any) => `${val}%`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#0a0a15',
+                            border: '1px solid #FF0055',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
+                          }}
+                          itemStyle={{ color: '#FF0055', fontWeight: 700 }}
+                          labelStyle={{ color: '#F8FAFC', marginBottom: '4px' }}
+                          formatter={(value: number) => [
+                            `${Number(value).toFixed(2)}%`,
+                            'Drawdown',
+                          ]}
+                          labelFormatter={(label: any) => `${fmtDay(label)}`}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="drawdown"
+                          stroke="#FF0055"
+                          strokeWidth={2}
+                          fillOpacity={1}
+                          fill="url(#colorDrawdown)"
+                        />
+                      </AreaChart>
+>>>>>>> Stashed changes
                     </ChartErrorBoundary>
                   </ResponsiveContainer>
                 </div>
