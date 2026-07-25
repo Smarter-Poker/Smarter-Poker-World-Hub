@@ -1063,7 +1063,6 @@ export default function NewsHub() {
                                         ) : (
                                             <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
                                         )}
-                                        )}
                                     </section>
                                 </>
                             )}
