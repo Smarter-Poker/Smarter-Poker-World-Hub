@@ -78,10 +78,16 @@ export interface TrainingQuestion {
 // is imported transitively by pages, so module scope runs during SSG/SSR where the
 // public env vars can resolve to empty strings and createClient() would throw at
 // build time (repo Immutable Rule 3).
-let _client: ReturnType<typeof createClient> | null = null;
+// NOTE: the cache is typed off a concrete factory, NOT `ReturnType<typeof createClient>`.
+// createClient is generic; referencing its ReturnType directly resolves the Database
+// generic to its default and collapses every query result to `never`.
+function makeClient(url: string, key: string) {
+    return createClient(url, key);
+}
+let _client: ReturnType<typeof makeClient> | null = null;
 let _warnedMissingEnv = false;
 
-function getSupabase(): ReturnType<typeof createClient> | null {
+function getSupabase() {
     if (_client) return _client;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -98,7 +104,7 @@ function getSupabase(): ReturnType<typeof createClient> | null {
         return null;
     }
 
-    _client = createClient(supabaseUrl, supabaseKey);
+    _client = makeClient(supabaseUrl, supabaseKey);
     return _client;
 }
 
