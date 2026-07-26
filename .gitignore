@@ -110,3 +110,7 @@ user_messages.txt
 # Scratch/quarantine dir — lock files and dead code get parked here by
 # agents and by git-safe-push recovery. Never commit it (2026-07-25).
 _to_delete/
+
+# Source tarball accidentally committed 2026-07-25 — build artifact, never track
+wh-fixes.tar.gz
+*.tar.gz
