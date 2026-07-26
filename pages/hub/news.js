@@ -134,11 +134,14 @@ export default function NewsHub() {
             if ('scrollRestoration' in history) {
                 history.scrollRestoration = 'manual';
             }
-            // Small timeout ensures it runs after layout is complete and fights off browser restore
-            const scrollTimeout = setTimeout(() => {
-                window.scrollTo(0, 0);
+            // Aggressively force scroll to top for the first 500ms to defeat browser scroll restoration cache
+            let scrollAttempts = 0;
+            const scrollInterval = setInterval(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                scrollAttempts++;
+                if (scrollAttempts >= 5) clearInterval(scrollInterval);
             }, 100);
-            return () => clearTimeout(scrollTimeout);
+            return () => clearInterval(scrollInterval);
         }
     }, []);
 
