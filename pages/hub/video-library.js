@@ -344,10 +344,8 @@ export default function VideoLibraryPage() {
     // Intro video removed by request
         
     // Mark intro as seen when it ends
-    []);
 
     // Attempt to unmute video after it starts playing
-    []);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // TIER 3 REALTIME: Video Library Updates (P3: also syncs watchProgress Map)

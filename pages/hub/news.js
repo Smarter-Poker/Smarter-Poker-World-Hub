@@ -654,10 +654,8 @@ export default function NewsHub() {
     }, []);
     
     // Mark intro as seen when it ends
-    []);
 
     // Attempt to unmute video after it starts playing
-    []);
 
     // Load persisted state. hydratedRef gates the persist effects below so the
     // initial [] state can never overwrite saved bookmarks/read-history.

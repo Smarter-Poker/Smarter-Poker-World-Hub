@@ -358,10 +358,8 @@ export default function BankrollManagerPage() {
     // Intro video removed by request
   
   // Mark intro as seen when it ends
-  []);
 
   // Attempt to unmute video after it starts playing
-  []);
 
   // Initialize bankroll for new users
   useEffect(() => {

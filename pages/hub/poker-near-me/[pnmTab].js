@@ -737,9 +737,6 @@ export default function PokerNearMePage() {
     setMenuOpen(false);
   }, [activeTab]);
 
-  []);
-
-  []);
 
   // HYDRATION FIX: initialize with server-safe defaults and hydrate the saved blob
   // in an effect — reading localStorage in the useState initializer made the first

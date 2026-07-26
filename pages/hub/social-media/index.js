@@ -8642,12 +8642,10 @@ function SocialMediaPage() {
   // before unmount, AND track skipped state in a ref so any late-firing
   // onPlay event doesn't re-unmute.
   const introSkippedRef = useRef(false);
-  []);
 
   // Unmute video after first play event — but ONLY if the user hasn't
   // already skipped. Without this guard, a buffered onPlay event fired
   // post-skip would re-unmute and the queued audio would play.
-  []);
 
   // Bottom nav visibility - hide when scrolling down, show when scrolling up
   useEffect(() => {

@@ -203,12 +203,10 @@ export default function DiamondStorePage() {
     // Mark intro as seen when it ends
     // NOTE: dismiss FIRST — sessionStorage.setItem can throw (Safari private
     // browsing) and must never block hiding the full-screen overlay.
-    []);
 
     // Attempt to unmute video after it starts playing.
     // Autoplay policies may pause an autoplaying video that is unmuted without
     // a user gesture — if that happens, re-mute and resume playback.
-    []);
 
     const { addItem } = useCartStore();
 
