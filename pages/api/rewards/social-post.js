@@ -1,16 +1,16 @@
 /**
- * 📝 SOCIAL POST REWARD API
+ * 📝 SOCIAL POST REWARD — Diamond Rewards Standard v2
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 10diamonds for creating a social post (max 1 per day)
- * Subject to 500diamonds daily cap
- * 
- * ANTI-FARMING SAFEGUARDS:
- * - 1 reward per calendar day (CST)
- * - 500diamonds daily cap across all non-referral rewards
- * - 10-minute cooldown between reward-eligible posts
- * - Minimum 20-char content required (rejects empty/spam posts)
- * - Account must be 24+ hours old
- * - Post must exist in social_posts table (prevents phantom claims)
+ * Action key: social_post. Amount, per-day limit, caps, velocity and dedup all
+ * live in award_diamonds_v2 — no local constants, no local daily-cap math.
+ *
+ * SECURITY FIXES vs v1:
+ *  - The claimer must be the AUTHOR of the post (social_posts.author_id).
+ *    Previously ANY authenticated user could claim on ANYONE's post id.
+ *  - reference_id is user-scoped: `social_post_<userId>_<postId>`.
+ *    The old `social_post_reward_<postId>` collided across users on the
+ *    globally-unique reference_id index, so the second claimer got nothing
+ *    (and a first-mover could burn other users' claims).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -18,15 +18,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const POST_REWARD = 10;
-const DAILY_CAP = 500;
-const COOLDOWN_MINUTES = 10;
-const MIN_CONTENT_LENGTH = 20;
-
-
+// ── Service-role client — award_diamonds_v2 is GRANTed to service_role ONLY ──
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -37,197 +29,188 @@ function getSupabase() {
     return _supabase;
 }
 
+/** YYYY-MM-DD in America/Chicago — the anchor timezone for every diamond day. */
+function chicagoDate(d = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(d);
+}
+
+const REASON_MESSAGE = {
+    ok: 'Diamonds awarded',
+    duplicate: 'Already claimed',
+    daily_cap: 'Daily diamond cap reached — come back tomorrow',
+    monthly_cap: 'Monthly diamond cap reached',
+    action_limit: 'Daily limit reached for this reward',
+    velocity: 'Slow down a moment before earning again',
+    budget_exhausted: 'Rewards are paused right now — please try again later',
+    unknown_action: 'Unknown reward action',
+    not_eligible: 'Not eligible for this reward'
+};
+
+/**
+ * Delegate the award to public.award_diamonds_v2. The amount is resolved
+ * SERVER-SIDE from the catalog — this endpoint never sends one, and the client
+ * never sends one either. Dedup (reference_id), per-action daily limits,
+ * velocity, the POST-multiplier daily/monthly caps and the platform budget all
+ * live inside the SQL function. We only decide *eligibility*.
+ */
+async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targetId = null, metadata = {} }) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
+        return { ok: false, transportError: { message: 'Service role key not configured' } };
+    }
+    const { data, error } = await supabase.rpc('award_diamonds_v2', {
+        p_user_id: userId,
+        p_action_key: actionKey,
+        p_reference_id: referenceId,
+        p_target_id: targetId === null || targetId === undefined ? null : String(targetId),
+        p_metadata: metadata || {}
+    });
+    if (error) {
+        console.warn('[RewardsV2] RPC error for', actionKey, '-', error.message || error);
+        return { ok: false, transportError: error };
+    }
+    const r = data || {};
+    return {
+        ok: true,
+        success: r.success === true,
+        awarded: Number(r.awarded || 0),
+        requested: Number(r.requested || 0),
+        reason: r.reason || 'unknown',
+        capped: r.capped === true,
+        dailyRemaining: r.daily_remaining === undefined ? null : r.daily_remaining,
+        monthlyRemaining: r.monthly_remaining === undefined ? null : r.monthly_remaining,
+        balance: r.balance_after === undefined ? null : r.balance_after
+    };
+}
+
+/**
+ * Surface the RPC's verdict honestly. `reason` and `awarded` always reflect
+ * what the ledger actually did. `success` stays true for duplicate/action_limit
+ * so existing clients keep their "already claimed" branch.
+ */
+function sendAwardResult(res, award, label, extra = {}) {
+    if (!award.ok) {
+        return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+    }
+    const base = {
+        ...extra,
+        awarded: award.awarded,
+        diamondsAwarded: award.awarded,
+        requested: award.requested,
+        reason: award.reason,
+        capped: award.capped,
+        dailyRemaining: award.dailyRemaining,
+        monthlyRemaining: award.monthlyRemaining,
+        balance: award.balance
+    };
+    if (award.success) {
+        return res.status(200).json({
+            ...base,
+            success: true,
+            claimed: true,
+            message: `+${award.awarded} 💎 ${label}${award.capped ? ' (capped by your daily limit)' : ''}`
+        });
+    }
+    const softClaim = award.reason === 'duplicate' || award.reason === 'action_limit';
+    return res.status(200).json({
+        ...base,
+        success: softClaim,
+        claimed: false,
+        alreadyClaimed: softClaim,
+        dailyCapReached: award.reason === 'daily_cap',
+        monthlyCapReached: award.reason === 'monthly_cap',
+        cooldown: award.reason === 'velocity',
+        message: REASON_MESSAGE[award.reason] || 'Reward not granted'
+    });
+}
+
+const ACTION_KEY = 'social_post';
+const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000;
+const MIN_CONTENT_LENGTH = 20;
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    const supabase = getSupabase();
 
-      const supabase = getSupabase();
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    const authUser = authData?.user;
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const userId = authUser.id;
 
-      // ── Auth: JWT required (awards diamonds) ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const { postId } = req.body || {};
+    if (!postId || typeof postId !== 'string') {
+        return res.status(400).json({ success: false, error: 'postId required' });
+    }
 
-      const { postId } = req.body;
-      const userId = authUser.id; // Use JWT identity
+    const now = new Date();
 
-      if (!userId) {
-          return res.status(400).json({ success: false, error: 'userId required' });
-      }
+    try {
+        // ── Eligibility 1: account age (24h) ──
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', userId)
+            .maybeSingle();
 
-      // postId is required so that (a) the quality-bar check actually runs
-      // and (b) the RPC can use a stable reference_id for retry idempotency.
-      // Previously postId could be null, which silently bypassed the
-      // quality bar and opened a double-credit window on rollback retry.
-      if (!postId || typeof postId !== 'string') {
-          return res.status(400).json({ success: false, error: 'postId required' });
-      }
+        if (userProfile?.created_at && (now - new Date(userProfile.created_at)) < MIN_ACCOUNT_AGE_MS) {
+            return res.status(200).json({
+                success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
+                message: 'Account must be 24 hours old to earn post rewards'
+            });
+        }
 
-      const now = new Date();
-      const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-      const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+        // ── Eligibility 2: the post exists AND the claimer authored it ──
+        const { data: post } = await supabase
+            .from('social_posts')
+            .select('id, content, author_id')
+            .eq('id', postId)
+            .eq('author_id', userId)
+            .maybeSingle();
 
-      try {
-          // ── SAFEGUARD 1: Account age check (24h minimum) ──
-          const { data: userProfile } = await supabase
-              .from('profiles')
-              .select('created_at')
-              .eq('id', userId)
-              .maybeSingle();
+        if (!post) {
+            return res.status(200).json({
+                success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
+                message: 'Post not found for this account'
+            });
+        }
 
-          if (userProfile?.created_at) {
-              const accountAge = now - new Date(userProfile.created_at);
-              if (accountAge < 24 * 60 * 60 * 1000) {
-                  return res.status(200).json({
-                      success: false,
-                      message: 'Account must be 24 hours old to earn post rewards'
-                  });
-              }
-          }
+        // ── Eligibility 3: quality bar ──
+        if ((post.content || '').trim().length < MIN_CONTENT_LENGTH) {
+            return res.status(200).json({
+                success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0,
+                message: `Post must be at least ${MIN_CONTENT_LENGTH} characters to earn rewards`
+            });
+        }
 
-          // ── SAFEGUARD 2: Verify post actually exists and meets quality bar ──
-          {
-              const { data: post } = await supabase
-                  .from('social_posts')
-                  .select('content')
-                  .eq('id', postId)
-                  .maybeSingle();
+        const award = await awardDiamondsV2(supabase, {
+            userId,
+            actionKey: ACTION_KEY,
+            referenceId: `${ACTION_KEY}_${userId}_${postId}`,
+            targetId: postId,
+            metadata: { post_id: postId, content_length: (post.content || '').trim().length }
+        });
 
-              if (!post) {
-                  return res.status(200).json({ success: false, message: 'Post not found' });
-              }
+        return sendAwardResult(res, award, 'Post Reward!');
 
-              if ((post.content || '').trim().length < MIN_CONTENT_LENGTH) {
-                  return res.status(200).json({
-                      success: false,
-                      message: `Post must be at least ${MIN_CONTENT_LENGTH} characters to earn rewards`
-                  });
-              }
-          }
-
-          // ── SAFEGUARD 3: Already claimed today ──
-          const { data: existing } = await supabase
-              .from('diamond_reward_claims')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('reward_type', 'social_post')
-              .eq('claim_date', today)
-              .maybeSingle();
-
-          if (existing) {
-              return res.status(200).json({
-                  success: true,
-                  alreadyClaimed: true,
-                  message: 'Social post reward already claimed today'
-              });
-          }
-
-          // ── SAFEGUARD 4: Cooldown (10 min between reward-eligible posts) ──
-          const { data: lastClaim } = await supabase
-              .from('diamond_reward_claims')
-              .select('claimed_at')
-              .eq('user_id', userId)
-              .eq('reward_type', 'social_post')
-              .order('claimed_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-          if (lastClaim?.claimed_at) {
-              const elapsed = now - new Date(lastClaim.claimed_at);
-              if (elapsed < COOLDOWN_MINUTES * 60 * 1000) {
-                  return res.status(200).json({
-                      success: false,
-                      cooldown: true,
-                      message: `Please wait ${COOLDOWN_MINUTES} minutes between reward-eligible posts`
-                  });
-              }
-          }
-
-          // ── SAFEGUARD 5: Daily diamond cap ──
-          const { data: todayClaims } = await supabase
-              .from('diamond_reward_claims')
-              .select('diamonds_awarded')
-              .eq('user_id', userId)
-              .eq('claim_date', today)
-              .neq('reward_type', 'referral')
-                  .limit(200);
-
-          const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
-
-          if (todayTotal + POST_REWARD > DAILY_CAP) {
-              return res.status(200).json({
-                  success: false,
-                  dailyCapReached: true,
-                  message: `Daily diamond cap (${DAILY_CAP}diamonds) reached`
-              });
-          }
-
-          // ── Record claim & award ──
-          // BUG #271 FIX: Check insert result before awarding diamonds
-          const { error: claimErr } = await getSupabase().from('diamond_reward_claims').insert({
-              user_id: userId,
-              reward_type: 'social_post',
-              diamonds_awarded: POST_REWARD,
-              claim_date: today,
-              metadata: { post_id: postId }
-          });
-
-          if (claimErr) {
-              if (claimErr.code === '23505') {
-                  return res.status(200).json({ success: true, alreadyClaimed: true });
-              }
-              throw claimErr;
-          }
-
-          // Stable reference_id closes the retry-double-credit window. postId is
-          // the natural key (now required at the input gate above).
-          const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
-              p_user_id: userId,
-              p_amount: POST_REWARD,
-              p_type: 'social_post',
-              p_description: `Social post reward — ${POST_REWARD}diamonds`,
-              p_reference_id: `social_post_reward_${postId}`
-          });
-
-          if (rpcError) {
-              // Roll back the idempotency claim row so the user can retry.
-              // Same bug shape as daily-login (commit 8d9ce5c9f1).
-              const { error: rollbackErr } = await getSupabase()
-                      .from('diamond_reward_claims')
-                      .delete()
-                      .eq('user_id', userId)
-                      .eq('reward_type', 'social_post')
-                      .eq('claim_date', today);
-              if (rollbackErr) {
-                  console.warn('[SocialPost] Rollback delete failed:', rollbackErr.message);
-              }
-              console.warn('[SocialPost] RPC error (claim rolled back so user can retry):', rpcError);
-              return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
-          }
-
-          return res.status(200).json({
-              success: true,
-              claimed: true,
-              diamondsAwarded: POST_REWARD,
-              message: `+${POST_REWARD}diamonds Post Reward!`
-          });
-
-      } catch (error) {
-          console.warn('[SocialPostReward] Error:', error.message || error);
-          return res.status(500).json({ success: false, error: 'Failed to claim social post reward' });
-      }
+    } catch (error) {
+        console.warn('[SocialPostReward] Error:', error.message || error);
+        return res.status(500).json({ success: false, error: 'Failed to claim social post reward' });
+    }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+      console.warn('[API Error]', err);
+      if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

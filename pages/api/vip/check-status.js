@@ -2,6 +2,33 @@
  * VIP Status Check API
  * GET /api/vip/check-status
  * Server-side bridge for VIP verification using service role
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DIAMOND REWARDS STANDARD v2 — EXPIRY ENFORCEMENT (July 26, 2026)
+ * ───────────────────────────────────────────────────────────────────────────
+ * This route used to `select('is_vip')` and return `is_vip === true`. Nothing
+ * anywhere enforced vip_expires_at, so EVERY trial ever granted (including the
+ * 90-day phone-verification trial from /api/sms/verify-otp) stayed active
+ * forever — free 150/day + 4,500/month diamond ceilings and the 500 💎 monthly
+ * stipend, permanently, for people who never paid.
+ *
+ * Truth definition (must match public.award_diamonds_v2 and
+ * public.expire_lapsed_vip in migration 20260726120000):
+ *
+ *   isVip = is_vip === true
+ *           AND (vip_tier === 'lifetime'
+ *                ? true
+ *                : vip_expires_at != null && new Date(vip_expires_at) > now)
+ *
+ * DELIBERATE SEMANTIC DECISION — NULL EXPIRY ON A NON-LIFETIME TIER = EXPIRED.
+ * "No end date" is not the same as "never ends". The only tier that legitimately
+ * has no end date is 'lifetime'. Legacy rows written by
+ * pages/api/store/webhooks/stripe.js (which sets is_vip = true but never writes
+ * vip_tier / vip_expires_at) will therefore read as NOT VIP until that webhook
+ * backfills the Stripe period. See the REQUIRED FOLLOW-UPS block in the
+ * migration (item F2) — a backfill from vip_subscriptions.current_period_end is
+ * required before/with this deploy.
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -45,22 +72,44 @@ export default async function handler(req, res) {
           // Query profiles for VIP status
           const { data: profile, error } = await getSupabase()
               .from('profiles')
-              .select('is_vip, diamonds')
+              .select('is_vip, diamonds, vip_tier, vip_expires_at')
               .eq('id', userId)
               .maybeSingle();
 
           if (error || !profile) {
               return res.status(200).json({
                   isVip: false,
-                  diamonds: 0
+                  diamonds: 0,
+                  vipTier: null,
+                  vipExpiresAt: null
               });
           }
 
-          const isVip = profile.is_vip === true;
+          // ═══════════════════════════════════════════════════════════════
+          // VIP truth. is_vip alone is NOT enough — it is a sticky flag that
+          // nothing ever cleared. Expiry is what makes VIP a subscription
+          // rather than a permanent gift.
+          // ═══════════════════════════════════════════════════════════════
+          const vipTier      = profile.vip_tier || null;
+          const vipExpiresAt = profile.vip_expires_at || null;
+
+          let isVip = false;
+          if (profile.is_vip === true) {
+              if (vipTier === 'lifetime') {
+                  isVip = true;
+              } else if (vipExpiresAt) {
+                  const expiry = new Date(vipExpiresAt);
+                  // Invalid dates produce NaN, and NaN > now is false → expired.
+                  isVip = expiry.getTime() > Date.now();
+              }
+              // else: NULL expiry on a non-lifetime tier → EXPIRED (see header).
+          }
 
           return res.status(200).json({
               isVip,
-              diamonds: profile.diamonds || 0
+              diamonds: profile.diamonds || 0,
+              vipTier,
+              vipExpiresAt
           });
 
       } catch (err) {
