@@ -483,10 +483,10 @@ export const REWARDS = {
     key: 'referral_qualified',
     label: 'Qualified Referral',
     description:
-      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 💎 each, up to 10 qualified referrals per month.',
+      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 💎 each, up to 20 qualified referrals per month.',
     diamonds: 500,
-    maxPerDay: 10,
-    monthlyMax: 10,
+    maxPerDay: 20,
+    monthlyMax: 20,
     category: 'referral',
     countsTowardDailyCap: false,
     lifetime: false,
@@ -518,8 +518,8 @@ export const REWARDS = {
     label: 'Referral Went VIP',
     description: 'A player you referred bought a VIP membership. 500 💎 bonus.',
     diamonds: 500,
-    maxPerDay: 10,
-    monthlyMax: 10,
+    maxPerDay: 20,
+    monthlyMax: 20,
     category: 'referral',
     countsTowardDailyCap: false,
     lifetime: false,
@@ -582,7 +582,7 @@ export const REFERRAL = {
   referrer: 500,
   referee: 100,
   vipConversionBonus: 500,
-  maxQualifiedPerMonth: 10,
+  maxQualifiedPerMonth: 20,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

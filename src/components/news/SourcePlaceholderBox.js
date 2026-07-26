@@ -1,6 +1,7 @@
+// UNREFERENCED: nothing in the repo imports this component today (verified repo-wide) — kept pending a decision on its future.
 import React from 'react';
 import { Newspaper, Trophy, BookOpen, Globe, TrendingUp } from 'lucide-react';
-import { SOURCE_COLORS_LOCAL } from './NewsBox';
+import { SOURCE_COLORS_LOCAL, safeText, pickOwn, CardErrorBoundary } from './NewsBox';
 
 // Per-source icon + homepage. Colors come from the shared canonical
 // SOURCE_COLORS_LOCAL map so branding matches the regular news cards.
@@ -14,15 +15,32 @@ const SOURCE_INFO = {
     'Pokerfuse': { Icon: TrendingUp, url: 'https://pokerfuse.com' }
 };
 
-function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
-    const info = SOURCE_INFO[sourceName] || { Icon: Newspaper, url: '#' };
-    const color = SOURCE_COLORS_LOCAL[sourceName] || '#5ef5f0';
-    const SourceIcon = info.Icon;
+const DEFAULT_SOURCE_INFO = { Icon: Newspaper, url: '#' };
+
+function SourcePlaceholderBoxBody({ sourceName, sourceUrl, index, openExternal }) {
+    const name = safeText(sourceName);
+    const info = pickOwn(SOURCE_INFO, name, DEFAULT_SOURCE_INFO) || DEFAULT_SOURCE_INFO;
+    const accent = pickOwn(SOURCE_COLORS_LOCAL, name, '#5ef5f0');
+    const color = typeof accent === 'string' ? accent : '#5ef5f0';
+    const SourceIcon = info.Icon || Newspaper;
+    const href = (typeof sourceUrl === 'string' && sourceUrl) ? sourceUrl : info.url;
 
     const openSource = () => {
-        if (openExternal) openExternal(sourceUrl || info.url, `${sourceName} News`);
+        // Handler errors are outside the error boundary's reach — contain them.
+        try {
+            if (openExternal) openExternal(href, `${name} News`);
+        } catch (err) {
+            console.warn('[SourcePlaceholderBox] openExternal failed:', err?.message || err);
+        }
     };
 
+    // ACCESSIBILITY NOTE: this card contains NO nested interactive elements, so
+    // a div with role="button" + tabIndex + Enter/Space is a valid single
+    // interactive wrapper and does NOT trip axe's 'nested-interactive' rule
+    // (unlike NewsBox, which really did contain <button>s and has been
+    // restructured). If a real <button> is ever added inside this card, move
+    // the interaction to a stretched <button class="card-open"> sibling the way
+    // NewsBox does.
     return (
         <div
             className="news-box placeholder-box"
@@ -33,7 +51,7 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
             }}
             role="button"
             tabIndex={0}
-            aria-label={`Visit ${sourceName || 'source'} website`}
+            aria-label={`Visit ${name || 'source'} website`}
             onClick={openSource}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -45,15 +63,15 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
             <div className="box-image">
                 <div className="placeholder-content">
                     <span className="placeholder-icon" aria-hidden="true"><SourceIcon size={48} /></span>
-                    <span className="placeholder-name">{sourceName}</span>
+                    <span className="placeholder-name">{name}</span>
                 </div>
                 <div className="box-overlay" />
             </div>
             <div className="box-content">
-                <h3 className="box-title">Latest from {sourceName}</h3>
-                <p className="box-excerpt">Read the latest headlines directly on {sourceName}.</p>
+                <h3 className="box-title">Latest from {name}</h3>
+                <p className="box-excerpt">Read the latest headlines directly on {name}.</p>
                 <div className="box-meta">
-                    <span className="source" style={{ color }}>{sourceName}</span>
+                    <span className="source" style={{ color }}>{name}</span>
                     <span className="separator">•</span>
                     <span className="time">Visit Site →</span>
                 </div>
@@ -165,4 +183,26 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
     );
 }
 
-export default React.memo(SourcePlaceholderBox);
+// MEMOISATION: made explicit so the memo is not defeated by callback identity.
+// openExternal is deliberately excluded — if a future handler closes over
+// fast-changing state, wrap it in useCallback at the call site rather than
+// loosening this comparator.
+export function areSourcePlaceholderPropsEqual(prev, next) {
+    if (prev === next) return true;
+    return (
+        prev.sourceName === next.sourceName &&
+        prev.sourceUrl === next.sourceUrl &&
+        prev.index === next.index
+    );
+}
+
+// A malformed source entry must not blank the grid it sits in.
+function SourcePlaceholderBox(props) {
+    return (
+        <CardErrorBoundary key={props?.sourceName ?? 'source-placeholder'} fallback={null}>
+            <SourcePlaceholderBoxBody {...props} />
+        </CardErrorBoundary>
+    );
+}
+
+export default React.memo(SourcePlaceholderBox, areSourcePlaceholderPropsEqual);

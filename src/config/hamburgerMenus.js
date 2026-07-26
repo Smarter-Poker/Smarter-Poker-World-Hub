@@ -240,7 +240,20 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('📊 Session History', '/hub/session-history'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
-            createMenuItem.action('🎴 Customize My Hub', () => handlers?.openCardCustomizer?.()),
+            createMenuItem.action('🎴 Customize My Hub', () => {
+                // Preferred path: the page passes an openCardCustomizer handler
+                // (pages/hub/index.js does).
+                if (typeof handlers?.openCardCustomizer === 'function') {
+                    handlers.openCardCustomizer();
+                    return;
+                }
+                // Fallback so the item is never a silent no-op on other pages that
+                // reuse the 'hub-home' menu: dispatch the app-wide bus event that
+                // pages/hub/index.js already listens for ('hub-open-customizer').
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('hub-open-customizer'));
+                }
+            }),
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [
@@ -250,6 +263,9 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    // NOTE (menu audit): no page in the known codebase requests the 'training'
+    // worldKey via getMenuConfig(). Left in place — unreferenced-by-the-known-pages,
+    // needs a human to confirm before removal.
     'training': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Training Settings'),
@@ -379,8 +395,10 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('All Friends', '/hub/friends?tab=all'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
+            // Label is 'Allow Friend Requests' (not 'Friend Requests') so it does not
+            // collide with the 'Friend Requests' navigation item above it.
             createMenuItem.toggle(
-                'Friend Requests',
+                'Allow Friend Requests',
                 state.allowRequests !== false,
                 handlers.setAllowRequests,
                 'Who can send you friend requests'
@@ -404,6 +422,9 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    // NOTE (menu audit): no page in the known codebase requests the 'diamond-store'
+    // worldKey via getMenuConfig(). Left in place — unreferenced-by-the-known-pages,
+    // needs a human to confirm before removal.
     'diamond-store': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Categories'),
@@ -444,7 +465,9 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Billing & Payments', '/hub/settings?section=billing'),
             createMenuItem.divider(),
             createMenuItem.section('Account Actions'),
-            createMenuItem.action('Log Out', handlers.onSignOut, null, false, true),
+            // Falls back to the self-contained signOutAction so 'Log Out' can never be
+            // a no-op if the page forgets to pass onSignOut.
+            createMenuItem.action('Log Out', () => (handlers?.onSignOut || signOutAction)(), null, false, true),
             createMenuItem.navigation('Delete Account', '/hub/settings?section=delete-account')
         ],
         bottomLinks: [
@@ -753,6 +776,9 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    // NOTE (menu audit): no page in the known codebase requests the 'social'
+    // worldKey via getMenuConfig(). Left in place — unreferenced-by-the-known-pages,
+    // needs a human to confirm before removal.
     'social': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Social Hub'),
@@ -788,8 +814,20 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Friend Requests', '/hub/notifications?filter=friends'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
-            createMenuItem.toggle('Push Notifications', state.pushEnabled !== false, handlers.setPushEnabled),
-            createMenuItem.toggle('Email Notifications', state.emailEnabled || false, handlers.setEmailEnabled)
+            // Master push switch. The page writes it across every category column in
+            // user_notification_preferences, which pages/api/notifications/send.js reads
+            // to filter recipients — so turning it off genuinely stops delivery.
+            // Per-category control lives in Settings (linked below).
+            createMenuItem.toggle(
+                'Push Notifications',
+                state.pushEnabled !== false,
+                handlers.setPushEnabled,
+                'Turns off every push category. Fine-tune them in Settings.'
+            )
+            // 'Email Notifications' removed: nothing in this codebase sends
+            // preference-gated email, so the toggle could only ever store a value that
+            // no sender consulted. Re-add it together with a real email fan-out that
+            // reads user_notification_preferences.
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -932,6 +970,11 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    // NOTE (menu audit): no Next.js page in the known codebase requests the
+    // 'club-arena' worldKey via getMenuConfig() — but Club Arena is a separate SPA
+    // served statically from public/hub/club-arena via a rewrite, and may consume
+    // this config itself. Left in place — unreferenced-by-the-known-pages, needs a
+    // human to confirm before removal.
     'club-arena': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Club Navigation'),
@@ -950,27 +993,32 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Players', '/hub/club-arena/players'),
             createMenuItem.navigation('Cashier', '/hub/club-arena/cashier'),
             createMenuItem.navigation('Leaderboard', '/hub/club-arena/leaderboard'),
-            createMenuItem.navigation('Hand Histories', '/hub/club-arena/hand-histories'),
-            createMenuItem.navigation('Player Stats', '/hub/club-arena/player-stats'),
+            // Route names below must match the club-arena SPA's own router.
+            // 'hand-history' is singular there — '/hand-histories' was a dead link.
+            createMenuItem.navigation('Hand Histories', '/hub/club-arena/hand-history'),
+            // The SPA has no '/player-stats' route; '/player-sessions' is the closest
+            // real one (per-player session results), so this points there instead.
+            createMenuItem.navigation('Player Stats', '/hub/club-arena/player-sessions'),
             createMenuItem.divider(),
             // Show Midway Union application option if:
             // - User is a club owner (state.isClubOwner)
             // - Their active club is NOT already in a union (state.clubInUnion === false)
-            ...(state.isClubOwner && state.clubInUnion === false ? [
+            // - unionApplicationStatus === 'approved' short-circuits the whole block:
+            //   it previously rendered an empty 'Midway Union' section header with no
+            //   items under it.
+            ...(state.isClubOwner && state.clubInUnion === false && state.unionApplicationStatus !== 'approved' ? [
                 createMenuItem.section('Midway Union'),
-                ...(state.unionApplicationStatus === 'pending' ? [
-                    createMenuItem.action(
+                state.unionApplicationStatus === 'pending'
+                    ? createMenuItem.action(
                         '⏳ Union Application Pending',
                         handlers.onViewApplicationStatus,
                         null, false, true
-                    ),
-                ] : state.unionApplicationStatus === 'approved' ? [] : [
-                    createMenuItem.action(
+                    )
+                    : createMenuItem.action(
                         '🏛️ Apply to Midway Union',
                         handlers.onApplyToUnion,
                         null, true, true
                     ),
-                ]),
                 createMenuItem.divider(),
             ] : []),
             createMenuItem.section('Settings'),
@@ -1011,6 +1059,9 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    // NOTE (menu audit): no page in the known codebase requests the 'lives'
+    // worldKey via getMenuConfig(). Left in place — unreferenced-by-the-known-pages,
+    // needs a human to confirm before removal.
     'lives': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Live Streams'),

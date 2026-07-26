@@ -574,7 +574,7 @@ DECLARE
     c_login_max            constant integer := 25;
     c_egg_max_single       constant integer := 250;
     c_egg_monthly_cap      constant integer := 500;
-    c_referral_max_month   constant integer := 10;
+    c_referral_max_month   constant integer := 20;
     c_velocity_window      constant interval := interval '60 seconds';
     c_velocity_all_max     constant integer := 20;
     c_velocity_action_max  constant integer := 5;
@@ -825,7 +825,7 @@ BEGIN
 
     -- ── STEP 5b: periodic limits that max_per_day alone cannot express ───────
     --   birthday            : once per year
-    --   referral_qualified  : 10 per calendar month (REFERRAL.maxQualifiedPerMonth)
+    --   referral_qualified  : 20 per calendar month (REFERRAL.maxQualifiedPerMonth)
     --   vip_stipend         : once per calendar month, PAID subscribers only
     IF p_action_key = 'birthday' THEN
         IF EXISTS (

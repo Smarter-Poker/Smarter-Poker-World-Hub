@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
-import { formatViews, FALLBACK_IMAGES } from './NewsBox';
+import { formatViews, FALLBACK_IMAGES, safeText, CardErrorBoundary } from './NewsBox';
 
 function getYouTubeVideoId(url) {
     if (!url || typeof url !== 'string') return null;
@@ -15,7 +15,7 @@ function getYouTubeVideoId(url) {
 }
 
 function getReelThumbnail(reel) {
-    if (reel.thumbnail_url) return reel.thumbnail_url;
+    if (typeof reel.thumbnail_url === 'string' && reel.thumbnail_url) return reel.thumbnail_url;
     const videoId = getYouTubeVideoId(reel.video_url);
     if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     return FALLBACK_IMAGES.news;
@@ -24,25 +24,44 @@ function getReelThumbnail(reel) {
 // Mirrors the server-side title derivation in pages/api/news/reels.js:
 // first caption line with any leading film-slate emoji (U+1F3AC) stripped.
 function deriveTitle(reel) {
-    if (reel.title) return reel.title;
-    const firstLine = reel.caption?.split('\n')[0];
-    const cleaned = firstLine?.replace(/^\s*\u{1F3AC}?\uFE0F?\s*/u, '').trim();
+    const title = safeText(reel.title);
+    if (title) return title;
+    const caption = safeText(reel.caption);
+    const firstLine = caption.split('\n')[0];
+    const cleaned = firstLine.replace(/^\s*\u{1F3AC}?\uFE0F?\s*/u, '').trim();
     return cleaned || 'Poker Reel';
 }
 
-function ReelCard({ reel, onClick }) {
+function ReelCardBody({ reel, onClick }) {
     if (!reel) return null;
 
     const openReel = () => {
-        if (onClick) onClick();
+        // Handler errors are outside the error boundary's reach — contain them.
+        try {
+            if (onClick) onClick();
+        } catch (err) {
+            console.warn('[ReelCard] onClick failed:', err?.message || err);
+        }
     };
 
     // Get display values with proper fallbacks
     const thumbnailUrl = getReelThumbnail(reel);
     const displayTitle = deriveTitle(reel);
-    const channelName = reel.channel_name || reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker';
-    const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
+    const channelName =
+        safeText(reel.channel_name) ||
+        safeText(reel.profiles?.full_name) ||
+        safeText(reel.profiles?.username) ||
+        'Smarter.Poker';
+    const videoUrl = safeText(reel.video_url);
+    const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
 
+    // ACCESSIBILITY NOTE: unlike NewsBox, this card contains NO nested
+    // interactive elements — the play overlay is a decorative aria-hidden div.
+    // A div with role="button" + tabIndex + Enter/Space is therefore a valid
+    // single interactive wrapper here and does NOT trip axe's
+    // 'nested-interactive' rule. If a real <button> is ever added inside this
+    // card, move the interaction to a stretched <button class="card-open">
+    // sibling the way NewsBox does.
     return (
         <div
             className="reel-card"
@@ -204,4 +223,45 @@ function ReelCard({ reel, onClick }) {
     );
 }
 
-export default React.memo(ReelCard);
+// MEMOISATION: pages/hub/news.js passes `onClick={() => openReelViewer(idx)}`,
+// a brand-new function on every render, so the default shallow compare never
+// bailed out. Compare only the reel fields this card reads. The callback is
+// deliberately excluded — if a future handler closes over fast-changing state,
+// wrap it in useCallback on the page rather than loosening this comparator.
+const COMPARED_REEL_FIELDS = [
+    'id',
+    'title',
+    'caption',
+    'thumbnail_url',
+    'video_url',
+    'channel_name',
+    'view_count'
+];
+
+export function areReelCardPropsEqual(prev, next) {
+    if (prev === next) return true;
+    const a = prev.reel;
+    const b = next.reel;
+    if (a === b) return true;
+    if (!a || !b) return false;
+    for (let i = 0; i < COMPARED_REEL_FIELDS.length; i++) {
+        const field = COMPARED_REEL_FIELDS[i];
+        if (a[field] !== b[field]) return false;
+    }
+    // profiles is only read for the channel label fallback
+    if (a.profiles?.full_name !== b.profiles?.full_name) return false;
+    if (a.profiles?.username !== b.profiles?.username) return false;
+    return true;
+}
+
+// One malformed reel must not blank the carousel: contain it, render nothing
+// for that slot rather than fabricating a placeholder reel.
+function ReelCard(props) {
+    return (
+        <CardErrorBoundary key={props?.reel?.id ?? 'reel-card'} fallback={null}>
+            <ReelCardBody {...props} />
+        </CardErrorBoundary>
+    );
+}
+
+export default React.memo(ReelCard, areReelCardPropsEqual);

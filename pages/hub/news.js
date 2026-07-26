@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -39,6 +40,14 @@ import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
+import {
+    getReadLater,
+    addToReadLater,
+    removeFromReadLater,
+    getLocalReadLaterMeta,
+    saveLocalReadLaterMeta,
+    toLocalReadLaterRow
+} from '../../src/services/newsReadLater';
 
 const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -155,7 +164,8 @@ export default function NewsHub() {
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
     const [sourceFilters, setSourceFilters] = useState({});
-    const [visibleStories, setVisibleStories] = useState(10);
+    // (The old client-side `visibleStories` slice was replaced by real offset
+    // pagination — see NEWS_PAGE_SIZE / loadMoreNews below.)
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [scrollProgress, setScrollProgress] = useState(0);
     const [newArticleCount, setNewArticleCount] = useState(0);
@@ -273,13 +283,88 @@ export default function NewsHub() {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // News articles — key changes with activeTab so SWR re-fetches and caches per tab
-    const newsParams = new URLSearchParams({ limit: '100' });
+    // ── News feed pagination (shared contract 1) ──────────────────────────────
+    // /api/news/articles now answers { data, pagination: { limit, offset, total,
+    // hasMore } }. We ask for ONE page at a time and accumulate the results; the
+    // infinite-scroll sentinel below advances `offset` instead of slicing a
+    // client-side array. category + search stay server-side (the API filters on
+    // both). Source filtering stays client-side on purpose — the API matches
+    // source_name exactly and this page normalizes 'CardPlayer' -> 'Card Player',
+    // so sending the display name would silently return zero rows.
+    const NEWS_PAGE_SIZE = 24;
+    // Signature of every server-side filter. Changing it restarts pagination.
+    const newsFilterKey = `${activeTab}|${debouncedSearch}`;
+    const [newsPage, setNewsPage] = useState({ key: newsFilterKey, offset: 0 });
+    // Snapping to 0 when the signature changes happens during RENDER (not in an
+    // effect) so a stale offset can never be fetched against the new filters.
+    const newsOffset = newsPage.key === newsFilterKey ? newsPage.offset : 0;
+    // Accumulated pages. `key` travels with the items so a page that arrives after
+    // the filters changed can never be merged into the wrong list.
+    const [newsPages, setNewsPages] = useState({ key: '', items: [], total: 0, hasMore: false });
+    // Keeps the sentinel from firing twice for the same page while a request is in
+    // flight. Mutated outside the state updater so the updater stays pure.
+    const loadingMoreRef = useRef(false);
+
+    const newsParams = new URLSearchParams({ limit: String(NEWS_PAGE_SIZE), offset: String(newsOffset) });
     if (activeTab !== 'all') newsParams.set('category', activeTab);
     if (debouncedSearch) newsParams.set('search', debouncedSearch);
-    const { data: newsData, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
+    const { data: newsData, error: newsError, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
+
+    // Merge the arriving page into the accumulated list: de-duped by id and kept in
+    // published_at order, so revalidating page 0 (realtime INSERT / Refresh) can't
+    // strand a brand-new article at the bottom of the feed.
+    useEffect(() => {
+        if (!newsData || newsData.success !== true || !Array.isArray(newsData.data)) return;
+        const page = newsData.data;
+        const pg = newsData.pagination || {};
+        setNewsPages(prev => {
+            const base = prev.key === newsFilterKey ? prev.items : [];
+            const seen = new Set(base.map(a => a.id));
+            const merged = base.slice();
+            page.forEach(a => { if (a && !seen.has(a.id)) { seen.add(a.id); merged.push(a); } });
+            merged.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0));
+            const total = typeof pg.total === 'number' ? pg.total : merged.length;
+            // Older API builds have no `pagination` block — fall back to "a full
+            // page came back, so there is probably more".
+            const hasMore = typeof pg.hasMore === 'boolean' ? pg.hasMore : page.length >= NEWS_PAGE_SIZE;
+            // A plain revalidation that returns the same rows must not hand back a new
+            // array identity — that would re-render the whole feed (and every derived
+            // list) on each SWR focus/interval revalidate for no visible change.
+            if (prev.key === newsFilterKey && merged.length === base.length && prev.total === total && prev.hasMore === hasMore) {
+                return prev;
+            }
+            return { key: newsFilterKey, items: merged, total, hasMore };
+        });
+    }, [newsData, newsFilterKey]);
+
+    // The in-flight page settled (success OR error) — release the sentinel guard so
+    // a failed request can't permanently freeze infinite scroll.
+    useEffect(() => {
+        if (newsData || newsError) loadingMoreRef.current = false;
+    }, [newsData, newsError]);
+
+    const loadedNews = newsPages.key === newsFilterKey ? newsPages.items : [];
+    const hasLoadedNews = loadedNews.length > 0;
+    const newsHasMore = newsPages.key === newsFilterKey && newsPages.hasMore;
+
+    const loadMoreNews = useCallback(() => {
+        if (loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        // High-water mark, not simply offset + page size: Refresh / a realtime INSERT
+        // rewinds the SWR key to offset 0 while the accumulated list keeps every row
+        // already loaded, so `loadedNews.length` is the first offset we have NOT seen.
+        setNewsPage({ key: newsFilterKey, offset: Math.max(newsOffset + NEWS_PAGE_SIZE, loadedNews.length) });
+    }, [newsFilterKey, newsOffset, loadedNews.length]);
+
+    // Refresh = revalidate AND go back to page 0, so newly published articles land
+    // in the accumulated list (merge above re-sorts them to the top).
+    const refreshNewsFeed = useCallback(() => {
+        setNewsPage({ key: newsFilterKey, offset: 0 });
+        return refreshNews();
+    }, [newsFilterKey, refreshNews]);
+
     // While the first load is in flight render nothing (skeleton covers it) — never fake data
-    const rawNews = (newsData?.success && newsData.data?.length) ? newsData.data : (loading ? [] : FALLBACK_NEWS);
+    const rawNews = hasLoadedNews ? loadedNews : (loading ? [] : FALLBACK_NEWS);
     const news = React.useMemo(() => {
         return rawNews.map(a => ({
             ...a,
@@ -428,6 +513,14 @@ export default function NewsHub() {
 
     // UI State
     const [bookmarks, setBookmarks] = useState([]);
+    // Read Later (shared contract 2) — article ids, newest first. This is a SAVED
+    // QUEUE and is deliberately distinct from `readArticles` (read history), which
+    // is what the 'later' section used to render.
+    const [readLater, setReadLater] = useState([]);
+    // Denormalized rows (title/url/source/thumbnail) captured by newsReadLater at
+    // save time, so a saved article still renders once it scrolls out of the
+    // paginated feed. Real stored data only — nothing here is invented.
+    const [readLaterRows, setReadLaterRows] = useState([]);
     const [readArticles, setReadArticles] = useState([]);
     const [shareArticle, setShareArticle] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -481,8 +574,11 @@ export default function NewsHub() {
     // ═══════════════════════════════════════════════════════════════════════════
     // TIER 3 REALTIME: News Updates — revalidate SWR directly on INSERT
     // ═══════════════════════════════════════════════════════════════════════════
+    // refreshNewsFeed (not the raw SWR mutate): with offset pagination a plain
+    // revalidate would only refresh whichever page is currently in the SWR key, so
+    // an INSERT would never surface while the reader is deep in the feed.
     const refreshNewsRef = useRef(null);
-    refreshNewsRef.current = refreshNews;
+    refreshNewsRef.current = refreshNewsFeed;
     useEffect(() => {
         const newsChannel = supabase
             .channel(`news-live-${Date.now()}`)
@@ -519,6 +615,15 @@ export default function NewsHub() {
             getNewsBookmarks(userId).then(data => {
                 setBookmarks((data || []).map(b => b.article_id));
             }).catch(err => console.warn('Error loading bookmarks:', err));
+
+            // Read Later — same rule as bookmarks: the account list is authoritative
+            // and REPLACES the guest localStorage copy. getReadLater returns [] on
+            // failure (never throws) and is already ordered newest-first.
+            getReadLater(userId).then(rows => {
+                const list = rows || [];
+                setReadLaterRows(list);
+                setReadLater(list.map(r => r.article_id));
+            }).catch(err => console.warn('Error loading read later:', err));
         }
     }, [userId]);
 
@@ -574,6 +679,26 @@ export default function NewsHub() {
                 if (savedBookmarks) setBookmarks(prev => [...new Set([...prev, ...JSON.parse(savedBookmarks)])]);
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             try {
+                // Guest fallback for Read Later — same shape as 'news_bookmarks'
+                // (a JSON array of article ids), per shared contract 2.
+                const savedLater = localStorage.getItem('news_read_later');
+                if (savedLater) {
+                    const parsed = JSON.parse(savedLater);
+                    if (Array.isArray(parsed)) setReadLater(prev => [...new Set([...prev, ...parsed])]);
+                }
+                // Denormalized rows saved alongside those ids (by this page AND by
+                // /hub/article). Without them a guest's saved article is only
+                // renderable while it happens to sit in the loaded page of the feed,
+                // so the queue would read "N saved for later" next to an empty list.
+                const savedLaterMeta = getLocalReadLaterMeta();
+                if (savedLaterMeta.length > 0) {
+                    setReadLaterRows(prev => {
+                        const seen = new Set(prev.map(r => String(r.article_id)));
+                        return [...prev, ...savedLaterMeta.filter(r => !seen.has(String(r.article_id)))];
+                    });
+                }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            try {
                 const savedRead = localStorage.getItem('news_read');
                 if (savedRead) setReadArticles(JSON.parse(savedRead));
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -596,6 +721,26 @@ export default function NewsHub() {
             localStorage.setItem('news_bookmarks', JSON.stringify(bookmarks));
         }
     }, [bookmarks]);
+
+    const readLaterPersistedRef = useRef(false);
+    useEffect(() => {
+        if (!readLaterPersistedRef.current) { readLaterPersistedRef.current = true; return; }
+        if (typeof window !== 'undefined' && hydratedRef.current) {
+            localStorage.setItem('news_read_later', JSON.stringify(readLater));
+        }
+    }, [readLater]);
+
+    // Sidecar for the ids above. Keyed off `readLater` so a removed id also drops
+    // its cached row, and gated on the same hydration flag so the empty mount
+    // state can never stamp over what a previous visit saved.
+    const readLaterMetaPersistedRef = useRef(false);
+    useEffect(() => {
+        if (!readLaterMetaPersistedRef.current) { readLaterMetaPersistedRef.current = true; return; }
+        if (typeof window !== 'undefined' && hydratedRef.current) {
+            const keep = new Set(readLater.map(id => String(id)));
+            saveLocalReadLaterMeta(readLaterRows.filter(r => keep.has(String(r.article_id))));
+        }
+    }, [readLater, readLaterRows]);
 
     const readPersistedRef = useRef(false);
     useEffect(() => {
@@ -643,6 +788,59 @@ export default function NewsHub() {
             }
         }
     }, [userId, bookmarks, showBookmarkNotice]);
+
+    // ── Read Later toggle (shared contract 2) ─────────────────────────────────
+    // Mirrors toggleBookmark, except guests are NOT blocked: the contract asks for a
+    // localStorage fallback on 'news_read_later'. Local state only advances when the
+    // write succeeded (addToReadLater -> null / removeFromReadLater -> false on failure).
+    const isSavedForLater = useCallback((articleId) => readLater.includes(articleId), [readLater]);
+
+    const toggleReadLater = useCallback(async (articleId, article = {}) => {
+        const alreadySaved = readLater.includes(articleId);
+
+        // Row captured from the article we already have on screen — used so the
+        // Read Later list can still render items that have scrolled out of the
+        // paginated feed. Built by the service so /hub/article writes the exact
+        // same shape into the same sidecar key.
+        const localRow = toLocalReadLaterRow(articleId, article);
+
+        if (!userId) {
+            // Guest: localStorage only (persisted by the effect above).
+            if (alreadySaved) {
+                setReadLater(prev => prev.filter(id => id !== articleId));
+                setReadLaterRows(prev => prev.filter(r => r.article_id !== articleId));
+                showBookmarkNotice('Removed from Read Later');
+            } else {
+                setReadLater(prev => (prev.includes(articleId) ? prev : [articleId, ...prev]));
+                setReadLaterRows(prev => [localRow, ...prev.filter(r => r.article_id !== articleId)]);
+                showBookmarkNotice('Saved to Read Later on this device');
+            }
+            return;
+        }
+
+        if (alreadySaved) {
+            const ok = await removeFromReadLater(userId, articleId);
+            if (ok !== false) {
+                setReadLater(prev => prev.filter(id => id !== articleId));
+                setReadLaterRows(prev => prev.filter(r => r.article_id !== articleId));
+            } else {
+                showBookmarkNotice('Could not remove from Read Later');
+            }
+        } else {
+            const row = await addToReadLater(userId, articleId, {
+                title: article.title,
+                url: article.source_url,
+                source: article.source_name,
+                thumbnail: article.image_url
+            });
+            if (row) {
+                setReadLater(prev => (prev.includes(articleId) ? prev : [articleId, ...prev]));
+                setReadLaterRows(prev => [{ ...localRow, ...row }, ...prev.filter(r => r.article_id !== articleId)]);
+            } else {
+                showBookmarkNotice('Could not save to Read Later');
+            }
+        }
+    }, [userId, readLater, showBookmarkNotice]);
 
     const markAsRead = (articleId) => {
         // Functional guard keeps this safe even when called from stale closures
@@ -784,6 +982,39 @@ export default function NewsHub() {
         return true;
     });
 
+    // Read Later queue, resolved to renderable articles (shared contract 2).
+    // Prefer the live row from the loaded feed; otherwise fall back to the columns
+    // newsReadLater stored when the article was saved. Anything we have no real data
+    // for is dropped rather than rendered as a placeholder.
+    const readLaterArticles = readLater
+        .map(id => {
+            const live = news.find(a => a.id === id);
+            if (live) return live;
+            const row = readLaterRows.find(r => String(r.article_id) === String(id));
+            if (!row || !row.article_title) return null;
+            return {
+                id,
+                title: row.article_title,
+                source_url: row.article_url || null,
+                source_name: row.source || null,
+                image_url: row.thumbnail_url || null,
+                // The article's own publication date when the row carries it.
+                // `created_at` is the time it was SAVED, so falling back to it
+                // would date a week-old story to "just now" — only used when
+                // there is nothing truer available.
+                published_at: row.published_at || row.created_at || null
+            };
+        })
+        .filter(Boolean);
+
+    const bookmarkedArticles = news.filter(a => bookmarks.includes(a.id));
+
+    // A card is only saveable / indexable when it represents a REAL published
+    // article. /api/news/source-boxes fills unfilled boxes with `_isEmpty` /
+    // `_isError` rows (synthetic ids like 'empty-box-3' and titles like
+    // "Awaiting WSOP News"), and FALLBACK_NEWS is tagged is_fallback.
+    const isRealArticle = (a) => !!a && !a.is_fallback && !a._isEmpty && !a._isError;
+
     // Breaking news = most recent real article from top sources (fallback data never qualifies)
     const breakingNews = news.find(a => !a.is_fallback && a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
 
@@ -839,21 +1070,26 @@ export default function NewsHub() {
         return () => window.removeEventListener('keydown', handleKeyNav);
     }, []);
 
-    // Phase 6: IntersectionObserver for infinite scroll
+    // Phase 6: IntersectionObserver for infinite scroll.
+    // The sentinel only renders while the API reports hasMore, so reaching it asks
+    // for the next OFFSET page (shared contract 1) rather than revealing more of an
+    // already-downloaded array. loadMoreNews is self-guarding against re-entry.
     const loadMoreRef = useRef(null);
     useEffect(() => {
         if (!loadMoreRef.current) return;
         const observer = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting && visibleStories < (remainingStories?.length || 0)) {
-                    setVisibleStories(prev => prev + 10);
-                }
+                if (entry.isIntersecting) loadMoreNews();
             },
             { rootMargin: '200px' }
         );
         observer.observe(loadMoreRef.current);
         return () => observer.disconnect();
-    }, [visibleStories, remainingStories?.length]);
+        // `newsData` is a dependency on purpose: an IntersectionObserver only reports
+        // CHANGES, so when a freshly loaded page adds no visible rows (every row
+        // filtered out client-side) the sentinel never leaves the viewport and would
+        // never fire again. Re-observing on each settled page re-arms it.
+    }, [loadMoreNews, newsHasMore, newsData]);
 
     // Phase 6: Time-grouped article helpers
     const getTimeGroup = (publishedAt) => {
@@ -868,8 +1104,54 @@ export default function NewsHub() {
     };
     const TIME_GROUP_LABELS = { today: 'Today', yesterday: 'Yesterday', this_week: 'This Week', older: 'Older' };
 
+    // ── schema.org ItemList of the visible headlines (shared contract 5) ──────
+    // Real articles only: fallback/sample rows are excluded, and the block is not
+    // emitted at all when there is nothing real to describe.
+    const headlineJsonLd = (() => {
+        const seen = new Set();
+        const itemListElement = [];
+        for (const a of [...topArticles, ...remainingStories]) {
+            if (!isRealArticle(a) || !a.id || !a.title) continue;
+            if (seen.has(a.id)) continue;
+            seen.add(a.id);
+            itemListElement.push({
+                '@type': 'ListItem',
+                position: itemListElement.length + 1,
+                url: `https://smarter.poker/hub/article?id=${encodeURIComponent(a.id)}`,
+                name: a.title
+            });
+            if (itemListElement.length >= 30) break;
+        }
+        if (itemListElement.length === 0) return null;
+        return {
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Latest Poker News',
+            itemListOrder: 'https://schema.org/ItemListOrderDescending',
+            numberOfItems: itemListElement.length,
+            itemListElement
+        };
+    })();
+
     return (
         <>
+            {/* schema.org ItemList of the headlines actually on screen.
+                Every less-than character is replaced with its unicode escape
+                (u003c) so a headline containing a closing script tag cannot
+                break out of the JSON-LD block.
+                MUST stay OUTSIDE <PageTransition>: that component is loaded with
+                dynamic(..., { ssr: false }), so anything inside it is absent from the
+                server-rendered HTML — and JSON-LD that is not in the SSR payload is
+                invisible to crawlers, which defeats the point of emitting it. */}
+            {headlineJsonLd && (
+                <Head>
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{ __html: JSON.stringify(headlineJsonLd).replace(/</g, '\\u003c') }}
+                    />
+                </Head>
+            )}
+
             <PageTransition>
                 {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
                 {showIntro && (
@@ -990,8 +1272,11 @@ export default function NewsHub() {
                     {/* Skeleton Loading State — additive, never exclusive with the layout:
                         the SWR key carries the debounced search term, so `loading` flips back
                         to true on every new search. Unmounting the layout there would destroy
-                        the search input (and the filters/sidebar) mid-typing. */}
-                    {loading && (
+                        the search input (and the filters/sidebar) mid-typing.
+                        `!hasLoadedNews` scopes it to the FIRST page: with offset pagination
+                        `loading` also flips on every infinite-scroll page, and the skeleton
+                        must not reappear above an already-populated feed. */}
+                    {loading && !hasLoadedNews && (
                         <div className="skeleton-grid" aria-hidden="true">
                             {[...Array(6)].map((_, i) => (
                                 <div key={i} className="skeleton-card">
@@ -1021,7 +1306,7 @@ export default function NewsHub() {
                             {lastRefreshed && (
                                 <div style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                     <span>Updated {timeAgo(lastRefreshed)}</span>
-                                    <button onClick={() => refreshNews()} style={{ background: 'none', border: 'none', color: '#5ef5f0', cursor: 'pointer', fontSize: '11px', padding: 0, textDecoration: 'underline' }}>Refresh</button>
+                                    <button onClick={() => refreshNewsFeed()} style={{ background: 'none', border: 'none', color: '#5ef5f0', cursor: 'pointer', fontSize: '11px', padding: 0, textDecoration: 'underline' }}>Refresh</button>
                                 </div>
                             )}
 
@@ -1162,10 +1447,11 @@ export default function NewsHub() {
                             </div>
 
                             {/* Phase 5: Reading Stats Bar */}
-                            {(readArticles.length > 0 || bookmarks.length > 0) && (
+                            {(readArticles.length > 0 || bookmarks.length > 0 || readLater.length > 0) && (
                                 <div className="reading-stats-bar">
                                     {readArticles.length > 0 && <span>{readArticles.length} read</span>}
                                     {bookmarks.length > 0 && <span>{bookmarks.length} bookmarked</span>}
+                                    {readLater.length > 0 && <span>{readLater.length} saved for later</span>}
                                     {uniqueSourcesRead > 0 && <span>{uniqueSourcesRead} sources explored</span>}
                                 </div>
                             )}
@@ -1198,7 +1484,7 @@ export default function NewsHub() {
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.06, duration: 0.3 }}
-                                                        className={focusedArticleIdx === index ? 'keyboard-focused' : ''}
+                                                        className={`news-card-wrap ${focusedArticleIdx === index ? 'keyboard-focused' : ''}`}
                                                     >
                                                         <NewsBox
                                                             article={article}
@@ -1209,6 +1495,23 @@ export default function NewsHub() {
                                                             onShare={handleShare}
                                                             isRead={readArticles.includes(article.id)}
                                                         />
+                                                        {/* Read Later affordance. NewsBox owns its bookmark/share
+                                                            pair; this sits alongside them (same chip styling and
+                                                            reveal-on-hover behaviour) without changing NewsBox's
+                                                            props contract. Hidden on empty/placeholder boxes —
+                                                            there is no real article to come back to. */}
+                                                        {isRealArticle(article) && (
+                                                        <button
+                                                            type="button"
+                                                            className={`readlater-overlay-btn ${isSavedForLater(article.id) ? 'saved' : ''}`}
+                                                            onClick={(e) => { e.stopPropagation(); toggleReadLater(article.id, article); }}
+                                                            title={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                            aria-label={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                            aria-pressed={isSavedForLater(article.id)}
+                                                        >
+                                                            {isSavedForLater(article.id) ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                        </button>
+                                                        )}
                                                     </motion.div>
                                                 ))}
                                             </div>
@@ -1218,12 +1521,12 @@ export default function NewsHub() {
                                         {remainingStories.length > 0 && (
                                             <div className="more-stories-section">
                                                 <h2 className="section-title" style={{ fontSize: '14px', margin: '16px 0 8px' }}>
-                                                    <Newspaper size={16} /> {activeSourceFilters.length > 0 ? `Filtered Stories (${remainingStories.length})` : `More Stories (${remainingStories.length})`}
+                                                    <Newspaper size={16} /> {activeSourceFilters.length > 0 ? `Filtered Stories (${remainingStories.length}${newsHasMore ? '+' : ''})` : `More Stories (${remainingStories.length}${newsHasMore ? '+' : ''})`}
                                                 </h2>
                                                 <div className="news-list">
                                                 {(() => {
                                                     let lastGroup = '';
-                                                    return remainingStories.slice(0, visibleStories).map((article, storyIndex) => {
+                                                    return remainingStories.map((article, storyIndex) => {
                                                         const group = getTimeGroup(article.published_at);
                                                         const showHeader = group !== lastGroup;
                                                         lastGroup = group;
@@ -1249,6 +1552,11 @@ export default function NewsHub() {
                                                                     {(article.views || 0) > 50 && (
                                                                         <span className="trending-badge" title="Trending"><TrendingUp size={11} /></span>
                                                                     )}
+                                                                    {/* Kept as a raw <img> on purpose: these thumbnails come from
+                                                                        arbitrary scraped news domains, and next/image throws at
+                                                                        runtime for any host missing from next.config.js images
+                                                                        config. The onError category fallback also needs the plain
+                                                                        <img> src swap. */}
                                                                     <img
                                                                         src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                         alt=""
@@ -1274,6 +1582,15 @@ export default function NewsHub() {
                                                                         <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
                                                                             {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                                                                         </button>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); toggleReadLater(article.id, article); }}
+                                                                            title={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                                            aria-label={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                                            aria-pressed={isSavedForLater(article.id)}
+                                                                            className={isSavedForLater(article.id) ? 'saved-later' : ''}
+                                                                        >
+                                                                            {isSavedForLater(article.id) ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                                        </button>
                                                                         <button onClick={(e) => { e.stopPropagation(); handleShare(article); }} title="Share">
                                                                             <Share2 size={14} />
                                                                         </button>
@@ -1284,13 +1601,19 @@ export default function NewsHub() {
                                                     });
                                                 })()}
                                                 </div>
-                                                {/* Phase 6: IntersectionObserver sentinel replaces Load More */}
-                                                {visibleStories < remainingStories.length && (
-                                                    <div ref={loadMoreRef} className="load-more-sentinel">
-                                                        <div className="loading-spinner" />
-                                                        <span>Loading more stories...</span>
-                                                    </div>
-                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Phase 6: IntersectionObserver sentinel replaces Load More.
+                                            Deliberately a SIBLING of the more-stories block: source
+                                            filters are applied client-side, so a page whose rows all
+                                            get filtered out must still be able to request the next
+                                            one — nesting this inside `remainingStories.length > 0`
+                                            would dead-end pagination there. */}
+                                        {newsHasMore && (
+                                            <div ref={loadMoreRef} className="load-more-sentinel">
+                                                <div className="loading-spinner" />
+                                                <span>Loading more stories...</span>
                                             </div>
                                         )}
                                     </section>
@@ -1433,22 +1756,46 @@ export default function NewsHub() {
                                         {activeSection === 'bookmarks' ? <BookmarkCheck size={18} /> : <Clock size={18} />}
                                         {activeSection === 'bookmarks' ? ' Bookmarked Articles' : ' Read Later'}
                                     </h2>
+                                    {/* BUG FIX: 'later' used to render READ HISTORY (readArticles).
+                                        It now renders the real Read Later queue from
+                                        src/services/newsReadLater.js (shared contract 2). */}
                                     <div className={viewMode === 'list' ? 'news-grid news-grid-list' : 'news-grid'}>
-                                        {news.filter(a => activeSection === 'bookmarks' ? bookmarks.includes(a.id) : readArticles.includes(a.id)).map((article, index) => (
-                                            <NewsBox
-                                                key={article.id}
-                                                article={article}
-                                                index={index}
-                                                onOpen={openArticle}
-                                                isBookmarked={bookmarks.includes(article.id)}
-                                                onBookmark={toggleBookmark}
-                                                onShare={handleShare}
-                                                isRead={readArticles.includes(article.id)}
-                                            />
+                                        {(activeSection === 'bookmarks' ? bookmarkedArticles : readLaterArticles).map((article, index) => (
+                                            <div className="news-card-wrap" key={article.id}>
+                                                <NewsBox
+                                                    article={article}
+                                                    index={index}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(article.id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={handleShare}
+                                                    isRead={readArticles.includes(article.id)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className={`readlater-overlay-btn ${isSavedForLater(article.id) ? 'saved' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); toggleReadLater(article.id, article); }}
+                                                    title={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                    aria-label={isSavedForLater(article.id) ? 'Remove from Read Later' : 'Add to Read Later'}
+                                                    aria-pressed={isSavedForLater(article.id)}
+                                                >
+                                                    {isSavedForLater(article.id) ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                </button>
+                                            </div>
                                         ))}
-                                        {news.filter(a => activeSection === 'bookmarks' ? bookmarks.includes(a.id) : readArticles.includes(a.id)).length === 0 && (
+                                        {(activeSection === 'bookmarks' ? bookmarkedArticles : readLaterArticles).length === 0 && (
                                             <div className="no-results" style={{ gridColumn: '1 / -1' }}>
-                                                <p>No articles found in {activeSection === 'bookmarks' ? 'Bookmarks' : 'Read Later'}.</p>
+                                                {activeSection === 'bookmarks' ? (
+                                                    <p>No articles found in Bookmarks.</p>
+                                                ) : (
+                                                    <>
+                                                        <Clock size={48} />
+                                                        <p>Nothing saved for later yet.</p>
+                                                        <p style={{ fontSize: '12px', opacity: 0.7, margin: 0 }}>
+                                                            Use the clock icon on any story to save it here.
+                                                        </p>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1511,6 +1858,10 @@ export default function NewsHub() {
                                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
                                         >
                                             <span className={`rank ${i < 3 ? `rank-medal medal-${i + 1}` : ''}`}>{i + 1}</span>
+                                            {/* Raw <img> on purpose — same reason as the feed thumbnails:
+                                                scraped remote hosts are not guaranteed to be listed in
+                                                next.config.js images config, and next/image throws at
+                                                runtime for an unconfigured domain. */}
                                             <img
                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                 alt=""
@@ -1978,6 +2329,51 @@ export default function NewsHub() {
                     }
                     .news-list-item .list-actions button:hover {
                         background: rgba(94,245,240,0.15);
+                        color: #5ef5f0;
+                    }
+                    /* Read Later — active state for the row control */
+                    .news-list-item .list-actions button.saved-later {
+                        color: #5ef5f0;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* READ LATER CARD AFFORDANCE                      */
+                    /* Sits beside NewsBox's own bookmark/share chips   */
+                    /* (top:12px right:12px, 28px wide, 6px gap), so    */
+                    /* right: 80px = 12 + 28 + 6 + 28 + 6.              */
+                    /* ═══════════════════════════════════════════════ */
+                    .news-card-wrap {
+                        position: relative;
+                    }
+                    .readlater-overlay-btn {
+                        position: absolute;
+                        top: 12px;
+                        right: 80px;
+                        width: 28px;
+                        height: 28px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(0, 0, 0, 0.7);
+                        backdrop-filter: blur(8px);
+                        border: none;
+                        border-radius: 8px;
+                        color: #fff;
+                        cursor: pointer;
+                        /* Above the .news-box chrome frame (::after, z-index 100) */
+                        z-index: 101;
+                        opacity: 0;
+                        transition: opacity 0.2s, background 0.2s;
+                    }
+                    .news-card-wrap:hover .readlater-overlay-btn,
+                    .news-card-wrap:focus-within .readlater-overlay-btn {
+                        opacity: 1;
+                    }
+                    .readlater-overlay-btn:hover,
+                    .readlater-overlay-btn:focus-visible {
+                        background: rgba(0, 212, 255, 0.4);
+                    }
+                    .readlater-overlay-btn.saved {
                         color: #5ef5f0;
                     }
                     .news-list-item.read {
