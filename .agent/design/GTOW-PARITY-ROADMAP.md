@@ -64,10 +64,13 @@ High/Low mode.
 4. **Timebank 7 / 15 / 25s.** BUILT 2026-07-26 — re-scaled to No timer /
    25s / 15s / 7s across the setup modal and both in-arena pickers. Ours had
    'Standard' at 60s, four times GTOW's longest tier.
-5. **Auto New Hand delay configurable.** BUILT — auto-advance is now opt-in;
-   the delay is still hardcoded. Expose it, default 3s when enabled.
-6. **Feedback rule: every action vs only-after-mistake.** GAP — the single
-   most important pacing control in the trainer, and we don't have it.
+5. **Auto New Hand delay configurable.** BUILT 2026-07-26 —
+   `trainerConfig.autoAdvanceDelayMs`, default 3s (GTOW's recommendation),
+   doubled for an inaccuracy so a near-miss gets more reading time.
+6. **Feedback rule: every action vs only-after-mistake.** BUILT 2026-07-26 —
+   `trainerConfig.feedbackRule`: 'every' (never auto-advance), 'mistakes'
+   (roll through best/correct, STOP on inaccuracy and worse), 'auto' (legacy).
+   Defaults to 'every'. Blunders never auto-advance under any rule.
 7. **Hand selection: filter trivial / close decisions only.** GAP.
 8. **Board-texture targeting.** BUILT via the config modal; unverified.
 9. **Game speed Normal / Fast / Turbo.** GAP.
@@ -86,7 +89,12 @@ High/Low mode.
 16. **Pot includes blinds preflop.** BUILT.
 17. **Villain shows a real stack, not a fabricated one.** BUILT.
 18. **Folded villains grey out rather than vanish.** BUILT.
-19. **Avatar must not float mid-table.** BROKEN — visible in the feedback view.
+19. **Avatar must not float mid-table.** BUILT 2026-07-26 — root cause was
+    `tableArea` being `flex:1` + `overflow:hidden` around a `flexShrink:0`
+    child with a 1/1.45 aspect ratio: opening the feedback panel CLIPPED the
+    felt instead of scaling it, stranding hero's avatar mid-view. The table now
+    scales; every seat, the button and the chips stay proportional because they
+    are positioned in percentages.
 20. **Buttons show only actions the solver returned.** DONE — and must never be
     padded to a fixed count; invented buttons make the frequency bars lie.
 21. **Difficulty remaps buttons correctly.** DONE — the Simple remap dropped
@@ -96,11 +104,19 @@ High/Low mode.
 ### Scoring and feedback
 
 23. **Five-tier classification.** BUILT.
-24. **Best marked distinctly from merely Correct.** GAP — GTOW uses a double
-    check.
-25. **GTOW Score -100..+100.** BROKEN — ours is a 0-100 weighted average.
+24. **Best marked distinctly from merely Correct.** BUILT 2026-07-26 — Best
+    carries a double check, Correct a single one. Also renamed the tiers to
+    GTOW's own terminology: 'Correct Move' was labelled 'Excellent', which is
+    not a tier name in the reference product.
+25. **GTOW Score -100..+100.** BROKEN — DELIBERATELY NOT RESCALED YET.
+    Ours is a 0-100 weighted average. Rescaling is a two-line change but it
+    silently corrupts historical data: `training_sessions.gtow_score` and
+    `training_leaderboard.gtow_score_avg` already hold 0-100 values, and mixing
+    scales makes every stored average meaningless. Needs a migration that
+    either backfills or version-tags the column. Do not 'fix' this without
+    that migration.
 26. **EV loss in bb.** DONE — was inflated by a factor of the pot size.
-27. **EV loss as % of pot.** BUILT 2026-07-26 — the engine formula was fixed
+27. **EV loss as % of pot.** DONE 2026-07-26 — the engine formula was fixed
     earlier; the value was computed and then displayed nowhere. The feedback
     banner now shows both units, e.g. `-0.50 bb (8.3% pot)`.
 28. **Average loss per mistake.** BUILT — corrected during cross-reference:
@@ -108,8 +124,8 @@ High/Low mode.
     through the arena. The roadmap's original GAP status was wrong.
 29. **Feedback waits for the player.** DONE — auto-advance defaulted on at 2s,
     which is why explanations vanished before they could be read.
-30. **Feedback inline; hand stays visible.** BROKEN — renders below, but the
-    table collapses (see 19).
+30. **Feedback inline; hand stays visible.** BUILT 2026-07-26 — fixed with
+    #19; the panel is also capped at 40vh (was 48vh) to leave the felt room.
 31. **Solver frequencies per action.** BUILT.
 32. **Your action vs optimal, with EV of each.** BUILT.
 33. **Plain-language reason.** BUILT — though many deeper coaching notes were

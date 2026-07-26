@@ -1055,7 +1055,7 @@ function ClassificationFlashBanner({ classification, evLoss, pot = 0 }) {
                     fontFamily: "'Inter', monospace",
                     textShadow: `0 0 12px ${config.color}44`,
                 }}>
-                    {config.label}
+                    {config.mark ? `${config.mark} ${config.label}` : config.label}
                 </span>
                 {evLoss > 0 && (
                     <span style={{
@@ -2054,20 +2054,42 @@ function UniversalDynamicTable({
         // 2026-07-26 UX FIX: this defaulted ON, so correct/best answers flashed
         // their feedback for 2s and moved on before the explanation could be
         // read. GTO Wizard waits for the player. Opt-in now.
-        const autoAdvEnabled = trainerConfig?.autoAdvance === true; // Default OFF
-        if (!autoAdvEnabled) {
+        //
+        // roadmap #6 — FEEDBACK RULE. GTO Wizard's most important pacing
+        // control: 'every' pauses after every action, 'mistakes' pauses ONLY on
+        // an error and rolls straight through correct play. We had no
+        // equivalent, so a session was either fully manual or fully automatic.
+        //   'every'    -> never auto-advance; the player clicks every hand.
+        //   'mistakes' -> auto-advance best/correct; stop on inaccuracy+.
+        //   'auto'     -> legacy behaviour, auto-advance everything but blunders.
+        const isMistake = !(computedClassification === 'best' || computedClassification === 'correct');
+        const feedbackRule = trainerConfig?.feedbackRule
+            || (trainerConfig?.autoAdvance === true ? 'auto' : 'every');
+
+        if (feedbackRule === 'every') {
+            setAutoAdvanceCountdown(null);
+            setAutoAdvanceTotal(null);
+            return;
+        }
+        if (feedbackRule === 'mistakes' && isMistake) {
+            // The whole point of this mode: stop and make the player read it.
             setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
             return;
         }
 
+        // roadmap #5 — the delay is configurable. GTOW recommends ~3s.
+        const baseDelay = Number(trainerConfig?.autoAdvanceDelayMs) > 0
+            ? Number(trainerConfig.autoAdvanceDelayMs)
+            : 3000;
+
         let delay = null;
         if (computedClassification === 'best' || computedClassification === 'correct') {
-            delay = 2000;
+            delay = baseDelay;
         } else if (computedClassification === 'inaccuracy') {
-            delay = 4000;
+            delay = Math.round(baseDelay * 2);
         }
-        // Wrong/Blunder: no auto-advance — user should study the feedback
+        // Wrong/Blunder: never auto-advance — the player should study the feedback
 
         if (delay) {
             setAutoAdvanceTotal(delay);
@@ -5264,13 +5286,21 @@ const styles = {
 
     // ── TABLE AREA — Phase 17e: Fill ALL available space, overflow hidden
     tableArea: {
+        // 2026-07-26 (roadmap #19/#30): this was `overflow: hidden` on a flex:1
+        // box whose child is flexShrink:0 with a 1/1.45 aspect ratio. The moment
+        // the inline feedback panel (up to 48vh) opened, the table was CLIPPED
+        // instead of scaled -- the felt got cut off mid-height and hero's avatar
+        // ended up floating in the middle of the visible area. Letting the table
+        // scale keeps every seat, the button and the chips proportional, because
+        // they are all positioned in percentages.
         flex: 1,
+        minHeight: 0,
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
+        overflow: 'visible',
         padding: 0,
     },
 
@@ -5285,7 +5315,9 @@ const styles = {
         border: '8px solid #1a1a1a',
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
-        flexShrink: 0,
+        // Shrink with the container rather than overflow it (see tableArea).
+        flexShrink: 1,
+        maxHeight: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -5785,7 +5817,7 @@ const styles = {
     feedbackInline: {
         position: 'relative',
         width: '100%',
-        maxHeight: '48vh',
+        maxHeight: '40vh',
         overflowY: 'auto',
         background: 'rgba(5,10,20,0.92)',
         borderTop: '1px solid rgba(255,255,255,0.08)',

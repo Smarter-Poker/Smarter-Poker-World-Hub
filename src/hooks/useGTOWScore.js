@@ -28,8 +28,13 @@ export const MOVE_CLASSIFICATIONS = {
 };
 
 export const CLASSIFICATION_CONFIG = {
+    // roadmap #24 — GTO Wizard marks the BEST action with a DOUBLE check and a
+    // merely-correct action with a single one, so the two tiers are
+    // distinguishable at a glance. We rendered both with a generic label and
+    // 'Excellent', which is not a tier name in the reference product at all.
     [MOVE_CLASSIFICATIONS.BEST]: {
         label: 'Best Move',
+        mark: '\u2713\u2713',   // double check
         color: '#22c55e',       // Green
         bgColor: 'rgba(34, 197, 94, 0.15)',
         borderColor: '#22c55e',
@@ -37,7 +42,8 @@ export const CLASSIFICATION_CONFIG = {
         scoreImpact: { min: 3, max: 5 },
     },
     [MOVE_CLASSIFICATIONS.CORRECT]: {
-        label: 'Excellent',
+        label: 'Correct Move',
+        mark: '\u2713',         // single check
         color: '#84cc16',       // Yellow-Green
         bgColor: 'rgba(132, 204, 22, 0.12)',
         borderColor: '#84cc16',
