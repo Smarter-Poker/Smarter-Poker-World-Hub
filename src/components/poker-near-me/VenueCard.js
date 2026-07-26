@@ -362,13 +362,23 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         try {
             const token = getAccessToken();
             if (!token) { if (onNavigate) onNavigate('/auth/login'); return; }
-            const res = await fetch('/api/social/posts', {
+            // WIRING FIX: '/api/social/posts' has no handler (verified against the full
+            // repo), so every venue check-in 404'd. The real route is
+            // POST /api/social/create-post, which takes content/content_type/visibility/
+            // metadata (there is no post_type field) and answers { success, data:{post_id} }.
+            const res = await fetch('/api/social/create-post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     content: checkinMsg.trim(),
-                    post_type: 'checkin',
-                    metadata: { venue_id: venue.id, venue_name: venue.name, venue_type: venue.venue_type },
+                    content_type: 'text',
+                    visibility: 'public',
+                    metadata: {
+                        post_type: 'checkin',
+                        venue_id: venue.id,
+                        venue_name: venue.name,
+                        venue_type: venue.venue_type,
+                    },
                 }),
             });
             // BUG FIX: the response was never inspected, so a 401/404/500 still showed

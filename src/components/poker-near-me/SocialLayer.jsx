@@ -65,15 +65,20 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         try {
             const headers = {};
             if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-            const res = await fetch(`/api/friends/list?user_id=${userId}`, { headers, signal });
+            // WIRING FIX: '/api/friends/list' has no handler (verified against the full
+            // repo — only pages/api/friends/index.js exists), so this 404'd on every load
+            // and the Friends feed was permanently empty. The real contract is
+            // GET /api/friends?action=list, which derives identity from the JWT (not a
+            // query param) and answers { success, data: { friends: [...] } }.
+            const res = await fetch('/api/friends?action=list', { headers, signal });
             if (!res.ok) {
-                // API may not exist yet or user has no friends — show empty state
+                // 401 when signed out, or user has no friends — show empty state
                 setLoading(false);
                 return;
             }
             const data = await res.json();
             if (!isMounted.current) return;
-            setFriendsList(data.friends || data.data || []);
+            setFriendsList(data?.data?.friends || data?.friends || (Array.isArray(data?.data) ? data.data : []));
             // BUG FIX: loading was only cleared on !res.ok or catch. A successful
             // response with zero friends left the spinner ("Finding friends...") up
             // forever, because the effect below skips fetchFriendCheckins — the only

@@ -641,16 +641,24 @@ export default function PublicHomeGamePage({ data, serverError }) {
       return;
     }
     try {
-      const res = await fetch('/api/social/posts', {
+      // WIRING FIX: '/api/social/posts' has no handler (verified against the full repo),
+      // so "Share to feed" 404'd every time and the caller's `if (res.ok)` silently
+      // swallowed it. The real route is POST /api/social/create-post; link metadata
+      // rides along in `metadata` since the handler has no link_* fields.
+      const res = await fetch('/api/social/create-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           content: `Check out ${page.name} — a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}! ${shareUrl}`,
-          link_url: shareUrl,
-          link_title: page.name,
-          link_description: metaDesc,
-          link_image: page.avatar_url || page.cover_url || null,
-          post_type: 'link',
+          content_type: 'text',
+          visibility: 'public',
+          metadata: {
+            post_type: 'link',
+            link_url: shareUrl,
+            link_title: page.name,
+            link_description: metaDesc,
+            link_image: page.avatar_url || page.cover_url || null,
+          },
         }),
       });
       if (res.ok) {

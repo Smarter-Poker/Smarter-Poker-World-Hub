@@ -9,7 +9,7 @@ import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 // share this resolver: it prefers the Commander-namespaced route (CLAUDE.md places
 // the Commander API under pages/api/commander/) and falls back to the legacy
 // top-level route on 404/405, so it works whichever one the deployment serves.
-const ACCESS_ENDPOINTS = ['/api/commander/check-access', '/api/check-access'];
+const ACCESS_ENDPOINTS = ['/api/check-access', '/api/commander/check-access'];
 
 async function checkCommanderAccess(accessToken) {
   for (const endpoint of ACCESS_ENDPOINTS) {

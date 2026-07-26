@@ -33,7 +33,7 @@ const WIZARD_PATH = '/commander/register?tier=home_game&return=%2Fhub%2Fcommande
 // Commander-namespaced route (CLAUDE.md places the Commander API under
 // pages/api/commander/) and falls back to the legacy top-level route on 404/405,
 // so it behaves correctly whichever one the deployment actually serves.
-const ACCESS_ENDPOINTS = ['/api/commander/check-access', '/api/check-access'];
+const ACCESS_ENDPOINTS = ['/api/check-access', '/api/commander/check-access'];
 
 async function checkCommanderAccess(accessToken) {
   for (const endpoint of ACCESS_ENDPOINTS) {
