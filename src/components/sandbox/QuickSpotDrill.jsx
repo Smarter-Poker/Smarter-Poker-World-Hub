@@ -4,6 +4,7 @@
  * Tracks streaks and saves results to sandbox_coach_results.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     bg: '#18191A',
@@ -14,12 +15,40 @@ const M = {
     green: '#00E676',
     red: '#FF1744',
     gold: '#FFD700',
+    cyan: '#4599FF',
+    dim: 'rgba(255,255,255,0.4)',
 };
+
+const DEFAULT_OPTIONS = ['Fold', 'Call', 'Raise', 'All-In'];
 
 function pctColor(pct) {
     if (pct >= 70) return M.green;
     if (pct >= 50) return M.gold;
     return M.red;
+}
+
+/**
+ * Normalises a row from either shape the drill APIs can return:
+ *  - the mapped pool shape { scenario_text, hero_hand, hero_position, options, ... }
+ *  - a raw training_questions row { context, question_type, metadata, correct_answer }
+ */
+function mapDrillRow(row) {
+    if (!row) return null;
+    const meta = (row.metadata && typeof row.metadata === 'object') ? row.metadata : {};
+    const options = Array.isArray(row.options) && row.options.length
+        ? row.options
+        : (Array.isArray(meta.options) && meta.options.length ? meta.options : DEFAULT_OPTIONS);
+
+    return {
+        id: row.id ?? null,
+        scenario_text: row.scenario_text || row.context || row.question || meta.scenario_text || 'What is the GTO play here?',
+        hero_hand: row.hero_hand || meta.hero_hand || null,
+        hero_position: row.hero_position || meta.hero_position || null,
+        street: (row.street || meta.street || 'preflop'),
+        options: options.map(o => String(o)),
+        correct_answer: row.correct_answer ?? meta.correct_answer ?? null,
+        gto_explanation: row.gto_explanation || meta.gto_explanation || meta.explanation || row.explanation || null,
+    };
 }
 
 export default function QuickSpotDrill({ onClose, customParams }) {
@@ -43,7 +72,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
             try {
                 const savedLevel = localStorage.getItem('sandbox-drill-level');
                 const startLevel = savedLevel ? parseInt(savedLevel, 10) : 1;
-                setLevel(startLevel);
+                setLevel(Number.isFinite(startLevel) && startLevel > 0 ? startLevel : 1);
 
                 let fetchUrl = '/api/training/hand-of-the-day';
                 if (customParams) {
@@ -56,17 +85,26 @@ export default function QuickSpotDrill({ onClose, customParams }) {
 
                 const res = await fetch(fetchUrl);
                 const json = await res.json();
-                // If we get pool data, use it — otherwise generate mock scenarios
-                if (json.pool && json.pool.length > 0) {
+                // custom-drill responds under `pool`; the raw training route uses
+                // `questions`. Accept either, and map the DB row fields to the
+                // display fields this component renders.
+                const rawPool = (Array.isArray(json?.pool) && json.pool.length)
+                    ? json.pool
+                    : (Array.isArray(json?.questions) && json.questions.length ? json.questions : null);
+
+                if (rawPool) {
+                    const mapped = rawPool.map(mapDrillRow).filter(q => q && q.correct_answer);
                     // Phase 62: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-                    const _arr = [...json.pool];
+                    const _arr = [...mapped];
                     for (let i = _arr.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [_arr[i], _arr[j]] = [_arr[j], _arr[i]];
                     }
-                    setQuestions(_arr.slice(0, 10));
-                } else if (json.question) {
-                    setQuestions([json.question]);
+                    const cap = Math.max(1, Math.min(Number(customParams?.limit) || 10, 50));
+                    setQuestions(_arr.slice(0, cap));
+                } else if (json?.question) {
+                    const single = mapDrillRow(json.question);
+                    if (single) setQuestions([single]);
                 }
             } catch (e) {
                 console.warn('[QuickSpotDrill] Load error:', e);
@@ -75,7 +113,58 @@ export default function QuickSpotDrill({ onClose, customParams }) {
             }
         }
         load();
+    }, [customParams]);
+
+    // Persist a drill answer to the coach results table (fire-and-forget) and
+    // only then notify listeners so their refetch sees the new row.
+    const persistResult = useCallback(async (q, pick, isCorrect) => {
+        const payload = {
+            hand: q?.hero_hand || 'drill',
+            position: q?.hero_position || null,
+            street: (q?.street || 'preflop'),
+            userPick: pick || 'timeout',
+            gtoAction: q?.correct_answer || null,
+            isCorrect: !!isCorrect,
+            evDelta: isCorrect ? 0 : -0.1,
+        };
+        try {
+            const token = getAccessToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            await fetch('/api/sandbox/coach-result', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+            });
+        } catch (e) {
+            console.warn('[QuickSpotDrill] Save error:', e?.message || e);
+        } finally {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', {
+                    detail: {
+                        isCorrect: !!isCorrect,
+                        evDelta: isCorrect ? 0 : -0.1,
+                        source: 'quick-drill',
+                    },
+                }));
+            }
+        }
     }, []);
+
+    // Keep refs of the active question so the interval callback never goes stale
+    const currentIdxRef = useRef(0);
+    const questionsRef = useRef([]);
+    useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
+    useEffect(() => { questionsRef.current = questions; }, [questions]);
+
+    const handleTimeout = useCallback(() => {
+        setRevealed(true);
+        setStreak(0);
+        setScore(prev => ({ ...prev, total: prev.total + 1 }));
+        try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        // Timed-out hands are logged too, so listeners see the full sample
+        persistResult(questionsRef.current[currentIdxRef.current], 'timeout', false);
+    }, [persistResult]);
 
     // Timer countdown
     useEffect(() => {
@@ -92,14 +181,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
             });
         }, 1000);
         return () => clearInterval(timerRef.current);
-    }, [currentIdx, loading, questions.length]);
-
-    const handleTimeout = useCallback(() => {
-        setRevealed(true);
-        setStreak(0);
-        setScore(prev => ({ ...prev, total: prev.total + 1 }));
-        try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-    }, []);
+    }, [currentIdx, loading, revealed, finished, questions.length, handleTimeout]);
 
     const handlePick = useCallback((option) => {
         if (revealed) return;
@@ -118,23 +200,17 @@ export default function QuickSpotDrill({ onClose, customParams }) {
         // Haptic feedback
         try { navigator.vibrate?.(isCorrect ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-        // Save result to coach results via bus event
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', {
-                detail: {
-                    isCorrect,
-                    evDelta: isCorrect ? 0 : -0.1,
-                    source: 'quick-drill',
-                },
-            }));
-        }
-    }, [questions, currentIdx, revealed]);
+        // Persist the result, then notify listeners (SessionAnalytics, LeakHeatmap...)
+        persistResult(q, option, isCorrect);
+    }, [questions, currentIdx, revealed, persistResult]);
 
     const handleNext = useCallback(() => {
         if (currentIdx + 1 >= questions.length) {
             setFinished(true);
 
-            const finalCorrect = score.correct + (answer === questions[currentIdx]?.correct_answer ? 1 : 0);
+            // score already includes the current hand (handlePick/handleTimeout
+            // ran before Next became clickable) — do NOT add it again.
+            const finalCorrect = score.correct;
             const finalTotal = score.total;
             const finalAccuracy = finalTotal > 0 ? (finalCorrect / finalTotal) * 100 : 0;
 
@@ -166,7 +242,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
         setCurrentIdx(prev => prev + 1);
         setAnswer(null);
         setRevealed(false);
-    }, [currentIdx, questions.length, score, answer]);
+    }, [currentIdx, questions.length, score, level]);
 
     const q = questions[currentIdx];
     const accuracy = score.total > 0 ? Math.round(100 * score.correct / score.total) : 0;
@@ -200,11 +276,11 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                 {/* Header */}
                 <div style={s.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>⚡ Quick Drill</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>{'⚡ Quick Drill'}</span>
                         <span style={{ padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4, fontSize: 9, color: M.sub, fontWeight: 700 }}>LVL {level}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        {streak > 0 && <span style={{ fontSize: 12, color: M.gold }}>🔥{streak}</span>}
+                        {streak > 0 && <span style={{ fontSize: 12, color: M.gold }}>{'🔥'}{streak}</span>}
                         <span style={{ fontSize: 10, color: M.sub }}>{currentIdx + 1}/{questions.length}</span>
                         <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
                     </div>
@@ -213,7 +289,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                 {finished ? (
                     /* ── Finished Screen ─────────────────────────── */
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                        <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
+                        <div style={{ fontSize: 32, marginBottom: 8 }}>{'🎯'}</div>
                         <div style={{ fontSize: 24, fontWeight: 900, color: pctColor(accuracy), fontFamily: '"Orbitron", monospace' }}>
                             {accuracy}%
                         </div>
@@ -255,7 +331,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
 
                         {/* Options */}
                         <div style={{ padding: '0 12px 12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                            {(q?.options || ['Fold', 'Call', 'Raise', 'All-In']).map(opt => {
+                            {(q?.options?.length ? q.options : DEFAULT_OPTIONS).map(opt => {
                                 const isCorrectOpt = opt === q?.correct_answer;
                                 const isUserPick = opt === answer;
                                 let bg = 'rgba(255,255,255,0.05)';
@@ -309,8 +385,8 @@ export default function QuickSpotDrill({ onClose, customParams }) {
 
                         {/* Score Bar */}
                         <div style={{ padding: '6px 12px 10px', display: 'flex', justifyContent: 'center', gap: 16, fontSize: 9, color: M.dim }}>
-                            <span>✅ {score.correct}</span>
-                            <span>❌ {score.total - score.correct}</span>
+                            <span>{'✅'} {score.correct}</span>
+                            <span>{'❌'} {score.total - score.correct}</span>
                             <span style={{ color: pctColor(accuracy) }}>{accuracy}%</span>
                         </div>
                     </>

@@ -16,9 +16,11 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
-import { useRecentSessions } from '../../../src/hooks/useAssistant';
+import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
+import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Image-Based Metal Frame Layout
@@ -30,29 +32,38 @@ export default function PersonalAssistantPage() {
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [hoveredZone, setHoveredZone] = useState(null);
-  const [sessionFilter, setSessionFilter] = useState('mine');
 
   // ═══ ACTION GATE: Users can view the hub, but navigating to tools is gated ═══
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
-  // Intro video removed by request
-  const [showIntro, setShowIntro] = useState(false);
+  // Intro video - only show once per session
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('personal-assistant-intro-seen');
+    }
+    return false;
+  });
   const introVideoRef = useRef(null);
+  const [introSoundOn, setIntroSoundOn] = useState(false);
 
   const handleIntroEnd = useCallback(() => {
     sessionStorage.setItem('personal-assistant-intro-seen', 'true');
     setShowIntro(false);
   }, []);
 
-  const handleIntroPlay = useCallback(() => {
+  // Unmuting must happen inside a real user gesture — browsers block
+  // programmatic unmute of an autoplaying video.
+  const handleIntroUnmute = useCallback(() => {
     if (introVideoRef.current) {
       introVideoRef.current.muted = false;
+      setIntroSoundOn(true);
     }
   }, []);
 
   // Real data hooks
   const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
+  const { stats, isLoading: statsLoading } = useAssistantStats();
   const isLoading = sessionsLoading;
 
   useEffect(() => { setMounted(true); }, []);
@@ -82,14 +93,60 @@ export default function PersonalAssistantPage() {
       .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, []);
 
+  // ── Card-notation helpers ────────────────────────────────────────────────
+  // The sandbox expects q.h as a concatenated card string ('AhKd') and q.b as
+  // comma-separated cards. Normalize and validate here so bad notation (e.g.
+  // 'AKs', spaced cards) is skipped instead of half-hydrating the sandbox.
+  const normalizeHeroHand = (raw) => {
+    const hand = String(raw || '').replace(/[\s,]/g, '');
+    return /^([2-9TJQKA][shdc]){2}$/i.test(hand) ? hand : null;
+  };
+  const normalizeBoardCards = (raw) => {
+    const cards = String(raw || '').replace(/[\s,]/g, '').match(/[2-9TJQKA][shdc]/gi) || [];
+    return cards.length >= 3 ? cards.slice(0, 5) : null;
+  };
+
   const loadHandInSandbox = (hand) => {
     if (!guardAction()) return;
     const params = new URLSearchParams();
-    if (hand.heroHand) params.set('h', hand.heroHand);
+    const hero = normalizeHeroHand(hand.heroHand);
+    if (hero) params.set('h', hero);
     if (hand.position) params.set('p', hand.position);
-    if (hand.board) params.set('b', hand.board);
-    if (hand.pot) params.set('pot', hand.pot);
+    const board = normalizeBoardCards(hand.board);
+    if (board) params.set('b', board.join(','));
+    const pot = Number(hand.pot);
+    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
     router.push(`/hub/personal-assistant/sandbox?${params.toString()}`);
+  };
+
+  // Restore a recent session in the sandbox (or open the leak finder),
+  // behind the same feature gate as every other navigation on this page.
+  const openSession = (session) => {
+    if (!guardAction()) return;
+    if (session.type !== 'sandbox') {
+      router.push('/hub/personal-assistant/leaks');
+      return;
+    }
+    const params = new URLSearchParams();
+    const hero = normalizeHeroHand(session.hero_hand);
+    if (hero) params.set('h', hero);
+    if (session.hero_position) params.set('p', session.hero_position);
+    const board = normalizeBoardCards(
+      `${session.board_flop || ''}${session.board_turn || ''}${session.board_river || ''}`
+    );
+    if (board) params.set('b', board.join(','));
+    const pot = Number(session.pot_size_bb);
+    if (Number.isFinite(pot) && pot > 0) params.set('pot', String(pot));
+    const stack = Number(session.hero_stack);
+    if (Number.isFinite(stack) && stack > 0) params.set('s', String(stack));
+    const qs = params.toString();
+    router.push(`/hub/personal-assistant/sandbox${qs ? `?${qs}` : ''}`);
+  };
+
+  const formatSessionDate = (d) => {
+    if (!d) return '';
+    const t = new Date(d);
+    return isNaN(t.getTime()) ? String(d) : t.toLocaleDateString();
   };
 
   if (!mounted) {
@@ -109,11 +166,15 @@ export default function PersonalAssistantPage() {
             ref={introVideoRef}
             src="/videos/personal-assistant-intro.mp4"
             autoPlay muted playsInline
-            onPlay={handleIntroPlay}
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}
             style={{ ...S.introVideo, objectFit: 'contain' }}
           />
+          {!introSoundOn && (
+            <button onClick={handleIntroUnmute} style={{ ...S.skipBtn, right: 110 }}>
+              Tap for Sound
+            </button>
+          )}
           <button onClick={handleIntroEnd} style={S.skipBtn}>Skip</button>
         </div>
       )}
@@ -149,7 +210,7 @@ export default function PersonalAssistantPage() {
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
           {/* The metal frame image — strictly controls container height/width */}
-          <Image src="/images/personal-assistant-frame.png" alt="Strategy Hub" width={961} height={1024} />
+          <Image src="/images/personal-assistant-frame.png" alt="Strategy Hub" width={961} height={1024} style={S.frameImage} />
 
           {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
           <div
@@ -206,11 +267,12 @@ export default function PersonalAssistantPage() {
             title="GTO Anchored — Tied To Solver Analysis"
           />
 
-          {/* ── HOTSPOT: Safe & Fair Pillar ─────────────────────────── */}
+          {/* ── HOTSPOT: Safe & Fair Pillar (informational, not clickable) ── */}
           <div
             id="hotspot-safe"
             style={{
               ...S.hotspot,
+              cursor: 'default',
               top: '55.7%', left: '38.5%', width: '22.9%', height: '11.7%',
             }}
             title="Safe and Fair — No Exploit Hunting"
@@ -251,38 +313,29 @@ export default function PersonalAssistantPage() {
                         ...S.sessionOverlayRow,
                         ...(hoveredZone === `session-${session.id}` ? S.sessionRowHover : {}),
                       }}
-                      onClick={() => router.push(
-                        session.type === 'sandbox'
-                          ? '/hub/personal-assistant/sandbox'
-                          : '/hub/personal-assistant/leaks'
-                      )}
+                      onClick={() => openSession(session)}
                       onMouseEnter={() => setHoveredZone(`session-${session.id}`)}
                       onMouseLeave={() => setHoveredZone(null)}
                     >
                       <span style={S.sessionRowName}>{session.title}</span>
-                      <span style={{
-                        ...S.sessionRowEv,
-                        color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
-                      }}>
-                        {session.evLoss < 0 ? '' : '+'}{session.evLoss?.toFixed(2) || '0.00'} BB
-                      </span>
+                      {typeof session.evLoss === 'number' && session.evLoss !== 0 ? (
+                        <span style={{
+                          ...S.sessionRowEv,
+                          color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
+                        }}>
+                          {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
+                        </span>
+                      ) : (
+                        <span style={{ ...S.sessionRowEv, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+                          {formatSessionDate(session.date)}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-
-          {/* ── HOTSPOT: My Sessions Dropdown ──────────────────────── */}
-          <div
-            id="hotspot-my-sessions"
-            style={{
-              ...S.hotspot,
-              top: '70.3%', left: '72.3%', width: '14.6%', height: '4.4%',
-            }}
-            onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
-            title="Toggle Session Filter"
-          />
 
           {/* ── JARVIS AVATAR in Circular Frame (bottom-right) ─────── */}
           <div
@@ -291,12 +344,23 @@ export default function PersonalAssistantPage() {
               ...S.jarvisHotspot,
               top: '82.0%', left: '81.5%', width: '7.5%', height: '7.5%',
             }}
+            onClick={() => { if (guardAction()) router.push('/hub/messenger?chat=jarvis'); }}
+            title="Chat with Jarvis"
           >
-            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} style={S.jarvisImg} />
           </div>
         </div>
 
-        {/* Global Jarvis widget is removed to avoid duplicate avatars; functionality is inside the frame */}
+        {/* Dashboard stat cards — fed by /api/assistant/stats */}
+        <div style={{
+          maxWidth: 'min(961px, calc((100vh - 100px) * (961 / 1024)))',
+          margin: '20px auto 0',
+          width: '100%',
+          padding: '0 12px',
+          boxSizing: 'border-box',
+        }}>
+          <DashboardOverview stats={stats} isLoading={statsLoading} />
+        </div>
 
         {/* Wave 3: Hand of the Day widget (W3-4) */}
         {dailyHand && (
@@ -315,7 +379,7 @@ export default function PersonalAssistantPage() {
           }}>
             <div style={{ flex: 1, minWidth: 160 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#4599FF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-                🃏 Hand of the Day
+                Hand of the Day
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>
                 {dailyHand.heroHand || '??'} — {dailyHand.position || 'BTN'}
@@ -339,6 +403,10 @@ export default function PersonalAssistantPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Jarvis chat entry point (logged-in users) */}
+      <JarvisChatWidget user={user} />
+
       {UpgradePopup}
           <BottomNavBar />
     </PageTransition>
@@ -357,29 +425,11 @@ const S = {
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
-  bgGrid: {
-    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundImage: 'linear-gradient(rgba(100,181,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(100,181,246,0.03) 1px, transparent 1px)',
-    backgroundSize: '40px 40px',
-    pointerEvents: 'none',
-  },
-  bgGlow: {
-    position: 'fixed', top: '-20%', left: '50%', transform: 'translateX(-50%)',
-    width: '120%', height: '60%',
-    background: 'radial-gradient(ellipse at center, rgba(100,181,246,0.08) 0%, transparent 60%)',
-    pointerEvents: 'none',
-  },
   loadingWrap: {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: '#0a1628',
   },
   loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 16 },
-  main: {
-    position: 'relative', zIndex: 1,
-    padding: '0',
-    maxWidth: '100%',
-    margin: '0 auto',
-  },
 
   // Intro video
   introOverlay: {
@@ -420,11 +470,11 @@ const S = {
     zIndex: 2,
   },
 
-  // ── Jarvis circular frame hotspot ───────────────────────────────────────
+  // ── Jarvis circular frame hotspot (clickable — opens Jarvis chat) ───────
   jarvisHotspot: {
     position: 'absolute',
     borderRadius: '50%',
-    pointerEvents: 'none',
+    cursor: 'pointer',
     overflow: 'hidden',
     zIndex: 3,
     display: 'flex',
@@ -467,6 +517,9 @@ const S = {
     padding: '4px 8px',
     borderRadius: 4,
     cursor: 'pointer',
+  },
+  sessionRowHover: {
+    background: 'rgba(255,255,255,0.08)',
   },
   sessionRowName: {
     fontSize: 13,

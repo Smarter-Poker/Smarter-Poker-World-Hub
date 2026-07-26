@@ -7,9 +7,6 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 
 let _supabase = null;
 function getSupabase() {
@@ -30,33 +27,28 @@ export default async function handler(req, res) {
 
       const supabase = getSupabase();
   try {
-      if (!supabaseUrl || !supabaseServiceKey) {
-          return res.status(500).json({ error: 'Server configuration error' });
-      }
-
-
       // Auth guard
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
       const authUser = authData?.user;
       if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
       const userId = authUser.id; // Trust JWT, not client-supplied value
 
       if (req.method === 'POST') {
-          const { scenarioHash, userAction, correctAction, isCorrect } = req.body;
+          const { scenarioHash, userAction, correctAction, isCorrect } = req.body || {};
           if (!scenarioHash || !userAction || !correctAction) {
               return res.status(400).json({ error: 'Missing required fields' });
           }
 
           try {
               // Save quiz result
-              const { error } = await getSupabase().from('sandbox_quiz_results').insert({
+              const { error } = await supabase.from('sandbox_quiz_results').insert({
                   user_id: userId,
-                  scenario_hash: scenarioHash,
-                  user_action: userAction,
-                  correct_action: correctAction,
-                  is_correct: isCorrect,
+                  scenario_hash: String(scenarioHash).slice(0, 120),
+                  user_action: String(userAction).slice(0, 40),
+                  correct_action: String(correctAction).slice(0, 40),
+                  is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
               });
 
               if (error) {

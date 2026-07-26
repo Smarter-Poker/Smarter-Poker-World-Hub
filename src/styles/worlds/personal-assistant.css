@@ -1,18 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   PERSONAL ASSISTANT THEME — AI, Intelligence, Teal
+   PERSONAL ASSISTANT THEME — AI, Intelligence, Deep Blue
+   Matches the palette actually used by the PA pages (index/leaks/sandbox):
+   background #0d1929 → #061018, primary #2374E1, accent #00D4FF — so any
+   global chrome reading world vars stays in sync with the pages.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-personal-assistant {
-    --world-primary: #14b8a6;
-    --world-primary-rgb: 20, 184, 166;
-    --world-primary-glow: rgba(20, 184, 166, 0.4);
-    --world-secondary: #2dd4bf;
-    --world-secondary-rgb: 45, 212, 191;
-    --world-bg-start: #050a0a;
-    --world-bg-mid: #0a1a18;
-    --world-bg-end: #030505;
-    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
-    --world-surface: rgba(15, 50, 45, 0.6);
-    --world-surface-elevated: rgba(20, 70, 65, 0.8);
-    --world-border: rgba(20, 184, 166, 0.3);
+    --world-primary: #2374E1;
+    --world-primary-rgb: 35, 116, 225;
+    --world-primary-glow: rgba(35, 116, 225, 0.4);
+    --world-secondary: #00D4FF;
+    --world-secondary-rgb: 0, 212, 255;
+    --world-bg-start: #0d1929;
+    --world-bg-mid: #0a1628;
+    --world-bg-end: #061018;
+    --world-bg-gradient: linear-gradient(180deg, var(--world-bg-start) 0%, var(--world-bg-mid) 50%, var(--world-bg-end) 100%);
+    --world-surface: rgba(13, 30, 55, 0.6);
+    --world-surface-elevated: rgba(18, 42, 75, 0.8);
+    --world-border: rgba(35, 116, 225, 0.3);
 }

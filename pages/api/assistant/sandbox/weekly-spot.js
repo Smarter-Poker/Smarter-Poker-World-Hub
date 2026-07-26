@@ -81,26 +81,29 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
 
       try {
-          // Try to fetch from DB first
-          if (supabaseUrl && supabaseServiceKey) {
-              
-              const today = getTodayCST(); // Phase 77 — CST anchor: weekly spot rotation matches user's local week boundary
+          // Try to fetch from DB first — getSupabase() already falls back to the
+          // anon key, so no env guard is needed (and referencing undefined env
+          // consts here previously threw, killing the whole DB path).
+          const today = getTodayCST(); // Phase 77 — CST anchor: weekly spot rotation matches user's local week boundary
 
-              const { data, error } = await supabase
-                  .from('sandbox_weekly_spots')
-                  .select('*')
-                  .lte('week_start', today)
-                  .order('week_start', { ascending: false })
-                  .limit(1);
+          const { data, error } = await supabase
+              .from('sandbox_weekly_spots')
+              .select('*')
+              .lte('week_start', today)
+              .order('week_start', { ascending: false })
+              .limit(1);
 
-              if (!error && data && data.length > 0) {
-                  return res.status(200).json({ spot: data[0], source: 'database' });
-              }
+          if (error && error.code !== '42P01') {
+              console.warn('[weekly-spot] Query error:', error.message);
+          }
+
+          if (!error && data && data.length > 0) {
+              return res.status(200).json({ spot: data[0], source: 'database' });
           }
 
           // Fallback: use curated spots based on week number
-          const weekNum = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / (7 * 24 * 60 * 60 * 1000));
-          const spot = CURATED_SPOTS[weekNum % CURATED_SPOTS.length];
+          const weekNum = Math.floor((Date.now() - new Date('2026-01-01T00:00:00Z').getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const spot = CURATED_SPOTS[((weekNum % CURATED_SPOTS.length) + CURATED_SPOTS.length) % CURATED_SPOTS.length];
 
           return res.status(200).json({ spot, source: 'curated' });
       } catch (err) {

@@ -4,7 +4,7 @@
  * POST:   Save a new template
  * DELETE:  Remove a template by ID
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -48,14 +48,35 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const { name, scenario } = req.body;
+            const { name, scenario } = req.body || {};
             if (!name || !scenario) return res.status(400).json({ error: 'Name and scenario required' });
+
+            // Bound the stored payload — scenario_json is otherwise unlimited.
+            let scenarioSize = 0;
+            try {
+                scenarioSize = JSON.stringify(scenario).length;
+            } catch (_e) {
+                return res.status(400).json({ error: 'Scenario must be serializable JSON' });
+            }
+            if (scenarioSize > 20000) {
+                return res.status(413).json({ error: 'Scenario too large' });
+            }
+
+            // Per-user template cap (GET only lists 20; inserts were unbounded).
+            const { count, error: countErr } = await getSupabase()
+                .from('sandbox_templates')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+
+            if (!countErr && typeof count === 'number' && count >= 30) {
+                return res.status(409).json({ error: 'Template limit reached (30). Delete one first.' });
+            }
 
             const { data, error } = await getSupabase()
                 .from('sandbox_templates')
                 .insert({
                     user_id: user.id,
-                    name: name.substring(0, 100),
+                    name: String(name).substring(0, 100),
                     scenario_json: scenario,
                 })
                 .select()
@@ -70,7 +91,9 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'DELETE') {
-            const { id } = req.body || req.query;
+            // Next parses an empty DELETE body to `{}` (truthy), so
+            // `req.body || req.query` never reached the query string.
+            const id = req.body?.id ?? req.query?.id;
             if (!id) return res.status(400).json({ error: 'Template ID required' });
 
             const { error } = await getSupabase()

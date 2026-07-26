@@ -7,12 +7,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
+import { ARCHETYPE_CONFIG } from '../lib/sandbox/VillainArchetypeRanges';
 
-// Helper to get auth token from Supabase session
+// Helper to get auth token from the Supabase session.
+// Ask the client first: it knows the real session shape and refreshes an
+// expired JWT (a stale token would make every PA API quietly serve demo data).
+// The raw localStorage read stays as a fallback for the pre-hydration window.
 async function getAuthToken() {
   try {
-    const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    return session?.access_token || null;
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) return token;
+  } catch (e) {
+    console.warn('[useAssistant] getSession failed, falling back to storage:', e?.message || e);
+  }
+
+  try {
+    if (typeof window === 'undefined') return null;
+    const stored = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+    return stored?.access_token || stored?.currentSession?.access_token || null;
   } catch (e) {
     return null;
   }
@@ -30,14 +43,13 @@ export function useAssistantStats() {
     sandboxSessions: 0,
     avgEvLoss: 0,
   });
+  const [isDemo, setIsDemo] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-        const user = getAuthUser();
         const token = await getAuthToken();
 
         const response = await fetch('/api/assistant/stats', {
@@ -45,8 +57,18 @@ export function useAssistantStats() {
         });
         const data = await response.json();
 
+        // A 401/500 must not read as "no data" — surface it.
+        if (!response.ok || data.success === false) {
+          setError(data.error || `HTTP ${response.status}`);
+          return;
+        }
+
         if (data.success) {
-          setStats(data.stats);
+          const demo = !!data.isDemo;
+          // Keep the flag on the stats object too — consumers read either.
+          setStats({ ...data.stats, isDemo: demo });
+          setIsDemo(demo);
+          setError(null);
         }
       } catch (err) {
         console.warn('Error fetching stats:', err);
@@ -64,7 +86,7 @@ export function useAssistantStats() {
     return () => window.removeEventListener('pa-data-updated', handleUpdate);
   }, []);
 
-  return { stats, isLoading, error };
+  return { stats, isDemo, isLoading, error };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -73,19 +95,21 @@ export function useAssistantStats() {
 
 export function useLeaks(statusFilter = null) {
   const [leaks, setLeaks] = useState([]);
+  const [isDemo, setIsDemo] = useState(false);
+  // Onboarding sample leaks the API ships alongside an empty result set. Kept
+  // separate from `leaks` so they can never be mistaken for the user's own data.
+  const [demoLeaks, setDemoLeaks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchLeaks = useCallback(async () => {
     try {
       setIsLoading(true);
-      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const user = getAuthUser();
       const token = await getAuthToken();
 
       let url = '/api/assistant/leaks';
       if (statusFilter) {
-        url += `?status=${statusFilter}`;
+        url += `?status=${encodeURIComponent(statusFilter)}`;
       }
 
       const response = await fetch(url, {
@@ -93,25 +117,19 @@ export function useLeaks(statusFilter = null) {
       });
       const data = await response.json();
 
+      // A 401/500 must not read as "no leaks" — surface it.
+      if (!response.ok || data.success === false) {
+        setError(data.error || `HTTP ${response.status}`);
+        return;
+      }
+
       if (data.success) {
+        setIsDemo(!!data.isDemo);
+        setError(null);
         // Transform API response to match UI format
-        const formattedLeaks = data.leaks.map(leak => ({
-          id: leak.id,
-          title: formatLeakTitle(leak.leak_type),
-          status: leak.status,
-          confidence: leak.confidence,
-          situationClass: leak.situation_class,
-          optimalFrequency: leak.optimal_frequency,
-          currentFrequency: leak.current_frequency,
-          evLossBB: leak.avg_ev_loss_bb,
-          occurrenceCount: leak.occurrence_count,
-          firstDetected: leak.first_detected_at,
-          trendData: leak.trend_data || [],
-          explanation: leak.explanation,
-          whyLeakingEv: leak.why_leaking_ev,
-          sourceSystem: leak.source_system || (leak.leak_category === 'training' ? 'training_arena' : 'live_play'),
-        }));
-        setLeaks(formattedLeaks);
+        setLeaks((data.leaks || []).map(formatLeak));
+        // Onboarding samples the API returns with an empty result set.
+        setDemoLeaks((data.demoLeaks || []).map(formatLeak));
       }
     } catch (err) {
       console.warn('Error fetching leaks:', err);
@@ -156,7 +174,27 @@ export function useLeaks(statusFilter = null) {
     }
   };
 
-  return { leaks, isLoading, error, refetch: fetchLeaks, updateLeakStatus };
+  return { leaks, demoLeaks, isDemo, isLoading, error, refetch: fetchLeaks, updateLeakStatus };
+}
+
+/** Map an API leak row onto the shape the Leak Finder UI renders. */
+function formatLeak(leak) {
+  return {
+    id: leak.id,
+    title: formatLeakTitle(leak.leak_type),
+    status: leak.status,
+    confidence: leak.confidence,
+    situationClass: leak.situation_class,
+    optimalFrequency: leak.optimal_frequency,
+    currentFrequency: leak.current_frequency,
+    evLossBB: leak.avg_ev_loss_bb,
+    occurrenceCount: leak.occurrence_count,
+    firstDetected: leak.first_detected_at,
+    trendData: leak.trend_data || [],
+    explanation: leak.explanation,
+    whyLeakingEv: leak.why_leaking_ev,
+    sourceSystem: leak.source_system || (leak.leak_category === 'training' ? 'training_arena' : 'live_play'),
+  };
 }
 
 function formatLeakTitle(leakType) {
@@ -170,40 +208,47 @@ function formatLeakTitle(leakType) {
 // useArchetypes — Fetch villain archetypes
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Single source of truth for the archetype id domain:
+// nit | tag | lag | fish | calling_station | maniac | gto_neutral.
+// (Same taxonomy the analyze API's exploit tips and getArchetypeRange use — an
+// id from any other vocabulary resolves to an empty range and no exploit tips.)
+const ARCHETYPE_ORDER = ['gto_neutral', 'nit', 'tag', 'lag', 'fish', 'calling_station', 'maniac'];
+
+const DEFAULT_ARCHETYPES = ARCHETYPE_ORDER
+  .filter(id => ARCHETYPE_CONFIG[id])
+  .map(id => ({
+    id,
+    name: ARCHETYPE_CONFIG[id].name,
+    color: ARCHETYPE_CONFIG[id].color,
+    description: ARCHETYPE_CONFIG[id].description,
+    vpip: ARCHETYPE_CONFIG[id].vpip?.BTN ?? null,
+  }));
+
 export function useArchetypes() {
-  const [archetypes, setArchetypes] = useState([]);
+  const [archetypes, setArchetypes] = useState(DEFAULT_ARCHETYPES);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchArchetypes() {
       try {
         const response = await fetch('/api/assistant/archetypes');
         const data = await response.json();
 
-        if (data.success) {
+        if (!cancelled && response.ok && data.success && Array.isArray(data.archetypes) && data.archetypes.length > 0) {
           setArchetypes(data.archetypes);
         }
       } catch (err) {
         console.warn('Error fetching archetypes:', err);
-        // Use defaults
-        setArchetypes([
-          { id: 'gto_neutral', name: 'GTO Neutral', color: '#6b7280' },
-          { id: 'tight_passive', name: 'Tight Passive', color: '#3b82f6' },
-          { id: 'loose_passive', name: 'Calling Station', color: '#22c55e' },
-          { id: 'tight_aggressive', name: 'Tight Agg', color: '#f59e0b' },
-          { id: 'loose_aggressive', name: 'LAG', color: '#ef4444' },
-          { id: 'over_bluffer', name: 'Over-Bluffer', color: '#ec4899' },
-          { id: 'under_bluffer', name: 'Under-Bluffer', color: '#8b5cf6' },
-          { id: 'fit_or_fold', name: 'Fit-or-Fold', color: '#64748b' },
-          { id: 'icm_scared', name: 'ICM-Scared', color: '#0ea5e9' },
-          { id: 'icm_pressure', name: 'ICM-Pressure', color: '#dc2626' },
-        ]);
+        // Keep the canonical defaults already in state
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     fetchArchetypes();
+    return () => { cancelled = true; };
   }, []);
 
   return { archetypes, isLoading };
@@ -212,6 +257,31 @@ export function useArchetypes() {
 // ═══════════════════════════════════════════════════════════════════════════
 // useSandboxAnalysis — Run GTO analysis
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Canonical verb for a free-text action label ('Check-Raise' must NOT match
+// 'Check'). Mirrors the sandbox page's normalizeAction verb detection.
+function actionVerb(label) {
+  if (!label || typeof label !== 'string') return null;
+  const raw = label.toLowerCase().trim();
+  if (/all[\s-]?in|shove|jam/.test(raw)) return 'allin';
+  if (/check[\s-]?raise/.test(raw)) return 'raise';
+  if (/(^|\s)raise/.test(raw)) return 'raise';
+  if (/(^|\s)(over)?bet/.test(raw)) return 'bet';
+  if (/(^|\s)call/.test(raw)) return 'call';
+  if (/(^|\s)check/.test(raw)) return 'check';
+  if (/(^|\s)fold/.test(raw)) return 'fold';
+  return raw.split(/[\s_]/)[0] || null;
+}
+
+// True only when the user submitted a coach pick and it matched the optimal action.
+function coachPickWasCorrect(params, data) {
+  const pick = params?.socratic?.userPick;
+  const optimal = data?.optimalAction?.label;
+  if (!pick || !optimal) return false;
+  const a = actionVerb(pick);
+  const b = actionVerb(optimal);
+  return !!a && a === b;
+}
 
 export function useSandboxAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -319,7 +389,9 @@ export function useSandboxAnalysis() {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('pa-data-updated'));
 
-          if (params.exploitMode === 'exploit' || (params.bubbleFactor && params.bubbleFactor !== 1.0)) {
+          // Celebrate an actual achievement — the coach pick matching the
+          // optimal action — not merely having exploit/ICM mode switched on.
+          if (coachPickWasCorrect(params, data)) {
             busEmit.celebration('confetti');
           }
         }
@@ -351,6 +423,26 @@ export function useSandboxAnalysis() {
 // useRecentSessions — Fetch recent sandbox sessions
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Pull the hero's EV loss (in BB, negative = lost EV) out of a sandbox_results
+ * row. Returns null when the row carries no EV data — never a fake 0.
+ */
+function extractEvLoss(resultRow) {
+  if (!resultRow) return null;
+
+  if (typeof resultRow.ev_loss_bb === 'number') {
+    return -Math.abs(Math.round(resultRow.ev_loss_bb * 100) / 100) || null;
+  }
+
+  let analysis = resultRow.full_analysis;
+  if (typeof analysis === 'string') {
+    try { analysis = JSON.parse(analysis); } catch (e) { analysis = null; }
+  }
+  const raw = analysis?.ev?.evLoss;
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw === 0) return null;
+  return -Math.abs(Math.round(raw * 100) / 100);
+}
+
 export function useRecentSessions(limit = 10) {
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -360,18 +452,16 @@ export function useRecentSessions(limit = 10) {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const user = getAuthUser();
       if (!user) {
-        // Return demo sessions for non-logged-in users
+        // Demo sessions for non-logged-in users — tagged so the UI can label them
         setSessions([
-          { id: 1, title: 'MP vs BTN Single Raised Pot', stack: '100BB', evLoss: -0.14, type: 'sandbox' },
-          { id: 2, title: 'Post-Session Leak Analysis', date: 'Yesterday', evLoss: -0.11, type: 'leak' },
+          { id: 'demo-1', title: 'MP vs BTN Single Raised Pot', stack: '100BB', evLoss: -0.14, type: 'sandbox', isDemo: true },
+          { id: 'demo-2', title: 'Post-Session Leak Analysis', date: 'Yesterday', evLoss: -0.11, type: 'leak', isDemo: true },
         ]);
         setIsLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('sandbox_sessions')
-        .select(`
+      const SELECT_WITH_RESULTS = `
           id,
           hero_hand,
           hero_position,
@@ -386,12 +476,43 @@ export function useRecentSessions(limit = 10) {
           created_at,
           sandbox_results (
             primary_action,
-            primary_frequency
+            primary_frequency,
+            full_analysis
           )
-        `)
+        `;
+      const SELECT_BASE = `
+          id,
+          hero_hand,
+          hero_position,
+          hero_stack_bb,
+          game_type,
+          board_flop,
+          board_turn,
+          board_river,
+          villain_config,
+          action_history,
+          pot_size_bb,
+          created_at
+        `;
+
+      let { data, error } = await supabase
+        .from('sandbox_sessions')
+        .select(SELECT_WITH_RESULTS)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
+
+      // Defensive: sandbox_results may not exist in every environment
+      if (error) {
+        const retry = await supabase
+          .from('sandbox_sessions')
+          .select(SELECT_BASE)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.warn('Error fetching sessions:', error);
@@ -405,7 +526,9 @@ export function useRecentSessions(limit = 10) {
           hero_position: s.hero_position,
           hero_hand: s.hero_hand,
           game_type: s.game_type,
-          evLoss: 0, // Would need actual EV data
+          // Real EV loss when the analysis recorded one, otherwise null so the
+          // UI can render an em dash instead of a fabricated 0.00 BB.
+          evLoss: extractEvLoss(s.sandbox_results?.[0]),
           type: 'sandbox',
           date: s.created_at,
           result: s.sandbox_results?.[0]?.primary_action,
@@ -553,6 +676,10 @@ export function useStudyDeck(limit = 20) {
             board_river
           )
         `)
+        // Scope to this user's own sessions — the !inner join makes the filter
+        // on the embedded table effective (without it, permissive RLS would
+        // hand back other users' full_analysis records).
+        .eq('sandbox_sessions.user_id', user.id)
         .not('full_analysis', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -601,62 +728,39 @@ export function useQuizLeaderboard(limit = 10) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchLeaderboard() {
       try {
-        // Query all quiz results, group by user client-side
-        const { data, error } = await supabase
-          .from('sandbox_quiz_results')
-          .select('user_id, is_correct, created_at')
-          .order('created_at', { ascending: false })
-          .limit(500);
-
-        if (error || !data || data.length === 0) {
-          setEntries([]);
-          setIsLoading(false);
+        // Aggregated server-side (service-role) so the browser never reads
+        // other users' quiz rows — and so the board isn't just the viewer.
+        const token = await getAuthToken();
+        if (!token) {
+          if (!cancelled) setEntries([]);
           return;
         }
 
-        // Aggregate per user
-        const userMap = {};
-        data.forEach(r => {
-          if (!r.user_id) return;
-          if (!userMap[r.user_id]) {
-            userMap[r.user_id] = { correct: 0, total: 0, streak: 0, currentStreak: 0 };
-          }
-          const u = userMap[r.user_id];
-          u.total += 1;
-          if (r.is_correct) {
-            u.correct += 1;
-            u.currentStreak += 1;
-            if (u.currentStreak > u.streak) u.streak = u.currentStreak;
-          } else {
-            u.currentStreak = 0;
-          }
+        const response = await fetch(`/api/sandbox/quiz-leaderboard?limit=${encodeURIComponent(limit)}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
         });
+        const data = await response.json();
 
-        // Sort by accuracy (min 3 attempts)
-        const sorted = Object.entries(userMap || {})
-          .filter(([, v]) => v.total >= 3)
-          .map(([userId, v]) => ({
-            userId,
-            name: `Player ${userId.substring(0, 6)}`,
-            accuracy: Math.round(v.correct / v.total * 100),
-            total: v.total,
-            streak: v.streak,
-          }))
-          .sort((a, b) => b.accuracy - a.accuracy || b.total - a.total)
-          .slice(0, limit);
+        if (!response.ok || data.success === false) {
+          if (!cancelled) setEntries([]);
+          return;
+        }
 
-        setEntries(sorted);
+        if (!cancelled) setEntries(Array.isArray(data.entries) ? data.entries : []);
       } catch (err) {
         console.warn('[useQuizLeaderboard] Error:', err);
-        setEntries([]);
+        if (!cancelled) setEntries([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     fetchLeaderboard();
+    return () => { cancelled = true; };
   }, [limit]);
 
   return { entries, isLoading };

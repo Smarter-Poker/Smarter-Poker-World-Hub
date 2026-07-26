@@ -4,6 +4,9 @@
  *
  * POST /api/assistant/leaks
  * Creates or updates a leak
+ *
+ * PATCH /api/assistant/leaks
+ * Updates a leak's status/notes (ownership enforced via JWT)
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
@@ -20,10 +23,24 @@ function getSupabase() {
     return _supabase;
 }
 
+// Columns a client is allowed to supply when creating a leak via POST.
+// user_id and id are NEVER accepted from the client (IDOR protection).
+const POST_ALLOWED_FIELDS = [
+  'leak_type', 'leak_category', 'situation_class', 'status', 'confidence',
+  'avg_ev_loss_bb', 'occurrence_count', 'optimal_frequency', 'current_frequency',
+  'trend_data', 'explanation', 'why_leaking_ev',
+];
+
+// Columns a client is allowed to update via PATCH.
+const PATCH_ALLOWED_FIELDS = ['status', 'notes', 'resolved_at'];
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+    if (req.method === 'GET') {
+      if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60000 })) return;
     }
 
     // HARDENED: March 7, 2026 — REMOVED req.query.userId fallback (IDOR vulnerability).
@@ -37,10 +54,12 @@ export default async function handler(req, res) {
       const token = authHeader.replace('Bearer ', '');
       const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
       const authUser = authData?.user;
-      if (!authError && authUser) {
-        userId = authUser.id;
-        if (req.body) req.body.userId = authUser.id;
+      if (authError || !authUser) {
+        // A token was presented but is invalid/expired — tell the client to
+        // refresh instead of silently serving demo data
+        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
       }
+      userId = authUser.id;
     }
 
     // Require JWT auth for write operations
@@ -50,6 +69,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       if (!userId) {
+        // Genuinely anonymous request — demo showcase only
         return res.status(200).json({
           success: true,
           leaks: getDemoLeaks('demo-account'),
@@ -58,45 +78,52 @@ export default async function handler(req, res) {
       }
 
       try {
+        const failedSources = [];
+
         // Fetch from legacy user_leaks table
         let legacyLeaks = [];
-        try {
+        {
           let query = getSupabase()
             .from('user_leaks')
             .select('*')
             .eq('user_id', userId)
             .order('last_detected_at', { ascending: false })
-                .limit(100);
+            .limit(100);
 
           if (status) {
-            query = query.eq('status', status)
-                .limit(100);
+            query = query.eq('status', status).limit(100);
           }
 
-          const { data } = await query;
+          const { data, error } = await query;
+          if (error) {
+            console.warn('user_leaks query failed:', error.message);
+            failedSources.push('user_leaks');
+          }
           legacyLeaks = data || [];
-        } catch (e) {
-          console.warn('No user_leaks table or error:', e.message);
         }
 
         // Also fetch from new user_training_leaks table (Memory Matrix)
         let trainingLeaks = [];
-        try {
+        {
           let query = getSupabase()
             .from('user_training_leaks')
             .select('*')
             .eq('user_id', userId)
             .order('detected_at', { ascending: false })
-                .limit(100);
+            .limit(100);
 
           if (status === 'resolved') {
-            query = query.not('fixed_at', 'is', null)
-                .limit(100);
+            query = query.not('fixed_at', 'is', null).limit(100);
           } else if (status) {
+            // Coarse prefilter: any non-resolved status implies still active
             query = query.is('fixed_at', null);
           }
 
-          const { data } = await query;
+          const { data, error } = await query;
+          if (error) {
+            console.warn('user_training_leaks query failed:', error.message);
+            failedSources.push('user_training_leaks');
+          }
           // Transform to match expected format
           trainingLeaks = (data || []).map(leak => ({
             id: leak.id,
@@ -109,7 +136,10 @@ export default async function handler(req, res) {
             avg_ev_loss_bb: 0.10, // Default EV loss
             occurrence_count: leak.count,
             optimal_frequency: 50,
-            current_frequency: 50 + (leak.count * 5),
+            // Count-based pseudo-frequency, clamped and explicitly flagged as
+            // an estimate so the UI can render it differently
+            current_frequency: Math.min(95, 50 + (leak.count * 5)),
+            frequency_is_estimated: true,
             first_detected_at: leak.detected_at,
             last_detected_at: leak.updated_at || leak.detected_at,
             trend_data: [],
@@ -117,160 +147,44 @@ export default async function handler(req, res) {
             why_leaking_ev: `Detected ${leak.count} times during Memory Matrix training: ${leak.description}`,
             recommended_drill: leak.recommended_drill
           }));
-        } catch (e) {
-          console.warn('No user_training_leaks table or error:', e.message);
+
+          // Apply the same exact status filter used for legacy rows so the
+          // two sources don't contradict a ?status= request
+          if (status) {
+            trainingLeaks = trainingLeaks.filter(l => l.status === status);
+          }
         }
 
         // Combine both sources
-        let allLeaks = [...legacyLeaks, ...trainingLeaks];
+        const allLeaks = [...legacyLeaks, ...trainingLeaks];
+        const partialFlags = failedSources.length > 0
+          ? { partial: true, failedSources }
+          : {};
 
-        // 🏆 SIMULATED LEAKS FOR DANIEL@BEKAVACTRADING.COM (USER #1)
-        if (userId === '47965354-0e56-43ef-931c-ddaab82af765') {
-          const d = new Date();
-          const thirtyDaysAgo = new Date(d.setDate(d.getDate() - 30)).toISOString();
-          const sixtyDaysAgo = new Date(d.setDate(d.getDate() - 60)).toISOString();
-          const ninetyDaysAgo = new Date(d.setDate(d.getDate() - 90)).toISOString();
-
-          allLeaks = [
-            {
-              id: 'sim-1',
-              user_id: userId,
-              leak_type: 'passive_in_3bet_pots',
-              leak_category: 'training',
-              situation_class: 'OOP 3-Bet Pots vs BTN',
-              status: 'persistent',
-              confidence: 'high',
-              avg_ev_loss_bb: 0.18,
-              occurrence_count: 53,
-              optimal_frequency: 45,
-              current_frequency: 15,
-              first_detected_at: thirtyDaysAgo,
-              last_detected_at: new Date().toISOString(),
-              trend_data: [
-                { date: '2025-10', value: 12 },
-                { date: '2025-11', value: 14 },
-                { date: '2025-12', value: 15 }
-              ],
-              explanation: "You are playing far too passively out of position in 3-bet pots, particularly against the button. You check-fold too often when you miss the flop, surrendering your equity advantage.",
-              why_leaking_ev: "When you 3-bet from the blinds and check-fold most flops, observant regs will start floating you lighter preflop. You need to mix in more check-raises to protect your checking range.",
-              recommended_drill: "3-Bet Pot OOP Defend"
-            },
-            {
-              id: 'sim-2',
-              user_id: userId,
-              leak_type: 'river_value_underbetting',
-              leak_category: 'training',
-              situation_class: 'IP River Value Bets vs Range Disadvantage',
-              status: 'emerging',
-              confidence: 'medium',
-              avg_ev_loss_bb: 0.12,
-              occurrence_count: 28,
-              optimal_frequency: 30,
-              current_frequency: 8,
-              first_detected_at: thirtyDaysAgo,
-              last_detected_at: new Date().toISOString(),
-              trend_data: [
-                { date: '2025-11', value: 5 },
-                { date: '2025-12', value: 8 }
-              ],
-              explanation: "You consistently size down your value bets on the river when you have a polarized advantage. You bet 33% instead of 75-100% pot with strong value.",
-              why_leaking_ev: "Failing to use geometric bet sizing to push chips into the center geometrically caps your win-rate against calling stations who would pay off a pot-sized bet.",
-              recommended_drill: "River Sizing Sandbox"
-            },
-            {
-              id: 'sim-3',
-              user_id: userId,
-              leak_type: 'cbetting_too_frequently',
-              leak_category: 'training',
-              situation_class: 'IP PFR vs Big-Blind on Dynamic Boards',
-              status: 'improving',
-              confidence: 'high',
-              avg_ev_loss_bb: 0.09,
-              occurrence_count: 85,
-              optimal_frequency: 45,
-              current_frequency: 68,
-              first_detected_at: sixtyDaysAgo,
-              last_detected_at: new Date().toISOString(),
-              trend_data: [
-                { date: '2025-10', value: 85 },
-                { date: '2025-11', value: 75 },
-                { date: '2025-12', value: 68 }
-              ],
-              explanation: "You c-bet too frequently on coordinated/dynamic flops where the Big-Blind has a significant range and nut advantage.",
-              why_leaking_ev: "C-betting your entire range on boards favoring the defender exposes you to check-raises, forcing you to over-fold hands with equity.",
-              recommended_drill: "Dynamic Flop Hand Reading"
-            },
-            {
-              id: 'sim-4',
-              user_id: userId,
-              leak_type: 'overfolding_to_river_probes',
-              leak_category: 'training',
-              situation_class: 'OOP Checked Turn vs River Probe',
-              status: 'persistent',
-              confidence: 'high',
-              avg_ev_loss_bb: 0.22,
-              occurrence_count: 41,
-              optimal_frequency: 55,
-              current_frequency: 78,
-              first_detected_at: ninetyDaysAgo,
-              last_detected_at: new Date().toISOString(),
-              trend_data: [
-                { date: '2025-09', value: 80 },
-                { date: '2025-10', value: 78 },
-                { date: '2025-11', value: 76 },
-                { date: '2025-12', value: 78 }
-              ],
-              explanation: "When you check back the turn, you are over-folding to small-to-medium probe bets on the river. Your check-back range is too weak and unprotected.",
-              why_leaking_ev: "Aggressive opponents auto-profit by firing any two cards on the river against your turn weakness.",
-              recommended_drill: "Turn Check-Back Construction"
-            },
-            {
-              id: 'sim-5',
-              user_id: userId,
-              leak_type: 'defending_too_wide_vs_3bet',
-              leak_category: 'training',
-              situation_class: 'UTG/HJ Open vs CO/BTN 3-Bet',
-              status: 'resolved',
-              confidence: 'medium',
-              avg_ev_loss_bb: 0.14,
-              occurrence_count: 18,
-              optimal_frequency: 22,
-              current_frequency: 20,
-              first_detected_at: ninetyDaysAgo,
-              last_detected_at: thirtyDaysAgo,
-              trend_data: [
-                { date: '2025-08', value: 35 },
-                { date: '2025-09', value: 30 },
-                { date: '2025-10', value: 20 }
-              ],
-              explanation: "You used to call 3-bets too wide linearly, getting dominated postflop by hands like AQ, AK, JJ+.",
-              why_leaking_ev: "Calling unsuited broadways OOP against a tight 3-bet range bleeds massive EV.",
-              recommended_drill: "Preflop 3-Bet Defense Matrix"
-            }
-          ];
-        }
-
-        // If no leaks found, return demo data
+        // No real leaks: return an explicit empty state. Demo leaks are
+        // provided separately (clearly labeled) so the frontend can render
+        // an onboarding view — never presented as the user's own data.
         if (allLeaks.length === 0) {
           return res.status(200).json({
             success: true,
-            leaks: getDemoLeaks(userId),
-            isDemo: true
+            leaks: [],
+            isDemo: false,
+            demoLeaks: getDemoLeaks(userId),
+            ...partialFlags
           });
         }
 
         return res.status(200).json({
           success: true,
           leaks: allLeaks,
-          isDemo: userId !== '47965354-0e56-43ef-931c-ddaab82af765' && allLeaks.length === 3 // Rough approximation
+          isDemo: false,
+          ...partialFlags
         });
 
       } catch (error) {
         console.warn('Fetch leaks error:', error);
-        return res.status(200).json({
-          success: true,
-          leaks: getDemoLeaks(userId),
-          isDemo: true,
+        return res.status(500).json({
+          success: false,
           error: error.message
         });
       }
@@ -278,20 +192,55 @@ export default async function handler(req, res) {
 
 
     if (req.method === 'POST') {
-      const leak = req.body;
+      const body = (req.body && typeof req.body === 'object') ? req.body : {};
 
-      if (!leak.user_id) {
-        return res.status(400).json({ success: false, error: 'user_id required' });
+      if (!body.leak_type) {
+        return res.status(400).json({ success: false, error: 'leak_type required' });
       }
 
+      // Build the row from a whitelist — ownership is forced from the JWT,
+      // client-supplied user_id / id are ignored
+      const leak = { user_id: userId };
+      POST_ALLOWED_FIELDS.forEach(field => {
+        if (body[field] !== undefined) leak[field] = body[field];
+      });
+      leak.last_detected_at = new Date().toISOString();
+
       try {
-        const { data, error } = await getSupabase()
+        let { data, error } = await getSupabase()
           .from('user_leaks')
-          .upsert(leak, { onConflict: 'id' })
+          .upsert(leak, { onConflict: 'user_id,leak_type' })
           .select()
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          // Fallback when the (user_id, leak_type) unique index is missing:
+          // manual select → update-or-insert, still scoped to this user
+          const { data: existing } = await getSupabase()
+            .from('user_leaks')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('leak_type', leak.leak_type)
+            .maybeSingle();
+
+          if (existing) {
+            ({ data, error } = await getSupabase()
+              .from('user_leaks')
+              .update({ ...leak, updated_at: new Date().toISOString() })
+              .eq('id', existing.id)
+              .eq('user_id', userId)
+              .select()
+              .maybeSingle());
+          } else {
+            ({ data, error } = await getSupabase()
+              .from('user_leaks')
+              .insert(leak)
+              .select()
+              .maybeSingle());
+          }
+
+          if (error) throw error;
+        }
 
         return res.status(200).json({
           success: true,
@@ -308,38 +257,62 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { id, ...updates } = req.body;
+      const body = (req.body && typeof req.body === 'object') ? req.body : {};
+      const { id } = body;
 
       if (!id) {
         return res.status(400).json({ success: false, error: 'id required' });
       }
 
+      // Whitelist updatable fields — never allow user_id/id reassignment
+      const updates = {};
+      PATCH_ALLOWED_FIELDS.forEach(field => {
+        if (body[field] !== undefined) updates[field] = body[field];
+      });
+      if (updates.status === 'resolved' && updates.resolved_at === undefined) {
+        updates.resolved_at = new Date().toISOString();
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ success: false, error: 'No updatable fields provided' });
+      }
+
       try {
+        // Ownership enforced: only rows belonging to the JWT user can change
         const { data, error } = await getSupabase()
           .from('user_leaks')
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', id)
+          .eq('user_id', userId)
           .select()
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          // Invalid UUID (e.g. a demo/simulated id) — treat as not found
+          if (error.code === '22P02') {
+            return res.status(404).json({ success: false, error: 'Leak not found' });
+          }
+          throw error;
+        }
+
+        if (!data) {
+          return res.status(404).json({ success: false, error: 'Leak not found' });
+        }
 
         // 🚀 NEW BUG #12 FIX: Sync Global PA Stats on Status Change
-        if (updates.status && data.user_id) {
+        if (updates.status) {
           const { data: updatedLeaks } = await getSupabase()
             .from('user_leaks')
             .select('status')
-            .eq('user_id', data.user_id);
+            .eq('user_id', userId);
 
           const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
           const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
           const { error: err_user_assistant_stats_s6z72 } = await getSupabase()
-
             .from('user_assistant_stats')
-
             .upsert({
-              user_id: data.user_id,
+              user_id: userId,
               active_leaks_count: activeLeaks,
               resolved_leaks_count: resolvedLeaksCount,
               updated_at: new Date().toISOString()
@@ -371,8 +344,29 @@ export default async function handler(req, res) {
   }
 }
 
-// Demo leaks for users without real data
+// ─── Demo data helpers ──────────────────────────────────────────────────────
+
+// Last `n` consecutive YYYY-MM month labels ending with the current month —
+// the exact format detect.js's updateTrendData writes
+function lastMonths(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
+// Demo leaks for users without real data (always served with isDemo/demoLeaks
+// labeling — never presented as the user's own play data)
 function getDemoLeaks(userId) {
+  const m5 = lastMonths(5);
+  const m4 = lastMonths(4);
+  const m2 = lastMonths(2);
+
   return [
     {
       id: 'demo-1',
@@ -386,14 +380,14 @@ function getDemoLeaks(userId) {
       occurrence_count: 47,
       optimal_frequency: 45,
       current_frequency: 62,
-      first_detected_at: '2024-02-15T00:00:00Z',
+      first_detected_at: daysAgo(120),
       last_detected_at: new Date().toISOString(),
       trend_data: [
-        { date: '2024-02', value: 52 },
-        { date: '2024-03', value: 55 },
-        { date: '2024-03.5', value: 58 },
-        { date: '2024-04', value: 60 },
-        { date: '2024-04.5', value: 62 }
+        { date: m5[0], value: 52 },
+        { date: m5[1], value: 55 },
+        { date: m5[2], value: 58 },
+        { date: m5[3], value: 60 },
+        { date: m5[4], value: 62 }
       ],
       explanation: "You're folding to c-bets much more often than GTO recommends, especially on dry boards. This makes you easy to exploit and costs you value in missed calls.",
       why_leaking_ev: "When you fold too often to c-bets, aggressive opponents can profitably bluff you with any two cards. You're giving up equity with hands that should be calling."
@@ -410,11 +404,11 @@ function getDemoLeaks(userId) {
       occurrence_count: 23,
       optimal_frequency: 12,
       current_frequency: 4,
-      first_detected_at: '2024-03-20T00:00:00Z',
+      first_detected_at: daysAgo(45),
       last_detected_at: new Date().toISOString(),
       trend_data: [
-        { date: '2024-03', value: 3 },
-        { date: '2024-04', value: 4 }
+        { date: m2[0], value: 3 },
+        { date: m2[1], value: 4 }
       ],
       explanation: "Your river bluff-raise frequency is significantly below optimal. You're leaving value on the table by not applying enough pressure on rivers.",
       why_leaking_ev: "Without enough bluffs in your river raising range, observant opponents can fold all their bluff-catchers against you, knowing you're only raising for value."
@@ -431,13 +425,13 @@ function getDemoLeaks(userId) {
       occurrence_count: 31,
       optimal_frequency: 35,
       current_frequency: 28,
-      first_detected_at: '2024-01-10T00:00:00Z',
+      first_detected_at: daysAgo(150),
       last_detected_at: new Date().toISOString(),
       trend_data: [
-        { date: '2024-01', value: 18 },
-        { date: '2024-02', value: 22 },
-        { date: '2024-03', value: 25 },
-        { date: '2024-04', value: 28 }
+        { date: m4[0], value: 18 },
+        { date: m4[1], value: 22 },
+        { date: m4[2], value: 25 },
+        { date: m4[3], value: 28 }
       ],
       explanation: "Your continuation frequency in 3-bet pots has been too passive, but you're showing improvement. Keep working on finding spots to apply pressure.",
       why_leaking_ev: "In 3-bet pots, aggression is rewarded because ranges are defined. Being too passive allows opponents to realize equity cheaply."

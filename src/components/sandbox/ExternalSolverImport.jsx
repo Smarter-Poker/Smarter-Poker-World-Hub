@@ -11,6 +11,55 @@ const M = {
     purple: '#a78bfa', yellow: '#F5A623'
 };
 
+const CARD_RE = /^[2-9TJQKA][cdhs]$/;
+const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+const DEFAULT_ARCHETYPE = { id: 'gto_neutral', name: 'GTO Neutral' };
+
+/** Pulls up to 5 valid card codes out of an array or a concatenated string. */
+function parseCards(input) {
+    let tokens = [];
+    if (Array.isArray(input)) {
+        tokens = input.map(c => String(c).trim());
+    } else if (typeof input === 'string') {
+        tokens = input.trim().replace(/[\s,]+/g, '').match(/.{1,2}/g) || [];
+    }
+    const cards = [];
+    for (const raw of tokens) {
+        if (!raw) continue;
+        const card = raw[0].toUpperCase() + raw.slice(1).toLowerCase();
+        if (!CARD_RE.test(card)) throw new Error(`Unrecognised card code: "${raw}"`);
+        if (cards.includes(card)) throw new Error(`Duplicate card: "${card}"`);
+        cards.push(card);
+        if (cards.length === 5) break;
+    }
+    return cards;
+}
+
+/** Normalises anything board-shaped into the sandbox { flop, turn, river }. */
+function toBoardObject(board) {
+    if (board && !Array.isArray(board) && typeof board === 'object') {
+        const flop = parseCards(board.flop || []);
+        const rest = parseCards([board.turn, board.river].filter(Boolean));
+        return { flop: flop.slice(0, 3), turn: rest[0] || null, river: rest[1] || null };
+    }
+    const cards = parseCards(board || []);
+    if (cards.length && cards.length < 3) throw new Error('A board needs at least 3 cards');
+    return { flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null };
+}
+
+function toVillains(list) {
+    const arr = Array.isArray(list) && list.length ? list : [{ position: 'BB' }];
+    return arr.slice(0, 5).map((v, i) => ({
+        id: v?.id ?? i + 1,
+        position: POSITIONS.includes(String(v?.position || '').toUpperCase())
+            ? String(v.position).toUpperCase()
+            : 'BB',
+        range: typeof v?.range === 'string' ? v.range : '',
+        archetype: (v?.archetype && v.archetype.id) ? v.archetype : DEFAULT_ARCHETYPE,
+        stack: Number(v?.stack) > 0 ? Number(v.stack) : 100,
+    }));
+}
+
 export default function ExternalSolverImport({ onClose, onImport }) {
     const [rawInput, setRawInput] = useState('');
     const [error, setError] = useState(null);
@@ -21,30 +70,46 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
             // Basic heuristic parsing for Pio/GTO+ JSON or simple CSV strings
             // Expected mocked format: {"board": "AsKd7h", "pot": 100, "effStack": 150, "hero": "BTN", "villains": [{"position": "BB", "range": "..."}]}
-            let parsedState = null;
+            let raw = null;
 
             if (rawInput.trim().startsWith('{')) {
                 // Try JSON (GTO Wizard / HandHistory parsers)
-                parsedState = JSON.parse(rawInput);
+                try {
+                    raw = JSON.parse(rawInput);
+                } catch (_e) {
+                    throw new Error('That JSON could not be parsed — check for a trailing comma or quote');
+                }
             } else {
-                // Mock CSV or shorthand parse (e.g. AsKd7h, BTN, 100, 150)
+                // Mock CSV or shorthand parse (e.g. AsKd7hQd2c, BTN, 100, 150)
                 const parts = rawInput.split(',').map(s => s.trim());
-                if (parts.length >= 3) {
-                    parsedState = {
-                        board: parts[0] ? [parts[0].slice(0, 2), parts[0].slice(2, 4), parts[0].slice(4, 6)].filter(Boolean) : [],
-                        heroPosition: parts[1] || 'BTN',
-                        potSize: parseInt(parts[2]) || 100,
-                        effStack: parseInt(parts[3]) || 100,
-                        villains: [{ id: 1, position: 'BB', rangeType: 'gto-defend', locked: false }]
-                    };
-                } else {
+                if (parts.length < 3) {
                     throw new Error("Invalid CSV format. Use: Board, Position, Pot, Stack");
                 }
+                raw = {
+                    board: parts[0] || '',
+                    heroPosition: parts[1] || 'BTN',
+                    potSize: parseInt(parts[2], 10),
+                    effStack: parseInt(parts[3], 10),
+                    villains: [{ id: 1, position: 'BB' }],
+                };
             }
 
-            if (!parsedState) throw new Error("Failed to parse solver data");
+            if (!raw || typeof raw !== 'object') throw new Error("Failed to parse solver data");
 
-            onImport?.(parsedState);
+            const heroPositionRaw = String(raw.heroPosition || raw.hero || 'BTN').toUpperCase();
+            const potSize = Number(raw.potSize ?? raw.pot);
+            const effStack = Number(raw.effStack ?? raw.stack);
+
+            // Emit the exact sandbox state shape the page consumes.
+            const state = {
+                board: toBoardObject(raw.board),
+                heroPosition: POSITIONS.includes(heroPositionRaw) ? heroPositionRaw : 'BTN',
+                potSize: Number.isFinite(potSize) && potSize > 0 ? potSize : 100,
+                effStack: Number.isFinite(effStack) && effStack > 0 ? effStack : 100,
+                villains: toVillains(raw.villains),
+            };
+
+            onImport?.(state);
             onClose?.();
         } catch (err) {
             console.warn('[ExternalSolverImport] Parsing error:', err);
@@ -65,7 +130,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
             >
                 <div style={{ padding: '20px', borderBottom: `1px solid ${M.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: M.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        📥 Import Solver Data
+                        {'📥 Import Solver Data'}
                         <span style={{ fontSize: 10, background: M.purple, color: '#fff', padding: '2px 6px', borderRadius: 4 }}>WAVE 7 PRO</span>
                     </div>
                     <button onClick={() => onClose?.()} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
@@ -87,7 +152,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
                     <div style={{ display: 'flex', gap: 12 }}>
                         <button
-                            onClick={() => setRawInput('{"board": ["Kh", "Jd", "3c"], "heroPosition": "CO", "potSize": 75, "effStack": 120, "villains": [{"id": 1, "position": "BB", "rangeType": "gto-defend"}]}')}
+                            onClick={() => setRawInput('{"board": ["Kh", "Jd", "3c"], "heroPosition": "CO", "potSize": 75, "effStack": 120, "villains": [{"id": 1, "position": "BB", "range": "AA,KK,QQ,AKs"}]}')}
                             style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', color: M.sub, fontSize: 13, fontWeight: 700, border: `1px solid ${M.border}`, borderRadius: 8, cursor: 'pointer' }}
                         >
                             Load Example

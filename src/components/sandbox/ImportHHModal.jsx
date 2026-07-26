@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { parseHandHistory } from '../../utils/hh-parser';
+import { parseHandHistory } from '../../lib/sandbox/HandHistoryParser';
 
 const M = {
     bg: '#242526', border: '#3A3B3C',
@@ -16,17 +16,20 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
         if (!hhText.trim()) return setStatus({ type: 'error', msg: 'Please paste a hand history.' });
 
         try {
+            // parseHandHistory returns a { success, error } envelope:
+            //   { success: true, heroHand, heroPosition, heroStack, board, ... }
+            //   { success: false, error: '<specific reason>' }
             const parsed = parseHandHistory(hhText);
-            if (parsed && parsed.success) {
+            if (parsed?.success && parsed.heroHand) {
                 setStatus({ type: 'success', msg: 'Hand History parsed successfully!' });
                 setTimeout(() => {
-                    onImport(parsed);
+                    onImport?.(parsed);
                     setHHText('');
                     setStatus(null);
-                    onClose();
+                    onClose?.();
                 }, 800);
             } else {
-                setStatus({ type: 'error', msg: parsed?.error || 'Invalid Hand History format.' });
+                setStatus({ type: 'error', msg: parsed?.error || 'Could not detect a supported hand history format.' });
             }
         } catch (e) {
             setStatus({ type: 'error', msg: 'Failed to parse Hand History.' });
@@ -41,7 +44,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                     <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
                         style={{ background: M.bg, borderRadius: 16, padding: 20, width: '100%', maxWidth: 500, border: `1px solid ${M.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, color: M.text, margin: 0 }}>Import Hand History ⚡️</h3>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, color: M.text, margin: 0 }}>{'Import Hand History ⚡️'}</h3>
                             <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 22, cursor: 'pointer' }}>×</button>
                         </div>
                         <p style={{ fontSize: 13, color: M.sub, marginBottom: 12 }}>
@@ -65,7 +68,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
                             <button onClick={handleImport}
                                 style={{ flex: 1, padding: '12px 16px', background: 'linear-gradient(to right, #2374E1, #4599FF)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                                <span>📥 Check & Hydrate</span>
+                                <span>{'📥 Check & Hydrate'}</span>
                             </button>
                         </div>
                     </motion.div>

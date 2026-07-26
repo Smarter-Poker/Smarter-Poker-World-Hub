@@ -3,7 +3,8 @@
  * Weekly accuracy leaderboard from sandbox_coach_results.
  * Shows top 10 users by accuracy % (min 20 hands).
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     card: '#242526', border: '#3a3b3c',
@@ -25,40 +26,45 @@ export default function CoachLeaderboard({ userId }) {
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(false);
 
-    useEffect(() => {
+    const load = useCallback(async () => {
         if (!userId) return;
-        let cancelled = false;
-
-        async function load() {
-            try {
-                const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
-                const res = await fetch('/api/sandbox/leaderboard', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
-                if (!cancelled && json.success) setData(json);
-            } catch (e) {
-                console.warn('[CoachLeaderboard] Fetch error:', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/sandbox/leaderboard', {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const json = await res.json().catch(() => null);
+            if (json?.success) setData(json);
+        } catch (e) {
+            console.warn('[CoachLeaderboard] Fetch error:', e);
+        } finally {
+            setLoading(false);
         }
+    }, [userId]);
+
+    useEffect(() => {
+        if (!userId) return undefined;
         load();
 
-        const refresh = () => load();
-        window.addEventListener('sandbox-coach-result-saved', refresh);
-        return () => {
-            cancelled = true;
-            window.removeEventListener('sandbox-coach-result-saved', refresh);
+        // The sandbox dispatches 'sandbox-coach-result-saved' on its own route,
+        // so that event never reaches this page. Refetch on tab focus instead.
+        const onVisible = () => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') load();
         };
-    }, [userId]);
+        window.addEventListener('focus', onVisible);
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.removeEventListener('focus', onVisible);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [userId, load]);
 
     if (loading || !data?.leaderboard?.length) return null;
 
     return (
         <div style={s.card}>
             <button onClick={() => setExpanded(!expanded)} style={s.header}>
-                <span style={s.title}>🏆 Weekly Leaderboard</span>
+                <span style={s.title}>{'🏆 Weekly Leaderboard'}</span>
                 <span style={{
                     fontSize: 12, color: M.dim,
                     transform: expanded ? 'rotate(180deg)' : 'none',

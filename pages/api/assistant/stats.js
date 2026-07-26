@@ -1,10 +1,16 @@
 /**
  * GET /api/assistant/stats
  * Returns user's assistant stats (sessions reviewed, leaks found, etc.)
+ *
+ * Contract: { success: true, stats: { sessionsReviewed, handsAnalyzed, leaksFound,
+ *            resolvedLeaks, sandboxSessions, avgEvLoss }, isDemo: boolean }
+ * isDemo is true whenever the numbers are NOT the caller's real data (no auth,
+ * no data yet, or a query failure) — consumers must surface it.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -21,6 +27,8 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+    if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
 
     // Per-user training stats — private cache only, 60s browser TTL
     res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
@@ -40,23 +48,6 @@ export default async function handler(req, res) {
 
     const userId = authUser.id;
 
-    // 🏆 SIMULATED STATS FOR DANIEL@BEKAVACTRADING.COM (USER #1)
-    if (userId === '47965354-0e56-43ef-931c-ddaab82af765') {
-      return res.status(200).json({
-        success: true,
-        stats: {
-          sessionsReviewed: 141,
-          handsAnalyzed: 24190,
-          leaksFound: 4,
-          resolvedLeaks: 1,
-          sandboxSessions: 38,
-          // (0.18 + 0.12 + 0.09 + 0.22) / 4 = 0.1525
-          avgEvLoss: -0.15
-        },
-        isDemo: false
-      });
-    }
-
     try {
       // Try to get real stats
       const { data: stats, error } = await getSupabase()
@@ -72,39 +63,72 @@ export default async function handler(req, res) {
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
 
-        // Count leaks
-        const { data: leaks } = await getSupabase()
-          .from('user_leaks')
-          .select('status')
-          .eq('user_id', userId)
-              .limit(100);
+        // Count real analyzed hands: sandbox_results rows belonging to this
+        // user's sessions. Falls back to the session count if the results
+        // table is missing or the joined count fails.
+        let handsAnalyzed = sandboxCount || 0;
+        try {
+          const { count: resultsCount, error: resultsError } = await getSupabase()
+            .from('sandbox_results')
+            .select('id, sandbox_sessions!inner(user_id)', { count: 'exact', head: true })
+            .eq('sandbox_sessions.user_id', userId);
+          if (!resultsError && typeof resultsCount === 'number') {
+            handsAnalyzed = resultsCount;
+          }
+        } catch (resultsErr) {
+          console.warn('Sandbox results count error:', resultsErr?.message || resultsErr);
+        }
 
-        const activeLeaks = leaks?.filter(l => l.status !== 'resolved').length || 0;
-        const resolvedLeaks = leaks?.filter(l => l.status === 'resolved').length || 0;
+        const { activeLeaks, resolvedLeaks, avgEvLoss } = await getLeakStats(userId);
 
         return res.status(200).json({
           success: true,
           stats: {
             sessionsReviewed: sandboxCount || 0,
-            handsAnalyzed: (sandboxCount || 0) * 1, // Placeholder
+            handsAnalyzed,
             leaksFound: activeLeaks,
             resolvedLeaks,
             sandboxSessions: sandboxCount || 0,
-            avgEvLoss: activeLeaks > 0 ? -0.07 : 0
+            avgEvLoss
           },
-          isDemo: sandboxCount === 0
+          isDemo: !sandboxCount
         });
+      }
+
+      // `total_sessions_reviewed` has no writer anywhere in the app, so reading
+      // it straight off the row pins the tile at 0 forever. Derive it from a
+      // live count on sandbox_sessions — exactly how the no-row branch above
+      // does it — and only fall back to the column if the count is unavailable.
+      let sessionsReviewed = stats.total_sessions_reviewed || 0;
+      try {
+        const { count: sandboxCount, error: countError } = await getSupabase()
+          .from('sandbox_sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId);
+        if (!countError && typeof sandboxCount === 'number') sessionsReviewed = sandboxCount;
+      } catch (countErr) {
+        console.warn('Sandbox session count error:', countErr?.message || countErr);
+      }
+
+      // Real stats row: prefer a stored avg_ev_loss column, otherwise compute
+      // the aggregate from user_leaks (never a hardcoded placeholder).
+      let avgEvLoss = 0;
+      if (typeof stats.avg_ev_loss === 'number' && Number.isFinite(stats.avg_ev_loss)) {
+        avgEvLoss = stats.avg_ev_loss;
+      } else if ((stats.active_leaks_count || 0) > 0) {
+        const leakStats = await getLeakStats(userId);
+        avgEvLoss = leakStats.avgEvLoss;
       }
 
       return res.status(200).json({
         success: true,
         stats: {
-          sessionsReviewed: stats.total_sessions_reviewed || 0,
+          sessionsReviewed,
           handsAnalyzed: stats.total_hands_analyzed || 0,
           leaksFound: stats.active_leaks_count || 0,
           resolvedLeaks: stats.resolved_leaks_count || 0,
           sandboxSessions: stats.sandbox_sessions_count || 0,
-          avgEvLoss: stats.active_leaks_count > 0 ? -0.07 : 0
+          avgEvLoss
         },
         isDemo: false
       });
@@ -125,13 +149,60 @@ export default async function handler(req, res) {
   }
 }
 
+/**
+ * Aggregate leak counts and average EV loss from user_leaks.
+ * Uses head-count queries so counts never truncate at a row limit.
+ * Defensive: returns zeros if the table is missing or queries fail.
+ */
+async function getLeakStats(userId) {
+  const out = { activeLeaks: 0, resolvedLeaks: 0, avgEvLoss: 0 };
+  try {
+    const [activeRes, resolvedRes, evRes] = await Promise.all([
+      getSupabase()
+        .from('user_leaks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .neq('status', 'resolved'),
+      getSupabase()
+        .from('user_leaks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'resolved'),
+      getSupabase()
+        .from('user_leaks')
+        .select('avg_ev_loss_bb')
+        .eq('user_id', userId)
+        .neq('status', 'resolved')
+        .limit(1000),
+    ]);
+
+    out.activeLeaks = activeRes?.count || 0;
+    out.resolvedLeaks = resolvedRes?.count || 0;
+
+    // avg_ev_loss_bb is stored as a positive loss magnitude (BB/100);
+    // the API convention reports EV loss as a negative number.
+    const evValues = (evRes?.data || [])
+      .map(l => Math.abs(Number(l?.avg_ev_loss_bb)))
+      .filter(v => Number.isFinite(v) && v > 0);
+    if (evValues.length > 0) {
+      const mean = evValues.reduce((sum, v) => sum + v, 0) / evValues.length;
+      out.avgEvLoss = -Number(mean.toFixed(2));
+    }
+  } catch (leakErr) {
+    console.warn('Leak stats error:', leakErr?.message || leakErr);
+  }
+  return out;
+}
+
 function getDefaultStats() {
+  // No-auth / error path: all zeros. Never fabricate non-zero stats —
+  // consumers read isDemo:true alongside this and show a sign-in state.
   return {
-    sessionsReviewed: 73,
-    handsAnalyzed: 12580,
-    leaksFound: 3,
-    resolvedLeaks: 2,
-    sandboxSessions: 24,
-    avgEvLoss: -0.07
+    sessionsReviewed: 0,
+    handsAnalyzed: 0,
+    leaksFound: 0,
+    resolvedLeaks: 0,
+    sandboxSessions: 0,
+    avgEvLoss: 0
   };
 }

@@ -1,53 +1,66 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
+import { History, Layers, Droplet, FlaskConical } from 'lucide-react';
 
 /**
  * DashboardOverview - Stats cards for Personal Assistant
- * Shows quick overview of Goals, Tilt, Bankroll, and Opponents
+ * Shows quick overview of Sessions Reviewed, Hands Analyzed, Active Leaks,
+ * and Sandbox Sessions.
+ *
+ * Props contract: { stats: { sessionsReviewed, handsAnalyzed, leaksFound,
+ * resolvedLeaks, sandboxSessions, avgEvLoss }, isLoading: boolean } — the
+ * exact shape returned by GET /api/assistant/stats via useAssistantStats().
  */
 export default function DashboardOverview({ stats, isLoading }) {
     const router = useRouter();
 
     const cards = [
         {
-            title: 'Goals',
-            value: stats?.goalsCompleted || 0,
-            total: stats?.goalsTotal || 0,
-            label: 'Completed',
-            icon: '🎯',
+            title: 'Sessions Reviewed',
+            value: stats?.sessionsReviewed || 0,
+            label: 'Total Reviewed',
+            Icon: History,
             color: '#00D4FF',
-            onClick: () => router.push('/hub/personal-assistant?tab=goals'),
+            onClick: () => router.push('/hub/personal-assistant/sandbox'),
         },
         {
-            title: 'Tilt-Free',
-            value: stats?.tiltFreeDays || 0,
-            label: 'Days',
-            icon: '🧘',
+            title: 'Hands Analyzed',
+            value: stats?.handsAnalyzed || 0,
+            label: 'GTO Checked',
+            Icon: Layers,
             color: '#4CAF50',
-            onClick: () => router.push('/hub/personal-assistant?tab=tilt'),
+            onClick: () => router.push('/hub/personal-assistant/leaks'),
         },
         {
-            title: 'Bankroll',
-            value: stats?.bankrollChange || 0,
-            label: stats?.bankrollChange >= 0 ? 'Profit' : 'Loss',
-            icon: '💰',
-            color: stats?.bankrollChange >= 0 ? '#4CAF50' : '#f44336',
-            prefix: '$',
-            onClick: () => router.push('/hub/personal-assistant?tab=bankroll'),
-        },
-        {
-            title: 'Opponents',
-            value: stats?.opponentNotes || 0,
-            label: 'Notes',
-            icon: '👥',
+            title: 'Active Leaks',
+            value: stats?.leaksFound || 0,
+            label: `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`,
+            Icon: Droplet,
             color: '#FF9800',
-            onClick: () => router.push('/hub/personal-assistant?tab=opponents'),
+            onClick: () => router.push('/hub/personal-assistant/leaks'),
+        },
+        {
+            title: 'Sandbox Sessions',
+            value: stats?.sandboxSessions || 0,
+            label: 'Scenarios Explored',
+            Icon: FlaskConical,
+            color: '#8B5CF6',
+            onClick: () => router.push('/hub/personal-assistant/sandbox'),
         },
     ];
+
+    // Sign-aware value formatting: '-$150' instead of '$-150' when a prefixed
+    // card ever carries a negative value; thousands separators throughout.
+    const formatValue = (card) => {
+        const v = Number(card.value) || 0;
+        const prefix = card.prefix || '';
+        return `${v < 0 ? '-' : ''}${prefix}${Math.abs(v).toLocaleString()}`;
+    };
 
     if (isLoading) {
         return (
             <div style={styles.container}>
+                <style>{`@keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }`}</style>
                 <h2 style={styles.title}>Dashboard Overview</h2>
                 <div style={styles.grid}>
                     {[1, 2, 3, 4].map((i) => (
@@ -78,23 +91,17 @@ export default function DashboardOverview({ stats, isLoading }) {
                         }}
                     >
                         <div style={styles.cardHeader}>
-                            <span style={styles.icon}>{card.icon}</span>
+                            <span style={styles.icon}>
+                                <card.Icon size={28} color={card.color} aria-hidden="true" />
+                            </span>
                             <h3 style={styles.cardTitle}>{card.title}</h3>
                         </div>
 
                         <div style={styles.cardBody}>
                             <div style={styles.valueContainer}>
-                                {card.prefix && (
-                                    <span style={{ ...styles.value, color: card.color }}>
-                                        {card.prefix}
-                                    </span>
-                                )}
                                 <span style={{ ...styles.value, color: card.color }}>
-                                    {card.value}
+                                    {formatValue(card)}
                                 </span>
-                                {card.total !== undefined && (
-                                    <span style={styles.total}>/{card.total}</span>
-                                )}
                             </div>
                             <p style={styles.label}>{card.label}</p>
                         </div>
@@ -142,7 +149,9 @@ const styles = {
         marginBottom: 20,
     },
     icon: {
-        fontSize: 32,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     cardTitle: {
         fontSize: 16,
@@ -163,11 +172,6 @@ const styles = {
         fontSize: 36,
         fontWeight: 700,
         fontFamily: 'Inter, sans-serif',
-    },
-    total: {
-        fontSize: 24,
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontWeight: 500,
     },
     label: {
         fontSize: 14,

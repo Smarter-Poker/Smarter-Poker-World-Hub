@@ -25,8 +25,13 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
     const total = sessionLog.length;
     const entry = sessionLog[currentIdx];
 
-    const correctCount = sessionLog.filter(e => e.isCorrect).length;
-    const accuracy = total > 0 ? Math.round(100 * correctCount / total) : 0;
+    // Entries logged before a coach verdict exists carry isCorrect == null —
+    // they are "unscored" and must not count as mistakes.
+    const scored = sessionLog.filter(e => e && e.isCorrect != null);
+    const scoredCount = scored.length;
+    const correctCount = scored.filter(e => e.isCorrect).length;
+    const accuracy = scoredCount > 0 ? Math.round(100 * correctCount / scoredCount) : 0;
+    const entryScored = !!entry && entry.isCorrect != null;
 
     const goNext = useCallback(() => {
         if (currentIdx < total - 1) {
@@ -54,7 +59,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
             <div style={s.modal} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={s.header}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>🎬 Hand Replay</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>{'🎬 Hand Replay'}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 10, color: M.sub }}>{total} hands</span>
                         <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
@@ -69,9 +74,12 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                     <>
                         {/* Session Summary Bar */}
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '0 12px 8px', fontSize: 9 }}>
-                            <span style={{ color: M.green }}>✅ {correctCount}</span>
-                            <span style={{ color: M.red }}>❌ {total - correctCount}</span>
-                            <span style={{ color: pctColor(accuracy) }}>{accuracy}%</span>
+                            <span style={{ color: M.green }}>{'✅'} {correctCount}</span>
+                            <span style={{ color: M.red }}>{'❌'} {scoredCount - correctCount}</span>
+                            <span style={{ color: pctColor(accuracy) }}>{scoredCount > 0 ? `${accuracy}%` : '—'}</span>
+                            {scoredCount < total && (
+                                <span style={{ color: M.dim }}>{total - scoredCount} unscored</span>
+                            )}
                         </div>
 
                         {/* Hand Card */}
@@ -81,9 +89,9 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                     <span style={{
                                         fontSize: 10, fontWeight: 800,
-                                        color: entry.isCorrect ? M.green : M.red,
+                                        color: !entryScored ? M.dim : entry.isCorrect ? M.green : M.red,
                                     }}>
-                                        {entry.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}
+                                        {!entryScored ? '— NOT COACHED' : entry.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}
                                     </span>
                                     <span style={{ fontSize: 9, color: M.dim }}>
                                         Hand {currentIdx + 1} / {total}
@@ -115,7 +123,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                         <span style={s.detailLabel}>Your Pick</span>
                                         <span style={{
                                             fontSize: 12, fontWeight: 700,
-                                            color: entry.isCorrect ? M.green : M.red,
+                                            color: !entryScored ? M.dim : entry.isCorrect ? M.green : M.red,
                                         }}>
                                             {entry.userPick || '—'}
                                         </span>
@@ -164,7 +172,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
 
                             {onLoadScenario && entry && (
                                 <button onClick={handlePlayAgain} style={s.playAgainBtn}>
-                                    🔄 Play Again
+                                    {'🔄 Play Again'}
                                 </button>
                             )}
 
@@ -190,7 +198,9 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                         width: 8, height: 8, borderRadius: '50%',
                                         background: i === currentIdx
                                             ? M.cyan
-                                            : e.isCorrect ? M.green + '44' : M.red + '44',
+                                            : e?.isCorrect == null
+                                                ? 'rgba(255,255,255,0.18)'
+                                                : e.isCorrect ? M.green + '44' : M.red + '44',
                                         cursor: 'pointer',
                                         transition: 'all 0.15s',
                                     }}

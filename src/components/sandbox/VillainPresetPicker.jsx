@@ -50,12 +50,19 @@ const PRESETS = [
     },
 ];
 
-export default function VillainPresetPicker({ onSelectPreset, onClose }) {
+export default function VillainPresetPicker({ onSelectPreset, onClose, villains = [] }) {
     const [selected, setSelected] = useState(null);
+    const [villainIdx, setVillainIdx] = useState(0);
 
     const handleSelect = (preset) => {
         setSelected(preset.name);
-        onSelectPreset?.(preset);
+        // Ship the matching archetype alongside the range so the parent can set
+        // BOTH — otherwise the villain read card keeps showing the stale
+        // archetype ("GTO Neutral") next to a Maniac range.
+        onSelectPreset?.({
+            ...preset,
+            archetype: { id: preset.name.toLowerCase(), name: preset.name },
+        }, villainIdx);
         try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         // Auto-close after brief delay so user sees the selection
         setTimeout(() => onClose?.(), 300);
@@ -65,9 +72,30 @@ export default function VillainPresetPicker({ onSelectPreset, onClose }) {
         <div style={s.overlay} onClick={onClose}>
             <div style={s.modal} onClick={e => e.stopPropagation()}>
                 <div style={s.header}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>👤 Villain Profiles</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>{'👤 Villain Profiles'}</span>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
                 </div>
+
+                {/* Seat selector — only meaningful with multiple villains */}
+                {villains.length > 1 && (
+                    <div style={{ display: 'flex', gap: 6, padding: '0 10px 8px', flexWrap: 'wrap' }}>
+                        {villains.map((v, i) => (
+                            <button
+                                key={v?.id ?? i}
+                                onClick={() => setVillainIdx(i)}
+                                style={{
+                                    padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                    background: villainIdx === i ? 'rgba(69,153,255,0.18)' : 'rgba(255,255,255,0.04)',
+                                    border: `1px solid ${villainIdx === i ? 'rgba(69,153,255,0.4)' : M.border}`,
+                                    color: villainIdx === i ? M.cyan : M.sub,
+                                    cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
+                                }}
+                            >
+                                {v?.position || `Seat ${i + 1}`}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {PRESETS.map(p => (

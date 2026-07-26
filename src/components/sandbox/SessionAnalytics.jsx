@@ -3,7 +3,8 @@
  * Aggregated coach mode analytics: accuracy trend, position stats, street breakdown.
  * Renders as a collapsible card in the Personal Assistant hub or Leak Finder.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     bg: '#1a1d21', card: '#242526', border: '#3a3b3c',
@@ -68,39 +69,50 @@ export default function SessionAnalytics({ userId }) {
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(true);
 
-    useEffect(() => {
+    const load = useCallback(async () => {
         if (!userId) return;
-        let cancelled = false;
-
-        async function load() {
-            try {
-                const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
-                const res = await fetch('/api/sandbox/session-stats', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
-                if (!cancelled && json.success) setStats(json);
-            } catch (e) {
-                console.warn('[SessionAnalytics] Fetch error:', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/sandbox/session-stats', {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const json = await res.json().catch(() => null);
+            if (json?.success) setStats(json);
+        } catch (e) {
+            console.warn('[SessionAnalytics] Fetch error:', e);
+        } finally {
+            setLoading(false);
         }
+    }, [userId]);
+
+    useEffect(() => {
+        if (!userId) return undefined;
         load();
 
-        // Refresh when new coach results come in
-        const refresh = () => load();
-        window.addEventListener('sandbox-coach-result-saved', refresh);
-        return () => {
-            cancelled = true;
-            window.removeEventListener('sandbox-coach-result-saved', refresh);
+        // Coach results are written from the sandbox route, so its in-page
+        // custom event never reaches this page — refetch on tab focus instead.
+        const onVisible = () => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') load();
         };
-    }, [userId]);
+        window.addEventListener('focus', onVisible);
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.removeEventListener('focus', onVisible);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [userId, load]);
 
     if (loading) {
         return (
             <div style={{ ...s.card, opacity: 0.5 }}>
-                <div style={s.shimmer} />
+                <div className="analytics-shimmer" style={s.shimmer} />
+                <style jsx>{`
+                    .analytics-shimmer { animation: analyticsShimmer 1.5s infinite; }
+                    @keyframes analyticsShimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                `}</style>
             </div>
         );
     }
@@ -109,7 +121,7 @@ export default function SessionAnalytics({ userId }) {
         return (
             <div style={s.card}>
                 <div style={s.header}>
-                    <span style={s.title}>📊 Session Analytics</span>
+                    <span style={s.title}>{'📊 Session Analytics'}</span>
                 </div>
                 <p style={{ fontSize: 11, color: M.dim, textAlign: 'center', padding: '16px 0' }}>
                     Play Coach Mode in the Sandbox to see your analytics here.
@@ -122,7 +134,7 @@ export default function SessionAnalytics({ userId }) {
         <div style={s.card}>
             {/* Header */}
             <button onClick={() => setExpanded(!expanded)} style={s.header}>
-                <span style={s.title}>📊 Session Analytics</span>
+                <span style={s.title}>{'📊 Session Analytics'}</span>
                 <span style={{ fontSize: 12, color: M.dim, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
             </button>
 
@@ -246,6 +258,5 @@ const s = {
         height: 80, borderRadius: 8,
         background: 'linear-gradient(90deg, #242526 25%, #3a3b3c 50%, #242526 75%)',
         backgroundSize: '200% 100%',
-        animation: 'shimmer 1.5s infinite',
     },
 };

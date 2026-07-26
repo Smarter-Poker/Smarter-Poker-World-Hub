@@ -53,7 +53,13 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
 
     const copyToClipboard = () => {
         if (!shareUrl) return;
-        navigator.clipboard.writeText(shareUrl);
+        // navigator.clipboard is undefined on insecure origins / older webviews.
+        if (typeof navigator?.clipboard?.writeText === 'function') {
+            navigator.clipboard.writeText(shareUrl).catch(e => console.warn('[ShareScenarioModal] Copy failed:', e?.message || e));
+        } else {
+            setError('Copy is unavailable here — long-press the link to copy it.');
+            return;
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -70,7 +76,7 @@ export default function ShareScenarioModal({ onClose, sandboxState }) {
                 style={{ background: M.card, padding: 24, borderRadius: 16, width: '90%', maxWidth: 400, border: `1px solid ${M.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', position: 'relative', textAlign: 'center' }}
             >
                 <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🔗</div>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>{'🔗'}</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: M.text, marginBottom: 8 }}>Share Scenario</div>
                 <div style={{ fontSize: 13, color: M.sub, marginBottom: 20, lineHeight: 1.5 }}>
                     Generate a public link to share this exact sandbox state (ranges, board, and analysis) with friends or coaches.

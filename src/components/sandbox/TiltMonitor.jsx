@@ -93,15 +93,19 @@ export default function TiltMonitor({ recentResults = [] }) {
         }
     }, [tiltState, lastState]);
 
+    // Recovery auto-dismisses after 5 seconds. Scheduling this in an effect (not
+    // in the render body) keeps a re-render from stacking timers and from
+    // dismissing a NEW warning that replaced the recovery banner.
+    useEffect(() => {
+        if (tiltState !== 'recovery') return undefined;
+        const t = setTimeout(() => setDismissed(true), 5000);
+        return () => clearTimeout(t);
+    }, [tiltState]);
+
     if (tiltState === 'none' || dismissed) return null;
 
     const state = TILT_STATES[tiltState];
     if (!state) return null;
-
-    // Recovery auto-dismisses after 5 seconds
-    if (tiltState === 'recovery') {
-        setTimeout(() => setDismissed(true), 5000);
-    }
 
     return (
         <div style={{

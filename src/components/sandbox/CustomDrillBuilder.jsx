@@ -16,7 +16,9 @@ const M = {
 };
 
 const STREETS = ['Any', 'Preflop', 'Flop', 'Turn', 'River'];
-const POSITIONS = ['Any', 'EP', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+// Canonical position vocabulary (matches sandbox.js POSITIONS, LeakHeatmap and
+// the stored metadata->>hero_position values — 'EP' matches nothing).
+const POSITIONS = ['Any', 'UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
 export default function CustomDrillBuilder({ onClose, onStartDrill }) {
     const [street, setStreet] = useState('Any');
@@ -36,7 +38,7 @@ export default function CustomDrillBuilder({ onClose, onStartDrill }) {
             >
                 <div style={{ padding: '20px', borderBottom: `1px solid ${M.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: M.text }}>⚡ Custom Drill Builder</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: M.text }}>{'⚡ Custom Drill Builder'}</div>
                         <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
                     </div>
                     <div style={{ fontSize: 13, color: M.sub, marginTop: 4 }}>Configure hyper-specific spots to practice.</div>

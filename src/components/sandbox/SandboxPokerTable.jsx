@@ -5,24 +5,67 @@
  * Elliptical seat positions recalculated for vertical layout.
  * Community cards, pot, equity, and board texture all rendered ON the table felt.
  */
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 
-// Long-press hook for card removal
-function useLongPress(callback, ms = 500) {
+/**
+ * Long-press hook for card removal.
+ * Returns a full prop bag INCLUDING onClick — the click handler swallows the
+ * synthetic click that browsers dispatch right after a long-press so the deck
+ * picker never opens immediately after a card was removed.
+ * NOTE: we deliberately do NOT call e.preventDefault() in onTouchStart — React
+ * attaches touchstart passively at the root, so it is a no-op that only logs
+ * "Unable to preventDefault inside passive event listener". Selection artifacts
+ * are suppressed with CSS (userSelect/touchCallout) + onContextMenu instead.
+ */
+function useLongPress(callback, { onClick, ms = 500 } = {}) {
     const timerRef = useRef(null);
-    const onStart = useCallback((e) => {
-        e.preventDefault();
+    const firedRef = useRef(false);
+
+    const clear = useCallback(() => {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    }, []);
+
+    // Clear any pending long-press on unmount so the callback can never fire
+    // with a stale index after the card has already been removed.
+    useEffect(() => clear, [clear]);
+
+    const onStart = useCallback(() => {
+        firedRef.current = false;
+        clear();
         timerRef.current = setTimeout(() => {
+            timerRef.current = null;
+            firedRef.current = true;
             try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             callback?.();
         }, ms);
-    }, [callback, ms]);
-    const onEnd = useCallback(() => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-    }, []);
-    return { onTouchStart: onStart, onTouchEnd: onEnd, onTouchCancel: onEnd, onMouseDown: onStart, onMouseUp: onEnd, onMouseLeave: onEnd };
+    }, [callback, ms, clear]);
+
+    const onEnd = useCallback(() => { clear(); }, [clear]);
+
+    const handleClick = useCallback((e) => {
+        if (firedRef.current) {
+            firedRef.current = false;
+            e?.preventDefault?.();
+            e?.stopPropagation?.();
+            return;
+        }
+        onClick?.(e);
+    }, [onClick]);
+
+    const onContextMenu = useCallback((e) => { e?.preventDefault?.(); }, []);
+
+    return {
+        onTouchStart: onStart, onTouchEnd: onEnd, onTouchCancel: onEnd,
+        onMouseDown: onStart, onMouseUp: onEnd, onMouseLeave: onEnd,
+        onClick: handleClick, onContextMenu,
+    };
 }
+
+const NO_SELECT = {
+    userSelect: 'none', WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none', touchAction: 'manipulation',
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD COMPONENT
@@ -35,18 +78,60 @@ const RANK_MAP = {
     'J': 'j', 'Q': 'q', 'K': 'k'
 };
 
+// Red suits for the text fallback
+const RED_SUITS = { h: true, d: true };
+const SUIT_LETTER = { s: 'S', h: 'H', d: 'D', c: 'C' };
+
 export function TableCard({ card, style = {} }) {
-    if (!card) return null;
-    const imagePath = `/cards/${SUIT_MAP[card[1]]}_${RANK_MAP[card[0]] || card[0].toLowerCase()}.png`;
+    const [imgFailed, setImgFailed] = useState(false);
+    const raw = typeof card === 'string' ? card.trim() : '';
+
+    // Reset the failure flag whenever the card itself changes
+    useEffect(() => { setImgFailed(false); }, [raw]);
+
+    if (!raw) return null;
+
+    const rankChar = raw[0]?.toUpperCase();
+    const suitChar = raw[raw.length - 1]?.toLowerCase();
+    const suitName = SUIT_MAP[suitChar];
+    const rankName = RANK_MAP[rankChar];
+    const isRed = !!RED_SUITS[suitChar];
+    const showFallback = imgFailed || !suitName || !rankName;
+
+    const wrapperStyle = {
+        width: 40, height: 56,
+        background: '#fff', borderRadius: 4,
+        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+        overflow: 'hidden', border: '1px solid #ddd',
+        ...style,
+    };
+
+    if (showFallback) {
+        const h = Number(wrapperStyle.height) || 56;
+        return (
+            <div style={{
+                ...wrapperStyle,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                color: isRed ? '#d32029' : '#1a1a1a',
+                fontWeight: 800, lineHeight: 1,
+                fontFamily: "'Inter',-apple-system,sans-serif",
+            }} title={raw}>
+                <span style={{ fontSize: Math.max(10, Math.round(h * 0.32)) }}>{rankChar || '?'}</span>
+                <span style={{ fontSize: Math.max(8, Math.round(h * 0.22)) }}>{SUIT_LETTER[suitChar] || '?'}</span>
+            </div>
+        );
+    }
+
+    const imagePath = `/cards/${suitName}_${rankName}.png`;
     return (
-        <div style={{
-            width: 40, height: 56,
-            background: '#fff', borderRadius: 4,
-            boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-            overflow: 'hidden', border: '1px solid #ddd',
-            ...style
-        }}>
-            <img src={imagePath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div style={wrapperStyle}>
+            <img
+                src={imagePath}
+                alt={raw}
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                onError={() => setImgFailed(true)}
+            />
         </div>
     );
 }
@@ -78,15 +163,15 @@ function computeVerticalSeatPositions(maxSeats) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function BoardCardItem({ card, i, onRemove, onTap }) {
-    const lp = useLongPress(() => onRemove?.(i));
+    const handleRemove = useCallback(() => { onRemove?.(i); }, [onRemove, i]);
+    const lp = useLongPress(handleRemove, { onClick: onTap });
     return (
         <motion.div
             {...lp}
-            onClick={onTap}
             initial={{ y: -15, opacity: 0, scale: 0.5 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 180, damping: 12, delay: i * 0.1 }}
-            style={{ cursor: onTap ? 'pointer' : 'default' }}
+            style={{ cursor: onTap ? 'pointer' : 'default', ...NO_SELECT }}
         >
             <TableCard card={card} style={{ width: 32, height: 45 }} />
         </motion.div>
@@ -94,20 +179,38 @@ function BoardCardItem({ card, i, onRemove, onTap }) {
 }
 
 function HeroCardItem({ card, i, onRemove, onTap }) {
-    const lp = useLongPress(() => onRemove?.(i));
+    const handleRemove = useCallback(() => { onRemove?.(i); }, [onRemove, i]);
+    const lp = useLongPress(handleRemove, { onClick: onTap });
     return (
         <motion.div
             {...lp}
-            onClick={onTap}
             initial={{ y: 20, opacity: 0, rotateY: 90 }}
             animate={{ y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.15 + i * 0.12 }}
-            style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800 }}
+            style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800, ...NO_SELECT }}
         >
             <TableCard card={card} style={{ width: 34, height: 48 }} />
         </motion.div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATIC TABLE ASSETS (module scope — never rebuilt per render)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Deterministic avatar assignment for sandbox seats
+const SANDBOX_AVATARS = [
+    '/avatars/table/free_fox.png',       // Hero
+    '/avatars/table/free_shark.png',
+    '/avatars/table/free_ninja.png',
+    '/avatars/table/free_viking.png',
+    '/avatars/table/free_lion.png',
+    '/avatars/table/free_owl.png',
+    '/avatars/table/free_samurai.png',
+    '/avatars/table/free_pirate.png',
+    '/avatars/table/free_cowboy.png',
+    '/avatars/table/free_knight.png',
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN TABLE — Vertical portrait orientation
@@ -134,54 +237,52 @@ export default function SandboxPokerTable({
 }) {
     const totalSeats = 1 + villains.length;
     const maxSeats = Math.max(totalSeats, 2);
-    const { seatPositions } = computeVerticalSeatPositions(maxSeats);
+    const { seatPositions } = useMemo(() => computeVerticalSeatPositions(maxSeats), [maxSeats]);
 
     // Build seat array: hero at index 0, then villains
-    const seatArr = [
-        { name: heroPosition, stack: heroStack, isHero: true },
+    const seatArr = useMemo(() => [
+        { name: heroPosition, stack: Number(heroStack) || 0, isHero: true },
         ...villains.map((v, i) => ({
             name: v.position || `V${i + 1}`,
-            stack: v.stack || 100,
+            stack: Number(v.stack) || 100,
             archetype: v.archetype?.name || 'Opponent',
             isHero: false,
         })),
-    ];
+    ], [heroPosition, heroStack, villains]);
 
     const avatarSize = 44;
 
-    // Deterministic avatar assignment for sandbox seats
-    const SANDBOX_AVATARS = [
-        '/avatars/table/free_fox.png',       // Hero
-        '/avatars/table/free_shark.png',
-        '/avatars/table/free_ninja.png',
-        '/avatars/table/free_viking.png',
-        '/avatars/table/free_lion.png',
-        '/avatars/table/free_owl.png',
-        '/avatars/table/free_samurai.png',
-        '/avatars/table/free_pirate.png',
-        '/avatars/table/free_cowboy.png',
-        '/avatars/table/free_knight.png',
-    ];
+    const streetLabel = String(street || 'flop');
+    const potValue = Number(pot) || 0;
+    const equityValue = Number(equity);
+    const hasEquity = equity != null && Number.isFinite(equityValue);
 
-    // Swipe gesture tracking for street navigation
-    const touchStartRef = useRef({ x: 0, y: 0 });
-    const handleTouchStart = (e) => {
-        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-    const handleTouchEnd = (e) => {
-        const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-        const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+    // Swipe gesture tracking for street navigation.
+    // Pointer events so mouse drag works on desktop as well as touch.
+    const pointerStartRef = useRef(null);
+    const handlePointerDown = useCallback((e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) { pointerStartRef.current = null; return; }
+        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    }, []);
+    const handlePointerUp = useCallback((e) => {
+        const start = pointerStartRef.current;
+        pointerStartRef.current = null;
+        if (!start) return;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            try { navigator.vibrate?.(10); } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
             if (dx < 0) onSwipeLeft?.();
             else onSwipeRight?.();
         }
-    };
+    }, [onSwipeLeft, onSwipeRight]);
+    const handlePointerCancel = useCallback(() => { pointerStartRef.current = null; }, []);
 
     return (
         <div
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
             style={{
                 position: 'relative',
                 width: '100%',
@@ -230,7 +331,7 @@ export default function SandboxPokerTable({
                     letterSpacing: 0.5, marginBottom: 2,
                     textShadow: '0 1px 6px rgba(0,0,0,0.7)',
                 }}>
-                    Pot {(pot || 0).toFixed(1)} BB
+                    Pot {potValue.toFixed(1)} BB
                 </div>
 
                 {/* Street Label */}
@@ -238,17 +339,17 @@ export default function SandboxPokerTable({
                     fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)',
                     textTransform: 'uppercase', letterSpacing: 1.5,
                 }}>
-                    {street === 'preflop' ? 'Preflop' : street.charAt(0).toUpperCase() + street.slice(1)}
+                    {streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}
                 </div>
 
                 {/* Equity on felt */}
-                {equity != null && (
+                {hasEquity && (
                     <div style={{
                         marginTop: 4, fontSize: 11, fontWeight: 700,
-                        color: equity >= 50 ? '#4ade80' : '#fbbf24',
+                        color: equityValue >= 50 ? '#4ade80' : '#fbbf24',
                         textShadow: '0 1px 4px rgba(0,0,0,0.6)',
                     }}>
-                        {equity.toFixed(1)}% equity
+                        {equityValue.toFixed(1)}% equity
                     </div>
                 )}
 
@@ -315,10 +416,7 @@ export default function SandboxPokerTable({
             {/* Seat badges */}
             {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                 const pos = seatPositions[idx];
-                const topPct = parseFloat(pos.top);
                 const leftPct = parseFloat(pos.left);
-                const isBottom = topPct > 70;
-                const isTop = topPct < 30;
                 const isLeftSide = leftPct < 25;
                 const isRightSide = leftPct > 75;
 
@@ -370,7 +468,7 @@ export default function SandboxPokerTable({
                             <div style={{
                                 fontSize: 9, fontWeight: 700, color: '#B0B3B8', lineHeight: 1.2,
                             }}>
-                                {seat.stack} BB
+                                {Number(seat.stack) || 0} BB
                             </div>
                             {!seat.isHero && seat.archetype && (
                                 <div style={{

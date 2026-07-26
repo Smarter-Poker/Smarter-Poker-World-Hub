@@ -5,7 +5,7 @@
  * Per Masterplan Section VI:
  * - Identify statistical leaks over time, NOT single-hand mistakes
  * - A leak requires: Repetition, Same situation class, Measurable EV loss
- * 
+ *
  * Phase 3: Grok AI Integration for personalized fix suggestions
  */
 
@@ -37,18 +37,27 @@ async function generateLeakFix(leak) {
 LEAK: ${leak.situation_class}
 Current Frequency: ${leak.current_frequency}%
 Optimal Range: ${leak.optimal_frequency}%
-EV Loss: ${leak.avg_ev_loss_bb} BB/100
+Avg EV Loss: ${leak.avg_ev_loss_bb} bb per occurrence
 
 Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustments they can make.`;
 
-    const response = await grok.chat.completions.create({
-      model: 'grok-3', // Grok-3
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.5,
-      max_tokens: 150,
-    });
+    // Bound the call: up to three of these run inside the request path, so an
+    // unbounded Grok response can push POST /api/assistant/leaks/detect past the
+    // serverless limit and turn an already-persisted detection into a 504.
+    let timeoutHandle;
+    const response = await Promise.race([
+      grok.chat.completions.create({
+        model: 'grok-3', // Grok-3
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.5,
+        max_tokens: 150,
+      }),
+      new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Grok request timed out')), 15000);
+      }),
+    ]).finally(() => { if (timeoutHandle) clearTimeout(timeoutHandle); });
 
-    return response.choices[0]?.message?.content || null;
+    return response?.choices?.[0]?.message?.content || null;
   } catch (error) {
     console.warn('[LeakDetect] AI fix generation failed:', error.message);
     return null;
@@ -167,6 +176,39 @@ const LEAK_PATTERNS = {
   },
 };
 
+// Stat keys each pattern's check() reads. A pattern only fires when every
+// required stat was genuinely measured (non-null) — this prevents fabricating
+// leaks from defaulted/unmeasured inputs.
+const PATTERN_STAT_KEYS = {
+  overfolding_preflop: ['vpip'],
+  overlimping: ['limpFreq'],
+  cold_call_too_wide: ['coldCallFreq'],
+  three_bet_too_tight: ['threeBetFreq'],
+  three_bet_too_loose: ['threeBetFreq'],
+  overfolding_to_cbets: ['foldToCbet', 'cbetsFaced'],
+  cbet_too_often: ['cbetFreq', 'cbetOpps'],
+  cbet_too_rarely: ['cbetFreq', 'cbetOpps'],
+  check_raise_too_rare: ['checkRaiseFreq', 'checkRaiseOpps'],
+  turn_barrel_too_rare: ['turnBarrelFreq', 'turnBarrelOpps'],
+  turn_overfold: ['turnFoldFreq', 'turnFaced'],
+  lack_of_river_bluffs: ['riverBluffFreq', 'riverBluffOpps'],
+  river_overfold: ['riverFoldFreq', 'riverFaced'],
+  missing_thin_value: ['riverValueBetFreq', 'riverBetOpps'],
+};
+
+function patternIsMeasured(stats, leakType) {
+  const required = PATTERN_STAT_KEYS[leakType] || [];
+  return !required.some(key => stats[key] === null || stats[key] === undefined);
+}
+
+// Distance from the nearest bound of the optimal range (0 when inside range)
+function deviationFromRange(value, optimalRange) {
+  const [optMin, optMax] = optimalRange;
+  if (value < optMin) return optMin - value;
+  if (value > optMax) return value - optMax;
+  return 0;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LEAK DETECTION ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -181,26 +223,32 @@ async function getPlayerStats(supabase, userId) {
     .eq('user_id', userId)
     .maybeSingle();
 
+  if (error) console.warn('[LeakDetect] player_stats query failed:', error.message);
+
   if (!error && stats) {
     finalStats = normalizeStats(stats);
   } else {
     // Try alternative stats table
-    const { data: altStats } = await getSupabase()
+    const { data: altStats, error: altErr } = await getSupabase()
       .from('user_poker_stats')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
 
+    if (altErr) console.warn('[LeakDetect] user_poker_stats query failed:', altErr.message);
+
     if (altStats) {
       finalStats = normalizeStats(altStats);
     } else {
-      // Try to compute from live hand history
-      const { data: hands } = await getSupabase()
+      // Try to compute from live hand history — only fetch what we read
+      const { data: hands, error: handsErr } = await getSupabase()
         .from('hand_history')
-        .select('*')
+        .select('actions, created_at')
         .eq('user_id', userId)
-        .order('played_at', { ascending: false })
-        .limit(5000);
+        .order('created_at', { ascending: false })
+        .limit(2000);
+
+      if (handsErr) console.warn('[LeakDetect] hand_history query failed:', handsErr.message);
 
       if (hands && hands.length > 0) {
         finalStats = computeStatsFromHands(hands);
@@ -220,15 +268,16 @@ async function getPlayerStats(supabase, userId) {
   return finalStats || trainingStats || null;
 }
 
-// ─── NEW: DATA BRIDGE FOR TRAINING SESSIONS ────────────────────────────────
+// ─── DATA BRIDGE FOR TRAINING SESSIONS ─────────────────────────────────────
 async function getTrainingStats(supabase, userId) {
-  const { data: sessions } = await getSupabase()
+  const { data: sessions, error } = await getSupabase()
     .from('training_sessions')
     .select('classification_counts, mistake_count, hands_played, total_ev_loss')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(100);
 
+  if (error) console.warn('[LeakDetect] training_sessions query failed:', error.message);
   if (!sessions || sessions.length === 0) return null;
 
   let totalTrainingHands = 0;
@@ -253,31 +302,39 @@ async function getTrainingStats(supabase, userId) {
     return (count / totalTrainingHands) * 100;
   };
 
+  // Opportunity counts are only real if the training-session writers stored
+  // them inside classification_counts; otherwise 0 so sample-gated patterns
+  // simply don't fire from training-only data.
+  const getOppCount = (keyName) => combinedClassifications[keyName] || 0;
+
   return {
     handsPlayed: totalTrainingHands,
-    vpip: 25, // Neutral placeholder, purely live stat
-    pfr: 18,  // Neutral placeholder
-    limpFreq: getMistakeFreq('limp'), // E.g., if they limp often in training
+    _isTrainingDominant: true,
+    // Purely live stats — not derivable from training mistake counts, so left
+    // unmeasured (null) and their patterns are skipped by the measured guard.
+    vpip: null,
+    pfr: null,
+    limpFreq: getMistakeFreq('limp'),
     coldCallFreq: getMistakeFreq('cold_call_wide'),
-    threeBetFreq: getMistakeFreq('three_bet_tight') ? 2 : 8, // Reverse mapped
+    threeBetFreq: Math.max(0, 8 - getMistakeFreq('three_bet_tight')),
     foldToCbet: 50 + getMistakeFreq('fold_to_cbet_over'), // Adding mistake rate to baseline optimal
-    cbetsFaced: totalTrainingHands / 2,
+    cbetsFaced: getOppCount('fold_to_cbet_opps'),
     cbetFreq: 60 - getMistakeFreq('missed_cbet_value'),
-    cbetOpps: totalTrainingHands / 2,
+    cbetOpps: getOppCount('cbet_opps'),
     checkRaiseFreq: 10 - getMistakeFreq('missed_check_raise'),
-    checkRaiseOpps: totalTrainingHands / 3,
+    checkRaiseOpps: getOppCount('check_raise_opps'),
     turnBarrelFreq: 60 - getMistakeFreq('missed_turn_barrel'),
-    turnBarrelOpps: totalTrainingHands / 3,
+    turnBarrelOpps: getOppCount('turn_barrel_opps'),
     turnFoldFreq: 40 + getMistakeFreq('turn_overfold'),
-    turnFaced: totalTrainingHands / 4,
+    turnFaced: getOppCount('turn_faced_opps'),
     riverBluffFreq: 15 - getMistakeFreq('missed_river_bluff'),
-    riverBluffOpps: totalTrainingHands / 5,
+    riverBluffOpps: getOppCount('river_bluff_opps'),
     riverFoldFreq: 45 + getMistakeFreq('river_overfold'),
-    riverFaced: totalTrainingHands / 5,
+    riverFaced: getOppCount('river_faced_opps'),
     riverValueBetFreq: 55 - getMistakeFreq('missed_thin_value'),
-    riverBetOpps: totalTrainingHands / 5,
-    aggFactor: 2.5,
-    wtsd: 30,
+    riverBetOpps: getOppCount('river_bet_opps'),
+    aggFactor: null,
+    wtsd: null,
   };
 }
 
@@ -286,13 +343,22 @@ function combineLiveAndTrainingStats(live, train) {
   const liveWt = live.handsPlayed / (live.handsPlayed + train.handsPlayed);
   const trainWt = train.handsPlayed / (live.handsPlayed + train.handsPlayed);
 
-  const weighted = (key) => (live[key] || 0) * liveWt + (train[key] || 0) * trainWt;
+  // Null-aware weighting: an unmeasured (null) side never fabricates a value
+  const weighted = (key) => {
+    const l = live[key];
+    const t = train[key];
+    if (l === null || l === undefined) {
+      return (t === null || t === undefined) ? null : t;
+    }
+    if (t === null || t === undefined) return l;
+    return l * liveWt + t * trainWt;
+  };
 
   return {
     handsPlayed: live.handsPlayed + train.handsPlayed,
     _isTrainingDominant: trainWt > 0.5,
-    vpip: live.vpip || train.vpip, // Mostly rely on live for foundational
-    pfr: live.pfr || train.pfr,
+    vpip: live.vpip ?? train.vpip, // Mostly rely on live for foundational
+    pfr: live.pfr ?? train.pfr,
     limpFreq: weighted('limpFreq'),
     coldCallFreq: weighted('coldCallFreq'),
     threeBetFreq: weighted('threeBetFreq'),
@@ -318,122 +384,261 @@ function combineLiveAndTrainingStats(live, train) {
 }
 
 function normalizeStats(stats) {
+  // Return the first numeric value, or null when the column is absent —
+  // never fabricate frequencies or sample sizes for missing columns.
+  const num = (...vals) => {
+    for (const v of vals) {
+      if (v !== null && v !== undefined && !Number.isNaN(Number(v))) return Number(v);
+    }
+    return null;
+  };
+
   return {
-    handsPlayed: stats.hands_played || stats.total_hands || 0,
-    vpip: stats.vpip || 0,
-    pfr: stats.pfr || 0,
-    limpFreq: stats.limp_freq || stats.limp_percentage || 0,
-    coldCallFreq: stats.cold_call_freq || stats.cold_call_percentage || 0,
-    threeBetFreq: stats.three_bet_freq || stats.three_bet_percentage || 0,
-    foldToCbet: stats.fold_to_cbet || stats.fold_to_cbet_percentage || 0,
-    cbetsFaced: stats.cbets_faced || 100,
-    cbetFreq: stats.cbet_freq || stats.cbet_percentage || 0,
-    cbetOpps: stats.cbet_opportunities || 100,
-    checkRaiseFreq: stats.check_raise_freq || stats.check_raise_percentage || 0,
-    checkRaiseOpps: stats.check_raise_opportunities || 50,
-    turnBarrelFreq: stats.turn_barrel_freq || stats.turn_cbet_percentage || 0,
-    turnBarrelOpps: stats.turn_barrel_opportunities || 50,
-    turnFoldFreq: stats.turn_fold_freq || 0,
-    turnFaced: stats.turn_bets_faced || 50,
-    riverBluffFreq: stats.river_bluff_freq || stats.river_aggression || 0,
-    riverBluffOpps: stats.river_bluff_opportunities || 30,
-    riverFoldFreq: stats.river_fold_freq || 0,
-    riverFaced: stats.river_bets_faced || 40,
-    riverValueBetFreq: stats.river_value_bet_freq || 0,
-    riverBetOpps: stats.river_bet_opportunities || 30,
-    aggFactor: stats.aggression_factor || stats.af || 0,
-    wtsd: stats.wtsd || stats.went_to_showdown || 0,
+    handsPlayed: num(stats.hands_played, stats.total_hands) ?? 0,
+    vpip: num(stats.vpip),
+    pfr: num(stats.pfr),
+    limpFreq: num(stats.limp_freq, stats.limp_percentage),
+    coldCallFreq: num(stats.cold_call_freq, stats.cold_call_percentage),
+    threeBetFreq: num(stats.three_bet_freq, stats.three_bet_percentage),
+    foldToCbet: num(stats.fold_to_cbet, stats.fold_to_cbet_percentage),
+    // Opportunity/faced counts default to 0 (NOT an invented sample) so
+    // sample-size gates in the patterns don't fire on unknown samples.
+    cbetsFaced: num(stats.cbets_faced) ?? 0,
+    cbetFreq: num(stats.cbet_freq, stats.cbet_percentage),
+    cbetOpps: num(stats.cbet_opportunities) ?? 0,
+    checkRaiseFreq: num(stats.check_raise_freq, stats.check_raise_percentage),
+    checkRaiseOpps: num(stats.check_raise_opportunities) ?? 0,
+    turnBarrelFreq: num(stats.turn_barrel_freq, stats.turn_cbet_percentage),
+    turnBarrelOpps: num(stats.turn_barrel_opportunities) ?? 0,
+    turnFoldFreq: num(stats.turn_fold_freq),
+    turnFaced: num(stats.turn_bets_faced) ?? 0,
+    riverBluffFreq: num(stats.river_bluff_freq, stats.river_aggression),
+    riverBluffOpps: num(stats.river_bluff_opportunities) ?? 0,
+    riverFoldFreq: num(stats.river_fold_freq),
+    riverFaced: num(stats.river_bets_faced) ?? 0,
+    riverValueBetFreq: num(stats.river_value_bet_freq),
+    riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
+    aggFactor: num(stats.aggression_factor, stats.af),
+    wtsd: num(stats.wtsd, stats.went_to_showdown),
   };
 }
 
 function computeStatsFromHands(hands) {
-  // Basic stat computation from raw hands
+  // Stat computation from raw hands — everything here is genuinely derived
+  // from the actions arrays; stats we can't derive are returned as null so
+  // the measured-stat guard skips their patterns.
   const total = hands.length;
+
+  const isHero = (a) => a.player === 'hero' || a.is_hero;
+  const act = (a) => (a.action || '').toLowerCase();
+  const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
+
   let vpipHands = 0;
   let pfrHands = 0;
+  let limps = 0;
+  let coldCalls = 0;
+  let threeBetOpps = 0;
+  let threeBets = 0;
   let cbetOpps = 0;
   let cbets = 0;
+  let cbetsFaced = 0;
+  let foldsToCbet = 0;
+  let checkRaiseOpps = 0;
+  let checkRaises = 0;
+  let turnBarrelOpps = 0;
+  let turnBarrels = 0;
+  let turnFaced = 0;
+  let turnFolds = 0;
+  let riverFaced = 0;
+  let riverFolds = 0;
+
+  // First hero action on a street while facing a bet/raise
+  const heroFacingBet = (streetActions) => {
+    let betSeen = false;
+    for (const a of streetActions) {
+      if (isHero(a) && (betSeen || a.facing_bet)) {
+        return { faced: true, folded: act(a) === 'fold' };
+      }
+      if (!isHero(a) && isAggressive(a)) betSeen = true;
+    }
+    return { faced: false, folded: false };
+  };
 
   hands.forEach(hand => {
-    const actions = hand.actions || [];
-    const heroActions = actions.filter(a => a.player === 'hero' || a.is_hero);
+    const actions = Array.isArray(hand.actions) ? hand.actions : [];
+    const pre = actions.filter(a => a.street === 'preflop');
+    const flop = actions.filter(a => a.street === 'flop');
+    const turn = actions.filter(a => a.street === 'turn');
+    const river = actions.filter(a => a.street === 'river');
 
-    // VPIP: voluntarily put money in pot preflop
-    if (heroActions.some(a => a.street === 'preflop' && ['call', 'raise', 'bet'].includes(a.action?.toLowerCase()))) {
-      vpipHands++;
+    // ── Preflop walk (ordered) ──
+    let raiseSeen = false;
+    let heroVpip = false;
+    let heroPfr = false;
+    let heroLimped = false;
+    let heroColdCalled = false;
+    let heroCalledRaise = false;
+    let hero3Bet = false;
+    let hero3BetOpp = false;
+
+    for (const a of pre) {
+      const action = act(a);
+      if (isHero(a)) {
+        if (action === 'call') {
+          heroVpip = true;
+          if (raiseSeen) {
+            heroColdCalled = true;
+            heroCalledRaise = true;
+            hero3BetOpp = true;
+          } else {
+            heroLimped = true;
+          }
+        } else if (action === 'raise' || action === 'bet') {
+          heroVpip = true;
+          heroPfr = true;
+          if (raiseSeen) {
+            hero3Bet = true;
+            hero3BetOpp = true;
+          }
+        } else if (action === 'fold' && raiseSeen) {
+          hero3BetOpp = true;
+        }
+      }
+      if (action === 'raise' || action === 'bet') raiseSeen = true;
     }
 
-    // PFR: preflop raise
-    if (heroActions.some(a => a.street === 'preflop' && a.action?.toLowerCase() === 'raise')) {
-      pfrHands++;
+    if (heroVpip) vpipHands++;
+    if (heroPfr) pfrHands++;
+    if (heroLimped && !heroPfr) limps++;
+    if (heroColdCalled && !heroPfr) coldCalls++;
+    if (hero3BetOpp) {
+      threeBetOpps++;
+      if (hero3Bet) threeBets++;
     }
 
-    // C-bet opportunities and attempts
-    const wasPreAggressor = heroActions.some(a => a.street === 'preflop' && a.action?.toLowerCase() === 'raise');
-    if (wasPreAggressor && actions.some(a => a.street === 'flop')) {
+    // ── C-bet: hero was preflop aggressor and saw a flop ──
+    if (heroPfr && flop.length > 0) {
       cbetOpps++;
-      if (heroActions.some(a => a.street === 'flop' && ['bet', 'raise'].includes(a.action?.toLowerCase()))) {
-        cbets++;
+      if (flop.some(a => isHero(a) && isAggressive(a))) cbets++;
+    }
+
+    // ── Fold-to-cbet: hero called a preflop raise, then faced a flop bet ──
+    if (heroCalledRaise && !heroPfr && flop.length > 0) {
+      const { faced, folded } = heroFacingBet(flop);
+      if (faced) {
+        cbetsFaced++;
+        if (folded) foldsToCbet++;
+      }
+    }
+
+    // ── Check-raise: hero checked flop, then acted again facing a bet ──
+    if (flop.length > 0) {
+      let heroChecked = false;
+      let betAfterCheck = false;
+      for (const a of flop) {
+        if (isHero(a)) {
+          if (act(a) === 'check') {
+            heroChecked = true;
+          } else if (heroChecked && (betAfterCheck || a.facing_bet)) {
+            checkRaiseOpps++;
+            if (act(a) === 'raise') checkRaises++;
+            break;
+          }
+        } else if (heroChecked && !isHero(a) && isAggressive(a)) {
+          betAfterCheck = true;
+        }
+      }
+    }
+
+    // ── Turn barrel: hero c-bet flop and saw a turn ──
+    const heroCbetFlop = heroPfr && flop.some(a => isHero(a) && isAggressive(a));
+    if (heroCbetFlop && turn.length > 0) {
+      turnBarrelOpps++;
+      if (turn.some(a => isHero(a) && isAggressive(a))) turnBarrels++;
+    }
+
+    // ── Turn / river folds when facing a bet ──
+    if (turn.length > 0) {
+      const { faced, folded } = heroFacingBet(turn);
+      if (faced) {
+        turnFaced++;
+        if (folded) turnFolds++;
+      }
+    }
+    if (river.length > 0) {
+      const { faced, folded } = heroFacingBet(river);
+      if (faced) {
+        riverFaced++;
+        if (folded) riverFolds++;
       }
     }
   });
 
+  const pct = (n, d) => (d > 0 ? (n / d) * 100 : null);
+
   return {
     handsPlayed: total,
-    vpip: total > 0 ? (vpipHands / total) * 100 : 0,
-    pfr: total > 0 ? (pfrHands / total) * 100 : 0,
-    limpFreq: 0,
-    coldCallFreq: 0,
-    threeBetFreq: 0,
-    foldToCbet: 45, // Default if we can't compute
-    cbetsFaced: 100,
-    cbetFreq: cbetOpps > 0 ? (cbets / cbetOpps) * 100 : 60,
+    vpip: total > 0 ? (vpipHands / total) * 100 : null,
+    pfr: total > 0 ? (pfrHands / total) * 100 : null,
+    limpFreq: total > 0 ? (limps / total) * 100 : null,
+    coldCallFreq: total > 0 ? (coldCalls / total) * 100 : null,
+    threeBetFreq: pct(threeBets, threeBetOpps),
+    foldToCbet: pct(foldsToCbet, cbetsFaced),
+    cbetsFaced,
+    cbetFreq: pct(cbets, cbetOpps),
     cbetOpps,
-    checkRaiseFreq: 8,
-    checkRaiseOpps: 50,
-    turnBarrelFreq: 55,
-    turnBarrelOpps: 50,
-    turnFoldFreq: 40,
-    turnFaced: 50,
-    riverBluffFreq: 12,
-    riverBluffOpps: 30,
-    riverFoldFreq: 45,
-    riverFaced: 40,
-    riverValueBetFreq: 50,
-    riverBetOpps: 30,
+    checkRaiseFreq: pct(checkRaises, checkRaiseOpps),
+    checkRaiseOpps,
+    turnBarrelFreq: pct(turnBarrels, turnBarrelOpps),
+    turnBarrelOpps,
+    turnFoldFreq: pct(turnFolds, turnFaced),
+    turnFaced,
+    riverFoldFreq: pct(riverFolds, riverFaced),
+    riverFaced,
+    // Bluff / thin-value stats need hand-strength info we don't have —
+    // leave unmeasured so their patterns are skipped, never fabricated.
+    riverBluffFreq: null,
+    riverBluffOpps: 0,
+    riverValueBetFreq: null,
+    riverBetOpps: 0,
+    aggFactor: null,
+    wtsd: null,
   };
 }
 
 function classifyLeakStatus(existingLeak, currentValue, optimalRange) {
-  const [optMin, optMax] = optimalRange;
-  const deviation = currentValue < optMin
-    ? optMin - currentValue
-    : currentValue > optMax
-      ? currentValue - optMax
-      : 0;
+  const deviation = deviationFromRange(currentValue, optimalRange);
 
   if (!existingLeak) {
     return deviation > 5 ? 'emerging' : null;
   }
 
+  // The check just fired, so a previously-'resolved' leak has re-emerged
+  const priorStatus = existingLeak.status === 'resolved' ? 'emerging' : existingLeak.status;
+
   // Check trend from existing leak
   const trendData = existingLeak.trend_data || [];
   if (trendData.length < 2) {
-    return existingLeak.status;
+    return priorStatus || 'emerging';
   }
 
-  const oldValue = trendData[0]?.value || currentValue;
-  const improvement = Math.abs(currentValue - optMin) < Math.abs(oldValue - optMin);
+  // Compare against the most recent previous reading, using distance to the
+  // NEAREST range bound (correct for both under- and over-frequency leaks)
+  const oldValue = trendData[trendData.length - 1]?.value;
+  const improvement = oldValue !== null && oldValue !== undefined &&
+    deviationFromRange(currentValue, optimalRange) < deviationFromRange(oldValue, optimalRange);
 
   if (deviation < 3) {
-    return 'resolved';
+    // The pattern check just fired, so this is not resolved — it's close to
+    // optimal and trending the right way at best.
+    return 'improving';
   } else if (improvement && deviation < 8) {
     return 'improving';
   } else if (existingLeak.occurrence_count > 30) {
     return 'persistent';
   }
 
-  return existingLeak.status || 'emerging';
+  return priorStatus || 'emerging';
 }
 
 function generateExplanation(leakType, currentValue, optimalRange) {
@@ -446,6 +651,7 @@ function generateExplanation(leakType, currentValue, optimalRange) {
     three_bet_too_tight: `Your 3-bet frequency of ${currentValue}% is too passive. The optimal range is ${optMin}-${optMax}%.`,
     turn_barrel_too_rare: `You're only barreling the turn ${currentValue}% when you should be at ${optMin}-${optMax}%.`,
     river_overfold: `You're folding ${currentValue}% on the river, much higher than the optimal ${optMin}-${optMax}%.`,
+    overfolding_preflop: `Your VPIP of ${currentValue}% is below the optimal ${optMin}-${optMax}%. You're folding too many playable hands preflop.`,
   };
 
   return explanations[leakType] || `Your frequency of ${currentValue}% deviates from optimal (${optMin}-${optMax}%).`;
@@ -466,7 +672,8 @@ export default async function handler(req, res) {
       const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
       const _authUser = authData?.user;
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-      if (req.body) req.body.userId = _authUser.id;
+      // Rebuild the body so an empty/non-JSON body still carries the JWT userId
+      req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
     }
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -480,7 +687,7 @@ export default async function handler(req, res) {
 
     try {
       // Get player stats
-      const stats = await getPlayerStats(supabase, userId);
+      const stats = await getPlayerStats(getSupabase(), userId);
 
       if (!stats || stats.handsPlayed < 100) {
         return res.status(200).json({
@@ -493,11 +700,12 @@ export default async function handler(req, res) {
       }
 
       // Get existing leaks
-      const { data: existingLeaks } = await getSupabase()
+      const { data: existingLeaks, error: existingErr } = await getSupabase()
         .from('user_leaks')
         .select('*')
         .eq('user_id', userId)
         .limit(100);
+      if (existingErr) console.warn('[LeakDetect] existing user_leaks query failed:', existingErr.message);
 
       const existingLeakMap = {};
       (existingLeaks || []).forEach(leak => {
@@ -509,12 +717,20 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
 
       for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS || {})) {
+        // Skip patterns whose inputs were not genuinely measured
+        if (!patternIsMeasured(stats, leakType)) continue;
+
         if (pattern.check(stats)) {
           const existingLeak = existingLeakMap[leakType];
           const currentValue = getCurrentValue(stats, leakType);
           const status = classifyLeakStatus(existingLeak, currentValue, pattern.optimalRange);
 
           if (!status) continue;
+
+          // EV loss scales with how far the player deviates from optimal
+          const [optMin, optMax] = pattern.optimalRange;
+          const deviation = deviationFromRange(currentValue, pattern.optimalRange);
+          const scaledEvLoss = +(pattern.evImpact * Math.min(3, 1 + deviation / ((optMax - optMin) || 1))).toFixed(3);
 
           const leak = {
             user_id: userId,
@@ -524,7 +740,7 @@ export default async function handler(req, res) {
             status,
             source_system: stats._isTrainingDominant ? 'training_arena' : 'live_play',
             confidence: stats.handsPlayed > 1000 ? 'high' : stats.handsPlayed > 500 ? 'medium' : 'low',
-            avg_ev_loss_bb: pattern.evImpact,
+            avg_ev_loss_bb: scaledEvLoss,
             occurrence_count: existingLeak ? existingLeak.occurrence_count + 1 : 1,
             optimal_frequency: pattern.optimalRange[0],
             current_frequency: currentValue,
@@ -540,9 +756,10 @@ export default async function handler(req, res) {
       }
 
       // Save detected leaks and link hand examples
+      let persisted = true;
       if (detectedLeaks.length > 0) {
         // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
-        const { data: upsertedLeaks } = await getSupabase()
+        const { data: upsertedLeaks, error: upsertErr } = await getSupabase()
           .from('user_leaks')
           .upsert(
             detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
@@ -551,17 +768,54 @@ export default async function handler(req, res) {
           .select('id, leak_type')
           .limit(100);
 
-        // Link hand examples using returned IDs
-        if (upsertedLeaks) {
-          for (const { id: savedLeakId, leak_type } of upsertedLeaks) {
-            await linkHandExamplesToLeak(supabase, userId, savedLeakId, leak_type);
-          }
+        if (upsertErr) {
+          persisted = false;
+          console.warn('[LeakDetect] Failed to persist detected leaks:', upsertErr.message);
         }
+
+        // Merge DB ids back into the response objects so clients can deep-link
+        const idMap = Object.fromEntries((upsertedLeaks || []).map(r => [r.leak_type, r.id]));
+        detectedLeaks.forEach(l => {
+          if (idMap[l.leak_type]) l.id = idMap[l.leak_type];
+        });
+
+        // Link hand examples (single hand-history fetch, batch save)
+        const leaksWithIds = detectedLeaks.filter(l => l.id);
+        if (leaksWithIds.length > 0) {
+          await linkHandExamples(userId, leaksWithIds);
+        }
+
+        // Phase 3: Grok AI fix suggestions for the top 3 leaks by EV impact.
+        // Failures degrade to null inside generateLeakFix — never fatal.
+        const topLeaks = [...detectedLeaks]
+          .sort((a, b) => (b.avg_ev_loss_bb || 0) - (a.avg_ev_loss_bb || 0))
+          .slice(0, 3);
+        await Promise.all(topLeaks.map(async (l) => {
+          l.suggested_fix = await generateLeakFix(l);
+        }));
+
+        // Persist suggestions (requires user_leaks.suggested_fix column;
+        // degrade gracefully if it doesn't exist yet)
+        await Promise.all(topLeaks
+          .filter(l => l.id && l.suggested_fix)
+          .map(async (l) => {
+            const { error: fixErr } = await getSupabase()
+              .from('user_leaks')
+              .update({ suggested_fix: l.suggested_fix })
+              .eq('id', l.id)
+              .eq('user_id', userId);
+            if (fixErr) console.warn('[LeakDetect] Could not persist suggested_fix (column may be missing):', fixErr.message);
+          }));
       }
 
-      // Batch-update resolved leaks — eliminates N+1
+      // Batch-update resolved leaks — eliminates N+1.
+      // Only resolve leak types this engine owns (LEAK_PATTERNS) AND whose
+      // inputs were measured this run — never touch POSTed/training/custom
+      // leak types, and never resolve a leak we simply couldn't measure.
       const resolvedIds = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
+          LEAK_PATTERNS[leakType] &&
+          patternIsMeasured(stats, leakType) &&
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'
         )
@@ -586,7 +840,7 @@ export default async function handler(req, res) {
       const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
       const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
-      // Fetch existing stats to increment hands
+      // Fetch existing stats
       const { data: existingStats } = await getSupabase()
         .from('user_assistant_stats')
         .select('total_hands_analyzed')
@@ -595,12 +849,13 @@ export default async function handler(req, res) {
 
       const currentHands = existingStats?.total_hands_analyzed || 0;
 
-      // Atomic Upsert for Stats Sync
+      // Atomic Upsert for Stats Sync — SET (not accumulate) hands analyzed so
+      // re-running detection on the same hands doesn't inflate the counter
       const { error: err_user_assistant_stats_l0t65 } = await getSupabase()
         .from('user_assistant_stats')
         .upsert({
           user_id: userId,
-          total_hands_analyzed: currentHands + stats.handsPlayed,
+          total_hands_analyzed: Math.max(currentHands, stats.handsPlayed),
           active_leaks_count: activeLeaks,
           resolved_leaks_count: resolvedLeaksCount,
           updated_at: new Date().toISOString()
@@ -612,6 +867,7 @@ export default async function handler(req, res) {
         handsAnalyzed: stats.handsPlayed,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
+        persisted,
       });
 
     } catch (error) {
@@ -635,7 +891,7 @@ export default async function handler(req, res) {
 
 function getCurrentValue(stats, leakType) {
   const valueMap = {
-    overfolding_preflop: 100 - stats.vpip,
+    overfolding_preflop: stats.vpip,
     overlimping: stats.limpFreq,
     cold_call_too_wide: stats.coldCallFreq,
     three_bet_too_tight: stats.threeBetFreq,
@@ -650,7 +906,8 @@ function getCurrentValue(stats, leakType) {
     river_overfold: stats.riverFoldFreq,
     missing_thin_value: stats.riverValueBetFreq,
   };
-  return valueMap[leakType] || 0;
+  const value = valueMap[leakType];
+  return (value === null || value === undefined) ? 0 : +Number(value).toFixed(1);
 }
 
 function updateTrendData(existingTrend, currentValue) {
@@ -671,28 +928,37 @@ function updateTrendData(existingTrend, currentValue) {
 }
 
 /**
- * Link relevant hand examples to a detected leak.
- * Finds hands where the user made the leak-related mistake.
+ * Link relevant hand examples to all detected leaks.
+ * Fetches recent hands ONCE, matches each leak's pattern against them, and
+ * saves all examples in a single batch upsert.
+ * `leaksWithIds` entries need: id, leak_type, avg_ev_loss_bb.
  */
-async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
+async function linkHandExamples(userId, leaksWithIds) {
   try {
-    // Get recent hands that might show this leak
-    const { data: hands } = await getSupabase()
+    // Get recent hands that might show these leaks (single fetch for all leaks)
+    const { data: hands, error: handsErr } = await getSupabase()
       .from('hand_history')
       .select('id, actions, hero_cards, board, pot_size, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
 
+    if (handsErr) {
+      console.warn('[LeakDetect] hand_history fetch for examples failed:', handsErr.message);
+      return;
+    }
     if (!hands || hands.length === 0) return;
 
     const examples = [];
 
-    for (const hand of hands) {
-      const leakMatch = checkHandForLeak(hand, leakType);
-      if (leakMatch) {
+    for (const leak of leaksWithIds) {
+      let count = 0;
+      for (const hand of hands) {
+        const leakMatch = checkHandForLeak(hand, leak.leak_type);
+        if (!leakMatch) continue;
+
         examples.push({
-          leak_id: leakId,
+          leak_id: leak.id,
           hand_history_id: hand.id,
           situation_snapshot: {
             hero_cards: hand.hero_cards,
@@ -701,28 +967,41 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
             leak_action: leakMatch.action,
             street: leakMatch.street,
           },
-          ev_loss_bb: leakMatch.evLoss,
+          // Use the deviation-scaled EV loss from the detection run, not a
+          // second hardcoded constant
+          ev_loss_bb: leak.avg_ev_loss_bb,
         });
 
         // Limit to 5 examples per leak
-        if (examples.length >= 5) break;
+        if (++count >= 5) break;
       }
     }
 
-    // Save examples (upsert to avoid duplicates)
-    if (examples.length > 0) {
+    if (examples.length === 0) return;
+
+    // Single batch upsert; duplicates are ignored via the unique index on
+    // (leak_id, hand_history_id)
+    const { error: upsertErr } = await getSupabase()
+      .from('leak_hand_examples')
+      .upsert(examples, { onConflict: 'leak_id,hand_history_id', ignoreDuplicates: true });
+
+    if (upsertErr) {
+      // Fallback when the unique index is missing: per-row existence check
+      console.warn('[LeakDetect] Batch example upsert failed, falling back:', upsertErr.message);
       for (const example of examples) {
-        // Check if example already exists
         const { data: existing } = await getSupabase()
           .from('leak_hand_examples')
           .select('id')
-          .eq('leak_id', leakId)
+          .eq('leak_id', example.leak_id)
           .eq('hand_history_id', example.hand_history_id)
           .maybeSingle();
 
         if (!existing) {
           const { error: insErr } = await getSupabase().from('leak_hand_examples').insert(example);
-          if (insErr) console.warn('[LeakDetect] Failed to link hand example:', insErr.message);
+          if (insErr) {
+            console.warn('[LeakDetect] Failed to link hand example:', insErr.message);
+            break;
+          }
         }
       }
     }
@@ -733,68 +1012,134 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
 
 /**
  * Check if a hand exhibits the specified leak.
+ * Returns { action, street } describing the concrete leak action, or null.
  */
 function checkHandForLeak(hand, leakType) {
-  const actions = hand.actions || [];
+  const actions = Array.isArray(hand.actions) ? hand.actions : [];
+  if (actions.length === 0) return null;
 
-  // Define leak patterns to look for in hand actions
+  const isHero = (a) => a.player === 'hero' || a.is_hero;
+  const act = (a) => (a.action || '').toLowerCase();
+  const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
+  const onStreet = (s) => actions.filter(a => a.street === s);
+
+  // Hero performed `response` on `street` while facing a bet/raise
+  const heroFacingBetDid = (street, response) => {
+    let betSeen = false;
+    for (const a of onStreet(street)) {
+      if (isHero(a) && (betSeen || a.facing_bet) && act(a) === response) return true;
+      if (!isHero(a) && isAggressive(a)) betSeen = true;
+    }
+    return false;
+  };
+
+  // Hero performed `response` preflop after an earlier raise
+  const heroVsPreflopRaiseDid = (response) => {
+    let raiseSeen = false;
+    for (const a of onStreet('preflop')) {
+      if (isHero(a) && raiseSeen && act(a) === response) return true;
+      if (isAggressive(a)) raiseSeen = true;
+    }
+    return false;
+  };
+
+  // Hero open-limped (preflop call with no prior raise)
+  const heroOpenLimped = () => {
+    let raiseSeen = false;
+    for (const a of onStreet('preflop')) {
+      if (isHero(a) && act(a) === 'call' && !raiseSeen) return true;
+      if (isAggressive(a)) raiseSeen = true;
+    }
+    return false;
+  };
+
+  const heroWasPFR = () => onStreet('preflop').some(a => isHero(a) && act(a) === 'raise');
+  const heroDidOn = (street, action) => onStreet(street).some(a => isHero(a) && act(a) === action);
+
   const leakPatterns = {
+    // Preflop
+    overfolding_preflop: {
+      check: () => heroVsPreflopRaiseDid('fold'),
+      action: 'fold vs preflop raise',
+      street: 'preflop',
+    },
+    overlimping: {
+      check: heroOpenLimped,
+      action: 'open-limp preflop',
+      street: 'preflop',
+    },
+    cold_call_too_wide: {
+      check: () => heroVsPreflopRaiseDid('call'),
+      action: 'cold call vs open raise',
+      street: 'preflop',
+    },
+    three_bet_too_tight: {
+      check: () => heroVsPreflopRaiseDid('call'),
+      action: 'flat call instead of 3-bet',
+      street: 'preflop',
+    },
+    three_bet_too_loose: {
+      check: () => heroVsPreflopRaiseDid('raise'),
+      action: '3-bet vs open raise',
+      street: 'preflop',
+    },
+
+    // Flop
     overfolding_to_cbets: {
-      check: () => actions.some(a =>
-        a.street === 'flop' &&
-        a.is_hero &&
-        a.action === 'fold' &&
-        a.facing_bet
-      ),
-      evLoss: 0.12,
+      check: () => heroFacingBetDid('flop', 'fold'),
+      action: 'fold vs flop c-bet',
       street: 'flop',
     },
-    lack_of_river_bluffs: {
-      check: () => {
-        const riverCheck = actions.some(a =>
-          a.street === 'river' &&
-          a.is_hero &&
-          a.action === 'check' &&
-          !a.made_hand // Would need hand strength info
-        );
-        return riverCheck;
-      },
-      evLoss: 0.08,
-      street: 'river',
+    cbet_too_often: {
+      check: () => heroWasPFR() && heroDidOn('flop', 'bet'),
+      action: 'flop c-bet as preflop raiser',
+      street: 'flop',
     },
     cbet_too_rarely: {
-      check: () => {
-        const wasPFR = actions.some(a =>
-          a.street === 'preflop' &&
-          a.is_hero &&
-          a.action === 'raise'
-        );
-        const checkedFlop = actions.some(a =>
-          a.street === 'flop' &&
-          a.is_hero &&
-          a.action === 'check'
-        );
-        return wasPFR && checkedFlop;
-      },
-      evLoss: 0.10,
+      check: () => heroWasPFR() && heroDidOn('flop', 'check'),
+      action: 'check flop as preflop raiser (missed c-bet)',
       street: 'flop',
     },
+    check_raise_too_rare: {
+      check: () => heroDidOn('flop', 'check') && heroFacingBetDid('flop', 'call'),
+      action: 'check-call flop (missed check-raise)',
+      street: 'flop',
+    },
+
+    // Turn
     turn_barrel_too_rare: {
-      check: () => {
-        const cbetFlop = actions.some(a =>
-          a.street === 'flop' &&
-          a.is_hero &&
-          a.action === 'bet'
-        );
-        const checkedTurn = actions.some(a =>
-          a.street === 'turn' &&
-          a.is_hero &&
-          a.action === 'check'
-        );
-        return cbetFlop && checkedTurn;
-      },
-      evLoss: 0.09,
+      check: () => heroDidOn('flop', 'bet') && heroDidOn('turn', 'check'),
+      action: 'check turn after flop c-bet (missed barrel)',
       street: 'turn',
+    },
+    turn_overfold: {
+      check: () => heroFacingBetDid('turn', 'fold'),
+      action: 'fold vs turn bet',
+      street: 'turn',
+    },
+
+    // River
+    lack_of_river_bluffs: {
+      // If the writer stores hand strength, only flag checks without a made
+      // hand; when absent (null/undefined) fall back to any hero river check.
+      check: () => onStreet('river').some(a =>
+        isHero(a) && act(a) === 'check' && (a.made_hand === null || a.made_hand === undefined || a.made_hand === false)
+      ),
+      action: 'check river (missed bluff opportunity)',
+      street: 'river',
+    },
+    river_overfold: {
+      check: () => heroFacingBetDid('river', 'fold'),
+      action: 'fold vs river bet',
+      street: 'river',
+    },
+    missing_thin_value: {
+      // Only detectable when hand strength is recorded
+      check: () => onStreet('river').some(a =>
+        isHero(a) && act(a) === 'check' && a.made_hand === true
+      ),
+      action: 'check river with a made hand (missed thin value)',
+      street: 'river',
     },
   };
 
@@ -804,9 +1149,8 @@ function checkHandForLeak(hand, leakType) {
   try {
     if (pattern.check()) {
       return {
-        action: leakType,
+        action: pattern.action,
         street: pattern.street,
-        evLoss: pattern.evLoss,
       };
     }
   } catch (e) {

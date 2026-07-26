@@ -2,14 +2,15 @@
  * Sandbox Sub-Components
  * - RangeMatrix (13x13 heatmap)
  * - FrequencyBar (animated action bar)
- * - BoardTextureHUD (auto-classify boards)
+ * - classifyBoardTexture (auto-classify boards)
  * - ActionHistoryBuilder
  * - SizingSensitivity
  * - TreeVisualization
  * - OnboardingTour
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Brain, Check, X as XIcon, Camera, Share2, Spade } from 'lucide-react';
 import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
@@ -28,6 +29,70 @@ const BET_ACTIONS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ACTION GRADING — shared by QuizPanel, CoachVerdict and sandbox.js
+// Bet/raise sizings are graded on BUCKETS so "Bet Small" is NOT counted as
+// correct against "Bet Pot". Buckets: small <=40%, medium 41-75%, large 76-99%,
+// pot >=100%.
+// ═══════════════════════════════════════════════════════════════════════════
+const WORD_BUCKETS = { small: 'small', third: 'small', half: 'medium', medium: 'medium', large: 'large', big: 'large', pot: 'pot', overbet: 'pot' };
+
+export function sizeBucketFromPercent(pct) {
+    if (pct == null || !Number.isFinite(pct)) return null;
+    if (pct >= 100) return 'pot';
+    if (pct > 75) return 'large';
+    if (pct > 40) return 'medium';
+    return 'small';
+}
+
+/**
+ * Parse an action label ('Bet 66%', 'bet_150', 'Bet Small', 'All-In', 'Check')
+ * into { type, size } where size is a bucket string or null when unknown.
+ */
+export function parseActionLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    if (!raw) return { type: null, size: null };
+
+    let type = null;
+    if (raw.includes('all-in') || raw.includes('all in') || raw.includes('allin') || raw.includes('shove')) type = 'allin';
+    else if (raw.includes('fold')) type = 'fold';
+    else if (raw.includes('check')) type = 'check';
+    else if (raw.includes('raise') || raw.includes('3bet') || raw.includes('3-bet')) type = 'raise';
+    else if (raw.includes('call')) type = 'call';
+    else if (raw.includes('bet')) type = 'bet';
+    else type = raw.split(/[\s_]/)[0] || null;
+
+    let size = null;
+    if (type === 'bet' || type === 'raise') {
+        // Percent form ('Bet 66%') or solver id form ('bet_150'). Deliberately
+        // NOT a bare \d+ so '3-Bet' is not read as a 3% sizing.
+        const numMatch = raw.match(/(\d+(?:\.\d+)?)\s*%/) || raw.match(/^(?:bet|raise)[_\s-](\d+(?:\.\d+)?)$/);
+        if (numMatch) {
+            size = sizeBucketFromPercent(parseFloat(numMatch[1]));
+        } else {
+            for (const word of Object.keys(WORD_BUCKETS)) {
+                if (raw.includes(word)) { size = WORD_BUCKETS[word]; break; }
+            }
+        }
+    }
+    return { type, size };
+}
+
+/**
+ * Grade a user's action label against the GTO label.
+ * Returns true only when the action type matches AND — when both labels carry a
+ * usable sizing — the size buckets match too.
+ */
+export function gradeAction(userLabel, gtoLabel) {
+    const a = parseActionLabel(userLabel);
+    const b = parseActionLabel(gtoLabel);
+    if (!a.type || !b.type) return false;
+    if (a.type !== b.type) return false;
+    // Only enforce sizing discipline when BOTH sides expose a size
+    if (a.size && b.size) return a.size === b.size;
+    return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FREQUENCY BAR
 // ═══════════════════════════════════════════════════════════════════════════
 export function FrequencyBar({ action, isOptimal }) {
@@ -38,7 +103,7 @@ export function FrequencyBar({ action, isOptimal }) {
                     color: isOptimal ? '#22c55e' : '#B0B3B8', fontSize: '13px',
                     fontWeight: isOptimal ? '700' : '500', display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
-                    {isOptimal && <span style={{ color: '#22c55e', fontSize: '10px' }}></span>}
+                    {isOptimal && <Check size={12} strokeWidth={3} style={{ color: '#22c55e', flexShrink: 0 }} aria-hidden="true" />}
                     {action.label}
                 </span>
                 <span style={{
@@ -67,23 +132,43 @@ export function FrequencyBar({ action, isOptimal }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // RANGE MATRIX (13x13)
 // ═══════════════════════════════════════════════════════════════════════════
+function getMatrixHandKey(row, col) {
+    if (row === col) return `${RANKS[row]}${RANKS[col]}`;
+    if (col > row) return `${RANKS[row]}${RANKS[col]}s`;
+    return `${RANKS[col]}${RANKS[row]}o`;
+}
+
+function getMatrixColor(freq) {
+    if (freq == null) return 'rgba(255,255,255,0.03)';
+    if (freq >= 90) return '#22c55e'; if (freq >= 70) return '#4ade80';
+    if (freq >= 50) return '#86efac'; if (freq >= 30) return '#fbbf24';
+    if (freq >= 15) return '#f97316'; if (freq > 0) return '#ef4444';
+    return 'rgba(255,255,255,0.03)';
+}
+
+// Module-level memoized cell — only the two cells whose isHovered flips re-render
+// when the pointer sweeps across the 169-cell grid.
+const MatrixCell = memo(function MatrixCell({ handKey, freq, isHovered, onHover }) {
+    return (
+        <div
+            onMouseEnter={() => onHover(handKey)}
+            onMouseLeave={() => onHover(null)}
+            style={{
+                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '9px', fontWeight: '600', color: freq > 50 ? '#000' : '#E4E6EB',
+                background: getMatrixColor(freq), cursor: 'pointer', transition: 'all 0.15s',
+                opacity: isHovered ? 1 : 0.85,
+                border: isHovered ? '1px solid #fff' : '1px solid transparent',
+            }}
+        >{handKey}</div>
+    );
+});
+
 export function RangeMatrix({ rangeHeatmap, selectedAction }) {
     const [hoveredHand, setHoveredHand] = useState(null);
+    const handleHover = useCallback((hk) => { setHoveredHand(hk); }, []);
     if (!rangeHeatmap?.data) return null;
     const actionId = selectedAction || rangeHeatmap.actions?.[0]?.id;
-
-    const getHandKey = (row, col) => {
-        if (row === col) return `${RANKS[row]}${RANKS[col]}`;
-        if (col > row) return `${RANKS[row]}${RANKS[col]}s`;
-        return `${RANKS[col]}${RANKS[row]}o`;
-    };
-    const getColor = (freq) => {
-        if (freq == null) return 'rgba(255,255,255,0.03)';
-        if (freq >= 90) return '#22c55e'; if (freq >= 70) return '#4ade80';
-        if (freq >= 50) return '#86efac'; if (freq >= 30) return '#fbbf24';
-        if (freq >= 15) return '#f97316'; if (freq > 0) return '#ef4444';
-        return 'rgba(255,255,255,0.03)';
-    };
 
     return (
         <div style={{ position: 'relative' }}>
@@ -92,19 +177,14 @@ export function RangeMatrix({ rangeHeatmap, selectedAction }) {
                 background: '#3A3B3C', borderRadius: '8px', overflow: 'hidden', padding: '1px',
             }}>
                 {RANKS.map((_, row) => RANKS.map((_, col) => {
-                    const hk = getHandKey(row, col);
+                    const hk = getMatrixHandKey(row, col);
                     const freq = rangeHeatmap.data[hk]?.[actionId] ?? null;
                     return (
-                        <div key={`${row}-${col}`}
-                            onMouseEnter={() => setHoveredHand(hk)} onMouseLeave={() => setHoveredHand(null)}
-                            style={{
-                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '9px', fontWeight: '600', color: freq > 50 ? '#000' : '#E4E6EB',
-                                background: getColor(freq), cursor: 'pointer', transition: 'all 0.15s',
-                                opacity: hoveredHand === hk ? 1 : 0.85,
-                                border: hoveredHand === hk ? '1px solid #fff' : '1px solid transparent',
-                            }}
-                        >{hk}</div>
+                        <MatrixCell key={`${row}-${col}`}
+                            handKey={hk} freq={freq}
+                            isHovered={hoveredHand === hk}
+                            onHover={handleHover}
+                        />
                     );
                 }))}
             </div>
@@ -127,64 +207,80 @@ export function RangeMatrix({ rangeHeatmap, selectedAction }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BOARD TEXTURE HUD
+// BOARD TEXTURE CLASSIFIER
 // ═══════════════════════════════════════════════════════════════════════════
+const RANK_ORDER = 'AKQJT98765432';
+
+// Connectivity is measured on the tightest 3-card window. The wheel is handled
+// by also scoring A as low (rank value 13 => "1"), so A23 / A45 read connected.
+function minWindowGap(rankIdxs) {
+    const sorted = [...new Set(rankIdxs)].sort((a, b) => a - b);
+    if (sorted.length < 3) return 99;
+    let best = 99;
+    for (let i = 0; i + 2 < sorted.length; i++) {
+        best = Math.min(best, sorted[i + 2] - sorted[i]);
+    }
+    return best;
+}
+
 export function classifyBoardTexture(board) {
     const flop = board?.flop || [];
     if (flop.length < 3) return null;
-    const suits = flop.map(c => c?.[1]);
-    const ranks = flop.map(c => {
-        const r = c?.[0]; const order = 'AKQJT98765432';
-        return order.indexOf(r);
-    }).sort((a, b) => a - b);
 
-    const isMonotone = suits[0] === suits[1] && suits[1] === suits[2];
-    const isTwoTone = !isMonotone && (suits[0] === suits[1] || suits[1] === suits[2] || suits[0] === suits[2]);
-    const isRainbow = !isMonotone && !isTwoTone;
-    const isPaired = ranks[0] === ranks[1] || ranks[1] === ranks[2];
-    const isTrips = ranks[0] === ranks[1] && ranks[1] === ranks[2];
-    const gap = ranks[2] - ranks[0];
-    const isConnected = gap <= 4 && !isPaired;
-    const isHighBoard = ranks[0] <= 4; // A=0,K=1,Q=2,J=3,T=4
-    const isDry = isRainbow && !isConnected && !isPaired && gap >= 6;
-    const isWet = (isMonotone || isTwoTone) && isConnected;
+    // Full runout: flop + turn + river (whatever exists)
+    const cards = [...flop, board?.turn, board?.river].filter(Boolean);
+    const suits = cards.map(c => String(c)[String(c).length - 1]?.toLowerCase()).filter(Boolean);
+    const rankChars = cards.map(c => String(c)[0]?.toUpperCase()).filter(Boolean);
+    const rankIdxs = rankChars.map(r => RANK_ORDER.indexOf(r)).filter(i => i >= 0);
+
+    // Suit counts across the WHOLE board — used only for "is a flush already
+    // possible", never for the monotone/two-tone/rainbow tag: on a complete
+    // 5-card board the pigeonhole principle forces maxSuit >= 2, which would
+    // make RAINBOW (and therefore DRY) unreachable and would relabel any river
+    // holding three of a suit as MONOTONE.
+    const suitCounts = {};
+    suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+    const maxSuit = Object.values(suitCounts).reduce((m, n) => Math.max(m, n), 0);
+    const flushPossible = maxSuit >= 3;
+
+    // The monotone/two-tone/rainbow tag is a property of the FLOP.
+    const flopSuits = flop.map(c => String(c)[String(c).length - 1]?.toLowerCase()).filter(Boolean);
+    const flopSuitCounts = {};
+    flopSuits.forEach(s => { flopSuitCounts[s] = (flopSuitCounts[s] || 0) + 1; });
+    const maxFlopSuit = Object.values(flopSuitCounts).reduce((m, n) => Math.max(m, n), 0);
+    const isMonotone = maxFlopSuit >= 3;                   // all three flop cards same suit
+    const isTwoTone = !isMonotone && maxFlopSuit === 2;    // flush draw live off the flop
+    const isRainbow = maxFlopSuit <= 1;
+
+    // Rank counts across the whole board
+    const rankCounts = {};
+    rankIdxs.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+    const maxRank = Object.values(rankCounts).reduce((m, n) => Math.max(m, n), 0);
+    const isPaired = maxRank >= 2;
+    const isTrips = maxRank >= 3;
+
+    // Connectivity — evaluate with A high and, for the wheel, A low
+    const gapHigh = minWindowGap(rankIdxs);
+    const wheelIdxs = rankIdxs.map(r => (r === 0 ? 13 : r)); // A -> below 2
+    const gapLow = minWindowGap(wheelIdxs);
+    const gap = Math.min(gapHigh, gapLow);
+    const isConnected = gap <= 4 && !isTrips;
+
+    const isHighBoard = rankIdxs.length > 0 && Math.min(...rankIdxs) <= 4; // A=0,K=1,Q=2,J=3,T=4
+    const isDry = isRainbow && !flushPossible && !isConnected && !isPaired && gap >= 6;
+    const isWet = (flushPossible || isMonotone || isTwoTone) && isConnected;
 
     let label, color, textColor, strategy;
     if (isTrips) { label = '3-OF-A-KIND BOARD'; color = 'rgba(236,72,153,0.2)'; textColor = '#f472b6'; strategy = 'Very dry — high c-bet frequency, small sizing'; }
     else if (isMonotone) { label = 'MONOTONE'; color = 'rgba(239,68,68,0.2)'; textColor = '#fca5a5'; strategy = 'Flush-heavy board — reduce c-bet freq, check more with non-flush hands'; }
+    else if (flushPossible) { label = 'FLUSH POSSIBLE'; color = 'rgba(239,68,68,0.15)'; textColor = '#fca5a5'; strategy = 'Three to a flush on board — size down and check back marginal made hands'; }
     else if (isWet) { label = 'WET / CONNECTED'; color = 'rgba(251,191,36,0.2)'; textColor = '#fde68a'; strategy = 'Many draws possible — polarize bet sizing, protect strong hands'; }
     else if (isDry) { label = 'DRY'; color = 'rgba(34,197,94,0.2)'; textColor = '#86efac'; strategy = 'Few draws — high c-bet frequency, use small sizing (25-33%)'; }
     else if (isPaired) { label = 'PAIRED'; color = 'rgba(139,92,246,0.2)'; textColor = '#c4b5fd'; strategy = 'Paired boards favor preflop raiser — c-bet with high frequency'; }
     else if (isHighBoard) { label = 'HIGH CARDS'; color = 'rgba(59,130,246,0.2)'; textColor = '#93c5fd'; strategy = 'Favors the in-position or preflop aggressor range'; }
     else { label = isTwoTone ? 'TWO-TONE' : 'RAINBOW'; color = 'rgba(100,116,139,0.2)'; textColor = '#94a3b8'; strategy = 'Standard texture — play position and range advantage'; }
 
-    return { label, color, textColor, strategy, isMonotone, isTwoTone, isRainbow, isPaired, isConnected, isDry, isWet };
-}
-
-export function BoardTextureHUD({ texture }) {
-    if (!texture) return null;
-    return (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            style={{
-                background: texture.color, border: `1px solid ${texture.textColor}33`,
-                borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
-            }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span style={{
-                    fontSize: '10px', fontWeight: '800', letterSpacing: '1px',
-                    color: texture.textColor, textTransform: 'uppercase',
-                }}>{texture.label}</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                    {texture.isMonotone && <span style={{ fontSize: '10px', color: texture.textColor }}>M</span>}
-                    {texture.isConnected && <span style={{ fontSize: '10px', color: texture.textColor }}>C</span>}
-                    {texture.isPaired && <span style={{ fontSize: '10px', color: texture.textColor }}>P</span>}
-                    {texture.isDry && <span style={{ fontSize: '10px', color: texture.textColor }}>D</span>}
-                    {texture.isWet && <span style={{ fontSize: '10px', color: texture.textColor }}>W</span>}
-                </div>
-            </div>
-            <p style={{ color: '#E4E6EB', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{texture.strategy}</p>
-        </motion.div>
-    );
+    return { label, color, textColor, strategy, isMonotone, isTwoTone, isRainbow, flushPossible, isPaired, isConnected, isDry, isWet };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -214,7 +310,7 @@ export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
                     Action History
                 </h4>
                 <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', fontFamily: "'Orbitron',monospace", background: 'rgba(34,197,94,0.1)', color: '#4ade80' }}>
-                    Pot: {potSize.toFixed(1)} BB
+                    Pot: {(Number(potSize) || 0).toFixed(1)} BB
                 </span>
             </div>
             {actions.length > 0 ? (
@@ -262,10 +358,41 @@ export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SIZING SENSITIVITY
 // ═══════════════════════════════════════════════════════════════════════════
+// Column definition — match on a NORMALIZED bet-size percentage, never on label
+// substrings ('50%' used to also match 'Bet 150%'). The analyze API emits ids
+// like `b25`/`b66`/`b100`; external solver imports may use `bet_66`.
+const SIZING_COLUMNS = [
+    { label: '25%', pct: 25 },
+    { label: '33%', pct: 33 },
+    { label: '50%', pct: 50 },
+    { label: '66%', pct: 66 },
+    { label: '75%', pct: 75 },
+    { label: 'Pot', pct: 100 },
+    { label: '150%', pct: 150 },
+];
+
+/**
+ * Extract a bet-size percentage from a solver action.
+ * Accepts `b66`, `bet_66`, `raise-75`, 'Bet 66%', 'Overbet 150%' and 'Bet Pot'.
+ * Returns null when the action carries no usable sizing.
+ */
+export function betSizePercent(action) {
+    if (!action) return null;
+    const id = String(action.id || '').trim().toLowerCase();
+    let m = id.match(/^(?:b|bet|r|raise)[_\s-]?(\d+(?:\.\d+)?)$/);
+    if (m) return parseFloat(m[1]);
+    const label = String(action.label || '').trim().toLowerCase();
+    m = label.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (m) return parseFloat(m[1]);
+    if (/\bpot\b/.test(label) && !/\d/.test(label)) return 100;
+    return null;
+}
+
 export function SizingSensitivity({ results }) {
     if (!results?.actions) return null;
-    const sizes = ['25%', '33%', '50%', '66%', '75%', 'Pot'];
-    const betActions = results.actions.filter(a => a.label?.includes('Bet') || a.label?.includes('bet'));
+    const betActions = results.actions.filter(a =>
+        betSizePercent(a) != null || /bet/i.test(String(a.label || ''))
+    );
     if (betActions.length === 0) return null;
 
     return (
@@ -273,10 +400,14 @@ export function SizingSensitivity({ results }) {
             <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
                 Sizing Sensitivity
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(sizes.length, 6)}, 1fr)`, gap: '4px' }}>
-                {sizes.map((size) => {
-                    const match = betActions.find(a => a.label?.includes(size.replace('%', '')));
-                    const freq = match?.frequency || 0;
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SIZING_COLUMNS.length}, 1fr)`, gap: '4px' }}>
+                {SIZING_COLUMNS.map(({ label: size, pct }) => {
+                    // Sum in case the solver returns two ids that normalize to
+                    // the same sizing (e.g. `b100` and 'Bet Pot').
+                    const freq = Math.round(betActions.reduce((sum, a) => {
+                        const p = betSizePercent(a);
+                        return p != null && Math.abs(p - pct) < 0.5 ? sum + (Number(a.frequency) || 0) : sum;
+                    }, 0));
                     return (
                         <div key={size} style={{ textAlign: 'center' }}>
                             <div style={{
@@ -301,7 +432,6 @@ export function SizingSensitivity({ results }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function TreeVisualization({ actions }) {
     if (!actions || actions.length === 0) return null;
-    const total = actions.reduce((s, a) => s + (a.frequency || 0), 0) || 100;
 
     return (
         <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
@@ -347,48 +477,110 @@ const TOUR_STEPS = [
 ];
 
 export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
-    if (!isVisible) return null;
-    const current = TOUR_STEPS[step];
-    if (!current) return null;
+    const current = TOUR_STEPS[step] || null;
+    const targetId = current?.target || null;
+    const [rect, setRect] = useState(null);
+
+    // Spotlight: scroll the referenced element into view and track its box so the
+    // highlight ring stays glued to it. Falls back to a centered modal when the
+    // target is not on the page.
+    useEffect(() => {
+        if (!isVisible || !targetId || typeof document === 'undefined') { setRect(null); return undefined; }
+        const el = document.getElementById(targetId);
+        if (!el) { setRect(null); return undefined; }
+
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+
+        let cancelled = false;
+        const measure = () => {
+            if (cancelled) return;
+            const r = el.getBoundingClientRect();
+            if (!r || (r.width === 0 && r.height === 0)) { setRect(null); return; }
+            setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+        };
+        measure();
+        const settle = setTimeout(measure, 350); // after the smooth scroll lands
+        window.addEventListener('resize', measure);
+        window.addEventListener('scroll', measure, true);
+        return () => {
+            cancelled = true;
+            clearTimeout(settle);
+            window.removeEventListener('resize', measure);
+            window.removeEventListener('scroll', measure, true);
+        };
+    }, [isVisible, targetId, step]);
+
+    const viewportH = typeof window !== 'undefined' ? window.innerHeight : 0;
+    const placeBelow = !rect || (rect.top + rect.height + 220 < viewportH) || rect.top < 240;
+    const cardStyle = rect
+        ? {
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            ...(placeBelow
+                ? { top: Math.min(Math.max(rect.top + rect.height + 16, 12), Math.max(viewportH - 220, 12)) }
+                : { bottom: Math.min(Math.max(viewportH - rect.top + 16, 12), Math.max(viewportH - 60, 12)) }),
+        }
+        : {};
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={{
-                    position: 'fixed', inset: 0, zIndex: 9999,
-                    background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-            >
+            {isVisible && current && (
                 <motion.div
-                    initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+                    key="sandbox-tour"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     style={{
-                        background: '#242526', border: '1px solid #3A3B3C',
-                        borderRadius: '16px', padding: '24px', maxWidth: '380px', width: '90%',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        // When spotlighting, the scrim comes from the ring's huge
+                        // box-shadow so the target itself stays un-dimmed.
+                        background: rect ? 'transparent' : 'rgba(0,0,0,0.7)',
+                        display: rect ? 'block' : 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', marginBottom: '8px', fontFamily: "'Orbitron',sans-serif" }}>
-                        {current.title}
-                    </div>
-                    <p style={{ color: '#B0B3B8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px' }}>
-                        {current.text}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#65676B', fontSize: '11px' }}>{step + 1} of {TOUR_STEPS.length}</span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={onClose} style={{
-                                padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
-                                background: 'none', border: '1px solid #3A3B3C', color: '#B0B3B8', cursor: 'pointer',
-                            }}>Skip</button>
-                            <button onClick={() => step < TOUR_STEPS.length - 1 ? onNext() : onClose()} style={{
-                                padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
-                                background: 'linear-gradient(135deg, #2374E1, #4599FF)', border: 'none', color: '#fff', cursor: 'pointer',
-                            }}>{step < TOUR_STEPS.length - 1 ? 'Next →' : 'Get Started'}</button>
+                    {/* Spotlight ring around the referenced element */}
+                    {rect && (
+                        <motion.div
+                            layout
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            style={{
+                                position: 'absolute',
+                                top: rect.top - 6, left: rect.left - 6,
+                                width: rect.width + 12, height: rect.height + 12,
+                                borderRadius: '12px', pointerEvents: 'none',
+                                border: '2px solid #4599FF',
+                                boxShadow: '0 0 0 9999px rgba(0,0,0,0.7), 0 0 24px rgba(69,153,255,0.55)',
+                            }}
+                        />
+                    )}
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+                        style={{
+                            background: '#242526', border: '1px solid #3A3B3C',
+                            borderRadius: '16px', padding: '24px', maxWidth: '380px', width: '90%',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                            ...cardStyle,
+                        }}
+                    >
+                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', marginBottom: '8px', fontFamily: "'Orbitron',sans-serif" }}>
+                            {current.title}
                         </div>
-                    </div>
+                        <p style={{ color: '#B0B3B8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px' }}>
+                            {current.text}
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#65676B', fontSize: '11px' }}>{step + 1} of {TOUR_STEPS.length}</span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={onClose} style={{
+                                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
+                                    background: 'none', border: '1px solid #3A3B3C', color: '#B0B3B8', cursor: 'pointer',
+                                }}>Skip</button>
+                                <button onClick={() => step < TOUR_STEPS.length - 1 ? onNext() : onClose()} style={{
+                                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                                    background: 'linear-gradient(135deg, #2374E1, #4599FF)', border: 'none', color: '#fff', cursor: 'pointer',
+                                }}>{step < TOUR_STEPS.length - 1 ? 'Next' : 'Get Started'}</button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </motion.div>
-            </motion.div>
+            )}
         </AnimatePresence>
     );
 }
@@ -398,6 +590,17 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
 // ═══════════════════════════════════════════════════════════════════════
 export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     const [isPosting, setIsPosting] = useState(false);
+    const closeTimerRef = useRef(null);
+
+    // Never leave a pending auto-close timer behind — it would fire onClose (and
+    // the parent setState) after the modal/page has already gone away.
+    useEffect(() => () => {
+        if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen && closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+    }, [isOpen]);
 
     if (!isOpen || !results) return null;
 
@@ -441,7 +644,8 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
             if (newPost) {
                 claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost.id }, 'New Post Published');
                 toast.success('Posted to your feed!', 2000);
-                setTimeout(onClose, 1500);
+                if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+                closeTimerRef.current = setTimeout(() => { closeTimerRef.current = null; onClose?.(); }, 1500);
             }
         } catch (err) {
             console.warn('Feed post error:', err);
@@ -460,11 +664,11 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     ];
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{
             position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} style={{
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} style={{
                 background: '#242526', border: '1px solid #3A3B3C',
                 borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '90%',
             }}>
@@ -496,6 +700,17 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
 // STREET TIMELINE — Multi-Street Story Mode
 // Shows how GTO strategy evolves across streets
 // ═══════════════════════════════════════════════════════════════════════════
+const STREET_SEQUENCE = ['preflop', 'flop', 'turn', 'river'];
+function nextStreetLabel(streetHistory, streets) {
+    const last = streetHistory?.[streetHistory.length - 1]?.street;
+    const idx = STREET_SEQUENCE.indexOf(String(last || '').toLowerCase());
+    if (idx >= 0 && idx < STREET_SEQUENCE.length - 1) {
+        const nxt = STREET_SEQUENCE[idx + 1];
+        return nxt.charAt(0).toUpperCase() + nxt.slice(1);
+    }
+    return streets[streetHistory?.length] || 'Next';
+}
+
 export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) {
     if (!streetHistory || streetHistory.length === 0) return null;
 
@@ -504,7 +719,11 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: '#242526', borderRadius: '10px', padding: '6px' }}>
             {streetHistory.map((entry, i) => {
                 const isActive = activeStreet === i;
-                const streetLabel = streets[i] || `Street ${i + 1}`;
+                // Label from the data, not the index — an imported scenario can
+                // start on the turn, in which case streets[0] would lie.
+                const streetLabel = entry?.street
+                    ? String(entry.street).charAt(0).toUpperCase() + String(entry.street).slice(1)
+                    : (streets[i] || `Street ${i + 1}`);
                 return (
                     <button key={i} onClick={() => onSelectStreet(i)} style={{
                         flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none',
@@ -530,41 +749,10 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
             })}
             {streetHistory.length < 3 && (
                 <div style={{ flex: 1, padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px dashed #4E4F50' }}>
-                    <div style={{ fontSize: '10px', color: '#65676B' }}>{streets[streetHistory.length] || 'Next'}</div>
+                    <div style={{ fontSize: '10px', color: '#65676B' }}>{nextStreetLabel(streetHistory, streets)}</div>
                     <div style={{ fontSize: '9px', color: '#65676B', marginTop: '2px' }}>Deal to unlock</div>
                 </div>
             )}
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// EQUITY GAUGE — Circular arc showing hero equity
-// ═══════════════════════════════════════════════════════════════════════════
-export function EquityGauge({ equity, label }) {
-    if (equity == null) return null;
-
-    const pct = Math.max(0, Math.min(100, equity));
-    const color = pct >= 60 ? '#22c55e' : pct >= 45 ? '#fbbf24' : '#ef4444';
-    const circumference = 2 * Math.PI * 36;
-    const offset = circumference - (pct / 100) * circumference;
-
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#242526', borderRadius: '10px', marginBottom: '10px' }}>
-            <svg width="48" height="48" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="36" fill="none" stroke="#3A3B3C" strokeWidth="6" />
-                <circle cx="40" cy="40" r="36" fill="none" stroke={color} strokeWidth="6"
-                    strokeDasharray={circumference} strokeDashoffset={offset}
-                    strokeLinecap="round" transform="rotate(-90 40 40)"
-                    style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
-                <text x="40" y="44" textAnchor="middle" fill={color} fontSize="16" fontWeight="700" fontFamily="'Orbitron', monospace">
-                    {Math.round(pct)}
-                </text>
-            </svg>
-            <div>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#E4E6EB' }}>Equity</div>
-                <div style={{ fontSize: '10px', color: '#B0B3B8' }}>{label || `${Math.round(pct)}% vs random`}</div>
-            </div>
         </div>
     );
 }
@@ -610,12 +798,18 @@ export function AnalysisSkeleton() {
 export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercent, onChangeScenario }) {
     if (!rangeGrid) return null;
 
-    const actionColors = { raise: '#22c55e', '3bet': '#ef4444', call: '#3b82f6', fold: 'transparent' };
+    // 'check' is emitted for BB RFI (the BB is never first-in — an unopened pot
+    // is checked through), so it needs its own swatch or every cell renders as
+    // undifferentiated grey with an `undefined44` border.
+    const actionColors = { raise: '#22c55e', '3bet': '#ef4444', call: '#3b82f6', check: '#6b7280', fold: 'transparent' };
+    const CELL_FALLBACK = '#3A3B3C';
+    const cellColor = (action) => actionColors[action] || CELL_FALLBACK;
+    const hasCheck = rangeGrid.flat().some(c => c && c.action === 'check');
     return (
         <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    Preflop Range -- {position} ({rangePercent}% of hands)
+                    Preflop Range -- {position} ({rangePercent}% of hands{hasCheck ? ', checked through' : ''})
                 </h4>
                 <div style={{ display: 'flex', gap: '4px' }}>
                     {['rfi', '3bet'].map(s => (
@@ -632,17 +826,18 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
                 {rangeGrid.flat().map((cell, i) => (
                     <div key={i} style={{
                         padding: '2px 1px', textAlign: 'center', borderRadius: '2px',
-                        background: cell.inRange ? (actionColors[cell.action] || '#3A3B3C') + '33' : '#242526',
-                        border: cell.inRange ? `1px solid ${actionColors[cell.action]}44` : '1px solid transparent',
+                        background: cell.inRange ? cellColor(cell.action) + '33' : '#242526',
+                        border: cell.inRange ? `1px solid ${cellColor(cell.action)}44` : '1px solid transparent',
                         color: cell.inRange ? '#E4E6EB' : '#4E4F50',
                         fontWeight: cell.inRange ? '600' : '400',
                     }}>{cell.hand}</div>
                 ))}
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '9px' }}>
-                <span style={{ color: '#22c55e' }}>Raise</span>
-                <span style={{ color: '#ef4444' }}>3-Bet</span>
-                <span style={{ color: '#3b82f6' }}>Call</span>
+                <span style={{ color: actionColors.raise }}>Raise</span>
+                <span style={{ color: actionColors['3bet'] }}>3-Bet</span>
+                <span style={{ color: actionColors.call }}>Call</span>
+                {hasCheck && <span style={{ color: actionColors.check }}>Check</span>}
                 <span style={{ color: '#4E4F50' }}>Fold</span>
             </div>
         </div>
@@ -730,10 +925,12 @@ export function ExploitToggle({ mode, onToggle, exploitTip }) {
 // "What Would You Do?" — pick an action before seeing the GTO answer
 // ═══════════════════════════════════════════════════════════════════════════
 export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }) {
-    const actions = ['Check', 'Call', 'Bet Small', 'Bet Medium', 'Bet Large', 'Raise', 'Fold', 'All-In'];
+    // Every size bucket the grader knows about must be reachable, otherwise a
+    // pot-sized GTO answer would be impossible to get right.
+    const actions = ['Fold', 'Check', 'Call', 'Raise', 'Bet Small', 'Bet Medium', 'Bet Large', 'Bet Pot', 'All-In'];
 
     if (revealed) {
-        const isCorrect = userGuess && correctAction && correctAction.length > 0 && userGuess.toLowerCase().includes(correctAction.toLowerCase().split(' ')[0]);
+        const isCorrect = !!(userGuess && correctAction) && gradeAction(userGuess, correctAction);
         return (
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -807,49 +1004,31 @@ export function StudyReplayCard({ session, index, total, onNext, onPrev }) {
 // ACCURACY BADGE — Phase 3.4
 // Shows quiz accuracy % and streak in the header
 // ═══════════════════════════════════════════════════════════════════════════
+/**
+ * Props: stats = { correct, total, streak }.
+ * Accuracy is computed here so callers can hand the raw quizScore straight
+ * through. An explicit stats.accuracy is still honoured for back-compat.
+ */
 export function AccuracyBadge({ stats }) {
-    if (!stats || stats.total === 0) return null;
+    const total = Number(stats?.total) || 0;
+    if (!stats || total === 0) return null;
+
+    const correct = Number(stats.correct) || 0;
+    const accuracy = stats.accuracy != null && Number.isFinite(Number(stats.accuracy))
+        ? Math.round(Number(stats.accuracy))
+        : Math.round((correct / total) * 100);
+    const streak = Number(stats.streak) || 0;
 
     return (
         <div style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '4px 10px', borderRadius: '16px', fontSize: '10px', fontWeight: '700',
-            background: stats.accuracy >= 70 ? 'rgba(34,197,94,0.1)' : stats.accuracy >= 50 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
-            border: `1px solid ${stats.accuracy >= 70 ? 'rgba(34,197,94,0.2)' : stats.accuracy >= 50 ? 'rgba(251,191,36,0.2)' : 'rgba(239,68,68,0.2)'}`,
-            color: stats.accuracy >= 70 ? '#4ade80' : stats.accuracy >= 50 ? '#fde68a' : '#fca5a5',
+            background: accuracy >= 70 ? 'rgba(34,197,94,0.1)' : accuracy >= 50 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${accuracy >= 70 ? 'rgba(34,197,94,0.2)' : accuracy >= 50 ? 'rgba(251,191,36,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: accuracy >= 70 ? '#4ade80' : accuracy >= 50 ? '#fde68a' : '#fca5a5',
         }}>
-            <span>{stats.accuracy}% Accuracy</span>
-            {stats.streak > 0 && <span style={{ color: '#fbbf24' }}>{stats.streak} Streak</span>}
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// WEEKLY SPOT BANNER — Phase 4.3
-// Shows the current week's challenge with a "Load This Spot" button
-// ═══════════════════════════════════════════════════════════════════════════
-export function WeeklySpotBanner({ spot, onLoad }) {
-    if (!spot) return null;
-
-    return (
-        <div style={{
-            background: 'linear-gradient(135deg, rgba(35,116,225,0.08), rgba(35,116,225,0.04))',
-            border: '1px solid rgba(35,116,225,0.2)',
-            borderRadius: '12px', padding: '12px', marginBottom: '12px',
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <h4 style={{ color: '#4599FF', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    Weekly Spot Challenge
-                </h4>
-                <button onClick={() => onLoad(spot)} style={{
-                    padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-                    background: 'rgba(35,116,225,0.2)', border: '1px solid rgba(35,116,225,0.3)',
-                    color: '#4599FF', cursor: 'pointer',
-                }}>Load This Spot</button>
-            </div>
-            <div style={{ fontSize: '11px', color: '#E4E6EB' }}>
-                {spot.description || 'Can you find the GTO play?'}
-            </div>
+            <span>{accuracy}% Accuracy</span>
+            {streak > 0 && <span style={{ color: '#fbbf24' }}>{streak} Streak</span>}
         </div>
     );
 }
@@ -887,16 +1066,37 @@ export function LeaderboardCard({ entries }) {
 // EQUITY GRAPH — Wave 2 Feature 4
 // SVG line chart: tracks hero equity across streets
 // ═══════════════════════════════════════════════════════════════════════════
-export function EquityGraph({ streetHistory, currentEquity }) {
-    const streets = ['Pre', 'Flop', 'Turn', 'River'];
+const STREET_SHORT = { preflop: 'Pre', flop: 'Flop', turn: 'Turn', river: 'River' };
+const STREET_SHORT_SEQ = ['Pre', 'Flop', 'Turn', 'River'];
+
+export function EquityGraph({ streetHistory, currentEquity, currentStreet }) {
     const points = useMemo(() => {
         const pts = [];
-        if (currentEquity != null) pts.push({ street: 'Pre', equity: currentEquity });
-        streetHistory?.forEach((entry, i) => {
-            if (entry.equity != null) pts.push({ street: streets[i + 1] || 'S' + (i + 1), equity: entry.equity });
+        // Archived streets come FIRST (oldest -> newest), labelled from their own
+        // entry.street, then the LIVE equity for the current street is appended.
+        (streetHistory || []).forEach((entry, i) => {
+            if (entry?.equity == null) return;
+            const key = String(entry.street || '').toLowerCase();
+            pts.push({
+                street: STREET_SHORT[key] || STREET_SHORT_SEQ[i] || `S${i + 1}`,
+                equity: Number(entry.equity),
+            });
         });
-        return pts;
-    }, [streetHistory, currentEquity]);
+        if (currentEquity != null && Number.isFinite(Number(currentEquity))) {
+            const liveKey = String(currentStreet || '').toLowerCase();
+            let liveLabel = STREET_SHORT[liveKey];
+            if (!liveLabel) {
+                // Derive: the live street is one past the newest archived street
+                const lastKey = String(streetHistory?.[streetHistory.length - 1]?.street || '').toLowerCase();
+                const lastIdx = STREET_SEQUENCE.indexOf(lastKey);
+                liveLabel = lastIdx >= 0
+                    ? (STREET_SHORT_SEQ[Math.min(lastIdx + 1, STREET_SHORT_SEQ.length - 1)])
+                    : (STREET_SHORT_SEQ[Math.min(streetHistory?.length || 0, STREET_SHORT_SEQ.length - 1)] || 'Now');
+            }
+            pts.push({ street: liveLabel, equity: Number(currentEquity) });
+        }
+        return pts.filter(p => Number.isFinite(p.equity));
+    }, [streetHistory, currentEquity, currentStreet]);
 
     if (points.length < 2) return null;
 
@@ -943,9 +1143,37 @@ export function EquityGraph({ streetHistory, currentEquity }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION LOG MODAL — Wave 2 Feature 5
 // ═══════════════════════════════════════════════════════════════════════════
+const SESSION_ACTION_COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
+
 export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onClearSession }) {
+    // Two-step confirm — the journal is persisted to IndexedDB, so one stray tap
+    // used to destroy it irrecoverably.
+    const [confirmClear, setConfirmClear] = useState(false);
+    const confirmTimerRef = useRef(null);
+
+    const clearConfirmTimer = useCallback(() => {
+        if (confirmTimerRef.current) { clearTimeout(confirmTimerRef.current); confirmTimerRef.current = null; }
+    }, []);
+    useEffect(() => clearConfirmTimer, [clearConfirmTimer]);
+    useEffect(() => {
+        if (!isOpen) { clearConfirmTimer(); setConfirmClear(false); }
+    }, [isOpen, clearConfirmTimer]);
+
+    const handleClearClick = useCallback(() => {
+        try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        if (!confirmClear) {
+            setConfirmClear(true);
+            clearConfirmTimer();
+            confirmTimerRef.current = setTimeout(() => { confirmTimerRef.current = null; setConfirmClear(false); }, 3000);
+            return;
+        }
+        clearConfirmTimer();
+        setConfirmClear(false);
+        onClearSession?.();
+    }, [confirmClear, clearConfirmTimer, onClearSession]);
+
     if (!isOpen) return null;
-    const ACTION_COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
+    const ACTION_COLORS = SESSION_ACTION_COLORS;
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{
@@ -963,9 +1191,9 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {(sessionLog?.length > 0) && (
-                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onClearSession(); }}
-                                style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
-                                Clear
+                            <button onClick={handleClearClick}
+                                style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: confirmClear ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.1)', border: `1px solid ${confirmClear ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'}`, color: confirmClear ? '#ef4444' : '#fca5a5', cursor: 'pointer' }}>
+                                {confirmClear ? 'Confirm clear?' : 'Clear'}
                             </button>
                         )}
                         <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
@@ -1018,7 +1246,9 @@ export function CoachActionPicker({ isOpen, onPick, onSkip }) {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} style={{ background: '#18191A', border: '1px solid rgba(35,116,225,0.3)', borderRadius: '20px', padding: '24px', maxWidth: '360px', width: '100%', boxShadow: '0 0 60px rgba(35,116,225,0.18)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>🧠</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                        <Brain size={28} strokeWidth={2} style={{ color: '#4599FF' }} aria-hidden="true" />
+                    </div>
                     <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', fontFamily: "'Orbitron', sans-serif" }}>Coach Mode</div>
                     <div style={{ fontSize: '13px', color: '#B0B3B8', marginTop: '4px' }}>What would you do in this spot?</div>
                 </div>
@@ -1043,12 +1273,14 @@ export function CoachActionPicker({ isOpen, onPick, onSkip }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function CoachVerdict({ userPick, gtoAction, evDelta }) {
     if (!userPick || !gtoAction) return null;
-    const isCorrect = userPick.toLowerCase().split(' ')[0] === gtoAction.toLowerCase().split(' ')[0];
+    const isCorrect = gradeAction(userPick, gtoAction);
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             style={{ padding: '14px', borderRadius: '12px', marginBottom: '12px', background: isCorrect ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '20px' }}>{isCorrect ? '✅' : '❌'}</span>
+                {isCorrect
+                    ? <Check size={20} strokeWidth={3} style={{ color: '#4ade80', flexShrink: 0 }} aria-hidden="true" />
+                    : <XIcon size={20} strokeWidth={3} style={{ color: '#fca5a5', flexShrink: 0 }} aria-hidden="true" />}
                 <div style={{ fontSize: '14px', fontWeight: '800', color: isCorrect ? '#4ade80' : '#fca5a5' }}>{isCorrect ? 'Correct!' : 'Not optimal'}</div>
             </div>
             <div style={{ fontSize: '12px', color: '#B0B3B8' }}>
@@ -1065,7 +1297,7 @@ export function CoachVerdict({ userPick, gtoAction, evDelta }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay }) {
     if (!actions || actions.length === 0) return null;
-    const COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', raise: '#22c55e', allin: '#f97316' };
+    const COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
     const getBubbleColor = (action) => COLORS[(action || '').toLowerCase().split('_')[0]] || '#2374E1';
 
     return (
@@ -1116,6 +1348,14 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
 export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board, cardRef }) {
     const [isPosting, setIsPosting] = useState(false);
     const [capturedUrl, setCapturedUrl] = useState(null);
+    const closeTimerRef = useRef(null);
+
+    useEffect(() => () => {
+        if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+    }, []);
+    useEffect(() => {
+        if (!isOpen && closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+    }, [isOpen]);
 
     if (!isOpen || !results) return null;
 
@@ -1127,13 +1367,37 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
             const url = canvas.toDataURL('image/png');
             setCapturedUrl(url);
             return url;
-        } catch (e) { return null; }
+        } catch (e) {
+            console.warn('[ShareHandModal] Canvas capture failed:', e?.message || e);
+            return null;
+        }
+    };
+
+    // Best-effort upload of the captured PNG so the feed post can render the
+    // hand visually. Storage bucket may not exist on every env — never block
+    // the post on a failure here.
+    const uploadCapture = async (dataUrl) => {
+        if (!dataUrl || typeof fetch === 'undefined') return null;
+        try {
+            const blob = await (await fetch(dataUrl)).blob();
+            if (!blob || blob.size > 4 * 1024 * 1024) return null;
+            const path = `sandbox/hand-${Date.now()}.png`;
+            const { error } = await supabase.storage.from('social-media').upload(path, blob, {
+                contentType: 'image/png', upsert: true,
+            });
+            if (error) { console.warn('[ShareHandModal] Image upload skipped:', error.message || error); return null; }
+            const { data } = supabase.storage.from('social-media').getPublicUrl(path);
+            return data?.publicUrl || null;
+        } catch (e) {
+            console.warn('[ShareHandModal] Image upload skipped:', e?.message || e);
+            return null;
+        }
     };
 
     const handleDownload = async () => {
         try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const url = capturedUrl || await captureCanvas();
-        if (!url) return;
+        if (!url) { toast.error('Could not render image'); return; }
         const link = document.createElement('a');
         link.download = `smarter-poker-hand-${Date.now()}.png`;
         link.href = url;
@@ -1145,29 +1409,35 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
         setIsPosting(true);
         try {
             const user = getAuthUser();
-            if (!user) { alert('Log in to post'); setIsPosting(false); return; }
-            // Fetch session token for auth header
+            if (!user) { toast.error('Log in to post'); setIsPosting(false); return; }
+            // Fetch session token for auth header — the server derives identity
+            // from this JWT. We deliberately do NOT send a client user_id.
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) { alert('Session expired. Please log in again.'); setIsPosting(false); return; }
-            const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2}` : '??';
-            const boardStr = board?.flop?.join(' ') || 'Preflop';
-            const content = `🃏 Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
-            const res = await fetch('/api/social/create-post', {
+            if (!session?.access_token) { toast.error('Session expired. Please log in again.'); setIsPosting(false); return; }
+            const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2 || ''}` : '??';
+            const fullBoard = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+            const boardStr = fullBoard.length ? fullBoard.join(' ') : 'Preflop';
+            const content = `Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
+
+            // Attach the rendered hand image when we can produce/host one
+            const imageUrl = await uploadCapture(capturedUrl || await captureCanvas());
+
+            const res = await fetch('/api/sandbox/social-export', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
                 },
                 body: JSON.stringify({
-                    user_id: user.id,
                     content,
-                    content_type: 'sandbox_hand',
                     metadata: {
                         hand,
                         board: boardStr,
                         position: scenario?.position,
                         optimalAction: results.optimalAction?.label,
                         challengeEnabled: true,
+                        ...(imageUrl ? { imageUrl } : {}),
+                        source: 'Sandbox',
                     },
                 }),
             });
@@ -1176,13 +1446,17 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
                 if (typeof window !== 'undefined') {
                     window.dispatchEvent(new CustomEvent('social-post-created', { detail: { type: 'sandbox_hand' } }));
                 }
-                setTimeout(onClose, 1200);
+                toast.success('Posted to your feed!');
+                if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+                closeTimerRef.current = setTimeout(() => { closeTimerRef.current = null; onClose?.(); }, 1200);
             } else {
                 const errBody = await res.json().catch(() => ({}));
                 console.warn('[ShareHandModal] Post failed:', res.status, errBody);
+                toast.error('Failed to post');
             }
         } catch (err) {
             console.warn('[ShareHandModal] Post error:', err);
+            toast.error('Failed to post');
         }
         setIsPosting(false);
     };
@@ -1199,9 +1473,9 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const actions = [
-        { icon: '📸', label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#4599FF' },
-        { icon: '🃏', label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
-        { icon: '↗️', label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
+        { Icon: Camera, label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#4599FF' },
+        { Icon: Spade, label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
+        { Icon: Share2, label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
     ];
 
     return (
@@ -1223,7 +1497,9 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
                     {actions.map(a => (
                         <button key={a.label} onClick={a.onClick} disabled={isPosting && a.primary}
                             style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '14px', cursor: isPosting && a.primary ? 'wait' : 'pointer', background: a.primary ? `${a.color}15` : '#242526', border: `1px solid ${a.primary ? a.color + '30' : '#3A3B3C'}`, opacity: isPosting && a.primary ? 0.7 : 1, touchAction: 'manipulation' }}>
-                            <span style={{ fontSize: '24px', minWidth: 32, textAlign: 'center' }}>{a.icon}</span>
+                            <span style={{ minWidth: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <a.Icon size={24} strokeWidth={2} style={{ color: a.color }} aria-hidden="true" />
+                            </span>
                             <div style={{ textAlign: 'left', flex: 1 }}>
                                 <div style={{ fontSize: '14px', fontWeight: '700', color: a.primary ? a.color : '#E4E6EB' }}>{a.label}</div>
                                 <div style={{ fontSize: '11px', color: '#65676B', marginTop: '2px' }}>{a.sub}</div>
@@ -1253,21 +1529,27 @@ export function VillainReadCard({ villain }) {
     if (!villain?.archetype?.id) return null;
     const archetypeId = villain.archetype.id;
     const tips = ARCHETYPE_EXPLOITS[archetypeId] || ARCHETYPE_EXPLOITS.gto_neutral;
-    const color = villain.vpip > 40 ? '#f97316' : villain.vpip > 25 ? '#fbbf24' : '#4ade80';
+    // VPIP is unknown until the user picks an archetype/position — do not paint
+    // "unknown" green as if it were a confirmed nit.
+    const vpipValue = villain.vpip != null && Number.isFinite(Number(villain.vpip)) ? Number(villain.vpip) : null;
+    const color = vpipValue == null ? '#B0B3B8' : vpipValue > 40 ? '#f97316' : vpipValue > 25 ? '#fbbf24' : '#4ade80';
 
     return (
         <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>
             <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 13, fontWeight: 700 }}>
-                🃏 Villain Intel — {villain.archetype.name || archetypeId}
+                <Spade size={14} strokeWidth={2} style={{ color: '#a78bfa', flexShrink: 0 }} aria-hidden="true" />
+                Villain Intel — {villain.archetype.name || archetypeId}
                 <span style={{ marginLeft: 'auto', fontSize: 10, color: '#65676B' }}>{open ? '▲' : '▼'}</span>
             </button>
             {open && (
                 <div style={{ padding: '0 14px 12px' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>VPIP</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color }}>{villain.vpip ?? 'N/A'}%</span>
-                    </div>
+                    {vpipValue != null && (
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                            <span style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>VPIP</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color }}>{vpipValue}%</span>
+                        </div>
+                    )}
                     <ul style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'disc', color: '#B0B3B8', fontSize: 11, lineHeight: 1.6 }}>
                         {tips.map((tip, i) => <li key={i}>{tip}</li>)}
                     </ul>

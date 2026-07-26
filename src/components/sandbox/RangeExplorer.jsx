@@ -64,10 +64,27 @@ const M = {
     text: '#E4E6EB', sub: '#B0B3B8', dim: 'rgba(255,255,255,0.4)',
 };
 
-export default function RangeExplorer({ onSelectRange, onClose }) {
-    const [cells, setCells] = useState({});
+/**
+ * Combo-weighted range share: pairs are 6 combos, suited 4, offsuit 12,
+ * out of the 1326 possible starting hands. Counting cells equally
+ * (count/169) badly misreports e.g. "all pairs" as 7.7% instead of 5.9%.
+ */
+function comboWeight(i, j) {
+    if (i === j) return 6;      // pocket pair
+    if (i < j) return 4;        // suited (above diagonal)
+    return 12;                  // offsuit (below diagonal)
+}
+
+export default function RangeExplorer({ onSelectRange, onClose, initialRange = '' }) {
+    const [cells, setCells] = useState(() => parseRange(initialRange));
     const count = useMemo(() => Object.keys(cells || {}).filter(k => cells[k]).length, [cells]);
-    const pct = ((count / 169) * 100).toFixed(1);
+    const combos = useMemo(() => Object.keys(cells || {}).reduce((sum, key) => {
+        if (!cells[key]) return sum;
+        const [i, j] = key.split(',').map(Number);
+        if (!Number.isFinite(i) || !Number.isFinite(j)) return sum;
+        return sum + comboWeight(i, j);
+    }, 0), [cells]);
+    const pct = ((combos / 1326) * 100).toFixed(1);
 
     const toggle = useCallback((i, j) => {
         setCells(prev => ({ ...prev, [`${i},${j}`]: !prev[`${i},${j}`] }));
@@ -91,8 +108,8 @@ export default function RangeExplorer({ onSelectRange, onClose }) {
             <div style={s.modal} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={s.header}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>🎯 Range Explorer</span>
-                    <span style={{ fontSize: 10, color: M.sub }}>{count}/169 combos ({pct}%)</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>{'🎯 Range Explorer'}</span>
+                    <span style={{ fontSize: 10, color: M.sub }}>{count}/169 cells · {combos} combos ({pct}%)</span>
                     <button onClick={onClose} style={s.closeBtn}>✕</button>
                 </div>
 
@@ -142,9 +159,9 @@ export default function RangeExplorer({ onSelectRange, onClose }) {
 
                 {/* Legend */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 12, padding: '6px 0', fontSize: 8, color: M.sub }}>
-                    <span>🟢 Pair</span>
-                    <span>🔵 Suited</span>
-                    <span>🟠 Offsuit</span>
+                    <span>{'🟢 Pair'}</span>
+                    <span>{'🔵 Suited'}</span>
+                    <span>{'🟠 Offsuit'}</span>
                 </div>
 
                 {/* Action Buttons */}

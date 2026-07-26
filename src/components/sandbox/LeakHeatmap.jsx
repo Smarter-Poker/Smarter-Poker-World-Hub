@@ -4,7 +4,8 @@
  * Data fetched from /api/sandbox/session-stats (positionStats).
  * Used in the Leak Finder page.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const M = {
     card: '#242526', border: '#3a3b3c',
@@ -31,38 +32,71 @@ function pctBg(pct) {
 export default function LeakHeatmap({ userId }) {
     const [positionStats, setPositionStats] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
+    const load = useCallback(async () => {
         if (!userId) return;
-        let cancelled = false;
-
-        async function load() {
-            try {
-                const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
-                const res = await fetch('/api/sandbox/session-stats', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
-                if (!cancelled && json.success) {
-                    setPositionStats(json.positionStats || []);
-                }
-            } catch (e) {
-                console.warn('[LeakHeatmap] Fetch error:', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+        setError(null);
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/sandbox/session-stats', {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const json = await res.json().catch(() => null);
+            if (json?.success) setPositionStats(json.positionStats || []);
+            else setError(json?.error || `Leak map unavailable (${res.status})`);
+        } catch (e) {
+            console.warn('[LeakHeatmap] Fetch error:', e);
+            setError(e?.message || 'Leak map unavailable');
+        } finally {
+            setLoading(false);
         }
-        load();
-
-        const refresh = () => load();
-        window.addEventListener('sandbox-coach-result-saved', refresh);
-        return () => {
-            cancelled = true;
-            window.removeEventListener('sandbox-coach-result-saved', refresh);
-        };
     }, [userId]);
 
+    useEffect(() => {
+        if (!userId) return undefined;
+        load();
+
+        // Sandbox coach results are recorded on a different route, so the
+        // in-page 'sandbox-coach-result-saved' event never reaches this page.
+        // Refetch when the tab regains focus instead — that is what actually
+        // happens ("played the sandbox in another tab, came back").
+        const onVisible = () => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') load();
+        };
+        window.addEventListener('focus', onVisible);
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.removeEventListener('focus', onVisible);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [userId, load]);
+
     if (loading) return null;
+
+    if (error) {
+        return (
+            <div style={s.card}>
+                <div style={s.header}>
+                    <span style={s.title}>{'🗺 Position Leak Map'}</span>
+                </div>
+                <div style={{ padding: '0 12px 12px' }}>
+                    <div style={{ fontSize: 10, color: M.sub, marginBottom: 8 }}>Could not load position stats.</div>
+                    <button
+                        onClick={() => { setLoading(true); load(); }}
+                        style={{
+                            padding: '6px 12px', borderRadius: 6,
+                            background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.35)',
+                            color: '#4599FF', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                            outline: 'none', WebkitTapHighlightColor: 'transparent',
+                        }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // Merge fetched stats with expected positions
     const statsMap = {};
@@ -77,7 +111,7 @@ export default function LeakHeatmap({ userId }) {
     return (
         <div style={s.card}>
             <div style={s.header}>
-                <span style={s.title}>🗺 Position Leak Map</span>
+                <span style={s.title}>{'🗺 Position Leak Map'}</span>
             </div>
             <div style={s.grid}>
                 {positions.map(p => (

@@ -2,22 +2,37 @@
  * GET /api/sandbox/session-stats
  * Returns aggregated coach mode analytics for the authenticated user:
  *  - Total sessions & hands
- *  - Accuracy trend (last 20 sessions bucketed by day)
+ *  - Accuracy trend (last 20 days bucketed by day)
  *  - Strongest/weakest position
  *  - Weakest street
+ *
+ * All three breakdowns are derived from ONE bounded fetch of the last 90 days
+ * (max 2000 rows). Re-scanning the same table three times with no .limit()
+ * meant supabase-js silently truncated each scan at a different 1000-row
+ * window, so a heavy user's sections disagreed with each other.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
+let _supabase = null;
 function getSupabase() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
 }
+
+const WINDOW_DAYS = 90;
+const TREND_DAYS = 30;
+const ROW_CAP = 2000;
 
 export default async function handler(req, res) {
   try {
+      if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
+
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
@@ -41,32 +56,61 @@ export default async function handler(req, res) {
               return res.status(401).json({ success: false, error: 'Authentication required' });
           }
 
-          // ── 1. Total stats from the accuracy view ──────────────────
-          const { data: summary } = await supabase
-              .from('sandbox_coach_accuracy')
-              .select('*')
-              .eq('user_id', userId)
-              .maybeSingle();
+          const windowStart = new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString();
+          const trendStart = new Date(Date.now() - TREND_DAYS * 86400000).toISOString();
 
-          // ── 2. Accuracy trend (last 30 days, bucketed by day) ──────
-          const { data: trendRows } = await supabase
-              .from('sandbox_coach_results')
-              .select('created_at, is_correct')
-              .eq('user_id', userId)
-              .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
-              .order('created_at', { ascending: true });
+          const [summaryRes, rowsRes] = await Promise.all([
+              // Lifetime totals from the accuracy view
+              supabase
+                  .from('sandbox_coach_accuracy')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .maybeSingle(),
+              // One bounded scan powering trend + position + street breakdowns
+              supabase
+                  .from('sandbox_coach_results')
+                  .select('created_at, is_correct, hero_position, street')
+                  .eq('user_id', userId)
+                  .gte('created_at', windowStart)
+                  .order('created_at', { ascending: false })
+                  .limit(ROW_CAP),
+          ]);
 
-          // Bucket by date
+          if (summaryRes?.error) console.warn('[session-stats] View error:', summaryRes.error.message);
+          if (rowsRes?.error) console.warn('[session-stats] Results query error:', rowsRes.error.message);
+
+          const summary = summaryRes?.data || null;
+          const rows = rowsRes?.data || [];
+
+          // ── Accuracy trend (last 30 days, bucketed by day) ─────────
           const buckets = {};
-          (trendRows || []).forEach(r => {
-              const day = r.created_at?.slice(0, 10);
-              if (!day) return;
-              if (!buckets[day]) buckets[day] = { total: 0, correct: 0 };
-              buckets[day].total++;
-              if (r.is_correct) buckets[day].correct++;
+          // ── Position breakdown ─────────────────────────────────────
+          const positions = {};
+          // ── Street breakdown ───────────────────────────────────────
+          const streets = {};
+
+          rows.forEach(r => {
+              if (r.created_at && r.created_at >= trendStart) {
+                  const day = r.created_at.slice(0, 10);
+                  if (!buckets[day]) buckets[day] = { total: 0, correct: 0 };
+                  buckets[day].total++;
+                  if (r.is_correct) buckets[day].correct++;
+              }
+
+              if (r.hero_position) {
+                  const p = String(r.hero_position).toUpperCase();
+                  if (!positions[p]) positions[p] = { total: 0, correct: 0 };
+                  positions[p].total++;
+                  if (r.is_correct) positions[p].correct++;
+              }
+
+              const s = String(r.street || 'preflop').toLowerCase();
+              if (!streets[s]) streets[s] = { total: 0, correct: 0 };
+              streets[s].total++;
+              if (r.is_correct) streets[s].correct++;
           });
 
-          const accuracyTrend = Object.entries(buckets || {})
+          const accuracyTrend = Object.entries(buckets)
               .sort(([a], [b]) => a.localeCompare(b))
               .slice(-20)
               .map(([date, { total, correct }]) => ({
@@ -76,22 +120,7 @@ export default async function handler(req, res) {
                   pct: total > 0 ? Math.round(100 * correct / total) : 0,
               }));
 
-          // ── 3. Position breakdown ──────────────────────────────────
-          const { data: posRows } = await supabase
-              .from('sandbox_coach_results')
-              .select('hero_position, is_correct')
-              .eq('user_id', userId)
-              .not('hero_position', 'is', null);
-
-          const positions = {};
-          (posRows || []).forEach(r => {
-              const p = (r.hero_position || 'unknown').toUpperCase();
-              if (!positions[p]) positions[p] = { total: 0, correct: 0 };
-              positions[p].total++;
-              if (r.is_correct) positions[p].correct++;
-          });
-
-          const positionStats = Object.entries(positions || {})
+          const positionStats = Object.entries(positions)
               .filter(([, v]) => v.total >= 2)
               .map(([pos, { total, correct }]) => ({
                   position: pos,
@@ -102,23 +131,11 @@ export default async function handler(req, res) {
               .sort((a, b) => b.pct - a.pct);
 
           const topPosition = positionStats[0]?.position || null;
-          const weakPosition = positionStats[positionStats.length - 1]?.position || null;
+          const weakPosition = positionStats.length > 1
+              ? positionStats[positionStats.length - 1].position
+              : null;
 
-          // ── 4. Street breakdown ────────────────────────────────────
-          const { data: streetRows } = await supabase
-              .from('sandbox_coach_results')
-              .select('street, is_correct')
-              .eq('user_id', userId);
-
-          const streets = {};
-          (streetRows || []).forEach(r => {
-              const s = (r.street || 'preflop').toLowerCase();
-              if (!streets[s]) streets[s] = { total: 0, correct: 0 };
-              streets[s].total++;
-              if (r.is_correct) streets[s].correct++;
-          });
-
-          const streetStats = Object.entries(streets || {})
+          const streetStats = Object.entries(streets)
               .map(([street, { total, correct }]) => ({
                   street,
                   total,
@@ -133,8 +150,8 @@ export default async function handler(req, res) {
               success: true,
               totalHands: summary?.total_hands || 0,
               correctCount: summary?.correct_count || 0,
-              accuracyPct: summary?.accuracy_pct || null,
-              avgLeakEv: summary?.avg_leak_ev || null,
+              accuracyPct: summary?.accuracy_pct ?? null,
+              avgLeakEv: summary?.avg_leak_ev ?? null,
               accuracyTrend,
               positionStats,
               topPosition,
@@ -144,7 +161,7 @@ export default async function handler(req, res) {
           });
       } catch (err) {
           console.warn('[session-stats] Handler error:', err);
-          return res.status(500).json({ success: false, error: err.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

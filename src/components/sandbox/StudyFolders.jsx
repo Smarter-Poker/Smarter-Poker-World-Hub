@@ -16,11 +16,26 @@ const M = {
     green: '#00E676',
 };
 
+/** Saved states can be a JSON string, an object, or corrupt legacy data. */
+function parseState(raw) {
+    try {
+        if (typeof raw === 'string') return JSON.parse(raw) || {};
+        return raw && typeof raw === 'object' ? raw : {};
+    } catch (e) {
+        console.warn('[StudyFolders] Corrupt state_json skipped:', e?.message || e);
+        return {};
+    }
+}
+
 export default function StudyFolders({ onClose, onLoadTarget }) {
     const [hands, setHands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFolder, setActiveFolder] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+    const [notice, setNotice] = useState(null);
 
+    // Stable callback: depending on activeFolder made every folder click
+    // re-register the listener and refire the whole GET.
     const fetchHands = useCallback(async () => {
         try {
             const token = getAccessToken();
@@ -30,19 +45,20 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
             }
 
             const res = await fetch('/api/sandbox/saved-hands', { headers });
-            const json = await res.json();
-            if (json.success) {
-                setHands(json.hands);
-                if (json.hands.length > 0 && !activeFolder) {
-                    const folders = [...new Set(json.hands.map(h => h.folder_name))];
-                    setActiveFolder(folders[0]);
+            const json = await res.json().catch(() => null);
+            if (json?.success) {
+                const list = Array.isArray(json.hands) ? json.hands : [];
+                setHands(list);
+                if (list.length > 0) {
+                    const folderNames = [...new Set(list.map(h => h.folder_name))];
+                    setActiveFolder(prev => (prev && folderNames.includes(prev)) ? prev : folderNames[0]);
                 }
             }
         } catch (err) {
             console.warn(err);
         }
         setLoading(false);
-    }, [activeFolder]);
+    }, []);
 
     useEffect(() => {
         fetchHands();
@@ -51,6 +67,38 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
         window.addEventListener('sandbox-hand-saved', handleHandSaved);
         return () => window.removeEventListener('sandbox-hand-saved', handleHandSaved);
     }, [fetchHands]);
+
+    const handleDelete = useCallback(async (id) => {
+        if (!id) return;
+        setDeletingId(id);
+        setNotice(null);
+        try {
+            const token = getAccessToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const res = await fetch('/api/sandbox/save-hand', {
+                method: 'DELETE',
+                headers,
+                body: JSON.stringify({ id }),
+            });
+            const json = await res.json().catch(() => null);
+            if (res.ok && json?.success) {
+                setHands(prev => prev.filter(h => h.id !== id));
+                window.dispatchEvent(new CustomEvent('sandbox-hand-deleted', { detail: { id } }));
+            } else if (res.status === 401) {
+                setNotice('Sign in again to delete saved hands.');
+            } else {
+                // Never surface raw server text ('Method not allowed') as copy.
+                setNotice('Could not delete that hand. Please try again.');
+            }
+        } catch (err) {
+            console.warn('[StudyFolders] Delete error:', err);
+            setNotice('Could not delete that hand.');
+        } finally {
+            setDeletingId(null);
+        }
+    }, []);
 
     const folders = [...new Set(hands.map(h => h.folder_name))];
     const filteredHands = hands.filter(h => h.folder_name === activeFolder);
@@ -69,7 +117,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                 {/* Header */}
                 <div style={{ padding: '16px 20px', borderBottom: `1px solid ${M.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: M.card }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(69,153,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📁</div>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(69,153,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{'📁'}</div>
                         <div>
                             <div style={{ fontSize: 16, fontWeight: 800, color: M.text }}>Study Folders</div>
                             <div style={{ fontSize: 11, color: M.sub }}>{hands.length} customized scenarios saved</div>
@@ -82,22 +130,23 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: M.sub, fontSize: 14 }}>Loading your study lab...</div>
                 ) : hands.length === 0 ? (
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: 40, textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>{'📭'}</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: M.text, marginBottom: 8 }}>Empty Archive</div>
                         <div style={{ fontSize: 13, color: M.sub, maxWidth: 280, lineHeight: 1.5 }}>
                             You haven't saved any scenarios yet. Use the "Save to Folder" button in the Sandbox overflow menu to start building your custom drilling library.
                         </div>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                        {/* Left sidebar - Folders */}
-                        <div style={{ width: 200, background: 'rgba(0,0,0,0.2)', borderRight: `1px solid ${M.border}`, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                    <div className="sf-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                        {/* Left sidebar - Folders (collapses to a chip row under 480px) */}
+                        <div className="sf-folders" style={{ width: 200, background: 'rgba(0,0,0,0.2)', borderRight: `1px solid ${M.border}`, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
                             {folders.map(f => (
                                 <button
                                     key={f}
+                                    className="sf-folder-btn"
                                     onClick={() => setActiveFolder(f)}
                                     style={{
-                                        padding: '14px 16px', background: activeFolder === f ? 'rgba(69,153,255,0.1)' : 'transparent', border: 'none', borderLeft: activeFolder === f ? `3px solid ${M.accent}` : '3px solid transparent', color: activeFolder === f ? M.accent : M.text, fontSize: 13, fontWeight: activeFolder === f ? 700 : 500, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s'
+                                        padding: '14px 16px', background: activeFolder === f ? 'rgba(69,153,255,0.1)' : 'transparent', border: 'none', borderLeft: activeFolder === f ? `3px solid ${M.accent}` : '3px solid transparent', color: activeFolder === f ? M.accent : M.text, fontSize: 13, fontWeight: activeFolder === f ? 700 : 500, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s', whiteSpace: 'nowrap',
                                     }}
                                 >
                                     <span style={{ fontSize: 14 }}>{activeFolder === f ? '📂' : '📁'}</span>
@@ -110,17 +159,28 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                         </div>
 
                         {/* Right main - Hands */}
-                        <div style={{ flex: 1, padding: 20, overflowY: 'auto', background: M.bg }}>
+                        <div className="sf-main" style={{ flex: 1, padding: 20, overflowY: 'auto', background: M.bg }}>
                             <div style={{ fontSize: 15, fontWeight: 700, color: M.text, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {activeFolder}
                                 <span style={{ fontSize: 11, fontWeight: 400, color: M.sub }}>{filteredHands.length} setups</span>
                             </div>
 
+                            {notice && (
+                                <div style={{ fontSize: 11, color: '#fca5a5', background: 'rgba(239,83,80,0.1)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
+                                    {notice}
+                                </div>
+                            )}
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 {filteredHands.map((h, i) => {
-                                    const state = typeof h.state_json === 'string' ? JSON.parse(h.state_json) : h.state_json;
-                                    const boardCars = state.board?.flop?.join(' ') || state.board?.join(' ') || 'Preflop';
-                                    const heroCards = state.heroHand ? `${state.heroHand.card1}${state.heroHand.card2}` : 'Unknown';
+                                    const state = parseState(h.state_json);
+                                    const boardCars = state.board?.flop?.join(' ')
+                                        || (Array.isArray(state.board) ? state.board.join(' ') : '')
+                                        || 'Preflop';
+                                    const heroCards = state.heroHand
+                                        ? `${state.heroHand.card1 || '?'}${state.heroHand.card2 || '?'}`
+                                        : 'Unknown';
+                                    const loadable = !!(state.heroHand || state.board);
 
                                     return (
                                         <div key={h.id || i} style={{ background: M.card, border: `1px solid ${M.border}`, borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s' }}>
@@ -138,15 +198,29 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    onLoadTarget(state);
-                                                    onClose();
-                                                }}
-                                                style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(0,230,118,0.15)', color: M.green, border: `1px solid rgba(0,230,118,0.3)`, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                                ▶ Load Sandbox
-                                            </button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                                <button
+                                                    onClick={() => {
+                                                        if (!loadable) return;
+                                                        onLoadTarget?.(state);
+                                                        onClose?.();
+                                                    }}
+                                                    disabled={!loadable}
+                                                    title={loadable ? 'Load this scenario' : 'This saved state is unreadable'}
+                                                    style={{ padding: '8px 16px', borderRadius: 8, background: loadable ? 'rgba(0,230,118,0.15)' : 'rgba(255,255,255,0.04)', color: loadable ? M.green : M.sub, border: `1px solid ${loadable ? 'rgba(0,230,118,0.3)' : M.border}`, fontSize: 12, fontWeight: 700, cursor: loadable ? 'pointer' : 'not-allowed' }}
+                                                >
+                                                    {'▶ Load Sandbox'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(h.id)}
+                                                    disabled={deletingId === h.id || !h.id}
+                                                    aria-label="Delete saved hand"
+                                                    title="Delete saved hand"
+                                                    style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(239,83,80,0.1)', color: '#fca5a5', border: '1px solid rgba(239,83,80,0.25)', fontSize: 12, fontWeight: 700, cursor: deletingId === h.id ? 'wait' : 'pointer' }}
+                                                >
+                                                    {deletingId === h.id ? '…' : '✕'}
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -154,6 +228,22 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                         </div>
                     </div>
                 )}
+
+                <style jsx>{`
+                    @media (max-width: 480px) {
+                        .sf-body { flex-direction: column; }
+                        .sf-folders {
+                            width: 100% !important;
+                            flex-direction: row !important;
+                            overflow-x: auto;
+                            overflow-y: hidden;
+                            border-right: none;
+                            border-bottom: 1px solid #3E4042;
+                        }
+                        .sf-folder-btn { padding: 10px 12px !important; border-left: none !important; }
+                        .sf-main { padding: 12px !important; }
+                    }
+                `}</style>
             </motion.div>
         </motion.div>
     );

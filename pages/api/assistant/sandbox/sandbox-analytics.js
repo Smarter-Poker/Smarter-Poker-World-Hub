@@ -3,7 +3,7 @@
  * POST: Log analyzed spot (position, street, action, outcome)
  * GET:  Return aggregate stats and study patterns
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -16,6 +16,9 @@ function getSupabase() {
     }
     return _supabase;
 }
+
+const POSITIONS = ['UTG', 'UTG1', 'UTG2', 'MP', 'MP1', 'MP2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+const STREETS = ['preflop', 'flop', 'turn', 'river'];
 
 export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
@@ -34,22 +37,31 @@ export default async function handler(req, res) {
         if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
         if (req.method === 'POST') {
-            const { position, street, gameType, action, isCorrect, handStrength } = req.body;
+            const { position, street, gameType, action, isCorrect, handStrength } = req.body || {};
+
+            // Whitelist the dimensions we aggregate on; free text is bounded.
+            const pos = POSITIONS.includes(String(position || '').toUpperCase())
+                ? String(position).toUpperCase()
+                : 'BTN';
+            const st = STREETS.includes(String(street || '').toLowerCase())
+                ? String(street).toLowerCase()
+                : 'preflop';
 
             const { error } = await getSupabase()
                 .from('sandbox_analytics')
                 .insert({
                     user_id: user.id,
-                    position: position || 'BTN',
-                    street: street || 'preflop',
-                    game_type: gameType || 'cash',
-                    action_taken: action || null,
-                    is_correct: isCorrect ?? null,
-                    hand_strength: handStrength || null,
+                    position: pos,
+                    street: st,
+                    game_type: String(gameType || 'cash').slice(0, 20),
+                    action_taken: action ? String(action).slice(0, 40) : null,
+                    is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
+                    hand_strength: handStrength ? String(handStrength).slice(0, 40) : null,
                 });
 
             if (error) {
                 console.warn('[Analytics] Log error:', error.message);
+                if (error.code === '42P01') return res.status(201).json({ success: true, persisted: false });
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
@@ -57,45 +69,52 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'GET') {
-            // Get position distribution
-            const { data: posData } = await getSupabase()
-                .from('sandbox_analytics')
-                .select('position')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(200);
+            const supabase = getSupabase();
 
-            // Get accuracy stats
-            const { data: accuracyData } = await getSupabase()
-                .from('sandbox_analytics')
-                .select('is_correct')
-                .eq('user_id', user.id)
-                .not('is_correct', 'is', null)
-                .order('created_at', { ascending: false })
-                .limit(100);
+            const [posRes, accuracyRes, countRes] = await Promise.all([
+                // Position distribution
+                supabase
+                    .from('sandbox_analytics')
+                    .select('position')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(200),
+                // Accuracy stats
+                supabase
+                    .from('sandbox_analytics')
+                    .select('is_correct')
+                    .eq('user_id', user.id)
+                    .not('is_correct', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(100),
+                // Total count
+                supabase
+                    .from('sandbox_analytics')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id),
+            ]);
 
-            // Get total count
-            const { count } = await getSupabase()
-                .from('sandbox_analytics')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id);
+            const posData = posRes?.data || [];
+            const accuracyData = accuracyRes?.data || [];
+            const count = countRes?.count || 0;
 
             // Calculate position distribution
             const posCounts = {};
-            (posData || []).forEach(r => { posCounts[r.position] = (posCounts[r.position] || 0) + 1; });
+            posData.forEach(r => { if (r?.position) posCounts[r.position] = (posCounts[r.position] || 0) + 1; });
 
             // Calculate accuracy
-            const correct = (accuracyData || []).filter(r => r.is_correct).length;
-            const total = (accuracyData || []).length;
+            const correct = accuracyData.filter(r => r.is_correct).length;
+            const total = accuracyData.length;
 
             // Find most/least studied positions
-            const posEntries = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]);
+            const posEntries = Object.entries(posCounts).sort((a, b) => b[1] - a[1]);
             const mostStudied = posEntries[0]?.[0] || null;
-            const leastStudied = posEntries[posEntries.length - 1]?.[0] || null;
+            // With a single position studied, most === least — not an insight.
+            const leastStudied = posEntries.length >= 2 ? posEntries[posEntries.length - 1][0] : null;
 
             // Generate insights
             const insights = [];
-            if (posEntries.length >= 2) {
+            if (posEntries.length >= 2 && leastStudied && leastStudied !== mostStudied) {
                 const ratio = posEntries[0][1] / (posEntries[posEntries.length - 1][1] || 1);
                 if (ratio >= 3) insights.push(`You study ${mostStudied} ${ratio.toFixed(0)}x more than ${leastStudied}. Try balancing your study.`);
             }
@@ -107,7 +126,7 @@ export default async function handler(req, res) {
             }
 
             return res.status(200).json({
-                totalAnalyses: count || 0,
+                totalAnalyses: count,
                 positionDistribution: posCounts,
                 accuracy: total > 0 ? Math.round(correct / total * 100) : null,
                 mostStudied,

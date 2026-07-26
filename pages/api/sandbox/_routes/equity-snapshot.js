@@ -3,18 +3,31 @@
  * Persists a per-street equity snapshot to sandbox_equity_history.
  * Called from sandbox.js after each street analysis completes.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
+let _supabase = null;
 function getSupabase() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+/** Clamp an optional string field; null when absent. */
+function clampOptional(value, max) {
+    if (value === undefined || value === null || value === '') return null;
+    return String(value).slice(0, max);
 }
 
 export default async function handler(req, res) {
   try {
+      // Fires once per analyzed street — bound it like every other write.
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
@@ -39,36 +52,43 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, stored: false, reason: 'guest' });
           }
 
-          const { sessionId, heroHand, villainRange, street, equityPct, evHero, boardCards } = req.body;
+          const { sessionId, heroHand, villainRange, street, equityPct, evHero, boardCards } = req.body || {};
 
           if (!heroHand || !street) {
               return res.status(400).json({ success: false, error: 'Missing required fields: heroHand, street' });
           }
+
+          const equity = typeof equityPct === 'number' && isFinite(equityPct)
+              ? Math.min(100, Math.max(0, equityPct))
+              : null;
 
           const { data, error } = await supabase
               .from('sandbox_equity_history')
               .insert({
                   user_id: userId,
                   session_id: sessionId || null,
-                  hero_hand: heroHand,
-                  villain_range: villainRange || null,
-                  street,
-                  equity_pct: typeof equityPct === 'number' ? equityPct : null,
-                  ev_hero: typeof evHero === 'number' ? evHero : null,
-                  board_cards: boardCards || null,
+                  hero_hand: String(heroHand).slice(0, 8),
+                  villain_range: clampOptional(villainRange, 400),
+                  street: String(street).slice(0, 10),
+                  equity_pct: equity,
+                  ev_hero: typeof evHero === 'number' && isFinite(evHero) ? evHero : null,
+                  board_cards: clampOptional(boardCards, 60),
               })
               .select('id')
               .maybeSingle();
 
           if (error) {
               console.warn('[equity-snapshot] Insert error:', error.message);
+              if (error.code === '42P01') {
+                  return res.status(200).json({ success: true, stored: false, reason: 'table_missing' });
+              }
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(200).json({ success: true, id: data?.id });
       } catch (err) {
           console.warn('[equity-snapshot] Handler error:', err);
-          return res.status(500).json({ success: false, error: err.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

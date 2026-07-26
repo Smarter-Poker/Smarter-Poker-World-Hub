@@ -70,8 +70,18 @@ export default function CoachFeedback({ results, heroHand, heroPosition, coachUs
             ? getRandomTip(CORRECT_TIPS, data)
             : getRandomTip(INCORRECT_TIPS, data);
 
-        // Determine frequency insight
-        const breakdown = results.actionBreakdown || results.optimalAction?.breakdown;
+        // Determine frequency insight.
+        // The analyze API returns `actions: [{ id, label, frequency, isOptimal }]`
+        // (0-100). Older/mock payloads may carry an explicit map instead.
+        const breakdown = results.actionBreakdown
+            || results.optimalAction?.breakdown
+            || (Array.isArray(results.actions)
+                ? Object.fromEntries(
+                    results.actions
+                        .filter(a => a && (a.label || a.id))
+                        .map(a => [a.label || a.id, Number(a.frequency) || 0])
+                )
+                : null);
         let freqLevel = null;
         if (breakdown) {
             const gtoFreq = breakdown[gtoAction] || 0;

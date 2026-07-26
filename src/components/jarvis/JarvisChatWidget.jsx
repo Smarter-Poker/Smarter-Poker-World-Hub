@@ -15,6 +15,9 @@ export default function JarvisChatWidget({ user }) {
         router.push('/hub/messenger?chat=jarvis');
     };
 
+    // Jarvis chat requires an account — hide the widget for logged-out users
+    if (!user) return null;
+
     return (
         <motion.div
             initial={{ scale: 0, opacity: 0 }}
@@ -22,7 +25,7 @@ export default function JarvisChatWidget({ user }) {
             transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
             style={{
                 position: 'fixed',
-                bottom: 24,
+                bottom: 90, // clear the fixed BottomNavBar
                 right: 24,
                 zIndex: 1000,
             }}
@@ -100,14 +103,13 @@ export default function JarvisChatWidget({ user }) {
             <AnimatePresence>
                 {isHovered && (
                     <motion.div
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
+                        initial={{ opacity: 0, x: 10, y: '-50%' }}
+                        animate={{ opacity: 1, x: 0, y: '-50%' }}
+                        exit={{ opacity: 0, x: 10, y: '-50%' }}
                         style={{
                             position: 'absolute',
                             right: 80,
                             top: '50%',
-                            transform: 'translateY(-50%)',
                             background: 'rgba(0, 0, 0, 0.9)',
                             color: '#00D4FF',
                             padding: '8px 16px',
