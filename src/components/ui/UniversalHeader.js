@@ -15,7 +15,7 @@
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
 import Head from 'next/head';
@@ -67,6 +67,15 @@ const C = {
 // data already sitting in localStorage. Inside this window we trust the cache.
 const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
+// Static — hoisted out of the component so it is not rebuilt on every render.
+const OVERLAY_TITLES = {
+    profile: 'My Profile',
+    messenger: 'Messenger',
+    notifications: 'Notifications',
+    settings: 'Settings',
+    'diamond-store': 'Diamond Store',
+};
+
 // useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
 // server. On the client this flushes BEFORE the browser paints, which means the
 // isMounted gate below never shows the un-hydrated (avatar-less) frame to the user.
@@ -86,7 +95,13 @@ export default function UniversalHeader({
     // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
     // Parses localStorage once and returns the cached header object (or null if expired/missing).
     // This prevents double JSON.parse and ensures stale data (>24h) is discarded.
-    const _cachedHeader = (() => {
+    // PERF (header-audit follow-up): this was a bare IIFE, so it re-read localStorage
+    // TWICE and re-parsed TWO JSON payloads on every single render — and this component
+    // re-renders on every notification tick, balance tick and realtime event. Nothing
+    // downstream wants a fresh read: the value feeds a useState initializer and two
+    // effects with [] deps, all of which only ever see the first-render value. Memoising
+    // with [] deps is therefore behaviour-preserving and drops the work to once per mount.
+    const _cachedHeader = useMemo(() => {
         if (typeof window === 'undefined') return null;
         try {
             // Get current user ID to prevent cross-session cache bleed
@@ -108,7 +123,7 @@ export default function UniversalHeader({
             
             return data;
         } catch (_) { return null; }
-    })();
+    }, []);
 
     const [user, setUser] = useState(_cachedHeader);
     const [notificationCount, setNotificationCount] = useState(() => {
@@ -294,21 +309,14 @@ export default function UniversalHeader({
     }, []);
 
 
-    const overlayUrlMap = {
+    // Only the profile entry is dynamic; the rest are constants (see OVERLAY_TITLES).
+    const overlayUrlMap = useMemo(() => ({
         profile: profileHref,
         messenger: '/hub/messenger',
         notifications: '/hub/notifications',
         settings: '/hub/settings',
         'diamond-store': '/hub/diamond-store',
-    };
-
-    const overlayTitleMap = {
-        profile: 'My Profile',
-        messenger: 'Messenger',
-        notifications: 'Notifications',
-        settings: 'Settings',
-        'diamond-store': 'Diamond Store',
-    };
+    }), [profileHref]);
 
     useEffect(() => {
         let mounted = true; // Prevent state updates after unmount
@@ -1260,7 +1268,7 @@ export default function UniversalHeader({
                 isOpen={!!overlayPage}
                 onClose={closeOverlay}
                 url={overlayPage ? overlayUrlMap[overlayPage] : null}
-                title={overlayPage ? overlayTitleMap[overlayPage] : ''}
+                title={overlayPage ? OVERLAY_TITLES[overlayPage] : ''}
                 onNotifCleared={handleNotifCleared}
             />
         </>

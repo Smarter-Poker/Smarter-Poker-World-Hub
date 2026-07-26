@@ -61,7 +61,9 @@ High/Low mode.
    discarded its own prefs, so the arena fell back to defaults.
 3. **Game Mode: Full Hand / Spot / Street.** GAP — we always play a spot, with
    partial multi-street support. GTOW makes this an explicit choice.
-4. **Timebank 7 / 15 / 25s.** BROKEN — ours offers No timer / 60s / 15s.
+4. **Timebank 7 / 15 / 25s.** BUILT 2026-07-26 — re-scaled to No timer /
+   25s / 15s / 7s across the setup modal and both in-arena pickers. Ours had
+   'Standard' at 60s, four times GTOW's longest tier.
 5. **Auto New Hand delay configurable.** BUILT — auto-advance is now opt-in;
    the delay is still hardcoded. Expose it, default 3s when enabled.
 6. **Feedback rule: every action vs only-after-mistake.** GAP — the single
@@ -98,9 +100,12 @@ High/Low mode.
     check.
 25. **GTOW Score -100..+100.** BROKEN — ours is a 0-100 weighted average.
 26. **EV loss in bb.** DONE — was inflated by a factor of the pot size.
-27. **EV loss as % of pot.** BROKEN — the formula was dimensionally wrong
-    (`evDiff * 100` reported as a percentage).
-28. **Average loss per mistake.** GAP — we track total and per-hand only.
+27. **EV loss as % of pot.** BUILT 2026-07-26 — the engine formula was fixed
+    earlier; the value was computed and then displayed nowhere. The feedback
+    banner now shows both units, e.g. `-0.50 bb (8.3% pot)`.
+28. **Average loss per mistake.** BUILT — corrected during cross-reference:
+    `avgEVLossPerMistake` already existed in useGTOWScore and is threaded
+    through the arena. The roadmap's original GAP status was wrong.
 29. **Feedback waits for the player.** DONE — auto-advance defaulted on at 2s,
     which is why explanations vanished before they could be read.
 30. **Feedback inline; hand stays visible.** BROKEN — renders below, but the

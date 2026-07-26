@@ -299,15 +299,35 @@ export function UnreadProvider({ children }) {
             // Refresh periodically as backup (corrects any drift).
             // For messages this is the PRIMARY update mechanism (no Realtime channel —
             // see cost-fix note above). 30 s is acceptable latency for an unread badge.
-            const interval = setInterval(() => {
+            // PERF (header-audit follow-up): refreshNotifications() now calls
+            // /api/user/get-header-stats, which is ~8 DB round-trips — considerably more
+            // expensive than the single count query it replaced. Firing that every 30s in
+            // every background tab, forever, is a real cost. Skip the tick entirely while
+            // the tab is hidden, and catch up once it becomes visible again — which is the
+            // only moment a stale badge is actually observable.
+            const tick = () => {
+                if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
                 refreshUnread();
                 refreshNotifications();
-            }, 30000);
+            };
+            const interval = setInterval(tick, 30000);
+
+            // Catch-up on return. Without this the badge could be up to 30s stale at
+            // precisely the moment the user looks at it.
+            const onVisibility = () => {
+                if (document.visibilityState === 'visible') tick();
+            };
+            if (typeof document !== 'undefined') {
+                document.addEventListener('visibilitychange', onVisibility);
+            }
 
             return () => {
                 if (notifChannel) { try { supabase.removeChannel(notifChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
                 if (notifDebounceRef.current) { clearTimeout(notifDebounceRef.current); notifDebounceRef.current = null; }
                 clearInterval(interval);
+                if (typeof document !== 'undefined') {
+                    document.removeEventListener('visibilitychange', onVisibility);
+                }
                 cleanupUnreadSync();
             };
         }
