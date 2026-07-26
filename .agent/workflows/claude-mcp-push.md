@@ -23,3 +23,9 @@ For binary assets (e.g., `.webp`, `.png` files) where the base64 encoding ceilin
 3. **DO NOT attempt to `git push`.** A concurrent `git-safe-push-auto` cron process runs natively on the Mac. It will automatically detect your local commits and push them to GitHub. This bypasses both the MCP encoding ceiling and your sandbox's network block.
 
 Do not ask the user to configure `.env` tokens, give you tokens, or run manual pushes for you. Use the GitHub MCP for text, and rely on the local `git-safe-push-auto` background process to push local commits containing binaries.
+
+## NO "REVIEW BEATS" OR HANDOFFS ALLOWED
+Do NOT leave files uncommitted in the working tree to allow for a "review beat." The user explicitly does NOT want manual review gates, handoffs, or deploy prompts. 
+Because the local environment is managed by autonomous agents, an automated `git reset --hard origin/main` loop runs between sessions. If you leave your work uncommitted, it WILL be permanently destroyed. 
+
+**For ALL changes (text or binary):** You MUST commit your changes locally before concluding your response. Once committed, the `git-safe-push-auto` background process will push and deploy them to production automatically. You are fully authorized to deploy to production without waiting for the user.
