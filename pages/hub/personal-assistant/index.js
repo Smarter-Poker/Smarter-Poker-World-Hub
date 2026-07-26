@@ -160,11 +160,16 @@ export default function PersonalAssistantPage() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Page Title Header */}
-        <div style={{ textAlign: 'center', margin: '16px auto 0' }}>
-          <h1 style={{ color: '#fff', fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', margin: 0 }}>
-            MEET JARVIS YOUR PERSONAL ASSISTANT
-          </h1>
+        {/* Page Title Header Image */}
+        <div style={{ textAlign: 'center', margin: '16px auto 16px', padding: '0 12px' }}>
+          <Image 
+            src="/images/jarvis-header-banner.png" 
+            alt="Meet Jarvis Your Personal Assistant" 
+            width={1200} 
+            height={300} 
+            style={{ width: '100%', height: 'auto', maxWidth: '961px', display: 'block', margin: '0 auto' }} 
+            priority
+          />
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
@@ -172,145 +177,80 @@ export default function PersonalAssistantPage() {
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
           {/* The metal frame image — strictly controls container height/width */}
-          <Image src="/images/personal-assistant-frame.png" alt="Strategy Hub" width={961} height={1024} style={S.frameImage} />
+          <Image 
+            src="/images/jarvis-body-frame.png" 
+            alt="Virtual Sandbox and Leak Finder" 
+            width={961} 
+            height={1200} 
+            style={S.frameImage} 
+            priority
+          />
 
-          {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
+          {/* ── HOTSPOT: Virtual Sandbox Card (Left Panel) ──── */}
           <div
             id="hotspot-sandbox"
             style={{
               ...S.hotspot,
-              top: '13.7%', left: '14.0%', width: '35.4%', height: '33.7%',
+              top: '8%', left: '8%', width: '40%', height: '45%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="Virtual Sandbox — Explore Theoretical Hands"
           />
 
-          {/* ── HOTSPOT: Enter Sandbox Button ──────────────────────── */}
-          <div
-            id="hotspot-enter-sandbox"
-            style={{
-              ...S.hotspot,
-              top: '40.0%', left: '17.5%', width: '28.5%', height: '4.9%',
-            }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
-            title="Enter Sandbox"
-          />
-
-          {/* ── HOTSPOT: Leak Finder Card (entire right panel) ────── */}
+          {/* ── HOTSPOT: Leak Finder Card (Right Panel) ────── */}
           <div
             id="hotspot-leaks"
             style={{
               ...S.hotspot,
-              top: '13.7%', left: '50.5%', width: '35.4%', height: '33.7%',
+              top: '8%', left: '52%', width: '40%', height: '45%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="Leak Finder — Track and Improve Your Game"
           />
 
-          {/* ── HOTSPOT: View Leaks Button ─────────────────────────── */}
+          {/* ── HOTSPOT: Recent Sessions ───────────────────────── */}
           <div
-            id="hotspot-view-leaks"
+            id="hotspot-recent-sessions"
             style={{
               ...S.hotspot,
-              top: '40.0%', left: '53.9%', width: '28.5%', height: '4.9%',
+              top: '58%', left: '8%', width: '40%', height: '14%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
-            title="View Leaks"
+            title="Recent Sessions"
           />
 
-          {/* ── HOTSPOT: GTO Anchored Pillar ───────────────────────── */}
+          {/* ── HOTSPOT: New Leaks ─────────────────────────────── */}
           <div
-            id="hotspot-gto"
+            id="hotspot-new-leaks"
             style={{
               ...S.hotspot,
-              top: '55.7%', left: '15.1%', width: '22.9%', height: '11.7%',
+              top: '58%', left: '52%', width: '40%', height: '14%',
+            }}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
+            title="New Leaks"
+          />
+
+          {/* ── HOTSPOT: Last Session ──────────────────────────── */}
+          <div
+            id="hotspot-last-session"
+            style={{
+              ...S.hotspot,
+              top: '75%', left: '8%', width: '40%', height: '14%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
-            title="GTO Anchored — Tied To Solver Analysis"
+            title="Last Session"
           />
 
-          {/* ── HOTSPOT: Safe & Fair Pillar (informational, not clickable) ── */}
+          {/* ── HOTSPOT: Training Center ───────────────────────── */}
           <div
-            id="hotspot-safe"
+            id="hotspot-training-center"
             style={{
               ...S.hotspot,
-              cursor: 'default',
-              top: '55.7%', left: '38.5%', width: '22.9%', height: '11.7%',
+              top: '75%', left: '52%', width: '40%', height: '14%',
             }}
-            title="Safe and Fair — No Exploit Hunting"
+            onClick={() => { if (guardAction()) router.push('/hub/training'); }}
+            title="Training Center"
           />
-
-          {/* ── HOTSPOT: Results-Driven Pillar ──────────────────────── */}
-          <div
-            id="hotspot-results"
-            style={{
-              ...S.hotspot,
-              top: '55.7%', left: '61.9%', width: '22.9%', height: '11.7%',
-            }}
-            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
-            title="Results-Driven — Identify Leaks, Track Improvement"
-          />
-
-          {/* ── HOTSPOT: Recent Sessions Area ──────────────────────── */}
-          <div
-            id="hotspot-sessions"
-            style={{
-              ...S.hotspot,
-              top: '69.8%', left: '12.0%', width: '76.0%', height: '16.6%',
-            }}
-            title="Recent Sessions"
-          >
-            {/* Dynamic session list overlay */}
-            <div style={S.sessionOverlay}>
-              {isLoading ? (
-                <div style={S.sessionOverlayText}>Loading...</div>
-              ) : recentSessions.length === 0 ? (
-                <div style={S.sessionOverlayText}>No Sessions Yet</div>
-              ) : (
-                <div style={S.sessionOverlayList}>
-                  {recentSessions.slice(0, 3).map((session) => (
-                    <div
-                      key={session.id}
-                      style={{
-                        ...S.sessionOverlayRow,
-                        ...(hoveredZone === `session-${session.id}` ? S.sessionRowHover : {}),
-                      }}
-                      onClick={() => openSession(session)}
-                      onMouseEnter={() => setHoveredZone(`session-${session.id}`)}
-                      onMouseLeave={() => setHoveredZone(null)}
-                    >
-                      <span style={S.sessionRowName}>{session.title}</span>
-                      {typeof session.evLoss === 'number' && session.evLoss !== 0 ? (
-                        <span style={{
-                          ...S.sessionRowEv,
-                          color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
-                        }}>
-                          {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
-                        </span>
-                      ) : (
-                        <span style={{ ...S.sessionRowEv, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
-                          {formatSessionDate(session.date)}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── JARVIS AVATAR in Circular Frame (bottom-right) ─────── */}
-          <div
-            id="hotspot-jarvis"
-            style={{
-              ...S.jarvisHotspot,
-              top: '82.0%', left: '81.5%', width: '7.5%', height: '7.5%',
-            }}
-            onClick={() => { if (guardAction()) router.push('/hub/messenger?chat=jarvis'); }}
-            title="Chat with Jarvis"
-          >
-            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} style={S.jarvisImg} />
-          </div>
         </div>
 
         {/* Dashboard stat cards — fed by /api/assistant/stats */}
