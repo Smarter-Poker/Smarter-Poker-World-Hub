@@ -3,7 +3,7 @@
  * useDiamondBalance — Shared hook for diamond balance state management
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Used by both UniversalHeader and ThreePillHeader to:
+ * Used by UniversalHeader to:
  * - Read cached balance from localStorage instantly
  * - Fetch fresh balance from /api/user/get-header-stats
  * - Receive profile.diamonds changes via the shared useProfileRealtime hook
