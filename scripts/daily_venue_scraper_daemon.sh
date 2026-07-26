@@ -17,6 +17,10 @@ LOCKFILE="/tmp/sp_scraper.lock"
 
 mkdir -p "$LOGDIR"
 
+# Browser self-heal — see scripts/ensure-browsers.sh
+. "$ROOT/scripts/ensure-browsers.sh"
+ensure_browsers "$ROOT"
+
 log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$MASTERLOG"; }
 
 # ── Prevent duplicate instances ───────────────────────────────────────────────

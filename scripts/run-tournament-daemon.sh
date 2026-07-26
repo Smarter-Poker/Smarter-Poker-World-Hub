@@ -22,6 +22,10 @@ PYTHON=".venv/bin/python3"
 SCRAPER="scripts/tournament-schedule-daemon.py"
 BATCH_SLEEP=30
 
+# Browser self-heal before verifying the stack.
+. "$PROJECT_ROOT/scripts/ensure-browsers.sh"
+ensure_browsers "$PROJECT_ROOT"
+
 # Verify Scrapling
 $PYTHON -c "import scrapling; print('  Scrapling', scrapling.__version__, '✅')" || {
     echo "❌ Scrapling not installed — run: .venv/bin/pip install scrapling[camoufox]"

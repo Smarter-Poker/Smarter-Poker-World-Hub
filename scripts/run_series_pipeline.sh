@@ -16,6 +16,10 @@ echo "==================================================================" | tee 
 
 cd "$ROOT" || exit 1
 
+# Browser self-heal — the whole pipeline crashed for weeks on a missing chromium.
+. "$ROOT/scripts/ensure-browsers.sh"
+ensure_browsers "$ROOT" 2>&1 | tee -a "$LOG"
+
 # Step 1: Discovery — find new series from 4 sources
 echo "[$(ts)] Step 1: Running series discovery..." | tee -a "$LOG"
 "$PYTHON" scripts/scrape_poker_series_discovery.py 2>&1 | tee -a "$LOG"
