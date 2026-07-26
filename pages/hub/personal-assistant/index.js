@@ -20,7 +20,6 @@ import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssi
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
-import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Image-Based Metal Frame Layout
@@ -160,28 +159,16 @@ export default function PersonalAssistantPage() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Page Title Header Image */}
-        <div style={{ textAlign: 'center', margin: '16px auto 16px', padding: '0 12px' }}>
-          <Image 
-            src="/images/jarvis-header-banner.png" 
-            alt="Meet Jarvis Your Personal Assistant" 
-            width={1200} 
-            height={300} 
-            style={{ width: '100%', height: 'auto', maxWidth: '961px', display: 'block', margin: '0 auto' }} 
-            priority
-          />
-        </div>
-
         {/* ═══════════════════════════════════════════════════════════
             FULL-PAGE METAL FRAME — Image fills entire viewport
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
           {/* The metal frame image — strictly controls container height/width */}
           <Image 
-            src="/images/jarvis-body-frame.png" 
+            src="/images/jarvis-combined.png" 
             alt="Virtual Sandbox and Leak Finder" 
-            width={961} 
-            height={1200} 
+            width={1200} 
+            height={1500} 
             style={S.frameImage} 
             priority
           />
@@ -191,7 +178,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-sandbox"
             style={{
               ...S.hotspot,
-              top: '8%', left: '8%', width: '40%', height: '45%',
+              top: '23%', left: '8%', width: '40%', height: '35%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="Virtual Sandbox — Explore Theoretical Hands"
@@ -202,7 +189,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-leaks"
             style={{
               ...S.hotspot,
-              top: '8%', left: '52%', width: '40%', height: '45%',
+              top: '23%', left: '52%', width: '40%', height: '35%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="Leak Finder — Track and Improve Your Game"
@@ -213,7 +200,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-recent-sessions"
             style={{
               ...S.hotspot,
-              top: '58%', left: '8%', width: '40%', height: '14%',
+              top: '60%', left: '8%', width: '40%', height: '11%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="Recent Sessions"
@@ -224,7 +211,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-new-leaks"
             style={{
               ...S.hotspot,
-              top: '58%', left: '52%', width: '40%', height: '14%',
+              top: '60%', left: '52%', width: '40%', height: '11%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="New Leaks"
@@ -235,7 +222,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-last-session"
             style={{
               ...S.hotspot,
-              top: '75%', left: '8%', width: '40%', height: '14%',
+              top: '74%', left: '8%', width: '40%', height: '11%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="Last Session"
@@ -246,7 +233,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-training-center"
             style={{
               ...S.hotspot,
-              top: '75%', left: '52%', width: '40%', height: '14%',
+              top: '74%', left: '52%', width: '40%', height: '11%',
             }}
             onClick={() => { if (guardAction()) router.push('/hub/training'); }}
             title="Training Center"
@@ -306,9 +293,6 @@ export default function PersonalAssistantPage() {
         )}
       </div>
 
-      {/* Floating Jarvis chat entry point (logged-in users) */}
-      <JarvisChatWidget user={user} />
-
       {UpgradePopup}
           <BottomNavBar />
     </PageTransition>
@@ -323,7 +307,8 @@ const S = {
   // Page base
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-    background: 'linear-gradient(180deg, #0d1929 0%, #0a1628 50%, #061018 100%)',
+    background: 'url(/images/jarvis-bg.jpg) center center / cover no-repeat fixed',
+    backgroundColor: '#0a1628', // Fallback color
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
