@@ -436,11 +436,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Build carousel orbs — inject Toke Tracker (always) and Commander card
     const carouselOrbs = useMemo(() => {
         const orbs = [...POKER_IQ_ORBS];
-        // Always inject Toke Tracker at position 2 (after Social Media + Diamond Arena)
+        // Always inject Toke Tracker at position 2
         if (!orbs.find(o => o.id === 'toke-tracker')) {
             orbs.splice(2, 0, TOKE_TRACKER_ORB);
         }
-        if (hasCommanderAccount) orbs.splice(1, 0, COMMANDER_ORB);
+        if (hasCommanderAccount) orbs.splice(0, 0, COMMANDER_ORB);
         // Filter out user-hidden cards — PINNED cards are immune to filtering
         return hiddenCardIds.length > 0
             ? orbs.filter(o => !hiddenCardIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
