@@ -62,18 +62,41 @@ export interface CelebrationData {
 // 💎 REWARD CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Diamond Rewards Standard v2.
+ *
+ * These values MUST match src/config/diamondRewards.js, which is the single
+ * source of truth and is mirrored into the diamond_reward_catalog table that
+ * award_diamonds_v2() reads. Nothing here is authoritative — the database
+ * enforces the real ceiling. These constants exist only so client-side UI can
+ * show a plausible number before the server responds.
+ *
+ * Changed in v2:
+ *   DAILY_CAP 500 -> 110 free / 150 VIP   (500/day was $5.00/day of real
+ *                                          liability at 1 diamond = $0.01)
+ *   DAILY_LOGIN  5-50 (+7/day) -> 5-25 (+2/day), on a TRUE consecutive-day
+ *                                          streak rather than a row count
+ *   STREAK_MULTIPLIERS are the SHARE streak ladder (1.2x@3d, 1.5x@7d,
+ *   1.75x@14d, 2.0x@30d). The cap is measured AFTER the multiplier, so a
+ *   multiplier helps you reach the cap with less work but never raises it.
+ */
 export const REWARD_RULES = {
-    DAILY_CAP: 500,
-    MIN_AWARD: 5,
+    DAILY_CAP: 110,
+    DAILY_CAP_VIP: 150,
+    MONTHLY_CAP: 3300,
+    MONTHLY_CAP_VIP: 4500,
+    MIN_AWARD: 1,
     STREAK_MULTIPLIERS: {
         DAYS_1_3: 1.0,
-        DAYS_4_6: 1.5,
-        DAYS_7_PLUS: 2.0,
+        DAYS_4_6: 1.2,
+        DAYS_7_PLUS: 1.5,
+        DAYS_14_PLUS: 1.75,
+        DAYS_30_PLUS: 2.0,
     },
     DAILY_LOGIN_SCALE: {
         MIN: 5,
-        MAX: 50,
-        INCREMENT: 7,
+        MAX: 25,
+        INCREMENT: 2,
     },
 } as const;
 
@@ -644,8 +667,10 @@ export class DiamondRewardService {
     }
 
     getStreakMultiplier(streakDays: number): number {
+        if (streakDays >= 30) return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_30_PLUS;
+        if (streakDays >= 14) return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_14_PLUS;
         if (streakDays >= 7) return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_7_PLUS;
-        if (streakDays >= 4) return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_4_6;
+        if (streakDays >= 3) return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_4_6;
         return REWARD_RULES.STREAK_MULTIPLIERS.DAYS_1_3;
     }
 
