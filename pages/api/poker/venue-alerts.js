@@ -21,16 +21,23 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
-  
+
   try {
     const limitType = req.method === 'GET' ? LIMITS.read : LIMITS.write;
     if (!applyRateLimit(req, res, limitType)) return;
 
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    // SECURITY: identity always comes from the JWT, never from the query/body.
+    // Mirrors pages/api/poker/tournament-alerts.js.
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    const authUser = authData?.user;
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    const user_id = authUser.id;
+
     if (req.method === 'GET') {
-      const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
-      const user_id = safeQ(req.query.user_id);
-      if (!user_id) return res.status(400).json({ error: 'user_id required' });
-      
       const { data, error } = await supabase
         .from('venue_game_alerts')
         .select('*')
@@ -43,9 +50,9 @@ export default async function handler(req, res) {
     }
     
     if (req.method === 'POST') {
-      const { user_id, venue_name, game_type, alert_via = 'push' } = req.body;
-      if (!user_id || !venue_name || !game_type) {
-        return res.status(400).json({ error: 'user_id, venue_name, and game_type required' });
+      const { venue_name, game_type, alert_via = 'push' } = req.body || {};
+      if (!venue_name || !game_type) {
+        return res.status(400).json({ error: 'venue_name and game_type required' });
       }
       
       // Check for duplicate
@@ -80,9 +87,9 @@ export default async function handler(req, res) {
     }
     
     if (req.method === 'DELETE') {
-      const { id, user_id } = req.body;
-      if (!id || !user_id) return res.status(400).json({ error: 'id and user_id required' });
-      
+      const { id } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id required' });
+
       const { error } = await supabase
         .from('venue_game_alerts')
         .update({ active: false })

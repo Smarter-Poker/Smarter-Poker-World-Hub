@@ -1,6 +1,11 @@
 /**
  * SeasonalCalendar.jsx — Feature #15: Seasonal Calendar Mode
- * Full-page 12-month calendar showing all series, tours, and daily events.
+ * Full-page 12-month calendar showing all series and traveling-tour stops.
+ *
+ * Note: daily tournaments are recurring weekly rows (day_of_week, no calendar
+ * date) so they are not plottable here — DailyTournamentsPanel owns that view.
+ * The previously-accepted `dailyTournaments` prop was never read; it has been
+ * dropped from the signature (extra props from existing call sites are ignored).
  */
 import React, { useState, useMemo } from 'react';
 
@@ -27,7 +32,18 @@ const FILTER_OPTIONS = {
     buyinRange: ['All', 'Under $300', '$300-$1000', '$1000+'],
 };
 
-export default function SeasonalCalendar({ series = [], tours = [], dailyTournaments = [] }) {
+// BUG FIX: 'YYYY-MM-DD' passed to new Date() is parsed as UTC midnight, which
+// getFullYear/getMonth/getDate then shift back a day for every negative-UTC-offset
+// (i.e. every US) viewer — series landed one square early on the calendar.
+// Appending a time component forces local-time parsing.
+function parseLocalDate(dateStr) {
+    if (!dateStr) return null;
+    const str = String(dateStr).trim();
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(str + 'T00:00:00') : new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+export default function SeasonalCalendar({ series = [], tours = [] }) {
     const today = new Date();
     const [selectedDay, setSelectedDay] = useState(null);
     const [filterType, setFilterType] = useState('All');
@@ -36,10 +52,10 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
 
     // Build event list combining series + tours
     const allEvents = useMemo(() => {
-        let events = [...series.map(s => ({ ...s, eventType: 'series' }))];
-        
+        let events = [...(series || []).map(s => ({ ...s, eventType: 'series' }))];
+
         // Map traveling tour stops into the calendar
-        tours.forEach(t => {
+        (tours || []).forEach(t => {
             if (t.upcoming_series && t.upcoming_series.length > 0) {
                 t.upcoming_series.forEach(us => {
                     events.push({
@@ -71,7 +87,10 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
         }
 
         return events;
-    }, [series, filterType, filterBuyin]);
+    // BUG FIX: `tours` was missing from the deps. Tours load asynchronously in the
+    // parent, so when the prop arrived after first render the memo never recomputed
+    // and tour stops were permanently absent from the calendar.
+    }, [series, tours, filterType, filterBuyin]);
 
     // Generate 12 months starting from current month
     const months = useMemo(() => {
@@ -92,8 +111,9 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
         const date = new Date(year, month, day);
         return allEvents.filter(e => {
             if (!e.start_date) return false;
-            const start = new Date(e.start_date);
-            const end = e.end_date ? new Date(e.end_date) : start;
+            const start = parseLocalDate(e.start_date);
+            if (!start) return false;
+            const end = parseLocalDate(e.end_date) || start;
             const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
             const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
             return date >= startDay && date <= endDay;
@@ -240,10 +260,10 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
                                         )}
                                     </div>
                                     <div className="sc-ev-details">
-                                        {ev.venue_name && <span>📍 {ev.venue_name}</span>}
+                                        {ev.venue_name && <span>{ev.venue_name}</span>}
                                         {ev.start_date && <span> · {ev.start_date}{ev.end_date ? ` — ${ev.end_date}` : ''}</span>}
                                     </div>
-                                    {ev.guaranteed && <div className="sc-ev-gtd">💰 ${Number(ev.guaranteed).toLocaleString()} GTD</div>}
+                                    {ev.guaranteed && <div className="sc-ev-gtd">${Number(ev.guaranteed).toLocaleString()} GTD</div>}
                                 </div>
                             );
                         })}

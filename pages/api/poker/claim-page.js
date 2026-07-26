@@ -104,12 +104,14 @@ try {
         const page_id = safeQ(req.query.page_id);
         const user_id = safeQ(req.query.user_id);
 
-        // Get claim status for a specific page
+        // Get claim status for a specific page.
+        // SECURITY: this branch is public, so it must never expose the claimant's
+        // contact_name / contact_email / contact_phone / verification_notes.
         if (page_type && page_id) {
           const pageIdStr = String(page_id);
           const { data, error } = await getSupabase()
             .from('page_claims')
-            .select('*')
+            .select('id, status, created_at, user_id')
             .eq('page_type', page_type)
             .eq('page_id', pageIdStr)
             .order('created_at', { ascending: false })
@@ -124,11 +126,39 @@ try {
             return res.status(200).json({ success: true, claimed: false, claim: null });
           }
 
-          return res.status(200).json({ success: true, claimed: true, claim: data[0] });
+          // Only tell the caller the claim is theirs when they present a valid JWT.
+          let isYours = false;
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (token) {
+            try {
+              const { data: authData } = await getSupabase().auth.getUser(token);
+              isYours = Boolean(authData?.user && authData.user.id === data[0].user_id);
+            } catch (_authErr) { isYours = false; }
+          }
+
+          return res.status(200).json({
+            success: true,
+            claimed: true,
+            claim: {
+              id: data[0].id,
+              status: data[0].status,
+              created_at: data[0].created_at,
+              is_yours: isYours,
+            },
+          });
         }
 
-        // Get all claims for a user
+        // Get all claims for a user (own claims only)
         if (user_id) {
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const authUser = authData?.user;
+          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          if (authUser.id !== user_id) {
+            return res.status(403).json({ success: false, error: 'Not authorized to view these claims' });
+          }
+
           const { data, error } = await getSupabase()
             .from('page_claims')
             .select('*')

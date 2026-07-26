@@ -19,6 +19,20 @@ const TOUR_COLORS = {
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
 };
 
+/**
+ * Parse a date-only string ('2026-08-01') as a LOCAL date.
+ * `new Date('2026-08-01')` is parsed as UTC midnight, which in every US timezone
+ * reads back as the PREVIOUS day via getFullYear/getMonth/getDate — shifting every
+ * series one day early on the calendar. Building the Date from parts avoids that.
+ */
+function parseLocalDate(value) {
+    if (!value) return null;
+    const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+}
+
 function SeriesCalendar({ series, router, openVenueModal }) {
     const today = new Date();
     const months = [];
@@ -34,8 +48,9 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                 const firstDay = new Date(mo.year, mo.month, 1).getDay();
                 const monthSeries = series.filter(s => {
                     if (!s.start_date) return false;
-                    const start = new Date(s.start_date);
-                    const end = s.end_date ? new Date(s.end_date) : start;
+                    const start = parseLocalDate(s.start_date);
+                    if (!start) return false;
+                    const end = parseLocalDate(s.end_date) || start;
                     const moStart = new Date(mo.year, mo.month, 1);
                     const moEnd = new Date(mo.year, mo.month + 1, 0);
                     return start <= moEnd && end >= moStart;
@@ -57,8 +72,9 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                                 const dayNum = di + 1;
                                 const dayDate = new Date(mo.year, mo.month, dayNum);
                                 const daySeries = monthSeries.filter(s => {
-                                    const start = new Date(s.start_date);
-                                    const end = s.end_date ? new Date(s.end_date) : start;
+                                    const start = parseLocalDate(s.start_date);
+                                    if (!start) return false;
+                                    const end = parseLocalDate(s.end_date) || start;
                                     return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
                                         dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
                                 });
@@ -69,9 +85,14 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                                         {daySeries.slice(0, 2).map((s, si) => {
                                             const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
                                             return (
-                                                <div key={si} className="cal-event"
-                                                    style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff' }}
-                                                    onClick={() => openVenueModal ? openVenueModal('/hub/series/' + (s.id || si + 1)) : router.push('/hub/series/' + (s.id || si + 1))}
+                                                <div key={s.id || si} className="cal-event"
+                                                    style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff', cursor: s.id ? 'pointer' : 'default' }}
+                                                    onClick={() => {
+                                                        // No id — navigating to a positional index lands on an unrelated series
+                                                        if (!s.id) return;
+                                                        const path = '/hub/series/' + s.id;
+                                                        if (openVenueModal) openVenueModal(path); else router.push(path);
+                                                    }}
                                                     title={s.name}>
                                                     {(s.tour_code || s.short_name || '').slice(0, 5)}
                                                 </div>
@@ -149,8 +170,8 @@ export default function SeriesTabPanel({
                                 key={s.id || i}
                                 series={s}
                                 index={i}
-                                isFavorited={isFavorited('series', s.id || (i + 1))}
-                                onFavorite={(e) => toggleFavorite('series', s.id || (i + 1), e)}
+                                isFavorited={s.id ? isFavorited('series', s.id) : false}
+                                onFavorite={s.id ? ((e) => toggleFavorite('series', s.id, e)) : undefined}
                                 onNavigate={(path) => openVenueModal ? openVenueModal(path) : router.push(path)}
                             />
                         ))}

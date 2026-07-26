@@ -4,6 +4,18 @@
  */
 import { TourBadge, formatDate, formatMoney } from './TourCard';
 
+// BUG FIX: Sanitize scraped URLs — block javascript:/data:/vbscript: XSS vectors.
+// Mirrors safeHref in NewSeriesVenueCard.jsx and the inline guard in TourCard.js.
+function safeHref(url) {
+    if (!url || typeof url !== 'string') return null;
+    // Strip ASCII control characters and whitespace ("java\tscript:" evasion)
+    const cleanUrl = url.replace(/[\x00-\x20]/g, '');
+    if (!cleanUrl) return null;
+    const lower = cleanUrl.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
+    return cleanUrl.startsWith('http') ? cleanUrl : 'https://' + cleanUrl;
+}
+
 export default function SeriesCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
     const isVenueEntry = !s.series_code && s.venue_type === 'series';
     const detailUrl = s.series_code ? '/hub/series/' + s.series_code : '/hub/venues/' + (s.id || (index + 1));
@@ -48,9 +60,11 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             <div className="card-footer">
                 <div className="card-actions">
                     <span className="action-btn primary">Details</span>
-                    {(s.source_url || s.website) && (
-                        <a href={(() => { const w = s.source_url || s.website; return w && w.startsWith('http') ? w : 'https://' + (w || ''); })()} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>{s.source_url ? 'Source' : 'Website'}</a>
-                    )}
+                    {(() => {
+                        const href = safeHref(s.source_url || s.website);
+                        if (!href) return null;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>{s.source_url ? 'Source' : 'Website'}</a>;
+                    })()}
                 </div>
             </div>
         </div>

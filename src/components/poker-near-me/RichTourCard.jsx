@@ -22,6 +22,26 @@ const TOUR_COLORS = {
     'default':   { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff' },
 };
 
+// CLAUDE.md rule: no bare emoji in source/JSX (bare emoji have broken the SWC
+// compile and Vercel builds). Inline SVGs replace the former pin/money glyphs.
+function PinIcon({ size = 12 }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+        </svg>
+    );
+}
+
+function MoneyIcon({ size = 12 }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+    );
+}
+
 const TOUR_TYPE_LABELS = {
     major: 'Major', circuit: 'Circuit', regional: 'Regional',
     high_roller: 'High Roller', grassroots: 'Grassroots', charity: 'Charity',
@@ -92,9 +112,13 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     const currentStop = allStops.find(s => s.stop_type === 'current') || allStops.find(s => s.stop_type === 'next') || null;
     const currentStopType = currentStop?.stop_type || null;
 
-    // Upcoming stops — next 5 (exclude current/live)
+    // Upcoming stops — next 5, genuinely in the future.
+    // BUG FIX: filtering only 'current' meant (a) the stop already rendered in the
+    // NEXT STOP banner was repeated as row 1, and (b) when fewer than 5 future stops
+    // existed the API's trailing 'past' stops filled the list with stale dates.
+    // allStops order from /api/poker/tour-schedule is [current, next, ...future, ...past].
     const upcomingStops = allStops
-        .filter(s => s.stop_type !== 'current')
+        .filter(s => s.stop_type === 'future' || (s.stop_type === 'next' && s !== currentStop))
         .slice(0, 5);
 
     // Fallback to registry data from tour_card_data while live data loads
@@ -217,15 +241,16 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
 
             {/* Fallback: show host venue if no schedule loaded yet */}
             {!currentStop && (venue.stop_venue || venue.city) && (
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
-                    📍 {[venue.stop_venue, venue.city, venue.state].filter(Boolean).join(', ')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+                    <PinIcon />
+                    <span>{[venue.stop_venue, venue.city, venue.state].filter(Boolean).join(', ')}</span>
                 </div>
             )}
 
             {/* Buy-in range */}
             {buyinText && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>💰</span>
+                    <span style={{ display: 'inline-flex', color: 'rgba(255,255,255,0.4)' }}><MoneyIcon /></span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#eab308' }}>
                         Buy-ins: {buyinText}
                     </span>

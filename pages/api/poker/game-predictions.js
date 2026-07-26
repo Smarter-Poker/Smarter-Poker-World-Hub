@@ -33,6 +33,72 @@ function formatHour(h) {
   return h < 12 ? `${h} AM` : `${h - 12} PM`;
 }
 
+// State -> IANA timezone (same table the DailyTournamentsPanel uses client-side).
+const IANA_TZ = {
+  'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix',
+  'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
+  'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York',
+  'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
+  'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago',
+  'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago',
+  'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York',
+  'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago',
+  'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago',
+  'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York',
+  'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York',
+  'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago',
+  'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York',
+  'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago',
+  'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York',
+  'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York',
+  'WI': 'America/Chicago', 'WY': 'America/Denver',
+};
+
+/**
+ * Bucket a snapshot by the VENUE's local hour/day rather than UTC — otherwise a
+ * 7 PM PT peak is reported as 2 AM and Friday nights are attributed to Saturday.
+ */
+function getLocalParts(value, timeZone) {
+  const dt = new Date(value);
+  if (isNaN(dt.getTime())) return null;
+  try {
+    const local = new Date(dt.toLocaleString('en-US', { timeZone }));
+    if (!isNaN(local.getTime())) return { hour: local.getHours(), day: local.getDay() };
+  } catch (_tzErr) { /* fall through to UTC */ }
+  return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
+}
+
+/** Best-effort venue timezone from poker_venues.state; defaults to Eastern. */
+async function resolveVenueTimezone(supabase, venueId, venueName) {
+  try {
+    const idNum = parseInt(venueId, 10);
+    if (!isNaN(idNum) && idNum > 0) {
+      const { data } = await supabase
+        .from('poker_venues')
+        .select('state')
+        .eq('id', idNum)
+        .maybeSingle();
+      const st = (data?.state || '').toUpperCase();
+      if (IANA_TZ[st]) return IANA_TZ[st];
+    }
+  } catch (_err) { /* try by name */ }
+
+  if (venueName) {
+    try {
+      const { data } = await supabase
+        .from('poker_venues')
+        .select('state')
+        .ilike('name', `%${venueName}%`)
+        .limit(1)
+        .maybeSingle();
+      const st = (data?.state || '').toUpperCase();
+      if (IANA_TZ[st]) return IANA_TZ[st];
+    } catch (_err) { /* default below */ }
+  }
+
+  return 'America/New_York';
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -86,13 +152,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Group by game type
+    // Group by game type (bucketed in the venue's local time, not UTC)
     const gameTypeBuckets = {};
+    const venueTz = await resolveVenueTimezone(supabase, safeVenueId, safeVenue || data[0]?.venue_name);
 
     data.forEach(row => {
-      const dt = new Date(row.snapshot_time);
-      const hour = dt.getUTCHours();
-      const day = dt.getUTCDay();
+      const parts = getLocalParts(row.snapshot_time, venueTz);
+      if (!parts) return;
+      const { hour, day } = parts;
       const gameType = gameShortLabel(row.game_type || 'Unknown');
       const tables = row.tables || 1;
 
@@ -186,6 +253,7 @@ export default async function handler(req, res) {
       venue_id: safeVenueId || null,
       venue_filter: safeVenue || null,
       period: '28 days',
+      timezone: venueTz,
       data_points: totalDataPoints,
       predictions,
       summary,

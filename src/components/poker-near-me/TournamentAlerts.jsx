@@ -3,6 +3,9 @@
  * Custom notification preferences for tournament matching.
  */
 import React, { useState, useEffect } from 'react';
+import { normalizeGameName } from './normalize-game';
+import { haversineMiles } from './pnm-utils';
+import { getAccessToken } from '../../lib/authUtils';
 
 const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Omaha Hi-Lo', 'Stud'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -15,41 +18,71 @@ function loadPrefs() {
     } catch { return null; }
 }
 
-function savePrefs(prefs, userId) {
+function savePrefs(prefs, authToken) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
         window.dispatchEvent(new CustomEvent('tournament-alerts-sync', { detail: prefs }));
     } catch { /* ignore */ }
-    // Sync to Supabase if userId available (fire-and-forget)
-    if (userId) {
+    // Sync to Supabase if authed (fire-and-forget). The API requires a Bearer
+    // token, only accepts POST for writes, and expects snake_case pref fields.
+    if (authToken) {
         fetch('/api/poker/tournament-alerts', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, key: 'tournament_alerts', value: prefs }),
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+                game_types: prefs.gameTypes || [],
+                min_buyin: prefs.minBuyin || null,
+                max_buyin: prefs.maxBuyin || null,
+                distance_mi: prefs.distanceMi || 50,
+                days: prefs.days || [],
+                push_enabled: !!prefs.pushEnabled,
+                enabled: !!prefs.enabled,
+            }),
         }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     }
 }
 
-function matchesTournament(prefs, tournament) {
+function matchesTournament(prefs, tournament, userLocation) {
     if (!prefs || !prefs.enabled) return false;
-    // Game type filter
-    if (prefs.gameTypes.length > 0) {
-        const tGame = (tournament.game_type || tournament.game || '').toLowerCase();
-        if (!prefs.gameTypes.some(g => tGame.includes(g.toLowerCase()))) return false;
+    // Game type filter — normalize both sides so 'NLH' matches "No Limit Hold'em",
+    // 'Omaha Hi-Lo' matches "PLO8"/"Omaha 8", etc. (substring matching failed here).
+    if ((prefs.gameTypes || []).length > 0) {
+        const tType = normalizeGameName(tournament.game_type || tournament.game || '').type;
+        const matchesType = prefs.gameTypes.some(g => {
+            const pType = normalizeGameName(g).type;
+            if (tType === pType) return true;
+            // Family matches: a 'Stud' alert covers Stud Hi-Lo too
+            if (pType === 'Stud' && tType === 'Stud8') return true;
+            return false;
+        });
+        if (!matchesType) return false;
     }
     // Buy-in range
     const buyIn = tournament.buy_in || tournament.buyin || 0;
     if (prefs.minBuyin && buyIn < prefs.minBuyin) return false;
     if (prefs.maxBuyin && buyIn > prefs.maxBuyin) return false;
     // Day filter
-    if (prefs.days.length > 0 && prefs.days.length < 7) {
+    if ((prefs.days || []).length > 0 && prefs.days.length < 7) {
         const tDay = tournament.day_of_week || new Date().toLocaleDateString('en-US', { weekday: 'short' });
         if (!prefs.days.includes(tDay)) return false;
+    }
+    // Distance filter — only enforceable when we know both the user's location
+    // and the tournament venue's coordinates
+    if (prefs.distanceMi && userLocation?.lat != null && userLocation?.lng != null) {
+        const tLat = tournament.latitude ?? tournament.venue_lat ?? tournament.lat;
+        const tLng = tournament.longitude ?? tournament.venue_lng ?? tournament.lng;
+        if (tLat != null && tLng != null) {
+            const dist = haversineMiles(userLocation.lat, userLocation.lng, tLat, tLng);
+            if (dist > prefs.distanceMi) return false;
+        }
     }
     return true;
 }
 
-export default function TournamentAlerts({ dailyTournaments = [], userId, authToken }) {
+export default function TournamentAlerts({ dailyTournaments = [], userId, authToken, userLocation = null }) {
     const [prefs, setPrefs] = useState(() => {
         const saved = typeof window !== 'undefined' ? loadPrefs() : null;
         return saved || {
@@ -69,8 +102,19 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
 
     // Sync prefs to localStorage + Supabase
     useEffect(() => {
-        if (typeof window !== 'undefined') savePrefs(prefs, userId);
-    }, [prefs, userId]);
+        // BUG FIX: the second arg is the Supabase bearer token, not the user id.
+        // Passing userId here made every sync 401 (auth.getUser(<uuid>) is invalid).
+        // FOLLOW-UP FIX: no call site passes `authToken` (lobby.js renders
+        // <TournamentAlerts dailyTournaments userId userLocation />), so requiring
+        // the prop alone would have left the sync permanently dead. Fall back to the
+        // same session helper VenueCard/ReportGameModal use in this directory.
+        if (typeof window === 'undefined') return;
+        let token = authToken;
+        if (!token) {
+            try { token = getAccessToken(); } catch { token = null; }
+        }
+        savePrefs(prefs, token);
+    }, [prefs, authToken, userId]);
 
     // Cross-tab sync
     useEffect(() => {
@@ -92,14 +136,16 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
     // Match tournaments against prefs
     useEffect(() => {
         if (!prefs.enabled || dailyTournaments.length === 0) { setMatches([]); return; }
-        const matched = dailyTournaments.filter(t => matchesTournament(prefs, t));
+        // BUG FIX: userLocation was never threaded through, so the distanceMi
+        // preference (25/50/100/250 chips) had no effect on matching.
+        const matched = dailyTournaments.filter(t => matchesTournament(prefs, t, userLocation));
         setMatches(matched);
 
         // Send browser notification for first match
         if (matched.length > 0 && prefs.pushEnabled && !notificationSent) {
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                 try {
-                    new Notification('Tournament Alert 🏆', {
+                    new Notification('Tournament Alert', {
                         body: `${matched.length} tournament${matched.length > 1 ? 's' : ''} match your preferences! ${matched[0].name || matched[0].venue_name || ''}`,
                         icon: '/favicon.ico',
                         tag: 'tournament-alert',
@@ -108,7 +154,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                 } catch { /* ignore */ }
             }
         }
-    }, [prefs, dailyTournaments, notificationSent]);
+    }, [prefs, dailyTournaments, notificationSent, userLocation]);
 
     const toggleGameType = (type) => {
         setPrefs(p => ({

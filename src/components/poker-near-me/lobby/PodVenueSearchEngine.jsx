@@ -30,7 +30,9 @@ const PodVenueSearchEngine = ({
   reviewStatsMap,
   handleVenueNavigate,
   router,
-  triggerSearch
+  triggerSearch,
+  fetchError,
+  onRetry
 }) => {
   const pState = filters[`${prefix}State`] || 'all';
   const pVenueType = filters[`${prefix}VenueType`] || 'all';
@@ -172,6 +174,19 @@ const PodVenueSearchEngine = ({
         </button>
       </div>
 
+      {/* Venue fetch failure — surfaced with a retry affordance (was previously invisible) */}
+      {fetchError && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(248,81,73,0.08)', border: '1px solid rgba(248,81,73,0.3)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#f85149' }}>{fetchError}</span>
+          {onRetry && (
+            <button onClick={onRetry} disabled={loading}
+              style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(248,81,73,0.4)', background: 'rgba(248,81,73,0.12)', color: '#f85149', fontSize: 12, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+              {loading ? 'Retrying...' : 'Retry'}
+            </button>
+          )}
+        </div>
+      )}
+
       {pSearched ? (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
@@ -204,12 +219,8 @@ const PodVenueSearchEngine = ({
                   );
                 })}
               </div>
-              {results.length > 50 && (
-                <button onClick={loadMore} disabled={loading}
-                  style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 12, color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-                  {loading ? 'Loading...' : `Load More (${results.length - 50} remaining)`}
-                </button>
-              )}
+              {/* NOTE: no client-side "Load More" here — `results` is fully
+                  rendered above (it's a client-filtered list, not a page). */}
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
@@ -268,8 +279,10 @@ const PodVenueSearchEngine = ({
             {subtitleDesc}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length || '700+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>47+</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+            {/* Real counts only — show a neutral placeholder while venues load
+                instead of fabricated "700+" / "47+" figures. */}
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length ? venues.length.toLocaleString() : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{venues?.length ? new Set(venues.map(v => v.state).filter(Boolean)).size : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
           </div>
         </div>
       )}

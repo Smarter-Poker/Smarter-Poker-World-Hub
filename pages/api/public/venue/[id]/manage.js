@@ -23,10 +23,13 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-    // CDN cache: fresh for 60s, serve stale up to 300s
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    }
+    // NEVER shared-cache this endpoint. Every response is per-manager and
+    // authenticated: it carries the full venue row, every manager's profile
+    // (including email), and venue_verification_log rows containing IP
+    // addresses and user agents. Under `public, s-maxage=60` a CDN would hand
+    // one manager's payload to the next visitor of the same URL — or hand a
+    // cached 403 to a legitimate manager.
+    res.setHeader('Cache-Control', 'private, no-store');
 
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;

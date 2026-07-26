@@ -278,46 +278,74 @@ export default function HomeGameDashboard() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [token, setToken] = useState(null);
-
-  useEffect(() => { setToken(getAccessToken()); }, []);
+  // Distinguishes "haven't looked for a token yet" from "looked, found none".
+  // Without it a signed-out visitor sits on the loading screen forever because
+  // the data effect below bails on !token and never reaches the redirect.
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!slug || !token) return;
+    let cancelled = false;
+    // getAccessToken may be sync or promise-returning depending on the auth
+    // path — normalize both.
+    Promise.resolve(getAccessToken())
+      .then((t) => { if (!cancelled) { setToken(t || null); setAuthChecked(true); } })
+      .catch(() => { if (!cancelled) { setToken(null); setAuthChecked(true); } });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!slug || !authChecked) return;
+
+    // Fully signed out — bounce to login instead of spinning forever.
+    if (!token) {
+      router.replace(`/auth/login?redirect=${encodeURIComponent(`/hub/home-games/${slug}/dashboard`)}`);
+      return;
+    }
+
     setLoading(true); setErr('');
 
     (async () => {
       try {
         // Auth check
         const { data: { user } } = await getSb().auth.getUser(token);
-        if (!user) { router.replace(`/auth/login?redirect=/hub/home-games/${slug}/dashboard`); return; }
+        if (!user) { router.replace(`/auth/login?redirect=${encodeURIComponent(`/hub/home-games/${slug}/dashboard`)}`); return; }
 
         // Load group
         const d = await apiFetch(`/api/commander/home-games/groups/${slug}`, token);
         const g = d.group || d;
         if (!g?.id) throw new Error('Group not found');
 
-        // Role check — fetch membership
-        const { data: mem } = await getSb()
-          .from('home_game_members')
-          .select('role')
-          .eq('group_id', g.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // Role check — the canonical membership table is commander_home_members
+        // (see the same BUG-FIX note in ../[slug].js). The old query hit the
+        // legacy `home_game_members` security-invoker view, which does not
+        // reliably surface the caller's own role row under RLS and locked
+        // legitimate hosts out. The group owner is always treated as host, in
+        // case no membership row was ever written for them.
+        let role = g.owner_id && g.owner_id === user.id ? 'host' : null;
+        if (!role) {
+          const { data: mem } = await getSb()
+            .from('commander_home_members')
+            .select('role')
+            .eq('group_id', g.id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          role = mem?.role || null;
+        }
 
-        if (!mem || !HOST_ROLES.includes(mem.role)) {
+        if (!role || !HOST_ROLES.includes(role)) {
           setErr('You must be a host or co-host to access this dashboard.');
           setLoading(false);
           return;
         }
 
-        setGroup({ ...g, userRole: mem.role });
+        setGroup({ ...g, userRole: role });
         setLoading(false);
       } catch (e) {
         setErr(e.message || 'Failed to load group');
         setLoading(false);
       }
     })();
-  }, [slug, token, router]);
+  }, [slug, token, authChecked, router]);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textSec, fontFamily: 'Inter,-apple-system,sans-serif' }}>
@@ -346,7 +374,9 @@ export default function HomeGameDashboard() {
             {group?.profile_photo_url ? (
               <img src={group.profile_photo_url} alt="" style={{ width: 56, height: 56, borderRadius: 14, objectFit: 'cover', border: `2px solid ${C.tealBorder}` }} />
             ) : (
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#0d9488,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700, border: `2px solid ${C.tealBorder}` }}>🏠</div>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#0d9488,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700, border: `2px solid ${C.tealBorder}` }}>
+                {(group?.name || 'H')[0].toUpperCase()}
+              </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{group?.name}</h1>

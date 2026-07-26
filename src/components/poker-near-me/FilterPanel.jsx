@@ -34,13 +34,19 @@ const VENUE_TYPES = [
     { value: 'charity', label: 'Charity' }
 ];
 
+// Kept in sync with the live radius scheme used by MapTabPanel / VenuesTabPanel
+// (25/50/100/150/200/250/500 + Any) so a radius set elsewhere stays selectable here.
 const RADIUS_OPTIONS = [
     { value: 25, label: '25 Miles' },
     { value: 50, label: '50 Miles' },
     { value: 100, label: '100 Miles' },
     { value: 150, label: '150 Miles' },
+    { value: 200, label: '200 Miles' },
+    { value: 250, label: '250 Miles' },
+    { value: 500, label: '500 Miles' },
     { value: 'any', label: 'Any Distance' }
 ];
+const MAX_RADIUS_MILES = 500;
 
 export default function FilterPanel({
     filters,
@@ -59,10 +65,10 @@ export default function FilterPanel({
             return filters || { gameType: 'all', stakes: 'all', venueType: 'all', radius: 50, hasLiveGames: false, hasTournaments: false };
         }
         const savedFilters = loadFilters('fp', {});
-        // Cap saved radius at 150 miles to prevent stale over-range values from persisting
+        // Cap saved radius at MAX_RADIUS_MILES to prevent stale over-range values from persisting
         const rawRadius = savedFilters.radius;
         const safeRadius = rawRadius && rawRadius !== 'any'
-            ? Math.min(parseInt(rawRadius) || 50, 150)
+            ? Math.min(parseInt(rawRadius) || 50, MAX_RADIUS_MILES)
             : (rawRadius || 50);
         return filters || {
             gameType: savedFilters.gameType || 'all',

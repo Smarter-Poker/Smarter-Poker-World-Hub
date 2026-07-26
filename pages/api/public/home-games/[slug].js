@@ -92,20 +92,84 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Home game not available' });
     }
 
+    // 3b. Private / unlisted pages get a REDUCED payload.
+    //     A private group's invite_code IS the credential that gates entry,
+    //     and contact_phone / settings / per-event approximate coordinates
+    //     are host PII. The page stays reachable (so the join-request flow
+    //     still works) but only exposes identity + a join link, mirroring
+    //     what pages/api/public/home-game/[code].js returns for private groups.
+    //     `is_public === false` (not `!is_public`) on purpose: the column
+    //     defaults to true and is set explicitly to false when a host unlists
+    //     their page, so this catches the real unlisted case without
+    //     mass-hiding rows where the column happens to be NULL.
+    if (group.is_private || page.is_public === false) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          page: {
+            id: page.id,
+            slug: page.slug,
+            name: page.name,
+            description: page.description,
+            avatar_url: page.avatar_url || group.profile_photo_url,
+            cover_url: page.cover_url || group.cover_photo_url,
+            city: page.location_city || group.city,
+            state: page.location_state || group.state,
+            country: page.location_country || 'US',
+            follower_count: page.follower_count || 0,
+            post_count: 0,
+            view_count: page.view_count || 0,
+            created_at: page.created_at,
+          },
+          group: {
+            id: group.id,
+            name: group.name,
+            is_private: true,
+            city: group.city,
+            state: group.state,
+            member_count: group.member_count || 0,
+          },
+          host: group.profiles
+            ? { id: group.profiles.id, display_name: group.profiles.display_name, avatar_url: group.profiles.avatar_url }
+            : null,
+          upcoming_games: [],
+          posts: [],
+          message: 'This is a private group. Request an invite to see details.',
+          links: {
+            join_request: `/hub/commander/home-games/join?slug=${encodeURIComponent(page.slug)}`,
+          },
+        },
+      });
+    }
+
     // 3. Upcoming games (next 10 scheduled)
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: upcomingGames } = await supabase
+    // Timezone safety: `new Date().toISOString()` is UTC, so from ~5pm local
+    // onward in US timezones the UTC date is already tomorrow and tonight's
+    // game would disappear from the page. Shift 12h west before slicing so
+    // the cutoff never runs ahead of any US local date.
+    const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { data: upcomingGames, error: upcomingErr } = await supabase
       .from('commander_home_games')
-      // Dan-fix/tournament-buildout: include format + starting_stack + structure
-      // so the client can render tournaments distinctly from cash games.
+      // Dan-fix/tournament-buildout: include format so the client can render
+      // tournaments distinctly from cash games. NOTE: do NOT add columns here
+      // without a matching migration — commander_home_games has no
+      // starting_stack/structure column and selecting them 42703's the whole
+      // query, silently emptying upcoming_games.
       .select(
-        'id, title, description, game_type, stakes, format, buyin_min, buyin_max, starting_stack, structure, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
+        'id, title, description, game_type, stakes, format, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
       )
       .eq('group_id', group.id)
       .gte('scheduled_date', today)
       .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true })
       .limit(20);
+
+    // Never swallow a schema drift here — an errored select yields
+    // upcoming_games: [] which looks identical to "no games scheduled".
+    if (upcomingErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[public/home-games/[slug]] upcoming games query failed:', upcomingErr.message);
+    }
 
     // 4. Recent public posts on the social page
     const { data: posts } = await supabase

@@ -249,6 +249,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const [checkinMsg, setCheckinMsg] = useState('');
     const [checkinBusy, setCheckinBusy] = useState(false);
     const [checkinDone, setCheckinDone] = useState(false);
+    const [checkinError, setCheckinError] = useState('');
     const cardRef = useRef(null);
 
     // New: Fetch follow status on mount for home games
@@ -293,20 +294,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
     const crowd = hasLiveData ? getCrowdLevel(venue, checkinCount) : { label: 'Empty', score: 0, color: '#64748b' };
     const staleInfo = hasLiveData && venue.live_data.last_updated ? isStaleData(venue.live_data.last_updated) : { stale: false, age: '' };
+    // BUG FIX: the wait estimate used to be fabricated — `minW + (hash(venue.id) % range)`
+    // with the bracket chosen only by the crowd label. It ignored live_data.players_waiting
+    // entirely, so users saw an authoritative-looking "Est. Wait: 27 Min" that had no
+    // relationship to the actual waitlist. Derive it from the real waitlist via
+    // estimateWaitTime() (already imported) and render nothing when there is no waitlist.
+    const playersWaiting = Number(venue?.live_data?.players_waiting) || 0;
+    const tablesRunning = Number(venue?.live_data?.tables_running) || 0;
     const waitEstimate = useMemo(() => {
         if (!hasLiveData || staleInfo.stale) return null;
-        let minW, maxW;
-        if (crowd.label === 'Packed') { minW = 35; maxW = 45; }
-        else if (crowd.label === 'Busy') { minW = 25; maxW = 40; }
-        else if (crowd.label === 'Active') { minW = 15; maxW = 25; }
-        else { minW = 10; maxW = 20; }
-        // [VC1 FIX] Math.random() inside useMemo produces a different value on every React re-mount
-        // (the memo is stable during a session but re-runs fresh on each card mount, causing wait
-        // time to visibly flicker between renders). Seed from venue.id for stable per-venue variance.
-        const seed = typeof venue?.id === 'number' ? venue.id : String(venue?.id || '0').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        const m = minW + (seed % (maxW - minW + 1));
-        return { minutes: m, label: `${m} Min` };
-    }, [hasLiveData, crowd.label, staleInfo.stale, venue?.id]);
+        if (playersWaiting <= 0) return null;
+        const est = estimateWaitTime(playersWaiting, tablesRunning || 1);
+        if (!est || !est.minutes) return null;
+        return est;
+    }, [hasLiveData, staleInfo.stale, playersWaiting, tablesRunning]);
 
     // Guard — AFTER all hooks
     if (!venue) return null;
@@ -347,7 +348,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     const handleCheckinOpen = (e) => {
         e.stopPropagation();
-        const defaultMsg = `Checked in at ${venue.name}${venue.city ? ` in ${venue.city}` : ''} 🃏😎`;
+        setCheckinError('');
+        const defaultMsg = `Checked in at ${venue.name}${venue.city ? ` in ${venue.city}` : ''}`;
         setCheckinMsg(defaultMsg);
         setCheckinDone(false);
         setCheckinModal(true);
@@ -356,10 +358,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const handleCheckinSubmit = async () => {
         if (checkinBusy || !checkinMsg.trim()) return;
         setCheckinBusy(true);
+        setCheckinError('');
         try {
             const token = getAccessToken();
             if (!token) { if (onNavigate) onNavigate('/auth/login'); return; }
-            await fetch('/api/social/posts', {
+            const res = await fetch('/api/social/posts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -368,9 +371,23 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     metadata: { venue_id: venue.id, venue_name: venue.name, venue_type: venue.venue_type },
                 }),
             });
+            // BUG FIX: the response was never inspected, so a 401/404/500 still showed
+            // "Checked in!" and closed the modal — the check-in was silently dropped.
+            if (!res.ok) {
+                let msg = `Check-in failed (${res.status})`;
+                try {
+                    const body = await res.json();
+                    if (body?.error) msg = String(body.error);
+                } catch (parseErr) { /* non-JSON error body */ }
+                setCheckinError(msg);
+                return;
+            }
             setCheckinDone(true);
             setTimeout(() => setCheckinModal(false), 1500);
-        } catch (err) { console.warn('Checkin error:', err); }
+        } catch (err) {
+            console.warn('Checkin error:', err);
+            setCheckinError('Could not reach the server. Please try again.');
+        }
         finally { setCheckinBusy(false); }
     };
 
@@ -1107,6 +1124,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     maxLength={280}
                                     placeholder="What's happening at the table?"
                                 />
+                                {checkinError && (
+                                    <div className="vc3-checkin-error">{checkinError}</div>
+                                )}
                                 <div className="vc3-checkin-actions">
                                     <span className="vc3-checkin-count">{checkinMsg.length}/280</span>
                                     <button className="vc3-checkin-cancel" onClick={() => setCheckinModal(false)}>Cancel</button>
@@ -1556,6 +1576,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-checkin-submit { background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
                 .vc3-checkin-submit:disabled { opacity: 0.5; cursor: not-allowed; }
                 .vc3-checkin-done { text-align: center; padding: 20px; font-size: 18px; font-weight: 700; color: #22d3ee; }
+                .vc3-checkin-error { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
             `}</style>
         </div>
     );

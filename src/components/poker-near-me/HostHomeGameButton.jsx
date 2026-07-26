@@ -1,6 +1,38 @@
 import React, { useState } from 'react';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 
+// WIRING FIX: this component used to GET '/api/check-access' while its sibling
+// CreateHomeGame.jsx GET '/api/commander/check-access' — the same Commander access
+// gate, two different routes. Whichever one is not canonical 404s, and the `res.ok`
+// guard swallows that, silently pushing an entitled user out to the external
+// register wizard instead of /hub/commander/home-games/create. Both components now
+// share this resolver: it prefers the Commander-namespaced route (CLAUDE.md places
+// the Commander API under pages/api/commander/) and falls back to the legacy
+// top-level route on 404/405, so it works whichever one the deployment serves.
+const ACCESS_ENDPOINTS = ['/api/commander/check-access', '/api/check-access'];
+
+async function checkCommanderAccess(accessToken) {
+  for (const endpoint of ACCESS_ENDPOINTS) {
+    let res;
+    try {
+      res = await fetch(endpoint, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
+      });
+    } catch (e) {
+      // Network error — try the next candidate rather than failing outright.
+      continue;
+    }
+    // Route genuinely absent on this deployment — try the other one.
+    if (res.status === 404 || res.status === 405) continue;
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+    return !!data?.hasAccess;
+  }
+  return false;
+}
+
 export default function HostHomeGameButton({ className }) {
   const [checking, setChecking] = useState(false);
 
@@ -30,18 +62,9 @@ export default function HostHomeGameButton({ className }) {
       //   - commander_subscriptions.owner_id (active sub)
       //   - commander_staff.user_id|linked_user_id (owner/manager at a venue)
       //   - commander_home_groups.owner_id (home-game host)
-      const res = await fetch('/api/check-access', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include',
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.hasAccess) {
-          window.location.href = '/hub/commander/home-games/create';
-          return;
-        }
+      if (await checkCommanderAccess(accessToken)) {
+        window.location.href = '/hub/commander/home-games/create';
+        return;
       }
 
       // Authenticated but no Commander access → register.

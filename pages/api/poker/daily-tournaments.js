@@ -68,6 +68,17 @@ function parseTime(timeStr) {
     return -1;
 }
 
+// Map an exact YYYY-MM-DD date to its weekday name (timezone-safe: noon UTC anchor)
+function getDayNameForDate(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const clean = dateStr.trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return null;
+    const d = new Date(`${clean}T12:00:00Z`);
+    if (isNaN(d.getTime())) return null;
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[d.getUTCDay()];
+}
+
 // Map day string "Monday" to "2026-04-13" upcoming date
 function getNextDateForDay(targetDay) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -187,7 +198,11 @@ async function handler(req, res) {
               if (!targetDay) targetDay = getCurrentDay();
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           } else if (hasExactDate) {
-              targetDay = (day || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20) || getCurrentDay();
+              // [B6 FIX v2] Calendar mode: the weekday must come from the REQUESTED date,
+              // not from today — otherwise 2026-08-01 (a Saturday) was filtered with
+              // today's weekday and showed the wrong recurring tournaments.
+              const dayFromExactDate = getDayNameForDate(exact_date);
+              targetDay = (day || dayFromExactDate || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20) || getCurrentDay();
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
 
@@ -248,28 +263,39 @@ async function handler(req, res) {
           // Promise.all reduces API latency by ~50ms on every page load.
           const safeStateParam = state ? state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50) : null;
 
+          // NOTE: no .eq('is_active', true) here — charity_events_schedule has no such
+          // column, so the filter made PostgREST error out and silently drop every row.
+          // data_quality='scraped_verified' already gates freshness.
           let charityQuery = getSupabase()
               .from('charity_events_schedule')
               .select('*')
               .eq('data_quality', 'scraped_verified')
-              .eq('is_active', true)
               .limit(100);
           if (targetDateStr) charityQuery = charityQuery.eq('start_date', targetDateStr);
           if (safeStateParam) charityQuery = charityQuery.ilike('state', safeStateParam);
 
+          // Same as above: poker_tour_series_events has no is_active column.
           let toursQuery = getSupabase()
               .from('poker_tour_series_events')
               .select('*')
               .eq('data_quality', 'scraped_verified')
-              .eq('is_active', true)
               .limit(200);
           if (targetDateStr) toursQuery = toursQuery.eq('event_date', targetDateStr);
           if (safeStateParam) toursQuery = toursQuery.ilike('state', safeStateParam);
 
-          const [{ data: dbCharityEvents }, { data: dbToursEvents }] = await Promise.all([
+          const [charityResult, toursResult] = await Promise.all([
               charityQuery,
               toursQuery,
           ]);
+          const dbCharityEvents = charityResult?.data;
+          const dbToursEvents = toursResult?.data;
+          // Surface (but don't fail on) charity/tour query errors — these were silently discarded
+          if (charityResult?.error) {
+              console.warn('[daily-tournaments] charity_events_schedule query error (non-fatal):', charityResult.error.message);
+          }
+          if (toursResult?.error) {
+              console.warn('[daily-tournaments] poker_tour_series_events query error (non-fatal):', toursResult.error.message);
+          }
 
           let tournaments = [];
           let rawCount = 0;
@@ -370,227 +396,235 @@ async function handler(req, res) {
                       pokerAtlasUrl: venueInfo.pokerAtlasUrl || t.source_url
                   };
               });
-
-              // Integrate charity events dynamically FIRST
-              if (dbCharityEvents && dbCharityEvents.length > 0) {
-                  dbCharityEvents.forEach(c => {
-                      tournaments.push({
-                          id: `charity_${c.id}`,
-                          venue_id: `charity_${c.id}`,
-                          venue_name: c.charity_name,
-                          venueType: 'Charity',
-                          day_of_week: c.start_date, // Mapped for sorting/fallback
-                          start_time: '12:00 PM', // Default
-                          buy_in: 0, // Or extract if available
-                          game_type: 'NLH',
-                          format: c.event_description,
-                          guaranteed: 0,
-                          tournament_name: c.charity_name + " Event",
-                          source_url: c.source_url,
-                          state: c.state,
-                          city: c.location_address, // Use address as locator
-                          pokerAtlasUrl: c.source_url
-                      });
-                  });
-              }
-              
-              // Integrate traveling tours and series events dynamically FIRST
-              if (dbToursEvents && dbToursEvents.length > 0) {
-                  dbToursEvents.forEach(e => {
-                      tournaments.push({
-                          id: `tour_event_${e.id}`,
-                          venue_id: `tour_event_${e.id}`,
-                          venue_name: e.venue_name || e.event_name,
-                          venueType: 'Tournament Series',
-                          day_of_week: e.event_date,
-                          start_time: '11:00 AM', // Default
-                          buy_in: e.buy_in || 0,
-                          game_type: 'NLH', // General mapping
-                          format: e.tour_code + " Event",
-                          guaranteed: e.guaranteed || 0,
-                          tournament_name: e.event_name,
-                          source_url: e.source_url,
-                          state: e.state,
-                          city: e.location_address, // Use address as locator
-                          pokerAtlasUrl: e.source_url
-                      });
-                  });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              //  PHASE 20 — HOME GAME TOURNAMENT UNION
-              // ═══════════════════════════════════════════════════════════
-              //
-              // Dan's directive: "Home-game tournaments should surface in
-              // Daily Tournaments pages."
-              //
-              // Uses the Phase 16B `format` column on commander_home_games
-              // (values 'cash'|'tournament') and the Phase 18 activity filter
-              // on commander_home_groups (last_activity_at / created_at /
-              // visibility_override_until).
-              //
-              // STRICT RULES:
-              //   1. Only format='tournament' home games surface here
-              //   2. Only scheduled_date = targetDateStr — home games are
-              //      one-off events on specific dates, not recurring "Daily"
-              //      tournaments. A home game set for Apr 25 appears only
-              //      when the user views Apr 25.
-              //   3. Parent group MUST be public + active + pass the 45-day
-              //      activity filter. Dan's explicit clarification: "Auto-
-              //      scheduled tournaments do NOT count as activity." So
-              //      the group itself needs recent human engagement for
-              //      its future tournaments to surface.
-              //   4. status must be 'scheduled' or 'in_progress' — not
-              //      'cancelled' or 'completed'
-              //
-              // Follows the same read-time UNION pattern Phase 19 uses for
-              // /api/poker/venues (no cross-table FK writes; home groups
-              // stay in their own schema island).
-              try {
-                  const HG_INACTIVITY_DAYS = 45;
-                  const hgInactivityCutoff = new Date(
-                      Date.now() - HG_INACTIVITY_DAYS * 24 * 60 * 60 * 1000
-                  ).toISOString();
-                  const hgNow = new Date().toISOString();
-
-                  let hgQuery = getSupabase()
-                      .from('commander_home_games')
-                      .select(`
-                          id,
-                          title,
-                          description,
-                          game_type,
-                          stakes,
-                          buyin_min,
-                          buyin_max,
-                          scheduled_date,
-                          start_time,
-                          max_players,
-                          rsvp_yes,
-                          status,
-                          format,
-                          neighborhood,
-                          approximate_lat,
-                          approximate_lng,
-                          group:commander_home_groups!inner (
-                              id,
-                              name,
-                              city,
-                              state,
-                              latitude,
-                              longitude,
-                              profile_photo_url,
-                              is_private,
-                              is_active,
-                              last_activity_at,
-                              created_at,
-                              visibility_override_until
-                          )
-                      `)
-                      .eq('format', 'tournament')
-                      .in('status', ['scheduled', 'in_progress'])
-                      .eq('scheduled_date', targetDateStr)
-                      .eq('group.is_private', false)
-                      .eq('group.is_active', true);
-
-                  const { data: dbHomeGameTourneys, error: hgErr } = await hgQuery;
-                  if (hgErr) {
-                      console.warn('[daily-tournaments] Home game UNION query error (non-fatal):', hgErr.message);
-                  } else if (dbHomeGameTourneys && dbHomeGameTourneys.length > 0) {
-                      // Apply the 45-day activity filter client-side (PostgREST
-                      // won't do compound OR across the joined table reliably).
-                      const cutoffMs = Date.parse(hgInactivityCutoff);
-                      const nowMs    = Date.parse(hgNow);
-                      const activeHomeGames = dbHomeGameTourneys.filter((hg) => {
-                          const g = hg.group;
-                          if (!g || g.is_private || !g.is_active) return false;
-                          const lastActivityMs = g.last_activity_at ? Date.parse(g.last_activity_at) : 0;
-                          const createdAtMs    = g.created_at        ? Date.parse(g.created_at)        : 0;
-                          const overrideMs     = g.visibility_override_until ? Date.parse(g.visibility_override_until) : 0;
-                          return lastActivityMs >= cutoffMs
-                              || createdAtMs    >= cutoffMs
-                              || overrideMs     >  nowMs;
-                      });
-
-                      // Optional state filter (applied the same way charity/
-                      // tour filters are applied below — but safer to apply
-                      // it at push-time here using the joined group's state).
-                      const filteredByState = safeStateParam
-                          ? activeHomeGames.filter((hg) =>
-                              (hg.group?.state || '').toUpperCase() === safeStateParam.toUpperCase()
-                          )
-                          : activeHomeGames;
-
-                      filteredByState.forEach((hg) => {
-                          const g = hg.group || {};
-                          // Map buyin to the shape charity/tour events use
-                          const buyIn = hg.buyin_min || 0;
-
-                          // start_time in commander_home_games is stored as
-                          // a time-of-day string like "19:00" (24-hour). The
-                          // rest of this endpoint uses "7:00 PM" format.
-                          // Best-effort conversion — fall back to the raw
-                          // value if parse fails.
-                          let displayStartTime = hg.start_time || '7:00 PM';
-                          try {
-                              if (typeof hg.start_time === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(hg.start_time)) {
-                                  const [hStr, mStr] = hg.start_time.split(':');
-                                  const h = parseInt(hStr, 10);
-                                  const m = parseInt(mStr, 10) || 0;
-                                  const period = h >= 12 ? 'PM' : 'AM';
-                                  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                                  displayStartTime = `${h12}:${String(m).padStart(2, '0')} ${period}`;
-                              }
-                          } catch { /* fall back to raw */ }
-
-                          tournaments.push({
-                              id:                `home_game_${hg.id}`,
-                              venue_id:          `home_game_${g.id || hg.id}`,  // string, distinguishable from int venue_ids
-                              venue_name:        g.name || 'Home Game',
-                              venueType:         'Home Game',
-                              day_of_week:       hg.scheduled_date,
-                              start_time:        displayStartTime,
-                              buy_in:            buyIn,
-                              game_type:         (hg.game_type || 'NLH').toUpperCase(),
-                              format:            hg.title || 'Home Tournament',
-                              guaranteed:        0,
-                              tournament_name:   hg.title || `${g.name || 'Home Game'} Tournament`,
-                              source_url:        null,  // Populated by discover /home-games/{slug} on frontend
-                              state:             g.state,
-                              city:              g.city,
-                              logo_url:          g.profile_photo_url || null,
-                              is_home_game:      true,                           // extra UI signal
-                              home_group_id:     g.id,                           // for deep-linking to /home-games/{slug}
-                              rsvp_yes:          hg.rsvp_yes || 0,
-                              max_players:       hg.max_players,
-                              pokerAtlasUrl:     null,
-                          });
-                      });
-                  }
-              } catch (hgIntegrationErr) {
-                  console.warn('[daily-tournaments] Home game UNION failed (non-fatal):', hgIntegrationErr?.message || hgIntegrationErr);
-              }
-              // ═══════════════════════════════════════════════════════════
-              //  END PHASE 20
-              // ═══════════════════════════════════════════════════════════
-
-              // Filter by state if provided (Ensures Charity/Tours are caught)
-              if (state) {
-                  tournaments = tournaments.filter(t =>
-                      t.state?.toUpperCase() === state.toUpperCase()
-                  );
-              }
-
-              // Filter by venue type (Ensures Charity/Tours are cleanly routed)
-              if (type) {
-                  tournaments = tournaments.filter(t =>
-                      t.venueType?.toLowerCase().includes(type.toLowerCase())
-                  );
-              }
-          } else {
-              // No database data available — return empty (never generate fake data)
-              tournaments = [];
           }
+          if (error) {
+              console.warn('[daily-tournaments] venue_daily_tournaments query error (non-fatal):', error.message);
+          }
+
+          // NOTE: charity / tour-series / home-game integration and the state+type
+          // filters run REGARDLESS of whether venue_daily_tournaments returned rows.
+          // They used to be nested inside the "has DB tournaments" branch, so a day
+          // with zero venue tournaments dropped every charity, tour stop and home game.
+          // Integrate charity events dynamically FIRST
+          if (dbCharityEvents && dbCharityEvents.length > 0) {
+              dbCharityEvents.forEach(c => {
+                  tournaments.push({
+                      id: `charity_${c.id}`,
+                      venue_id: `charity_${c.id}`,
+                      venue_name: c.charity_name,
+                      venueType: 'Charity',
+                      day_of_week: c.start_date, // Mapped for sorting/fallback
+                      // No real start time is scraped for charity events — emit null (TBD)
+                      // instead of an invented 12:00 PM that users read as a real time.
+                      start_time: c.start_time || null,
+                      buy_in: 0, // Or extract if available
+                      game_type: 'NLH',
+                      format: c.event_description,
+                      guaranteed: 0,
+                      tournament_name: c.charity_name + " Event",
+                      source_url: c.source_url,
+                      state: c.state,
+                      city: c.location_address, // Use address as locator
+                      pokerAtlasUrl: c.source_url
+                  });
+              });
+          }
+          
+          // Integrate traveling tours and series events dynamically FIRST
+          if (dbToursEvents && dbToursEvents.length > 0) {
+              dbToursEvents.forEach(e => {
+                  tournaments.push({
+                      id: `tour_event_${e.id}`,
+                      venue_id: `tour_event_${e.id}`,
+                      venue_name: e.venue_name || e.event_name,
+                      venueType: 'Tournament Series',
+                      day_of_week: e.event_date,
+                      // Same as charity: null means "TBD" to the frontend (parseTime -> -1).
+                      start_time: e.start_time || null,
+                      buy_in: e.buy_in || 0,
+                      game_type: 'NLH', // General mapping
+                      format: e.tour_code + " Event",
+                      guaranteed: e.guaranteed || 0,
+                      tournament_name: e.event_name,
+                      source_url: e.source_url,
+                      state: e.state,
+                      city: e.location_address, // Use address as locator
+                      pokerAtlasUrl: e.source_url
+                  });
+              });
+          }
+
+          // ═══════════════════════════════════════════════════════════
+          //  PHASE 20 — HOME GAME TOURNAMENT UNION
+          // ═══════════════════════════════════════════════════════════
+          //
+          // Dan's directive: "Home-game tournaments should surface in
+          // Daily Tournaments pages."
+          //
+          // Uses the Phase 16B `format` column on commander_home_games
+          // (values 'cash'|'tournament') and the Phase 18 activity filter
+          // on commander_home_groups (last_activity_at / created_at /
+          // visibility_override_until).
+          //
+          // STRICT RULES:
+          //   1. Only format='tournament' home games surface here
+          //   2. Only scheduled_date = targetDateStr — home games are
+          //      one-off events on specific dates, not recurring "Daily"
+          //      tournaments. A home game set for Apr 25 appears only
+          //      when the user views Apr 25.
+          //   3. Parent group MUST be public + active + pass the 45-day
+          //      activity filter. Dan's explicit clarification: "Auto-
+          //      scheduled tournaments do NOT count as activity." So
+          //      the group itself needs recent human engagement for
+          //      its future tournaments to surface.
+          //   4. status must be 'scheduled' or 'in_progress' — not
+          //      'cancelled' or 'completed'
+          //
+          // Follows the same read-time UNION pattern Phase 19 uses for
+          // /api/poker/venues (no cross-table FK writes; home groups
+          // stay in their own schema island).
+          try {
+              const HG_INACTIVITY_DAYS = 45;
+              const hgInactivityCutoff = new Date(
+                  Date.now() - HG_INACTIVITY_DAYS * 24 * 60 * 60 * 1000
+              ).toISOString();
+              const hgNow = new Date().toISOString();
+
+              let hgQuery = getSupabase()
+                  .from('commander_home_games')
+                  .select(`
+                      id,
+                      title,
+                      description,
+                      game_type,
+                      stakes,
+                      buyin_min,
+                      buyin_max,
+                      scheduled_date,
+                      start_time,
+                      max_players,
+                      rsvp_yes,
+                      status,
+                      format,
+                      neighborhood,
+                      approximate_lat,
+                      approximate_lng,
+                      group:commander_home_groups!inner (
+                          id,
+                          name,
+                          city,
+                          state,
+                          latitude,
+                          longitude,
+                          profile_photo_url,
+                          is_private,
+                          is_active,
+                          last_activity_at,
+                          created_at,
+                          visibility_override_until
+                      )
+                  `)
+                  .eq('format', 'tournament')
+                  .in('status', ['scheduled', 'in_progress'])
+                  .eq('scheduled_date', targetDateStr)
+                  .eq('group.is_private', false)
+                  .eq('group.is_active', true);
+
+              const { data: dbHomeGameTourneys, error: hgErr } = await hgQuery;
+              if (hgErr) {
+                  console.warn('[daily-tournaments] Home game UNION query error (non-fatal):', hgErr.message);
+              } else if (dbHomeGameTourneys && dbHomeGameTourneys.length > 0) {
+                  // Apply the 45-day activity filter client-side (PostgREST
+                  // won't do compound OR across the joined table reliably).
+                  const cutoffMs = Date.parse(hgInactivityCutoff);
+                  const nowMs    = Date.parse(hgNow);
+                  const activeHomeGames = dbHomeGameTourneys.filter((hg) => {
+                      const g = hg.group;
+                      if (!g || g.is_private || !g.is_active) return false;
+                      const lastActivityMs = g.last_activity_at ? Date.parse(g.last_activity_at) : 0;
+                      const createdAtMs    = g.created_at        ? Date.parse(g.created_at)        : 0;
+                      const overrideMs     = g.visibility_override_until ? Date.parse(g.visibility_override_until) : 0;
+                      return lastActivityMs >= cutoffMs
+                          || createdAtMs    >= cutoffMs
+                          || overrideMs     >  nowMs;
+                  });
+
+                  // Optional state filter (applied the same way charity/
+                  // tour filters are applied below — but safer to apply
+                  // it at push-time here using the joined group's state).
+                  const filteredByState = safeStateParam
+                      ? activeHomeGames.filter((hg) =>
+                          (hg.group?.state || '').toUpperCase() === safeStateParam.toUpperCase()
+                      )
+                      : activeHomeGames;
+
+                  filteredByState.forEach((hg) => {
+                      const g = hg.group || {};
+                      // Map buyin to the shape charity/tour events use
+                      const buyIn = hg.buyin_min || 0;
+
+                      // start_time in commander_home_games is stored as
+                      // a time-of-day string like "19:00" (24-hour). The
+                      // rest of this endpoint uses "7:00 PM" format.
+                      // Best-effort conversion — fall back to the raw
+                      // value if parse fails.
+                      let displayStartTime = hg.start_time || '7:00 PM';
+                      try {
+                          if (typeof hg.start_time === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(hg.start_time)) {
+                              const [hStr, mStr] = hg.start_time.split(':');
+                              const h = parseInt(hStr, 10);
+                              const m = parseInt(mStr, 10) || 0;
+                              const period = h >= 12 ? 'PM' : 'AM';
+                              const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                              displayStartTime = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+                          }
+                      } catch { /* fall back to raw */ }
+
+                      tournaments.push({
+                          id:                `home_game_${hg.id}`,
+                          venue_id:          `home_game_${g.id || hg.id}`,  // string, distinguishable from int venue_ids
+                          venue_name:        g.name || 'Home Game',
+                          venueType:         'Home Game',
+                          day_of_week:       hg.scheduled_date,
+                          start_time:        displayStartTime,
+                          buy_in:            buyIn,
+                          game_type:         (hg.game_type || 'NLH').toUpperCase(),
+                          format:            hg.title || 'Home Tournament',
+                          guaranteed:        0,
+                          tournament_name:   hg.title || `${g.name || 'Home Game'} Tournament`,
+                          source_url:        null,  // Populated by discover /home-games/{slug} on frontend
+                          state:             g.state,
+                          city:              g.city,
+                          logo_url:          g.profile_photo_url || null,
+                          is_home_game:      true,                           // extra UI signal
+                          home_group_id:     g.id,                           // for deep-linking to /home-games/{slug}
+                          rsvp_yes:          hg.rsvp_yes || 0,
+                          max_players:       hg.max_players,
+                          pokerAtlasUrl:     null,
+                      });
+                  });
+              }
+          } catch (hgIntegrationErr) {
+              console.warn('[daily-tournaments] Home game UNION failed (non-fatal):', hgIntegrationErr?.message || hgIntegrationErr);
+          }
+          // ═══════════════════════════════════════════════════════════
+          //  END PHASE 20
+          // ═══════════════════════════════════════════════════════════
+
+          // Filter by state if provided (Ensures Charity/Tours are caught)
+          if (state) {
+              tournaments = tournaments.filter(t =>
+                  t.state?.toUpperCase() === state.toUpperCase()
+              );
+          }
+
+          // Filter by venue type (Ensures Charity/Tours are cleanly routed)
+          if (type) {
+              tournaments = tournaments.filter(t =>
+                  t.venueType?.toLowerCase().includes(type.toLowerCase())
+              );
+          }
+
 
           // ═══════════════════════════════════════════════════════════
           // TIME FLOOR GUARD: Suppress pre-10 AM tournaments (data quality errors)
@@ -632,7 +666,9 @@ async function handler(req, res) {
                       venueLogos.forEach(v => logoMap.set(v.id, v.logo_url || v.profile_photo_url || null));
                       tournaments = tournaments.map(t => ({
                           ...t,
-                          logo_url: logoMap.get(Number(t.venue_id)) || null,
+                          // Keep any logo already set (home games carry the group's photo);
+                          // Number('home_game_<uuid>') is NaN, which used to null them out.
+                          logo_url: logoMap.get(Number(t.venue_id)) || t.logo_url || null,
                       }));
                   }
               } catch (logoErr) {

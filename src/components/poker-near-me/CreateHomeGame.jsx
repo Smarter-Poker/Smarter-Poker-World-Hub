@@ -21,8 +21,41 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Home, Sparkles, Calendar, Users, Shield, ArrowRight } from 'lucide-react';
+import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 
 const WIZARD_PATH = '/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
+
+// WIRING FIX: this component used to GET '/api/commander/check-access' while its
+// sibling HostHomeGameButton.jsx GET '/api/check-access' — the same Commander
+// access gate, two different routes. Whichever one is not canonical 404s, and the
+// `res.ok` guard swallows that, silently pushing an entitled user out to the
+// external register wizard. Both components now share this resolver: it prefers the
+// Commander-namespaced route (CLAUDE.md places the Commander API under
+// pages/api/commander/) and falls back to the legacy top-level route on 404/405,
+// so it behaves correctly whichever one the deployment actually serves.
+const ACCESS_ENDPOINTS = ['/api/commander/check-access', '/api/check-access'];
+
+async function checkCommanderAccess(accessToken) {
+  for (const endpoint of ACCESS_ENDPOINTS) {
+    let res;
+    try {
+      res = await fetch(endpoint, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
+      });
+    } catch (e) {
+      // Network error — try the next candidate rather than failing outright.
+      continue;
+    }
+    // Route genuinely absent on this deployment — try the other one.
+    if (res.status === 404 || res.status === 405) continue;
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+    return !!data?.hasAccess;
+  }
+  return false;
+}
 
 export default function CreateHomeGame({ onCancel }) {
   const router = useRouter();
@@ -32,42 +65,31 @@ export default function CreateHomeGame({ onCancel }) {
   const handleStart = async () => {
     setChecking(true);
     try {
-      let authBlob = {};
-      try {
-        authBlob = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
-      } catch { /* corrupted blob — treat as signed-out */ }
-
-      const user = authBlob?.user || null;
-      const accessToken =
-        authBlob?.session?.access_token ||
-        authBlob?.access_token ||
-        authBlob?.currentSession?.access_token ||
-        null;
+      // REGRESSION FIX: this used to hand-roll the localStorage 'smarter-poker-auth'
+      // parse — the exact pattern HostHomeGameButton's comment documents as a fixed
+      // bug, because it misses users whose session lives only under the legacy sb-*
+      // keys and silently sent them down the unauthenticated branch. Use the canonical
+      // helpers, which check AUTH_STORAGE_KEY first and then fall back to legacy keys.
+      const user = getAuthUser();
+      const accessToken = getAccessToken();
 
       if (!user || !accessToken) {
         window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
         return;
       }
 
-      const res = await fetch('/api/commander/check-access', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include',
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.hasAccess) {
-          router.push('/hub/commander/home-games/create');
-          return;
-        }
+      if (await checkCommanderAccess(accessToken)) {
+        router.push('/hub/commander/home-games/create');
+        return;
       }
-      
+
       // If we get here, they need to register
       window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
     } catch (e) {
       console.warn('Commander access check failed:', e);
       window.location.href = `https://commander.smarter.poker${WIZARD_PATH}`;
+    } finally {
+      setChecking(false);
     }
   };
 

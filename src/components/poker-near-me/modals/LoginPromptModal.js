@@ -1,8 +1,10 @@
 import React from 'react';
+import { useRouter } from 'next/router';
 
 export default function LoginPromptModal({
 showLoginPrompt, setShowLoginPrompt
 }) {
+    const router = useRouter();
     return (
         <div style={{
             position: 'fixed', inset: 0, zIndex: 100,

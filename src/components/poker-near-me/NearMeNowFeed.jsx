@@ -50,6 +50,30 @@ const TYPE_COLORS = {
 
 const RADIUS_OPTIONS = [10, 25, 50, 100];
 
+// How far ahead a tournament start counts as "upcoming" for this feed.
+const TOURNAMENT_LOOKAHEAD_MIN = 6 * 60;
+
+/**
+ * Parse a daily-tournament start_time ("7:00 PM", "19:00", "11:00 AM") into
+ * minutes since midnight. Returns null when unparseable.
+ */
+function parseStartMinutes(startTime) {
+    const match = String(startTime || '').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return null;
+    let hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    const ampm = match[3];
+    if (ampm) {
+        const upper = ampm.toUpperCase();
+        if (upper === 'PM' && hour !== 12) hour += 12;
+        if (upper === 'AM' && hour === 12) hour = 0;
+    }
+    if (hour > 23 || minute > 59) return null;
+    return hour * 60 + minute;
+}
+
+
 // Skeleton placeholder for loading state
 function FeedSkeleton({ count = 3 }) {
     return (
@@ -164,6 +188,55 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
 
         if (!isMounted.current) return;
         try {
+            // Upcoming tournament starts.
+            // GAP FIX: TYPE_COLORS/FEED_ICONS have always defined a 'tournament' type
+            // with its own filter chip, but nothing ever fetched tournaments — selecting
+            // the chip showed the empty state and the tournament click-through branch
+            // below was dead code. /api/poker/daily-tournaments defaults to today.
+            const tourneyRes = await fetch('/api/poker/daily-tournaments?limit=100', { signal });
+            if (!tourneyRes.ok) throw new Error(`Daily tournaments: HTTP ${tourneyRes.status}`);
+            const tourneyData = await tourneyRes.json();
+            const nowDate = new Date();
+            const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+            (tourneyData.tournaments || tourneyData.data || []).forEach(t => {
+                const venue = venues.find(v =>
+                    String(v.id) === String(t.venue_id) ||
+                    (t.venue_name && (v.name || '').toLowerCase() === String(t.venue_name).toLowerCase())
+                );
+                if (!venue || !isWithinRadius(venue)) return;
+                const startMinutes = parseStartMinutes(t.start_time);
+                if (startMinutes === null) return;
+                const minsAway = startMinutes - nowMinutes;
+                // Only surface starts still ahead of us (or just underway) today.
+                if (minsAway < -30 || minsAway > TOURNAMENT_LOOKAHEAD_MIN) return;
+                const buyIn = Number(t.buy_in) || 0;
+                const startDate = new Date(nowDate);
+                startDate.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+                const hoursAway = Math.floor(Math.abs(minsAway) / 60);
+                items.push({
+                    type: 'tournament',
+                    title: t.tournament_name || t.name || `${t.game_type || 'Tournament'}`,
+                    subtitle: venue.name,
+                    detail: [
+                        minsAway <= 0 ? 'Underway' : `Starts ${t.start_time}`,
+                        buyIn > 0 ? `$${buyIn.toLocaleString()} buy-in` : null,
+                    ].filter(Boolean).join(' - '),
+                    venue,
+                    time: startDate.toISOString(),
+                    // timeAgo() would render a future start as "Just now"; show the wait instead.
+                    timeLabel: minsAway <= 0
+                        ? 'Now'
+                        : (minsAway < 60 ? `in ${minsAway}m` : `in ${hoursAway}h ${minsAway % 60}m`),
+                    // The feed sorts newest-first; anchor imminent starts near the top
+                    // instead of letting a start 6 hours out outrank a 1-minute-old check-in.
+                    sortTime: new Date(nowDate.getTime() - Math.max(minsAway, 0) * 60000).toISOString(),
+                    id: `tournament-${t.id || `${t.venue_id}-${t.start_time}`}`,
+                });
+            });
+        } catch { /* continue */ }
+
+        if (!isMounted.current) return;
+        try {
             // Promotions
             const promoRes = await fetch('/api/poker/promotions?limit=30', { signal });
             // [NMF2 FIX] Was missing .ok check — a 500 response body would still be parsed
@@ -188,7 +261,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
 
         if (!isMounted.current) return;
         // Sort by time descending
-        items.sort((a, b) => new Date(b.time) - new Date(a.time));
+        items.sort((a, b) => new Date(b.sortTime || b.time) - new Date(a.sortTime || a.time));
         setFeedItems(items);
         setLoading(false);
         setLastRefresh(new Date());
@@ -303,7 +376,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                                 <div className="nmf-item-content">
                                     <div className="nmf-item-top">
                                         <span className="nmf-item-title">{item.title}</span>
-                                        <span className="nmf-item-time">{timeAgo(item.time)}</span>
+                                        <span className="nmf-item-time">{item.timeLabel || timeAgo(item.time)}</span>
                                     </div>
                                     <div className="nmf-item-subtitle">
                                         {item.subtitle}

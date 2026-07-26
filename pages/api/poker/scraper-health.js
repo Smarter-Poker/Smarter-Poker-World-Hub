@@ -9,10 +9,12 @@
  *   - Minutes since last scrape
  *   - Any detected issues
  *
- * Thresholds:
- *   - healthy: data < 20 min old
- *   - stale: data 20-60 min old  
+ * Thresholds (must match the code below and scraper-watchdog):
+ *   - healthy: data < 30 min old
+ *   - stale: data 30-60 min old
  *   - dead: data > 60 min old
+ *
+ * Sources: pokeratlas only. Bravo was removed permanently (2026-05-23).
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -51,7 +53,11 @@ export default async function handler(req, res) {
     }
 
     // Group the data by source
-    const buckets = { bravo: [], pokeratlas: [] };
+    // 'bravo' is no longer scraped (removed 2026-05-23) — monitoring it emitted a
+    // permanent "bravo: NO DATA FOUND" issue that could never clear.
+    const sources = ['pokeratlas'];
+    const buckets = {};
+    sources.forEach(src => { buckets[src] = []; });
     if (allData) {
       allData.forEach(row => {
         if (buckets[row.source]) {
@@ -59,8 +65,6 @@ export default async function handler(req, res) {
         }
       });
     }
-
-    const sources = ['bravo', 'pokeratlas'];
     const health = {};
 
     for (const source of sources) {
@@ -135,8 +139,10 @@ export default async function handler(req, res) {
       }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-    const overallStatus = issues.length === 0 ? 'healthy' : 
-      issues.some(i => i.includes('DEAD') || i.includes('anomaly')) ? 'critical' : 'warning';
+    // A source with zero rows is the WORST failure mode (scraper dead long enough
+    // that cleanup purged its rows), so it must escalate to critical/503 too.
+    const overallStatus = issues.length === 0 ? 'healthy' :
+      issues.some(i => i.includes('DEAD') || i.includes('anomaly') || i.includes('NO DATA')) ? 'critical' : 'warning';
 
     // Return 200 for healthy/stale (operational), 503 only for dead/critical
     // This prevents external monitors from flagging normal staleness as outages

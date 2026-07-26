@@ -39,7 +39,6 @@ const FullScreenPageOverlay = dynamic(
   { ssr: false }
 );
 
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { PNM_TAB_TUTORIALS } from '../../../src/components/poker-near-me/InteractiveTutorial';
 const InteractiveTutorial = dynamic(
   () => import('../../../src/components/poker-near-me/InteractiveTutorial'),
@@ -95,7 +94,6 @@ import {
   cachedFetch,
   fetchWithRetry,
 } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
-import { resolveCityCoordsArray as resolveCityCoords } from '../../../src/data/city-coordinates';
 const LocationEnableModal = dynamic(
   () => import('../../../src/components/ui/LocationEnableModal'),
   { ssr: false }
@@ -105,14 +103,9 @@ const LocationEnableModal = dynamic(
 const PAGE_SIZE = 20;
 const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
-const LIVE_REFRESH_MS = 120000; // 2 minutes
-const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "Load More"
-
-// City coordinates imported from ../../../src/data/city-coordinates.js
-// resolveCityCoords is imported as resolveCityCoordsArray above
 
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
@@ -170,136 +163,15 @@ function trackSearchEvent(eventName, data) {
   }
 }
 
-// Popular cities for autocomplete
-const POPULAR_CITIES = [
-  { name: 'Las Vegas', state: 'NV' },
-  { name: 'Los Angeles', state: 'CA' },
-  { name: 'Atlantic City', state: 'NJ' },
-  { name: 'Miami', state: 'FL' },
-  { name: 'Houston', state: 'TX' },
-  { name: 'Dallas', state: 'TX' },
-  { name: 'Chicago', state: 'IL' },
-  { name: 'Phoenix', state: 'AZ' },
-  { name: 'San Diego', state: 'CA' },
-  { name: 'Tampa', state: 'FL' },
-  { name: 'Denver', state: 'CO' },
-  { name: 'Portland', state: 'OR' },
-  { name: 'Seattle', state: 'WA' },
-  { name: 'San Francisco', state: 'CA' },
-  { name: 'New Orleans', state: 'LA' },
-  { name: 'Oklahoma City', state: 'OK' },
-  { name: 'Biloxi', state: 'MS' },
-  { name: 'Tunica', state: 'MS' },
-  { name: 'Reno', state: 'NV' },
-  { name: 'San Jose', state: 'CA' },
-  { name: 'Ft. Lauderdale', state: 'FL' },
-  { name: 'Orlando', state: 'FL' },
-  { name: 'Austin', state: 'TX' },
-  { name: 'San Antonio', state: 'TX' },
-  { name: 'Nashville', state: 'TN' },
-  { name: 'Detroit', state: 'MI' },
-  { name: 'Minneapolis', state: 'MN' },
-  { name: 'St. Louis', state: 'MO' },
-  { name: 'Charlotte', state: 'NC' },
-  { name: 'Sacramento', state: 'CA' },
-];
-const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 // TOTAL_VENUES removed — now derived dynamically from allVenuesForMap.length
 
 // Home games are now fetched and merged in the backend via /api/poker/venues.js
-
-// Haversine distance in miles — used to apply the user's selected radius
-// to home games after the static fetch (which has no radius param).
-function _hgHaversineMi(aLat, aLng, bLat, bLng) {
-  const R = 3958.8;
-  const dLat = ((bLat - aLat) * Math.PI) / 180;
-  const dLng = ((bLng - aLng) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-const VENUE_TYPE_LABELS = {
-  casino: 'Casino',
-  card_room: 'Poker Club',
-  poker_club: 'Poker Club',
-  home_game: 'Home Game',
-  charity: 'Charity',
-  tour_stop: 'Poker Tour',
-  poker_tour: 'Poker Tour',
-};
-
-const TOUR_TYPE_LABELS = {
-  major: 'Major Tour',
-  circuit: 'Circuit',
-  high_roller: 'High Roller',
-  regional: 'Regional',
-  grassroots: 'Grassroots',
-  charity: 'Charity',
-  cruise: 'Cruise',
-};
-
-const TOUR_COLORS = {
-  WSOP: { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-  WPT: { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-  WSOPC: { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-  MSPT: { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
-  RGPS: { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
-  PGT: { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
-  default: { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' },
-};
+// Home-game radius filtering also happens in the backend now.
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-function getTrustLevel(score) {
-  if (score >= 4.5) return { label: 'High', color: '#22c55e' };
-  if (score >= 4.0) return { label: 'Good', color: '#3b82f6' };
-  if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b' };
-  return { label: 'Low', color: '#ef4444' };
-}
-
 function getCurrentDay() {
   return DAYS_OF_WEEK[new Date().getDay()];
-}
-
-// Geofence radii by venue type (meters)
-const GEOFENCE_RADII = {
-  casino: 500,
-  card_room: 300,
-  poker_club: 200,
-  charity: 200,
-};
-const DEFAULT_GEOFENCE_RADIUS = 300;
-
-function getGeofenceRadius(venueType) {
-  return GEOFENCE_RADII[venueType] || DEFAULT_GEOFENCE_RADIUS;
-}
-
-// Tour Badge Component
-function TourBadge({ tourCode, size = 'normal' }) {
-  const style = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
-  const padding = size === 'small' ? '4px 10px' : '8px 16px';
-  const fontSize = size === 'small' ? '11px' : '14px';
-
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding,
-        borderRadius: '6px',
-        background: style.bg,
-        border: '1px solid ' + style.border,
-        minWidth: size === 'small' ? '50px' : '70px',
-      }}
-    >
-      <span style={{ color: style.text, fontSize, fontWeight: 800, letterSpacing: '0.5px' }}>
-        {tourCode || 'TOUR'}
-      </span>
-    </div>
-  );
 }
 
 // ═══ FAVORITE VENUE LIVE TOAST ═══
@@ -398,7 +270,7 @@ class TabErrorBoundary extends React.Component {
 }
 
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
-export default function PokerNearMePage({ initialTab }) {
+export default function PokerNearMePage() {
   const router = useRouter();
   const { user } = useAvatar();
   const bus = eventBus;
@@ -515,21 +387,46 @@ export default function PokerNearMePage({ initialTab }) {
   const setVenueViewMode = (val) => setUiFilter('venueViewMode', val);
 
   // ─── HARDENING: Sync Next.js route parameter to LocalStorage active tabs ───
-  // When returning via BACK button to /hub/poker-near-me/tours, initialTab is 'tours'.
-  // If localStorage was stale or out-of-sync, it overrides the URL parameter. This forces sync.
+  // WIRING FIX: this page has no data-fetching exports, so the old `initialTab` prop
+  // was always undefined and this effect never fired. Derive the tab from the live
+  // router query instead, so client-side router.push between
+  // /hub/poker-near-me/<slug> URLs switches tabs (the one-shot mount parser below
+  // only runs once). lastRouteTabRef is also updated by the deep-link URL writer so
+  // UI-driven tab changes (history.replaceState) don't get fought by this effect.
+  const lastRouteTabRef = useRef(null);
   useEffect(() => {
-    if (!initialTab) return;
-    if (['tours', 'series', 'daily'].includes(initialTab)) {
-      if (rawActiveTab !== 'events' || activeEventTab !== initialTab) {
-        setUiFilter('activeTab', 'events');
-        setUiFilter('activeEventTab', initialTab);
-      }
-    } else if (['lobby', 'venues', 'live', 'map', 'saved', 'more'].includes(initialTab)) {
-      if (rawActiveTab !== initialTab) {
-        setUiFilter('activeTab', initialTab);
-      }
+    if (!router.isReady) return;
+    const rawParam = router.query.pnmTab;
+    const routeTab = Array.isArray(rawParam) ? rawParam[0] : rawParam;
+    if (!routeTab || routeTab === lastRouteTabRef.current) return;
+    const isFirstSync = lastRouteTabRef.current === null;
+    lastRouteTabRef.current = routeTab;
+    // The mount parser handles the initial URL (including ?q=/?sub= params)
+    if (isFirstSync) return;
+    if (routeTab === 'live-games' || routeTab === 'live') {
+      setShowLiveTab(true);
+      return;
     }
-  }, [initialTab, rawActiveTab, activeEventTab]);
+    const EVENT_SLUGS = {
+      tours: 'tours',
+      series: 'series',
+      daily: 'daily',
+      'daily-tournaments': 'daily',
+      calendar: 'calendar',
+      'events-calendar': 'calendar',
+    };
+    setShowLiveTab(false);
+    if (EVENT_SLUGS[routeTab]) {
+      setUiFilter('activeTab', 'events');
+      setUiFilter('activeEventTab', EVENT_SLUGS[routeTab]);
+    } else if (routeTab === 'roadtrip' || routeTab === 'alerts') {
+      // Set directly — setActiveTab('more') would reset the sub-tab to 'overview'
+      setUiFilter('activeTab', 'more');
+      setUiFilter('activeMoreTab', routeTab);
+    } else if (['venues', 'map', 'saved', 'more', 'events'].includes(routeTab)) {
+      setActiveTab(routeTab);
+    }
+  }, [router.isReady, router.query.pnmTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Data states
   const [venues, setVenues] = useState([]);
@@ -541,18 +438,19 @@ export default function PokerNearMePage({ initialTab }) {
 
   // Live table count for map stats (fetched from live-tables API)
   const [liveTableCount, setLiveTableCount] = useState(0);
-  const [liveVenueCount, setLiveVenueCount] = useState(0);
 
   // UI states
   const [loading, setLoading] = useState(true);
   const [venueLoading, setVenueLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
+  // Ref mirror so long-lived timeouts (GPS failsafe) read fresh location state
+  const userLocationRef = useRef(null);
+  userLocationRef.current = userLocation;
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedCity, setSelectedCity] = useState(null);
   const [nearestDistance, setNearestDistance] = useState(null);
   const [hasSearched, setHasSearched] = useState(true);
@@ -585,7 +483,10 @@ export default function PokerNearMePage({ initialTab }) {
       .catch((e) => {
         console.warn('[App] Handled promise rejection:', e?.message || e);
       });
-  }, [venues]);
+    // pnmReviewStatsMap is a dep so the next 50-id chunk is requested once a batch
+    // resolves (venues can be up to 500). The newIds.length === 0 early-return
+    // terminates the chain — already-fetched ids are excluded, so no infinite loop.
+  }, [venues, pnmReviewStatsMap]);
 
   // ─── Live Cash Game Data Merger ───
   // Fetches /api/poker/live-tables on mount AND every 15 minutes (matching scraper cadence)
@@ -670,10 +571,13 @@ export default function PokerNearMePage({ initialTab }) {
         const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue; // no change
         if (curTs && newTs && curTs === newTs) return venue; // same data
-        changed = true;
         // POLICY: Never replace existing live_data with null.
         // If the new data is empty but we had data before, keep the old data.
+        // (Must be checked BEFORE flagging `changed` — otherwise a scraper outage
+        // marked every venue changed while returning identical objects, forcing a
+        // full list re-render every 15-minute cycle.)
         if (!newLiveData && venue.live_data) return venue;
+        changed = true;
         return { ...venue, live_data: newLiveData };
       });
       return changed ? next : prev; // referential equality guard
@@ -720,6 +624,15 @@ export default function PokerNearMePage({ initialTab }) {
   // Pin-to-card highlight state
   const [highlightedVenueId, setHighlightedVenueId] = useState(null);
   const highlightTimeoutRef = useRef(null);
+  // GPS 20s-failsafe timeout — kept in a ref so unmount can clear it
+  const gpsFailsafeTimeoutRef = useRef(null);
+  // Clear pending timeouts on unmount (highlight + GPS failsafe)
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+      if (gpsFailsafeTimeoutRef.current) clearTimeout(gpsFailsafeTimeoutRef.current);
+    };
+  }, []);
 
   // Swipe gesture state
   const touchStartRef = useRef(null);
@@ -730,10 +643,6 @@ export default function PokerNearMePage({ initialTab }) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullStartRef = useRef(null);
-
-  // City autocomplete state
-  const [citySuggestions, setCitySuggestions] = useState([]);
-  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
   // Push notification state
   const [pushPermission, setPushPermission] = useState('default');
@@ -748,10 +657,34 @@ export default function PokerNearMePage({ initialTab }) {
     showNewcomerFriendly: true,
   });
 
-  // Intro video removed by request
+  // Intro video state - ONLY show when navigated directly from World Hub card click
+  // NOT when navigating via lobby pods (which add ?tab= params)
+  // HYDRATION FIX: server HTML always renders without the intro overlay, so the
+  // sessionStorage read must happen in an effect — reading it in the useState
+  // initializer caused a client/server hydration mismatch, and the render-phase
+  // sessionStorage.removeItem consumed the from-hub flag twice under StrictMode.
   const [showIntro, setShowIntro] = useState(false);
+  useEffect(() => {
+    try {
+      // If there's a tab param in the URL, user came from lobby — never play intro
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tab')) {
+        // Consume the flag so it doesn't stick around
+        sessionStorage.removeItem('poker-near-me-from-hub');
+        return;
+      }
+      // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
+      const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
+      if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
+        // Consume the flag immediately so it doesn't replay on refresh
+        sessionStorage.removeItem('poker-near-me-from-hub');
+        setShowIntro(true);
+      }
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+    }
+  }, []);
   const introVideoRef = useRef(null);
-  const cityDebounceRef = useRef(null);
 
   // ─── Tab-specific tutorial state ───
   const [tabTutorialsSeen, setTabTutorialsSeen] = useState(() => {
@@ -818,74 +751,75 @@ export default function PokerNearMePage({ initialTab }) {
     }
   }, []);
 
-  const [filters, setFilters] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('poker-near-me-search-filters');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          // ENFORCE venueType=all so tour pins + all venues always show on map
-          // Also sanitize stale 'undefined' string values from the ?filter=undefined bug
-          const VALID_VT = new Set([
-            'all',
-            'casino',
-            'card_room',
-            'poker_club',
-            'home_game',
-            'charity',
-            'tour_stop',
-            'poker_tour',
-          ]);
-          parsed.venueType = VALID_VT.has(parsed.venueType) ? parsed.venueType : 'all';
-          // REMOVED gameType and stakes forced resets to allow user preference persistence.
-          // Sanitize old cached 'tournaments' value back to 'all'
-          if (
-            ['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())
-          ) {
-            parsed.gameType = 'all';
-          }
-          // Normalize stakes: 'any' means no filter — treat same as 'all'
-          // BUG FIX: 'any' was stored as default but !== 'all', causing the client-side
-          // stakes filter to fire with s.includes('any') → zero venues matched → blank page.
-          parsed.stakes =
-            parsed.stakes &&
-            !['any', 'all', 'undefined', 'null', ''].includes(String(parsed.stakes).toLowerCase())
-              ? parsed.stakes
-              : 'all';
-          // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
-          // Keep the user's saved radius — do NOT override it to 50mi
-          // Default to 50mi only if no saved radius exists
-          if (!parsed.radius) parsed.radius = 50;
-          parsed.gameType = parsed.gameType || 'all';
-          // Write sanitized filters BACK to localStorage to prevent stale 'any' from persisting
-          try {
-            localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
-          } catch (e) {
-            console.warn('[App] Handled exception:', e?.message || e);
-          }
-          return { ...parsed };
-        }
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-    return {
-      radius: 50,
-      venueType: 'all',
-      gameType: 'all',
-      stakes: 'all',
-      hasNLH: false,
-      hasPLO: false,
-      hasMixed: false,
-      tourType: 'all',
-      seriesTimeframe: 90,
-      seriesType: 'all',
-      selectedDay: getCurrentDay(),
-      minBuyin: '',
-      maxBuyin: '',
-      selectedState: 'all',
-    };
+  // HYDRATION FIX: initialize with server-safe defaults and hydrate the saved blob
+  // in an effect — reading localStorage in the useState initializer made the first
+  // client render differ from the server HTML (controlled <select> values).
+  const [filters, setFilters] = useState({
+    radius: 50,
+    venueType: 'all',
+    gameType: 'all',
+    stakes: 'all',
+    hasNLH: false,
+    hasPLO: false,
+    hasMixed: false,
+    tourType: 'all',
+    seriesTimeframe: 90,
+    seriesType: 'all',
+    selectedDay: getCurrentDay(),
+    minBuyin: '',
+    maxBuyin: '',
+    selectedState: 'all',
   });
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('poker-near-me-search-filters');
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      // ENFORCE venueType=all so tour pins + all venues always show on map
+      // Also sanitize stale 'undefined' string values from the ?filter=undefined bug
+      const VALID_VT = new Set([
+        'all',
+        'casino',
+        'card_room',
+        'poker_club',
+        'home_game',
+        'charity',
+        'tour_stop',
+        'poker_tour',
+      ]);
+      parsed.venueType = VALID_VT.has(parsed.venueType) ? parsed.venueType : 'all';
+      // REMOVED gameType and stakes forced resets to allow user preference persistence.
+      // Sanitize old cached 'tournaments' value back to 'all'
+      if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
+        parsed.gameType = 'all';
+      }
+      // Normalize stakes: 'any' means no filter — treat same as 'all'
+      // BUG FIX: 'any' was stored as default but !== 'all', causing the client-side
+      // stakes filter to fire with s.includes('any') → zero venues matched → blank page.
+      parsed.stakes =
+        parsed.stakes &&
+        !['any', 'all', 'undefined', 'null', ''].includes(String(parsed.stakes).toLowerCase())
+          ? parsed.stakes
+          : 'all';
+      // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
+      // Keep the user's saved radius — do NOT override it to 50mi
+      // Default to 50mi only if no saved radius exists
+      if (!parsed.radius) parsed.radius = 50;
+      parsed.gameType = parsed.gameType || 'all';
+      // BUG FIX: selectedDay was persisted forever, so returning users saw a stale
+      // day's daily tournaments presented as today's. Always reset it to today.
+      parsed.selectedDay = getCurrentDay();
+      // Write sanitized filters BACK to localStorage to prevent stale 'any' from persisting
+      try {
+        localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+      }
+      setFilters((prev) => ({ ...prev, ...parsed }));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
   // CRITICAL: Must be declared BEFORE allVenuesWithTours useMemo which references globalSearchModeRef.current
@@ -996,16 +930,9 @@ export default function PokerNearMePage({ initialTab }) {
     };
   }, []);
 
-  // --- Live games search-first ---
-  const [liveGames, setLiveGames] = useState([]);
-  const [liveLoading, setLiveLoading] = useState(false);
-  const liveRefreshRef = useRef(null);
-  const [liveSearchQuery, setLiveSearchQuery] = useState('');
-  const [liveVenueList, setLiveVenueList] = useState([]);
-  const [liveVenueSuggestions, setLiveVenueSuggestions] = useState([]);
-  const [selectedLiveVenue, setSelectedLiveVenue] = useState(null);
-  const [showLiveSuggestions, setShowLiveSuggestions] = useState(false);
-  const liveSearchInputRef = useRef(null);
+  // NOTE: the old page-level live-venue-search cluster (liveGames, liveVenueList,
+  // selectedLiveVenue, fetchLiveGames, etc.) was removed — the Live tab renders
+  // LiveGamesFeed, which does its own fetching and polling.
   const [favorites, setFavorites] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -1053,9 +980,6 @@ export default function PokerNearMePage({ initialTab }) {
     }
     return [];
   });
-  const [showSearchHistory, setShowSearchHistory] = useState(false);
-  const searchDebounceRef = useRef(null);
-  const searchWrapperRef = useRef(null);
   const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
   // Map view filters (for enhanced map-first experience)
@@ -1135,7 +1059,10 @@ export default function PokerNearMePage({ initialTab }) {
         series: PAGE_SIZE,
         daily: PAGE_SIZE_DAILY,
       }));
-      fetchAllData({ includeVenues: true });
+      // Radius only affects the venues query — tours/series/daily don't use it.
+      // (Previously called fetchAllData, which duplicated 3-4 requests on every
+      // radius change / "Load More" radius-tier expansion.)
+      if (fetchVenuesRef.current) fetchVenuesRef.current();
     }
   }, [filters.radius]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1239,12 +1166,6 @@ export default function PokerNearMePage({ initialTab }) {
           setLiveTableCount((prev) => {
             if (json.metadata.total_tables_running > 0) return json.metadata.total_tables_running;
             return prev > 0 ? prev : 0; // keep previous if new is 0
-          });
-        }
-        if (typeof json.metadata.venues_with_live_data === 'number') {
-          setLiveVenueCount((prev) => {
-            if (json.metadata.venues_with_live_data > 0) return json.metadata.venues_with_live_data;
-            return prev > 0 ? prev : 0;
           });
         }
       }
@@ -1397,22 +1318,6 @@ export default function PokerNearMePage({ initialTab }) {
     if (gpsLoading) gpsFallbackRef.current = true;
   }, [gpsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close search history on outside click
-  useEffect(() => {
-    if (!showSearchHistory) return;
-    const handleClickOutside = (e) => {
-      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target)) {
-        setShowSearchHistory(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [showSearchHistory]);
-
   // ---------- Geofence monitoring ----------
   const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
   const gfModulesRef = useRef(null); // Cache dynamic imports to avoid re-importing
@@ -1421,6 +1326,11 @@ export default function PokerNearMePage({ initialTab }) {
     if (typeof window === 'undefined') return;
     if (!userLocation) return;
     if (allVenuesForMap.length === 0) return;
+
+    // LEAK FIX: `cancelled` guards the async dynamic-import init — without it,
+    // gfService.start() could fire AFTER this effect was cleaned up (or the page
+    // unmounted) and the GPS watcher would never be stopped.
+    let cancelled = false;
 
     // If geofence service already exists, just update the venue list
     if (geofenceRef.current && gfModulesRef.current) {
@@ -1435,62 +1345,67 @@ export default function PokerNearMePage({ initialTab }) {
           body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
         }).catch(console.warn);
       });
-      return;
-    }
+    } else {
+      // First initialization — dynamic import (SSR safe)
+      import('../../../src/lib/geofence')
+        .then(function (mod) {
+          if (cancelled) return;
+          var GeofenceService = mod.default;
+          var gfService = new GeofenceService();
+          // Register the ref BEFORE the nested import resolves so cleanup can stop it
+          geofenceRef.current = gfService;
 
-    // First initialization — dynamic import (SSR safe)
-    import('../../../src/lib/geofence')
-      .then(function (mod) {
-        var GeofenceService = mod.default;
-        var gfService = new GeofenceService();
-
-        import('../../../src/lib/pushAlerts')
-          .then(function (pushMod) {
-            gfModulesRef.current = { pushMod };
-            pushMod
-              .requestPermission()
-              .then(function (permission) {
-                if (permission === 'denied') {
+          import('../../../src/lib/pushAlerts')
+            .then(function (pushMod) {
+              if (cancelled) return;
+              gfModulesRef.current = { pushMod };
+              pushMod
+                .requestPermission()
+                .then(function (permission) {
+                  if (permission === 'denied') {
+                    setGeofenceStatus('denied');
+                  }
+                })
+                .catch(function () {
                   setGeofenceStatus('denied');
-                }
-              })
-              .catch(function () {
-                setGeofenceStatus('denied');
+                });
+
+              gfService.start(allVenuesForMap, function (venue) {
+                pushMod.showVenueAlert(venue, 'checkin');
+                setGeofenceAlert(venue);
+
+                fetch('/api/venues/record-geofence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
+                }).catch(console.warn);
               });
 
-            gfService.start(allVenuesForMap, function (venue) {
-              pushMod.showVenueAlert(venue, 'checkin');
-              setGeofenceAlert(venue);
-
-              fetch('/api/venues/record-geofence', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
-              }).catch(console.warn);
+              setGeofenceStatus('active');
+            })
+            .catch(function () {
+              if (cancelled) return;
+              gfModulesRef.current = { pushMod: null };
+              gfService.start(allVenuesForMap, function (venue) {
+                setGeofenceAlert(venue);
+                fetch('/api/venues/record-geofence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
+                }).catch(console.warn);
+              });
+              setGeofenceStatus('active');
             });
+        })
+        .catch(function (err) {
+          setGeofenceStatus('error');
+        });
+    }
 
-            setGeofenceStatus('active');
-          })
-          .catch(function () {
-            gfModulesRef.current = { pushMod: null };
-            gfService.start(allVenuesForMap, function (venue) {
-              setGeofenceAlert(venue);
-              fetch('/api/venues/record-geofence', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
-              }).catch(console.warn);
-            });
-            setGeofenceStatus('active');
-          });
-
-        geofenceRef.current = gfService;
-      })
-      .catch(function (err) {
-        setGeofenceStatus('error');
-      });
-
+    // LEAK FIX: this cleanup now covers BOTH paths — the update path previously
+    // returned early without a cleanup, leaving the GPS watcher running after unmount.
     return function () {
+      cancelled = true;
       if (geofenceRef.current) {
         geofenceRef.current.stop();
       }
@@ -1698,30 +1613,6 @@ export default function PokerNearMePage({ initialTab }) {
       .catch((e) => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, []);
 
-  // --- Auto-refresh live games when venue is selected ---
-  // NOTE: This only refreshes live table data for the selected venue, NOT the entire page.
-  const lastLiveFetchRef = useRef(0);
-  useEffect(() => {
-    if (showLiveTab) {
-      // Pre-fetch venue list for search autocomplete (refresh if older than 5 mins — GAP 6.1)
-      if (liveVenueList.length === 0 || Date.now() - lastLiveFetchRef.current > 300000) {
-        fetchLiveVenueList();
-        lastLiveFetchRef.current = Date.now();
-      }
-      // Only auto-refresh if a venue is selected
-      if (selectedLiveVenue) {
-        fetchLiveGames(selectedLiveVenue.slug);
-        liveRefreshRef.current = setInterval(
-          () => fetchLiveGames(selectedLiveVenue.slug),
-          LIVE_REFRESH_MS
-        );
-      }
-    }
-    return () => {
-      if (liveRefreshRef.current) clearInterval(liveRefreshRef.current);
-    };
-  }, [showLiveTab, selectedLiveVenue]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // --- NEW: Helper functions ---
   const toggleFavorite = useCallback(
     async (type, id, e, itemData = {}) => {
@@ -1867,8 +1758,9 @@ export default function PokerNearMePage({ initialTab }) {
           });
           // Reset display count for fresh batch
           setDisplayCount((prev) => ({ ...prev, venues: PAGE_SIZE }));
-          // Schedule fetch with explicit radius override (avoids stale closure)
-          setTimeout(() => fetchVenues({ radiusOverride: nextTier }), 50);
+          // NOTE: no explicit fetch here — the radius-change effect fires on the
+          // filters.radius update and re-fetches venues with the new tier.
+          // (An explicit setTimeout fetch here caused a duplicate fetch cascade.)
         }
       }
     } else {
@@ -2088,13 +1980,16 @@ export default function PokerNearMePage({ initialTab }) {
     setGpsLoading(true);
     setGpsLocationLabel('Locating...');
     // Tier 1: High accuracy (GPS/cellular)
+    if (gpsFailsafeTimeoutRef.current) clearTimeout(gpsFailsafeTimeoutRef.current);
     const gpsTimeoutId = setTimeout(() => {
       // Failsafe: if GPS hasn't responded in 20s, stop loading
+      // Read location via ref — the closure's `userLocation` could be 20s stale
       setGpsLoading(false);
-      if (!userLocation) {
+      if (!userLocationRef.current) {
         setGpsLocationLabel(null);
       }
     }, 20000);
+    gpsFailsafeTimeoutRef.current = gpsTimeoutId;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         clearTimeout(gpsTimeoutId);
@@ -2212,6 +2107,9 @@ export default function PokerNearMePage({ initialTab }) {
   } = {}) => {
     if (!silent) setVenueLoading(true);
     setFetchError(null);
+    // Sequence guard — declared outside the try so the catch block can also
+    // discard stale failures (a slow failing request must not wipe fresh results).
+    const currentSeq = ++fetchSequenceRef.current;
     try {
       // [PNM4 FIX] Was limit=1000 which exactly equals Supabase project-level max_rows cap.
       // Any query returning >1000 rows was silently truncated. Lowered to 500 which covers
@@ -2277,7 +2175,6 @@ export default function PokerNearMePage({ initialTab }) {
       }
 
       const url = '/api/poker/venues?' + params;
-      const currentSeq = ++fetchSequenceRef.current;
       const json = await fetchWithRetry(url);
 
       // [HARDENING] Prevent Race Condition: discard if a newer fetch was initiated
@@ -2328,6 +2225,13 @@ export default function PokerNearMePage({ initialTab }) {
         setNearestDistance(filteredData[0].distance_mi);
       }
     } catch (e) {
+      // [HARDENING] A stale (older) request that fails late must not clobber the
+      // state of a newer request that already succeeded (fetchWithRetry can take
+      // ~3.5s of backoff before rejecting).
+      if (fetchSequenceRef.current !== currentSeq) {
+        if (!silent) setVenueLoading(false);
+        return;
+      }
       if (!silent) setLoading(false);
       console.warn('Fetch venues error:', e);
       setFetchError('Failed to load venues. Tap to retry.');
@@ -2415,10 +2319,32 @@ export default function PokerNearMePage({ initialTab }) {
       if (filters.selectedState && filters.selectedState !== 'all') {
         params.set('state', filters.selectedState);
       }
-      // Also pass GPS-derived state when available
-      if (!selectedCity && userLocation) {
-        params.set('lat', userLocation.lat.toString());
-        params.set('lng', userLocation.lng.toString());
+      // WIRING FIX: the daily-tournaments API ignores lat/lng — pass the GPS-derived
+      // 2-letter state instead (same resolution chain fetchVenues uses), so GPS-only
+      // users get their state's schedule rather than a nationwide unsorted list.
+      if (
+        !selectedCity &&
+        (!filters.selectedState || filters.selectedState === 'all') &&
+        userLocation
+      ) {
+        let stateForApi = gpsStateRef.current || '';
+        if (!stateForApi) {
+          // Try label extraction: "Oak Lawn, IL" → "IL"
+          const labelParts = (gpsLocationLabel || '').split(',');
+          const stateFromLabel =
+            labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
+          if (stateFromLabel && /^[A-Z]{2}$/.test(stateFromLabel)) stateForApi = stateFromLabel;
+        }
+        if (!stateForApi) {
+          // Fallback: read from localStorage (set by lobby or GPS restore)
+          try {
+            const s = (localStorage.getItem('pnm_last_state') || '').trim().toUpperCase();
+            if (s.length === 2 && /^[A-Z]{2}$/.test(s)) stateForApi = s;
+          } catch (e) {
+            console.warn('[App] Handled exception:', e?.message || e);
+          }
+        }
+        if (stateForApi) params.set('state', stateForApi);
       }
       if (searchQuery) {
         params.set('venue', searchQuery);
@@ -2466,185 +2392,10 @@ export default function PokerNearMePage({ initialTab }) {
     return map;
   }, [dailyTournaments]);
 
-  // Fetch the full venue list for search suggestions
-  const fetchLiveVenueList = async () => {
-    try {
-      const res = await fetch('/api/poker/live-tables?list=true');
-      if (!res.ok) return;
-      const json = await res.json();
-      setLiveVenueList(json.venues || []);
-    } catch (e) {
-      console.warn('Fetch venue list error:', e);
-    }
-  };
-
-  // Fetch live games for a specific venue
-  const fetchLiveGames = async (venueSlug) => {
-    if (!venueSlug) return;
-    setLiveLoading(true);
-    try {
-      const res = await fetch('/api/poker/live-tables?venue=' + encodeURIComponent(venueSlug));
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const json = await res.json();
-      let games = [];
-      if (json.venues && Array.isArray(json.venues)) {
-        json.venues.forEach((v) => {
-          (v.games || []).forEach((g) => {
-            const name = g.game || '';
-            let gameType = 'NLH';
-            if (/PLO|omaha/i.test(name)) gameType = /big\s?o/i.test(name) ? 'Big O' : 'PLO';
-            else if (/limit\s+holdem/i.test(name) && !/no\s+limit/i.test(name)) gameType = 'Limit';
-            else if (/stud/i.test(name)) gameType = 'Stud';
-            else if (/mixed|mix/i.test(name)) gameType = 'Mixed';
-            else if (/dealer/i.test(name)) gameType = 'DC';
-            else if (/tourney|tournament/i.test(name)) gameType = 'Tournament';
-            const stakesMatch = name.match(/(\d+)-(\d+)/);
-            const stakes = stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
-            games.push({
-              venue_id: v.bravo_slug,
-              venue_name: v.venue_name,
-              game_type: gameType,
-              stakes: stakes,
-              table_count: g.tables_running || 0,
-              wait_time: g.players_waiting > 0 ? g.players_waiting : null,
-              game_name_raw: name,
-              created_at: v.last_updated,
-            });
-          });
-        });
-      }
-      setLiveGames(games);
-    } catch (e) {
-      console.warn('Fetch live games error:', e);
-      setLiveGames([]);
-    }
-    setLiveLoading(false);
-  };
-
-  // Handle live venue search input
-  const handleLiveSearchInput = (value) => {
-    setLiveSearchQuery(value);
-    if (value.trim().length >= 2) {
-      const q = value.trim().toLowerCase();
-      const matches = liveVenueList
-        .filter((v) => v.name && v.name.toLowerCase().includes(q))
-        .slice(0, 8);
-      setLiveVenueSuggestions(matches);
-      setShowLiveSuggestions(matches.length > 0);
-    } else {
-      setLiveVenueSuggestions([]);
-      setShowLiveSuggestions(false);
-    }
-  };
-
-  // Handle venue selection from suggestions
-  const handleSelectLiveVenue = (venue) => {
-    setSelectedLiveVenue(venue);
-    setLiveSearchQuery(venue.name);
-    setShowLiveSuggestions(false);
-    setLiveGames([]);
-    fetchLiveGames(venue.slug);
-  };
-
-  // Clear live venue selection
-  const handleClearLiveVenue = () => {
-    setSelectedLiveVenue(null);
-    setLiveSearchQuery('');
-    setLiveGames([]);
-    setShowLiveSuggestions(false);
-  };
-
-  const handleSearch = (e) => {
-    if (e) e.preventDefault();
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
-    const query = searchQuery.trim();
-    if (!query) return; // nothing to search
-    addToSearchHistory(query);
-    setShowSearchHistory(false);
-    setShowCitySuggestions(false);
-    setHasSearched(true);
-    setShowFilters(false);
-    // Activate global search mode — prevents GPS/city useEffect from overwriting results
-    globalSearchModeRef.current = true;
-    // Always land on Venues tab when searching
-    setActiveTab('venues');
-    setDisplayCount({
-      venues: PAGE_SIZE,
-      tours: PAGE_SIZE,
-      series: PAGE_SIZE,
-      daily: PAGE_SIZE_DAILY,
-      live: PAGE_SIZE_LIVE,
-    });
-    trackSearchEvent('search', { query, tab: 'venues' });
-    // Global search: no location params — treat like a Google search across the whole DB
-    fetchVenues({ searchOverride: query, globalSearch: true });
-  };
-
-  const handleSearchInputChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    // Cancel any pending search debounces
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-
-    // City autocomplete suggestions only — NO auto-fetch
-    if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
-    if (value.trim().length >= 2) {
-      cityDebounceRef.current = setTimeout(() => {
-        const q = value.trim().toLowerCase();
-        const matches = POPULAR_CITIES.filter(
-          (c) => c.name.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)
-        ).slice(0, 6);
-        setCitySuggestions(matches);
-        setShowCitySuggestions(matches.length > 0);
-      }, 200);
-    } else {
-      setShowCitySuggestions(false);
-    }
-
-    // If user clears the search field, exit global search mode and reset to location-based browse
-    if (value.trim().length === 0) {
-      globalSearchModeRef.current = false;
-      setHasSearched(false);
-      setVenues([]);
-    }
-  };
-
-  // City suggestion click handler
-  const handleCitySuggestionClick = (city) => {
-    // Clear any pending search debounce to prevent double-fetch
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    setSearchQuery(city.name + ', ' + city.state);
-    setSelectedCity(city);
-    setUserLocation(null);
-    setShowCitySuggestions(false);
-    setHasSearched(true);
-    globalSearchModeRef.current = false;
-    trackSearchEvent('city_select', { city: city.name, state: city.state });
-    // Persist selected city to localStorage for cross-session restoration
-    try {
-      localStorage.setItem('pnm_last_city', city.name);
-      localStorage.setItem('pnm_last_state', city.state || '');
-      localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
-    } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
-    }
-  };
-
-  const handleCityClick = (city) => {
-    setSelectedCity(city);
-    setUserLocation(null);
-    setHasSearched(true);
-    globalSearchModeRef.current = false;
-    // Persist selected city to localStorage for cross-session restoration
-    try {
-      localStorage.setItem('pnm_last_city', city.name);
-      localStorage.setItem('pnm_last_state', city.state || '');
-      localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
-    } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
-    }
-  };
+  // NOTE: the old page-level search plumbing (handleSearch, city autocomplete,
+  // live-venue search) was removed — search now lives in GlobalSearchOverlay,
+  // which does its own fetching. The overlay is wired to page state below
+  // (searchQuery / searchHistory / addToSearchHistory).
 
   // ═══ DEEP LINK PERSISTENCE: write tab + search to URL (debounced) ═══
   const deepLinkRef = useRef(null);
@@ -2669,10 +2420,22 @@ export default function PokerNearMePage({ initialTab }) {
               ? 'roadtrip'
               : 'more';
       } else if (activeTab === 'events') {
-        pathSlug = activeEventTab || 'events';
+        // BUG FIX: map internal sub-tab keys to the slugs the mount reader
+        // recognizes — it only parses 'daily-tournaments'/'events-calendar',
+        // so shared /daily or /calendar URLs silently landed on the default tab.
+        pathSlug =
+          activeEventTab === 'daily'
+            ? 'daily-tournaments'
+            : activeEventTab === 'calendar'
+              ? 'events-calendar'
+              : activeEventTab || 'events';
       } else if (activeTab === 'venues') {
         pathSlug = 'venues';
       }
+
+      // Keep the route-sync effect in agreement with UI-driven URL rewrites
+      // (history.replaceState doesn't update router.query.pnmTab).
+      lastRouteTabRef.current = pathSlug;
 
       const params = new URLSearchParams();
       if (searchQuery) {
@@ -2742,6 +2505,7 @@ export default function PokerNearMePage({ initialTab }) {
     if (slug) {
       let internalTab = slug;
       let internalSub = null;
+      let internalMoreSub = null;
       let isLive = false;
 
       if (slug === 'live-games') {
@@ -2753,15 +2517,25 @@ export default function PokerNearMePage({ initialTab }) {
       } else if (slug === 'saved') {
         internalTab = 'saved';
       } else if (
-        ['series', 'tours', 'events', 'daily-tournaments', 'events-calendar'].includes(slug)
+        // 'daily' and 'calendar' accepted for backwards compat with previously
+        // shared URLs emitted by the old deep-link writer
+        [
+          'series',
+          'tours',
+          'events',
+          'daily-tournaments',
+          'events-calendar',
+          'daily',
+          'calendar',
+        ].includes(slug)
       ) {
         internalTab = 'events';
-        if (slug === 'daily-tournaments') internalSub = 'daily';
-        else if (slug === 'events-calendar') internalSub = 'calendar';
+        if (slug === 'daily-tournaments' || slug === 'daily') internalSub = 'daily';
+        else if (slug === 'events-calendar' || slug === 'calendar') internalSub = 'calendar';
         else internalSub = slug === 'events' ? 'series' : slug;
       } else if (['roadtrip', 'alerts', 'more'].includes(slug)) {
         internalTab = 'more';
-        if (slug === 'roadtrip' || slug === 'alerts') setActiveMoreTab(slug);
+        if (slug === 'roadtrip' || slug === 'alerts') internalMoreSub = slug;
       } else if (tabParam) {
         // Fallback for legacy deep links (e.g. ?tab=live backwards compat)
         if (tabParam === 'live') isLive = true;
@@ -2785,7 +2559,14 @@ export default function PokerNearMePage({ initialTab }) {
         internalTab === 'more'
       ) {
         setShowLiveTab(false); // Reset live tab when navigating to any other tab
-        setActiveTab(internalTab);
+        if (internalTab === 'more' && internalMoreSub) {
+          // BUG FIX: setActiveTab('more') resets the More sub-tab to 'overview',
+          // which clobbered deep links to /alerts and /roadtrip. Set directly.
+          setUiFilter('activeTab', 'more');
+          setActiveMoreTab(internalMoreSub);
+        } else {
+          setActiveTab(internalTab);
+        }
         if (internalSub) setActiveEventTab(internalSub);
       }
     }
@@ -2952,7 +2733,6 @@ export default function PokerNearMePage({ initialTab }) {
     setSearchQuery('');
     setHasSearched(false);
     setVenues([]);
-    setShowCitySuggestions(false);
     setFetchError(null);
     setNearestDistance(null);
     setSortBy('default');
@@ -2980,18 +2760,6 @@ export default function PokerNearMePage({ initialTab }) {
       console.warn('[App] Handled exception:', e?.message || e);
     }
   }, []);
-
-  // Memoize counts for tabs
-  const counts = useMemo(
-    () => ({
-      venues: venues.length,
-      tours: tours.length,
-      series: series.length,
-      daily: dailyTournaments.length,
-      live: liveGames.length,
-    }),
-    [venues.length, tours.length, series.length, dailyTournaments.length, liveGames.length]
-  );
 
   // Loading skeleton component
   const renderSkeletons = (count = 8) => (
@@ -3116,29 +2884,10 @@ export default function PokerNearMePage({ initialTab }) {
   );
 
   const renderContent = () => {
-    if (activeTab === 'map')
-      return (
-        <MapTabPanel
-          allVenuesForMap={allVenuesWithTours}
-          mapFilters={mapFilters}
-          setMapFilters={setMapFilters}
-          filters={filters}
-          setFilters={setFilters}
-          userLocation={userLocation}
-          mapCenter={mapCenter}
-          liveTableCount={liveTableCount}
-          dailyTournaments={dailyTournaments}
-          onMapVenueClick={onMapVenueClick}
-          requestGpsLocation={requestGpsLocation}
-          selectedRoom={selectedRoom}
-          setSelectedRoom={setSelectedRoom}
-          setHasSearched={setHasSearched}
-          fetchAllData={fetchAllData}
-          router={router}
-          openVenueModal={openVenueModal}
-          setIframeModal={setIframeModal}
-        />
-      );
+    // BUG FIX: showLiveTab must be checked BEFORE activeTab === 'map'.
+    // Activating 'Live Games' only sets showLiveTab (activeTab stays 'map' by
+    // design), so with the map check first the live feed was unreachable from
+    // the default Map tab even though the button showed as active.
     if (showLiveTab)
       return (
         <div>
@@ -3194,6 +2943,29 @@ export default function PokerNearMePage({ initialTab }) {
             user={user}
           />
         </div>
+      );
+    if (activeTab === 'map')
+      return (
+        <MapTabPanel
+          allVenuesForMap={allVenuesWithTours}
+          mapFilters={mapFilters}
+          setMapFilters={setMapFilters}
+          filters={filters}
+          setFilters={setFilters}
+          userLocation={userLocation}
+          mapCenter={mapCenter}
+          liveTableCount={liveTableCount}
+          dailyTournaments={dailyTournaments}
+          onMapVenueClick={onMapVenueClick}
+          requestGpsLocation={requestGpsLocation}
+          selectedRoom={selectedRoom}
+          setSelectedRoom={setSelectedRoom}
+          setHasSearched={setHasSearched}
+          fetchAllData={fetchAllData}
+          router={router}
+          openVenueModal={openVenueModal}
+          setIframeModal={setIframeModal}
+        />
       );
     if (activeTab === 'saved')
       return (
@@ -3359,12 +3131,12 @@ export default function PokerNearMePage({ initialTab }) {
 
       <SEOHead
         title={
-          activeTab === 'live'
+          showLiveTab
             ? 'Live Cash Games — Find Live Poker Rooms & Casinos Near You'
             : 'Poker Near Me — Find Live Poker Rooms & Casinos'
         }
         description={
-          activeTab === 'live'
+          showLiveTab
             ? 'Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
             : 'Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
         }
@@ -3408,22 +3180,30 @@ export default function PokerNearMePage({ initialTab }) {
             isOpen={showGlobalSearch}
             onClose={() => {
               setShowGlobalSearch(false);
-              // Only replace if URL currently contains ?q=
-              if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
-                const cleanUrl = '/hub/poker-near-me/lobby';
-                window.history.replaceState(
-                  { ...window.history.state, as: cleanUrl, url: cleanUrl },
-                  '',
-                  cleanUrl
-                );
+              // BUG FIX: strip only the ?q= param from the CURRENT url — this
+              // previously hardcoded /lobby, rewriting the address bar away from
+              // whichever tab was actually on screen (and matched ?faq=1 etc.).
+              if (typeof window !== 'undefined') {
+                const sp = new URLSearchParams(window.location.search);
+                if (sp.has('q')) {
+                  sp.delete('q');
+                  const qs = sp.toString();
+                  const cleanUrl = window.location.pathname + (qs ? '?' + qs : '');
+                  window.history.replaceState(
+                    { ...window.history.state, as: cleanUrl, url: cleanUrl },
+                    '',
+                    cleanUrl
+                  );
+                }
               }
             }}
             searchQuery={searchQuery}
-            onSearchChange={() => {}}
+            onSearchChange={setSearchQuery}
+            onHistorySelect={addToSearchHistory}
             trackSearchEvent={trackSearchEvent}
             allTours={tours || []}
             allSeries={series || []}
-            searchHistory={[]}
+            searchHistory={searchHistory}
             cachedFetch={cachedFetch}
           />
         )}
@@ -3533,7 +3313,9 @@ export default function PokerNearMePage({ initialTab }) {
                   <option value={100}>100 Miles</option>
                   <option value={200}>200 Miles</option>
                   <option value={500}>500 Miles</option>
-                  <option value="Any">Any Distance</option>
+                  {/* BUG FIX: value must be lowercase 'any' — that's what onChange
+                      stores; 'Any' matched no option so the select showed '25 Miles' */}
+                  <option value="any">Any Distance</option>
                 </select>
               </div>
               <div className="pnm-filter-group">
@@ -3635,33 +3417,6 @@ export default function PokerNearMePage({ initialTab }) {
                 </div>
               )}
 
-              {/* City autocomplete dropdown */}
-              {showCitySuggestions && citySuggestions.length > 0 && (
-                <div className="city-autocomplete">
-                  {citySuggestions.map((city, i) => (
-                    <button
-                      key={i}
-                      className="city-suggestion"
-                      onClick={() => handleCitySuggestionClick(city)}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        style={{ flexShrink: 0 }}
-                      >
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      {city.name}, {city.state}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {/* Fetch error retry banner */}
               {fetchError && (
                 <div
@@ -3736,10 +3491,24 @@ export default function PokerNearMePage({ initialTab }) {
         <VoiceSearch
           onResult={(parsed) => {
             if (parsed.searchQuery) setSearchQuery(parsed.searchQuery);
+            // BUG FIX: normalize VoiceSearch output to the page's filter domains.
+            // VoiceSearch emits 'NLH'/'PLO'/'Mixed'/'Stud' and stakes like '1/2',
+            // but the selects/filters use lowercase 'nlh' etc. and '$1/2'/'$2/5'/'$5/10+'
+            // — unnormalized values silently matched nothing.
             if (parsed.filters.gameType)
-              setFilters((f) => ({ ...f, gameType: parsed.filters.gameType }));
+              setFilters((f) => ({
+                ...f,
+                gameType: String(parsed.filters.gameType).toLowerCase(),
+              }));
             if (parsed.filters.radius) setFilters((f) => ({ ...f, radius: parsed.filters.radius }));
-            if (parsed.filters.stakes) setFilters((f) => ({ ...f, stakes: parsed.filters.stakes }));
+            if (parsed.filters.stakes) {
+              const stakesMatch = String(parsed.filters.stakes).match(/(\d+)\s*\/\s*(\d+)/);
+              if (stakesMatch) {
+                const smallBlind = Number(stakesMatch[1]);
+                const normStakes = smallBlind <= 1 ? '$1/2' : smallBlind < 5 ? '$2/5' : '$5/10+';
+                setFilters((f) => ({ ...f, stakes: normStakes }));
+              }
+            }
             if (parsed.filters.venueType)
               setFilters((f) => ({ ...f, venueType: parsed.filters.venueType }));
             if (parsed.filters.minBuyin)

@@ -7,19 +7,63 @@
  * Powers the "peak hours heatmap" feature.
  */
 
-import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
-import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+// State -> IANA timezone (same table the DailyTournamentsPanel uses client-side).
+const IANA_TZ = {
+    'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix',
+    'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
+    'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York',
+    'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
+    'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago',
+    'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago',
+    'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York',
+    'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago',
+    'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago',
+    'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York',
+    'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York',
+    'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago',
+    'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York',
+    'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago',
+    'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York',
+    'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York',
+    'WI': 'America/Chicago', 'WY': 'America/Denver',
+};
+
+/**
+ * Bucket a timestamp by the VENUE's local hour/day, not the server's (UTC on Vercel).
+ * Without this a Las Vegas venue that peaks at 7 PM PT reports a 2 AM peak.
+ */
+function getLocalParts(value, timeZone) {
+    const dt = new Date(value);
+    if (isNaN(dt.getTime())) return null;
+    try {
+        const local = new Date(dt.toLocaleString('en-US', { timeZone }));
+        if (!isNaN(local.getTime())) return { hour: local.getHours(), day: local.getDay() };
+    } catch (_tzErr) { /* fall through to UTC */ }
+    return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const rateLimitResult = apiRateLimit(req, { max: 60, windowMs: 60000 });
-    if (rateLimitResult) return res.status(429).json({ error: 'Too many requests' });
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const supabase = supabaseServerClient(req);
+    const supabase = getSupabase();
     const rawVenueId = req.query.venueId;
     const venueId = Array.isArray(rawVenueId) ? rawVenueId[0] : rawVenueId;
 
@@ -58,14 +102,29 @@ export default async function handler(req, res) {
             });
         }
 
+        // Resolve the venue's timezone so buckets are in venue-local time
+        let venueTz = 'America/New_York';
+        const venueIdNum = parseInt(venueId, 10);
+        if (!isNaN(venueIdNum) && venueIdNum > 0) {
+            try {
+                const { data: venueRow } = await supabase
+                    .from('poker_venues')
+                    .select('state')
+                    .eq('id', venueIdNum)
+                    .maybeSingle();
+                const st = (venueRow?.state || '').toUpperCase();
+                if (IANA_TZ[st]) venueTz = IANA_TZ[st];
+            } catch (_venueErr) { /* keep default tz */ }
+        }
+
         // Aggregate by hour-of-day
         const hourBuckets = Array(24).fill(null).map(() => ({ count: 0, totalTables: 0, totalPlayers: 0 }));
         const dayBuckets = Array(7).fill(null).map(() => ({ count: 0, totalTables: 0, totalPlayers: 0 }));
 
         snapshots.forEach(snap => {
-            const dt = new Date(snap.snapshot_time);
-            const hour = dt.getHours();
-            const day = dt.getDay();
+            const parts = getLocalParts(snap.snapshot_time, venueTz);
+            if (!parts) return;
+            const { hour, day } = parts;
 
             hourBuckets[hour].count++;
             hourBuckets[hour].totalTables += snap.table_count || 0;
@@ -105,6 +164,7 @@ export default async function handler(req, res) {
             venueId,
             hasData: true,
             totalSnapshots: snapshots.length,
+            timezone: venueTz,
             peakHour: peakHour.label,
             peakDay: peakDay.label,
             hourlyActivity,

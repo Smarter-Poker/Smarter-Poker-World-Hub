@@ -516,7 +516,7 @@ function buildTourPopupHtml(venue) {
       ${logoHtml}
       <div>
         <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${escapeHtml(venue.tour_name || venue.tour_code)}</div>
-        <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
+        <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${escapeHtml(venue.city || '')}, ${escapeHtml(venue.state || '')}</div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
@@ -524,7 +524,7 @@ function buildTourPopupHtml(venue) {
       ${statusBadge}
     </div>
     <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(venue.stop_name || venue.name || 'Tour Stop')}</div>
-    ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${escapeHtml(venue.dates)}</div>` : ''}
+    ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">Dates: ${escapeHtml(venue.dates)}</div>` : ''}
     ${venue.host_venue_name ? `<div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
       <div style="font-size:10px;font-weight:700;color:rgba(148,163,184,0.5);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Host Venue</div>
       <div style="display:flex;align-items:center;gap:10px;">

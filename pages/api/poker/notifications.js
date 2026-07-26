@@ -16,6 +16,58 @@ function getSupabase() {
 
 
 
+/**
+ * Can this user publish official notifications for a page?
+ * - Admin/superadmin role, OR
+ * - Approved page_claims row for this page, OR
+ * - Active venue_managers row with can_post_updates for a venue page.
+ * Mirrors isAuthorizedEditor() in pages/api/poker/venue-schedules.js.
+ */
+async function canPublishForPage(userId, pageType, pageId) {
+    if (!userId || !pageType || !pageId) return false;
+
+    try {
+        const { data: profile } = await getSupabase()
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+        if (profile && (profile.role === 'admin' || profile.role === 'superadmin')) return true;
+    } catch (_err) { /* continue to claim checks */ }
+
+    try {
+        const { data: claim } = await getSupabase()
+            .from('page_claims')
+            .select('id')
+            .eq('page_type', pageType)
+            .eq('page_id', String(pageId))
+            .eq('user_id', userId)
+            .eq('status', 'approved')
+            .limit(1)
+            .maybeSingle();
+        if (claim) return true;
+    } catch (_err) { /* continue to manager check */ }
+
+    if (pageType === 'venue') {
+        const venueIdNum = parseInt(pageId, 10);
+        if (!isNaN(venueIdNum) && venueIdNum > 0) {
+            try {
+                const { data: manager } = await getSupabase()
+                    .from('venue_managers')
+                    .select('id, can_post_updates')
+                    .eq('venue_id', venueIdNum)
+                    .eq('user_id', userId)
+                    .eq('is_active', true)
+                    .limit(1)
+                    .maybeSingle();
+                if (manager && manager.can_post_updates !== false) return true;
+            } catch (_err) { /* not a manager */ }
+        }
+    }
+
+    return false;
+}
+
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, PUT, DELETE, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
 try {
@@ -45,6 +97,16 @@ try {
           return res.status(400).json({
             success: false,
             error: `Invalid notification_type. Must be one of: ${validTypes.join(', ')}`,
+          });
+        }
+
+        // SECURITY: notifications are pushed to every follower of the page, so only
+        // page owners/managers (or admins) may publish them.
+        const allowed = await canPublishForPage(authenticatedUserId, page_type, page_id);
+        if (!allowed) {
+          return res.status(403).json({
+            success: false,
+            error: 'Unauthorized: you must own or manage this page to publish notifications',
           });
         }
 

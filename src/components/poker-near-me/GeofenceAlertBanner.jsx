@@ -10,14 +10,22 @@ const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 
 export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
   const [visible, setVisible] = useState(true);
+  const venueId = venue?.id ?? null;
 
+  // BUG FIX: `visible` was only ever flipped to false (dismiss / 30s timeout) and
+  // never reset, so once the first alert expired the banner stayed null forever —
+  // driving into range of a different venue rendered nothing. Re-arm on venue change
+  // and key the auto-dismiss timer to the venue so each venue gets its own 30s window.
   useEffect(() => {
+    if (!venueId) return undefined;
+    setVisible(true);
     const timer = setTimeout(() => {
       setVisible(false);
       if (onDismiss) onDismiss();
     }, GEOFENCE_ALERT_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venueId]);
 
   if (!visible || !venue) return null;
 

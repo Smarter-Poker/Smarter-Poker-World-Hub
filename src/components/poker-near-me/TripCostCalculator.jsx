@@ -20,6 +20,53 @@ const AVG_MPG = 28;
 
 // calcDistance is now imported as haversineMiles from ./pnm-utils
 
+// CLAUDE.md rule: no bare emoji in source/JSX (they have broken the SWC compile
+// and Vercel builds). These inline SVGs replace the former gas/dice/hotel/meal glyphs.
+function BreakIcon({ kind }) {
+    const common = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    if (kind === 'gas') {
+        return (
+            <svg {...common} aria-hidden="true">
+                <path d="M3 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" />
+                <line x1="2" y1="21" x2="14" y2="21" />
+                <line x1="5" y1="9" x2="11" y2="9" />
+                <path d="M16 8h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V10l-3-3" />
+            </svg>
+        );
+    }
+    if (kind === 'buyin') {
+        return (
+            <svg {...common} aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+        );
+    }
+    if (kind === 'hotel') {
+        return (
+            <svg {...common} aria-hidden="true">
+                <path d="M2 20V9a1 1 0 0 1 1-1h5v12" />
+                <path d="M8 20V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v16" />
+                <line x1="1" y1="20" x2="23" y2="20" />
+                <line x1="12" y1="7" x2="17" y2="7" />
+                <line x1="12" y1="11" x2="17" y2="11" />
+                <line x1="12" y1="15" x2="17" y2="15" />
+            </svg>
+        );
+    }
+    // meals
+    return (
+        <svg {...common} aria-hidden="true">
+            <path d="M4 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3" />
+            <line x1="6" y1="12" x2="6" y2="21" />
+            <path d="M17 3c-1.7 0-3 2.2-3 5s1.3 4 3 4" />
+            <line x1="17" y1="3" x2="17" y2="21" />
+        </svg>
+    );
+}
+
 export default function TripCostCalculator({ venues = [], userLocation }) {
     const [selectedVenue, setSelectedVenue] = useState(null);
     const [venueSearch, setVenueSearch] = useState('');
@@ -202,7 +249,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
 
                     <div className="tc-breakdown">
                         <div className="tc-break-item">
-                            <div className="tc-break-icon gas">⛽</div>
+                            <div className="tc-break-icon gas"><BreakIcon kind="gas" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Gas</span>
                                 <span className="tc-break-detail">{costs.roundTripMiles} mi round trip · {Math.round(costs.driveTime / 60)}h {costs.driveTime % 60}m</span>
@@ -211,7 +258,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
 
                         <div className="tc-break-item">
-                            <div className="tc-break-icon buyin">🎲</div>
+                            <div className="tc-break-icon buyin"><BreakIcon kind="buyin" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Buy-Ins</span>
                                 <span className="tc-break-detail">${costs.typicalBuyIn} × {sessionsPerDay}/day × {days} days</span>
@@ -220,7 +267,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
 
                         <div className="tc-break-item">
-                            <div className="tc-break-icon hotel">🏨</div>
+                            <div className="tc-break-icon hotel"><BreakIcon kind="hotel" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Hotel</span>
                                 <span className="tc-break-detail">${costs.hotelRate}/night × {Math.max(days - 1, 1)} night{days > 2 ? 's' : ''}</span>
@@ -229,7 +276,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
 
                         <div className="tc-break-item">
-                            <div className="tc-break-icon meals">🍽️</div>
+                            <div className="tc-break-icon meals"><BreakIcon kind="meals" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Meals</span>
                                 <span className="tc-break-detail">${costs.mealsDaily}/day × {days} days</span>
@@ -289,7 +336,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-total-subtitle { font-size: 13px; color: rgba(255,255,255,0.4); }
         .tc-breakdown { display: flex; flex-direction: column; gap: 8px; }
         .tc-break-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
-        .tc-break-icon { font-size: 24px; width: 40px; text-align: center; }
+        .tc-break-icon { width: 40px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.75); }
         .tc-break-info { flex: 1; }
         .tc-break-label { font-size: 14px; font-weight: 600; color: #fff; display: block; }
         .tc-break-detail { font-size: 11px; color: rgba(255,255,255,0.35); }

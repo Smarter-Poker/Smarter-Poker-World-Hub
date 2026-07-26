@@ -215,8 +215,52 @@ export default async function handler(req, res) {
       `visibility_override_until.gt.${nowIso}`
     );
 
+    // ── GEO PRE-FILTER (bounding box) ─────────────────────────────────
+    //
+    // The radius filter runs app-side (it needs the jittered coordinate),
+    // so without a DB-level pre-filter the `.limit()` below truncates to the
+    // global top-N by member_count BEFORE the radius test ever runs. Once
+    // there are more public groups nationwide than `limit`, a user in a small
+    // town sees "No home games found nearby" because the top-N are all in
+    // Vegas/LA. Push a cheap lat/lng bounding box into the query so the
+    // fetched window is local, and raise the ceiling in GPS mode so the
+    // app-side radius filter + distance sort have a real candidate pool.
+    // Groups with no coordinates are still included (they surface at the end
+    // of the list), matching the pre-existing app-side behavior below.
+    let dbLimit = limit;
+    if (hasGps) {
+      // Pad by 1 mile: the distance we filter on is measured from the
+      // privacy-jittered coordinate, which sits up to ~0.35 mi from the real
+      // one, so a group right at the radius edge must not fall out of the box.
+      const boxRadius = parsedRadius + 1;
+      const dLat = boxRadius / 69;
+      const cosLat = Math.max(0.05, Math.cos((parsedLat * Math.PI) / 180));
+      const dLng = boxRadius / (69 * cosLat);
+      const latMin = Math.max(-90, parsedLat - dLat);
+      const latMax = Math.min(90, parsedLat + dLat);
+      const lngMin = parsedLng - dLng;
+      const lngMax = parsedLng + dLng;
+
+      const clauses = ['latitude.is.null', 'longitude.is.null'];
+      // Skip the longitude half of the box near the antimeridian rather than
+      // emitting an out-of-range window that would match nothing.
+      if (lngMin >= -180 && lngMax <= 180) {
+        clauses.push(
+          `and(latitude.gte.${latMin},latitude.lte.${latMax},longitude.gte.${lngMin},longitude.lte.${lngMax})`
+        );
+      } else {
+        clauses.push(`and(latitude.gte.${latMin},latitude.lte.${latMax})`);
+      }
+      q = q.or(clauses.join(','));
+
+      // Fetch ceiling for GPS mode. The caller's `limit` is applied AFTER the
+      // radius filter + distance sort (see below) so it means "closest N",
+      // not "N of the biggest groups that happen to be nearby".
+      dbLimit = 500;
+    }
+
     q = q.order('member_count', { ascending: false })
-         .limit(limit);
+         .limit(dbLimit);
 
     if (state) q = q.eq('state', state);
     if (city) q = q.ilike('city', `%${escapeIlike(city)}%`);
@@ -239,7 +283,36 @@ export default async function handler(req, res) {
     const { data: groups, error } = await q;
     if (error) throw error;
 
-    const groupIds = (groups || []).map((g) => g.id);
+    // ── GEO NARROWING ─────────────────────────────────────────────────
+    // Apply the radius filter + distance sort + the caller's page size HERE,
+    // before the follow-up social_pages / upcoming-games lookups, so those
+    // queries only ever run against the groups we're actually returning.
+    let groupList = groups || [];
+    if (hasGps) {
+      groupList = groupList
+        .map((g) => {
+          const j = jitterCoord(g.id, g.latitude, g.longitude);
+          const raw =
+            j.lat != null && j.lng != null
+              ? haversineMiles(parsedLat, parsedLng, j.lat, j.lng)
+              : null;
+          return { g, raw };
+        })
+        // Groups without coords are kept and surface at the end of the list.
+        .filter((e) => e.raw == null || e.raw <= parsedRadius)
+        .sort((a, b) => {
+          if (a.raw == null && b.raw == null) {
+            return (b.g.member_count || 0) - (a.g.member_count || 0);
+          }
+          if (a.raw == null) return 1;
+          if (b.raw == null) return -1;
+          return a.raw - b.raw;
+        })
+        .slice(0, limit)
+        .map((e) => e.g);
+    }
+
+    const groupIds = groupList.map((g) => g.id);
     if (!groupIds.length) {
       return res.status(200).json({ success: true, groups: [], filters: { state, city, game_type, frequency } });
     }
@@ -258,15 +331,28 @@ export default async function handler(req, res) {
     });
 
     // ── 3. Pull the next upcoming game per group (single query, filter app-side).
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: upcoming } = await supabase
+    // Timezone safety: toISOString() is UTC, so from ~5pm local onward in US
+    // timezones the UTC date is already tomorrow and tonight's game would be
+    // excluded — exactly when players are looking for a game. Shift 12h west
+    // so the cutoff never runs ahead of any US local date.
+    const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // Budget the row cap by group count. A flat 100 is shared across up to 100
+    // groups, so groups with dense schedules (weekly games booked a year out)
+    // eat the whole budget and other groups lose their "Next game" banner.
+    const upcomingRowCap = Math.min(1000, Math.max(100, groupIds.length * 5));
+    const { data: upcoming, error: upcomingErr } = await supabase
       .from('commander_home_games')
       .select('id, group_id, title, scheduled_date, start_time, game_type, stakes, rsvp_yes, max_players, status')
       .in('group_id', groupIds)
       .gte('scheduled_date', today)
       .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true })
-      .limit(100);
+      .limit(upcomingRowCap);
+
+    if (upcomingErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[public/home-games/discover] upcoming games query failed:', upcomingErr.message);
+    }
 
     const nextByGroupId = {};
     (upcoming || []).forEach((g) => {
@@ -275,7 +361,7 @@ export default async function handler(req, res) {
 
     // ── 4. Shape response. Use social_page slug for canonical URL when present;
     //      fall back to club_code/invite_code so the card never has a null href.
-    let out = (groups || []).map((g) => {
+    let out = groupList.map((g) => {
       const page = pageByGroupId[String(g.id)] || null;
       const next = nextByGroupId[g.id] || null;
       // ── Distance calc

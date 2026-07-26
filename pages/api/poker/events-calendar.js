@@ -628,6 +628,21 @@ async function handler(req, res) {
     // ──────────────────────────────────────────────────────────────
     let allEvents = [...dailyEvents, ...seriesEvents, ...tourEvents];
 
+    // [EC-DAY FIX] The documented ?day= filter was parsed but never applied —
+    // callers asking for Monday got every weekday back. Filter the projected
+    // dates by weekday (noon-UTC anchor so the date never drifts a day).
+    const requestedDayIdx = day && day !== 'all'
+      ? DAYS_ORDER.indexOf(String(day).toLowerCase().trim())
+      : -1;
+    if (requestedDayIdx >= 0) {
+      allEvents = allEvents.filter(e => {
+        if (!e.event_date) return false;
+        const d = new Date(`${e.event_date}T12:00:00Z`);
+        if (isNaN(d.getTime())) return false;
+        return d.getUTCDay() === requestedDayIdx;
+      });
+    }
+
     // Dedup: same venue + same date + same time + same buy_in
     const seenKeys = new Set();
     allEvents = allEvents.filter(e => {

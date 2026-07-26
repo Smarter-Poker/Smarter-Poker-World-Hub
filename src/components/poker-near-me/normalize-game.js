@@ -11,13 +11,20 @@
 const GAME_TYPE_PATTERNS = [
   { pattern: /pot\s*limit\s*omaha\s*(hi[- ]?lo|8|hilo)/i, type: 'PLO8', label: 'PLO Hi-Lo' },
   { pattern: /big\s*o/i, type: 'BigO', label: 'Big O' },
+  // Hi-Lo Omaha variants ("Omaha Hi-Lo", "Omaha 8", "PLO8") must be checked
+  // before the generic omaha pattern or they get bucketed as plain PLO.
+  { pattern: /\bplo\s*8\b/i, type: 'PLO8', label: 'PLO Hi-Lo' },
+  { pattern: /omaha.*(hi[- \/]?lo|hilo|8[- ]?or[- ]?better|\/8|8\b)/i, type: 'PLO8', label: 'PLO Hi-Lo' },
   { pattern: /pot\s*limit\s*omaha/i, type: 'PLO', label: 'PLO' },
   { pattern: /\bplo\b/i, type: 'PLO', label: 'PLO' },
   { pattern: /omaha/i, type: 'PLO', label: 'PLO' },
   { pattern: /no[- ]?limit\s*(hold|texas|holdem|hold'em)/i, type: 'NLH', label: 'NLH' },
+  // LHE must be checked before the bare holdem patterns — "4/8 Limit Hold'em"
+  // contains "holdem" and was previously misclassified as NLH. The no-limit
+  // pattern above has already consumed "No Limit Hold'em" by this point.
+  { pattern: /limit\s*(hold|texas|holdem)/i, type: 'LHE', label: 'Limit Hold\'em' },
   { pattern: /\bnlh?\b/i, type: 'NLH', label: 'NLH' },
   { pattern: /\bholdem\b|\bhold'?em\b/i, type: 'NLH', label: 'NLH' },
-  { pattern: /limit\s*(hold|texas|holdem)/i, type: 'LHE', label: 'Limit Hold\'em' },
   { pattern: /\bstud\b.*\b(hi[- ]?lo|8)\b/i, type: 'Stud8', label: 'Stud Hi-Lo' },
   { pattern: /\bstud\b/i, type: 'Stud', label: 'Stud' },
   { pattern: /\bhorse\b/i, type: 'HORSE', label: 'HORSE' },

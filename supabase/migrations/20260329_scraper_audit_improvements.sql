@@ -34,10 +34,17 @@ CREATE INDEX IF NOT EXISTS idx_vlh_snapshot_time ON venue_live_history (snapshot
 -- RLS: Read-only for anon, full for service role
 ALTER TABLE venue_live_history ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "venue_live_history_read" ON venue_live_history
+-- NOTE (fix): `CREATE POLICY IF NOT EXISTS` is not valid PostgreSQL. It aborted
+-- this (transactional) migration, so the buyin_range / runs_schedule columns
+-- added to venue_live_tables below — surfaced by pages/api/poker/live-tables.js
+-- and rendered by src/components/poker-near-me/LiveGamesFeed.jsx — never
+-- applied. Use DROP POLICY IF EXISTS + CREATE POLICY for idempotency instead.
+DROP POLICY IF EXISTS "venue_live_history_read" ON venue_live_history;
+CREATE POLICY "venue_live_history_read" ON venue_live_history
     FOR SELECT TO anon, authenticated USING (true);
 
-CREATE POLICY IF NOT EXISTS "venue_live_history_insert" ON venue_live_history
+DROP POLICY IF EXISTS "venue_live_history_insert" ON venue_live_history;
+CREATE POLICY "venue_live_history_insert" ON venue_live_history
     FOR INSERT TO service_role WITH CHECK (true);
 
 -- Auto-purge: Keep only 30 days of history (optional — run via cron)
@@ -48,27 +55,14 @@ CREATE POLICY IF NOT EXISTS "venue_live_history_insert" ON venue_live_history
 -- 2. BUY-IN RANGE COLUMN (PokerAtlas data)
 -- Stores "$100 to $500" style ranges from PokerAtlas
 -- ──────────────────────────────────────────────────────────
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'venue_live_tables' AND column_name = 'buyin_range'
-    ) THEN
-        ALTER TABLE venue_live_tables ADD COLUMN buyin_range TEXT DEFAULT '';
-    END IF;
-END $$;
+-- NOTE (fix): the previous information_schema probe was not schema-qualified, so
+-- a same-named column in any other schema would silently skip the ALTER.
+-- ADD COLUMN IF NOT EXISTS is idempotent and resolves via search_path.
+ALTER TABLE venue_live_tables ADD COLUMN IF NOT EXISTS buyin_range TEXT DEFAULT '';
 
 
 -- ──────────────────────────────────────────────────────────
 -- 3. RUNS SCHEDULE COLUMN (PokerAtlas data)
 -- Stores "Always", "Weekday", "Weekend" etc.
 -- ──────────────────────────────────────────────────────────
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'venue_live_tables' AND column_name = 'runs_schedule'
-    ) THEN
-        ALTER TABLE venue_live_tables ADD COLUMN runs_schedule TEXT DEFAULT '';
-    END IF;
-END $$;
+ALTER TABLE venue_live_tables ADD COLUMN IF NOT EXISTS runs_schedule TEXT DEFAULT '';

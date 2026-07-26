@@ -78,6 +78,10 @@ function mapSeriesToApi(seriesArray) {
     source_url: s.source_url,
     is_featured: s.is_featured,
     logo_url: s.logo_url || null, // BUG FIX: was missing — JSON fallback path lost all logos
+    // Carried through so callers can filter AFTER ids are assigned. Filtering the
+    // raw array first shifted every id (index+1) and made list ids disagree with
+    // the by-id lookup, so clicking a card opened the wrong series.
+    is_suppressed: !!s.is_suppressed,
   }));
 }
 
@@ -240,8 +244,12 @@ async function handler(req, res) {
 
         // Fall back to JSON data (only for legacy index-based IDs)
         if (!singleSeries) {
+          // ids come from the UNFILTERED array (same as the list path) so a
+          // suppressed entry never shifts the numbering; suppressed rows are
+          // then hidden rather than renumbered.
           const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
-          singleSeries = allSeries.find((s) => s.id === numericId) || null;
+          const match = allSeries.find((s) => s.id === numericId) || null;
+          singleSeries = match && !match.is_suppressed ? match : null;
         }
 
         if (!singleSeries) {
@@ -305,7 +313,10 @@ async function handler(req, res) {
           // Without stripping them, a crafted tour= param like 'WSOP]' could break the filter chain.
           const safeTour = tour.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 50);
           if (safeTour) {
-              query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
+              // tournament_series has name/short_name/venue_name/location — no `tour`,
+              // `venue` or `city` columns; filtering on them errored and silently
+              // dropped the whole DB branch back to the static JSON file.
+              query = query.or(`name.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
           }
         }
 
@@ -314,7 +325,7 @@ async function handler(req, res) {
           const safeSearch = search.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 100);
           if (safeSearch) {
               query = query.or(
-                `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
+                `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue_name.ilike.%${safeSearch}%,location.ilike.%${safeSearch}%`
               );
           }
         }
@@ -348,13 +359,14 @@ async function handler(req, res) {
         }
         if (tour) {
           const safeTour = tour.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 50);
-          if (safeTour) psQuery = psQuery.or(`tour.ilike.%${safeTour}%`);
+          // poker_series has tour/series_name/short_name (there is no `name` column)
+          if (safeTour) psQuery = psQuery.or(`tour.ilike.%${safeTour}%,series_name.ilike.%${safeTour}%`);
         }
         if (search) {
           const safeSearch = search.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 100);
           if (safeSearch) {
             psQuery = psQuery.or(
-              `name.ilike.%${safeSearch}%,series_name.ilike.%${safeSearch}%,venue_name.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
+              `series_name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue_name.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
             );
           }
         }
@@ -439,7 +451,7 @@ async function handler(req, res) {
       // Fall back to JSON data if DB returned nothing
       if (!seriesData) {
         // Bug fix: JSON fallback also must exclude suppressed series
-        let allSeries = mapSeriesToApi((seriesJson.series_2026 || []).filter(s => !s.is_suppressed));
+        let allSeries = mapSeriesToApi(seriesJson.series_2026 || []).filter(s => !s.is_suppressed);
 
         // Apply filters
         if (upcoming === 'true') {

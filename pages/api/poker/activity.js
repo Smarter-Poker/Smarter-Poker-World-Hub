@@ -19,7 +19,7 @@ function getSupabase() {
 async function getVerifiedUserId(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return null;
-  const { data: authData } = await getSupabase().auth.getUser(token);
+  const { data: authData, error } = await getSupabase().auth.getUser(token);
   const user = authData?.user;
   return (!error && user) ? user.id : null;
 }
@@ -43,9 +43,16 @@ try {
     try {
       if (req.method === 'POST') {
         // Require JWT auth for writes or admin secret
+        // SECURITY: admin bypass only counts when ADMIN_ROUTE_SECRET is actually configured,
+        // otherwise `undefined !== undefined` would treat every caller as an admin.
         const adminSecret = req.headers['x-admin-secret'];
-        if (adminSecret !== process.env.ADMIN_ROUTE_SECRET) {
-          const verifiedUserId = await getVerifiedUserId(req);
+        const envAdminSecret = process.env.ADMIN_ROUTE_SECRET;
+        const isAdmin = Boolean(envAdminSecret) && adminSecret === envAdminSecret;
+        // page_activity.user_id is NOT NULL, so admins without a JWT are attributed to 'admin'.
+        let verifiedUserId = await getVerifiedUserId(req);
+        if (isAdmin) {
+          verifiedUserId = verifiedUserId || 'admin';
+        } else {
           if (!verifiedUserId) {
             return res.status(401).json({ success: false, error: 'Authentication required for posting activity' });
           }
