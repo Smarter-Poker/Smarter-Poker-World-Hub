@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -22,12 +23,22 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      // AUDIT-FIX (header-audit #11): this is the single most-called endpoint in the
+      // app — header mount, profile-updated, vip-status-changed, cross-tab broadcast
+      // and every DIAMONDS_EARNED/SPENT event all land here, at up to ~8 DB round-trips
+      // each. Sibling routes have always rate-limited; this one never did.
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
+
       if (req.method !== 'POST' && req.method !== 'GET') {
           return res.status(405).json({ error: 'Method not allowed' });
       }
       
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
+          // AUDIT-FIX (header-audit #12): `s-maxage` targets SHARED caches while
+          // `private` forbids them — a contradiction. Any intermediary that honoured
+          // s-maxage over private would serve one user's diamonds, VIP flag and
+          // notification counts to another. This response is per-user; never store it.
+          res.setHeader('Cache-Control', 'private, no-store');
       }
 
       if (!SUPABASE_SERVICE_ROLE_KEY) {
@@ -53,11 +64,19 @@ export default async function handler(req, res) {
                   .select('username, full_name, avatar_url, diamonds, is_vip, is_admin')
                   .eq('id', userId)
                   .maybeSingle(),
-              // 2. Unread social notifications count — check both read AND is_read columns for consistency
+              // 2. Unread social notifications count.
+              // BUGFIX (header-audit #1): this was an `.or(...)` over both legacy columns,
+              // which means EITHER flag looking unread counted the row. A row with
+              // read=true but is_read=NULL — exactly what every writer that touches only
+              // one column produces — matched `is_read.is.null` and was counted as unread
+              // forever, so "Mark all read" cleared the badge and the next poll restored
+              // it. The intent stated in the old comment was "neither flag set to true";
+              // this is that intent, expressed correctly.
               sb.from('notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
-                  .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null'),
+                  .not('read', 'is', true)
+                  .not('is_read', 'is', true),
               // 3. Page followers for poker notifications
               sb.from('page_followers')
                   .select('page_type, page_id')
@@ -78,6 +97,14 @@ export default async function handler(req, res) {
               return res.status(404).json({ error: 'Profile not found' });
           }
 
+          // AUDIT-FIX (header-audit #8): socialCountResult.error was never inspected, so
+          // any failure — dropped column, RLS change, malformed filter — became a clean
+          // `0` with success:true. A broken notifications query then presented to the user
+          // as "notifications work, you just have none", invisible to monitoring.
+          if (socialCountResult.error) {
+              console.warn('[get-header-stats] Notification count error:', socialCountResult.error);
+              return res.status(500).json({ error: 'Internal server error' });
+          }
           let notificationCount = socialCountResult.count || 0;
           const conversations = convResult.data || [];
 
@@ -89,19 +116,30 @@ export default async function handler(req, res) {
               (async () => {
                   if (!followResult.data || followResult.data.length === 0) return 0;
                   
-                  // Chunk follows to avoid HTTP 414 URI Too Long errors
+                  // Chunk follows to avoid HTTP 414 URI Too Long errors.
+                  // PERF (header-audit #11): the chunks used to be awaited INSIDE the loop,
+                  // so 100 follows meant 5 sequential round-trips before the read-set query
+                  // could even start. They are independent — fire them together.
                   const chunkSize = 20;
-                  const allIds = [];
+                  const chunks = [];
                   for (let i = 0; i < followResult.data.length; i += chunkSize) {
-                      const chunk = followResult.data.slice(i, i + chunkSize);
+                      chunks.push(followResult.data.slice(i, i + chunkSize));
+                  }
+                  const chunkResults = await Promise.all(chunks.map((chunk) => {
                       const orConditions = chunk.map(
                           (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
                       ).join(',');
-                      const { data: pageNotifs } = await sb
-                          .from('page_notifications')
+                      return sb.from('page_notifications')
                           .select('id')
                           .or(orConditions)
-                          .limit(100);
+                          .limit(500);
+                  }));
+                  const allIds = [];
+                  for (const { data: pageNotifs, error: chunkErr } of chunkResults) {
+                      if (chunkErr) {
+                          console.warn('[get-header-stats] page_notifications chunk error:', chunkErr);
+                          continue;
+                      }
                       if (pageNotifs) allIds.push(...pageNotifs.map(n => n.id));
                   }
                   

@@ -30,7 +30,7 @@
  * user_id=eq.${userId} filter and are unaffected.
  */
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 // EventBus import removed — Supabase Realtime is the sole badge updater
@@ -51,14 +51,34 @@ export function UnreadProvider({ children }) {
     const [messageCount, setMessageCount] = useState(0);
     const [notificationCount, setNotificationCount] = useState(0);
     const [userId, setUserId] = useState(null);
+    const notifDebounceRef = useRef(null);
 
-    // Get user on mount - use bulletproof authUtils instead of supabase client
+    // Resolve the current user — and KEEP resolving it.
+    // BUGFIX (header-audit #4): this was a single localStorage read on mount.
+    // UnreadProvider mounts at app root, i.e. BEFORE login, so after an SPA sign-in with
+    // no full reload userId stayed null forever: both refresh functions early-returned,
+    // no realtime channel was ever created, and BOTH header badges read 0 for the entire
+    // session. Symmetrically, sign-out never cleared it, so the previous user's counts
+    // persisted on a shared device. Seed from localStorage for instant paint, then track
+    // auth properly. Note we only clear on an explicit SIGNED_OUT — INITIAL_SESSION can
+    // legitimately arrive with a null session while localStorage still holds a valid
+    // user (the navigator.locks AbortError path), and clearing there would regress.
     useEffect(() => {
-        // 🛡️ BULLETPROOF: Read from localStorage to avoid AbortError
-        const user = getAuthUser();
-        if (user) {
-            setUserId(user.id);
+        const seed = getAuthUser();
+        if (seed?.id) setUserId(seed.id);
+
+        let sub = null;
+        try {
+            const { data } = supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT') { setUserId(null); return; }
+                const next = session?.user?.id || getAuthUser()?.id || null;
+                setUserId(prev => (prev === next ? prev : next));
+            });
+            sub = data?.subscription || null;
+        } catch (e) {
+            console.warn('[UnreadProvider] auth subscription failed:', e?.message || e);
         }
+        return () => { try { sub?.unsubscribe(); } catch (_) { /* already gone */ } };
     }, []);
 
     // ── Fetch unread MESSAGE count ──────────────────────────────────────────
@@ -117,16 +137,63 @@ export function UnreadProvider({ children }) {
     // one or the other. We treat "unread" as "neither flag set to true."
     const refreshNotifications = async () => {
         if (!userId) return;
+
+        // BUGFIX (header-audit #3): this used to query `notifications` directly, which
+        // counts SOCIAL notifications only, while /api/user/get-header-stats returns
+        // social + page/poker combined. Since this value is mirrored straight into the
+        // header bell, the direct query silently clobbered the API's combined count
+        // within 30s — poker and page-follow notifications showed for a moment after
+        // load and then vanished. The API is now the single source of truth.
+        try {
+            let accessToken = null;
+            try {
+                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                accessToken = authData?.access_token || null;
+            } catch (_) { /* private browsing — ignore */ }
+
+            const res = await fetch('/api/user/get-header-stats', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify({}),
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result?.success && typeof result.notificationCount === 'number') {
+                    setNotificationCount(result.notificationCount);
+                    if (typeof result.unreadMessages === 'number') setMessageCount(result.unreadMessages);
+                    return;
+                }
+            }
+            console.warn('[UnreadProvider] header-stats gave no usable count — falling back to direct query');
+        } catch (e) {
+            console.warn('[UnreadProvider] header-stats fetch failed, falling back:', e?.message || e);
+        }
+
+        // Fallback: social-only count straight off the table.
+        // BUGFIX (header-audit #1): the old filter was
+        //   .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null')
+        // which counts a row as unread when EITHER legacy flag looks unread. A row with
+        // read=true and is_read=NULL — exactly what every writer touching only one column
+        // produces — matched `is_read.is.null` and stayed "unread" forever, so the badge
+        // could never be cleared. "Unread" means NEITHER flag is true.
         try {
             const { count, error } = await supabase
                 .from('notifications')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
-                // .or() captures rows where either flag indicates unread.
-                .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
-            if (!error && typeof count === 'number') {
-                setNotificationCount(count);
+                .not('read', 'is', true)
+                .not('is_read', 'is', true);
+            if (error) {
+                // AUDIT-FIX (header-audit #8): do not swallow this. A failed count used to
+                // leave the previous value in place with only a console.warn, so a broken
+                // query looked exactly like "you have no notifications".
+                console.warn('[UnreadProvider] notification count query failed:', error.message || error);
+                return;
             }
+            if (typeof count === 'number') setNotificationCount(count);
         } catch (e) {
             console.warn('[UnreadProvider] notification count fetch failed:', e?.message || e);
         }
@@ -150,6 +217,15 @@ export function UnreadProvider({ children }) {
             // a significant cost driver. Message counts are kept accurate by the
             // 30-second polling interval below, plus explicit refreshUnread() calls
             // from the BroadcastChannel sync when a tab marks messages as read.
+            // Trailing debounce shared by the UPDATE and DELETE handlers below.
+            const scheduleNotifRefresh = () => {
+                if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
+                notifDebounceRef.current = setTimeout(() => {
+                    notifDebounceRef.current = null;
+                    refreshNotifications();
+                }, 300);
+            };
+
             let notifChannel = null;
             try {
                 notifChannel = supabase
@@ -184,10 +260,12 @@ export function UnreadProvider({ children }) {
                         table: 'notifications',
                         filter: `user_id=eq.${userId}`,
                     }, () => {
-                        // Mark-as-read updates — recalculate the count from the table
-                        // since UPDATE payloads don't tell us whether read flipped from
-                        // unread to read.
-                        refreshNotifications();
+                        // Mark-as-read updates — recalculate the count, since UPDATE
+                        // payloads don't tell us whether `read` flipped.
+                        // PERF (header-audit #9): Supabase emits ONE event per row, so a
+                        // mark-all over 40 notifications used to fire 40 concurrent count
+                        // queries. Coalesce them.
+                        scheduleNotifRefresh();
                     })
                     .on('postgres_changes', {
                         event: 'DELETE',
@@ -195,7 +273,7 @@ export function UnreadProvider({ children }) {
                         table: 'notifications',
                         filter: `user_id=eq.${userId}`,
                     }, () => {
-                        refreshNotifications();
+                        scheduleNotifRefresh();
                     })
                     .subscribe();
             } catch (realtimeErr) {
@@ -228,6 +306,7 @@ export function UnreadProvider({ children }) {
 
             return () => {
                 if (notifChannel) { try { supabase.removeChannel(notifChannel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
+                if (notifDebounceRef.current) { clearTimeout(notifDebounceRef.current); notifDebounceRef.current = null; }
                 clearInterval(interval);
                 cleanupUnreadSync();
             };

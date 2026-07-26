@@ -75,10 +75,10 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
-    onSearchClick = null,
-    onMenuClick = null,  // Callback for hamburger menu click
-    onSettingsClick = null,  // Override for settings gear — opens page-specific settings instead of global
-    onBackClick = null, // Override for back navigation
+    onSearchClick = undefined,
+    onMenuClick = undefined,  // Callback for hamburger menu click
+    onSettingsClick = undefined,  // Override for settings gear — opens page-specific settings instead of global
+    onBackClick = undefined, // Override for back navigation
     hideLeftIcon = false // Allows hiding the left icon (e.g. when page has an in-page back button)
 }) {
     const router = useRouter();

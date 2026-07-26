@@ -123,7 +123,10 @@ const SPNavBar = ({
                                         try {
                                             const { error } = await supabase
                                                 .from('notifications')
-                                                .update({ read: true })
+                                                // BUGFIX (header-audit #1): write BOTH legacy flags. Writing only
+                                                // `read` left is_read NULL, and the unread filter treated a NULL
+                                                // is_read as unread — so the badge came straight back.
+                                                .update({ read: true, is_read: true })
                                                 .eq('id', notif.id);
                                             if (error) throw error;
                                             setNotifications(prev => prev.map(n =>
@@ -146,7 +149,9 @@ const SPNavBar = ({
                                     try {
                                         const { error } = await supabase
                                             .from('notifications')
-                                            .update({ read: true })
+                                            // BUGFIX (header-audit #1): mark-all must write BOTH legacy flags,
+                                            // otherwise the next poll re-counts every row it just cleared.
+                                            .update({ read: true, is_read: true })
                                             .eq('user_id', authUser.id)
                                             .eq('read', false);
                                         if (error) throw error;

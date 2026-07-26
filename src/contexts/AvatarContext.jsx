@@ -24,7 +24,22 @@ export function useAvatar() {
 
 export function AvatarProvider({ children }) {
     const [user, setUser] = useState(null);
-    const [avatar, setAvatar] = useState(null);
+    // BUGFIX (header-audit, avatar reload): this was `useState(null)`. AvatarProvider is
+    // the ONE piece of header state that survives navigation — it sits in _app above the
+    // page-remount boundary — but starting at null meant it could not mask the avatar gap
+    // on a hard load, because it only populates after an async DB round-trip. Seeding it
+    // synchronously from the same localStorage payload the header already writes makes
+    // the avatar paint on the very first frame.
+    const [avatar, setAvatar] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const raw = localStorage.getItem('sp-cached-header-user');
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (data?._ts && (Date.now() - data._ts) > 24 * 60 * 60 * 1000) return null;
+            return data?.avatar ? { type: 'profile_upload', imageUrl: data.avatar } : null;
+        } catch (_) { return null; }
+    });
     const [loading, setLoading] = useState(true);
     const [isVip, setIsVip] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -362,15 +377,20 @@ export function AvatarProvider({ children }) {
         };
     }, [user?.id]);
 
-    // Load user's avatar when user changes
+    // Load user's avatar when the user IDENTITY changes.
+    // BUGFIX (header-audit): the dep was `[user]` — the whole object. setUser is called
+    // with a fresh object on INITIAL_SESSION, again on the background refreshSession,
+    // again on every TOKEN_REFRESHED, and again from handleProfileUpdate's spread — so
+    // loadAvatar re-ran (two DB queries each time) for the same user, over and over.
+    // Keying on the id collapses that to once per actual identity change.
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             loadAvatar();
-        } else {
+        } else if (!user) {
             setAvatar(null);
             setLoading(false);
         }
-    }, [user]);
+    }, [user?.id]);
 
     async function loadAvatar() {
         if (!user) return;
