@@ -85,7 +85,11 @@ export default async function handler(req, res) {
           // Fetch training sessions
           let query = getSupabase()
               .from('training_sessions')
-              .select('id, game_id, accuracy, total_questions, correct_answers, best_answers, position_stats, classification_breakdown, hand_history, created_at')
+              // 2026-07-26 AUDIT FIX: total_questions / correct_answers / best_answers /
+              // classification_breakdown are not columns on training_sessions. The
+              // real ones are hands_played / correct_count / classification_counts,
+              // so this select errored and the whole reports page returned 500.
+              .select('id, game_id, accuracy, hands_played, correct_count, position_stats, classification_counts, hand_history, created_at')
               .eq('user_id', userId)
               .order('created_at', { ascending: false });
 
@@ -111,9 +115,9 @@ export default async function handler(req, res) {
           const classAgg = { best: 0, correct: 0, inaccuracy: 0, wrong: 0, blunder: 0 };
 
           (sessions || []).forEach(session => {
-              totalQuestions += session.total_questions || 0;
-              totalCorrect += session.correct_answers || 0;
-              totalBest += session.best_answers || 0;
+              totalQuestions += session.hands_played || 0;
+              totalCorrect += session.correct_count || 0;
+              totalBest += (session.classification_counts && session.classification_counts.best) || 0;
 
               // Per-position aggregation
               const posStats = session.position_stats;
@@ -129,7 +133,7 @@ export default async function handler(req, res) {
               }
 
               // Classification aggregation
-              const classBreakdown = session.classification_breakdown;
+              const classBreakdown = session.classification_counts;
               if (classBreakdown && typeof classBreakdown === 'object') {
                   Object.entries(classBreakdown || {}).forEach(([cls, count]) => {
                       if (classAgg[cls] !== undefined) {

@@ -1,5 +1,5 @@
 /**
- * 🔥 TRAINING STREAK API
+ *  TRAINING STREAK API
  * ═══════════════════════════════════════════════════════════════════════════
  * Track daily training streaks and award milestone rewards
  * ═══════════════════════════════════════════════════════════════════════════
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
                       success: true,
                       currentStreak: 1,
                       streakUpdated: true,
-                      message: 'Streak started! 🔥'
+                      message: 'Streak started'
                   });
               }
 
@@ -174,11 +174,11 @@ export default async function handler(req, res) {
               if (daysDiff === 1) {
                   // Streak continues
                   newStreak = existing.current_streak + 1;
-                  message = `${newStreak} day streak! 🔥`;
+                  message = `${newStreak} day streak`;
               } else {
                   // Streak broken
                   newStreak = 1;
-                  message = 'New streak started! 🔥';
+                  message = 'New streak started';
               }
 
               const newLongest = Math.max(existing.longest_streak, newStreak);

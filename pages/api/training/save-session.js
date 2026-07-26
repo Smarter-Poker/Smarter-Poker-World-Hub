@@ -162,6 +162,59 @@ export default async function handler(req, res) {
           // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
           // SECURITY: Server-side cap — max legitimate speed bonus is ~50 diamonds
           const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
+          // ═══ 2026-07-26 AUDIT FIX: record the training streak ═══
+          // POST /api/training/streak was the only writer of training_streaks
+          // and had no live caller (its callers are components with zero
+          // importers, sending no auth header). The table had 0 rows, so
+          // streaks, streak milestones, daily-bonus streak multipliers and the
+          // challenges streak_days metric all read zero forever. Record it
+          // here, where every completed session already lands. Non-blocking:
+          // a streak failure must never fail a session save.
+          try {
+              // Anchor the streak day to America/Chicago, matching streak.js --
+              // UTC days would double-count an evening session.
+              const todayCST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+              const { data: streakRow } = await getSupabase()
+                  .from('training_streaks')
+                  .select('id, current_streak, longest_streak, last_training_date, streak_start_date')
+                  .eq('user_id', userId)
+                  .maybeSingle();
+
+              if (!streakRow) {
+                  await getSupabase().from('training_streaks').insert({
+                      user_id: userId,
+                      current_streak: 1,
+                      longest_streak: 1,
+                      last_training_date: todayCST,
+                      streak_start_date: todayCST,
+                      milestones_claimed: [],
+                  });
+              } else if (streakRow.last_training_date !== todayCST) {
+                  let daysDiff = null;
+                  if (streakRow.last_training_date) {
+                      const last = new Date(`${streakRow.last_training_date}T00:00:00Z`);
+                      const today = new Date(`${todayCST}T00:00:00Z`);
+                      daysDiff = Math.round((today - last) / 86400000);
+                  }
+                  const continues = daysDiff === 1;
+                  const newStreak = continues ? (streakRow.current_streak || 0) + 1 : 1;
+                  await getSupabase()
+                      .from('training_streaks')
+                      .update({
+                          current_streak: newStreak,
+                          longest_streak: Math.max(streakRow.longest_streak || 0, newStreak),
+                          last_training_date: todayCST,
+                          streak_start_date: continues
+                              ? (streakRow.streak_start_date || todayCST)
+                              : todayCST,
+                          updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', streakRow.id);
+              }
+          } catch (streakErr) {
+              console.warn('[SaveSession] streak update failed (non-blocking):', streakErr.message);
+          }
+
           let speedBonusAwarded = 0;
           if (safeSpeedBonus > 0) {
               try {

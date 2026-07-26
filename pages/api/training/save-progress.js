@@ -42,53 +42,77 @@ function getSupabase() {
  * Upsert leaderboard entry for user
  * Updates both 'daily' and 'all_time' leaderboards
  */
-async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, passed) {
+async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, passed, questionsAnswered = 0, questionsCorrect = 0) {
+    // 2026-07-26 AUDIT FIX: this function wrote a table shape that does not
+    // exist. It used leaderboard_type / game_id / total_games_completed /
+    // total_mastery_points / average_accuracy / period_start / period_end,
+    // while public.training_leaderboard is keyed (user_id, period_type,
+    // period_key) with sessions_completed / questions_answered /
+    // questions_correct / accuracy / best_streak / perfect_rounds /
+    // gtow_score_avg / ev_loss_total. Every write failed silently (errors are
+    // swallowed by the caller), so the only rows the board ever received came
+    // from update-leaderboard.js -- whose sole caller is a component with no
+    // importers. Net effect: leaderboards were permanently empty and the
+    // cumulative achievement stats that read them were permanently zero.
+    //
+    // Period keys below MUST match update-leaderboard.js exactly or the rows
+    // fork into duplicates that neither endpoint can merge.
     const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+    const dailyKey = now.toISOString().split('T')[0];
+    const weekNum = Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7);
+    const weeklyKey = `${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
+    const monthlyKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
-    for (const leaderboardType of ['daily', 'all_time']) {
-        // Check if entry exists
+    const periods = [
+        { type: 'daily', key: dailyKey },
+        { type: 'weekly', key: weeklyKey },
+        { type: 'monthly', key: monthlyKey },
+        { type: 'alltime', key: 'alltime' },
+    ];
+
+    const answered = Number(questionsAnswered) || 0;
+    const correct = Number(questionsCorrect) || 0;
+
+    await Promise.allSettled(periods.map(async (period) => {
         const { data: existing } = await sb
             .from('training_leaderboard')
-            .select('id, total_games_completed, average_accuracy, total_mastery_points')
+            .select('id, sessions_completed, questions_answered, questions_correct, perfect_rounds')
             .eq('user_id', userId)
-            .eq('leaderboard_type', leaderboardType)
+            .eq('period_type', period.type)
+            .eq('period_key', period.key)
             .maybeSingle();
 
-        if (existing) {
-            // Update existing entry.
-            // Only fold accuracy into the running average when the denominator
-            // grows (passed) — otherwise failed sessions inflate the average.
-            const gamesCompleted = existing.total_games_completed || 0;
-            const existingAvg = existing.average_accuracy || 0;
-            const newGamesCompleted = gamesCompleted + (passed ? 1 : 0);
-            const newAccuracy = passed
-                ? ((existingAvg * gamesCompleted) + accuracy) / newGamesCompleted
-                : existingAvg;
+        const isPerfect = answered > 0 && correct === answered;
 
-            await sb.from('training_leaderboard')
+        if (existing) {
+            const newAnswered = (existing.questions_answered || 0) + answered;
+            const newCorrect = (existing.questions_correct || 0) + correct;
+            const { error } = await sb
+                .from('training_leaderboard')
                 .update({
-                    total_games_completed: newGamesCompleted,
-                    total_mastery_points: (existing.total_mastery_points || 0) + diamondsEarned,
-                    average_accuracy: Math.round(newAccuracy),
+                    sessions_completed: (existing.sessions_completed || 0) + 1,
+                    questions_answered: newAnswered,
+                    questions_correct: newCorrect,
+                    accuracy: newAnswered > 0 ? Number(((newCorrect / newAnswered) * 100).toFixed(2)) : 0,
+                    perfect_rounds: (existing.perfect_rounds || 0) + (isPerfect ? 1 : 0),
                     updated_at: now.toISOString(),
                 })
                 .eq('id', existing.id);
+            if (error) console.warn('[SaveProgress] leaderboard update failed:', error.message);
         } else {
-            // Insert new entry
-            await sb.from('training_leaderboard').insert({
+            const { error } = await sb.from('training_leaderboard').insert({
                 user_id: userId,
-                leaderboard_type: leaderboardType,
-                game_id: gameId,
-                total_games_completed: passed ? 1 : 0,
-                total_mastery_points: diamondsEarned,
-                average_accuracy: accuracy,
-                period_start: leaderboardType === 'daily' ? periodStart : null,
-                period_end: leaderboardType === 'daily' ? periodEnd : null,
+                period_type: period.type,
+                period_key: period.key,
+                sessions_completed: 1,
+                questions_answered: answered,
+                questions_correct: correct,
+                accuracy: answered > 0 ? Number(((correct / answered) * 100).toFixed(2)) : (Number(accuracy) || 0),
+                perfect_rounds: isPerfect ? 1 : 0,
             });
+            if (error) console.warn('[SaveProgress] leaderboard insert failed:', error.message);
         }
-    }
+    }));
 }
 
 export default async function handler(req, res) {
@@ -215,7 +239,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed, questionsAnswered, questionsCorrect);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
@@ -298,7 +322,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed, questionsAnswered, questionsCorrect);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
