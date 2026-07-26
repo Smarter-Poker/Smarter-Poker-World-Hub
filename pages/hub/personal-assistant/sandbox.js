@@ -811,7 +811,16 @@ export default function VirtualSandbox() {
   const [templates, setTemplates] = useState([]);
   const [templateName, setTemplateName] = useState('');
   const [showRangeGrid, setShowRangeGrid] = useState(false);
-  const [tableFelt, setTableFelt] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-felt') || 'default' : 'default');
+  // Initialized to a constant and hydrated after mount — reading localStorage in
+  // the useState initializer makes the SSR HTML and the first client render
+  // disagree (React #418); tableFelt drives a rendered inline `filter` style.
+  const [tableFelt, setTableFelt] = useState('default');
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('sandbox-felt');
+      if (saved) setTableFelt(saved);
+    } catch { /* private browsing */ }
+  }, []);
   const [leakStats, setLeakStats] = useState(null);
   const [showLeakStats, setShowLeakStats] = useState(false);
 
@@ -839,7 +848,15 @@ export default function VirtualSandbox() {
   const [showNodeLocks, setShowNodeLocks] = useState(false);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
-  const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
+  // Same rule as tableFelt above: constant initial value, hydrate in an effect.
+  // coachMode changes rendered button copy, so a storage read in the initializer
+  // is a real hydration mismatch (React #418).
+  const [coachMode, setCoachMode] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('sandbox-coach-mode') === 'true') setCoachMode(true);
+    } catch { /* private browsing */ }
+  }, []);
   const [showCoachPicker, setShowCoachPicker] = useState(false);
   const [coachUserPick, setCoachUserPick] = useState(null); // the action user picked
   const [coachEvDelta, setCoachEvDelta] = useState(null);

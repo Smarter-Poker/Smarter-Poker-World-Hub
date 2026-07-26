@@ -17,7 +17,7 @@
  *   4. the referee has LOGGED IN on >= 5 DISTINCT days
  *      (distinct Chicago days in diamond_transactions — the service-role-only
  *       ledger; the user cannot write to it)
- * Plus: a referrer can qualify at most 10 referrals per calendar month
+ * Plus: a referrer can qualify at most 20 referrals per calendar month
  * (America/Chicago), counted from the ledger, not from a user-writable table.
  *
  * reference_ids (user-scoped, collision-free):
@@ -142,7 +142,7 @@ const REFERRER_ACTION = 'referral_qualified';
 const REFEREE_ACTION = 'referral_referee';
 const MIN_REFEREE_AGE_DAYS = 7;
 const MIN_LOGIN_DAYS = 5;
-const MAX_QUALIFIED_PER_MONTH = 10;
+const MAX_QUALIFIED_PER_MONTH = 20;
 
 /**
  * The `referrals` table has drifted across migrations: some deployments name
