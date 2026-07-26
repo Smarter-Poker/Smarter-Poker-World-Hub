@@ -2042,7 +2042,10 @@ function UniversalDynamicTable({
             setAutoAdvanceTotal(null);
             return;
         }
-        const autoAdvEnabled = trainerConfig?.autoAdvance !== false; // Default ON
+        // 2026-07-26 UX FIX: this defaulted ON, so correct/best answers flashed
+        // their feedback for 2s and moved on before the explanation could be
+        // read. GTO Wizard waits for the player. Opt-in now.
+        const autoAdvEnabled = trainerConfig?.autoAdvance === true; // Default OFF
         if (!autoAdvEnabled) {
             setAutoAdvanceCountdown(null);
             setAutoAdvanceTotal(null);
@@ -2967,6 +2970,19 @@ function UniversalDynamicTable({
                         );
                     })}
                 </div>
+
+                {/* QUESTION PROMPT - 2026-07-26 UX FIX: questionText was computed and
+
+                    never rendered, so the player only ever saw the position/action context
+
+                    line and had to infer what was actually being asked. */}
+
+                {questionText && questionText !== 'Loading question...' && (
+
+                    <div style={styles.questionPrompt}>{questionText}</div>
+
+                )}
+
 
                 {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
                 {(() => {
@@ -5306,6 +5322,19 @@ const styles = {
         fontFamily: "'Inter', sans-serif",
     },
 
+    questionPrompt: {
+        margin: '0 auto 8px',
+        maxWidth: 620,
+        padding: '8px 14px',
+        borderRadius: 10,
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        color: '#e2e8f0',
+        fontSize: 14,
+        fontWeight: 600,
+        lineHeight: 1.35,
+        textAlign: 'center',
+    },
     chipStack: {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',

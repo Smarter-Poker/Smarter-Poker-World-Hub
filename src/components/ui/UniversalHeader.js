@@ -984,7 +984,7 @@ export default function UniversalHeader({
                 /* MOBILE: Compact layout with all icons visible */
                 @media (max-width: 640px) {
                     .universal-header {
-                        padding: 6px 6px;
+                        padding: 4px 6px;
                         gap: 2px;
                     }
                     
@@ -1002,7 +1002,7 @@ export default function UniversalHeader({
                     
                     .header-right {
                         gap: 2px;
-                        flex-shrink: 0;
+                        flex-shrink: 1; /* Allow container to shrink if needed */
                         flex-grow: 0;
                         justify-content: flex-end;
                     }
@@ -1011,7 +1011,7 @@ export default function UniversalHeader({
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        height: 26px;
+                        height: 24px;
                     }
                     
                     .brand-text {
@@ -1020,27 +1020,27 @@ export default function UniversalHeader({
                     
                     /* Hamburger button - mobile sizing */
                     .header-img-btn {
-                        height: 26px;
-                        width: 26px;
+                        height: 24px;
+                        width: 24px;
                     }
 
                     /* CRITICAL: Cap BACK/HUB nav button width on mobile */
                     .header-nav-btn {
-                        height: 25px;
+                        height: 20px;
                         width: auto;
-                        max-width: 96px;
+                        max-width: 76px;
                     }
                     
                     .hamburger-btn {
-                        width: 40px;
-                        height: 40px;
+                        width: 24px;
+                        height: 24px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
                     .diamond-wallet {
                         width: auto;
-                        min-width: 50px;
-                        height: 30px;
+                        min-width: 40px;
+                        height: 24px;
                         padding: 0 4px;
                         font-size: 10px;
                     }
@@ -1051,27 +1051,27 @@ export default function UniversalHeader({
                     
                     /* Shrink all orb icons to fit on mobile */
                     .orb-btn, .profile-orb {
-                        width: 26px;
-                        height: 26px;
-                        font-size: 11px;
+                        width: 24px;
+                        height: 24px;
+                        font-size: 10px;
                     }
                     
                     .orb-badge {
-                        top: 1px;
-                        right: 1px;
+                        top: -2px;
+                        right: -2px;
                         padding: 0 3px;
-                        font-size: 7px;
-                        min-width: 10px;
+                        font-size: 8px;
+                        min-width: 12px;
                     }
                     
                     /* Shrink hamburger and hub/back navigation buttons for mobile */
                     .hamburger-btn {
-                        width: 28px;
-                        height: 28px;
+                        width: 24px;
+                        height: 24px;
                     }
                     
                     .header-nav-btn {
-                        height: 22px;
+                        height: 18px;
                     }
                 }
                 

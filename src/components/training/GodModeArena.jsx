@@ -2762,6 +2762,11 @@ function GodModeArenaInner({
   onComplete,
   onExit,
   autoAdvance = false,
+  // 2026-07-26 UX FIX: when the caller has ALREADY collected difficulty /
+  // timer / mode (SessionSetupModal on the dashboard), pass them here.
+  // The arena then starts straight into play instead of showing its own
+  // splash asking for the same three things a second time.
+  initialConfig = null,
 }) {
   // ═══════════════════════════════════════════════════════════════════════════
   // SPECIALIZED TRAINERS (Phase 14) -> Safely moved to exported wrapper
@@ -3124,7 +3129,7 @@ function GodModeArenaInner({
   const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
 
   // ═══ TRAINING MODE: Standard / Flashcard / Drill ═══
-  const [trainingMode, setTrainingMode] = useState('standard'); // 'standard' | 'flashcard' | 'drill' | 'import'
+  const [trainingMode, setTrainingMode] = useState(initialConfig?.mode || 'standard'); // 'standard' | 'flashcard' | 'drill' | 'import'
 
   // ═══ HAND HISTORY IMPORT STATE ═══
   const [importState, setImportState] = useState({
@@ -3200,6 +3205,7 @@ function GodModeArenaInner({
 
   // ═══ QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ═══
   const [difficulty, setDifficulty] = useState(() => {
+    if (initialConfig?.difficulty) return initialConfig.difficulty;
     if (typeof window !== 'undefined') return localStorage.getItem('gma_difficulty') || 'standard';
     return 'standard';
   });
@@ -3209,6 +3215,7 @@ function GodModeArenaInner({
 
   // ═══ QW-2: TIMER MODE (relaxed/standard/blitz) ═══
   const [timerMode, setTimerMode] = useState(() => {
+    if (initialConfig?.timer) return initialConfig.timer;
     if (typeof window !== 'undefined') return localStorage.getItem('gma_timer') || 'standard';
     return 'standard';
   });
@@ -3264,7 +3271,8 @@ function GodModeArenaInner({
   }, [showFeedback]);
 
   // ═══ Phase 21: Game Phase State Machine ═══
-  const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
+  // Skip the splash entirely when the caller already gathered the config.
+  const [gamePhase, setGamePhase] = useState(initialConfig ? 'playing' : 'splash'); // 'splash' | 'playing' | 'review'
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis' | 'gametree'
   const [gameTreeData, setGameTreeData] = useState(null);

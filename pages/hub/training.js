@@ -128,6 +128,7 @@ export default function TrainingPage() {
   // existing showArena / activeGame Zustand state is unchanged so the
   // arena render path below still works identically.
   const [setupGame, setSetupGame] = useState(null);
+  const [arenaConfig, setArenaConfig] = useState(null);
   const startDrill = useCallback((game) => {
     if (!game) return;
     setActiveGame(game);
@@ -138,7 +139,11 @@ export default function TrainingPage() {
     setSetupGame(null);
   }, []);
 
-  const handleSetupStart = useCallback((/* prefs */) => {
+  // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
+  // arena fell back to its own defaults AND showed a second identical setup
+  // screen (difficulty / timer / mode) before you could play.
+  const handleSetupStart = useCallback((prefs) => {
+    setArenaConfig(prefs ? { difficulty: prefs.difficulty, timer: prefs.timer, mode: prefs.mode } : null);
     setSetupGame(null);
     setShowArena(true);
   }, [setShowArena]);
@@ -171,6 +176,7 @@ export default function TrainingPage() {
           gameId={activeGame.id}
           gameName={activeGame.name}
           level={1}
+          initialConfig={arenaConfig}
           sessionId={`session-${Date.now()}`}
           onComplete={() => setShowArena(false)}
           onExit={() => setShowArena(false)}
@@ -669,7 +675,7 @@ function GlobalStyle() {
       }
       .sp-skip { position: absolute; left: -9999px; }
       .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
-      .sp-num { font-family: 'Orbitron', monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
+      .sp-num { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
 
       .sp-main {
         max-width: 1280px; margin: 0 auto; padding: 24px 20px 120px;
@@ -722,7 +728,7 @@ function GlobalStyle() {
 
       .sp-grade-card { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 18px; }
       .sp-grade-row { display: flex; align-items: center; gap: 18px; }
-      .sp-grade-letter { font-family: 'Orbitron', monospace; font-weight: 800; font-size: 56px; line-height: 1; color: var(--sp-good); width: 72px; text-align: center; }
+      .sp-grade-letter { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-weight: 800; font-size: 56px; line-height: 1; color: var(--sp-good); width: 72px; text-align: center; }
       .sp-grade-text { flex: 1; min-width: 0; }
       .sp-grade-label { font-size: 12px; color: var(--sp-ink-2); margin: 0 0 2px; }
       .sp-grade-value { font-size: 14px; color: var(--sp-ink-1); margin: 0 0 10px; }
