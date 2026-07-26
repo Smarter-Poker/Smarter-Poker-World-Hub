@@ -150,22 +150,7 @@ export default function NewsHub() {
     const { user } = useAvatar();
     const userId = user?.id;
 
-    useEffect(() => {
-        // Ensure page always starts at top on load, even after hard refresh
-        if (typeof window !== 'undefined') {
-            if ('scrollRestoration' in history) {
-                history.scrollRestoration = 'manual';
-            }
-            // Aggressively force scroll to top for the first 500ms to defeat browser scroll restoration cache
-            let scrollAttempts = 0;
-            const scrollInterval = setInterval(() => {
-                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-                scrollAttempts++;
-                if (scrollAttempts >= 5) clearInterval(scrollInterval);
-            }, 100);
-            return () => clearInterval(scrollInterval);
-        }
-    }, []);
+
 
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
