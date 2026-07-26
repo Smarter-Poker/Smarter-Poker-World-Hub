@@ -43,28 +43,11 @@ import {
     DIAMOND_PACKAGES,
     VIP_MEMBERSHIP,
     VIP_BENEFITS,
-    MERCHANDISE,
-    // Diamond Rewards Standard v2 — every economy number below is derived from
-    // src/config/diamondRewards.js. Never re-type a cap or a count by hand.
-    DAILY_CAP,
-    MONTHLY_CAP,
-    EASTER_EGG_MONTHLY_CAP,
-    TOTAL_WAYS_TO_EARN,
-    TOTAL_EASTER_EGGS,
-    EGG_CATEGORY_LABELS,
-    EASTER_EGG_COUNTS,
+    MERCHANDISE
 } from '../../src/data/diamondStoreData';
 import styles from '../../src/components/diamond-store/diamondStoreStyles';
 
 // PackageCard, VIPCard, MerchCard — extracted to src/components/store/StoreCards.js
-
-// ───────────────────────────────────────────────────────────────────────────
-// DERIVED ECONOMY COPY HELPERS
-// 1 💎 = $0.01. The daily cap is measured AFTER the share-streak multiplier,
-// so the multiplier makes the cap EASIER TO REACH and never raises it.
-// ───────────────────────────────────────────────────────────────────────────
-const EGG_CATEGORY_COUNT = Object.keys(EGG_CATEGORY_LABELS).length;
-const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN DIAMOND STORE PAGE
@@ -1246,8 +1229,7 @@ export default function DiamondStorePage() {
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Earn Diamonds Through Daily Logins, Training, Social Engagement, And Referrals.
-                                                    <strong style={{ color: '#00ff88' }}> Daily Cap: {DAILY_CAP.free} 💎 ({DAILY_CAP.vip} VIP)</strong> — Up To {fmt(MONTHLY_CAP.free)} 💎 A Month Free, {fmt(MONTHLY_CAP.vip)} 💎 VIP.
-                                                    Share Streak Multipliers Help You Reach The Cap Faster — They Never Raise It.
+                                                    <strong style={{ color: '#00ff88' }}> Daily Cap: 500</strong> With Streak Multipliers!
                                                 </p>
                                             </div>
 
@@ -1317,23 +1299,23 @@ export default function DiamondStorePage() {
                                                 <div style={styles.overviewIcon}><Gift size={40} color="#00ff88" /></div>
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
-                                                    Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across {EGG_CATEGORY_COUNT} Categories.
-                                                    From Performance To Legacy Milestones — Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Cap.
+                                                    Discover <strong>100 Hidden Achievements</strong> Across 6 Categories.
+                                                    From Performance To Legacy Milestones, Find Them All For Massive Rewards!
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div style={styles.quickStats}>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>{DAILY_CAP.free}</span>
-                                                <span style={styles.quickStatLabel}>Daily Cap (Free)</span>
+                                                <span style={styles.quickStatValue}>500</span>
+                                                <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
                                                 <span style={styles.quickStatValue}>{Object.keys(VIP_MEMBERSHIP).length}</span>
                                                 <span style={styles.quickStatLabel}>VIP Plans</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>{TOTAL_EASTER_EGGS}</span>
+                                                <span style={styles.quickStatValue}>100</span>
                                                 <span style={styles.quickStatLabel}>Easter Eggs</span>
                                             </div>
                                             <div style={styles.quickStat}>
@@ -1349,43 +1331,34 @@ export default function DiamondStorePage() {
                                     <div style={styles.diamondRewardsSection}>
                                         <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
-                                            All {TOTAL_WAYS_TO_EARN} Ways You Can Earn Diamonds On Smarter.Poker — {STANDARD_REWARDS.length} Standard Rewards Plus {TOTAL_EASTER_EGGS} Hidden Achievements
+                                            All {STANDARD_REWARDS.length} Ways You Can Earn Diamonds On Smarter.Poker
                                         </p>
 
                                         {/* Daily Cap Banner */}
                                         <div style={styles.capBanner}>
                                             <div style={styles.capInfo}>
-                                                <span style={styles.capNumber}>{DAILY_CAP.free}</span>
-                                                <span style={styles.capLabel}>Daily Cap · {fmt(MONTHLY_CAP.free)} A Month</span>
-                                            </div>
-                                            <div style={styles.capDivider} />
-                                            <div style={styles.capInfo}>
-                                                <span style={styles.capNumber}>{DAILY_CAP.vip}</span>
-                                                <span style={styles.capLabel}>VIP Daily Cap · {fmt(MONTHLY_CAP.vip)} A Month</span>
+                                                <span style={styles.capNumber}>500</span>
+                                                <span style={styles.capLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.capDivider} />
                                             <div style={styles.streakMultipliers}>
                                                 <div style={styles.multiplierItem}>
                                                     <span style={styles.multiplierValue}>1.5x</span>
-                                                    <span style={styles.multiplierLabel}>Share Streak 7d</span>
+                                                    <span style={styles.multiplierLabel}>Days 4-6</span>
                                                 </div>
                                                 <div style={styles.multiplierItem}>
                                                     <span style={styles.multiplierValueGold}>2.0x</span>
-                                                    <span style={styles.multiplierLabel}>Share Streak 30d</span>
+                                                    <span style={styles.multiplierLabel}>Day 7+</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <p style={styles.introText}>
-                                            The Cap Is Measured After Your Share Streak Multiplier — Multipliers Help You Reach {DAILY_CAP.free} 💎 A Day With Less Work, They Never Raise It.
-                                            Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} 💎 Per Month Budget On Top. 1 💎 = $0.01, So {fmt(MONTHLY_CAP.free)} 💎 A Month = ${(MONTHLY_CAP.free / 100).toFixed(0)}.
-                                        </p>
 
                                         {/* Standard Rewards List */}
                                         <div style={styles.rewardCategory}>
                                             <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
                                             <div style={styles.rewardList}>
                                                 {STANDARD_REWARDS.map((reward, idx) => (
-                                                    <div key={idx} style={styles.rewardItem}>
+                                                    <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
                                                         <span style={styles.rewardIcon}>
                                                             {reward.icon && <reward.icon size={24} />}
                                                         </span>
@@ -1393,7 +1366,7 @@ export default function DiamondStorePage() {
                                                             <span style={styles.rewardName}>{reward.name}</span>
                                                             <span style={styles.rewardNote}>{reward.note}</span>
                                                         </div>
-                                                        <span style={styles.rewardAmount}>{reward.amount}</span>
+                                                        <span style={reward.bypassesCap ? styles.referralReward : styles.rewardAmount}>{reward.amount}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1404,15 +1377,14 @@ export default function DiamondStorePage() {
                                 {/* EASTER EGGS SUB-TAB */}
                                 {rewardsSubTab === 'eggs' && (
                                     <div style={styles.easterEggsSection}>
-                                        <h2 style={styles.earnTitle}>Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements</h2>
+                                        <h2 style={styles.earnTitle}>Easter Eggs - 100 Hidden Achievements</h2>
                                         <p style={styles.introText}>
-                                            Discover {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories.
-                                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Daily Cap, And No Single Egg Pays More Than {EASTER_EGG_MONTHLY_CAP} 💎.
+                                            Discover 100 Hidden Achievements Across 6 Categories For Massive Bonus Rewards!
                                         </p>
 
-                                        {/* Performance Category */}
+                                        {/* Performance Category (10 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.performance} ({EASTER_EGG_COUNTS.performance} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Performance (10 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.performance.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1430,9 +1402,9 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
 
-                                        {/* Timing & Loyalty Category */}
+                                        {/* Timing & Loyalty Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.timing_loyalty} ({EASTER_EGG_COUNTS.timing_loyalty} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Timing & Loyalty (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.timing_loyalty.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1450,9 +1422,9 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
 
-                                        {/* Strategy & Mastery Category */}
+                                        {/* Strategy & Mastery Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.strategy_mastery} ({EASTER_EGG_COUNTS.strategy_mastery} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Strategy & Mastery (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.strategy_mastery.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1470,9 +1442,9 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
 
-                                        {/* Social & Viral Category */}
+                                        {/* Social/Viral Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.social_viral} ({EASTER_EGG_COUNTS.social_viral} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Social & Viral (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.social_viral.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1490,11 +1462,11 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
 
-                                        {/* Discovery Category */}
+                                        {/* Meta/Interface Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.discovery} ({EASTER_EGG_COUNTS.discovery} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Meta & Interface (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.discovery.map((egg) => (
+                                                {EASTER_EGGS.meta_interface.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
@@ -1510,9 +1482,9 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
 
-                                        {/* Legacy & Milestones Category */}
+                                        {/* Legacy/Milestones Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>{EGG_CATEGORY_LABELS.legacy_milestones} ({EASTER_EGG_COUNTS.legacy_milestones} Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Legacy & Milestones (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.legacy_milestones.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
