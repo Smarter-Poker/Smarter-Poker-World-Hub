@@ -38,6 +38,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[diamond-transfer] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -45,6 +46,20 @@ function getSupabase() {
 
 // ── Anti-abuse constants ──
 const MIN_TRANSFER = 10;
+
+// Exempt (owner/admin) accounts, keyed by immutable user UUID via env config.
+// SECURITY: never key exemptions on user-settable fields like username or
+// full_name — anyone could rename themselves into the bypass.
+const EXEMPT_USER_IDS = new Set(
+    (process.env.DIAMOND_TRANSFER_EXEMPT_USER_IDS || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+);
+
+// Strict UUID shape for recipient IDs — recipientId is interpolated into
+// PostgREST .or()/.ilike() filters below, so it must never carry raw user input.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Phase 1: Account age tiers (days)
 const NEW_USER_BLOCK_DAYS = 30;        // Hard block — no outbound diamonds until day 31
@@ -94,7 +109,10 @@ async function sumPaginatedTransactions(supabase, queryBuilderFn) {
             .order('created_at', { ascending: false })
             .order('id')
             .range(page * pageSize, (page + 1) * pageSize - 1);
-        if (error || !data || data.length === 0) break;
+        // SECURITY: fail CLOSED — a DB error must not silently undercount the
+        // anti-abuse caps built on this helper. The handler's catch returns 500.
+        if (error) throw error;
+        if (!data || data.length === 0) break;
         total += data.reduce((sum, r) => sum + Math.abs(r.amount), 0);
         if (data.length < pageSize) break;
         page++;
@@ -178,6 +196,10 @@ async function checkVelocity(supabase, userId, clientIp) {
 }
 
 export default async function handler(req, res) {
+    // Compensating-refund hook. Declared at FUNCTION scope (not inside the try)
+    // so the catch block below can actually see it — a try-scoped `let` would be
+    // unresolvable in the catch and the refund would silently never run.
+    let refundSender = null;
     try {
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -210,8 +232,8 @@ export default async function handler(req, res) {
         const { recipientId, amount: rawAmount } = req.body || {};
         const amount = parseInt(rawAmount, 10);
 
-        if (!recipientId) {
-            return res.status(400).json({ success: false, error: 'Recipient is required' });
+        if (!recipientId || typeof recipientId !== 'string' || !UUID_RE.test(recipientId)) {
+            return res.status(400).json({ success: false, error: 'Valid recipient is required' });
         }
         if (isNaN(amount) || amount < MIN_TRANSFER) {
             return res.status(400).json({ success: false, error: `Minimum transfer is ${MIN_TRANSFER} diamonds` });
@@ -260,7 +282,10 @@ export default async function handler(req, res) {
         const senderAgeDays = (now - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24);
         const recipientAgeDays = (now - new Date(recipientProfile.created_at)) / (1000 * 60 * 60 * 24);
 
-        const isKingfish = senderProfile?.full_name?.toLowerCase().includes('dan bekavac') || senderProfile?.username?.toLowerCase() === 'kingfish';
+        // Exemption is keyed on the immutable auth user ID (see EXEMPT_USER_IDS).
+        // The old check matched user-settable username/full_name strings, which let
+        // ANY user rename themselves to bypass every anti-farming guard.
+        const isKingfish = EXEMPT_USER_IDS.has(userId);
 
         // ── Trust signal: completed non-refunded diamond purchase ──
         // Mirrors the DB-side cap function (fn_check_anti_farming_gift_cap) which
@@ -397,7 +422,8 @@ export default async function handler(req, res) {
 
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
 
-        if (!isKingfish && !isFullyUnrestricted) {
+        if (!isKingfish && !isFullyUnrestricted && !isGraduated) {
+            // ── GRADUATION PHASE (30–119 day) accounts: source-tiered 30-day caps ──
             // Determine which pool the sender qualifies for
             const activeCap = purchasedWonAvailable >= amount
                 ? PURCHASED_WON_30DAY_LIMIT
@@ -505,9 +531,9 @@ export default async function handler(req, res) {
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
 
-        // Initialized to null; assigned after the deduct commits so the catch
-        // block can invoke it if an uncaught throw occurs between deduct and credit.
-        let refundSender = null;
+        // refundSender (declared at function scope above) is assigned after the
+        // deduct commits so the catch block can invoke it if an uncaught throw
+        // occurs between deduct and credit.
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         const { data: deductResult, error: deductErr } = await getSupabase()
@@ -531,8 +557,8 @@ export default async function handler(req, res) {
                 try {
                     const popup = JSON.parse(errDetails);
                     if (popup && popup.code) {
-                        await refundSender?.('cap_blocked');
-                        
+                        // No refund needed here — the deduct itself failed, nothing was taken.
+
                         // Map database-level codes to beautiful user-friendly alerts
                         let displayTitle = popup.title || 'Transfer Restricted';
                         let displayExplanation = popup.popup_explanation || popup.reason || errMessage;
@@ -540,15 +566,15 @@ export default async function handler(req, res) {
                         
                         if (popup.code === 'pair_24h_cap') {
                             displayTitle = 'Recipient Limit Reached';
-                            displayExplanation = 'To protect against farming and abuse, we limit the amount of diamonds you can send to a single friend to 5,000 💎 every 24 hours.';
+                            displayExplanation = 'To protect against farming and abuse, we limit the amount of diamonds you can send to a single friend to 5,000 diamonds every 24 hours.';
                             displayMessage = 'You Have Reached Your 24-Hour Sending Limit For This Recipient';
                         } else if (popup.code === 'user_24h_cap') {
                             displayTitle = 'Daily Sending Limit Reached';
-                            displayExplanation = 'To protect the platform economy, accounts have a daily total outbound transfer cap of 50,000 💎 every 24 hours.';
+                            displayExplanation = 'To protect the platform economy, accounts have a daily total outbound transfer cap of 50,000 diamonds every 24 hours.';
                             displayMessage = 'You Have Reached Your 24-Hour Overall Sending Limit';
                         } else if (popup.code === 'burst_cap') {
                             displayTitle = 'Sending Too Fast';
-                            displayExplanation = 'Please slow down. You can send a maximum of 2,000 💎 every 60 seconds.';
+                            displayExplanation = 'Please slow down. You can send a maximum of 2,000 diamonds every 60 seconds.';
                             displayMessage = 'Velocity Check Triggered';
                         }
                         
@@ -569,12 +595,13 @@ export default async function handler(req, res) {
                 } catch (_) { /* fall through to legacy check */ }
             }
             
-            // Extract clear error message if the trigger raised an exception without JSON
-            let cleanMessage = errMessage;
-            if (cleanMessage.includes('Anti-farming:')) {
-                cleanMessage = cleanMessage.replace('Anti-farming:', '').trim();
+            // SECURITY: never echo raw DB/trigger internals to the client — only
+            // surface the known, user-facing anti-farming message pattern.
+            let cleanMessage = 'Transfer failed — please try again';
+            if (errMessage.includes('Anti-farming:')) {
+                cleanMessage = errMessage.replace('Anti-farming:', '').trim();
             }
-            
+
             return res.status(500).json({ success: false, error: cleanMessage });
         }
         if (deductResult && !deductResult.success) {

@@ -129,8 +129,17 @@ export default function NewsHub() {
     const userId = user?.id;
 
     useEffect(() => {
-        // Ensure page always starts at top on load
-        window.scrollTo(0, 0);
+        // Ensure page always starts at top on load, even after hard refresh
+        if (typeof window !== 'undefined') {
+            if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+            }
+            // Small timeout ensures it runs after layout is complete and fights off browser restore
+            const scrollTimeout = setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+            return () => clearTimeout(scrollTimeout);
+        }
     }, []);
 
     // Core State

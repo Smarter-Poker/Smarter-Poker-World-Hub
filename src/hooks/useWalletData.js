@@ -14,10 +14,12 @@
  *    when the user's role is 'agent'.
  *  - `wallet-treasury:{clubId}` channel is now ROLE-GATED: only opens when
  *    the user's role is 'owner' or 'admin'.
- *  - `wallet-member:{clubId}:{userId}` filter now includes user_id=eq.${userId}
- *    so Supabase delivers only this user's club_members rows instead of all
+ *  - `wallet-member:{clubId}:{userId}` filter is user_id=eq.${userId} so
+ *    Supabase delivers only this user's club_members rows instead of all
  *    club members' rows (cost-fix: was broadcasting all member wallet updates
- *    to every connected club member).
+ *    to every connected club member). club_id is guarded CLIENT-SIDE because
+ *    Realtime postgres_changes supports only ONE server-side filter —
+ *    do NOT '&'-join filters, compound filters silently break delivery.
  *
  * Returns: { diamondBalance, bbjAmount, chipBalance, clubBankBalance,
  *            agentBalance, promoBalance, bbjAnimating, loading, role }
@@ -46,9 +48,14 @@ export default function useWalletData({ supabase, userId, clubId }) {
 
   // ── Initial data fetch ───────────────────────────────────────────────
   const loadWalletData = useCallback(async () => {
-    if (!supabase || !userId || !clubId) return;
+    if (!supabase || !userId || !clubId) {
+      // Terminate the loading state so consumers without a club don't spin forever
+      setLoading(false);
+      return;
+    }
 
     try {
+      setLoading(true);
       // Parallel fetch: profile, membership, BBJ, agent, club treasury
       const [profileRes, memberRes, bbjRes, agentRes, clubRes] = await Promise.allSettled([
         supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle(),
@@ -118,20 +125,27 @@ export default function useWalletData({ supabase, userId, clubId }) {
     if (!supabase || !userId || !clubId) return;
 
     // 1. Club member chip/promo balance changes (all roles need this).
-    //    COST-FIX: filter now includes user_id=eq.${userId} so Supabase only
-    //    delivers rows for this specific member instead of broadcasting every
-    //    club member's wallet updates to all connected users.
+    //    COST-FIX: filter on user_id=eq.${userId} so Supabase only delivers
+    //    this user's rows instead of broadcasting every club member's wallet
+    //    updates to all connected users. NOTE: Realtime postgres_changes
+    //    supports exactly ONE filter expression — '&'-joined compound filters
+    //    silently break delivery — so club_id is guarded client-side.
     const memberCh = supabase
       .channel(`wallet-member:${clubId}:${userId}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'club_members',
-        filter: `club_id=eq.${clubId}&user_id=eq.${userId}`,
+        filter: `user_id=eq.${userId}`,
       }, (payload) => {
-        // Belt-and-suspenders guard kept even though the server-side filter
-        // already scopes delivery to this user's rows.
-        if (payload.new?.user_id === userId) {
+        // Client-side guard: scope to this club (and re-check user_id).
+        if (payload.new?.user_id === userId && payload.new?.club_id === clubId) {
           if (payload.new.chip_balance !== undefined) setChipBalance(payload.new.chip_balance);
           if (payload.new.promo_balance !== undefined) setPromoBalance(payload.new.promo_balance);
+          // Live role changes re-gate the agent/treasury channels below
+          // (the subscription effect depends on `role`).
+          if (payload.new.role && payload.new.role !== roleRef.current) {
+            roleRef.current = payload.new.role;
+            setRole(payload.new.role);
+          }
         }
       })
       .subscribe();
@@ -161,9 +175,11 @@ export default function useWalletData({ supabase, userId, clubId }) {
         .channel(`wallet-agent:${clubId}:${userId}`)
         .on('postgres_changes', {
           event: 'UPDATE', schema: 'public', table: 'agents',
-          filter: `club_id=eq.${clubId}`,
+          // Filter on user_id so other agents' business_balance rows are never
+          // delivered to this client; club_id is guarded client-side.
+          filter: `user_id=eq.${userId}`,
         }, (payload) => {
-          if (payload.new?.user_id === userId) {
+          if (payload.new?.user_id === userId && payload.new?.club_id === clubId) {
             setAgentBalance(payload.new.business_balance || 0);
           }
         })

@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
-import { Gem, Crown, ShoppingBag, Trophy, Gamepad2, Coins, Home, Package, Wrench, Search, Gift, AlertTriangle, CheckCircle, Trash2, Filter, Play, Sparkles, Users, Shield, Plus, X, ShoppingCart as CartIcon } from 'lucide-react';
+import React from 'react';
+import { ShoppingBag, Gamepad2, Coins, Home, Package, Wrench, Gift, AlertTriangle, CheckCircle, Trash2, ShoppingCart as CartIcon } from 'lucide-react';
 import styles from './diamondStoreStyles';
 import { getAccessToken } from '../../lib/authUtils';
 import { showStoreToast } from '../store/StoreToast';
 export default function ClubShopTab({
     clubShopClubId, clubShopLoaded, clubShopLoading, clubShopItems, clubShopPurchases, clubChipBalance,
-    clubShopRole, clubShopSuccess, clubShopBuyTarget, setClubShopBuyTarget, clubShopProcessing, handleClubPurchase,
+    clubShopSuccess, clubShopBuyTarget, setClubShopBuyTarget, clubShopProcessing, setClubShopProcessing, handleClubPurchase,
     clubShopSubTab, setClubShopSubTab, clubShopIsAdmin, clubShopCategory, setClubShopCategory, clubShopSearch,
     setClubShopSearch, clubShopSortMode, setClubShopSortMode, clubShopAdminLoaded, loadClubShopAdmin,
     clubShopAdminItems, clubShopNewName, setClubShopNewName, clubShopNewPrice, setClubShopNewPrice,
     clubShopNewDesc, setClubShopNewDesc, clubShopNewCategory, setClubShopNewCategory, clubShopNewImage,
-    setClubShopNewImage, handleCreateClubItem, handleDeleteClubItem, handleToggleClubItem, loadClubShop
+    setClubShopNewImage, clubShopLastCreate, setClubShopLastCreate, clubShopLoadingRef, loadClubShop
 }) {
+    const chipBalance = clubChipBalance ?? 0;
+    const items = clubShopItems || [];
+    const purchases = clubShopPurchases || [];
+    const adminItems = clubShopAdminItems || [];
+    const buyPrice = clubShopBuyTarget ? (clubShopBuyTarget.price ?? 0) : 0;
     return (
         <>
 
@@ -65,19 +70,19 @@ export default function ClubShopTab({
                                                     padding: '12px 16px', textAlign: 'center',
                                                 }}>
                                                     <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Item Price</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#ff6b6b', marginTop: 4 }}>{clubShopBuyTarget.price.toLocaleString()}</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#ff6b6b', marginTop: 4 }}>{buyPrice.toLocaleString()}</div>
                                                 </div>
                                                 <div style={{
                                                     flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 10,
                                                     padding: '12px 16px', textAlign: 'center',
                                                 }}>
                                                     <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Your Balance</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88', marginTop: 4 }}>{clubChipBalance.toLocaleString()}</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88', marginTop: 4 }}>{chipBalance.toLocaleString()}</div>
                                                 </div>
                                             </div>
-                                            {clubChipBalance < clubShopBuyTarget.price && (
+                                            {chipBalance < buyPrice && (
                                                 <div style={{ color: '#ff6b6b', fontSize: 13, fontWeight: 600, marginBottom: 12, textAlign: 'center' }}>
-                                                    <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Insufficient chips. You need {(clubShopBuyTarget.price - clubChipBalance).toLocaleString()} more.
+                                                    <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Insufficient chips. You need {(buyPrice - chipBalance).toLocaleString()} more.
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', gap: 12 }}>
@@ -88,10 +93,10 @@ export default function ClubShopTab({
                                                         color: '#B0B3B8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                                                     }}>Cancel</button>
                                                 <button onClick={handleClubPurchase}
-                                                    disabled={clubShopProcessing || clubChipBalance < clubShopBuyTarget.price}
+                                                    disabled={clubShopProcessing || chipBalance < buyPrice}
                                                     style={{
                                                         flex: 1, padding: '12px',
-                                                        background: clubShopProcessing || clubChipBalance < clubShopBuyTarget.price
+                                                        background: clubShopProcessing || chipBalance < buyPrice
                                                             ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #1877F2, #4285F4)',
                                                         border: 'none', borderRadius: 10, color: '#fff',
                                                         fontSize: 14, fontWeight: 700, cursor: clubShopProcessing ? 'wait' : 'pointer',
@@ -111,7 +116,7 @@ export default function ClubShopTab({
                                             background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                                             color: '#000', padding: '4px 14px', borderRadius: 20,
                                         }}>
-                                            <Coins size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {clubChipBalance.toLocaleString()} Chips
+                                            <Coins size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {chipBalance.toLocaleString()} Chips
                                         </span>
                                     </h2>
                                     <p style={styles.introText}>
@@ -119,7 +124,7 @@ export default function ClubShopTab({
                                     </p>
                                 </div>
 
-                                {clubShopLoading && !clubShopLoaded ? (
+                                {!clubShopLoaded ? (
                                     <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
                                         Loading club shop...
                                     </div>
@@ -133,8 +138,8 @@ export default function ClubShopTab({
                                     <>
                                         {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                                            {[{ key: 'store', label: `Store (${clubShopItems.length})`, LIcon: ShoppingBag },
-                                              { key: 'my-purchases', label: `My Purchases (${clubShopPurchases.length})`, LIcon: Package },
+                                            {[{ key: 'store', label: `Store (${items.length})`, LIcon: ShoppingBag },
+                                              { key: 'my-purchases', label: `My Purchases (${purchases.length})`, LIcon: Package },
                                               ...(clubShopIsAdmin ? [{ key: 'manage', label: 'Manage', LIcon: Wrench }] : []),
                                             ].map(st => (
                                                 <button key={st.key} onClick={() => { setClubShopSubTab(st.key); if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin(); }}
@@ -198,19 +203,19 @@ export default function ClubShopTab({
 
                                                 {/* Item Grid */}
                                                 {(() => {
-                                                    const purchasedIds = new Set(clubShopPurchases.map(p => p.item_id));
-                                                    let filtered = [...clubShopItems];
+                                                    const purchasedIds = new Set(purchases.map(p => p.item_id));
+                                                    let filtered = [...items];
                                                     if (clubShopCategory !== 'All') {
                                                         filtered = filtered.filter(i => (i.category || 'Time Banks').toLowerCase() === clubShopCategory.toLowerCase());
                                                     }
-                                                    if (clubShopSearch.trim()) {
+                                                    if ((clubShopSearch || '').trim()) {
                                                         const q = clubShopSearch.toLowerCase();
-                                                        filtered = filtered.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+                                                        filtered = filtered.filter(i => (i.name || '').toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
                                                     }
                                                     // Sort
                                                     switch (clubShopSortMode) {
-                                                        case 'price-low': filtered.sort((a, b) => a.price - b.price); break;
-                                                        case 'price-high': filtered.sort((a, b) => b.price - a.price); break;
+                                                        case 'price-low': filtered.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+                                                        case 'price-high': filtered.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
                                                         case 'popular': filtered.sort((a, b) => (b.purchase_count || 0) - (a.purchase_count || 0)); break;
                                                         default: break; // newest = API order
                                                     }
@@ -220,7 +225,7 @@ export default function ClubShopTab({
                                                             <div style={{ textAlign: 'center', padding: 40 }}>
                                                                 <div style={{ marginBottom: 12 }}><ShoppingBag size={48} color="rgba(255,255,255,0.3)" /></div>
                                                                 <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-                                                                    {clubShopItems.length === 0 ? 'The shop is currently empty.' : 'No items match your filter.'}
+                                                                    {items.length === 0 ? 'The shop is currently empty.' : 'No items match your filter.'}
                                                                 </div>
                                                             </div>
                                                         );
@@ -266,7 +271,7 @@ export default function ClubShopTab({
                                                                             </div>
                                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                                                 <div>
-                                                                                    <span style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Coins size={14} /> {item.price.toLocaleString()}</span>
+                                                                                    <span style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Coins size={14} /> {(item.price ?? 0).toLocaleString()}</span>
                                                                                     {(item.purchase_count || 0) > 0 && (
                                                                                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{item.purchase_count} sold</div>
                                                                                     )}
@@ -296,7 +301,7 @@ export default function ClubShopTab({
                                         {/* My Purchases Sub-Tab */}
                                         {clubShopSubTab === 'my-purchases' && (
                                             <>
-                                                {clubShopPurchases.length === 0 ? (
+                                                {purchases.length === 0 ? (
                                                     <div style={{ textAlign: 'center', padding: 40 }}>
                                                         <div style={{ marginBottom: 12 }}><Package size={48} color="rgba(255,255,255,0.3)" /></div>
                                                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No purchases yet.</div>
@@ -322,8 +327,8 @@ export default function ClubShopTab({
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                {clubShopPurchases.map(p => {
-                                                                    const itemData = clubShopItems.find(i => i.id === p.item_id);
+                                                                {purchases.map(p => {
+                                                                    const itemData = items.find(i => i.id === p.item_id);
                                                                     const name = p.item_name || itemData?.name || 'Unknown Item';
                                                                     const cat = p.item_category || itemData?.category || 'Time Banks';
                                                                     const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
@@ -353,10 +358,10 @@ export default function ClubShopTab({
                                             <>
                                                 {/* Admin Stats */}
                                                 {(() => {
-                                                    const total = clubShopAdminItems.length;
-                                                    const active = clubShopAdminItems.filter(i => i.is_active).length;
-                                                    const totalSold = clubShopAdminItems.reduce((s, i) => s + (i.purchase_count || 0), 0);
-                                                    const totalRev = clubShopAdminItems.reduce((s, i) => s + (i.purchase_count || 0) * i.price, 0);
+                                                    const total = adminItems.length;
+                                                    const active = adminItems.filter(i => i.is_active).length;
+                                                    const totalSold = adminItems.reduce((s, i) => s + (i.purchase_count || 0), 0);
+                                                    const totalRev = adminItems.reduce((s, i) => s + (i.purchase_count || 0) * (i.price || 0), 0);
                                                     return (
                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
                                                             {[{ label: 'Total Items', val: total }, { label: 'Active', val: active },
@@ -379,7 +384,7 @@ export default function ClubShopTab({
                                                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
                                                     borderRadius: 14, padding: 20, marginBottom: 24,
                                                 }}>
-                                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 14 }}>➕ Create Shop Item</h3>
+                                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 14 }}><Wrench size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} /> Create Shop Item</h3>
                                                     <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                                                         <input value={clubShopNewName} onChange={e => setClubShopNewName(e.target.value)}
                                                             placeholder="Item name" maxLength={100}
@@ -403,10 +408,11 @@ export default function ClubShopTab({
                                                             style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 14, outline: 'none' }} />
                                                     </div>
                                                     <button
-                                                        disabled={clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice}
+                                                        disabled={clubShopProcessing || !(clubShopNewName || '').trim() || !clubShopNewPrice}
                                                         onClick={async () => {
+                                                            if (clubShopProcessing) return;
                                                             const now = Date.now();
-                                                            if (now - clubShopLastCreate < 3000) { showStoreToast('warning', 'Please wait before creating another item'); return; }
+                                                            if (now - (clubShopLastCreate || 0) < 3000) { showStoreToast('warning', 'Please wait before creating another item'); return; }
                                                             const price = Math.floor(Number(clubShopNewPrice));
                                                             if (!price || price <= 0) { showStoreToast('error', 'Price must be a positive number'); return; }
                                                             if (price > 1000000000) { showStoreToast('error', 'Price exceeds maximum'); return; }
@@ -434,28 +440,28 @@ export default function ClubShopTab({
                                                                 setClubShopLastCreate(Date.now());
                                                                 setClubShopNewName(''); setClubShopNewPrice(''); setClubShopNewDesc(''); setClubShopNewImage(''); setClubShopNewCategory('Time Banks');
                                                                 loadClubShopAdmin();
-                                                                clubShopLoadingRef.current = false;
+                                                                if (clubShopLoadingRef) clubShopLoadingRef.current = false;
                                                                 loadClubShop(true);
                                                             } catch (err) { showStoreToast('error', err.message); } finally { setClubShopProcessing(false); }
                                                         }}
                                                         style={{
                                                             padding: '10px 28px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                                             background: 'linear-gradient(135deg, #1877F2, #4285F4)', border: 'none', color: '#fff',
-                                                            opacity: (!clubShopNewName.trim() || !clubShopNewPrice) ? 0.5 : 1,
+                                                            opacity: (!(clubShopNewName || '').trim() || !clubShopNewPrice) ? 0.5 : 1,
                                                         }}>
                                                         {clubShopProcessing ? 'Creating...' : 'Create Item'}
                                                     </button>
                                                 </div>
 
                                                 {/* Admin Item List */}
-                                                {clubShopAdminItems.length === 0 ? (
+                                                {adminItems.length === 0 ? (
                                                     <div style={{ textAlign: 'center', padding: 40 }}>
                                                         <div style={{ marginBottom: 12 }}><Wrench size={48} color="rgba(255,255,255,0.3)" /></div>
                                                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No shop items yet. Create one above.</div>
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                        {clubShopAdminItems.map(item => (
+                                                        {adminItems.map(item => (
                                                             <div key={item.id} style={{
                                                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                                                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
@@ -464,7 +470,7 @@ export default function ClubShopTab({
                                                                 <div>
                                                                     <div style={{ fontWeight: 700, color: item.is_active ? '#E4E6EB' : '#6B7280', fontSize: 14 }}>{item.name}</div>
                                                                     <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
-                                                                        {item.price.toLocaleString()} chips • <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{item.category || 'Time Banks'}</span> • {item.purchase_count || 0} sold
+                                                                        {(item.price ?? 0).toLocaleString()} chips • <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{item.category || 'Time Banks'}</span> • {item.purchase_count || 0} sold
                                                                     </div>
                                                                 </div>
                                                                 <div style={{ display: 'flex', gap: 8 }}>
@@ -480,7 +486,7 @@ export default function ClubShopTab({
                                                                             const json = await resp.json().catch(() => ({}));
                                                                             if (!resp.ok || !json.success) throw new Error(json.error || `HTTP ${resp.status}`);
                                                                             loadClubShopAdmin();
-                                                                            clubShopLoadingRef.current = false;
+                                                                            if (clubShopLoadingRef) clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
                                                                         } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{
@@ -504,7 +510,7 @@ export default function ClubShopTab({
                                                                             const json = await resp.json().catch(() => ({}));
                                                                             if (!resp.ok || !json.success) throw new Error(json.error || `HTTP ${resp.status}`);
                                                                             loadClubShopAdmin();
-                                                                            clubShopLoadingRef.current = false;
+                                                                            if (clubShopLoadingRef) clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
                                                                         } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{

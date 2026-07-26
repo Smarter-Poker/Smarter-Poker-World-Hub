@@ -3,7 +3,7 @@
    Shows epic celebrations when users earn diamonds with particle effects
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
@@ -11,12 +11,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 interface CelebrationData {
     id: string;
-    reward_id: string;
+    reward_id?: string;
     diamonds: number;
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-    icon: string;
+    icon?: React.ReactNode;
     multiplier: number;
-    message: string;
+    message?: React.ReactNode;
 }
 
 interface Particle {
@@ -73,6 +73,20 @@ const RARITY_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SHARED DIAMOND IMAGE (replaces the old diamond emoji)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DiamondImg({ size = 20 }: { size?: number }) {
+    return (
+        <img
+            src="/images/diamond.png"
+            alt="Diamond"
+            style={{ width: size, height: size, display: 'inline-block', verticalAlign: 'middle' }}
+        />
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PARTICLE SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -84,7 +98,7 @@ function DiamondParticles({
     isActive: boolean;
 }) {
     const [particles, setParticles] = useState<Particle[]>([]);
-    const config = RARITY_CONFIG[rarity];
+    const config = RARITY_CONFIG[rarity] || RARITY_CONFIG.common;
 
     useEffect(() => {
         if (!isActive) {
@@ -107,15 +121,21 @@ function DiamondParticles({
 
         // Animate particles
         const interval = setInterval(() => {
-            setParticles(prev =>
-                prev.map(p => ({
+            setParticles(prev => {
+                if (prev.length === 0) {
+                    // All particles faded — stop ticking instead of forcing
+                    // no-op state updates at 60Hz for the rest of the duration.
+                    clearInterval(interval);
+                    return prev;
+                }
+                return prev.map(p => ({
                     ...p,
                     x: p.x + p.vx * 0.1,
                     y: p.y + p.vy * 0.1,
                     vy: p.vy + 0.3, // gravity
                     opacity: Math.max(0, p.opacity - 0.015),
-                })).filter(p => p.opacity > 0)
-            );
+                })).filter(p => p.opacity > 0);
+            });
         }, 16);
 
         return () => clearInterval(interval);
@@ -163,6 +183,7 @@ function CelebrationPopup({
     const [isVisible, setIsVisible] = useState(false);
     const [isExiting, setIsExiting] = useState(false);
     const config = RARITY_CONFIG[celebration.rarity] || RARITY_CONFIG.common;
+    const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         // Entrance animation
@@ -171,15 +192,22 @@ function CelebrationPopup({
         // Auto-dismiss after duration
         const timer = setTimeout(() => {
             setIsExiting(true);
-            setTimeout(onDismiss, 500);
+            dismissTimerRef.current = setTimeout(onDismiss, 500);
         }, config.duration);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            if (dismissTimerRef.current) {
+                clearTimeout(dismissTimerRef.current);
+                dismissTimerRef.current = null;
+            }
+        };
     }, [config.duration, onDismiss]);
 
     const handleClick = () => {
         setIsExiting(true);
-        setTimeout(onDismiss, 500);
+        if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = setTimeout(onDismiss, 500);
     };
 
     return (
@@ -253,7 +281,7 @@ function CelebrationPopup({
                     filter: `drop-shadow(0 0 20px ${config.color})`,
                     animation: 'bounceIcon 1s ease-in-out infinite',
                 }}>
-                    {celebration.icon || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>'}
+                    {celebration.icon || <DiamondImg size={72} />}
                 </div>
 
                 {/* Message */}
@@ -294,7 +322,7 @@ function CelebrationPopup({
                         borderRadius: 12,
                         marginTop: 8,
                     }}>
-                        🔥 {celebration.multiplier}x STREAK BONUS!
+                        {'🔥'} {celebration.multiplier}x STREAK BONUS!
                     </div>
                 )}
 
@@ -334,17 +362,25 @@ export function CelebrationManager() {
     // Listen for diamond reward events
     useEffect(() => {
         const handleReward = (e: CustomEvent) => {
-            const data = e.detail as CelebrationData;
-            if (data && data.diamonds > 0) {
-                setQueue(prev => [...prev, {
-                    ...data,
-                    id: data.id || `${Date.now()}-${Math.random()}`,
-                    rarity: data.rarity || 'common',
-                    icon: data.icon || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>',
-                    multiplier: data.multiplier || 1,
-                    message: data.message || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> DIAMONDS EARNED!',
-                }]);
-            }
+            const data = e.detail as Partial<CelebrationData> | undefined;
+            const diamonds = Number(data?.diamonds);
+            if (!data || !Number.isFinite(diamonds) || diamonds <= 0) return;
+
+            const celebration: CelebrationData = {
+                ...data,
+                id: data.id || `${Date.now()}-${Math.random()}`,
+                diamonds,
+                rarity: data.rarity && data.rarity in RARITY_CONFIG ? data.rarity : 'common',
+                icon: data.icon,
+                multiplier: Number(data.multiplier) > 0 ? Number(data.multiplier) : 1,
+                message: data.message || 'DIAMONDS EARNED!',
+            };
+
+            setQueue(prev => {
+                // De-dupe: the same reward may be dispatched on both event names
+                if (data.id && prev.some(c => c.id === data.id)) return prev;
+                return [...prev, celebration];
+            });
         };
 
         window.addEventListener('diamond-reward', handleReward as EventListener);
@@ -386,8 +422,9 @@ export function CelebrationManager() {
                 }}
             />
 
-            {/* Popup */}
+            {/* Popup — keyed by id so each celebration remounts with fresh state */}
             <CelebrationPopup
+                key={currentCelebration.id}
                 celebration={currentCelebration}
                 onDismiss={handleDismiss}
             />
@@ -421,22 +458,28 @@ export function useCelebration() {
 
 export function MiniCelebration({
     diamonds,
-    icon = '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>',
+    icon,
     onComplete,
 }: {
     diamonds: number;
-    icon?: string;
+    icon?: React.ReactNode;
     onComplete?: () => void;
 }) {
     const [isVisible, setIsVisible] = useState(true);
+    const onCompleteRef = useRef(onComplete);
+    onCompleteRef.current = onComplete;
 
     useEffect(() => {
+        let innerTimer: ReturnType<typeof setTimeout> | null = null;
         const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(() => onComplete?.(), 300);
+            innerTimer = setTimeout(() => onCompleteRef.current?.(), 300);
         }, 2000);
-        return () => clearTimeout(timer);
-    }, [onComplete]);
+        return () => {
+            clearTimeout(timer);
+            if (innerTimer) clearTimeout(innerTimer);
+        };
+    }, []);
 
     return (
         <div style={{
@@ -455,7 +498,7 @@ export function MiniCelebration({
             boxShadow: '0 4px 20px rgba(0, 212, 255, 0.3)',
             zIndex: 9000,
         }}>
-            <span style={{ fontSize: 24 }}>{icon}</span>
+            <span style={{ fontSize: 24 }}>{icon || <DiamondImg size={24} />}</span>
             <span style={{
                 fontFamily: 'Orbitron, sans-serif',
                 fontSize: 18,

@@ -13,6 +13,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[create-checkout-session] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -43,6 +44,54 @@ const VALID_DIAMOND_PACKAGES = {
     premium:  { diamonds: 25000, price: 250.00, bonus: 1250, name: 'Premium' },
     whale:    { diamonds: 50000, price: 500.00, bonus: 2500, name: 'Whale' },
 };
+
+// Max units of a single diamond package per checkout.
+const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
+
+/**
+ * Resolve a client cart item to a server-side diamond package.
+ * Accepts either the raw catalog id ('micro') or the cart-scoped id
+ * ('diamond-micro') that the store UI generates. Returns null when unknown.
+ * The returned object carries SERVER prices/amounts only.
+ */
+function resolveDiamondPackage(item) {
+    const raw = item?.packageId ?? item?.id;
+    if (typeof raw !== 'string' || !raw) return null;
+    // hasOwnProperty guards against inherited keys ('constructor', '__proto__')
+    const has = (k) => Object.prototype.hasOwnProperty.call(VALID_DIAMOND_PACKAGES, k);
+    const key = has(raw) ? raw : raw.replace(/^diamond-/, '');
+    return has(key) ? { key, ...VALID_DIAMOND_PACKAGES[key] } : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIP SUBSCRIPTION PLANS (server-side, env-driven price IDs)
+// The client sends ONLY a plan key. Price IDs are never accepted from
+// the client — otherwise a cheap price could be paired with a premium
+// tier claim and the webhook would grant VIP based on the claim.
+// ═══════════════════════════════════════════════════════════════
+const VIP_SUBSCRIPTION_PLANS = {
+    monthly: { tier: 'monthly', envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID' },
+    annual:  { tier: 'annual',  envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID' },
+};
+
+/**
+ * Resolve a client plan key ('monthly' | 'annual', with an optional 'vip-'
+ * prefix as produced by VIP_MEMBERSHIP ids) to its server-side Stripe price.
+ * Returns null for unknown plans; returns priceId:null when the env var for a
+ * known plan is not configured (deployment problem, not a client error).
+ */
+function resolveVipPlan(rawPlan) {
+    if (typeof rawPlan !== 'string' || !rawPlan) return null;
+    const key = rawPlan.replace(/^vip-/, '').toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(VIP_SUBSCRIPTION_PLANS, key)) return null;
+    const plan = VIP_SUBSCRIPTION_PLANS[key];
+    return {
+        key,
+        tier: plan.tier,
+        envVar: plan.envVar,
+        priceId: process.env[plan.envVar] || null,
+    };
+}
 
 export default async function handler(req, res) {
   try {
@@ -76,8 +125,11 @@ export default async function handler(req, res) {
           });
       }
 
-      // Validate key format
+      // Validate key format — warn loudly if a test key is used in production
       const keyPrefix = stripeSecretKey.substring(0, 7);
+      if (process.env.NODE_ENV === 'production' && keyPrefix === 'sk_test') {
+          console.warn('[Checkout] WARNING: Stripe TEST secret key is being used in production');
+      }
 
       try {
           const authHeader = req.headers.authorization;
@@ -99,7 +151,7 @@ export default async function handler(req, res) {
               });
           }
 
-          const { type, items, successUrl, cancelUrl } = req.body;
+          const { type, items, successUrl, cancelUrl } = req.body || {};
 
           if (!type || !items || !Array.isArray(items) || items.length === 0) {
               return res.status(400).json({
@@ -150,11 +202,19 @@ export default async function handler(req, res) {
 
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
 
+          // SECURITY: Only allow post-checkout redirects to our own origin
+          const safeSuccessUrl = (typeof successUrl === 'string' && successUrl.startsWith(baseUrl))
+              ? successUrl
+              : `${baseUrl}/hub/diamond-store?success=true&session_id={CHECKOUT_SESSION_ID}`;
+          const safeCancelUrl = (typeof cancelUrl === 'string' && cancelUrl.startsWith(baseUrl))
+              ? cancelUrl
+              : `${baseUrl}/hub/diamond-store?canceled=true`;
+
           let sessionConfig = {
               customer: customerId,
               mode: type === 'subscription' ? 'subscription' : 'payment',
-              success_url: successUrl || `${baseUrl}/hub/diamond-store?success=true&session_id={CHECKOUT_SESSION_ID}`,
-              cancel_url: cancelUrl || `${baseUrl}/hub/diamond-store?canceled=true`,
+              success_url: safeSuccessUrl,
+              cancel_url: safeCancelUrl,
               metadata: {
                   user_id: user.id,
                   type: type
@@ -163,68 +223,179 @@ export default async function handler(req, res) {
 
           // Build line items based on type
           if (type === 'diamonds') {
-              // Diamond purchase - one-time payment
-              // SECURITY: Validate against server-side package definitions
-              const clientItem = items[0];
-              const packageId = clientItem?.id || clientItem?.packageId;
-              const serverPackage = VALID_DIAMOND_PACKAGES[packageId];
+              // Diamond purchase - one-time payment (multi-package, multi-quantity)
+              // SECURITY: Every price/diamond amount below is resolved from
+              // VALID_DIAMOND_PACKAGES. Client-supplied price/diamonds/bonus are ignored.
+              const resolvedPackages = [];
 
-              if (!serverPackage) {
-                  return res.status(400).json({
-                      success: false,
-                      error: { code: 'INVALID_PACKAGE', message: `Unknown diamond package: ${packageId}` }
-                  });
+              for (const clientItem of items) {
+                  const serverPackage = resolveDiamondPackage(clientItem);
+
+                  if (!serverPackage) {
+                      return res.status(400).json({
+                          success: false,
+                          error: {
+                              code: 'INVALID_PACKAGE',
+                              message: `Unknown diamond package: ${clientItem?.packageId ?? clientItem?.id ?? 'unknown'}`
+                          }
+                      });
+                  }
+
+                  const quantity = parseInt(clientItem?.quantity, 10) || 1;
+                  if (quantity < 1 || quantity > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
+                      return res.status(400).json({
+                          success: false,
+                          error: {
+                              code: 'INVALID_QUANTITY',
+                              message: `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
+                          }
+                      });
+                  }
+
+                  // Merge duplicate package entries into a single Stripe line item
+                  const existing = resolvedPackages.find(p => p.key === serverPackage.key);
+                  if (existing) {
+                      const merged = existing.quantity + quantity;
+                      if (merged > MAX_DIAMOND_QUANTITY_PER_PACKAGE) {
+                          return res.status(400).json({
+                              success: false,
+                              error: {
+                                  code: 'INVALID_QUANTITY',
+                                  message: `Quantity must be 1-${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per package`
+                              }
+                          });
+                      }
+                      existing.quantity = merged;
+                  } else {
+                      resolvedPackages.push({ ...serverPackage, quantity });
+                  }
               }
 
               // Use SERVER-SIDE values only — never trust client amounts
-              sessionConfig.line_items = [{
+              sessionConfig.line_items = resolvedPackages.map(pkg => ({
                   price_data: {
                       currency: 'usd',
                       product_data: {
-                          name: serverPackage.name,
-                          description: `${serverPackage.diamonds} Diamonds${serverPackage.bonus ? ` + ${serverPackage.bonus} Bonus` : ''}`,
+                          name: pkg.name,
+                          description: `${pkg.diamonds} Diamonds${pkg.bonus ? ` + ${pkg.bonus} Bonus` : ''}`,
                           images: ['https://smarter.poker/images/diamond-icon.png']
                       },
-                      unit_amount: Math.round(serverPackage.price * 100) // Convert to cents
+                      unit_amount: Math.round(pkg.price * 100) // Convert to cents
                   },
-                  quantity: 1
-              }];
+                  quantity: pkg.quantity
+              }));
+
+              // Aggregate totals for the single pending purchase row. The Stripe
+              // webhook credits diamonds_amount + bonus_diamonds from this row, so
+              // the totals here must cover EVERY line item and its quantity.
+              const totalDiamonds = resolvedPackages.reduce((sum, pkg) => sum + (pkg.diamonds * pkg.quantity), 0);
+              const totalBonus = resolvedPackages.reduce((sum, pkg) => sum + (pkg.bonus * pkg.quantity), 0);
+              const totalUsd = Math.round(
+                  resolvedPackages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0) * 100
+              ) / 100;
+              const packageName = resolvedPackages
+                  .map(pkg => (pkg.quantity > 1 ? `${pkg.name} x${pkg.quantity}` : pkg.name))
+                  .join(', ')
+                  .slice(0, 200);
 
               // Create pending purchase record with SERVER-SIDE values
-              const { data: purchase } = await getSupabase()
+              const { data: purchase, error: purchaseInsertErr } = await getSupabase()
                   .from('diamond_purchases')
                   .insert({
                       user_id: user.id,
-                      package_name: serverPackage.name,
-                      diamonds_amount: serverPackage.diamonds,
-                      bonus_diamonds: serverPackage.bonus,
-                      price_usd: serverPackage.price,
+                      package_name: packageName,
+                      diamonds_amount: totalDiamonds,
+                      bonus_diamonds: totalBonus,
+                      price_usd: totalUsd,
                       status: 'pending'
                   })
                   .select()
                   .maybeSingle();
 
-              if (purchase) {
-                  sessionConfig.metadata.purchase_id = purchase.id;
+              // CRITICAL: never create a payable session without a correlatable DB record —
+              // the webhook requires metadata.purchase_id to credit the diamonds.
+              if (purchaseInsertErr || !purchase) {
+                  console.warn('[Checkout] Failed to create pending diamond purchase:', purchaseInsertErr?.message);
+                  return res.status(500).json({
+                      success: false,
+                      error: { code: 'PURCHASE_RECORD_FAILED', message: 'Could not initialize purchase. Please try again.' }
+                  });
               }
+              sessionConfig.metadata.purchase_id = purchase.id;
 
           } else if (type === 'subscription') {
               // VIP subscription
+              // SECURITY: The client sends only a plan key ('monthly' | 'annual').
+              // The Stripe price ID is resolved SERVER-SIDE from env config, so a
+              // client can never pair a cheap price with a premium tier claim.
               const item = items[0];
+              const plan = resolveVipPlan(item?.plan ?? item?.planId ?? item?.id);
 
-              if (!item.priceId) {
+              if (!plan) {
                   return res.status(400).json({
                       success: false,
-                      error: { code: 'MISSING_PRICE_ID', message: 'Stripe price ID required for subscriptions' }
+                      error: {
+                          code: 'INVALID_PLAN',
+                          message: `Unknown subscription plan: ${item?.plan ?? item?.planId ?? item?.id ?? 'unknown'}`
+                      }
                   });
               }
 
+              if (!plan.priceId) {
+                  console.warn(`[Checkout] Missing ${plan.envVar} — VIP ${plan.key} subscriptions cannot be sold`);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
+              }
+
+              // Validate the configured price against Stripe and derive the tier
+              // SERVER-SIDE. A failure here is a deployment misconfiguration, not
+              // a bad client request.
+              let stripePrice;
+              try {
+                  stripePrice = await stripe.prices.retrieve(plan.priceId);
+              } catch (priceErr) {
+                  console.warn(`[Checkout] ${plan.envVar} points at an unknown Stripe price:`, plan.priceId, priceErr?.message);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
+              }
+              if (!stripePrice?.active || !stripePrice.recurring) {
+                  console.warn(`[Checkout] ${plan.envVar} is not an active recurring price:`, plan.priceId);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
+              }
+              const vipTier = stripePrice.metadata?.vip_tier
+                  || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
+
               sessionConfig.line_items = [{
-                  price: item.priceId,
+                  price: plan.priceId,
                   quantity: 1
               }];
 
-              sessionConfig.metadata.vip_tier = item.tier;
+              sessionConfig.metadata.vip_tier = vipTier;
+              // Propagate metadata onto the subscription object itself so renewal
+              // webhooks (customer.subscription.updated) can see the tier — session
+              // metadata is NOT copied to the subscription automatically.
+              sessionConfig.subscription_data = {
+                  metadata: {
+                      user_id: user.id,
+                      vip_tier: vipTier
+                  }
+              };
 
           } else if (type === 'merchandise') {
               // Merchandise order - one-time payment
@@ -316,7 +487,7 @@ export default async function handler(req, res) {
               }));
 
               // Create pending order record (totalUsd already calculated and validated above)
-              const { data: order } = await getSupabase()
+              const { data: order, error: orderInsertErr } = await getSupabase()
                   .from('merchandise_orders')
                   .insert({
                       user_id: user.id,
@@ -327,12 +498,24 @@ export default async function handler(req, res) {
                   .select()
                   .maybeSingle();
 
-              if (order) {
-                  sessionConfig.metadata.order_id = order.id;
+              // CRITICAL: never create a payable session without a correlatable DB record —
+              // the webhook requires metadata.order_id to confirm the order.
+              if (orderInsertErr || !order) {
+                  console.warn('[Checkout] Failed to create pending merchandise order:', orderInsertErr?.message);
+                  return res.status(500).json({
+                      success: false,
+                      error: { code: 'ORDER_RECORD_FAILED', message: 'Could not initialize order. Please try again.' }
+                  });
               }
+              sessionConfig.metadata.order_id = order.id;
               sessionConfig.shipping_address_collection = {
                   allowed_countries: ['US', 'CA']
               };
+          } else {
+              return res.status(400).json({
+                  success: false,
+                  error: { code: 'INVALID_TYPE', message: 'type must be diamonds, subscription, or merchandise' }
+              });
           }
 
           // Create checkout session
@@ -356,8 +539,9 @@ export default async function handler(req, res) {
               detail: error.detail
           });
 
-          // Provide user-friendly error messages based on Stripe error type
-          let userMessage = error.message || 'Failed to create checkout session';
+          // Provide user-friendly error messages based on Stripe error type.
+          // Never echo raw internal error messages to the client.
+          let userMessage = 'Failed to create checkout session';
           let errorCode = 'CHECKOUT_ERROR';
 
           if (error.type === 'StripeConnectionError') {

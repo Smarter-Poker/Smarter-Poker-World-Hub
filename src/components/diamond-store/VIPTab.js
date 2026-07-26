@@ -3,7 +3,12 @@ import { VIPCard } from '../store/StoreCards';
 import { VIP_MEMBERSHIP, VIP_BENEFITS } from '../../data/diamondStoreData';
 import styles from './diamondStoreStyles';
 
-export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe, isProcessing }) {
+export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe, isProcessing, setActiveTab }) {
+    const selectedVIPPlan = selectedVIP === 'vip-daily' ? VIP_MEMBERSHIP?.daily :
+        selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP?.monthly : VIP_MEMBERSHIP?.annual;
+    const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
+        ? `Activate ${selectedVIPPlan?.name || '1-Day VIP Pass'} — ${Number(selectedVIPPlan?.price || 0).toLocaleString()} Diamonds`
+        : `Subscribe — $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
     return (
         <>
 
@@ -31,7 +36,12 @@ export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe
                                 {/* Subscribe Button — Metallic Image */}
                                 <div style={styles.vipSubscribeSection}>
                                     <div
-                                        onClick={handleVIPSubscribe}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={isProcessing ? 'Processing...' : vipSubscribeLabel}
+                                        aria-disabled={isProcessing}
+                                        onClick={() => { if (!isProcessing) handleVIPSubscribe(); }}
+                                        onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !isProcessing) { e.preventDefault(); handleVIPSubscribe(); } }}
                                         style={{
                                             cursor: isProcessing ? 'wait' : 'pointer',
                                             opacity: isProcessing ? 0.6 : 1,
@@ -43,10 +53,14 @@ export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe
                                     >
                                         <img
                                             src="/images/subscribe-button.png"
-                                            alt={isProcessing ? 'Processing...' : 'Subscribe For $19.99 A Month'}
+                                            alt={isProcessing ? 'Processing...' : vipSubscribeLabel}
                                             style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
                                             draggable={false}
                                             loading="lazy" />
+                                        {/* Plan-aware caption — the image itself is static ($19.99/month) */}
+                                        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+                                            {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                                        </div>
                                     </div>
 
                                 </div>
@@ -60,7 +74,7 @@ export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe
                                         <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
                                     </div>
                                     <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.filter(b => b.category === 'Smarter.Poker').map((benefit, idx) => (
+                                        {(VIP_BENEFITS || []).filter(b => b.category === 'Smarter.Poker').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
                                                 <div style={styles.benefitInfo}>
                                                     <div style={styles.benefitTitle}>{benefit.title}</div>
@@ -75,7 +89,7 @@ export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe
                                         <span style={styles.benefitsCategoryLabel}>Club & Diamond Arena Features</span>
                                     </div>
                                     <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.filter(b => b.category === 'Club & Diamond Arena').map((benefit, idx) => (
+                                        {(VIP_BENEFITS || []).filter(b => b.category === 'Club & Diamond Arena').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
                                                 <div style={styles.benefitInfo}>
                                                     <div style={styles.benefitTitle}>{benefit.title}</div>
@@ -92,7 +106,7 @@ export default function VIPTab({ selectedVIP, setSelectedVIP, handleVIPSubscribe
                                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                                 <a
                                         href="/hub/diamond-store?tab=merch"
-                                        onClick={(e) => { e.preventDefault(); setActiveTab('merch'); }}
+                                        onClick={(e) => { if (typeof setActiveTab === 'function') { e.preventDefault(); setActiveTab('merch'); } }}
                                         style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',

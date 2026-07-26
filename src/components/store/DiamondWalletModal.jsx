@@ -10,7 +10,6 @@
  *  4. Auto-refresh transaction list while modal is open
  *  5. Dynamic skeleton count based on viewport
  *  6. Running balance sparkline chart
- *  7. Export/download CSV
  *
  *  ENHANCEMENTS (R6):
  *  A. Animated balance counter (count up/down)
@@ -37,9 +36,8 @@
  *  I4. Date range filter (7d, 30d, 90d, All)
  *  I5. Monthly spending/earning summary with trends
  *  I6. Transaction category donut chart (SVG)
- *  I7. Quick-amount buttons for transfers (10, 25, 50, 100)
+ *  I7. Quick-amount buttons — REMOVED (manual amount entry only)
  *  I8. VIP badge on transfer recipients
- *  I9. PDF receipt export (jsPDF branded statement)
  *  I10. Lucide React icons (replaces emoji icons)
  *  I11. Swipe-to-copy receipt gesture (mobile)
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -110,6 +108,12 @@ const TX_TYPES = {
     // Gifts / Transfers
     diamond_gift_sent: { Icon: Send, label: 'Gift Sent', color: '#ffffff' },
     diamond_gift_received: { Icon: Gift, label: 'Gift Received', color: '#22c55e' },
+    // Written by pages/api/store/diamond-transfer.js when a transfer is rolled back
+    diamond_gift_refund: { Icon: RotateCcw, label: 'Gift Refunded', color: '#22c55e' },
+    // Written by pages/api/store/diamond-transfer.js on the recipient's ledger
+    diamond_received: { Icon: Gift, label: 'Diamonds Received', color: '#22c55e' },
+    // Written by pages/api/store/purchase-daily-vip.js
+    vip_daily: { Icon: Crown, label: 'Daily VIP Pass', color: '#eab308' },
     // Other
     refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
     adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
@@ -132,7 +136,7 @@ const EARNED_TYPES = [
     'social_post', 'follow', 'reaction', 'comment', 'share', 'referral',
     'profile_complete', 'profile_pic', 'video_watch', 'video_favorite',
     'hendonmob_link', 'venue_review', 'promo_code',
-    'diamond_gift_received'
+    'diamond_gift_received', 'diamond_received', 'diamond_gift_refund'
 ];
 
 const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
@@ -166,13 +170,14 @@ function persistRecipients(recipients) {
 // ── R8-I3: Rate-limit error parser ──
 function parseRateLimitError(errorText) {
     if (!errorText) return null;
-    // Parse "wait X seconds between transfers" and "cooldown: X seconds remaining" formats
+    // Parse "wait X seconds between transfers" and "X second(s) remaining/cooldown/left" formats
     const secondsMatch = errorText.match(/(\d+)\s*seconds?/i);
     const minutesMatch = errorText.match(/(\d+)\s*minutes?/i);
-    if (/wait/i.test(errorText) && secondsMatch) {
+    const isCooldownText = /wait|cooldown|remaining|left/i.test(errorText);
+    if (isCooldownText && secondsMatch) {
         return { type: 'cooldown', seconds: parseInt(secondsMatch[1]) };
     }
-    if (/wait/i.test(errorText) && minutesMatch) {
+    if (isCooldownText && minutesMatch) {
         return { type: 'cooldown', seconds: parseInt(minutesMatch[1]) * 60 };
     }
     // Parse "Daily transfer limit reached" type messages (Guard 3)
@@ -212,18 +217,25 @@ const formatDescription = (desc) => {
     // 1. Remove trailing square-bracketed ID or UUID
     let cleaned = desc.replace(/\s*\[[a-f0-9-]+\]\s*$/i, '');
     // Format large numbers with commas (e.g. 10000 -> 10,000)
-    cleaned = cleaned.replace(/\b(\d{4,})\b/g, (match) => parseInt(match, 10).toLocaleString());
+    // Skip plausible years (e.g. "WSOP 2026") so they aren't mangled to "2,026"
+    cleaned = cleaned.replace(/\b(\d{4,})\b/g, (match) => {
+        const n = parseInt(match, 10);
+        if (match.length === 4 && n >= 1900 && n <= 2099) return match;
+        return n.toLocaleString();
+    });
     // 2. Convert to Title Case
     return toTitleCase(cleaned);
 };
 
-function copyReceiptToClipboard(tx) {
+async function copyReceiptToClipboard(tx) {
     const txType = tx.transaction_type || tx.type;
     const config = TX_TYPES[txType] || TX_TYPES.adjustment;
     const dt = new Date(tx.created_at);
     const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
     try {
-        navigator.clipboard.writeText(receipt);
+        // Await the async clipboard write so permission/focus failures
+        // don't falsely report success
+        await navigator.clipboard.writeText(receipt);
         return true;
     } catch (_) {
         return false;
@@ -298,7 +310,9 @@ const DonutChart = ({ data }) => {
 
     let cumAngle = -90; // Start at top
     const slices = data.map((d, i) => {
-        const angle = (d.value / total) * 360;
+        // Clamp to just under 360 so a single 100% slice still draws
+        // (an SVG arc from a point back to itself renders nothing)
+        const angle = Math.min((d.value / total) * 360, 359.99);
         const startAngle = cumAngle;
         const endAngle = cumAngle + angle;
         cumAngle = endAngle;
@@ -565,6 +579,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [isRefreshing, setIsRefreshing] = useState(false); // ENH-E
     const fetchedRef = useRef(false);
     const fetchInFlightRef = useRef(false);
+    // ── BALANCE-AUTHORITY: a balance-change event landed mid-fetch; refetch after ──
+    const pendingRefetchRef = useRef(false);
     // ── BUS-FIX: Guard against self-feedback when modal emits its own busEvent ──
     const skipNextBusRef = useRef(false);
     const skeletonCount = useRef(getSkeletonCount());
@@ -597,6 +613,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── R8-I3: Transfer cooldown countdown ──
     const [cooldownSeconds, setCooldownSeconds] = useState(0);
     const cooldownTimerRef = useRef(null);
+    // Double-submit guard: set synchronously before the transfer POST so a
+    // second click can't slip through before React re-renders
+    const transferInFlightRef = useRef(false);
+    const successTimeoutRef = useRef(null);
 
     // ── R8-I11: Swipe-to-copy gesture refs ──
     const swipeStartX = useRef(0);
@@ -616,14 +636,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     useEffect(() => {
         if (!isOpen) return;
         const handleBalanceRefresh = (e) => {
-            // H4: Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance)
+            // ── BALANCE-AUTHORITY: the server is the only source of truth ──
+            // H4: Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance).
+            // If the emitter did NOT include an authoritative value we deliberately
+            // leave the current balance alone and let the refetch below supply it —
+            // re-reading the localStorage header cache can be OLDER than the value
+            // we already hold and would visibly roll the balance backwards.
             const fromEvent = e?.detail?.newBalance;
             if (fromEvent !== undefined && fromEvent !== null) {
                 setBalance(fromEvent);
-            } else {
-                // Fallback: re-read cached balance
-                const fresh = getCachedBalance();
-                setBalance(fresh);
             }
             // H6: Confetti on first purchase
             if (e?.detail?.source === 'diamond-store-purchase') {
@@ -634,11 +655,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     }
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
-            // ENH-4: Also re-fetch transaction list so new transactions appear
-            // BUG-R2: Skip if fetch already in-flight (race condition guard)
-            if (!fetchInFlightRef.current) {
-                fetchTransactions();
-            }
+            // ENH-4: Also re-fetch transaction list so new transactions appear,
+            // and (re)read the authoritative balance from the API.
+            refreshBalanceFromServer();
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
 
@@ -648,27 +667,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         // NOTE: skipNextBusRef prevents double-deduction when the modal ITSELF emits an event.
         const handleBusEvent = (event) => {
             // ── BUS-FIX: Skip self-originated events to prevent double-deduction ──
-            if (skipNextBusRef.current) {
+            // The modal only ever self-emits DIAMONDS_SPENT, so only consume the
+            // flag for that type — an external DIAMONDS_EARNED arriving first
+            // must not be swallowed.
+            if (skipNextBusRef.current && event?.type === EventType.DIAMONDS_SPENT) {
                 skipNextBusRef.current = false;
                 return;
             }
-            const amount = event?.payload?.amount;
-            if (amount !== undefined && amount !== null) {
-                // Optimistic balance update from EXTERNAL bus event
-                setBalance(prev => {
-                    const current = prev ?? 0;
-                    return event.type === EventType.DIAMONDS_EARNED
-                        ? current + amount
-                        : current - amount;
-                });
-            } else {
-                // No amount in payload — re-read from cache
-                setBalance(getCachedBalance());
+            // ── BALANCE-AUTHORITY: prefer a server-computed balance from the
+            //    payload; otherwise refetch. We deliberately do NOT do
+            //    `prev ± payload.amount` — VIP/streak multipliers and the
+            //    server-side clamping in the deduct RPC mean the delta the
+            //    emitter reports is not always the delta the ledger applied,
+            //    so the arithmetic drifts. We also never fall back to the
+            //    localStorage header cache, which can be staler than the
+            //    value currently on screen.
+            const serverBalance = event?.payload?.newBalance ?? event?.payload?.balance_after;
+            if (serverBalance !== undefined && serverBalance !== null) {
+                setBalance(serverBalance);
             }
-            // Re-fetch transactions for fresh list
-            if (!fetchInFlightRef.current) {
-                fetchTransactions();
-            }
+            // Re-fetch for the fresh list AND the authoritative balance
+            refreshBalanceFromServer();
         };
         const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBusEvent);
         const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBusEvent);
@@ -685,14 +704,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     table: 'diamond_transactions',
                     filter: `user_id=eq.${user.id}`
                 }, (payload) => {
-                    // Update balance if the transaction has a balance_after
+                    // balance_after is written by the ledger itself — authoritative
                     if (payload.new && payload.new.balance_after != null) {
                         setBalance(payload.new.balance_after);
                     }
                     // Refetch the transaction list to show the new item
-                    if (!fetchInFlightRef.current) {
-                        fetchTransactions();
-                    }
+                    refreshBalanceFromServer();
                 })
                 .subscribe();
         }
@@ -727,10 +744,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         if (offset === 0) setError(null);
         try {
             const user = getAuthUser();
-            if (!user) return;
+            if (!user) {
+                if (offset === 0) setError('Please sign in to view your transactions.');
+                return;
+            }
 
             const session = getSession();
-            if (!session?.access_token) return;
+            if (!session?.access_token) {
+                if (offset === 0) setError('Please sign in to view your transactions.');
+                return;
+            }
 
             const res = await fetch(`/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}`, {
                 headers: { Authorization: `Bearer ${session.access_token}` }
@@ -743,10 +766,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const tot = data.total || 0;
 
                 if (offset === 0) {
-                    setTransactions(txns);
+                    // Merge the fresh first page into any already-loaded pages so
+                    // a background refresh doesn't snap a long list back to 50 rows
+                    setTransactions(prev => {
+                        if (prev.length <= txns.length) return txns;
+                        const seen = new Set(txns.map(t => t.id));
+                        return [...txns, ...prev.filter(t => !seen.has(t.id))];
+                    });
                 } else {
-                    // ENH-3: Append for "Load More"
-                    setTransactions(prev => [...prev, ...txns]);
+                    // ENH-3: Append for "Load More" — dedupe by id since the offset
+                    // drifts when new transactions arrive between page fetches
+                    setTransactions(prev => {
+                        const seen = new Set(prev.map(t => t.id));
+                        return [...prev, ...txns.filter(t => !seen.has(t.id))];
+                    });
                 }
                 setBalance(bal);
                 setTotal(tot);
@@ -768,8 +801,34 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             fetchInFlightRef.current = false;
             setLoading(false);
             setLoadingMore(false);
+            // A balance-changing event arrived while this fetch was in flight —
+            // run one more first-page fetch so the newest mutation isn't missed.
+            if (pendingRefetchRef.current) {
+                pendingRefetchRef.current = false;
+                setTimeout(() => { fetchTransactions(0); }, 0);
+            }
         }
     }, [getSession]);
+
+    // ── BALANCE-AUTHORITY: coalesced server refresh ──
+    // Balance-change events tell us the balance CHANGED, not what it changed TO.
+    // Instead of client-side arithmetic or a stale localStorage read, re-read the
+    // authoritative balance from /api/store/diamond-transactions. If a fetch is
+    // already in flight, flag a follow-up rather than silently dropping the update.
+    const refreshBalanceFromServer = useCallback(() => {
+        if (fetchInFlightRef.current) {
+            pendingRefetchRef.current = true;
+            return;
+        }
+        fetchTransactions(0);
+    }, [fetchTransactions]);
+
+    // ── Cleanup: clear timers if the component unmounts while the modal is open
+    //    (route change) so the interval doesn't keep firing setState ──
+    useEffect(() => () => {
+        if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    }, []);
 
     // ── ENH-D: Keyboard accessibility — Escape to close ──
     useEffect(() => {
@@ -835,10 +894,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
     // ── H7: Send diamonds to friend ──
     const handleTransfer = useCallback(async () => {
-        if (!transferRecipient || !transferAmount) return;
-        const amount = parseInt(transferAmount);
+        // Double-submit guard — the ref is set synchronously before the POST,
+        // closing the window where a second click lands before React re-renders
+        if (transferLoading || transferInFlightRef.current) return;
+        // #5 FIX: When invoked from the Confirm button, send the exact values
+        // shown in the dialog — NOT the live input, which may have been edited
+        // after the dialog opened
+        const recipient = confirmTransfer ? confirmTransfer.recipient : transferRecipient;
+        if (!recipient || (!confirmTransfer && !transferAmount)) return;
+        const amount = confirmTransfer ? confirmTransfer.amount : parseInt(transferAmount, 10);
         if (isNaN(amount) || amount < 10) {
             setTransferError('Minimum transfer is 10 diamonds');
+            return;
+        }
+        if (!confirmTransfer && !Number.isInteger(Number(transferAmount))) {
+            setTransferError('Transfer amount must be a whole number');
+            return;
+        }
+        if (amount > 500) {
+            setTransferError('Maximum transfer is 500 diamonds');
             return;
         }
         if (amount > (balance ?? 0)) {
@@ -847,15 +921,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
         // #5: Show confirmation dialog first
         if (!confirmTransfer) {
-            setConfirmTransfer({ amount, recipient: transferRecipient });
+            setConfirmTransfer({ amount, recipient });
             return;
         }
         setConfirmTransfer(null);
+        transferInFlightRef.current = true;
         setTransferLoading(true);
         setTransferError('');
         setTransferSuccess('');
         try {
             const session = getSession();
+            if (!session?.access_token) {
+                setTransferError('Session expired. Please sign in again.');
+                return;
+            }
             const res = await fetch('/api/store/diamond-transfer', {
                 method: 'POST',
                 headers: {
@@ -863,28 +942,43 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     Authorization: `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
-                    recipientId: transferRecipient.id,
+                    recipientId: recipient.id,
                     amount
                 })
             });
-            const data = await res.json();
+            let data;
+            try {
+                data = await res.json();
+            } catch (_) {
+                // Non-JSON error page (e.g. 502 HTML) — show a clean message
+                data = { error: `Server error ${res.status}. Please try again.` };
+            }
             if (data.success) {
                 const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
-                const successMsg = `Sent ${amount} diamonds to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}!`;
+                const successMsg = `Sent ${amount} diamonds to ${recipient.display_name || recipient.username}${tierLabel}!`;
                 setTransferSuccess(successMsg);
                 // P2-1: StoreToast for premium notification
                 showStoreToast('success', successMsg + (data.dailyRemaining != null ? ` ${data.dailyRemaining} diamonds remaining today.` : ''));
                 setTransferAmount('');
                 // P2-3 + R8-I2: Save and persist recent recipients
                 setRecentRecipients(prev => {
-                    const filtered = prev.filter(r => r.id !== transferRecipient.id);
-                    const updated = [{ ...transferRecipient, lastAmount: amount, lastSent: Date.now() }, ...filtered].slice(0, 5);
+                    const filtered = prev.filter(r => r.id !== recipient.id);
+                    const updated = [{ ...recipient, lastAmount: amount, lastSent: Date.now() }, ...filtered].slice(0, 5);
                     persistRecipients(updated);
                     return updated;
                 });
-                // P2-4: Update daily limit info
-                if (data.dailySent != null && data.dailyLimit != null) {
-                    setDailyLimitInfo({ sent: data.dailySent, limit: data.dailyLimit, tier: data.tier });
+                // P2-4: Update daily limit info.
+                // NOTE: /api/store/diamond-transfer currently returns only
+                // { success, transferred, newBalance, tier, graduated, recipientName },
+                // so these fields are absent and the progress bar below stays hidden
+                // (by design — no empty panel is rendered). The guards are kept so the
+                // panel lights up automatically if the API starts returning them.
+                // `limit > 0` is required because the bar divides by it.
+                const dailySent = Number(data.dailySent);
+                const dailyLimit = Number(data.dailyLimit);
+                if (data.dailySent != null && data.dailyLimit != null &&
+                    Number.isFinite(dailySent) && Number.isFinite(dailyLimit) && dailyLimit > 0) {
+                    setDailyLimitInfo({ sent: dailySent, limit: dailyLimit, tier: data.tier });
                 }
                 setTransferRecipient(null);
                 // Update balance from server's authoritative newBalance (not client arithmetic)
@@ -901,8 +995,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 // #7: Recipient notification event (other components can listen)
                 window.dispatchEvent(new CustomEvent('diamond-gift-sent', {
                     detail: {
-                        recipientId: transferRecipient.id,
-                        recipientName: data.recipientName || transferRecipient.display_name,
+                        recipientId: recipient.id,
+                        recipientName: data.recipientName || recipient.display_name,
                         amount,
                         senderBalance: serverBalance,
                     }
@@ -911,7 +1005,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 showConfettiAnimation();
                 // Refetch transactions
                 if (!fetchInFlightRef.current) fetchTransactions();
-                setTimeout(() => setTransferSuccess(''), 4000);
+                if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+                successTimeoutRef.current = setTimeout(() => setTransferSuccess(''), 4000);
             } else {
                 const errMsg = data.error || 'Transfer failed';
                 if (data?.gateType) {
@@ -928,6 +1023,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 if (prev <= 1) {
                                     clearInterval(cooldownTimerRef.current);
                                     cooldownTimerRef.current = null;
+                                    // Clear the stale "Cooldown: Xs remaining" text
+                                    // so the error box doesn't linger after expiry
+                                    setTransferError('');
                                     return 0;
                                 }
                                 return prev - 1;
@@ -946,9 +1044,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             }
         } catch (err) {
             setTransferError(err.message || 'Transfer failed');
+        } finally {
+            transferInFlightRef.current = false;
+            setTransferLoading(false);
         }
-        setTransferLoading(false);
-    }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions, confirmTransfer]);
+    }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions, confirmTransfer, transferLoading]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -971,6 +1071,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 clearInterval(cooldownTimerRef.current);
                 cooldownTimerRef.current = null;
             }
+            if (successTimeoutRef.current) {
+                clearTimeout(successTimeoutRef.current);
+                successTimeoutRef.current = null;
+            }
             return;
         }
 
@@ -986,7 +1090,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             fetchTransactions();
         } else {
             // ── PERF-4: At least show the cached balance while loading ──
-            setBalance(getCachedBalance());
+            // BALANCE-AUTHORITY: only as a placeholder when we have nothing —
+            // never let the header cache clobber a value we already got from
+            // the server (or from the initialBalance prop).
+            setBalance(prev => (prev === null || prev === undefined ? getCachedBalance() : prev));
             fetchTransactions();
         }
     }, [isOpen, fetchTransactions]);
@@ -1218,7 +1325,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
-                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: 640, margin: '0 auto' }}
+                    style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
                 >
                 {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER — Image-Backed Layout
@@ -1571,6 +1678,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 ) : (
                                     /* Search input */
                                     <>
+                                        {/* R8-I2: Recent recipients — one-tap re-send chips */}
+                                        {recentRecipients.length > 0 && (
+                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                                                {recentRecipients.map(r => (
+                                                    <button
+                                                        key={r.id}
+                                                        onClick={() => { setTransferRecipient(r); setFriendSearch(''); }}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: 5,
+                                                            padding: '4px 10px',
+                                                            background: 'rgba(255,255,255,0.05)',
+                                                            border: '1px solid rgba(255,255,255,0.1)',
+                                                            borderRadius: 12, color: 'rgba(255,255,255,0.7)',
+                                                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        {r.display_name || r.username}
+                                                        {r.lastAmount != null && (
+                                                            <span style={{ color: 'rgba(0,212,255,0.6)', fontSize: 10 }}>{r.lastAmount}</span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div style={{
                                             display: 'flex', alignItems: 'center', gap: 8,
                                             background: 'rgba(255,255,255,0.04)',
@@ -1698,18 +1829,21 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         </div>
                                         <button
                                             onClick={handleTransfer}
-                                            disabled={transferLoading || !transferAmount || cooldownSeconds > 0}
+                                            /* Disabled while the confirm dialog is open — otherwise a second
+                                               click on Send executes the transfer (confirmTransfer is truthy
+                                               in handleTransfer) without the user ever pressing Confirm */
+                                            disabled={transferLoading || !transferAmount || cooldownSeconds > 0 || !!confirmTransfer}
                                             style={{
                                                 padding: '9px 18px',
                                                 background: transferLoading ? 'rgba(255,255,255,0.04)' : 'rgba(255, 255, 255, 0.08)',
                                                 border: '1px solid rgba(255, 255, 255, 0.2)',
                                                 borderRadius: 10, color: '#ffffff', fontSize: 12, fontWeight: 700,
-                                                cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
-                                                opacity: transferLoading || !transferAmount || cooldownSeconds > 0 ? 0.5 : 1,
+                                                cursor: transferLoading || cooldownSeconds > 0 || confirmTransfer ? 'default' : 'pointer',
+                                                opacity: transferLoading || !transferAmount || cooldownSeconds > 0 || confirmTransfer ? 0.5 : 1,
                                                 transition: 'all 0.15s', whiteSpace: 'nowrap',
                                             }}
-                                            onMouseEnter={e => { if (!transferLoading && !(!transferAmount) && cooldownSeconds <= 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; }}
-                                            onMouseLeave={e => { if (!transferLoading && !(!transferAmount) && cooldownSeconds <= 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+                                            onMouseEnter={e => { if (!transferLoading && !(!transferAmount) && cooldownSeconds <= 0 && !confirmTransfer) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; }}
+                                            onMouseLeave={e => { if (!transferLoading && !(!transferAmount) && cooldownSeconds <= 0 && !confirmTransfer) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
                                         >
                                             {transferLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'Send'}
                                         </button>
@@ -1762,17 +1896,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     </button>
                                     <button
                                         onClick={handleTransfer}
+                                        disabled={transferLoading || cooldownSeconds > 0}
                                         style={{
                                             flex: 1, padding: '7px 0',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             border: '1px solid rgba(255, 255, 255, 0.3)',
                                             borderRadius: 8, color: '#ffffff',
-                                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                            fontSize: 11, fontWeight: 700,
+                                            cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
+                                            opacity: transferLoading || cooldownSeconds > 0 ? 0.5 : 1,
                                         }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+                                        onMouseEnter={e => { if (!transferLoading && cooldownSeconds <= 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)'; }}
+                                        onMouseLeave={e => { if (!transferLoading && cooldownSeconds <= 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
                                     >
-                                        Confirm Send {confirmTransfer.amount} Diamonds
+                                        {transferLoading ? 'Sending...' : `Confirm Send ${confirmTransfer.amount} Diamonds`}
                                     </button>
                                 </div>
                             </div>
@@ -2073,21 +2210,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             swipeStartX.current = e.touches[0].clientX;
                                             swipeTxId.current = tx.id;
                                         }}
-                                        onTouchEnd={e => {
+                                        onTouchEnd={async e => {
                                             if (swipeTxId.current === tx.id) {
                                                 const deltaX = (e.changedTouches[0]?.clientX ?? 0) - swipeStartX.current;
+                                                swipeStartX.current = 0;
+                                                swipeTxId.current = null;
                                                 if (deltaX > 60) {
                                                     // Swipe right: copy receipt
-                                                    const ok = copyReceiptToClipboard(tx);
+                                                    const ok = await copyReceiptToClipboard(tx);
                                                     if (ok) {
                                                         setCopiedTxId(tx.id);
                                                         showStoreToast('success', 'Receipt copied');
                                                         setTimeout(() => setCopiedTxId(null), 2000);
                                                     }
                                                 }
+                                            } else {
+                                                swipeStartX.current = 0;
+                                                swipeTxId.current = null;
                                             }
-                                            swipeStartX.current = 0;
-                                            swipeTxId.current = null;
                                         }}
                                         style={{
                                             cursor: 'pointer',
@@ -2203,9 +2343,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 </div>
                                                 {/* H1: Copy receipt button */}
                                                 <button
-                                                    onClick={(e) => {
+                                                    onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        if (copyReceiptToClipboard(tx)) {
+                                                        if (await copyReceiptToClipboard(tx)) {
                                                             setCopiedTxId(tx.id);
                                                             setTimeout(() => setCopiedTxId(null), 2000);
                                                         }
@@ -2298,28 +2438,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 @keyframes confettiFall {
                     0% { transform: translateY(0) rotate(0deg); opacity: 1; }
                     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-                }
-                @keyframes walletPulse {
-                    0%, 100% { opacity: 0.35; transform: scale(1); box-shadow: 0 0 8px 3px rgba(0,212,255,0.5); }
-                    50% { opacity: 1; transform: scale(1.6); box-shadow: 0 0 18px 6px rgba(0,212,255,0.9); }
-                }
-                @keyframes walletBorderSweep {
-                    0% { background-position: -100% 0; }
-                    100% { background-position: 200% 0; }
-                    from { transform: translateX(-100%); }
-                    to { transform: translateX(100%); }
-                }
-                @keyframes walletFloat {
-                    0%, 100% { transform: translateY(0px) rotate(-5deg); }
-                    50% { transform: translateY(-8px) rotate(5deg); }
-                }
-                @keyframes walletDiamondFloat {
-                    0%, 100% { transform: translateY(0px); filter: drop-shadow(0 0 20px rgba(0,140,255,1)) drop-shadow(0 0 40px rgba(0,80,255,0.6)) brightness(1.15); }
-                    50% { transform: translateY(-5px); filter: drop-shadow(0 0 28px rgba(0,180,255,1)) drop-shadow(0 0 55px rgba(0,120,255,0.8)) brightness(1.25); }
-                }
-                @keyframes walletCrownGlow {
-                    0%, 100% { box-shadow: 0 0 25px rgba(0,140,255,0.45), 0 0 50px rgba(0,80,200,0.2), inset 0 1px 0 rgba(255,255,255,0.12); }
-                    50% { box-shadow: 0 0 40px rgba(0,180,255,0.7), 0 0 80px rgba(0,120,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18); }
                 }
             `}</style>
         </>

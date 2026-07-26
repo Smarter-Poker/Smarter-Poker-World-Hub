@@ -13,7 +13,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ── Helper function (usable from any module) ──
 export function showDiamondToast(diamonds, reason) {
@@ -27,15 +27,28 @@ export function showDiamondToast(diamonds, reason) {
 // ── React component (mounted once in _app.js) ──
 export default function DiamondToast() {
     const [toasts, setToasts] = useState([]);
+    const timeoutsRef = useRef(new Set());
 
     const addToast = useCallback((diamonds, reason) => {
         const id = Date.now() + Math.random();
-        setToasts(prev => [...prev, { id, diamonds, reason }]);
+        // Cap the visible stack so a burst of events can't flood the viewport
+        setToasts(prev => [...prev, { id, diamonds, reason }].slice(-4));
 
         // Auto-remove after 3 seconds
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
+            timeoutsRef.current.delete(timeoutId);
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
+        timeoutsRef.current.add(timeoutId);
+    }, []);
+
+    // Clear any pending auto-remove timers on unmount
+    useEffect(() => {
+        const timeouts = timeoutsRef.current;
+        return () => {
+            timeouts.forEach(clearTimeout);
+            timeouts.clear();
+        };
     }, []);
 
     useEffect(() => {
@@ -56,7 +69,9 @@ export default function DiamondToast() {
         <div style={styles.container}>
             {toasts.map(toast => (
                 <div key={toast.id} style={styles.toast}>
-                    <div style={styles.icon}>💎</div>
+                    <div style={styles.icon}>
+                        <img src="/images/diamond.png" alt="Diamond" style={{ width: 28, height: 28, display: 'block' }} />
+                    </div>
                     <div style={styles.content}>
                         <div style={styles.amount}>+{toast.diamonds} Diamonds</div>
                         <div style={styles.reason}>{toast.reason}</div>

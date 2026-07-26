@@ -7,8 +7,9 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Gem, CreditCard } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
@@ -17,17 +18,51 @@ import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import useCartStore from '../../../src/stores/cartStore';
+
+// Legacy standalone key used by earlier versions of this page. It is folded
+// into the shared zustand cart once and then removed.
+const LEGACY_CART_KEY = 'diamond-store-cart';
 
 export default function ShoppingCart() {
     const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
     useTrainingBus('diamond-store-cart');
-    const [cart, setCart] = useState([]);
+
+    // Cart CONTENTS live in the shared zustand store (persist key
+    // 'smarter-poker-cart') — the same store the diamond-store page and the
+    // floating cart drawer use. Supabase user_preferences.diamond_cart is only
+    // cross-device persistence: it hydrates this store on load and mirrors it
+    // on change.
+    const cart = useCartStore((state) => state.items);
+    const setCartItems = useCartStore((state) => state.setItems);
+    const storeUpdateQuantity = useCartStore((state) => state.updateQuantity);
+    const storeRemoveItem = useCartStore((state) => state.removeItem);
+    const storeClearCart = useCartStore((state) => state.clearCart);
+
     const [loading, setLoading] = useState(true);
+    const [hydrated, setHydrated] = useState(false);
     const [diamondBalance, setDiamondBalance] = useState(0);
     const [payWithDiamonds, setPayWithDiamonds] = useState(false);
     const [checkingOut, setCheckingOut] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    const hydratedRef = useRef(false);
+    // JSON of the last cart known to match Supabase — prevents mirror loops
+    const lastSyncedRef = useRef(null);
+    // Timestamp of the last edit made in this tab — a realtime echo must not
+    // stomp an edit the user just made here
+    const lastLocalEditRef = useRef(0);
 
     const DIAMONDS_PER_DOLLAR = 100;
+
+    // Real media query (inline-style '@media' keys are ignored by React)
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 768px)');
+        const onChange = () => setIsMobile(mq.matches);
+        onChange();
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
 
     useEffect(() => {
         if (authChecking) return;
@@ -41,13 +76,46 @@ export default function ShoppingCart() {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {
                 loadCart();
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'user_preferences', filter: `user_id=eq.${user?.id}` }, () => {
+                loadCart();
+            })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);
 
+    // Read the pre-zustand standalone cart, if one is still lying around.
+    const readLegacyLocalCart = () => {
+        try {
+            const raw = localStorage.getItem(LEGACY_CART_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.warn('[App] Handled exception:', e?.message || e);
+            return [];
+        }
+    };
+
+    // Push a Supabase copy of the cart into the shared store. Local edits win
+    // over a realtime echo that may already be stale.
+    const applyRemoteCart = (remoteItems) => {
+        const remoteJson = JSON.stringify(remoteItems);
+        const currentItems = useCartStore.getState().items;
+        if (remoteJson === JSON.stringify(currentItems)) {
+            lastSyncedRef.current = remoteJson;
+            return;
+        }
+        if (hydratedRef.current && Date.now() - lastLocalEditRef.current < 3000) return;
+        // First hydrate with items already in the shared store: keep them and let
+        // the mirror effect push them up rather than silently discarding them.
+        if (!hydratedRef.current && currentItems.length > 0) return;
+        lastSyncedRef.current = remoteJson;
+        setCartItems(remoteItems);
+    };
+
     const loadCart = async (signal) => {
         try {
-            // Load cart - prefer Supabase for logged-in users, fallback to localStorage
+            // Cart contents come from the shared store; Supabase only hydrates it
             if (user?.id) {
                 try {
                     const { data: prefData } = await supabase
@@ -56,22 +124,35 @@ export default function ShoppingCart() {
                         .eq('user_id', user.id)
                         .maybeSingle();
                     const savedCart = prefData?.preferences?.diamond_cart;
-                    if (savedCart && Array.isArray(savedCart)) {
-                        setCart(savedCart);
-                    } else {
-                        // Migrate localStorage cart to Supabase on first login
-                        const localCart = localStorage.getItem('diamond-store-cart');
-                        if (localCart) {
-                            const parsed = JSON.parse(localCart);
-                            setCart(parsed);
-                            localStorage.removeItem('diamond-store-cart');
+                    if (Array.isArray(savedCart)) {
+                        applyRemoteCart(savedCart);
+                    } else if (!hydratedRef.current) {
+                        // No server cart yet — seed it from the shared store, or from
+                        // the legacy standalone cart if the store is empty.
+                        const storeItems = useCartStore.getState().items;
+                        const seed = storeItems.length > 0 ? storeItems : readLegacyLocalCart();
+                        if (seed.length > 0) {
+                            if (storeItems.length === 0) setCartItems(seed);
+                            // Only drop the legacy copy once the Supabase write succeeds
+                            const saved = await saveCart(seed);
+                            if (saved) {
+                                lastSyncedRef.current = JSON.stringify(seed);
+                                localStorage.removeItem(LEGACY_CART_KEY);
+                            }
                         }
                     }
                 } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            } else {
-                const savedCart = localStorage.getItem('diamond-store-cart');
-                if (savedCart) setCart(JSON.parse(savedCart));
+            } else if (!hydratedRef.current) {
+                // Signed out: fold any legacy standalone cart into the shared store
+                const legacy = readLegacyLocalCart();
+                if (legacy.length > 0 && useCartStore.getState().items.length === 0) {
+                    setCartItems(legacy);
+                    localStorage.removeItem(LEGACY_CART_KEY);
+                }
             }
+
+            hydratedRef.current = true;
+            setHydrated(true);
 
             // Fetch diamond balance
             if (user?.id) {
@@ -95,115 +176,260 @@ export default function ShoppingCart() {
         }
     };
 
-    // Save cart to Supabase (if logged in) or localStorage fallback
+    // Persist the diamond_cart key without clobbering the rest of the
+    // user's preferences JSON (read-merge-write). Returns true on success.
+    const writeCartPreference = async (cartData) => {
+        const { data: existing } = await supabase
+            .from('user_preferences')
+            .select('preferences')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        const merged = { ...(existing?.preferences || {}), diamond_cart: cartData };
+        const { error } = await supabase.from('user_preferences').upsert({
+            user_id: user.id,
+            preferences: merged,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+        return { error };
+    };
+
+    // Mirror the cart to Supabase for cross-device persistence. Signed-out carts
+    // are already persisted by the zustand store itself.
     const saveCart = async (cartData) => {
-        if (user?.id) {
-            try {
-                const { error: err_user_preferences_lt8v4 } = await supabase.from('user_preferences').upsert({
-                    user_id: user.id,
-                    preferences: { diamond_cart: cartData },
-                    updated_at: new Date().toISOString(),
-                }, { onConflict: 'user_id' });
-                if (err_user_preferences_lt8v4) console.warn('[Supabase] Silent mutation failed in user_preferences:', err_user_preferences_lt8v4.message);
-            } catch (e) {
-                localStorage.setItem('diamond-store-cart', JSON.stringify(cartData));
+        if (!user?.id) return true;
+        try {
+            const { error: err_user_preferences_lt8v4 } = await writeCartPreference(cartData);
+            if (err_user_preferences_lt8v4) {
+                console.warn('[Supabase] Silent mutation failed in user_preferences:', err_user_preferences_lt8v4.message);
+                return false;
             }
-        } else {
-            localStorage.setItem('diamond-store-cart', JSON.stringify(cartData));
+            return true;
+        } catch (e) {
+            console.warn('[App] Handled exception:', e?.message || e);
+            return false;
         }
     };
 
+    // Cross-device mirror: whenever the shared cart changes, write it up.
+    useEffect(() => {
+        if (!hydrated || !user?.id) return;
+        const json = JSON.stringify(cart);
+        if (json === lastSyncedRef.current) return;
+        lastSyncedRef.current = json;
+        let cancelled = false;
+        (async () => {
+            const ok = await saveCart(cart);
+            if (!ok && !cancelled) {
+                // Let the next change retry instead of assuming the server matches
+                lastSyncedRef.current = null;
+                toast.error('Cart Could Not Be Saved On The Server');
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [cart, hydrated, user?.id]);
+
     const updateQuantity = (itemId, newQuantity) => {
-        if (newQuantity < 1) { removeItem(itemId); return; }
-        const updated = cart.map(item =>
-            item.id === itemId ? { ...item, quantity: newQuantity } : item
-        );
-        setCart(updated);
-        saveCart(updated);
+        lastLocalEditRef.current = Date.now();
+        if (newQuantity < 1) { storeRemoveItem(itemId); return; }
+        storeUpdateQuantity(itemId, newQuantity);
     };
 
     const removeItem = (itemId) => {
-        const updated = cart.filter(item => item.id !== itemId);
-        setCart(updated);
-        saveCart(updated);
+        lastLocalEditRef.current = Date.now();
+        storeRemoveItem(itemId);
     };
 
     const clearCart = () => {
-        setCart([]);
-        if (user?.id) {
-            supabase.from('user_preferences').upsert({
-                user_id: user.id,
-                preferences: { diamond_cart: [] },
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        } else {
-            localStorage.removeItem('diamond-store-cart');
-        }
+        lastLocalEditRef.current = Date.now();
+        storeClearCart();
     };
+
+    // ═══ Cart grouping ═══
+    // A Stripe checkout session is single-purpose: create-checkout-session.js
+    // handles ONE type per session — 'diamonds' (any number of packages, each
+    // up to MAX_DIAMOND_QUANTITY_PER_PACKAGE), 'subscription' (a server-resolved
+    // Stripe price ID), or 'merchandise' (catalog/merch rows).
+    // Sending a diamond package down the merchandise path is rejected as
+    // "no longer available", and even if it were accepted the webhook's
+    // merchandise branch never credits diamonds.
+    const diamondItems = cart.filter(item => item?.type === 'diamonds');
+    const vipItems = cart.filter(item => item?.type === 'vip');
+    const merchItems = cart.filter(item => item?.type !== 'diamonds' && item?.type !== 'vip');
+
+    // Diamond packages can't be bought with diamonds — the purchase API only
+    // deducts diamonds (no grant happens outside the Stripe webhook), so this
+    // path would charge the user and deliver nothing.
+    const hasDiamondItems = diamondItems.length > 0;
+    const usingDiamonds = payWithDiamonds && !hasDiamondItems;
+
+    // Integer-cent subtotal avoids IEEE-754 drift (e.g. 7 x $0.01 -> 0.07000000000000001)
+    const subtotalCentsOf = (list) => (list || []).reduce((sum, item) =>
+        sum + Math.round((Number(item?.price) || 0) * 100) * (Number(item?.quantity) || 0), 0);
+
+    const unitsOf = (list) => (list || []).reduce((n, item) => n + (Number(item?.quantity) || 0), 0);
+
+    const getSubtotalCents = () => subtotalCentsOf(cart);
+
+    // Card checkout settles one group per session; diamond packages first.
+    // The 'diamonds' branch bills every package at its own quantity, so a
+    // diamonds session covers ALL diamond packages in the cart. VIP and merch
+    // stay behind for their own session.
+    const cardGroup = hasDiamondItems ? 'diamonds' : (merchItems.length > 0 ? 'merchandise' : null);
+    const cardGroupUnits = cardGroup === 'diamonds' ? unitsOf(diamondItems) : unitsOf(merchItems);
+    const deferredUnits = Math.max(unitsOf(cart) - cardGroupUnits, 0);
+    const cardChargeCents = cardGroup === 'diamonds'
+        ? subtotalCentsOf(diamondItems)
+        : subtotalCentsOf(merchItems);
 
     const getSubtotal = () => {
-        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        return getSubtotalCents() / 100;
     };
 
+    // ESTIMATE ONLY. purchase-with-diamonds.js prices catalogued items from
+    // merchandise_items.price_diamonds and only falls back to this 100-per-dollar
+    // conversion for items it can't find in the catalog. The authoritative figure
+    // is the diamonds_spent the server returns.
     const getDiamondCost = () => {
-        return Math.ceil(getSubtotal() * DIAMONDS_PER_DOLLAR);
+        // 100 diamonds per dollar == 1 diamond per cent
+        return subtotalCentsOf(merchItems) * (DIAMONDS_PER_DOLLAR / 100);
     };
+
+    // Any item carrying an id may be priced from the catalog instead
+    const diamondCostIsEstimate = merchItems.some(item => !!item?.id);
 
     const canAffordWithDiamonds = () => {
         return diamondBalance >= getDiamondCost();
     };
 
     const handleCheckout = async () => {
+        if (checkingOut) return;
+        const token = getAccessToken();
+        if (!token) {
+            toast.error('Please Sign In Again To Check Out');
+            return;
+        }
+
+        // Build a single-purpose payload for this session
+        let payload = null;
+        if (cardGroup === 'diamonds') {
+            // The store page adds diamond packages as `diamond-<packageId>`;
+            // the server keys off the bare package id. Only the id and quantity
+            // are sent — every price/diamond figure is resolved server-side.
+            const lineItems = [];
+            for (const pkg of diamondItems) {
+                const packageId = String(pkg?.packageId || pkg?.id || '').replace(/^diamond-/, '');
+                if (!packageId) {
+                    toast.error('This Diamond Package Is No Longer Available. Please Remove It.');
+                    return;
+                }
+                lineItems.push({
+                    id: packageId,
+                    packageId,
+                    name: pkg?.name,
+                    quantity: Math.max(1, Number(pkg?.quantity) || 1)
+                });
+            }
+            payload = { type: 'diamonds', items: lineItems };
+        } else if (cardGroup === 'merchandise') {
+            payload = { type: 'merchandise', items: merchItems };
+        } else {
+            toast.error('VIP Memberships Are Purchased From The Diamond Store Page.');
+            return;
+        }
+
         setCheckingOut(true);
         try {
             const res = await fetch('/api/store/create-checkout-session', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: cart }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload),
             });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const data = await res.json();
-            if (data.url) {
-                window.location.href = data.url;
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(data?.error?.message || `Request failed (${res.status})`);
+            }
+            const url = data?.data?.url || data?.url;
+            if (url) {
+                window.location.href = url;
                 return;
             }
-            throw new Error(data.error || 'No checkout URL returned');
+            throw new Error(data?.error?.message || data?.error || 'No checkout URL returned');
         } catch (err) {
-            toast.error(err.message || 'Checkout Unavailable. Redirecting...');
-            window.location.href = '/hub/diamond-store?checkout=true';
+            // Stay on the cart so the user can retry — the button re-enables via finally
+            toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
         } finally {
             setCheckingOut(false);
         }
     };
 
     const handleDiamondCheckout = async () => {
+        if (checkingOut) return;
+        if (hasDiamondItems) {
+            toast.error('Diamond Packages Cannot Be Purchased With Diamonds. Please Pay With Card.');
+            return;
+        }
+        if (merchItems.length === 0) {
+            toast.error('There Is Nothing In Your Cart That Can Be Paid For With Diamonds.');
+            return;
+        }
         if (!canAffordWithDiamonds()) {
-            toast.error(`Not Enough Diamonds! You Need ${getDiamondCost().toLocaleString()}💎 But Only Have ${diamondBalance.toLocaleString()}💎`);
+            const estimated = getDiamondCost().toLocaleString();
+            toast.error(
+                diamondCostIsEstimate
+                    ? `Not Enough Diamonds. This Order Costs About ${estimated} Diamonds And You Have ${diamondBalance.toLocaleString()}.`
+                    : `Not Enough Diamonds. This Order Costs ${estimated} Diamonds And You Have ${diamondBalance.toLocaleString()}.`
+            );
+            return;
+        }
+
+        const token = getAccessToken();
+        if (!token) {
+            toast.error('Please Sign In Again To Check Out');
             return;
         }
 
         setCheckingOut(true);
         try {
-            const token = getAccessToken();
             const res = await fetch('/api/store/purchase-with-diamonds', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ items: cart })
+                body: JSON.stringify({ items: merchItems })
             });
 
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const data = await res.json();
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                // Prefer the server's own figures — the client estimate can differ
+                // from merchandise_items.price_diamonds
+                const required = data?.details?.required;
+                if (typeof required === 'number') {
+                    const current = data?.details?.current ?? diamondBalance;
+                    setDiamondBalance(current);
+                    throw new Error(`Not Enough Diamonds. This Order Costs ${required.toLocaleString()} Diamonds And You Have ${current.toLocaleString()}.`);
+                }
+                throw new Error(data?.error || `Request failed (${res.status})`);
+            }
 
-            if (data.success) {
-                toast.success(`Purchased With ${data.data.diamonds_spent.toLocaleString()}💎! New Balance: ${data.data.new_balance.toLocaleString()}💎`);
-                busEmit.diamondsSpent(data.data.diamonds_spent, 'Diamond Store Purchase');
-                clearCart();
-                setDiamondBalance(data.data.new_balance);
+            if (data?.success) {
+                // Drop the purchased lines first so a display hiccup can't leave
+                // paid items in the cart. Anything not covered by this purchase
+                // (e.g. VIP) stays put.
+                lastLocalEditRef.current = Date.now();
+                const purchasedIds = new Set(merchItems.map(item => item?.id));
+                setCartItems(useCartStore.getState().items.filter(item => !purchasedIds.has(item?.id)));
+                const result = data.data || {};
+                const spent = result.diamonds_spent ?? 0;
+                const newBalance = result.new_balance ?? diamondBalance;
+                toast.success(`Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`);
+                busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
+                setDiamondBalance(newBalance);
             } else {
-                throw new Error(data.error || 'Diamond purchase failed');
+                throw new Error(data?.error || 'Diamond purchase failed');
             }
         } catch (err) {
             toast.error(err.message || 'Diamond Purchase Failed');
@@ -217,12 +443,14 @@ export default function ShoppingCart() {
             <div style={styles.loadingContainer}>
                 <div style={styles.spinner}></div>
                 <p style={styles.loadingText}>Loading Cart...</p>
+                <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
 
     const diamondCost = getDiamondCost();
     const affordable = canAffordWithDiamonds();
+    const itemCount = unitsOf(cart);
 
     return (
         <PageTransition>
@@ -241,13 +469,12 @@ export default function ShoppingCart() {
 
                     {cart.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}></div>
                             <h2 style={styles.emptyTitle}>Your Cart Is Empty</h2>
                             <p style={styles.emptyText}>Add Some Items To Get Started!</p>
                             <Link href="/hub/diamond-store" style={styles.shopButton}>Browse Store</Link>
                         </div>
                     ) : (
-                        <div style={styles.cartLayout}>
+                        <div style={{ ...styles.cartLayout, gridTemplateColumns: isMobile ? '1fr' : '1fr 400px' }}>
                             {/* Cart Items */}
                             <div style={styles.itemsSection}>
                                 <AnimatePresence>
@@ -271,7 +498,7 @@ export default function ShoppingCart() {
                                 <h3 style={styles.summaryTitle}>Order Summary</h3>
 
                                 <div style={styles.summaryRow}>
-                                    <span>Subtotal ({cart.length} items)</span>
+                                    <span>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
                                     <span>${getSubtotal().toFixed(2)}</span>
                                 </div>
 
@@ -287,20 +514,40 @@ export default function ShoppingCart() {
                                     <span>${getSubtotal().toFixed(2)}</span>
                                 </div>
 
+                                {/* Mixed cart — one purchase type per checkout session */}
+                                {!usingDiamonds && !cardGroup && (
+                                    <div style={styles.noticeBox}>
+                                        VIP memberships are purchased from the Diamond Store page, not from the cart.
+                                    </div>
+                                )}
+                                {!usingDiamonds && cardGroup && deferredUnits > 0 && (
+                                    <div style={styles.noticeBox}>
+                                        {cardGroup === 'diamonds'
+                                            ? `Diamond packages check out one at a time. This checkout covers 1 x ${diamondItems[0]?.name || 'Diamond Package'} for $${(cardChargeCents / 100).toFixed(2)} — the other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart.`
+                                            : `This checkout covers your merchandise ($${(cardChargeCents / 100).toFixed(2)}). The other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart.`}
+                                    </div>
+                                )}
+                                {usingDiamonds && vipItems.length > 0 && (
+                                    <div style={styles.noticeBox}>
+                                        VIP memberships cannot be paid for with diamonds and will stay in your cart.
+                                    </div>
+                                )}
+
                                 {/* ═══ Payment Method Selection ═══ */}
                                 <div style={{ marginBottom: '16px' }}>
                                     <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</p>
 
-                                    {/* Pay with Diamonds Option */}
+                                    {/* Pay with Diamonds Option — hidden when the cart holds diamond packages */}
+                                    {!hasDiamondItems && (
                                     <button
                                         onClick={() => setPayWithDiamonds(true)}
                                         style={{
                                             width: '100%',
                                             padding: '14px 16px',
-                                            background: payWithDiamonds
+                                            background: usingDiamonds
                                                 ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(138, 43, 226, 0.15))'
                                                 : 'rgba(255, 255, 255, 0.03)',
-                                            border: payWithDiamonds
+                                            border: usingDiamonds
                                                 ? '2px solid #00E0FF'
                                                 : '1px solid rgba(255, 255, 255, 0.1)',
                                             borderRadius: '10px',
@@ -313,38 +560,39 @@ export default function ShoppingCart() {
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '22px' }}>💎</span>
+                                            <Gem size={22} color="#00E0FF" />
                                             <div style={{ textAlign: 'left' }}>
                                                 <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '14px', display: 'block' }}>
                                                     Pay with Diamonds
                                                 </span>
                                                 <span style={{ color: affordable ? '#00E0FF' : '#FF6B6B', fontSize: '12px' }}>
-                                                    Balance: {diamondBalance.toLocaleString()}💎
-                                                    {!affordable && ` (Need ${diamondCost.toLocaleString()}💎)`}
+                                                    Balance: {diamondBalance.toLocaleString()}
+                                                    {!affordable && ` (Need ${diamondCostIsEstimate ? 'about ' : ''}${diamondCost.toLocaleString()})`}
                                                 </span>
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <span style={{
-                                                color: payWithDiamonds ? '#00E0FF' : '#FFFFFF',
+                                                color: usingDiamonds ? '#00E0FF' : '#FFFFFF',
                                                 fontWeight: 700,
                                                 fontSize: '16px'
                                             }}>
-                                                {diamondCost.toLocaleString()}💎
+                                                {diamondCostIsEstimate ? '~' : ''}{diamondCost.toLocaleString()}
                                             </span>
                                             <div style={{
                                                 width: '18px', height: '18px',
                                                 borderRadius: '50%',
-                                                border: `2px solid ${payWithDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
-                                                background: payWithDiamonds ? '#00E0FF' : 'transparent',
+                                                border: `2px solid ${usingDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
+                                                background: usingDiamonds ? '#00E0FF' : 'transparent',
                                                 marginLeft: 'auto', marginTop: '4px',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 transition: 'all 0.2s ease'
                                             }}>
-                                                {payWithDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
+                                                {usingDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
                                             </div>
                                         </div>
                                     </button>
+                                    )}
 
                                     {/* Pay with Card Option */}
                                     <button
@@ -352,10 +600,10 @@ export default function ShoppingCart() {
                                         style={{
                                             width: '100%',
                                             padding: '14px 16px',
-                                            background: !payWithDiamonds
+                                            background: !usingDiamonds
                                                 ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(0, 153, 255, 0.15))'
                                                 : 'rgba(255, 255, 255, 0.03)',
-                                            border: !payWithDiamonds
+                                            border: !usingDiamonds
                                                 ? '2px solid #00E0FF'
                                                 : '1px solid rgba(255, 255, 255, 0.1)',
                                             borderRadius: '10px',
@@ -367,7 +615,7 @@ export default function ShoppingCart() {
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '22px' }}>💳</span>
+                                            <CreditCard size={22} color="#00E0FF" />
                                             <div style={{ textAlign: 'left' }}>
                                                 <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '14px', display: 'block' }}>
                                                     Pay with Card
@@ -379,22 +627,22 @@ export default function ShoppingCart() {
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <span style={{
-                                                color: !payWithDiamonds ? '#00E0FF' : '#FFFFFF',
+                                                color: !usingDiamonds ? '#00E0FF' : '#FFFFFF',
                                                 fontWeight: 700,
                                                 fontSize: '16px'
                                             }}>
-                                                ${getSubtotal().toFixed(2)}
+                                                ${(cardChargeCents / 100).toFixed(2)}
                                             </span>
                                             <div style={{
                                                 width: '18px', height: '18px',
                                                 borderRadius: '50%',
-                                                border: `2px solid ${!payWithDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
-                                                background: !payWithDiamonds ? '#00E0FF' : 'transparent',
+                                                border: `2px solid ${!usingDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
+                                                background: !usingDiamonds ? '#00E0FF' : 'transparent',
                                                 marginLeft: 'auto', marginTop: '4px',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 transition: 'all 0.2s ease'
                                             }}>
-                                                {!payWithDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
+                                                {!usingDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
                                             </div>
                                         </div>
                                     </button>
@@ -402,29 +650,39 @@ export default function ShoppingCart() {
 
                                 {/* Checkout Button */}
                                 <button
-                                    onClick={payWithDiamonds ? handleDiamondCheckout : handleCheckout}
-                                    disabled={checkingOut || (payWithDiamonds && !affordable)}
+                                    onClick={usingDiamonds ? handleDiamondCheckout : handleCheckout}
+                                    disabled={checkingOut || (usingDiamonds && !affordable) || (!usingDiamonds && !cardGroup)}
                                     style={{
                                         ...styles.checkoutButton,
-                                        background: payWithDiamonds
+                                        background: usingDiamonds
                                             ? (affordable
                                                 ? 'linear-gradient(135deg, #00E0FF, #8A2BE2)'
                                                 : 'rgba(255, 255, 255, 0.1)')
                                             : 'linear-gradient(135deg, #00E0FF, #0099FF)',
-                                        opacity: checkingOut || (payWithDiamonds && !affordable) ? 0.5 : 1,
-                                        cursor: checkingOut || (payWithDiamonds && !affordable) ? 'not-allowed' : 'pointer'
+                                        opacity: checkingOut || (usingDiamonds && !affordable) || (!usingDiamonds && !cardGroup) ? 0.5 : 1,
+                                        cursor: checkingOut || (usingDiamonds && !affordable) || (!usingDiamonds && !cardGroup) ? 'not-allowed' : 'pointer'
                                     }}
                                 >
                                     {checkingOut
                                         ? 'Processing...'
-                                        : payWithDiamonds
-                                            ? `Pay ${diamondCost.toLocaleString()}💎`
-                                            : 'Proceed To Checkout'}
+                                        : usingDiamonds
+                                            ? (diamondCostIsEstimate
+                                                ? `Pay With Diamonds (About ${diamondCost.toLocaleString()})`
+                                                : `Pay ${diamondCost.toLocaleString()} Diamonds`)
+                                            : cardGroup === 'diamonds'
+                                                ? 'Checkout Diamond Package'
+                                                : 'Proceed To Checkout'}
                                 </button>
 
-                                {payWithDiamonds && !affordable && (
+                                {usingDiamonds && diamondCostIsEstimate && (
+                                    <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginBottom: '12px' }}>
+                                        Final diamond cost is confirmed by the server at purchase.
+                                    </p>
+                                )}
+
+                                {usingDiamonds && !affordable && (
                                     <p style={{ fontSize: '12px', color: '#FF6B6B', textAlign: 'center', marginBottom: '12px' }}>
-                                        You need {(diamondCost - diamondBalance).toLocaleString()} more diamonds
+                                        You need {diamondCostIsEstimate ? 'about ' : ''}{(diamondCost - diamondBalance).toLocaleString()} more diamonds
                                     </p>
                                 )}
 
@@ -459,7 +717,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
             <div style={styles.itemDetails}>
                 <h4 style={styles.itemName}>{name}</h4>
                 <p style={styles.itemType}>{type}</p>
-                <p style={styles.itemPrice}>${price.toFixed(2)}</p>
+                <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
             </div>
 
             <div style={styles.itemActions}>
@@ -510,10 +768,7 @@ const styles = {
     cartLayout: {
         display: 'grid',
         gridTemplateColumns: '1fr 400px',
-        gap: '32px',
-        '@media (max-width: 768px)': {
-            gridTemplateColumns: '1fr'
-        }
+        gap: '32px'
     },
     itemsSection: {
         display: 'grid',
@@ -629,6 +884,16 @@ const styles = {
         background: 'rgba(255, 255, 255, 0.1)',
         margin: '16px 0'
     },
+    noticeBox: {
+        padding: '10px 12px',
+        marginBottom: '16px',
+        background: 'rgba(0, 224, 255, 0.08)',
+        border: '1px solid rgba(0, 224, 255, 0.25)',
+        borderRadius: '8px',
+        fontSize: '12px',
+        lineHeight: 1.5,
+        color: '#9ca3af'
+    },
     totalRow: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -692,8 +957,12 @@ const styles = {
         color: '#FFFFFF'
     },
     spinner: {
-        fontSize: '48px',
-        animation: 'pulse 1.5s ease-in-out infinite'
+        width: '48px',
+        height: '48px',
+        border: '4px solid rgba(255, 255, 255, 0.15)',
+        borderTopColor: '#00E0FF',
+        borderRadius: '50%',
+        animation: 'dsSpin 1s linear infinite'
     },
     loadingText: {
         marginTop: '16px',

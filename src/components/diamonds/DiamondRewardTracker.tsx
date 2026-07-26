@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { REWARD_RULES } from '../../services/DiamondRewardService';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -144,7 +145,8 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
     const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
     const streakMultiplier = currentStreak >= 7 ? 2.0 : currentStreak >= 4 ? 1.5 : 1.0;
-    const remainingCap = Math.max(0, REWARD_RULES.DAILY_CAP - diamondsToday);
+    const dailyCap = Number(REWARD_RULES?.DAILY_CAP) > 0 ? Number(REWARD_RULES.DAILY_CAP) : 500;
+    const remainingCap = Math.max(0, dailyCap - diamondsToday);
 
     return (
         <div style={styles.container}>
@@ -153,18 +155,22 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                 <div style={styles.progressSection}>
                     <div style={styles.progressLabel}>
                         <span>Today's Earnings</span>
-                        <span style={styles.capText}>{diamondsToday} / {REWARD_RULES.DAILY_CAP}</span>
+                        <span style={styles.capText}>{diamondsToday} / {dailyCap}</span>
                     </div>
                     <div style={styles.progressBar}>
                         <div
                             style={{
                                 ...styles.progressFill,
-                                width: `${Math.min((diamondsToday / REWARD_RULES.DAILY_CAP) * 100, 100)}%`,
+                                width: `${Math.min((diamondsToday / dailyCap) * 100, 100)}%`,
                             }}
                         />
                     </div>
                     <div style={styles.remainingText}>
-                        {remainingCap > 0 ? `${remainingCap} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> remaining` : '🎉 Cap reached!'}
+                        {remainingCap > 0 ? (
+                            <>{remainingCap} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> remaining</>
+                        ) : (
+                            <>{'🎉'} Cap reached!</>
+                        )}
                     </div>
                 </div>
 
@@ -186,7 +192,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                         ...(activeTab === 'standard' ? styles.tabActive : {}),
                     }}
                 >
-                    💰 Standard Rewards
+                    {'💰'} Standard Rewards
                 </button>
                 <button
                     onClick={() => setActiveTab('easter')}
@@ -195,7 +201,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                         ...(activeTab === 'easter' ? styles.tabActive : {}),
                     }}
                 >
-                    🥚 Easter Eggs (100+)
+                    {'🥚'} Easter Eggs (100+)
                 </button>
             </div>
 
@@ -222,10 +228,10 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
 
                         {/* Rules Summary */}
                         <div style={styles.rulesSummary}>
-                            <div style={styles.rule}>📊 Daily Cap: <strong>500 Diamonds</strong></div>
-                            <div style={styles.rule}>🔥 Streak Bonus: <strong>Days 4-6: 1.5x | Day 7+: 2.0x</strong></div>
-                            <div style={styles.rule}>⭐ Min Award: <strong>5 Diamonds</strong></div>
-                            <div style={styles.rule}>👥 Referrals: <strong>Bypass Daily Cap!</strong></div>
+                            <div style={styles.rule}>{'📊'} Daily Cap: <strong>{dailyCap} Diamonds</strong></div>
+                            <div style={styles.rule}>{'🔥'} Streak Bonus: <strong>Days 4-6: 1.5x | Day 7+: 2.0x</strong></div>
+                            <div style={styles.rule}>{'⭐'} Min Award: <strong>5 Diamonds</strong></div>
+                            <div style={styles.rule}>{'👥'} Referrals: <strong>Bypass Daily Cap!</strong></div>
                         </div>
                     </div>
                 ) : (
@@ -273,7 +279,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                         ))}
 
                         <div style={styles.totalEggs}>
-                            🥚 <strong>100+ Easter Eggs</strong> to discover! Some are one-time,
+                            {'🥚'} <strong>100+ Easter Eggs</strong> to discover! Some are one-time,
                             some require specific actions. Keep exploring!
                         </div>
                     </div>
@@ -287,7 +293,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
 // STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
     container: {
         background: 'rgba(0, 20, 40, 0.8)',
         border: '1px solid rgba(0, 212, 255, 0.2)',

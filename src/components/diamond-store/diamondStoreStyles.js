@@ -1,3 +1,8 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// DIAMOND STORE STYLES — single source of truth.
+// Imported by pages/hub/diamond-store.js AND the extracted tab components in
+// this directory (MerchTab, VIPTab, ClubShopTab, RewardsTab). Edit here only.
+// ═══════════════════════════════════════════════════════════════════════════
 const styles = {
     container: {
         minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',

@@ -13,6 +13,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[purchase-daily-vip] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
           // Fetch user profile
           const { data: profile, error: profileError } = await getSupabase()
               .from('profiles')
-              .select('diamonds, is_vip, vip_expires_at')
+              .select('diamonds, is_vip, vip_tier, vip_expires_at')
               .eq('id', user.id)
               .maybeSingle();
 
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
           }
 
           // Deduct diamonds atomically using the RPC
-          const { error: deductError } = await getSupabase().rpc('add_diamonds_to_balance', {
+          const { data: deductResult, error: deductError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: user.id,
               p_amount: -COST,
               p_type: 'vip_daily',
@@ -83,6 +84,17 @@ export default async function handler(req, res) {
           if (deductError) {
               console.warn('[Purchase Daily VIP] Deduction failed:', deductError);
               return res.status(500).json({ success: false, error: 'Failed to process payment' });
+          }
+          // The RPC reports business failures (e.g. insufficient balance under
+          // concurrency) via its data payload, not a thrown error — the pre-read
+          // balance check above is not atomic and can be stale.
+          if (deductResult && deductResult.success === false) {
+              return res.status(400).json({
+                  success: false,
+                  error: deductResult.error || 'Insufficient diamonds',
+                  required: COST,
+                  current: currentBalance
+              });
           }
 
           // Calculate new expiration
@@ -96,27 +108,40 @@ export default async function handler(req, res) {
           }
           newExpiresAt.setHours(newExpiresAt.getHours() + HOURS);
 
-          // Update profile
+          // Update profile — do NOT downgrade an active subscription tier
+          // (e.g. monthly/annual) to 'daily'; keep the higher tier and extend expiry.
+          const keepExistingTier = profile.is_vip && profile.vip_tier && profile.vip_tier !== 'daily';
           const { error: updateError } = await getSupabase()
               .from('profiles')
               .update({
                   is_vip: true,
-                  vip_tier: 'daily',
+                  vip_tier: keepExistingTier ? profile.vip_tier : 'daily',
                   vip_expires_at: newExpiresAt.toISOString()
               })
               .eq('id', user.id);
 
           if (updateError) {
               console.warn('[Purchase Daily VIP] Profile update failed:', updateError);
-              // Non-fatal, they were charged but VIP not toggled. Should be rare.
-              return res.status(500).json({ success: false, error: 'Payment succeeded, but VIP activation failed. Contact support.' });
+              // Compensate: refund the deducted diamonds instead of relying on a support ticket.
+              const { error: refundError } = await getSupabase().rpc('add_diamonds_to_balance', {
+                  p_user_id: user.id,
+                  p_amount: COST,
+                  p_type: 'refund',
+                  p_description: 'Refund — 1-Day VIP activation failed',
+                  p_reference_id: null
+              });
+              if (refundError) {
+                  console.warn('[Purchase Daily VIP] Refund after failed activation ALSO failed:', refundError);
+                  return res.status(500).json({ success: false, error: 'Payment succeeded, but VIP activation failed. Contact support.' });
+              }
+              return res.status(500).json({ success: false, error: 'VIP activation failed — your diamonds have been refunded. Please try again.' });
           }
 
           return res.status(200).json({
               success: true,
               isVip: true,
               expiresAt: newExpiresAt.toISOString(),
-              newBalance: currentBalance - COST
+              newBalance: typeof deductResult?.balance === 'number' ? deductResult.balance : currentBalance - COST
           });
 
       } catch (err) {

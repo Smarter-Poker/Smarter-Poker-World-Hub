@@ -7,7 +7,15 @@ import { X, Trash2 } from 'lucide-react';
 import useCartStore from '../../stores/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds }) {
+// Mirrors MAX_DIAMOND_QUANTITY_PER_PACKAGE in cartStore.js and in
+// pages/api/store/create-checkout-session.js. The store clamps the value;
+// this constant only drives the disabled state so the cap is visible.
+const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
+
+const atQuantityCap = (item) =>
+    item?.type === 'diamonds' && (item.quantity || 1) >= MAX_DIAMOND_QUANTITY_PER_PACKAGE;
+
+export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, isProcessing = false }) {
     const {
         items,
         isOpen,
@@ -210,7 +218,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                     }}>
                                                         {item.name}
                                                     </h3>
-                                                    {item.diamonds && (
+                                                    {item.diamonds > 0 && (
                                                         <p style={{
                                                             fontSize: 14,
                                                             color: '#1877F2',
@@ -248,7 +256,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                     gap: 8
                                                 }}>
                                                     <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                        onClick={() => item.quantity <= 1 ? removeItem(item.id) : updateQuantity(item.id, item.quantity - 1)}
                                                         style={{
                                                             width: 28,
                                                             height: 28,
@@ -272,7 +280,12 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                         {item.quantity}
                                                     </span>
                                                     <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                        onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
+                                                        disabled={atQuantityCap(item)}
+                                                        title={atQuantityCap(item)
+                                                            ? `Limit ${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per diamond package`
+                                                            : undefined}
+                                                        aria-label={`Increase quantity of ${item.name || 'item'}`}
                                                         style={{
                                                             width: 28,
                                                             height: 28,
@@ -280,7 +293,8 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                             background: 'rgba(255, 255, 255, 0.1)',
                                                             border: '1px solid rgba(255, 255, 255, 0.2)',
                                                             color: '#E4E6EB',
-                                                            cursor: 'pointer',
+                                                            cursor: atQuantityCap(item) ? 'not-allowed' : 'pointer',
+                                                            opacity: atQuantityCap(item) ? 0.4 : 1,
                                                             fontSize: 16,
                                                             fontWeight: 700
                                                         }}
@@ -294,7 +308,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                     fontWeight: 700,
                                                     color: '#1877F2'
                                                 }}>
-                                                    ${(item.price * item.quantity).toFixed(2)}
+                                                    ${((Number(item.price) || 0) * (Number(item.quantity) || 0)).toFixed(2)}
                                                 </div>
                                             </div>
                                         </div>
@@ -327,12 +341,15 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                             fontWeight: 700,
                                             color: '#1877F2'
                                         }}>
-                                            ${total.toFixed(2)}
+                                            ${(Number(total) || 0).toFixed(2)}
                                         </span>
                                     </div>
 
                                     <button
+                                        disabled={isProcessing}
+                                        aria-busy={isProcessing}
                                         onClick={() => {
+                                            if (isProcessing) return;
                                             if (onCheckout) {
                                                 onCheckout(items);
                                                 // Don't close cart immediately - let the checkout complete
@@ -348,19 +365,28 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                             color: '#fff',
                                             fontSize: 16,
                                             fontWeight: 700,
-                                            cursor: 'pointer',
+                                            cursor: isProcessing ? 'wait' : 'pointer',
+                                            opacity: isProcessing ? 0.6 : 1,
                                             transition: 'transform 0.2s'
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                        onMouseEnter={(e) => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.02)'; }}
                                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                     >
-                                        Proceed to Checkout
+                                        {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
                                     </button>
 
-                                    {/* Pay with Diamonds — only for diamond-type items */}
-                                    {onPayWithDiamonds && items.every(i => i.type === 'diamonds') && (
+                                    {/* Pay with Diamonds — hidden when the cart holds diamond packages
+                                        or VIP subscriptions. Diamonds can't buy diamonds, and VIP is
+                                        activated only by the Stripe webhook / purchase-daily-vip
+                                        endpoint, so /api/store/purchase-with-diamonds rejects both.
+                                        Keep this in sync with handlePayWithDiamonds in
+                                        pages/hub/diamond-store.js. */}
+                                    {onPayWithDiamonds && items.every(i => i?.type !== 'diamonds' && i?.type !== 'vip') && (
                                         <button
+                                            disabled={isProcessing}
+                                            aria-busy={isProcessing}
                                             onClick={() => {
+                                                if (isProcessing) return;
                                                 if (onPayWithDiamonds) {
                                                     onPayWithDiamonds(items);
                                                 }
@@ -375,18 +401,19 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                                 color: '#000',
                                                 fontSize: 15,
                                                 fontWeight: 700,
-                                                cursor: 'pointer',
+                                                cursor: isProcessing ? 'wait' : 'pointer',
+                                                opacity: isProcessing ? 0.6 : 1,
                                                 transition: 'transform 0.2s',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: 8,
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                            onMouseEnter={(e) => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.02)'; }}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
                                             <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
-                                            Pay with Diamonds
+                                            {isProcessing ? 'Processing...' : 'Pay with Diamonds'}
                                         </button>
                                     )}
                                 </div>

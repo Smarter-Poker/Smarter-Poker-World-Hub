@@ -1,8 +1,11 @@
 import React from 'react';
-import { STANDARD_REWARDS, EASTER_EGGS } from '../../data/diamondStoreData';
+import { Zap, Gem } from 'lucide-react';
+import { STANDARD_REWARDS, EASTER_EGGS, VIP_MEMBERSHIP } from '../../data/diamondStoreData';
 import styles from './diamondStoreStyles';
 
 export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setRewardsSubTab, setActiveTab }) {
+    const rarityKey = (r) => { const s = r || 'common'; return s.charAt(0).toUpperCase() + s.slice(1); };
+    const annualSavings = Math.round(Number(VIP_MEMBERSHIP?.monthly?.price ?? 19.99) * 12 - Number(VIP_MEMBERSHIP?.annual?.price ?? 199.99));
     return (
         <>
 
@@ -24,7 +27,7 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                                 background: diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)',
                                                 fontSize: 20,
                                             }}>
-                                                {diamondMultiplier > 1.0 ? '⚡' : '💎'}
+                                                {diamondMultiplier > 1.0 ? <Zap size={20} color="#f59e0b" /> : <Gem size={20} color="#818cf8" />}
                                             </div>
                                             <div>
                                                 <div style={{ fontSize: 14, fontWeight: 700, color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8' }}>
@@ -136,7 +139,7 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                                         padding: '10px 18px',
                                                         textAlign: 'center',
                                                     }}>
-                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#FFD700', fontFamily: 'Orbitron, sans-serif' }}>$19.99</div>
+                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#FFD700', fontFamily: 'Orbitron, sans-serif' }}>${VIP_MEMBERSHIP?.monthly?.price ?? '19.99'}</div>
                                                         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Per Month</div>
                                                     </div>
                                                     <div style={{
@@ -146,8 +149,8 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                                         padding: '10px 18px',
                                                         textAlign: 'center',
                                                     }}>
-                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#00D4FF', fontFamily: 'Orbitron, sans-serif' }}>$199.99</div>
-                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Per Year (Save $40!)</div>
+                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#00D4FF', fontFamily: 'Orbitron, sans-serif' }}>${VIP_MEMBERSHIP?.annual?.price ?? '199.99'}</div>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Per Year (Save ${annualSavings}!)</div>
                                                     </div>
                                                 </div>
                                                 <button
@@ -185,7 +188,7 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                                 <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>2</span>
+                                                <span style={styles.quickStatValue}>{Object.keys(VIP_MEMBERSHIP || {}).length}</span>
                                                 <span style={styles.quickStatLabel}>VIP Plans</span>
                                             </div>
                                             <div style={styles.quickStat}>
@@ -218,11 +221,11 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                             <div style={styles.streakMultipliers}>
                                                 <div style={styles.multiplierItem}>
                                                     <span style={styles.multiplierValue}>1.5x</span>
-                                                    <span style={styles.multiplierLabel}>Days 4-6</span>
+                                                    <span style={styles.multiplierLabel}>Login Days 4-6</span>
                                                 </div>
                                                 <div style={styles.multiplierItem}>
                                                     <span style={styles.multiplierValueGold}>2.0x</span>
-                                                    <span style={styles.multiplierLabel}>Day 7+</span>
+                                                    <span style={styles.multiplierLabel}>Login Day 7+</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -231,7 +234,7 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.rewardCategory}>
                                             <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
                                             <div style={styles.rewardList}>
-                                                {STANDARD_REWARDS.map((reward, idx) => (
+                                                {(STANDARD_REWARDS || []).map((reward, idx) => (
                                                     <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
                                                         <span style={styles.rewardIcon}>
                                                             {reward.icon && <reward.icon size={24} />}
@@ -260,14 +263,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Performance (10 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.performance.map((egg) => (
+                                                {(EASTER_EGGS.performance || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>
@@ -280,14 +283,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Timing & Loyalty (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.timing_loyalty.map((egg) => (
+                                                {(EASTER_EGGS.timing_loyalty || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>
@@ -300,14 +303,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Strategy & Mastery (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.strategy_mastery.map((egg) => (
+                                                {(EASTER_EGGS.strategy_mastery || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>
@@ -320,14 +323,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Social & Viral (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.social_viral.map((egg) => (
+                                                {(EASTER_EGGS.social_viral || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>
@@ -340,14 +343,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Meta & Interface (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.meta_interface.map((egg) => (
+                                                {(EASTER_EGGS.meta_interface || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>
@@ -360,14 +363,14 @@ export default function RewardsTab({ diamondMultiplier, rewardsSubTab, setReward
                                         <div style={styles.eggCategory}>
                                             <h3 style={styles.eggCategoryTitle}>Legacy & Milestones (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
-                                                {EASTER_EGGS.legacy_milestones.map((egg) => (
+                                                {(EASTER_EGGS.legacy_milestones || []).map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
                                                         <div style={styles.eggIcon}>
                                                             {egg.icon && <egg.icon size={32} />}
                                                         </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
-                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                            {egg.rarity.toUpperCase()}
+                                                        <div style={{ ...styles.rarityBadge, ...(styles[`rarity${rarityKey(egg.rarity)}`] || {}) }}>
+                                                            {(egg.rarity || 'common').toUpperCase()}
                                                         </div>
                                                         <div style={styles.eggReward}>{egg.reward}</div>
                                                         <p style={styles.eggTrigger}>{egg.trigger}</p>

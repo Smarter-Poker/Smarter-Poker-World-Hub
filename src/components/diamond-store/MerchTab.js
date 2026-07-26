@@ -1,8 +1,10 @@
 import React from 'react';
+import { Crown } from 'lucide-react';
 import { MerchCard } from '../store/StoreCards';
+import { MERCHANDISE } from '../../data/diamondStoreData';
 import styles from './diamondStoreStyles';
 
-export default function MerchTab({ handleMerchPurchase }) {
+export default function MerchTab({ handleMerchPurchase, isVip }) {
     return (
         <>
 
@@ -36,7 +38,7 @@ export default function MerchTab({ handleMerchPurchase }) {
                                 <div style={styles.merchSection}>
                                     <h3 style={styles.merchCategoryTitle}>Apparel</h3>
                                     <div style={styles.merchGrid}>
-                                        {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
+                                        {(MERCHANDISE || []).filter(m => m.category === 'apparel').map(item => (
                                             <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
                                         ))}
                                     </div>
@@ -46,7 +48,7 @@ export default function MerchTab({ handleMerchPurchase }) {
                                 <div style={styles.merchSection}>
                                     <h3 style={styles.merchCategoryTitle}>Accessories</h3>
                                     <div style={styles.merchGrid}>
-                                        {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
+                                        {(MERCHANDISE || []).filter(m => m.category === 'accessories').map(item => (
                                             <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
                                         ))}
                                     </div>

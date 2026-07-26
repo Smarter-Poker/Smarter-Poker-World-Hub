@@ -5,7 +5,6 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // Helper to read raw body from request stream
@@ -23,6 +22,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.warn('[stripe-webhook] SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; writes may be silently blocked by RLS');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -40,9 +40,10 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 export default async function handler(req, res) {
   try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+      // NOTE: No rate limiting here. Stripe delivers webhooks in bursts from a
+      // small fixed IP pool — a user-tier limiter would 429 legitimate signed
+      // events and delay diamond credits/VIP grants. Signature verification
+      // below is the gate for this endpoint.
 
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });
@@ -127,9 +128,10 @@ async function handleCheckoutCompleted(session) {
 
     if (mode === 'payment') {
         // One-time payment (diamonds or merchandise)
-        if (metadata.type === 'diamonds' && metadata.purchase_id) {
+        // metadata can be null for sessions created outside this app (e.g. payment links)
+        if (metadata?.type === 'diamonds' && metadata.purchase_id) {
             // IDEMPOTENCY: Only credit diamonds if purchase was still pending
-            const { data: purchase } = await getSupabase()
+            const { data: purchase, error: completeErr } = await getSupabase()
                 .from('diamond_purchases')
                 .update({
                     status: 'completed',
@@ -141,6 +143,12 @@ async function handleCheckoutCompleted(session) {
                 .eq('status', 'pending') // Only update if still pending — prevents double-credit on retries
                 .select()
                 .maybeSingle();
+
+            if (completeErr) {
+                // Paid purchase must not be dropped — throw so Stripe retries.
+                console.warn('[stripe-webhook] purchase completion update failed for', metadata.purchase_id, '— Stripe will retry:', completeErr.message);
+                throw completeErr;
+            }
 
             if (purchase) {
                 // Add diamonds to user balance
@@ -172,7 +180,7 @@ async function handleCheckoutCompleted(session) {
                     throw creditErr;
                 }
             }
-        } else if (metadata.type === 'merchandise' && metadata.order_id) {
+        } else if (metadata?.type === 'merchandise' && metadata.order_id) {
             // Update merchandise order
             const { error: err_merchandise_orders_16ujp } = await getSupabase()
               .from('merchandise_orders')
@@ -182,7 +190,12 @@ async function handleCheckoutCompleted(session) {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', metadata.order_id);
-            if (err_merchandise_orders_16ujp) console.warn('[Supabase] Silent mutation failed in merchandise_orders:', err_merchandise_orders_16ujp.message);
+            if (err_merchandise_orders_16ujp) {
+                // Paid order must not be silently lost — throw so the webhook
+                // returns 500 and Stripe retries the event.
+                console.warn('[stripe-webhook] merchandise order update failed for order', metadata.order_id, '— Stripe will retry:', err_merchandise_orders_16ujp.message);
+                throw err_merchandise_orders_16ujp;
+            }
 
         }
     } else if (mode === 'subscription') {
@@ -192,7 +205,7 @@ async function handleCheckoutCompleted(session) {
             const subscription = await stripe.subscriptions.retrieve(session.subscription);
 
             // Set VIP on profile and link Stripe customer
-            if (metadata.user_id) {
+            if (metadata?.user_id) {
                 const { error: err_profiles_yhokl } = await getSupabase()
                   .from('profiles')
                   .update({
@@ -202,15 +215,23 @@ async function handleCheckoutCompleted(session) {
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', metadata.user_id);
-                if (err_profiles_yhokl) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_yhokl.message);
+                if (err_profiles_yhokl) {
+                    // Paid VIP grant must not be silently lost — throw so Stripe retries.
+                    console.warn('[stripe-webhook] VIP profile grant failed for user', metadata.user_id, '— Stripe will retry:', err_profiles_yhokl.message);
+                    throw err_profiles_yhokl;
+                }
 
             }
 
             // Create/update vip_subscriptions record
             await handleSubscriptionUpdate(subscription);
         } catch (subErr) {
-            try { reportApiError(subErr, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+            // Note: this handler has no `req` — pass null so the report actually sends.
+            try { reportApiError(subErr, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             console.warn('Error processing VIP subscription checkout:', subErr);
+            // Rethrow so the webhook returns 500 and Stripe retries the event —
+            // a paid subscription that failed to activate must not be dropped.
+            throw subErr;
         }
     }
 }
@@ -225,7 +246,7 @@ async function handleSubscriptionUpdate(subscription) {
     // Get user ID from customer
     const { data: profile } = await getSupabase()
         .from('profiles')
-        .select('id')
+        .select('id, vip_expires_at')
         .eq('stripe_customer_id', customer)
         .maybeSingle();
 
@@ -241,7 +262,7 @@ async function handleSubscriptionUpdate(subscription) {
             stripe_subscription_id: id,
             user_id: profile.id,
             stripe_customer_id: customer,
-            tier: metadata.vip_tier || 'monthly',
+            tier: metadata?.vip_tier || 'monthly',
             status: status,
             price_usd: subscription.items.data[0]?.price?.unit_amount / 100 || 0,
             current_period_start: new Date(current_period_start * 1000).toISOString(),
@@ -251,8 +272,32 @@ async function handleSubscriptionUpdate(subscription) {
         }, {
             onConflict: 'stripe_subscription_id'
         });
-    if (err_vip_subscriptions_1w1zg) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_1w1zg.message);
+    if (err_vip_subscriptions_1w1zg) {
+        // Money-tied state transition — throw so Stripe retries instead of dropping it.
+        console.warn('[stripe-webhook] vip_subscriptions upsert failed for', id, '— Stripe will retry:', err_vip_subscriptions_1w1zg.message);
+        throw err_vip_subscriptions_1w1zg;
+    }
 
+    // Keep profiles.is_vip in sync with the subscription status so failed
+    // payments (past_due/unpaid) revoke VIP and recovered payments restore it.
+    // A separately purchased daily pass (vip_expires_at in the future) is respected.
+    const isActiveStatus = status === 'active' || status === 'trialing';
+    if (isActiveStatus) {
+        const { error: vipSyncErr } = await getSupabase()
+            .from('profiles')
+            .update({ is_vip: true, updated_at: new Date().toISOString() })
+            .eq('id', profile.id);
+        if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=true for', profile.id, vipSyncErr.message);
+    } else {
+        const hasActiveDailyPass = profile.vip_expires_at && new Date(profile.vip_expires_at) > new Date();
+        if (!hasActiveDailyPass) {
+            const { error: vipSyncErr } = await getSupabase()
+                .from('profiles')
+                .update({ is_vip: false, updated_at: new Date().toISOString() })
+                .eq('id', profile.id);
+            if (vipSyncErr) console.warn('[stripe-webhook] Failed to sync is_vip=false for', profile.id, vipSyncErr.message);
+        }
+    }
 }
 
 async function handleSubscriptionCanceled(subscription) {
@@ -262,18 +307,24 @@ async function handleSubscriptionCanceled(subscription) {
         return handleCommanderSubscriptionCanceled(subscription);
     }
 
+    // Guard: canceled_at can be missing on some payloads — don't write 1970-01-01
+    const canceledAtIso = canceled_at ? new Date(canceled_at * 1000).toISOString() : new Date().toISOString();
+
     const { error: err_vip_subscriptions_s2gv2 } = await getSupabase()
 
       .from('vip_subscriptions')
 
       .update({
             status: 'canceled',
-            canceled_at: new Date(canceled_at * 1000).toISOString(),
+            canceled_at: canceledAtIso,
             updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', id);
 
-    if (err_vip_subscriptions_s2gv2) console.warn('[Supabase] Silent mutation failed in vip_subscriptions:', err_vip_subscriptions_s2gv2.message);
+    if (err_vip_subscriptions_s2gv2) {
+        console.warn('[stripe-webhook] vip_subscriptions cancel update failed for', id, '— Stripe will retry:', err_vip_subscriptions_s2gv2.message);
+        throw err_vip_subscriptions_s2gv2;
+    }
 
     // Also clear VIP status on profile
     if (customer) {
@@ -282,11 +333,14 @@ async function handleSubscriptionCanceled(subscription) {
           .update({
                 is_vip: false,
                 vip_tier: null,
-                vip_canceled_at: new Date(canceled_at * 1000).toISOString(),
+                vip_canceled_at: canceledAtIso,
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', customer);
-        if (err_profiles_odw9b) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_odw9b.message);
+        if (err_profiles_odw9b) {
+            console.warn('[stripe-webhook] profile VIP revoke failed for customer', customer, '— Stripe will retry:', err_profiles_odw9b.message);
+            throw err_profiles_odw9b;
+        }
 
     }
 }
@@ -348,12 +402,11 @@ async function handleRefund(charge) {
         .maybeSingle();
 
     if (purchase) {
-        // Capture the prior status so we can roll back if the deduct RPC fails.
-        // Without this, a status='refunded' lock + a failed deduct = user keeps
-        // diamonds AND gets refunded by Stripe (silent money loss for the company).
-        const priorStatus = purchase.status;
-
-        const { error: err_diamond_purchases_7v1b6 } = await getSupabase()
+        // IDEMPOTENCY: compare-and-set — only process the refund if the purchase
+        // is still 'completed'. charge.refunded fires once per refund (including
+        // partials) and Stripe redelivers events, so an unconditional update +
+        // deduct would double-deduct on duplicate deliveries.
+        const { data: lockedPurchase, error: err_diamond_purchases_7v1b6 } = await getSupabase()
 
           .from('diamond_purchases')
 
@@ -361,34 +414,53 @@ async function handleRefund(charge) {
                 status: 'refunded',
                 refunded_at: new Date().toISOString()
             })
-            .eq('id', purchase.id);
+            .eq('id', purchase.id)
+            .eq('status', 'completed')
+            .select()
+            .maybeSingle();
 
-        if (err_diamond_purchases_7v1b6) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7v1b6.message);
+        if (err_diamond_purchases_7v1b6) {
+            console.warn('[stripe-webhook] refund status update failed for purchase', purchase.id, '— Stripe will retry:', err_diamond_purchases_7v1b6.message);
+            throw err_diamond_purchases_7v1b6;
+        }
+        if (!lockedPurchase) {
+            // Already refunded (duplicate delivery / second partial refund) or the
+            // purchase was never completed (no diamonds credited) — nothing to deduct.
+            return;
+        }
 
-        // Deduct diamonds from user balance
+        // Deduct diamonds proportionally to the amount actually refunded — a
+        // partial refund must not claw back the entire package.
         const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-        const { error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-            p_user_id: purchase.user_id,
-            p_amount: -totalDiamonds,
-            p_type: 'refund',
-            p_description: `Refund — ${purchase.package_name} (${totalDiamonds} diamonds)`,
-            p_reference_id: `refund_${purchase.id}`
-        });
+        const refundFraction = charge.amount > 0
+            ? Math.min((amount_refunded || 0) / charge.amount, 1)
+            : 1;
+        const diamondsToDeduct = Math.min(Math.round(totalDiamonds * refundFraction), totalDiamonds);
 
-        if (deductErr) {
-            // Roll back the status='refunded' lock so the next Stripe webhook
-            // retry can re-process. Throw to bubble up a 500 — Stripe retries.
-            try {
-                const { error: err_diamond_purchases_7qh4q } = await getSupabase()
-                  .from('diamond_purchases')
-                  .update({ status: priorStatus, refunded_at: null })
-                    .eq('id', purchase.id);
-                if (err_diamond_purchases_7qh4q) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7qh4q.message);
-            } catch (rollbackErr) {
-                console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
+        if (diamondsToDeduct > 0) {
+            const { error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
+                p_user_id: purchase.user_id,
+                p_amount: -diamondsToDeduct,
+                p_type: 'refund',
+                p_description: `Refund — ${purchase.package_name} (${diamondsToDeduct} of ${totalDiamonds} diamonds)`,
+                p_reference_id: `refund_${purchase.id}`
+            });
+
+            if (deductErr) {
+                // Roll back the status='refunded' lock so the next Stripe webhook
+                // retry can re-process. Throw to bubble up a 500 — Stripe retries.
+                try {
+                    const { error: err_diamond_purchases_7qh4q } = await getSupabase()
+                      .from('diamond_purchases')
+                      .update({ status: 'completed', refunded_at: null })
+                        .eq('id', purchase.id);
+                    if (err_diamond_purchases_7qh4q) console.warn('[Supabase] Silent mutation failed in diamond_purchases:', err_diamond_purchases_7qh4q.message);
+                } catch (rollbackErr) {
+                    console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
+                }
+                console.warn('[stripe-webhook] refund deduct RPC failed for purchase', purchase.id, '— rolled back, Stripe will retry:', deductErr);
+                throw deductErr;
             }
-            console.warn('[stripe-webhook] refund deduct RPC failed for purchase', purchase.id, '— rolled back, Stripe will retry:', deductErr);
-            throw deductErr;
         }
     }
 }
@@ -437,7 +509,7 @@ async function handleCommanderSubscriptionCanceled(subscription) {
 
       .update({
             status: 'canceled',
-            canceled_at: new Date(canceled_at * 1000).toISOString(),
+            canceled_at: canceled_at ? new Date(canceled_at * 1000).toISOString() : new Date().toISOString(),
             updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', id);

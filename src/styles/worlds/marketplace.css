@@ -1,5 +1,35 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    MARKETPLACE THEME — Commerce, Premium, Gold
+   ═══════════════════════════════════════════════════════════════════════════
+
+   STATUS: currently INACTIVE for every in-scope page. Kept intentionally.
+
+   This file follows the shared "world theme" convention: a `body.world-<name>`
+   rule that publishes a set of `--world-*` custom properties for that world's
+   pages to consume. Right now nothing in this app reaches it:
+
+     1. No stylesheet import — it is not imported by `pages/_app.js`, by any
+        component, and not pulled in by a global CSS entry point.
+     2. Nothing adds `class="world-marketplace"` to <body>, so even if it were
+        imported the selector would never match.
+     3. No in-scope file reads any `--world-*` variable — the store pages
+        (`/hub/diamond-store`, its cart, the wallet modal) all use hard-coded
+        inline styles instead.
+     4. `/hub/marketplace` redirects on mount, so the one route whose name
+        matches this theme never renders themed content.
+
+   TO ACTIVATE (all three are required — any one alone is a no-op):
+     a. Import this file from a global entry point (e.g. `pages/_app.js`);
+        Next.js only allows global CSS imports from `_app`.
+     b. Add/remove `world-marketplace` on `document.body` when entering and
+        leaving the marketplace route (the shared world-theme switcher, which
+        lives outside this app's scope, is expected to do this).
+     c. Have the marketplace pages consume the variables, e.g.
+        `background: var(--world-bg-gradient)` / `color: var(--world-primary)`,
+        replacing the equivalent hard-coded inline styles.
+
+   Do not delete on the strength of an in-app search alone: the body class may
+   be applied by out-of-scope routing/theme code that is not part of this copy.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-marketplace {

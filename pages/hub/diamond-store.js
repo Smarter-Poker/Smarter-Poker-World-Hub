@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   🔒 LOCKED PAGE: FUTURISTIC METAL DESIGN
+   LOCKED PAGE: FUTURISTIC METAL DESIGN
    ═══════════════════════════════════════════════════════════════════════════
    ATTENTION ALL AI AGENTS & DEVELOPERS:
    1. DO NOT revert this page to the legacy plain text / emoji design.
@@ -30,12 +30,12 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 import {
     Gem, Crown, ShoppingBag, Trophy, Gamepad2,
-    Coins, Home, Package, Wrench, Search,
+    Coins, Home, Package, Wrench, Zap,
     Gift, ShoppingCart as CartIcon, AlertTriangle,
     CheckCircle, Trash2,
 } from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
-import { PackageCard, VIPCard, MerchCard } from '../../src/components/store/StoreCards';
+import { VIPCard, MerchCard } from '../../src/components/store/StoreCards';
 
 import {
     STANDARD_REWARDS,
@@ -45,6 +45,7 @@ import {
     VIP_BENEFITS,
     MERCHANDISE
 } from '../../src/data/diamondStoreData';
+import styles from '../../src/components/diamond-store/diamondStoreStyles';
 
 // PackageCard, VIPCard, MerchCard — extracted to src/components/store/StoreCards.js
 
@@ -52,7 +53,7 @@ import {
 // MAIN DIAMOND STORE PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 export default function DiamondStorePage() {
-    const bus = useTrainingBus('diamond-store');
+    useTrainingBus('diamond-store');
     const router = useRouter();
 
     // Persisted filters for activeTab and rewardsSubTab
@@ -66,7 +67,6 @@ export default function DiamondStorePage() {
     const setActiveTab = (val) => setFilter('activeTab', val);
     const setRewardsSubTab = (val) => setFilter('rewardsSubTab', val);
 
-    const [selectedPackage, setSelectedPackage] = useState('standard');
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isVip, setIsVip] = useState(false);
@@ -99,10 +99,27 @@ export default function DiamondStorePage() {
     const [clubShopNewImage, setClubShopNewImage] = useState('');
     const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
     const clubShopLoadingRef = useRef(false);
+    const clubShopSuccessTimerRef = useRef(null);
+
+    // Deep-link support: /hub/diamond-store?tab=<tabId> (e.g. middle-click on
+    // the "View in Marketplace" link, or external links targeting a tab)
+    useEffect(() => {
+        if (!router.isReady) return;
+        const tab = router.query.tab;
+        if (typeof tab === 'string' && ['diamonds', 'vip', 'merch', 'rewards', 'club-shop'].includes(tab)) {
+            setActiveTab(tab);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.isReady]);
+
+    // Clear any pending club-shop success-toast timer on unmount
+    useEffect(() => () => {
+        if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
+    }, []);
 
     // Check VIP status on mount
     useEffect(() => {
-        const _c = new AbortController();
+        let cancelled = false;
 
         (async () => {
             const authUser = getAuthUser();
@@ -113,11 +130,12 @@ export default function DiamondStorePage() {
                     .select('is_vip, diamond_multiplier')
                     .eq('id', authUser.id)
                     .maybeSingle();
+                if (cancelled) return;
                 setIsVip(!!profile?.is_vip);
                 if (profile?.diamond_multiplier) setDiamondMultiplier(Number(profile.diamond_multiplier));
             }
         })();
-        return () => _c.abort();
+        return () => { cancelled = true; };
     }, []);
     // Realtime subscription — live updates (read actual VIP status from payload)
     useEffect(() => {
@@ -138,38 +156,55 @@ export default function DiamondStorePage() {
 
     // Cross-tab diamond purchase sync — refresh balance when another tab purchases
     useEffect(() => {
+        let cancelled = false;
         const cleanup = listenBroadcast('smarter_poker_diamond_sync', () => {
             // Another tab purchased diamonds — refresh VIP status
             if (user?.id) {
-                supabase.from('profiles').select('is_vip, diamond_balance').eq('id', user.id).maybeSingle()
-                    .then(({ data }) => {
-                        if (data) setIsVip(!!data.is_vip);
+                supabase.from('profiles').select('is_vip').eq('id', user.id).maybeSingle()
+                    .then(({ data, error }) => {
+                        if (error) { console.warn('[Diamond Store] VIP refresh failed:', error.message || error); return; }
+                        if (!cancelled && data) setIsVip(!!data.is_vip);
                     });
             }
         });
-        return cleanup;
+        return () => { cancelled = true; cleanup(); };
     }, [user?.id]);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    // INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     // NOTE: Always initialize to false (server-safe) to prevent hydration mismatch.
     // Read sessionStorage in useEffect after client mount.
     const [showIntro, setShowIntro] = useState(false);
     const introVideoRef = useRef(null);
 
-    // Intro video removed by request
-
-    // Mark intro as seen when it ends
-    const handleIntroEnd = useCallback(() => {
-        sessionStorage.setItem('marketplace-intro-seen', 'true');
-        setShowIntro(false);
+    // After mount: check if user has seen the intro already
+    useEffect(() => {
+        try {
+            if (!sessionStorage.getItem('marketplace-intro-seen')) {
+                setShowIntro(true);
+            }
+        } catch (_) {}
     }, []);
 
-    // Attempt to unmute video after it starts playing
+    // Mark intro as seen when it ends
+    // NOTE: dismiss FIRST — sessionStorage.setItem can throw (Safari private
+    // browsing) and must never block hiding the full-screen overlay.
+    const handleIntroEnd = useCallback(() => {
+        setShowIntro(false);
+        try { sessionStorage.setItem('marketplace-intro-seen', 'true'); } catch (_) {}
+    }, []);
+
+    // Attempt to unmute video after it starts playing.
+    // Autoplay policies may pause an autoplaying video that is unmuted without
+    // a user gesture — if that happens, re-mute and resume playback.
     const handleIntroPlay = useCallback(() => {
-        if (introVideoRef.current) {
-            introVideoRef.current.muted = false;
-        }
+        const v = introVideoRef.current;
+        if (!v) return;
+        v.muted = false;
+        Promise.resolve(v.play()).catch(() => {
+            v.muted = true;
+            v.play().catch(() => {});
+        });
     }, []);
 
     const { addItem } = useCartStore();
@@ -194,6 +229,7 @@ export default function DiamondStorePage() {
 
     // Handle checkout from cart
     const handleCheckout = async (items) => {
+        if (isProcessing) return;
         setIsProcessing(true);
 
         try {
@@ -205,7 +241,26 @@ export default function DiamondStorePage() {
                 return;
             }
 
-            // Create checkout session
+            // Only diamond packages are checked out through this handler. A VIP
+            // plan goes straight to a subscription session (handleVIPSubscribe),
+            // and merchandise uses the dedicated cart page.
+            const diamondItems = (items || []).filter(item => item?.type === 'diamonds');
+
+            if (diamondItems.length !== (items || []).length) {
+                showStoreToast('error', 'Only diamond packages can be checked out here. Please remove the other items from your cart.');
+                setIsProcessing(false);
+                return;
+            }
+            if (diamondItems.length === 0) {
+                showStoreToast('error', 'Your cart is empty.');
+                setIsProcessing(false);
+                return;
+            }
+
+            // Create checkout session.
+            // Send the package id + quantity ONLY — the server resolves the name,
+            // price, diamonds and bonus from its own catalog. Client-supplied
+            // prices are never trusted (and are ignored server-side).
             const response = await fetch('/api/store/create-checkout-session', {
                 method: 'POST',
                 headers: {
@@ -214,21 +269,25 @@ export default function DiamondStorePage() {
                 },
                 body: JSON.stringify({
                     type: 'diamonds',
-                    items: items.map(item => ({
-                        name: item.name,
-                        diamonds: item.diamonds,
-                        bonus: item.bonus,
-                        price: item.price,
-                        quantity: item.quantity
+                    items: diamondItems.map(item => ({
+                        packageId: String(item.id || '').replace(/^diamond-/, ''),
+                        quantity: item.quantity || 1
                     }))
                 })
             });
 
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => null);
+                throw new Error(errBody?.error?.message || `Request failed (${response.status})`);
+            }
             const data = await response.json();
 
             if (!data.success) {
                 throw new Error(data.error?.message || 'Failed to create checkout session');
+            }
+
+            if (!data.data?.url) {
+                throw new Error('Checkout session missing redirect URL');
             }
 
             // Redirect to Stripe Checkout
@@ -241,8 +300,10 @@ export default function DiamondStorePage() {
         }
     };
 
-    // VIP subscription — adds to cart (allows monthly→annual upgrade)
+    // VIP subscription — the daily pass is bought with diamonds, the monthly and
+    // annual tiers go straight to a Stripe Checkout subscription session.
     const handleVIPSubscribe = async () => {
+        if (isProcessing) return;
         const plan = selectedVIP === 'vip-daily' ? VIP_MEMBERSHIP.daily :
             selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
 
@@ -264,15 +325,22 @@ export default function DiamondStorePage() {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                     });
-                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                    const data = await res.json();
-                    if (data.success) {
+                    // Parse the body FIRST — the API returns meaningful errors
+                    // ('Insufficient diamonds' + required/current) with a 400.
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                        const detail = (data?.required != null && data?.current != null)
+                            ? ` (need ${Number(data.required).toLocaleString()}, you have ${Number(data.current).toLocaleString()})`
+                            : '';
+                        throw new Error(`${data?.error || `Request failed (${res.status})`}${detail}`);
+                    }
+                    if (data?.success) {
                         showStoreToast('success', 'VIP Daily Pass Activated! Enjoy your premium features.');
                         setIsVip(true);
                         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
                         broadcastSync('smarter_poker_diamond_sync', 'refresh');
                     } else {
-                        showStoreToast('error', `VIP purchase failed: ${data.error}`);
+                        showStoreToast('error', `VIP purchase failed: ${data?.error || 'Unknown error'}`);
                     }
                 } catch (e) {
                     showStoreToast('error', 'Error purchasing VIP pass: ' + e.message);
@@ -283,19 +351,44 @@ export default function DiamondStorePage() {
             return;
         }
 
-        addItem({
-            id: `vip-${plan.id}`,
-            name: plan.name,
-            type: 'vip',
-            price: plan.price,
-            interval: plan.interval,
-            quantity: 1
-        });
-    };
+        // Paid tiers (monthly / annual) — Stripe Checkout in subscription mode.
+        // Only the plan key is sent; the server resolves the Stripe price ID from
+        // its own env config, so the price is never client-controlled.
+        const token = getAccessToken();
+        if (!token) {
+            showStoreToast('error', 'Please sign in to subscribe to VIP.');
+            return;
+        }
 
-    // Direct diamond package purchase (adds to cart)
-    const handleDiamondPurchase = (pkg) => {
-        handleAddToCart(pkg);
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    type: 'subscription',
+                    items: [{ plan: plan.id }]
+                })
+            });
+
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.error?.message || `Request failed (${response.status})`);
+            }
+            if (!data.data?.url) {
+                throw new Error('Checkout session missing redirect URL');
+            }
+
+            // Redirect to Stripe Checkout (isProcessing stays true through nav)
+            window.location.href = data.data.url;
+        } catch (error) {
+            console.warn('VIP subscription error:', error);
+            showStoreToast('error', error.message || 'Failed to start VIP checkout. Please try again.');
+            setIsProcessing(false);
+        }
     };
 
     const handleMerchPurchase = (itemId) => {
@@ -309,9 +402,9 @@ export default function DiamondStorePage() {
         if (!silent) setClubShopLoading(true);
         try {
             const token = getAccessToken();
-            if (!token) { clubShopLoadingRef.current = false; setClubShopLoading(false); return; }
+            if (!token) { clubShopLoadingRef.current = false; setClubShopLoading(false); setClubShopLoaded(true); return; }
             const authUser = getAuthUser();
-            if (!authUser?.id) { clubShopLoadingRef.current = false; setClubShopLoading(false); return; }
+            if (!authUser?.id) { clubShopLoadingRef.current = false; setClubShopLoading(false); setClubShopLoaded(true); return; }
 
             // Find user's club
             let targetClub = clubShopClubId;
@@ -342,6 +435,7 @@ export default function DiamondStorePage() {
                 ...i,
                 club_id: targetClub,
                 is_active: true,
+                price: Number(i.price) || 0,
                 purchase_count: i.purchase_count || 0,
             })));
             setClubShopPurchases(data.purchases || []);
@@ -350,6 +444,7 @@ export default function DiamondStorePage() {
             setClubShopLoaded(true);
         } catch (err) {
             console.warn('[Club Shop]', err);
+            if (!silent) showStoreToast('error', 'Failed to load the club shop. Please try again.');
         } finally {
             clubShopLoadingRef.current = false;
             setClubShopLoading(false);
@@ -364,7 +459,9 @@ export default function DiamondStorePage() {
             const token = getAccessToken();
             if (!token) throw new Error('Not authenticated');
 
-            const idempotencyKey = crypto.randomUUID();
+            const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
             const response = await fetch('/api/club-arena/marketplace-purchase', {
                 method: 'POST',
                 headers: {
@@ -378,7 +475,8 @@ export default function DiamondStorePage() {
             if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
 
             setClubShopSuccess(`Purchased ${clubShopBuyTarget.name}!`);
-            setTimeout(() => setClubShopSuccess(null), 2500);
+            if (clubShopSuccessTimerRef.current) clearTimeout(clubShopSuccessTimerRef.current);
+            clubShopSuccessTimerRef.current = setTimeout(() => setClubShopSuccess(null), 2500);
             setClubChipBalance(responseData.newBalance ?? (clubChipBalance - clubShopBuyTarget.price));
             // Emit bus event so other components (cashier, etc.) update
             broadcastSync('BALANCE_UPDATED', { source: 'club_shop_purchase', clubId: clubShopClubId });
@@ -401,7 +499,7 @@ export default function DiamondStorePage() {
                 .select('id, club_id, name, description, price, image_url, category, is_active')
                 .eq('club_id', clubShopClubId)
                 .order('created_at', { ascending: false });
-            let itemsWithCounts = (data || []).map(i => ({ ...i, purchase_count: 0 }));
+            let itemsWithCounts = (data || []).map(i => ({ ...i, price: Number(i.price) || 0, purchase_count: 0 }));
             if (itemsWithCounts.length > 0) {
                 const itemIds = itemsWithCounts.map(i => i.id);
                 const { data: countRows } = await supabase
@@ -421,6 +519,15 @@ export default function DiamondStorePage() {
     }, [clubShopClubId]);
 
     const clubShopIsAdmin = ['owner', 'admin'].includes(clubShopRole);
+
+    // ═══ Club Shop: Auto-load when tab is restored/deep-linked ═══
+    // activeTab is persisted, so a user can land directly on 'club-shop'
+    // without ever clicking the tab button (which is the only other trigger).
+    useEffect(() => {
+        if (activeTab === 'club-shop' && !clubShopLoaded && !clubShopLoadingRef.current) {
+            loadClubShop();
+        }
+    }, [activeTab, clubShopLoaded, loadClubShop]);
 
     // ═══ Club Shop: 5-second loading timeout safety ═══
     useEffect(() => {
@@ -483,46 +590,46 @@ export default function DiamondStorePage() {
         return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, [clubShopClubId, loadClubShop, activeTab]);
 
-    // Pay with Diamonds handler — deducts from user's diamond balance
+    // Pay with Diamonds handler — routes through the server API, which
+    // validates pricing and deducts atomically (never trust a client-computed
+    // cost or a client-side deduct RPC for a purchase).
+    // NOTE: Diamond packages and VIP subscriptions can NOT be bought with
+    // diamonds — /api/store/purchase-with-diamonds only deducts (diamond
+    // grants and VIP activation happen exclusively in the Stripe webhook /
+    // purchase-daily-vip endpoint), so those paths would charge the user and
+    // deliver nothing. Same policy as /hub/diamond-store/cart.
     const handlePayWithDiamonds = async (items) => {
+        if (isProcessing) return;
+        if (!items?.length) return;
+
+        if (items.some(item => item?.type === 'diamonds' || item?.type === 'vip')) {
+            showStoreToast('error', 'Diamond packages and VIP subscriptions cannot be purchased with diamonds. Please use card checkout.');
+            return;
+        }
+
+        const token = getAccessToken();
+        if (!token || !user?.id) {
+            showStoreToast('error', 'Please sign in to pay with diamonds');
+            return;
+        }
+
         setIsProcessing(true);
         try {
-            const token = getAccessToken();
-            if (!token || !user?.id) {
-                showStoreToast('error', 'Please sign in to pay with diamonds');
-                setIsProcessing(false);
-                return;
-            }
-
-            // Get user's diamond balance
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            const userDiamonds = profile?.diamonds ?? 0;
-
-            // Calculate total diamond cost (diamond items use their diamond count as the cost)
-            const totalDiamondCost = items.reduce((sum, item) => {
-                return sum + ((item.diamonds || 0) * (item.quantity || 1));
-            }, 0);
-
-            if (userDiamonds < totalDiamondCost) {
-                showStoreToast('warning', `Not enough diamonds. You have ${userDiamonds.toLocaleString()} but need ${totalDiamondCost.toLocaleString()}.`);
-                setIsProcessing(false);
-                return;
-            }
-
-            // Deduct diamonds
-            const { error } = await supabase.rpc('deduct_diamonds', {
-                p_user_id: user.id,
-                p_amount: totalDiamondCost,
-                p_description: `Diamond Store purchase: ${items.map(i => i.name).join(', ')}`,
-                p_transaction_type: 'purchase'
+            const response = await fetch('/api/store/purchase-with-diamonds', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ items })
             });
 
-            if (error) throw error;
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.error || `Request failed (${response.status})`);
+            }
+
+            const totalDiamondCost = data.data?.diamonds_spent ?? 0;
 
             showStoreToast('success', `Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`);
             // Play success sound
@@ -531,7 +638,7 @@ export default function DiamondStorePage() {
             const { clearCart } = useCartStore.getState();
             clearCart();
 
-            // 🚌 BUS EVENT: Notify all listeners of diamond spend
+            // BUS EVENT: Notify all listeners of diamond spend
             busEmit.diamondsSpent(totalDiamondCost, 'Diamond Store Purchase');
 
             // Broadcast across tabs — diamond balance + chips changed
@@ -546,14 +653,17 @@ export default function DiamondStorePage() {
         }
     };
 
-    const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
-    const selectedVIPPlan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+    const selectedVIPPlan = selectedVIP === 'vip-daily' ? VIP_MEMBERSHIP.daily :
+        selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+    const vipSubscribeLabel = selectedVIPPlan?.isDiamondCost
+        ? `Activate ${selectedVIPPlan?.name || '1-Day VIP Pass'} — ${Number(selectedVIPPlan?.price || 0).toLocaleString()} Diamonds`
+        : `Subscribe — $${selectedVIPPlan?.price ?? '19.99'}/${selectedVIPPlan?.interval || 'month'}`;
 
     return (
         <>
             <StoreToast />
             <PageTransition>
-                {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+                {/* INTRO VIDEO OVERLAY - Plays while page loads behind it */}
                 {showIntro && (
                     <div style={{
                         position: 'fixed',
@@ -608,16 +718,15 @@ export default function DiamondStorePage() {
                 <Head>
                     <title>Diamond Store — Smarter.Poker</title>
                     <meta name="description" content="Purchase diamonds to unlock premium features" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
                     <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translate(-50%, -6px); }
+                        to { opacity: 1; transform: translate(-50%, 0); }
+                    }
                 `}</style>
                 </Head>
 
@@ -640,28 +749,43 @@ export default function DiamondStorePage() {
                             src="/images/diamond-store-header.png"
                             alt="Diamonds Store"
                             style={{ width: '100%', height: 'auto', display: 'block' }}
-                            draggable={false}
-                            loading="lazy" />
+                            draggable={false} />
 
                         {/* ── Tab button clickable zones ── */}
                         {/* Diamonds tab */}
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Diamonds tab"
                             onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('diamonds'); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                             style={{ position: 'absolute', left: '3%', top: '62%', width: '18%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* VIP Membership tab */}
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="VIP Membership tab"
                             onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('vip'); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                             style={{ position: 'absolute', left: '24%', top: '62%', width: '26%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Merch tab */}
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Merch tab"
                             onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('merch'); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                             style={{ position: 'absolute', left: '53%', top: '62%', width: '19%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Smarter Rewards tab */}
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Smarter Rewards tab"
                             onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('rewards'); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                             style={{ position: 'absolute', left: '75%', top: '62%', width: '23%', height: '34%', cursor: 'pointer' }}
                         />
                     </div>
@@ -719,11 +843,10 @@ export default function DiamondStorePage() {
                                 src="/images/diamond-store-checkout.png"
                                 alt="Diamond Packages — Click any box to add to cart"
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
-                                draggable={false}
-                                loading="lazy" />
+                                draggable={false} />
                             {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[
-                                { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 Diamonds — Micro $10
+                                { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 Diamonds — Medium $10
                                 { pkgIndex: 3, left: '51%', top: '25%', width: '46%', height: '21%' }, // 2,500 Diamonds — Standard $25
                                 { pkgIndex: 4, left: '3%', top: '49%', width: '46%', height: '23%' }, // 5,000 Diamonds — Large $50
                                 { pkgIndex: 5, left: '51%', top: '49%', width: '46%', height: '23%' }, // 10,500 Diamonds — Value $100
@@ -735,7 +858,11 @@ export default function DiamondStorePage() {
                                 return (
                                     <div
                                         key={pkg.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Add ${pkg.name} — ${(pkg.diamonds + (pkg.bonus || 0)).toLocaleString()} Diamonds for $${pkg.price.toFixed(2)} — to cart`}
                                         onClick={() => handleAddToCart(pkg)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAddToCart(pkg); } }}
                                         title={`${pkg.name} — ${(pkg.diamonds + (pkg.bonus || 0)).toLocaleString()} Diamonds — $${pkg.price.toFixed(2)} — Click to add to cart`}
                                         style={{
                                             position: 'absolute',
@@ -802,7 +929,12 @@ export default function DiamondStorePage() {
                                 {/* Subscribe Button — Metallic Image */}
                                 <div style={styles.vipSubscribeSection}>
                                     <div
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={isProcessing ? 'Processing...' : vipSubscribeLabel}
+                                        aria-disabled={isProcessing}
                                         onClick={handleVIPSubscribe}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleVIPSubscribe(); } }}
                                         style={{
                                             cursor: isProcessing ? 'wait' : 'pointer',
                                             opacity: isProcessing ? 0.6 : 1,
@@ -814,10 +946,14 @@ export default function DiamondStorePage() {
                                     >
                                         <img
                                             src="/images/subscribe-button.png"
-                                            alt={isProcessing ? 'Processing...' : 'Subscribe For $19.99 A Month'}
+                                            alt={isProcessing ? 'Processing...' : vipSubscribeLabel}
                                             style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
                                             draggable={false}
                                             loading="lazy" />
+                                        {/* Plan-aware caption — the image itself is static ($19.99/month) */}
+                                        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+                                            {isProcessing ? 'Processing...' : vipSubscribeLabel}
+                                        </div>
                                     </div>
 
                                 </div>
@@ -949,6 +1085,7 @@ export default function DiamondStorePage() {
                                     <h2 style={styles.merchTitle}>Official Merch</h2>
                                     <p style={styles.introText}>
                                         Rep The Smarter.Poker Brand At The Tables. Premium Quality Gear For Serious Players.
+                                        Merch Checkout Is Coming Soon — Browse The Lineup Below.
                                     </p>
                                     {isVip && (
                                         <div style={{
@@ -1013,7 +1150,7 @@ export default function DiamondStorePage() {
                                                 background: diamondMultiplier > 1.0 ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)',
                                                 fontSize: 20,
                                             }}>
-                                                {diamondMultiplier > 1.0 ? '⚡' : '💎'}
+                                                {diamondMultiplier > 1.0 ? <Zap size={20} color="#f59e0b" /> : <Gem size={20} color="#818cf8" />}
                                             </div>
                                             <div>
                                                 <div style={{ fontSize: 14, fontWeight: 700, color: diamondMultiplier > 1.0 ? '#f59e0b' : '#818cf8' }}>
@@ -1088,7 +1225,7 @@ export default function DiamondStorePage() {
 
                                         <div style={styles.overviewGrid}>
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}></div>
+                                                <div style={styles.overviewIcon}><Gem size={40} color="#00D4FF" /></div>
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Earn Diamonds Through Daily Logins, Training, Social Engagement, And Referrals.
@@ -1097,7 +1234,7 @@ export default function DiamondStorePage() {
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}></div>
+                                                <div style={styles.overviewIcon}><Crown size={40} color="#FFD700" /></div>
                                                 <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
                                                 <div style={{ marginTop: 12, marginBottom: 12 }}>
                                                     <img
@@ -1159,7 +1296,7 @@ export default function DiamondStorePage() {
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}></div>
+                                                <div style={styles.overviewIcon}><Gift size={40} color="#00ff88" /></div>
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Discover <strong>100 Hidden Achievements</strong> Across 6 Categories.
@@ -1174,7 +1311,7 @@ export default function DiamondStorePage() {
                                                 <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>2</span>
+                                                <span style={styles.quickStatValue}>{Object.keys(VIP_MEMBERSHIP).length}</span>
                                                 <span style={styles.quickStatLabel}>VIP Plans</span>
                                             </div>
                                             <div style={styles.quickStat}>
@@ -1182,7 +1319,7 @@ export default function DiamondStorePage() {
                                                 <span style={styles.quickStatLabel}>Easter Eggs</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>14</span>
+                                                <span style={styles.quickStatValue}>{STANDARD_REWARDS.length}</span>
                                                 <span style={styles.quickStatLabel}>Standard Rewards</span>
                                             </div>
                                         </div>
@@ -1194,7 +1331,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.diamondRewardsSection}>
                                         <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
-                                            All 14 Ways You Can Earn Diamonds On Smarter.Poker
+                                            All {STANDARD_REWARDS.length} Ways You Can Earn Diamonds On Smarter.Poker
                                         </p>
 
                                         {/* Daily Cap Banner */}
@@ -1482,11 +1619,17 @@ export default function DiamondStorePage() {
                                         Loading club shop...
                                     </div>
                                 ) : !clubShopClubId ? (
-                                    <div style={{ textAlign: 'center', padding: 40 }}>
-                                        <div style={{ marginBottom: 12 }}><Home size={48} color="rgba(255,255,255,0.3)" /></div>
-                                        <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>No Club Found</div>
-                                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Join a club to access the Club Shop.</p>
-                                    </div>
+                                    clubShopLoaded ? (
+                                        <div style={{ textAlign: 'center', padding: 40 }}>
+                                            <div style={{ marginBottom: 12 }}><Home size={48} color="rgba(255,255,255,0.3)" /></div>
+                                            <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>No Club Found</div>
+                                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Join a club to access the Club Shop.</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
+                                            Loading club shop...
+                                        </div>
+                                    )
                                 ) : (
                                     <>
                                         {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
@@ -1737,7 +1880,7 @@ export default function DiamondStorePage() {
                                                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
                                                     borderRadius: 14, padding: 20, marginBottom: 24,
                                                 }}>
-                                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 14 }}>➕ Create Shop Item</h3>
+                                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 14 }}><Wrench size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} /> Create Shop Item</h3>
                                                     <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                                                         <input value={clubShopNewName} onChange={e => setClubShopNewName(e.target.value)}
                                                             placeholder="Item name" maxLength={100}
@@ -1895,924 +2038,14 @@ export default function DiamondStorePage() {
     </PageTransition>
 
             {/* Shopping Cart Component */}
-            <ShoppingCart onCheckout={handleCheckout} onPayWithDiamonds={handlePayWithDiamonds} />
+            <ShoppingCart onCheckout={handleCheckout} onPayWithDiamonds={handlePayWithDiamonds} isProcessing={isProcessing} />
         </>
     );
 }
 
+
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES
+// STYLES — imported from src/components/diamond-store/diamondStoreStyles.js
+// (single source of truth; the former inline duplicate was removed after being
+// verified byte-identical to the shared module)
 // ═══════════════════════════════════════════════════════════════════════════
-const styles = {
-    container: {
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-        background: '#000000',
-        fontFamily: 'Inter, -apple-system, sans-serif',
-        position: 'relative',
-    },
-    bgGrid: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: `
-            linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px)
-            `,
-        backgroundSize: '60px 60px',
-        pointerEvents: 'none',
-    },
-    bgGlow: {
-        position: 'fixed',
-        top: '30%',
-        left: '50%',
-        width: '100%',
-        height: '100%',
-        transform: 'translate(-50%, -50%)',
-        background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.1), transparent 60%)',
-        pointerEvents: 'none',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(36, 37, 38, 0.95)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 100,
-    },
-    // TAB NAVIGATION
-    tabNav: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(36, 37, 38, 0.95)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 99,
-    },
-    tabButton: {
-        padding: '10px 24px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        borderRadius: 10,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-    },
-    tabButtonActive: {
-        background: 'rgba(0, 212, 255, 0.2)',
-        border: '1px solid #00D4FF',
-        color: '#00D4FF',
-    },
-    tabButtonActiveVIP: {
-        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
-        border: '1px solid #1877F2',
-        color: '#1877F2',
-    },
-    backButton: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '10px 16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 8,
-        color: '#00D4FF',
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-    },
-    pageTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#E4E6EB',
-    },
-    content: {
-        maxWidth: 900,
-        margin: '0 auto',
-        padding: '32px 24px',
-    },
-    intro: {
-        textAlign: 'center',
-        marginBottom: 40,
-    },
-    introText: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.7)',
-        maxWidth: 600,
-        margin: '0 auto',
-        lineHeight: 1.6,
-    },
-    packageGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: 20,
-        marginBottom: 40,
-    },
-    purchaseSection: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 16,
-        padding: '20px 28px',
-        marginBottom: 48,
-    },
-    selectedInfo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-    selectedLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-    selectedName: {
-        fontSize: 16,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    selectedDiamonds: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#00D4FF',
-    },
-    purchaseButton: {
-        padding: '14px 40px',
-        background: 'linear-gradient(135deg, #00D4FF, #0088cc)',
-        border: 'none',
-        borderRadius: 12,
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
-    },
-    earnSection: {
-        textAlign: 'center',
-        marginBottom: 40,
-    },
-    earnTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 24,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    earnSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 24,
-    },
-    earnGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: 12,
-    },
-    earnCard: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-        padding: '20px 12px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-    },
-    earnIcon: {
-        fontSize: 28,
-    },
-    earnLabel: {
-        fontSize: 13,
-        fontWeight: 500,
-        color: '#fff',
-    },
-    earnReward: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#00ff88',
-    },
-    legalNote: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-        textAlign: 'center',
-        maxWidth: 500,
-        margin: '0 auto',
-        lineHeight: 1.6,
-    },
-    link: {
-        color: '#00D4FF',
-        textDecoration: 'none',
-    },
-    // YELLOW BALL REWARD SYSTEM STYLES
-    rewardSystem: {
-        marginBottom: 40,
-    },
-    capBanner: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 32,
-        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1))',
-        border: '1px solid rgba(255, 215, 0, 0.3)',
-        borderRadius: 16,
-        padding: '20px 32px',
-        marginBottom: 32,
-    },
-    capInfo: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    },
-    capNumber: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 36,
-        fontWeight: 700,
-        color: '#FFD700',
-    },
-    capLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    capDivider: {
-        width: 1,
-        height: 50,
-        background: 'rgba(255, 215, 0, 0.3)',
-    },
-    streakMultipliers: {
-        display: 'flex',
-        gap: 24,
-    },
-    multiplierItem: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    },
-    multiplierValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 24,
-        fontWeight: 700,
-        color: '#00ff88',
-    },
-    multiplierValueGold: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 24,
-        fontWeight: 700,
-        color: '#FFD700',
-    },
-    multiplierLabel: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-    payoutSection: {
-        marginBottom: 32,
-    },
-    payoutTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 18,
-        fontWeight: 600,
-        color: '#fff',
-        marginBottom: 16,
-    },
-    payoutGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 12,
-    },
-    payoutCard: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '14px 18px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 10,
-    },
-    referralCard: {
-        background: 'rgba(0, 255, 136, 0.1)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
-    },
-    payoutIcon: {
-        fontSize: 24,
-    },
-    payoutInfo: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    payoutName: {
-        fontSize: 14,
-        fontWeight: 500,
-        color: '#fff',
-    },
-    payoutNote: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-    bypassNote: {
-        fontSize: 11,
-        color: '#00ff88',
-        fontWeight: 600,
-    },
-    payoutReward: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#00D4FF',
-    },
-    referralReward: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#00ff88',
-    },
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SMARTER REWARDS SUB-TAB STYLES
-    // ═══════════════════════════════════════════════════════════════════════════
-    rewardsSubNav: {
-        display: 'flex',
-        gap: 8,
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(36, 37, 38, 0.95)',
-        position: 'sticky',
-        top: 80,
-        zIndex: 98,
-        overflowX: 'auto',
-    },
-    rewardsSubTab: {
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        borderRadius: 8,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        padding: '10px 20px',
-        transition: 'all 0.2s ease',
-        whiteSpace: 'nowrap',
-    },
-    rewardsSubTabActive: {
-        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-        color: '#fff',
-        border: '1px solid transparent',
-    },
-
-    // Overview Section
-    rewardsOverview: {
-        padding: '32px 24px',
-    },
-    overviewGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 20,
-        marginTop: 32,
-        marginBottom: 32,
-    },
-    overviewCard: {
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        padding: 24,
-        textAlign: 'center',
-    },
-    overviewIcon: {
-        fontSize: 48,
-        marginBottom: 16,
-    },
-    overviewCardTitle: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        marginBottom: 12,
-    },
-    overviewCardText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
-        lineHeight: 1.6,
-    },
-    quickStats: {
-        display: 'flex',
-        justifyContent: 'space-around',
-        gap: 20,
-        marginTop: 32,
-        padding: '24px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-    quickStat: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-    },
-    quickStatValue: {
-        fontSize: 32,
-        fontWeight: 700,
-        color: '#00ff88',
-        fontFamily: 'Orbitron, sans-serif',
-    },
-    quickStatLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-    },
-
-    // Diamond Rewards Section
-    diamondRewardsSection: {
-        padding: '32px 24px',
-    },
-    rewardCategory: {
-        marginBottom: 32,
-    },
-    categoryTitle: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        marginBottom: 16,
-        fontFamily: 'Orbitron, sans-serif',
-    },
-    rewardList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-    },
-    rewardItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        padding: 16,
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 10,
-    },
-    rewardIcon: {
-        fontSize: 24,
-        flexShrink: 0,
-    },
-    rewardDetails: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-    },
-    rewardName: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#E4E6EB',
-    },
-    rewardNote: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-    rewardAmount: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#00D4FF',
-        flexShrink: 0,
-    },
-    referralHighlight: {
-        background: 'rgba(0, 255, 136, 0.1)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
-    },
-
-    // XP System Section
-    levelBadge: {
-        display: 'inline-block',
-        padding: '4px 12px',
-        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-        borderRadius: 6,
-        fontSize: 13,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    unlocksList: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 6,
-    },
-    unlockBadge: {
-        display: 'inline-block',
-        padding: '4px 10px',
-        background: 'rgba(0, 255, 136, 0.15)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
-        borderRadius: 6,
-        fontSize: 11,
-        color: '#00ff88',
-        fontWeight: 600,
-    },
-    noUnlocks: {
-        color: 'rgba(255, 255, 255, 0.3)',
-    },
-
-    // Easter Eggs Section
-    easterEggsSection: {
-        padding: '32px 24px',
-    },
-    eggGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-        gap: 20,
-        marginTop: 24,
-    },
-    eggCard: {
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        padding: 20,
-        textAlign: 'center',
-        transition: 'all 0.3s ease',
-        cursor: 'pointer',
-    },
-    eggIcon: {
-        fontSize: 48,
-        marginBottom: 12,
-    },
-    eggName: {
-        fontSize: 16,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        marginBottom: 8,
-    },
-    eggReward: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#FFD700',
-        marginBottom: 12,
-        fontFamily: 'Orbitron, sans-serif',
-    },
-    eggTrigger: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        lineHeight: 1.5,
-    },
-    // Egg Category Styles
-    eggCategory: {
-        marginBottom: 48,
-    },
-    eggCategoryTitle: {
-        fontSize: 20,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        marginBottom: 20,
-        fontFamily: 'Orbitron, sans-serif',
-    },
-    // Rarity Badge Styles
-    rarityBadge: {
-        display: 'inline-block',
-        padding: '4px 12px',
-        borderRadius: 6,
-        fontSize: 10,
-        fontWeight: 700,
-        marginBottom: 8,
-        letterSpacing: '0.5px',
-    },
-    rarityCommon: {
-        background: 'rgba(158, 158, 158, 0.2)',
-        border: '1px solid rgba(158, 158, 158, 0.4)',
-        color: '#9E9E9E',
-    },
-    rarityUncommon: {
-        background: 'rgba(76, 175, 80, 0.2)',
-        border: '1px solid rgba(76, 175, 80, 0.4)',
-        color: '#4CAF50',
-    },
-    rarityRare: {
-        background: 'rgba(33, 150, 243, 0.2)',
-        border: '1px solid rgba(33, 150, 243, 0.4)',
-        color: '#2196F3',
-    },
-    rarityEpic: {
-        background: 'rgba(156, 39, 176, 0.2)',
-        border: '1px solid rgba(156, 39, 176, 0.4)',
-        color: '#9C27B0',
-    },
-    rarityLegendary: {
-        background: 'rgba(255, 152, 0, 0.2)',
-        border: '1px solid rgba(255, 152, 0, 0.4)',
-        color: '#FF9800',
-    },
-
-    easterSection: {
-        textAlign: 'center',
-        marginBottom: 24,
-    },
-    easterTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 18,
-        fontWeight: 600,
-        color: '#fff',
-        marginBottom: 8,
-    },
-    easterSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 20,
-    },
-    easterGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: 12,
-        marginBottom: 20,
-    },
-    easterCategory: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 6,
-        padding: '16px 12px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '2px solid',
-        borderRadius: 12,
-    },
-    categoryRange: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-    },
-    categoryName: {
-        fontSize: 13,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    categoryExample: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontStyle: 'italic',
-    },
-    legendaryNote: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
-        background: 'rgba(255, 215, 0, 0.1)',
-        border: '1px solid rgba(255, 215, 0, 0.3)',
-        borderRadius: 10,
-        padding: '14px 20px',
-        lineHeight: 1.6,
-        textAlign: 'center',
-    },
-    // 5-PILLAR CARD STYLES
-    pillarGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 16,
-        marginBottom: 24,
-    },
-    pillarCard: {
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '2px solid',
-        borderRadius: 16,
-        padding: 20,
-        textAlign: 'left',
-    },
-    pillarHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-    },
-    pillarIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 24,
-    },
-    pillarName: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    pillarRange: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-    pillarExamples: {
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        paddingTop: 12,
-    },
-    exampleRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
-        marginBottom: 8,
-    },
-    exDiamonds: {
-        marginLeft: 'auto',
-        color: '#00D4FF',
-        fontWeight: 600,
-    },
-    exDiamondsRare: {
-        marginLeft: 'auto',
-        color: '#8a2be2',
-        fontWeight: 600,
-    },
-    exDiamondsEpic: {
-        marginLeft: 'auto',
-        color: '#ff6b9d',
-        fontWeight: 600,
-    },
-    exDiamondsLegendary: {
-        marginLeft: 'auto',
-        color: '#FFD700',
-        fontWeight: 700,
-    },
-    // VIP MEMBERSHIP STYLES
-    vipHero: {
-        textAlign: 'center',
-        marginBottom: 32,
-    },
-    vipTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 32,
-        fontWeight: 700,
-        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        marginBottom: 12,
-    },
-    vipSubtitle: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.7)',
-        margin: '0 auto',
-        lineHeight: 1.4,
-    },
-    vipPlansRow: {
-        display: 'flex',
-        gap: 20,
-        marginBottom: 24,
-    },
-    vipSubscribeSection: {
-        textAlign: 'center',
-        marginBottom: 40,
-    },
-    vipSubscribeButton: {
-        padding: '16px 48px',
-        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-        border: 'none',
-        borderRadius: 12,
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: '0 0 30px rgba(138, 43, 226, 0.4)',
-    },
-    vipCancelNote: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 12,
-    },
-    benefitsSection: {
-        marginBottom: 32,
-    },
-    benefitsTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 20,
-        fontWeight: 600,
-        color: '#E4E6EB',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    benefitsCategoryHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        marginTop: 20,
-        marginBottom: 12,
-        paddingBottom: 8,
-        borderBottom: '1px solid rgba(255, 215, 0, 0.15)',
-    },
-    benefitsCategoryIcon: {
-        fontSize: 20,
-    },
-    benefitsCategoryLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 13,
-        fontWeight: 700,
-        color: '#FFFFFF',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-    },
-    benefitsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: 12,
-    },
-    benefitCard: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '14px 16px',
-        background: 'rgba(24, 119, 242, 0.1)',
-        border: '1px solid rgba(24, 119, 242, 0.2)',
-        borderRadius: 10,
-    },
-    benefitIcon: {
-        fontSize: 24,
-        width: 40,
-        textAlign: 'center',
-    },
-    benefitInfo: {
-        flex: 1,
-    },
-    benefitTitle: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#E4E6EB',
-    },
-    benefitDesc: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-    benefitValue: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#00ff88',
-        textAlign: 'right',
-    },
-    valueComparison: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 24,
-        padding: '24px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 16,
-        marginBottom: 32,
-    },
-    valueBox: {
-        textAlign: 'center',
-    },
-    valueBoxHighlight: {
-        textAlign: 'center',
-        padding: '16px 32px',
-        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
-        borderRadius: 12,
-        border: '2px solid #1877F2',
-    },
-    valueLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    valueAmount: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 28,
-        fontWeight: 700,
-        color: 'rgba(255, 255, 255, 0.3)',
-        textDecoration: 'line-through',
-    },
-    vipPrice: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#1877F2',
-    },
-    valueDivider: {
-        fontSize: 24,
-        color: 'rgba(255, 255, 255, 0.3)',
-    },
-    // MERCHANDISE STYLES
-    merchTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        marginBottom: 12,
-    },
-    merchSection: {
-        marginBottom: 32,
-    },
-    merchCategoryTitle: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: 18,
-        fontWeight: 600,
-        color: '#E4E6EB',
-        marginBottom: 16,
-    },
-    merchGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 16,
-    },
-};

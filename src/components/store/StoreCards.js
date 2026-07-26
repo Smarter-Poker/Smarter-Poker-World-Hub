@@ -2,7 +2,7 @@ import React from 'react';
 import { Gem, Shirt, Package } from 'lucide-react';
 
 export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
-    const totalDiamonds = pkg.diamonds + pkg.bonus;
+    const totalDiamonds = (pkg.diamonds || 0) + (pkg.bonus || 0);
 
     return (
         <div
@@ -36,7 +36,8 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             )}
             {pkg.hasDiscount && (
                 <div style={{
-                    position: 'absolute', top: -10, right: 16,
+                    // Sit on the left when 'Popular' occupies the top-right corner
+                    position: 'absolute', top: -10, ...(pkg.popular ? { left: 16 } : { right: 16 }),
                     background: 'linear-gradient(135deg, #00ff88, #00cc66)',
                     color: '#0a1628', fontSize: 10, fontWeight: 700,
                     padding: '4px 10px', borderRadius: 10, textTransform: 'uppercase',
@@ -50,14 +51,14 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     </div>
                     {pkg.bonus > 0 && (
                         <div style={{ fontSize: 11, color: '#00ff88', fontWeight: 600 }}>
-                            ({pkg.diamonds.toLocaleString()} + {pkg.bonus.toLocaleString()} bonus)
+                            ({(pkg.diamonds || 0).toLocaleString()} + {(pkg.bonus || 0).toLocaleString()} bonus)
                         </div>
                     )}
                 </div>
             </div>
             <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>{pkg.name}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>${pkg.price.toFixed(2)}</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>${(Number(pkg.price) || 0).toFixed(2)}</span>
                 <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.5)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>1<Gem size={10} color="#00D4FF" /> = $0.01</span>
             </div>
             <button
@@ -103,7 +104,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
                     {plan.isDiamondCost ? (
                         <span style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{plan.price} <Gem size={22} color="#00D4FF" /></span>
                     ) : (
-                        <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>${plan.price.toFixed(2)}</span>
+                        <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>${(Number(plan.price) || 0).toFixed(2)}</span>
                     )}
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/{plan.interval}</span>
                 </div>
@@ -135,7 +136,7 @@ export function MerchCard({ item, onSelect }) {
                 <div style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 8, lineHeight: 1.4 }}>
                     {item.description}
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#00D4FF' }}>${item.price.toFixed(2)}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#00D4FF' }}>${(Number(item.price) || 0).toFixed(2)}</div>
             </div>
         </div>
     );

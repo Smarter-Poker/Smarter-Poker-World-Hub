@@ -24,10 +24,25 @@ function getDateGroup(dateStr) {
 }
 
 function parseRateLimitError(errorText) {
-    const cooldownMatch = errorText?.match(/(\d+)\s*seconds?\s*(remaining|cooldown|left)/i);
-    if (cooldownMatch) return { type: 'cooldown', seconds: parseInt(cooldownMatch[1]) };
-    if (/daily\s*limit/i.test(errorText)) return { type: 'daily_limit' };
-    if (/per[- ]?friend/i.test(errorText)) return { type: 'friend_limit' };
+    if (!errorText) return null;
+    // Parse "wait X seconds between transfers" and "X second(s) remaining/cooldown/left" formats
+    const secondsMatch = errorText.match(/(\d+)\s*seconds?/i);
+    const minutesMatch = errorText.match(/(\d+)\s*minutes?/i);
+    const isCooldownText = /wait|cooldown|remaining|left/i.test(errorText);
+    if (isCooldownText && secondsMatch) {
+        return { type: 'cooldown', seconds: parseInt(secondsMatch[1]) };
+    }
+    if (isCooldownText && minutesMatch) {
+        return { type: 'cooldown', seconds: parseInt(minutesMatch[1]) * 60 };
+    }
+    // Parse "Daily transfer limit reached" type messages (Guard 3)
+    if (/daily\s*(transfer\s*)?limit\s*reached/i.test(errorText)) return { type: 'daily_limit' };
+    // Parse "per day to the same friend" messages (Guard 10)
+    if (/per\s*day\s*to\s*(the\s*)?same\s*friend/i.test(errorText)) return { type: 'friend_limit' };
+    // Parse "daily receive limit" messages (Guard 12)
+    if (/daily\s*receive\s*limit/i.test(errorText)) return { type: 'daily_limit' };
+    // Parse "per-friend limit" or "per-recipient" messages (generic)
+    if (/per[- ]?(friend|recipient)/i.test(errorText)) return { type: 'friend_limit' };
     return null;
 }
 
@@ -50,38 +65,21 @@ const TX_TYPES = {
     bonus: { label: 'Bonus', color: '#a855f7' },
     daily_bonus: { label: 'Daily Bonus', color: '#3b82f6' },
     adjustment: { label: 'Adjustment', color: '#94a3b8' },
-    diamond_gift_sent: { label: 'Gift Sent', color: '#f97316' },
+    diamond_gift_sent: { label: 'Gift Sent', color: '#ffffff' },
     diamond_gift_received: { label: 'Gift Received', color: '#22c55e' },
 };
 
-function copyReceiptToClipboard(tx) {
+async function copyReceiptToClipboard(tx) {
     const txType = tx.transaction_type || tx.type;
     const config = TX_TYPES[txType] || TX_TYPES.adjustment;
     const dt = new Date(tx.created_at);
     const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
     try {
-        navigator.clipboard.writeText(receipt);
+        await navigator.clipboard.writeText(receipt);
         return true;
     } catch (_) {
         return false;
     }
-}
-
-function exportTransactionsCSV(filteredTx) {
-    const headers = ['Date', 'Type', 'Description', 'Amount', 'Balance After'];
-    const rows = filteredTx.map(tx => {
-        const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
-        const dt = new Date(tx.created_at);
-        return [
-            dt.toISOString().slice(0, 19).replace('T', ' '),
-            config.label,
-            (tx.description || config.label).replace(/,/g, ';'),
-            tx.amount ?? 0,
-            tx.balance_after ?? ''
-        ].join(',');
-    });
-    return [headers.join(','), ...rows].join('\n');
 }
 
 // ── Mock localStorage ──
@@ -152,14 +150,29 @@ describe('parseRateLimitError', () => {
         expect(result).toEqual({ type: 'cooldown', seconds: 60 });
     });
 
-    it('identifies daily limit errors', () => {
-        const result = parseRateLimitError('Daily limit reached');
+    it('parses server "Please wait X seconds between transfers" format', () => {
+        const result = parseRateLimitError('Please wait 30 seconds between transfers');
+        expect(result).toEqual({ type: 'cooldown', seconds: 30 });
+    });
+
+    it('parses minutes-based cooldown messages', () => {
+        const result = parseRateLimitError('Please wait 2 minutes before your next transfer');
+        expect(result).toEqual({ type: 'cooldown', seconds: 120 });
+    });
+
+    it('identifies daily limit errors (Guard 3 wording)', () => {
+        expect(parseRateLimitError('Daily transfer limit reached')).toEqual({ type: 'daily_limit' });
+        expect(parseRateLimitError('Daily limit reached')).toEqual({ type: 'daily_limit' });
+    });
+
+    it('identifies daily receive limit errors (Guard 12 wording)', () => {
+        const result = parseRateLimitError('Recipient has hit their daily receive limit');
         expect(result).toEqual({ type: 'daily_limit' });
     });
 
     it('identifies per-friend limit errors', () => {
-        const result = parseRateLimitError('Per-friend transfer limit reached');
-        expect(result).toEqual({ type: 'friend_limit' });
+        expect(parseRateLimitError('Per-friend transfer limit reached')).toEqual({ type: 'friend_limit' });
+        expect(parseRateLimitError('You can only send 200 per day to the same friend')).toEqual({ type: 'friend_limit' });
     });
 
     it('returns null for non-rate-limit errors', () => {
@@ -205,7 +218,7 @@ describe('Recent Recipients Persistence', () => {
 });
 
 describe('copyReceiptToClipboard', () => {
-    it('generates correct receipt text for positive amount', () => {
+    it('generates correct receipt text for positive amount', async () => {
         const tx = {
             id: 'tx-123',
             transaction_type: 'bonus',
@@ -213,7 +226,7 @@ describe('copyReceiptToClipboard', () => {
             balance_after: 150,
             created_at: '2026-03-01T12:00:00Z',
         };
-        const result = copyReceiptToClipboard(tx);
+        const result = await copyReceiptToClipboard(tx);
         expect(result).toBe(true);
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
             expect.stringContaining('Bonus')
@@ -223,7 +236,7 @@ describe('copyReceiptToClipboard', () => {
         );
     });
 
-    it('generates correct receipt text for negative amount', () => {
+    it('generates correct receipt text for negative amount', async () => {
         const tx = {
             id: 'tx-456',
             transaction_type: 'purchase',
@@ -231,13 +244,13 @@ describe('copyReceiptToClipboard', () => {
             balance_after: 130,
             created_at: '2026-03-01T12:00:00Z',
         };
-        copyReceiptToClipboard(tx);
+        await copyReceiptToClipboard(tx);
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
             expect.stringContaining('-20 Diamonds')
         );
     });
 
-    it('falls back to adjustment for unknown types', () => {
+    it('falls back to adjustment for unknown types', async () => {
         const tx = {
             id: 'tx-789',
             transaction_type: 'unknown_type',
@@ -245,40 +258,23 @@ describe('copyReceiptToClipboard', () => {
             balance_after: 100,
             created_at: '2026-03-01T12:00:00Z',
         };
-        copyReceiptToClipboard(tx);
+        await copyReceiptToClipboard(tx);
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
             expect.stringContaining('Adjustment')
         );
     });
-});
 
-describe('exportTransactionsCSV', () => {
-    it('generates valid CSV with headers', () => {
-        const transactions = [
-            { transaction_type: 'bonus', amount: 50, balance_after: 150, created_at: '2026-03-01T12:00:00Z' },
-            { transaction_type: 'purchase', amount: -20, balance_after: 130, created_at: '2026-03-01T14:00:00Z' },
-        ];
-        const csv = exportTransactionsCSV(transactions);
-        const lines = csv.split('\n');
-        expect(lines[0]).toBe('Date,Type,Description,Amount,Balance After');
-        expect(lines.length).toBe(3); // header + 2 rows
-        expect(lines[1]).toContain('Bonus');
-        expect(lines[2]).toContain('Purchase');
-    });
-
-    it('handles empty transaction list', () => {
-        const csv = exportTransactionsCSV([]);
-        const lines = csv.split('\n');
-        expect(lines.length).toBe(1); // header only
-    });
-
-    it('escapes commas in descriptions', () => {
-        const transactions = [
-            { transaction_type: 'bonus', amount: 50, balance_after: 150, description: 'Bonus, with comma', created_at: '2026-03-01T12:00:00Z' },
-        ];
-        const csv = exportTransactionsCSV(transactions);
-        expect(csv).not.toContain('Bonus, with comma');
-        expect(csv).toContain('Bonus; with comma'); // comma escaped to semicolon
+    it('returns false when the async clipboard write rejects', async () => {
+        navigator.clipboard.writeText.mockRejectedValueOnce(new Error('NotAllowedError'));
+        const tx = {
+            id: 'tx-999',
+            transaction_type: 'bonus',
+            amount: 10,
+            balance_after: 110,
+            created_at: '2026-03-01T12:00:00Z',
+        };
+        const result = await copyReceiptToClipboard(tx);
+        expect(result).toBe(false);
     });
 });
 

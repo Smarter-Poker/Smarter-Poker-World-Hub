@@ -17,7 +17,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
 
 // ── Helper function (usable from any module) ──
@@ -60,15 +60,27 @@ const TOAST_STYLES = {
 // ── React component ──
 export default function StoreToast() {
     const [toasts, setToasts] = useState([]);
+    const timersRef = useRef(new Set());
 
     const addToast = useCallback((type, message) => {
         const id = Date.now() + Math.random();
         setToasts(prev => [...prev.slice(-4), { id, type, message }]); // Max 5 visible
 
-        // Auto-remove after 3.5 seconds
-        setTimeout(() => {
+        // Auto-remove after 3.5 seconds (timer tracked so unmount can clear it)
+        const timerId = setTimeout(() => {
+            timersRef.current.delete(timerId);
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3500);
+        timersRef.current.add(timerId);
+    }, []);
+
+    // Clear any pending auto-dismiss timers on unmount
+    useEffect(() => {
+        const timers = timersRef.current;
+        return () => {
+            timers.forEach(t => clearTimeout(t));
+            timers.clear();
+        };
     }, []);
 
     const removeToast = useCallback((id) => {
