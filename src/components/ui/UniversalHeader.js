@@ -15,7 +15,7 @@
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 
 import Head from 'next/head';
@@ -37,7 +37,7 @@ import { useDiamondBalance } from '../../hooks/useDiamondBalance';
 import useCurrentUser from '../../hooks/useCurrentUser';
 import { useActiveIdentity } from '../../contexts/ActiveIdentityContext';
 import { eventBus, EventType } from '../../engine/EventBus';
-import { listenBroadcast } from '../../lib/broadcastSync';
+import { listenBroadcast, broadcastSync } from '../../lib/broadcastSync';
 
 // Dark theme colors matching hub
 const C = {
@@ -60,13 +60,25 @@ const C = {
  * @param {Function} [props.onBackClick]
  * @param {boolean} [props.hideLeftIcon=false]
  */
+// ── Header data cache freshness window ────────────────────────────────────
+// The header is rendered per-page (it is NOT mounted in _app), so it remounts on
+// EVERY route change. Without this guard each navigation fired a
+// /api/user/get-header-stats POST — up to ~8 DB round-trips — purely to re-derive
+// data already sitting in localStorage. Inside this window we trust the cache.
+const HEADER_CACHE_FRESH_MS = 60 * 1000;
+
+// useLayoutEffect warns when it runs during SSR, so fall back to useEffect on the
+// server. On the client this flushes BEFORE the browser paints, which means the
+// isMounted gate below never shows the un-hydrated (avatar-less) frame to the user.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
-    onSearchClick = null,
-    onMenuClick = null,  // Callback for hamburger menu click
-    onSettingsClick = null,  // Override for settings gear — opens page-specific settings instead of global
-    onBackClick = null, // Override for back navigation
+    onSearchClick,
+    onMenuClick,  // Callback for hamburger menu click
+    onSettingsClick,  // Override for settings gear — opens page-specific settings instead of global
+    onBackClick, // Override for back navigation
     hideLeftIcon = false // Allows hiding the left icon (e.g. when page has an in-page back button)
 }) {
     const router = useRouter();
@@ -201,7 +213,7 @@ export default function UniversalHeader({
 
     // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
     // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         setIsMounted(true);
         // Seed diamond balance from cache (hook needs explicit init)
         if (_cachedHeader?.diamonds !== undefined) {
@@ -216,7 +228,10 @@ export default function UniversalHeader({
     
     // Override with Club Identity if active
     const activeAvatarUrl = isClubMode && clubPage ? (clubPage.avatar_url || contextAvatar?.imageUrl || user?.avatar) : (contextAvatar?.imageUrl || user?.avatar);
-    const activeName = isClubMode && clubPage ? clubPage.name : (user?.name || '');
+    // BUGFIX (header-audit #26): clubPage.name can be null on a page row that has not
+    // finished syncing, and `null.charAt(0)` in the orb below would throw — taking the
+    // whole page subtree down through the error boundary. Coerce at the source.
+    const activeName = (isClubMode && clubPage ? clubPage.name : user?.name) || '';
     
     const displayAvatar = isMounted ? (activeAvatarUrl || '/default-avatar.png') : null;
     const isVipDisplay = isMounted ? (!isClubMode && (isVip || contextVip)) : false; // VIP badge is for personal profiles only
@@ -234,58 +249,49 @@ export default function UniversalHeader({
     const isMountedRef = useRef(true);
     useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
-    const closeOverlay = (closedPage) => {
+    // BUGFIX (header-audit #2/#10): closing an overlay no longer schedules an 800ms
+    // poll of /api/user/get-header-stats. FullScreenPageOverlay reports the fresh count
+    // straight up its postMessage bridge (onNotifCleared), which is both faster and
+    // authoritative. The old timer RACED that bridge, so every notification-overlay
+    // close produced two competing writes and one redundant API call. Anything the
+    // bridge misses is reconciled by useUnreadCount's realtime subscription.
+    const closeOverlay = useCallback(() => {
         setOverlayPage(null);
-        if (closedPage === 'notifications') {
-            // Give the iframe a moment to finish marking rows read, then re-query via API
-            // (API counts both social + poker notifications — direct supabase query only gets social)
-            // BUG FIX (Bug #9): capture isMountedRef so the async callback is a no-op if the
-            // component unmounts before the 800ms timer fires.
-            setTimeout(async () => {
-                if (!isMountedRef.current) return; // Component gone — skip all setState calls
-                try {
-                    let accessToken = null;
-                    try {
-                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                        accessToken = authData?.access_token || null;
-                        if (!accessToken) {
-                            const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                            if (sbKeys.length > 0) accessToken = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
-                        }
-                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+    }, []);
 
-                    // We need userId for the API call — get from stored auth
-                    let userId = null;
-                    try {
-                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                        userId = authData?.user?.id || null;
-                        if (!userId) {
-                            const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                            if (sbKeys.length > 0) userId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id || null;
-                        }
-                    } catch (_) {}
-                    if (!userId) return;
+    // Fresh count pushed up from the notifications iframe. useCallback keeps the
+    // identity stable so FullScreenPageOverlay's message listener is not torn down
+    // and re-added on every count/balance tick.
+    const handleNotifCleared = useCallback((count) => {
+        setNotificationCount(count);
+        try { localStorage.setItem('sp-notif-count', String(count)); }
+        catch (_) { /* private browsing — ignore */ }
+    }, []);
 
-                    const res = await fetch('/api/user/get-header-stats', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                        },
-                        body: JSON.stringify({ userId }),
-                    });
-                    const result = await res.json();
-                    if (result.success && typeof result.notificationCount === 'number' && isMountedRef.current) {
-                        const freshCount = result.notificationCount;
-                        setNotificationCount(freshCount);
-                        try { localStorage.setItem('sp-notif-count', String(freshCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    }
-                } catch (e) {
-                    console.warn('[UniversalHeader] Post-overlay notif re-fetch failed:', e);
-                }
-            }, 800); // 800ms: enough for the iframe's DB update to land
+    // Persist "all notifications read" so the optimistic badge zero is actually TRUE.
+    // An empty body means mark-all (see pages/api/notifications/mark-read.js), and that
+    // endpoint writes BOTH the `read` and `is_read` columns — which is exactly what
+    // stops the count resurrecting on the next poll.
+    const markAllNotificationsRead = useCallback(async () => {
+        try {
+            let accessToken = null;
+            try {
+                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                accessToken = authData?.access_token || null;
+            } catch (_) { /* private browsing — ignore */ }
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify({}),
+            });
+            try { broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications' }); } catch (_) {}
+        } catch (e) {
+            console.warn('[UniversalHeader] mark-all-read failed:', e?.message || e);
         }
-    };
+    }, []);
 
 
     const overlayUrlMap = {
@@ -339,7 +345,15 @@ export default function UniversalHeader({
                 if (!mounted) return;
 
                 if (authUser) {
-                    setUser(authUser);
+                    // BUGFIX (header-audit, primary cause of the avatar reloading on every
+                    // navigation): this was `setUser(authUser)` — a full REPLACE. `authUser`
+                    // is the raw Supabase auth object read out of localStorage and carries
+                    // no `avatar` / `name` keys, so the replace destroyed the cached avatar
+                    // that was seeded synchronously at mount and dropped the orb to
+                    // /default-avatar.png for the ENTIRE get-header-stats round-trip (up to
+                    // 3 retries with backoff plus a REST fallback). Merging keeps the cached
+                    // avatar painted until fresh data actually arrives.
+                    setUser(prev => ({ ...(prev || {}), ...authUser }));
                     console.debug('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
@@ -390,6 +404,7 @@ export default function UniversalHeader({
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         userId: authUser.id,
+                                        id: authUser.id,
                                         avatar: avatar_url,
                                         name: normalizedUsername || full_name,
                                         username: normalizedUsername,
@@ -417,8 +432,20 @@ export default function UniversalHeader({
                         }
                     };
 
+                    // PERF (header-audit): skip the network entirely when the cached header
+                    // payload is younger than HEADER_CACHE_FRESH_MS and belongs to THIS user.
+                    // Everything the fetch would set — avatar, name, VIP, admin, diamonds —
+                    // is already seeded synchronously from localStorage at mount, so a route
+                    // change no longer costs an API round-trip.
+                    const cacheIsFresh = !!(
+                        _cachedHeader &&
+                        _cachedHeader.userId === authUser.id &&
+                        _cachedHeader._ts &&
+                        (Date.now() - _cachedHeader._ts) < HEADER_CACHE_FRESH_MS
+                    );
+
                     // Try up to MAX_RETRIES times with exponential backoff
-                    let success = await fetchProfileWithRetry(1);
+                    let success = cacheIsFresh ? true : await fetchProfileWithRetry(1);
                     for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
                         const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
                         console.debug(`[UniversalHeader] Retrying in ${delay}ms...`);
@@ -430,8 +457,16 @@ export default function UniversalHeader({
                     if (!success && mounted) {
                         console.debug('[UniversalHeader] All API retries failed, trying direct REST...');
                         try {
-                            const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-                            const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+                            // SECURITY/OPS (header-audit #13): no baked-in literals. A
+                            // hardcoded project URL and anon JWT silently survive a key
+                            // rotation and then fail in a way nobody can trace back here.
+                            // If the env is not configured we skip the fallback instead.
+                            const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                            const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                                console.warn('[UniversalHeader] REST fallback skipped — Supabase env not configured');
+                                throw new Error('supabase-env-missing');
+                            }
 
                             // Get access token for authenticated query
                             let accessToken = SUPABASE_ANON_KEY;
@@ -441,7 +476,7 @@ export default function UniversalHeader({
                             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip,is_admin`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -467,6 +502,7 @@ export default function UniversalHeader({
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         userId: authUser.id,
+                                        id: authUser.id,
                                         avatar: profile.avatar_url,
                                         name: normalizedFallbackUsername || profile.full_name,
                                         username: normalizedFallbackUsername,
@@ -516,6 +552,13 @@ export default function UniversalHeader({
                     // NOTE: Do NOT call fetchUnreadCount() here — count already set by fetchProfileWithRetry above.
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
+                    // BUGFIX (header-audit #5): the awaits above (up to 3 retries with
+                    // 500/1000/2000ms backoff plus a REST fallback) can easily outlive the
+                    // component. Without this guard the channel was opened AFTER unmount, so
+                    // the effect cleanup — which had already run while cleanupNotifSync was
+                    // still null — could never close it. That leaked one live channel per
+                    // navigation, each still hitting the API forever.
+                    if (!mounted) return;
                     cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
                         // Support both legacy string and new object payloads
                         const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
@@ -624,6 +667,7 @@ export default function UniversalHeader({
                     try {
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
                             userId: user.id,
+                            id: user.id,
                             avatar: result.profile.avatar_url,
                             name: refreshedUsername || result.profile.full_name,
                             username: refreshedUsername,
@@ -940,7 +984,7 @@ export default function UniversalHeader({
                 /* MOBILE: Compact layout with all icons visible */
                 @media (max-width: 640px) {
                     .universal-header {
-                        padding: 6px 6px;
+                        padding: 4px 6px;
                         gap: 2px;
                     }
                     
@@ -958,7 +1002,7 @@ export default function UniversalHeader({
                     
                     .header-right {
                         gap: 2px;
-                        flex-shrink: 0;
+                        flex-shrink: 1; /* Allow container to shrink if needed */
                         flex-grow: 0;
                         justify-content: flex-end;
                     }
@@ -967,7 +1011,7 @@ export default function UniversalHeader({
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        height: 26px;
+                        height: 24px;
                     }
                     
                     .brand-text {
@@ -976,27 +1020,27 @@ export default function UniversalHeader({
                     
                     /* Hamburger button - mobile sizing */
                     .header-img-btn {
-                        height: 26px;
-                        width: 26px;
+                        height: 24px;
+                        width: 24px;
                     }
 
                     /* CRITICAL: Cap BACK/HUB nav button width on mobile */
                     .header-nav-btn {
-                        height: 25px;
+                        height: 20px;
                         width: auto;
-                        max-width: 96px;
+                        max-width: 76px;
                     }
                     
                     .hamburger-btn {
-                        width: 40px;
-                        height: 40px;
+                        width: 24px;
+                        height: 24px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
                     .diamond-wallet {
                         width: auto;
-                        min-width: 50px;
-                        height: 30px;
+                        min-width: 40px;
+                        height: 24px;
                         padding: 0 4px;
                         font-size: 10px;
                     }
@@ -1007,27 +1051,27 @@ export default function UniversalHeader({
                     
                     /* Shrink all orb icons to fit on mobile */
                     .orb-btn, .profile-orb {
-                        width: 26px;
-                        height: 26px;
-                        font-size: 11px;
+                        width: 24px;
+                        height: 24px;
+                        font-size: 10px;
                     }
                     
                     .orb-badge {
-                        top: 1px;
-                        right: 1px;
+                        top: -2px;
+                        right: -2px;
                         padding: 0 3px;
-                        font-size: 7px;
-                        min-width: 10px;
+                        font-size: 8px;
+                        min-width: 12px;
                     }
                     
                     /* Shrink hamburger and hub/back navigation buttons for mobile */
                     .hamburger-btn {
-                        width: 28px;
-                        height: 28px;
+                        width: 24px;
+                        height: 24px;
                     }
                     
                     .header-nav-btn {
-                        height: 22px;
+                        height: 18px;
                     }
                 }
                 
@@ -1141,8 +1185,15 @@ export default function UniversalHeader({
 
                     {/* Notifications - Custom Metallic Bell icon */}
                     <button onClick={() => {
+                        // BUGFIX (header-audit #2): this used to zero the badge in the UI
+                        // ONLY. Because liveNotificationCount was untouched, the mirror
+                        // effect never re-ran — so the badge sat at 0 while rows were still
+                        // unread, and the next INSERT bumped it from 0 straight to N+1,
+                        // resurrecting everything the user had just dismissed. Persist the
+                        // read state so the optimistic zero reflects the database.
                         setNotificationCount(0);
                         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                        markAllNotificationsRead();
                         openOverlay('notifications');
                     }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
                             <img src="/images/notification-bell-trimmed.png" alt="Notifications" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
@@ -1197,19 +1248,20 @@ export default function UniversalHeader({
                 initialBalance={diamondBalance}
             />
 
-            {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
-            {overlayPage && (
-                <FullScreenPageOverlay
-                    isOpen={true}
-                    onClose={() => closeOverlay(overlayPage)}
-                    url={overlayUrlMap[overlayPage]}
-                    title={overlayTitleMap[overlayPage]}
-                    onNotifCleared={(count) => {
-                        setNotificationCount(count);
-                        try { localStorage.setItem('sp-notif-count', String(count)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    }}
-                />
-            )}
+            {/* Full-Screen Page Overlay — opens pages as a popup instead of navigating.
+                BUGFIX (header-audit #10): rendered unconditionally and driven by isOpen.
+                It used to be mounted behind `{overlayPage && ...}` with a hardcoded
+                isOpen={true}, which made the component's entire !isOpen branch dead code,
+                and the two inline arrow props were recreated on every parent render —
+                tearing down and re-adding the keydown and postMessage listeners on every
+                notification/balance tick. */}
+            <FullScreenPageOverlay
+                isOpen={!!overlayPage}
+                onClose={closeOverlay}
+                url={overlayPage ? overlayUrlMap[overlayPage] : null}
+                title={overlayPage ? overlayTitleMap[overlayPage] : ''}
+                onNotifCleared={handleNotifCleared}
+            />
         </>
     );
 }
