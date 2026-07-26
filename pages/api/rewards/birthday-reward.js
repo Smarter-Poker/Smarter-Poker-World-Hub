@@ -1,20 +1,22 @@
 /**
- * Birthday Reward API — 300 Diamonds
- * 
- * POST /api/rewards/birthday-reward
- * Headers: Authorization: Bearer <JWT>
- * 
- * Rules:
- * - JWT auth required (uses token identity, not body userId)
- * - Account must be 60+ days old
- * - Birthday must match today (month+day, UTC)
- * - One claim per calendar year (deduplicated via diamond_reward_claims)
+ * 🎂 BIRTHDAY REWARD — Diamond Rewards Standard v2
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Action key: birthday (1 per calendar year). The amount comes from the
+ * catalog inside award_diamonds_v2 — v1 hardcoded 300 💎, v2 pays the catalog
+ * value. No local constant, no local cap math.
+ *
+ * Eligibility owned here: birthday set on the profile, today matches it
+ * (America/Chicago — the anchor timezone for the whole rewards system, v1 used
+ * UTC), and the account is 60+ days old.
+ * reference_id: `birthday_<userId>_<year>`.
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+// ── Service-role client — award_diamonds_v2 is GRANTed to service_role ONLY ──
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -25,46 +27,131 @@ function getSupabase() {
     return _supabase;
 }
 
-const BIRTHDAY_DIAMONDS = 300;
+/** YYYY-MM-DD in America/Chicago — the anchor timezone for every diamond day. */
+function chicagoDate(d = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(d);
+}
+
+const REASON_MESSAGE = {
+    ok: 'Diamonds awarded',
+    duplicate: 'Already claimed',
+    daily_cap: 'Daily diamond cap reached — come back tomorrow',
+    monthly_cap: 'Monthly diamond cap reached',
+    action_limit: 'Daily limit reached for this reward',
+    velocity: 'Slow down a moment before earning again',
+    budget_exhausted: 'Rewards are paused right now — please try again later',
+    unknown_action: 'Unknown reward action',
+    not_eligible: 'Not eligible for this reward'
+};
+
+/**
+ * Delegate the award to public.award_diamonds_v2. The amount is resolved
+ * SERVER-SIDE from the catalog — this endpoint never sends one, and the client
+ * never sends one either. Dedup (reference_id), per-action daily limits,
+ * velocity, the POST-multiplier daily/monthly caps and the platform budget all
+ * live inside the SQL function. We only decide *eligibility*.
+ */
+async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targetId = null, metadata = {} }) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
+        return { ok: false, transportError: { message: 'Service role key not configured' } };
+    }
+    const { data, error } = await supabase.rpc('award_diamonds_v2', {
+        p_user_id: userId,
+        p_action_key: actionKey,
+        p_reference_id: referenceId,
+        p_target_id: targetId === null || targetId === undefined ? null : String(targetId),
+        p_metadata: metadata || {}
+    });
+    if (error) {
+        console.warn('[RewardsV2] RPC error for', actionKey, '-', error.message || error);
+        return { ok: false, transportError: error };
+    }
+    const r = data || {};
+    return {
+        ok: true,
+        success: r.success === true,
+        awarded: Number(r.awarded || 0),
+        requested: Number(r.requested || 0),
+        reason: r.reason || 'unknown',
+        capped: r.capped === true,
+        dailyRemaining: r.daily_remaining === undefined ? null : r.daily_remaining,
+        monthlyRemaining: r.monthly_remaining === undefined ? null : r.monthly_remaining,
+        balance: r.balance_after === undefined ? null : r.balance_after
+    };
+}
+
+/**
+ * Surface the RPC's verdict honestly. `reason` and `awarded` always reflect
+ * what the ledger actually did. `success` stays true for duplicate/action_limit
+ * so existing clients keep their "already claimed" branch.
+ */
+function sendAwardResult(res, award, label, extra = {}) {
+    if (!award.ok) {
+        return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+    }
+    const base = {
+        ...extra,
+        awarded: award.awarded,
+        diamondsAwarded: award.awarded,
+        requested: award.requested,
+        reason: award.reason,
+        capped: award.capped,
+        dailyRemaining: award.dailyRemaining,
+        monthlyRemaining: award.monthlyRemaining,
+        balance: award.balance
+    };
+    if (award.success) {
+        return res.status(200).json({
+            ...base,
+            success: true,
+            claimed: true,
+            message: `+${award.awarded} 💎 ${label}${award.capped ? ' (capped by your daily limit)' : ''}`
+        });
+    }
+    const softClaim = award.reason === 'duplicate' || award.reason === 'action_limit';
+    return res.status(200).json({
+        ...base,
+        success: softClaim,
+        claimed: false,
+        alreadyClaimed: softClaim,
+        dailyCapReached: award.reason === 'daily_cap',
+        monthlyCapReached: award.reason === 'monthly_cap',
+        cooldown: award.reason === 'velocity',
+        message: REASON_MESSAGE[award.reason] || 'Reward not granted'
+    });
+}
+
+const ACTION_KEY = 'birthday';
+const MIN_ACCOUNT_AGE_DAYS = 60;
 
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // ── Auth: JWT required (awards diamonds) ──
+    const supabase = getSupabase();
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
     const authUser = authData?.user;
     if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const userId = authUser.id; // Use JWT identity, NOT body
+    const userId = authUser.id;
 
     try {
-        // SAFEGUARD 1: Already claimed this year
         const now = new Date();
-        const currentYear = now.getUTCFullYear();
-        const claimKey = `birthday_reward_${currentYear}`;
+        const today = chicagoDate(now);              // YYYY-MM-DD, America/Chicago
+        const [todayYear, todayMonth, todayDay] = today.split('-').map(Number);
 
-        const { data: existing } = await getSupabase()
-            .from('diamond_reward_claims')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('reward_type', claimKey)
-            .maybeSingle();
-
-        if (existing) {
-            return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Birthday reward already claimed this year' });
-        }
-
-        // SAFEGUARD 2: Fetch profile and verify birthday
-        const { data: profile, error: profileError } = await getSupabase()
+        // ── Eligibility 1: profile + birthday present ──
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('id, birthday, created_at')
             .eq('id', userId)
@@ -73,88 +160,36 @@ export default async function handler(req, res) {
         if (profileError || !profile) {
             return res.status(404).json({ success: false, error: 'Profile not found' });
         }
-
         if (!profile.birthday) {
             return res.status(400).json({ success: false, error: 'No birthday set on profile' });
         }
 
-        // SAFEGUARD 3: Account age (60+ days)
-        const createdAt = new Date(profile.created_at);
-        const daysSinceCreation = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-        if (daysSinceCreation < 60) {
+        // ── Eligibility 2: account age (60+ days) ──
+        const daysSinceCreation = Math.floor((now - new Date(profile.created_at)) / 86400000);
+        if (daysSinceCreation < MIN_ACCOUNT_AGE_DAYS) {
             return res.status(403).json({
                 success: false,
+                reason: 'not_eligible',
                 error: 'Account must be at least 60 days old to claim birthday reward',
-                daysRemaining: 60 - daysSinceCreation
+                daysRemaining: MIN_ACCOUNT_AGE_DAYS - daysSinceCreation
             });
         }
 
-        // SAFEGUARD 4: Today matches birthday (UTC-safe)
-        // Parse birthday as UTC to avoid timezone drift on Vercel
-        const [bYear, bMonth, bDay] = profile.birthday.split('-').map(Number);
-        const todayMonth = now.getUTCMonth() + 1; // getUTCMonth is 0-indexed
-        const todayDay = now.getUTCDate();
-
+        // ── Eligibility 3: today IS the birthday (Chicago-anchored) ──
+        const [, bMonth, bDay] = String(profile.birthday).split('-').map(Number);
         if (bMonth !== todayMonth || bDay !== todayDay) {
-            return res.status(400).json({ success: false, error: 'Today is not your birthday' });
+            return res.status(400).json({ success: false, reason: 'not_eligible', error: 'Today is not your birthday' });
         }
 
-        // Record claim FIRST (prevents race condition / double-claim)
-        const cstNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-        const today = `${cstNow.getFullYear()}-${String(cstNow.getMonth() + 1).padStart(2, '0')}-${String(cstNow.getDate()).padStart(2, '0')}`;
-
-        const { error: claimInsertErr } = await getSupabase().from('diamond_reward_claims').insert({
-            user_id: userId,
-            reward_type: claimKey,
-            diamonds_awarded: BIRTHDAY_DIAMONDS,
-            claim_date: today,
-            metadata: { birthday: profile.birthday, account_age_days: daysSinceCreation }
+        const award = await awardDiamondsV2(supabase, {
+            userId,
+            actionKey: ACTION_KEY,
+            referenceId: `${ACTION_KEY}_${userId}_${todayYear}`,
+            targetId: null,
+            metadata: { birthday: profile.birthday, year: todayYear, account_age_days: daysSinceCreation }
         });
 
-        if (claimInsertErr) {
-            if (claimInsertErr.code === '23505') {
-                return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Birthday reward already claimed this year' });
-            }
-            console.warn('[BirthdayReward] Insert error:', claimInsertErr);
-            throw claimInsertErr;
-        }
-
-        // Award diamonds
-        // Stable reference_id (`claimKey` already encodes year) closes the
-        // retry-double-credit window: if the RPC commits but response delivery
-        // fails, the rollback path lets the user retry — without a stable
-        // reference_id the retry would have no dedup and double-credit.
-        const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
-            p_user_id: userId,
-            p_amount: BIRTHDAY_DIAMONDS,
-            p_type: 'birthday_reward',
-            p_description: `Happy Birthday! 🎂 ${BIRTHDAY_DIAMONDS}diamonds awarded`,
-            p_reference_id: `${claimKey}_${userId}`
-        });
-
-        if (rpcError) {
-            // Roll back the idempotency claim row so the user can retry next year
-            // (or today, if it was a transient RPC failure). Same bug shape as
-            // daily-login (commit 8d9ce5c9f1).
-            const { error: rollbackErr } = await getSupabase()
-                    .from('diamond_reward_claims')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('reward_type', claimKey)
-                    .eq('claim_date', today);
-              if (rollbackErr) {
-                  console.warn('[BirthdayReward] Rollback delete failed:', rollbackErr.message);
-              }
-            console.warn('[BirthdayReward] RPC error (claim rolled back so user can retry):', rpcError);
-            return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
-        }
-
-        return res.status(200).json({
-            success: true,
-            claimed: true,
-            diamondsAwarded: BIRTHDAY_DIAMONDS,
-            message: `Happy Birthday! You received ${BIRTHDAY_DIAMONDS} diamonds!`
-        });
+        return sendAwardResult(res, award, 'Happy Birthday! 🎂');
 
     } catch (error) {
         console.warn('[BirthdayReward] Error:', error.message || error);
@@ -163,7 +198,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+      console.warn('[API Error]', err);
+      if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

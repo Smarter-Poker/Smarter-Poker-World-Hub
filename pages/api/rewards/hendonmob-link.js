@@ -1,12 +1,9 @@
 /**
- * 🏆 HENDONMOB LINK REWARD API
+ * 🏆 HENDONMOB LINK REWARD — Diamond Rewards Standard v2
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 25diamonds ONE TIME for linking HendonMob profile
- *
- * ANTI-FARMING SAFEGUARDS:
- * - One-time claim only (lifetime)
- * - HendonMob URL must be populated in user profile
- * - Server-side verification of actual profile data
+ * Action key: hendonmob_link (lifetime once, exempt from the daily cap).
+ * Amount resolved server-side by award_diamonds_v2.
+ * Dedup: reference_id `hendonmob_link_<userId>`.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -14,12 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const HENDONMOB_REWARD = 25;
-
-
+// ── Service-role client — award_diamonds_v2 is GRANTed to service_role ONLY ──
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -30,131 +22,168 @@ function getSupabase() {
     return _supabase;
 }
 
+/** YYYY-MM-DD in America/Chicago — the anchor timezone for every diamond day. */
+function chicagoDate(d = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(d);
+}
+
+const REASON_MESSAGE = {
+    ok: 'Diamonds awarded',
+    duplicate: 'Already claimed',
+    daily_cap: 'Daily diamond cap reached — come back tomorrow',
+    monthly_cap: 'Monthly diamond cap reached',
+    action_limit: 'Daily limit reached for this reward',
+    velocity: 'Slow down a moment before earning again',
+    budget_exhausted: 'Rewards are paused right now — please try again later',
+    unknown_action: 'Unknown reward action',
+    not_eligible: 'Not eligible for this reward'
+};
+
+/**
+ * Delegate the award to public.award_diamonds_v2. The amount is resolved
+ * SERVER-SIDE from the catalog — this endpoint never sends one, and the client
+ * never sends one either. Dedup (reference_id), per-action daily limits,
+ * velocity, the POST-multiplier daily/monthly caps and the platform budget all
+ * live inside the SQL function. We only decide *eligibility*.
+ */
+async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targetId = null, metadata = {} }) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
+        return { ok: false, transportError: { message: 'Service role key not configured' } };
+    }
+    const { data, error } = await supabase.rpc('award_diamonds_v2', {
+        p_user_id: userId,
+        p_action_key: actionKey,
+        p_reference_id: referenceId,
+        p_target_id: targetId === null || targetId === undefined ? null : String(targetId),
+        p_metadata: metadata || {}
+    });
+    if (error) {
+        console.warn('[RewardsV2] RPC error for', actionKey, '-', error.message || error);
+        return { ok: false, transportError: error };
+    }
+    const r = data || {};
+    return {
+        ok: true,
+        success: r.success === true,
+        awarded: Number(r.awarded || 0),
+        requested: Number(r.requested || 0),
+        reason: r.reason || 'unknown',
+        capped: r.capped === true,
+        dailyRemaining: r.daily_remaining === undefined ? null : r.daily_remaining,
+        monthlyRemaining: r.monthly_remaining === undefined ? null : r.monthly_remaining,
+        balance: r.balance_after === undefined ? null : r.balance_after
+    };
+}
+
+/**
+ * Surface the RPC's verdict honestly. `reason` and `awarded` always reflect
+ * what the ledger actually did. `success` stays true for duplicate/action_limit
+ * so existing clients keep their "already claimed" branch.
+ */
+function sendAwardResult(res, award, label, extra = {}) {
+    if (!award.ok) {
+        return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+    }
+    const base = {
+        ...extra,
+        awarded: award.awarded,
+        diamondsAwarded: award.awarded,
+        requested: award.requested,
+        reason: award.reason,
+        capped: award.capped,
+        dailyRemaining: award.dailyRemaining,
+        monthlyRemaining: award.monthlyRemaining,
+        balance: award.balance
+    };
+    if (award.success) {
+        return res.status(200).json({
+            ...base,
+            success: true,
+            claimed: true,
+            message: `+${award.awarded} 💎 ${label}${award.capped ? ' (capped by your daily limit)' : ''}`
+        });
+    }
+    const softClaim = award.reason === 'duplicate' || award.reason === 'action_limit';
+    return res.status(200).json({
+        ...base,
+        success: softClaim,
+        claimed: false,
+        alreadyClaimed: softClaim,
+        dailyCapReached: award.reason === 'daily_cap',
+        monthlyCapReached: award.reason === 'monthly_cap',
+        cooldown: award.reason === 'velocity',
+        message: REASON_MESSAGE[award.reason] || 'Reward not granted'
+    });
+}
+
+const ACTION_KEY = 'hendonmob_link';
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    const supabase = getSupabase();
 
-      const supabase = getSupabase();
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    const authUser = authData?.user;
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const userId = authUser.id;
 
-      // ── Auth: JWT required (awards diamonds) ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    try {
+        // ── Eligibility: a HendonMob link is actually stored on the profile ──
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('hendonmob_url, hendon_mob_url, hendonmob_id, social_links')
+            .eq('id', userId)
+            .maybeSingle();
 
-      const userId = authUser.id; // Use JWT identity
+        if (!profile) {
+            return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Profile not found' });
+        }
 
-      if (!userId) {
-          return res.status(400).json({ success: false, error: 'userId required' });
-      }
+        const hendonmobValue = profile.hendonmob_url
+            || profile.hendon_mob_url
+            || profile.hendonmob_id
+            || (profile.social_links && (profile.social_links.hendonmob || profile.social_links.hendon_mob));
 
-      try {
-          // SAFEGUARD 1: Already claimed (lifetime, one-time reward)
-          const { data: existing } = await supabase
-              .from('diamond_reward_claims')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('reward_type', 'hendonmob_link')
-              .maybeSingle();
+        if (!hendonmobValue || String(hendonmobValue).trim().length < 5) {
+            return res.status(200).json({
+                success: false,
+                reason: 'not_eligible',
+                awarded: 0,
+                diamondsAwarded: 0,
+                message: 'Link your HendonMob profile to earn diamonds!'
+            });
+        }
 
-          if (existing) {
-              return res.status(200).json({ success: true, alreadyClaimed: true, message: 'HendonMob link reward already claimed' });
-          }
+        const award = await awardDiamondsV2(supabase, {
+            userId,
+            actionKey: ACTION_KEY,
+            referenceId: `${ACTION_KEY}_${userId}`,
+            targetId: null,
+            metadata: { hendonmob: String(hendonmobValue).substring(0, 100) }
+        });
 
-          // SAFEGUARD 2: Verify HendonMob URL actually exists in profile
-          // Check multiple possible column names for HendonMob
-          const { data: profile } = await supabase
-              .from('profiles')
-              .select('hendonmob_url, hendon_mob_url, hendonmob_id, social_links')
-              .eq('id', userId)
-              .maybeSingle();
+        return sendAwardResult(res, award, 'HendonMob Linked!');
 
-          if (!profile) {
-              return res.status(200).json({ success: false, message: 'Profile not found' });
-          }
-
-          // Check for HendonMob in any recognized field
-          const hendonmobValue = profile.hendonmob_url
-              || profile.hendon_mob_url
-              || profile.hendonmob_id
-              || (profile.social_links && (profile.social_links.hendonmob || profile.social_links.hendon_mob));
-
-          if (!hendonmobValue || String(hendonmobValue).trim().length < 5) {
-              return res.status(200).json({
-                  success: false,
-                  message: `Link your HendonMob profile to earn ${HENDONMOB_REWARD}diamonds!`
-              });
-          }
-
-          // Record & award
-          const now = new Date();
-          const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-          const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
-
-          // BUG #265 FIX: Check insert result before awarding diamonds
-          const { error: claimInsertErr } = await getSupabase().from('diamond_reward_claims').insert({
-              user_id: userId,
-              reward_type: 'hendonmob_link',
-              diamonds_awarded: HENDONMOB_REWARD,
-              claim_date: today,
-              metadata: { hendonmob: String(hendonmobValue).substring(0, 100) }
-          });
-
-          if (claimInsertErr) {
-              if (claimInsertErr.code === '23505') {
-                  return res.status(200).json({ success: true, alreadyClaimed: true, message: 'HendonMob link reward already claimed' });
-              }
-              throw claimInsertErr;
-          }
-
-          // Stable reference_id closes the retry-double-credit window. hendonmob_link
-          // is a one-time-per-user reward so user-keyed dedup is enough.
-          const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
-              p_user_id: userId,
-              p_amount: HENDONMOB_REWARD,
-              p_type: 'hendonmob_link',
-              p_description: `HendonMob link reward — ${HENDONMOB_REWARD}diamonds`,
-              p_reference_id: `hendonmob_link_${userId}`
-          });
-
-          if (rpcError) {
-              // Roll back the idempotency claim row so the user can retry.
-              // Same bug shape as daily-login (commit 8d9ce5c9f1).
-              const { error: rollbackErr } = await getSupabase()
-                      .from('diamond_reward_claims')
-                      .delete()
-                      .eq('user_id', userId)
-                      .eq('reward_type', 'hendonmob_link')
-                      .eq('claim_date', today);
-              if (rollbackErr) {
-                  console.warn('[HendonMobLink] Rollback delete failed:', rollbackErr.message);
-              }
-              console.warn('[HendonMobLink] RPC error (claim rolled back so user can retry):', rpcError);
-              return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
-          }
-
-          return res.status(200).json({
-              success: true,
-              claimed: true,
-              diamondsAwarded: HENDONMOB_REWARD,
-              message: `+${HENDONMOB_REWARD}diamonds HendonMob Linked!`
-          });
-
-      } catch (error) {
-          console.warn('[HendonMobReward] Error:', error.message || error);
-          return res.status(500).json({ success: false, error: 'Failed to claim HendonMob link reward' });
-      }
+    } catch (error) {
+        console.warn('[HendonMobReward] Error:', error.message || error);
+        return res.status(500).json({ success: false, error: 'Failed to claim HendonMob link reward' });
+    }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+      console.warn('[API Error]', err);
+      if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

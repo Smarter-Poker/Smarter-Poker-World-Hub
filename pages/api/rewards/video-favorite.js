@@ -1,14 +1,9 @@
 /**
- * ⭐ VIDEO FAVORITE REWARD API
+ * ⭐ VIDEO FAVORITE REWARD — Diamond Rewards Standard v2
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 2diamonds for favoriting a video (max 3 per day)
- *
- * ANTI-FARMING SAFEGUARDS:
- * - 3 rewards per day max
- * - 1-minute cooldown
- * - Same video can only earn once (lifetime)
- * - Favorite must exist in video_favorites table
- * - 500diamonds daily cap
+ * Action key: video_favorite. Amount, 3/day limit, caps, velocity and dedup
+ * live in award_diamonds_v2. Eligibility owned here: the favorite row exists
+ * for THIS user. reference_id: `video_favorite_<userId>_<videoId>`.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -16,15 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const FAV_REWARD = 2;
-const MAX_PER_DAY = 3;
-const DAILY_CAP = 500;
-const COOLDOWN_MINUTES = 1;
-
-
+// ── Service-role client — award_diamonds_v2 is GRANTed to service_role ONLY ──
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -35,153 +22,159 @@ function getSupabase() {
     return _supabase;
 }
 
+/** YYYY-MM-DD in America/Chicago — the anchor timezone for every diamond day. */
+function chicagoDate(d = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(d);
+}
+
+const REASON_MESSAGE = {
+    ok: 'Diamonds awarded',
+    duplicate: 'Already claimed',
+    daily_cap: 'Daily diamond cap reached — come back tomorrow',
+    monthly_cap: 'Monthly diamond cap reached',
+    action_limit: 'Daily limit reached for this reward',
+    velocity: 'Slow down a moment before earning again',
+    budget_exhausted: 'Rewards are paused right now — please try again later',
+    unknown_action: 'Unknown reward action',
+    not_eligible: 'Not eligible for this reward'
+};
+
+/**
+ * Delegate the award to public.award_diamonds_v2. The amount is resolved
+ * SERVER-SIDE from the catalog — this endpoint never sends one, and the client
+ * never sends one either. Dedup (reference_id), per-action daily limits,
+ * velocity, the POST-multiplier daily/monthly caps and the platform budget all
+ * live inside the SQL function. We only decide *eligibility*.
+ */
+async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targetId = null, metadata = {} }) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
+        return { ok: false, transportError: { message: 'Service role key not configured' } };
+    }
+    const { data, error } = await supabase.rpc('award_diamonds_v2', {
+        p_user_id: userId,
+        p_action_key: actionKey,
+        p_reference_id: referenceId,
+        p_target_id: targetId === null || targetId === undefined ? null : String(targetId),
+        p_metadata: metadata || {}
+    });
+    if (error) {
+        console.warn('[RewardsV2] RPC error for', actionKey, '-', error.message || error);
+        return { ok: false, transportError: error };
+    }
+    const r = data || {};
+    return {
+        ok: true,
+        success: r.success === true,
+        awarded: Number(r.awarded || 0),
+        requested: Number(r.requested || 0),
+        reason: r.reason || 'unknown',
+        capped: r.capped === true,
+        dailyRemaining: r.daily_remaining === undefined ? null : r.daily_remaining,
+        monthlyRemaining: r.monthly_remaining === undefined ? null : r.monthly_remaining,
+        balance: r.balance_after === undefined ? null : r.balance_after
+    };
+}
+
+/**
+ * Surface the RPC's verdict honestly. `reason` and `awarded` always reflect
+ * what the ledger actually did. `success` stays true for duplicate/action_limit
+ * so existing clients keep their "already claimed" branch.
+ */
+function sendAwardResult(res, award, label, extra = {}) {
+    if (!award.ok) {
+        return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+    }
+    const base = {
+        ...extra,
+        awarded: award.awarded,
+        diamondsAwarded: award.awarded,
+        requested: award.requested,
+        reason: award.reason,
+        capped: award.capped,
+        dailyRemaining: award.dailyRemaining,
+        monthlyRemaining: award.monthlyRemaining,
+        balance: award.balance
+    };
+    if (award.success) {
+        return res.status(200).json({
+            ...base,
+            success: true,
+            claimed: true,
+            message: `+${award.awarded} 💎 ${label}${award.capped ? ' (capped by your daily limit)' : ''}`
+        });
+    }
+    const softClaim = award.reason === 'duplicate' || award.reason === 'action_limit';
+    return res.status(200).json({
+        ...base,
+        success: softClaim,
+        claimed: false,
+        alreadyClaimed: softClaim,
+        dailyCapReached: award.reason === 'daily_cap',
+        monthlyCapReached: award.reason === 'monthly_cap',
+        cooldown: award.reason === 'velocity',
+        message: REASON_MESSAGE[award.reason] || 'Reward not granted'
+    });
+}
+
+const ACTION_KEY = 'video_favorite';
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    const supabase = getSupabase();
 
-      const supabase = getSupabase();
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    const authUser = authData?.user;
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const userId = authUser.id;
 
-      // ── Auth: JWT required (awards diamonds) ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const { videoId } = req.body || {};
+    if (!videoId) {
+        return res.status(400).json({ success: false, error: 'videoId required' });
+    }
 
-      const { videoId } = req.body;
-      const userId = authUser.id; // Use JWT identity
+    try {
+        // ── Eligibility: the favorite actually exists for this user ──
+        const { data: fav } = await supabase
+            .from('video_favorites')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('video_id', videoId)
+            .maybeSingle();
 
-      if (!userId || !videoId) {
-          return res.status(400).json({ success: false, error: 'userId and videoId required' });
-      }
+        if (!fav) {
+            return res.status(200).json({ success: false, reason: 'not_eligible', awarded: 0, diamondsAwarded: 0, message: 'Favorite not found' });
+        }
 
-      const now = new Date();
-      const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-      const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+        const award = await awardDiamondsV2(supabase, {
+            userId,
+            actionKey: ACTION_KEY,
+            referenceId: `${ACTION_KEY}_${userId}_${videoId}`,
+            targetId: String(videoId),
+            metadata: { video_id: String(videoId) }
+        });
 
-      try {
-          // Verify favorite exists
-          const { data: fav } = await supabase
-              .from('video_favorites')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('video_id', videoId)
-              .maybeSingle();
+        return sendAwardResult(res, award, 'Video Favorite!');
 
-          if (!fav) {
-              return res.status(200).json({ success: false, message: 'Favorite not found' });
-          }
-
-          // Already claimed for this video (lifetime)
-          const { data: videoClaim } = await supabase
-              .from('diamond_reward_claims')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('reward_type', 'video_favorite')
-              .contains('metadata', { video_id: videoId })
-              .maybeSingle();
-
-          if (videoClaim) {
-              return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Already earned for this video' });
-          }
-
-          // Daily limit
-          const { count } = await supabase
-              .from('diamond_reward_claims')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', userId)
-              .eq('reward_type', 'video_favorite')
-              .eq('claim_date', today);
-
-          if ((count || 0) >= MAX_PER_DAY) {
-              return res.status(200).json({ success: true, alreadyClaimed: true, message: `Favorite limit (${MAX_PER_DAY}/day) reached` });
-          }
-
-          // Cooldown (1 min)
-          const { data: lastClaim } = await supabase
-              .from('diamond_reward_claims')
-              .select('claimed_at')
-              .eq('user_id', userId)
-              .eq('reward_type', 'video_favorite')
-              .order('claimed_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-          if (lastClaim?.claimed_at && (now - new Date(lastClaim.claimed_at)) < COOLDOWN_MINUTES * 60 * 1000) {
-              return res.status(200).json({ success: false, cooldown: true });
-          }
-
-          // Daily cap
-          const { data: todayClaims } = await supabase
-              .from('diamond_reward_claims')
-              .select('diamonds_awarded')
-              .eq('user_id', userId)
-              .eq('claim_date', today)
-              .neq('reward_type', 'referral');
-
-          const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
-          if (todayTotal + FAV_REWARD > DAILY_CAP) {
-              return res.status(200).json({ success: false, dailyCapReached: true });
-          }
-
-          // BUG #271 FIX: Check insert result before awarding diamonds
-          const { error: claimErr } = await getSupabase().from('diamond_reward_claims').insert({
-              user_id: userId,
-              reward_type: 'video_favorite',
-              diamonds_awarded: FAV_REWARD,
-              claim_date: today,
-              metadata: { video_id: videoId }
-          });
-
-          if (claimErr) {
-              if (claimErr.code === '23505') {
-                  return res.status(200).json({ success: true, alreadyClaimed: true });
-              }
-              throw claimErr;
-          }
-
-          const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
-              p_user_id: userId,
-              p_amount: FAV_REWARD,
-              p_type: 'video_favorite',
-              p_description: `Video favorite reward — ${FAV_REWARD}diamonds`,
-              // Action-namespaced + actor-scoped to avoid colliding with
-              // bare videoId reference_ids in video-watch.js.
-              p_reference_id: `video_favorite_${userId}_${videoId}`
-          });
-
-          if (rpcError) {
-              // Roll back the idempotency claim row so the user can retry.
-              // Same bug shape as daily-login (commit 8d9ce5c9f1).
-              const { error: rollbackErr } = await getSupabase()
-                      .from('diamond_reward_claims')
-                      .delete()
-                      .eq('user_id', userId)
-                      .eq('reward_type', 'video_favorite')
-                      .eq('claim_date', today);
-              if (rollbackErr) {
-                  console.warn('[VideoFavorite] Rollback delete failed:', rollbackErr.message);
-              }
-              console.warn('[VideoFavorite] RPC error (claim rolled back so user can retry):', rpcError);
-              return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
-          }
-
-          return res.status(200).json({ success: true, claimed: true, diamondsAwarded: FAV_REWARD });
-
-      } catch (error) {
-          console.warn('[VideoFavoriteReward] Error:', error.message || error);
-          return res.status(500).json({ success: false, error: 'Failed to claim video favorite reward' });
-      }
+    } catch (error) {
+        console.warn('[VideoFavoriteReward] Error:', error.message || error);
+        return res.status(500).json({ success: false, error: 'Failed to claim video favorite reward' });
+    }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+      console.warn('[API Error]', err);
+      if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
