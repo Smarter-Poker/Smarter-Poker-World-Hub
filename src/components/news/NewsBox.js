@@ -84,7 +84,106 @@ const CATEGORY_ICONS = {
     online: Monitor
 };
 
-function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// DEFENSIVE HELPERS
+// A single malformed row from the scraper (title as an object, category as a
+// number, source_name === 'constructor', ...) used to be enough to throw during
+// render and blank the whole feed. These keep one bad article contained.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Render-safe text: never hand React an object/array to render.
+function safeText(value) {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return '';
+}
+
+// Own-property lookup only — a key like 'constructor' or 'toString' would
+// otherwise resolve to an inherited Object.prototype member.
+function pickOwn(map, key, fallback) {
+    if (typeof key !== 'string') return fallback;
+    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+}
+
+/**
+ * Error boundary for a single card.
+ *
+ * React unmounts the entire tree up to the nearest boundary when a render
+ * throws, so without one of these a single malformed article takes the whole
+ * news grid down with it. Exported so the sibling card components in this
+ * folder can reuse it.
+ */
+export class CardErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error) {
+        // Contained on purpose: log and keep the rest of the feed alive.
+        console.warn('[NewsBox] Card render failed:', error?.message || error);
+    }
+
+    render() {
+        if (this.state.hasError) return this.props.fallback || null;
+        return this.props.children;
+    }
+}
+
+// Truthful empty state for a card that could not render. No fabricated data:
+// we show the title only when it really is a string we already had.
+function NewsBoxFallback({ article }) {
+    const title = safeText(article?.title);
+    return (
+        <div className="news-box news-box-error">
+            <div className="box-content">
+                <h3 className="box-title">{title || 'Article unavailable'}</h3>
+                <p className="box-excerpt">This story could not be displayed.</p>
+            </div>
+
+            <style jsx>{`
+                .news-box-error {
+                    position: relative;
+                    background: #1a1c1e;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    height: 340px;
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                }
+
+                .box-content {
+                    padding: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+
+                .box-title {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: rgba(255, 255, 255, 0.85);
+                    margin: 0;
+                }
+
+                .box-excerpt {
+                    font-size: 11px;
+                    color: rgba(255, 255, 255, 0.45);
+                    margin: 0;
+                }
+            `}</style>
+        </div>
+    );
+}
+
+function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
     // Read time: trust any positive stored value; otherwise estimate from real
     // content at ~200 wpm. When there is nothing to estimate, show no badge
     // rather than a fabricated number.
@@ -92,7 +191,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
         if (!article) return null;
         const dbTime = Number(article.read_time);
         if (Number.isFinite(dbTime) && dbTime > 0) return Math.round(dbTime);
-        const textToEstimate = article.content || article.summary || article.excerpt || '';
+        const source = article.content || article.summary || article.excerpt || '';
+        const textToEstimate = typeof source === 'string' ? source : '';
         const wordCount = textToEstimate.trim().split(/\s+/).filter(Boolean).length;
         return wordCount > 50 ? Math.min(12, Math.max(2, Math.ceil(wordCount / 200))) : null;
     }, [article]);
@@ -101,43 +201,73 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
     if (!article) return null;
 
-    const CategoryIcon = CATEGORY_ICONS[article.category] || CATEGORY_ICONS.news;
+    const CategoryIcon = pickOwn(CATEGORY_ICONS, article.category, CATEGORY_ICONS.news) || CATEGORY_ICONS.news;
 
     // Get image with fallback — proxy cardplayer.com images through our server (they block direct browser access)
-    const rawImageUrl = article.image_url;
+    const rawImageUrl = typeof article.image_url === 'string' ? article.image_url : '';
     const isCardPlayerImage = rawImageUrl && (
         rawImageUrl.includes('cardplayer.com')
     );
+    const categoryFallback = pickOwn(FALLBACK_IMAGES, article.category, FALLBACK_IMAGES.news);
+    const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
     const imageUrl = isCardPlayerImage
         ? `/api/proxy?url=${encodeURIComponent(rawImageUrl)}`
-        : (rawImageUrl || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news);
-    const fallbackUrl = FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
+        : (rawImageUrl || fallbackUrl);
 
-    const srcColor = SOURCE_COLORS_LOCAL[article.source_name] || '#5ef5f0';
+    const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#5ef5f0');
+    const srcColor = typeof srcAccent === 'string' ? srcAccent : '#5ef5f0';
+
+    const title = safeText(article.title);
+    const sourceLabel = safeText(article.source_name) || 'Smarter.Poker';
+    const categoryLabel = typeof article.category === 'string' && article.category
+        ? article.category.toUpperCase()
+        : 'POKER';
 
     const openArticle = () => {
-        if (onOpen) onOpen(article);
+        // Handler errors are outside the error boundary's reach, so contain
+        // them here rather than letting them surface as an unhandled error.
+        try {
+            if (onOpen) onOpen(article);
+        } catch (err) {
+            console.warn('[NewsBox] onOpen failed:', err?.message || err);
+        }
     };
 
     return (
         <div
             className={`news-box ${isRead ? 'read' : ''}`}
-            data-source={article.source_name}
+            data-source={safeText(article.source_name)}
             style={{ '--src-accent': srcColor }}
-            role="button"
-            tabIndex={0}
-            aria-label={article.title || 'Open article'}
-            onClick={openArticle}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    openArticle();
-                }
-            }}
         >
-            {/* Quick Actions — keydown must not reach the card handler above, or
-                its preventDefault() would cancel these buttons' native activation */}
-            <div className="box-actions" onKeyDown={(e) => e.stopPropagation()}>
+            {/* ─────────────────────────────────────────────────────────────
+                ACCESSIBILITY: exactly one interactive wrapper.
+                This card used to be a div with role="button" + tabIndex that
+                CONTAINED the real bookmark/share <button>s — an axe
+                'nested-interactive' violation, and it left AT users with a
+                button inside a button.
+                It is now a plain container. The single card control is this
+                real <button>, stretched over the card (the "stretched link"
+                pattern) so the whole surface stays clickable and Enter/Space
+                work natively. .box-actions is a SIBLING of it, not a
+                descendant, and sits on a higher z-index so its buttons stay
+                clickable. Keeping the stretched button out of normal flow is
+                what preserves the layout: .box-image and .box-content remain
+                DIRECT flex children of .news-box, which the page's global
+                `.news-grid-list .news-box { flex-direction: row }` rule needs.
+                It is first in the DOM so it keeps the old tab order
+                (card, then bookmark, then share).
+                ───────────────────────────────────────────────────────────── */}
+            <button
+                type="button"
+                className="card-open"
+                aria-label={title || 'Open article'}
+                onClick={openArticle}
+            />
+
+            {/* Quick Actions — siblings of .card-open, so no nested interactive.
+                stopPropagation is kept so a click here never reaches any handler
+                the page may attach to the surrounding card wrapper. */}
+            <div className="box-actions">
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); if (onBookmark) onBookmark(article.id, article); }}
@@ -175,34 +305,36 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <div className="box-image">
                 <img
                     src={imageUrl}
-                    alt={article.title || 'Poker news article'}
+                    alt={title || 'Poker news article'}
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
                         // Try category fallback before giving up
-                        if (e.target.src !== fallbackUrl) {
-                            e.target.src = fallbackUrl;
+                        const img = e?.target;
+                        if (!img) return;
+                        if (img.src !== fallbackUrl) {
+                            img.src = fallbackUrl;
                         } else {
-                            e.target.style.display = 'none';
-                            e.target.parentElement.classList.add('no-image');
+                            img.style.display = 'none';
+                            img.parentElement?.classList.add('no-image');
                         }
                     }}
                 />
                 <div className="image-placeholder" aria-hidden="true">
                     <span className="placeholder-icon"><CategoryIcon size={48} /></span>
-                    <span className="placeholder-text">{article.category?.toUpperCase() || 'POKER'}</span>
+                    <span className="placeholder-text">{categoryLabel}</span>
                 </div>
                 <div className="box-overlay" />
             </div>
 
             {/* Content - compact: title + excerpt + meta */}
             <div className="box-content">
-                <h3 className="box-title">{article.title}</h3>
+                <h3 className="box-title">{title}</h3>
                 {excerpt && (
                     <p className="box-excerpt">{excerpt}</p>
                 )}
                 <div className="box-meta">
-                    <span className="source" style={{ color: srcColor }}>{article.source_name || 'Smarter.Poker'}</span>
+                    <span className="source" style={{ color: srcColor }}>{sourceLabel}</span>
                     <span className="separator">•</span>
                     <span className="time">{timeAgo(article.published_at)}</span>
                     <span className="separator">•</span>
@@ -244,9 +376,55 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     filter: brightness(1.05);
                 }
 
+                /* Card focus ring. Kept on .news-box for any consumer that
+                   still makes the card itself focusable, and it coexists with
+                   the page's ".keyboard-focused .news-box" arrow-key highlight,
+                   which targets this same element.
+
+                   REGRESSION GUARD: do NOT put this ring on :focus-within.
+                   :focus-within has no keyboard/pointer distinction, so it
+                   matched on every mouse click (the old rule was :focus-visible
+                   on a focusable card, i.e. keyboard only) and it also matched
+                   whenever the bookmark/share buttons were focused, drawing a
+                   whole-card ring on top of their own focus style. The ring for
+                   the stretched control lives on .card-open:focus-visible
+                   below. */
                 .news-box:focus-visible {
                     outline: 2px solid #5ef5f0;
                     outline-offset: 2px;
+                }
+
+                /* The single card control, stretched over the whole card.
+                   Purely an overlay: it is out of flow, so it does not
+                   participate in .news-box's flex layout. Sits above the image
+                   (z-index 1) and the gradient overlay (z-index 2) but below
+                   .box-actions (z-index 10), the chrome frame (::after,
+                   z-index 100) and the page's read-later chip (z-index 101). */
+                .card-open {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 5;
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                    padding: 0;
+                    margin: 0;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                    -webkit-appearance: none;
+                    appearance: none;
+                }
+
+                /* Keyboard-only focus ring for the stretched card control.
+                   Drawn INSIDE the card on purpose: .news-box has
+                   overflow:hidden, so a positive outline-offset here would be
+                   clipped away entirely. -7px clears the 5px ::after chrome
+                   frame (which paints above this button at z-index 100), so
+                   the ring stays visible. */
+                .card-open:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: -7px;
                 }
 
                 .news-box.read {
@@ -509,7 +687,73 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
     );
 }
 
-export default React.memo(NewsBox);
+// ─────────────────────────────────────────────────────────────────────────────
+// MEMOISATION
+//
+// The default React.memo shallow compare was a no-op here: pages/hub/news.js
+// passes `onOpen={openArticle}` (a plain function re-created on every render of
+// the page), so `prevProps.onOpen !== nextProps.onOpen` every time and every
+// card re-rendered on every keystroke in the search box.
+//
+// The page is owned by another file, so the comparison is made explicit here
+// instead: compare only the props this component actually reads. The three
+// callbacks are deliberately EXCLUDED — see the caveat below.
+//
+// CAVEAT (documented on purpose): ignoring callback identity means a skipped
+// re-render keeps the callback closures from the previous render. That is safe
+// for the current call sites — onBookmark/onShare are useCallback'd in
+// pages/hub/news.js and openArticle only closes over `router`, `markAsRead` and
+// a setState — but if a future callback closes over rapidly-changing state,
+// wrap it in useCallback on the page rather than loosening this comparator.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Every article field read during render (directly or via useMemo).
+const COMPARED_ARTICLE_FIELDS = [
+    'id',
+    'title',
+    'content',
+    'summary',
+    'excerpt',
+    'read_time',
+    'category',
+    'image_url',
+    'source_name',
+    'published_at',
+    'views'
+];
+
+export function areNewsBoxPropsEqual(prev, next) {
+    if (prev === next) return true;
+    if (prev.isBookmarked !== next.isBookmarked) return false;
+    if (prev.isRead !== next.isRead) return false;
+    if (prev.index !== next.index) return false;
+
+    const a = prev.article;
+    const b = next.article;
+    if (a === b) return true;
+    if (!a || !b) return false;
+
+    for (let i = 0; i < COMPARED_ARTICLE_FIELDS.length; i++) {
+        const field = COMPARED_ARTICLE_FIELDS[i];
+        if (a[field] !== b[field]) return false;
+    }
+    return true;
+}
+
+// Each card gets its own error boundary, keyed by article id so a new article
+// reuses a clean boundary rather than inheriting a previous card's error state.
+function NewsBox(props) {
+    return (
+        <CardErrorBoundary
+            key={props?.article?.id ?? 'news-box'}
+            fallback={<NewsBoxFallback article={props?.article} />}
+        >
+            <NewsBoxCard {...props} />
+        </CardErrorBoundary>
+    );
+}
+
+export default React.memo(NewsBox, areNewsBoxPropsEqual);
 
 // Re-export helpers for sibling components
-export { FALLBACK_IMAGES, formatViews, timeAgo, SOURCE_COLORS_LOCAL };
+export { FALLBACK_IMAGES, formatViews, timeAgo, SOURCE_COLORS_LOCAL, safeText, pickOwn };
