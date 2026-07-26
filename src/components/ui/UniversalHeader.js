@@ -791,8 +791,8 @@ export default function UniversalHeader({
                 }
 
                 .hamburger-btn {
-                    width: 60px;
-                    height: 60px;
+                    width: 40px;
+                    height: 40px;
                     background: transparent;
                     border: none;
                     display: flex;
@@ -1019,6 +1019,16 @@ export default function UniversalHeader({
                         font-size: 7px;
                         min-width: 10px;
                     }
+                    
+                    /* Shrink hamburger and hub/back navigation buttons for mobile */
+                    .hamburger-btn {
+                        width: 28px;
+                        height: 28px;
+                    }
+                    
+                    .header-nav-btn {
+                        height: 22px;
+                    }
                 }
                 
                 /* Tablets and Desktops */
@@ -1044,7 +1054,7 @@ export default function UniversalHeader({
                             onClick={onMenuClick}
                             className="hamburger-btn"
                             aria-label="Open Menu"
-                            style={{ padding: 0, width: 40, height: 40 }}
+                            style={{ padding: 0 }}
                         >
                             <img src="/images/btn-hamburger-v4.png" alt="Menu" style={{ width: 'auto', height: '100%', objectFit: 'contain' }} />
                         </button>

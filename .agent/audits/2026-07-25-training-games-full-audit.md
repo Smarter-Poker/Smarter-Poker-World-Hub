@@ -214,3 +214,36 @@ another agent, with the audit fixes intact).
 uncommitted and wrote a deploy handoff. That is now explicitly forbidden —
 see `.agent/workflows/claude-mcp-push.md`, RULE 0 in `CLAUDE.md`, and
 section 1.1 of `.agent/AGENT_BINDING_RULES.md`.
+
+
+## CORRECTION (2026-07-26): the "dead code" list was wrong
+
+The audit listed `src/games/` (~24k lines), the entire `pages/api/gto/`
+directory and `GameLibrary.ts` as dead and recommended deletion. **That was
+wrong and deleting them would have broken a live feature.**
+
+`pages/hub/memory-games.js` imports all of it: `GameEngine`,
+`ScenarioDatabase`, `ELOService`, and the six game components
+(`SpotTrainerGame`, `TournamentModeGame`, `SpeedDrillGame`,
+`PressureCookerGame`, `PatternRecognitionGame`, `MixedStrategyGame`), and it
+calls `/api/gto/generate-scenario`, `/api/gto/explain-hand`,
+`/api/gto/render-analysis-card`, `/api/gto/analyze-game` and
+`/api/gto/get-weak-spots`. The auditing agent never saw that page because the
+snapshot it was given contained only `pages/hub/training/`, so "no importer
+found" meant "no importer in the snapshot".
+
+Consequences:
+
+- **Do not delete `src/games/` or `pages/api/gto/`.** Only
+  `src/data/QUESTIONS_LIBRARY.js` (101 lines) is genuinely unreferenced.
+- The `/api/gto` defects the audit filed as "latent, dead endpoint" are
+  **live bugs in Memory Games**, and two were fixed on 2026-07-26:
+  `generate-scenario.js` resolved `FOUR_BET` with a key shape that exists
+  nowhere (`vs_<pos>_3bet` instead of `<pos>_vs_3bet`), so every Cold 4-Bet
+  scenario returned an empty range; and `pickRfiTable` returned the
+  bucket-keyed `SHOVE_FOLD` table where the caller indexed by position, so
+  every short-stack open-raise scenario returned an empty range too.
+
+Lesson for future audits: "no importer found" is only valid when the search
+covered the whole repo. Verify dead-ness against the full tree before
+recommending deletion.

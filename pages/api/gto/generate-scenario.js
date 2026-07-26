@@ -90,7 +90,23 @@ const SCENARIO_TYPES = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function pickRfiTable(stackDepth) {
-    if (stackDepth <= 25) return { table: SHOVE_FOLD, kind: 'SHOVE_FOLD' };
+    if (stackDepth <= 25) {
+        // 2026-07-26 AUDIT FIX: SHOVE_FOLD is keyed by stack bucket ('10BB',
+        // '15BB', ...) and only THEN by position, unlike the RFI tables which are
+        // keyed by position directly. Returning the raw table made the caller's
+        // `table[position]` undefined for every short-stack open-raise scenario,
+        // so those 404'd. Resolve the nearest bucket here so the caller can keep
+        // indexing by position uniformly.
+        const buckets = Object.keys(SHOVE_FOLD)
+            .map((k) => ({ key: k, bb: parseInt(k, 10) }))
+            .filter((b) => isFinite(b.bb))
+            .sort((a, b) => Math.abs(a.bb - stackDepth) - Math.abs(b.bb - stackDepth));
+        const bucketKey = buckets.length > 0 ? buckets[0].key : null;
+        return {
+            table: (bucketKey && SHOVE_FOLD[bucketKey]) || {},
+            kind: bucketKey ? `SHOVE_FOLD_${bucketKey}` : 'SHOVE_FOLD',
+        };
+    }
     if (stackDepth <= 35) return { table: RFI_20BB, kind: 'RFI_20BB' };
     if (stackDepth <= 75) return { table: RFI_50BB, kind: 'RFI_50BB' };
     if (stackDepth >= 175) return { table: RFI_200BB, kind: 'RFI_200BB' };
@@ -216,8 +232,13 @@ function selectSolverRange({ scenarioType, position, stackDepth, opponent }) {
 
         case 'Cold 4-Bet': {
             return {
-                range: FOUR_BET[`vs_${opponent}_3bet`] || FOUR_BET.vs_BTN_3bet || {},
-                source: 'FOUR_BET',
+                // 2026-07-26 AUDIT FIX: FOUR_BET is keyed by the HERO position that
+                // opened and is now facing a 3-bet -- UTG_vs_3bet / CO_vs_3bet /
+                // BTN_vs_3bet. The old `vs_${opponent}_3bet` key (and its
+                // `vs_BTN_3bet` fallback) exist nowhere in solverRanges, so every
+                // Cold 4-Bet scenario resolved to {} and the endpoint 404'd.
+                range: FOUR_BET[`${position}_vs_3bet`] || FOUR_BET.BTN_vs_3bet || {},
+                source: `FOUR_BET_${position}`,
                 title: `${position} 4-Bet vs ${opponent} 3-bet`,
                 description: `4-bet ranges from ${position} facing a ${opponent} 3-bet. Tight value range plus a small polar bluff tier.`,
                 tip: '4-betting is a tight value game — most "almost 4-bet" hands like AQs and JJ are actually flat-calls at 100bb.',
