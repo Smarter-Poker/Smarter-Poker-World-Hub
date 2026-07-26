@@ -12,6 +12,7 @@
 // TRAIN-CSS-GRADIENT-ADOPT-13 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useSWR from 'swr';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -20,6 +21,10 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
+// SAMPLE FALLBACK ONLY — these twenty tips are fixed editorial examples, not
+// news. They are rendered (behind an explicit "Sample content" banner and a
+// per-card SAMPLE badge) only when /api/news/articles returns no live strategy
+// articles, so the page degrades to something useful instead of a blank list.
 const ARTICLES = [
   {
     id: 1,
@@ -185,6 +190,71 @@ const ARTICLES = [
 
 const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Mental'];
 
+// ── Live feed ───────────────────────────────────────────────────────────────
+// /api/news/articles filters on poker_news.category. The category values used
+// across the news hub are: tournament | news | strategy | industry. 'strategy'
+// is the closest real category to this page's subject, so that is what we ask
+// for — the API does not expose Preflop/Postflop/Math/Mental as categories.
+const FEED_URL = '/api/news/articles?category=strategy&limit=50';
+const jsonFetch = (url) => fetch(url).then((r) => r.json());
+
+// The API stores ONE coarse category per row, so the four training topics that
+// power the filter bar are derived client-side from keywords in the headline and
+// body. This is a display-only tag: nothing is written back, and an article that
+// matches no topic is left untagged (no pill, reachable only under "All") rather
+// than being guessed into a bucket.
+const TOPIC_KEYWORDS = {
+  Preflop: ['preflop', 'pre-flop', 'open raise', 'opening range', 'rfi', '3-bet', '3bet', 'three-bet', '4-bet', '4bet', 'squeeze', 'limp', 'button', 'big blind', 'small blind', 'cold call', 'cutoff'],
+  Postflop: ['postflop', 'post-flop', 'flop', 'turn', 'river', 'c-bet', 'cbet', 'continuation bet', 'check-raise', 'check raise', 'donk', 'overbet', 'board texture', 'blocker'],
+  Math: ['equity', 'pot odds', 'implied odds', 'expected value', 'combo', 'combinatoric', 'mdf', 'minimum defense', 'spr', 'stack-to-pot', 'variance', 'frequency', 'solver', 'range advantage'],
+  Mental: ['tilt', 'mental game', 'mindset', 'bankroll', 'discipline', 'routine', 'confidence', 'emotion', 'burnout', 'focus', 'motivation'],
+};
+
+// Each keyword must start on a word boundary but may carry any suffix, so
+// "3-betting"/"overbets"/"blockers" still match while "return" does NOT count
+// as "turn" and "combination" does not count as "combo".
+const TOPIC_MATCHERS = Object.keys(TOPIC_KEYWORDS).map((topic) => ({
+  topic,
+  patterns: TOPIC_KEYWORDS[topic].map(
+    (word) => new RegExp(`(^|[^a-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i')
+  ),
+}));
+
+function deriveTopic(title, body) {
+  const hay = `${title || ''} ${body || ''}`.toLowerCase();
+  if (!hay.trim()) return null;
+  let best = null;
+  let bestScore = 0;
+  for (const { topic, patterns } of TOPIC_MATCHERS) {
+    const score = patterns.reduce((n, re) => (re.test(hay) ? n + 1 : n), 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = topic;
+    }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+// Map a poker_news row onto the card shape this page has always rendered.
+// Dates stay as a plain YYYY-MM-DD slice (no locale formatting) so they match
+// the sample rows and can never differ between server and client.
+function toCardArticle(row) {
+  const body = (row?.content || '').replace(/\s+/g, ' ').trim();
+  const words = body ? body.split(' ').length : 0;
+  return {
+    id: row.id,
+    cat: deriveTopic(row?.title, body),
+    title: row?.title || 'Untitled',
+    body,
+    date: row?.published_at ? String(row.published_at).slice(0, 10) : '',
+    readTime: row?.read_time || Math.max(1, Math.round(words / 200)) || 1,
+    source: row?.source_name || null,
+    isSample: false,
+  };
+}
+
+const SAMPLE_ITEMS = ARTICLES.map((a) => ({ ...a, source: null, isSample: true }));
+
 // BUG FIX (TRAIN-NEWS-A11Y-1): SVG icon components replacing the GTO news
 // emoji set (🃏 Preflop / 🎯 Postflop / 🧮 Math / 🧠 Mental category icons,
 // 💡 tip banner, ⭐/☆ bookmark toggle, ✓ read indicator, ← back). Same
@@ -249,6 +319,22 @@ export default function GtoNewsPage() {
   const [search, setSearch] = useState('');
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
 
+  // Live strategy articles. SWR keeps the request cached across navigation and
+  // revalidates on focus, so the page is no longer a frozen hardcoded list.
+  const { data: feedData, error: feedError, isLoading: feedLoading } = useSWR(FEED_URL, jsonFetch);
+  const liveItems = useMemo(() => {
+    const rows = feedData?.success && Array.isArray(feedData.data) ? feedData.data : [];
+    return rows.filter((r) => r && r.id && r.title).map(toCardArticle);
+  }, [feedData]);
+
+  // Sample content is shown ONLY once the request has settled with nothing to
+  // show (empty result or a failed fetch) — never while the first load is in
+  // flight, and never mixed in alongside real articles.
+  const settled = !feedLoading && (feedData !== undefined || feedError !== undefined);
+  const usingSample = settled && liveItems.length === 0;
+  const items = usingSample ? SAMPLE_ITEMS : liveItems;
+  const showLoading = !settled && liveItems.length === 0;
+
   // Load saved state
   useEffect(() => {
     try {
@@ -293,7 +379,11 @@ export default function GtoNewsPage() {
             // Tag so stats aggregators can exclude reading progress from
             // real training accuracy/leaderboard numbers.
             sessionType: 'reading',
-            gtowScore: Math.round((next.size / ARTICLES.length) * 100),
+            // Denominator is the list actually on screen (live feed, or the
+            // sample set when the feed is empty); guarded so an empty list
+            // can never divide by zero, and capped because `next.size` counts
+            // every article ever read, including ones since rotated out.
+            gtowScore: Math.min(100, Math.round((next.size / (items.length || ARTICLES.length)) * 100)),
             totalEVLoss: 0,
             handsPlayed: next.size,
             mistakeCount: 0,
@@ -336,27 +426,36 @@ export default function GtoNewsPage() {
 
   // Filtered and searched articles
   const filtered = useMemo(() => {
-    let list = ARTICLES;
+    let list = items;
     if (catFilter !== 'All') list = list.filter((a) => a.cat === catFilter);
     if (showBookmarksOnly) list = list.filter((a) => bookmarks.has(a.id));
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(
-        (a) => a.title.toLowerCase().includes(s) || a.body.toLowerCase().includes(s)
+        (a) => (a.title || '').toLowerCase().includes(s) || (a.body || '').toLowerCase().includes(s)
       );
     }
     return list;
-  }, [catFilter, search, showBookmarksOnly, bookmarks]);
+  }, [items, catFilter, search, showBookmarksOnly, bookmarks]);
 
-  // Daily tip of the day. Computed client-side after mount so SSR and
-  // hydration never disagree across midnight/timezone boundaries, with a
-  // safe modulo so a skewed clock (before the epoch) can't index negatively.
-  const [dailyTip, setDailyTip] = useState(ARTICLES[0]);
+  // Progress is measured against the articles currently on screen, so a
+  // long-lived read history can never push the bar past 100%.
+  const readCount = useMemo(() => items.filter((a) => readArticles.has(a.id)).length, [items, readArticles]);
+  const readPct = items.length ? Math.round((readCount / items.length) * 100) : 0;
+
+  // Daily tip of the day. The day index is computed client-side after mount so
+  // SSR and hydration never disagree across midnight/timezone boundaries, with
+  // a safe modulo so a skewed clock (before the epoch) can't index negatively.
+  // Until it resolves (and before the feed lands) the first item is used.
+  const [dayIndex, setDayIndex] = useState(null);
   useEffect(() => {
-    const dayOfYear = Math.floor((Date.now() - new Date(2026, 0, 1).getTime()) / 86400000);
-    const idx = ((dayOfYear % ARTICLES.length) + ARTICLES.length) % ARTICLES.length;
-    setDailyTip(ARTICLES[idx]);
+    setDayIndex(Math.floor((Date.now() - new Date(2026, 0, 1).getTime()) / 86400000));
   }, []);
+  const dailyTip = useMemo(() => {
+    if (items.length === 0) return null;
+    if (dayIndex === null) return items[0];
+    return items[((dayIndex % items.length) + items.length) % items.length];
+  }, [items, dayIndex]);
 
   return (
     <>
@@ -413,8 +512,8 @@ export default function GtoNewsPage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readArticles.size} of ${ARTICLES.length} articles read`}>
-              {readArticles.size}/{ARTICLES.length} articles read
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readCount} of ${items.length} articles read`}>
+              {readCount}/{items.length} articles read
             </div>
           </div>
           <button
@@ -441,33 +540,69 @@ export default function GtoNewsPage() {
         </div>
 
         <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
-          {/* Daily Tip Banner */}
-          <div
-            style={{
-              padding: '14px 16px',
-              borderRadius: 12,
-              marginBottom: 16,
-              background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(168,85,247,0.04))',
-              border: '1px solid rgba(0,212,255,0.12)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
-              <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden><LightbulbIcon size={14} /></span>
-              <span
+          {/* Sample-content notice — only when the live feed came back empty.
+              The list below is fixed example material, so say so plainly
+              instead of letting it read as current news. */}
+          {usingSample && (
+            <div
+              role="note"
+              style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                marginBottom: 16,
+                background: 'rgba(251,191,36,0.06)',
+                border: '1px solid rgba(251,191,36,0.25)',
+              }}
+            >
+              <div
                 style={{
                   fontSize: 10,
                   fontWeight: 800,
-                  color: 'var(--sp-accent-cyan)',
+                  color: 'var(--sp-accent-amber)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
               >
-                Tip of the Day
-              </span>
+                Sample content
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 4 }}>
+                {feedError
+                  ? 'Live strategy articles could not be loaded right now.'
+                  : 'No live strategy articles are available right now.'}{' '}
+                The tips below are fixed examples for reference — not current news.
+              </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>{dailyTip.title}</div>
-          </div>
+          )}
+
+          {/* Daily Tip Banner */}
+          {dailyTip && (
+            <div
+              style={{
+                padding: '14px 16px',
+                borderRadius: 12,
+                marginBottom: 16,
+                background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(168,85,247,0.04))',
+                border: '1px solid rgba(0,212,255,0.12)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
+                <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden><LightbulbIcon size={14} /></span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: 'var(--sp-accent-cyan)',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                  }}
+                >
+                  {usingSample ? 'Sample Tip' : 'Tip of the Day'}
+                </span>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>{dailyTip.title}</div>
+            </div>
+          )}
 
           {/* Search */}
           <input
@@ -528,7 +663,7 @@ export default function GtoNewsPage() {
             }}
             role="progressbar"
             aria-label="Reading progress"
-            aria-valuenow={Math.round((readArticles.size / ARTICLES.length) * 100)}
+            aria-valuenow={readPct}
             aria-valuemin={0}
             aria-valuemax={100}
           >
@@ -537,14 +672,27 @@ export default function GtoNewsPage() {
                 height: '100%',
                 borderRadius: 2,
                 background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                width: `${(readArticles.size / ARTICLES.length) * 100}%`,
+                width: `${readPct}%`,
                 transition: 'width 0.3s',
               }}
             />
           </div>
 
           {/* Articles */}
-          {filtered.length === 0 && (
+          {showLoading && (
+            <div
+              role="status"
+              style={{
+                padding: '24px 16px',
+                textAlign: 'center',
+                fontSize: 12,
+                color: 'var(--sp-fg-dim)',
+              }}
+            >
+              Loading strategy articles...
+            </div>
+          )}
+          {!showLoading && filtered.length === 0 && (
             <TrainerEmptyState
               variant="no-data"
               title="No articles match"
@@ -552,7 +700,7 @@ export default function GtoNewsPage() {
               compact
             />
           )}
-          {filtered.map((a, i) => (
+          {!showLoading && filtered.map((a, i) => (
             <motion.div
               key={a.id}
               initial={{ opacity: 0, y: 8 }}
@@ -569,26 +717,47 @@ export default function GtoNewsPage() {
               role="button"
               tabIndex={0}
               aria-expanded={expanded === a.id}
-              aria-label={`${a.title}${readArticles.has(a.id) ? ' (read)' : ''}`}
+              aria-label={`${a.title}${a.isSample ? ' (sample content)' : ''}${readArticles.has(a.id) ? ' (read)' : ''}`}
               onKeyDown={(e) => handleCardKeyDown(e, a.id)}
               onClick={() => handleExpand(a.id)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon */}
-                  <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
-                  <span
-                    style={{
-                      padding: '1px 6px',
-                      borderRadius: 3,
-                      background: CAT_COLORS_BG[a.cat] || 'rgba(255,255,255,0.06)',
-                      color: CAT_COLORS[a.cat],
-                      fontSize: 8,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {a.cat}
-                  </span>
+                  {/* Topic tag is derived, so it is shown only when one was
+                      actually matched — never invented for an untagged item. */}
+                  {a.cat && (
+                    <>
+                      {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon */}
+                      <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
+                      <span
+                        style={{
+                          padding: '1px 6px',
+                          borderRadius: 3,
+                          background: CAT_COLORS_BG[a.cat] || 'rgba(255,255,255,0.06)',
+                          color: CAT_COLORS[a.cat],
+                          fontSize: 8,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {a.cat}
+                      </span>
+                    </>
+                  )}
+                  {a.isSample && (
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: 3,
+                        background: 'rgba(251,191,36,0.1)',
+                        color: 'var(--sp-accent-amber)',
+                        fontSize: 8,
+                        fontWeight: 700,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      SAMPLE
+                    </span>
+                  )}
                   {readArticles.has(a.id) && (
                     <span style={{ fontSize: 8, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                       {/* TRAIN-NEWS-A11Y-1: SVG check */}
@@ -642,8 +811,32 @@ export default function GtoNewsPage() {
                     style={{ overflow: 'hidden' }}
                   >
                     <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.7, paddingTop: 4 }}>
-                      {a.body}
+                      {a.body || 'No preview text was published for this article.'}
                     </div>
+                    {/* Attribution + deep link for real feed items. stopPropagation
+                        keeps the link from also toggling the card. */}
+                    {!a.isSample && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          gap: 10,
+                          marginTop: 8,
+                          fontSize: 10,
+                          color: 'var(--sp-fg-faint)',
+                        }}
+                      >
+                        {a.source && <span>Source: {a.source}</span>}
+                        <a
+                          href={`/hub/article?id=${encodeURIComponent(a.id)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ color: 'var(--sp-accent-cyan)', textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          Read full article
+                        </a>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
