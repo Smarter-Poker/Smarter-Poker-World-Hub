@@ -5,7 +5,7 @@
  * unverified — i.e. $5 of real money per throwaway email. That is gone.
  *
  * v2 pays NOTHING at signup. A referral becomes QUALIFIED, and only then:
- *   referral_qualified  → 250 💎 to the referrer
+ *   referral_qualified  → 500 💎 to the referrer
  *   referral_referee    → 100 💎 to the referee
  * Amounts come from the catalog inside award_diamonds_v2 — never from here,
  * never from the client.
@@ -14,7 +14,7 @@
  *   1. the referee's email is verified
  *   2. the referee's phone is verified
  *   3. the referee's account is >= 7 days old
- *   4. the referee has been active on >= 3 DISTINCT days
+ *   4. the referee has LOGGED IN on >= 5 DISTINCT days
  *      (distinct Chicago days in diamond_transactions — the service-role-only
  *       ledger; the user cannot write to it)
  * Plus: a referrer can qualify at most 10 referrals per calendar month
@@ -141,7 +141,7 @@ function sendAwardResult(res, award, label, extra = {}) {
 const REFERRER_ACTION = 'referral_qualified';
 const REFEREE_ACTION = 'referral_referee';
 const MIN_REFEREE_AGE_DAYS = 7;
-const MIN_ACTIVE_DAYS = 3;
+const MIN_LOGIN_DAYS = 5;
 const MAX_QUALIFIED_PER_MONTH = 10;
 
 /**
@@ -165,16 +165,25 @@ async function loadReferral(supabase, refereeId) {
     return { referral: null, refereeColumn: null };
 }
 
-/** Distinct Chicago days on which the user actually earned something. */
-async function countActiveDays(supabase, userId) {
+/**
+ * Distinct Chicago days on which the referee actually LOGGED IN.
+ *
+ * We count daily_login ledger rows rather than any-activity rows: daily_login
+ * is awarded at most once per Chicago day and only on a real authenticated
+ * session, so its distinct-day count IS the number of separate days the user
+ * logged in. diamond_transactions is service-role-only (locked down in
+ * migration 20260726120000), so this signal cannot be forged by the referee.
+ */
+async function countLoginDays(supabase, userId) {
     const { data, error } = await supabase
         .from('diamond_transactions')
         .select('created_at')
         .eq('user_id', userId)
+        .eq('transaction_type', 'daily_login')
         .order('created_at', { ascending: false })
         .limit(500);
     if (error) {
-        console.warn('[Referral] Activity lookup failed:', error.message || error);
+        console.warn('[Referral] Login-day lookup failed:', error.message || error);
         return null;   // unknown ⇒ fail closed
     }
     const days = new Set();
@@ -264,15 +273,15 @@ export default async function handler(req, res) {
         }
 
         const ageDays = Math.floor((Date.now() - new Date(referee.created_at).getTime()) / 86400000);
-        const activeDays = await countActiveDays(supabase, refereeId);
+        const loginDays = await countLoginDays(supabase, refereeId);
 
         const requirements = {
             emailVerified: referee.email_verified === true,
             phoneVerified: referee.phone_verified === true,
             accountAgeDays: ageDays,
             accountOldEnough: ageDays >= MIN_REFEREE_AGE_DAYS,
-            activeDays: activeDays === null ? 0 : activeDays,
-            activeEnough: activeDays !== null && activeDays >= MIN_ACTIVE_DAYS
+            loginDays: loginDays === null ? 0 : loginDays,
+            activeEnough: loginDays !== null && loginDays >= MIN_LOGIN_DAYS
         };
 
         if (!requirements.emailVerified || !requirements.phoneVerified
@@ -280,7 +289,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: false, qualified: false, reason: 'not_eligible',
                 awarded: 0, diamondsAwarded: 0, requirements,
-                message: 'Referral is not qualified yet — the referred player must verify email and phone, keep the account 7+ days, and be active on 3 separate days.'
+                message: 'Referral is not qualified yet — the referred player must verify email and phone, keep the account 7+ days, and log in on 5 separate days.'
             });
         }
 

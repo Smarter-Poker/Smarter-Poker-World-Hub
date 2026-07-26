@@ -627,9 +627,6 @@ export default function SignUpPage() {
                         // The trigger creates the profile with correct id = auth.user.id
                         // We just need to add/update the additional fields
                         // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
-                        const vipExpiresAt = new Date();
-                        vipExpiresAt.setDate(vipExpiresAt.getDate() + 30);
-
                         const { error: updateError } = await supabase
                             .from('profiles')
                             .update({
@@ -641,14 +638,16 @@ export default function SignUpPage() {
                                 state: formData.state,
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
-                                diamonds: 500, // Welcome diamond bonus
-                                diamond_multiplier: 1.0,
+                                // NOTE (Diamond Rewards v2): diamonds, diamond_multiplier, is_vip,
+                                // vip_tier and vip_expires_at are deliberately NOT written here.
+                                // Migration 20260726120000 locks those columns to service_role — a
+                                // browser-side write would now be rejected and would have let any
+                                // user self-grant VIP and an arbitrary balance. The welcome package
+                                // (30-day VIP + welcome diamonds) is granted server-side by the
+                                // handle_new_user trigger and /api/auth/ensure-profile.
                                 streak_count: 0,
                                 skill_tier: 'Newcomer',
                                 access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                is_vip: true,
-                                vip_tier: 'monthly',
-                                vip_expires_at: vipExpiresAt.toISOString(),
                                 last_login: new Date().toISOString(),
                                 birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
                                 birth_year: parseInt(formData.birthYear),
@@ -658,9 +657,6 @@ export default function SignUpPage() {
                         if (updateError) {
                             console.warn('Profile update error:', updateError);
                             // If update fails (profile doesn't exist yet), try insert as fallback
-                            const vipExpiresAtFallback = new Date();
-                            vipExpiresAtFallback.setDate(vipExpiresAtFallback.getDate() + 30);
-
                             const { error: insertError } = await supabase
                                 .from('profiles')
                                 .insert({
@@ -674,14 +670,10 @@ export default function SignUpPage() {
                                     state: formData.state,
                                     username: formData.pokerAlias,
                                     player_number: nextPlayerNumber,
-                                    diamonds: 500,
-                                    diamond_multiplier: 1.0,
+                                    // See note above — economic columns are server-granted only.
                                     streak_count: 0,
                                     skill_tier: 'Newcomer',
                                     access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                    is_vip: true,
-                                    vip_tier: 'monthly',
-                                    vip_expires_at: vipExpiresAtFallback.toISOString(),
                                     created_at: new Date().toISOString(),
                                     last_login: new Date().toISOString(),
                                     birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,

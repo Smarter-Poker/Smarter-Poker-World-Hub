@@ -457,7 +457,7 @@ VALUES
 
     -- ── Referral (separate budget; exempt from the daily cap, but hard-capped
     --    at 10 QUALIFIED referrals per calendar month inside award_diamonds_v2) ─
-    ('referral_qualified',       250, NULL, false, false, 'referral', true),
+    ('referral_qualified',       500, NULL, false, false, 'referral', true),
     ('referral_referee',         100, 1,    false, true,  'referral', true),
     ('referral_vip_conversion',  500, NULL, false, false, 'referral', true),
 

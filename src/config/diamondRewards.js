@@ -483,8 +483,8 @@ export const REWARDS = {
     key: 'referral_qualified',
     label: 'Qualified Referral',
     description:
-      'A player you referred verified their email and stayed active. 250 💎 each, up to 10 qualified referrals per month.',
-    diamonds: 250,
+      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 💎 each, up to 10 qualified referrals per month.',
+    diamonds: 500,
     maxPerDay: 10,
     monthlyMax: 10,
     category: 'referral',
@@ -579,7 +579,7 @@ export const REWARDS = {
 // REFERRAL PROGRAM CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 export const REFERRAL = {
-  referrer: 250,
+  referrer: 500,
   referee: 100,
   vipConversionBonus: 500,
   maxQualifiedPerMonth: 10,
