@@ -500,8 +500,7 @@ export default function MlbSlatePage() {
         ogImage="/images/mlb/og.png"
       />
       <UniversalHeader
-        pageDepth={2}
-        onBackClick={() => { router.push('/hub'); }}
+        pageDepth={1}
       />
       <MlbSubNav />
 
@@ -509,7 +508,7 @@ export default function MlbSlatePage() {
 
       <main className="mx-auto max-w-2xl bg-[#0a0a15] min-h-screen shadow-2xl relative pb-[70px] text-slate-300 w-full">
         {/* ── Header ───────────────────────────────────── */}
-        <header className="relative px-4 pt-6 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-10">
+        <div className="relative px-4 pt-6 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_8px_30px_rgba(0,0,0,0.8)] z-10">
           {/* Corner bolts */}
           <div className="absolute top-3 left-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
           <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.5)]" />
@@ -542,7 +541,7 @@ export default function MlbSlatePage() {
 
           {/* Bottom neon strip */}
           <div className="absolute bottom-0 left-[10%] right-[10%] h-[3px] bg-[#00D4FF] shadow-[0_0_10px_#00D4FF,0_0_20px_rgba(0,212,255,0.4)] rounded-t-full" />
-        </header>
+        </div>
 
         {/* ── Stale / Error banners ─────────────────────── */}
         {slateStale && !fetchError && (

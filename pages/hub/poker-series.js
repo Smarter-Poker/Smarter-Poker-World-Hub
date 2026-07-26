@@ -738,7 +738,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 <div className="space-overlay" />
 
                 {/* Header */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
                     router.back();
                 }} />
 

@@ -111,7 +111,7 @@ export default function HelpPage() {
                 paddingBottom: 80,
             }}>
                 {/* Header */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}

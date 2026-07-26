@@ -352,7 +352,7 @@ export default function ProfilePage() {
             />
             <div className="profile-page" style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header with Back navigation (nested page) */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}

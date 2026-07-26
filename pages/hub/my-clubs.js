@@ -799,7 +799,7 @@ export default function MyClubsPage() {
                 color: C.text,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif',
             }}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={1} />
 
                 {/* Main Content Area */}
                 <div style={{

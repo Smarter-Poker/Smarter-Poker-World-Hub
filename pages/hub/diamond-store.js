@@ -191,38 +191,24 @@ export default function DiamondStorePage() {
     // Only show once per session (not on every reload)
     // NOTE: Always initialize to false (server-safe) to prevent hydration mismatch.
     // Read sessionStorage in useEffect after client mount.
-    const [showIntro, setShowIntro] = useState(false);
-    const introVideoRef = useRef(null);
-
+        
     // After mount: check if user has seen the intro already
     useEffect(() => {
         try {
             if (!sessionStorage.getItem('marketplace-intro-seen')) {
-                setShowIntro(true);
-            }
+                            }
         } catch (_) {}
     }, []);
 
     // Mark intro as seen when it ends
     // NOTE: dismiss FIRST — sessionStorage.setItem can throw (Safari private
     // browsing) and must never block hiding the full-screen overlay.
-    const handleIntroEnd = useCallback(() => {
-        setShowIntro(false);
-        try { sessionStorage.setItem('marketplace-intro-seen', 'true'); } catch (_) {}
-    }, []);
+    []);
 
     // Attempt to unmute video after it starts playing.
     // Autoplay policies may pause an autoplaying video that is unmuted without
     // a user gesture — if that happens, re-mute and resume playback.
-    const handleIntroPlay = useCallback(() => {
-        const v = introVideoRef.current;
-        if (!v) return;
-        v.muted = false;
-        Promise.resolve(v.play()).catch(() => {
-            v.muted = true;
-            v.play().catch(() => {});
-        });
-    }, []);
+    []);
 
     const { addItem } = useCartStore();
 
@@ -681,57 +667,7 @@ export default function DiamondStorePage() {
             <StoreToast />
             <PageTransition>
                 {/* INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-                {showIntro && (
-                    <div style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 99999,
-                        background: '#000',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        <video
-                            ref={introVideoRef}
-                            src="/videos/marketplace-intro.mp4"
-                            autoPlay
-                            muted
-                            playsInline
-                            onPlay={handleIntroPlay}
-                            onEnded={handleIntroEnd}
-                            onError={handleIntroEnd}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain'
-                            }}
-                        />
-                        {/* Skip button */}
-                        <button
-                            onClick={handleIntroEnd}
-                            style={{
-                                position: 'absolute',
-                                top: 20,
-                                right: 20,
-                                padding: '8px 20px',
-                                background: 'rgba(255,255,255,0.2)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(255,255,255,0.3)',
-                                borderRadius: 20,
-                                color: 'white',
-                                fontSize: 14,
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                zIndex: 100000
-                            }}
-                        >
-                            Skip
-                        </button>
-                    </div>
-                )}
+                
                 <Head>
                     <title>Diamond Store — Smarter.Poker</title>
                     <meta name="description" content="Purchase diamonds to unlock premium features" />

@@ -141,7 +141,7 @@ export default function HandLabV2() {
       <Head>
         <title>Hand Lab V2 | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
 
       <div style={styles.container}>
         <div style={styles.header}>

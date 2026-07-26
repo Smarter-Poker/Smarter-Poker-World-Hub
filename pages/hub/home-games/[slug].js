@@ -598,7 +598,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       <>
         <SEOHead title="Home Game — Temporarily Unavailable" description="We couldn't load this page right now." noindex={true} />
         <div className="hgs-page">
-          <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+          <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} />
           <div className="hgs-notfound">
             <h1>Temporarily Unavailable</h1>
             <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>

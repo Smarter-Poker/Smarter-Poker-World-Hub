@@ -103,7 +103,7 @@ export default function TournamentPrepPlanner() {
       <Head>
         <title>Tournament Prep Planner | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div style={styles.container}>
         <div style={styles.header}>

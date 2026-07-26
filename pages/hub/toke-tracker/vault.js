@@ -127,7 +127,7 @@ export default function DealerVaultPage() {
             />
             <div style={s.page}>
                 <div style={s.bgGrid} />
-                <UniversalHeader pageDepth={3} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
                 <HamburgerMenu
                     isOpen={menuOpen}

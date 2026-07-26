@@ -92,7 +92,7 @@ export default function MixedStrategyLab() {
       <Head>
         <title>Mixed Strategy Lab | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div style={styles.container}>
         <div style={styles.header}>

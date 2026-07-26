@@ -47,7 +47,7 @@ export default function PokerLobbyPage() {
         description="Browse and join live poker tables. No Limit Hold'em, PLO, Short Deck — play real-time multiplayer poker."
         path="/hub/poker/lobby"
       />
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
       <PokerLobby
         supabase={supabase}
         userId={userId}

@@ -178,7 +178,7 @@ export default function PokerPagesPage() {
                 canonical="/hub/pages"
             />
 
-            <UniversalHeader pageDepth={2} />
+            <UniversalHeader pageDepth={1} />
 
             <div className="pages-wrapper">
                 {/* Header */}

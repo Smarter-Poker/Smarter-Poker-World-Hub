@@ -576,7 +576,7 @@ export default function ArticlePage() {
 
             <div className="article-page">
                 {/* UniversalHeader */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
@@ -686,9 +686,7 @@ export default function ArticlePage() {
                         background: rgba(10, 10, 18, 0.95);
                         backdrop-filter: blur(12px);
                         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-                        position: sticky;
-                        top: 0;
-                        z-index: 100;
+                        z-index: 99;
                     }
 
                     .actions {

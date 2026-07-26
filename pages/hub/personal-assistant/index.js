@@ -38,28 +38,15 @@ export default function PersonalAssistantPage() {
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
   // Intro video - only show once per session
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('personal-assistant-intro-seen');
-    }
+      }
     return false;
   });
-  const introVideoRef = useRef(null);
-  const [introSoundOn, setIntroSoundOn] = useState(false);
-
-  const handleIntroEnd = useCallback(() => {
-    sessionStorage.setItem('personal-assistant-intro-seen', 'true');
-    setShowIntro(false);
-  }, []);
+    
+  []);
 
   // Unmuting must happen inside a real user gesture — browsers block
   // programmatic unmute of an autoplaying video.
-  const handleIntroUnmute = useCallback(() => {
-    if (introVideoRef.current) {
-      introVideoRef.current.muted = false;
-      setIntroSoundOn(true);
-    }
-  }, []);
+  []);
 
   // Real data hooks
   const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
@@ -159,25 +146,7 @@ export default function PersonalAssistantPage() {
 
   return (
     <PageTransition>
-      {/* Intro Video Overlay */}
-      {showIntro && (
-        <div style={S.introOverlay}>
-          <video
-            ref={introVideoRef}
-            src="/videos/personal-assistant-intro.mp4"
-            autoPlay muted playsInline
-            onEnded={handleIntroEnd}
-            onError={handleIntroEnd}
-            style={{ ...S.introVideo, objectFit: 'contain' }}
-          />
-          {!introSoundOn && (
-            <button onClick={handleIntroUnmute} style={{ ...S.skipBtn, right: 110 }}>
-              Tap for Sound
-            </button>
-          )}
-          <button onClick={handleIntroEnd} style={S.skipBtn}>Skip</button>
-        </div>
-      )}
+      
 
       <SEOHead
         title="Personal Poker Assistant - Jarvis AI"

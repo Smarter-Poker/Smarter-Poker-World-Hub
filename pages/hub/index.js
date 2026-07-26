@@ -123,6 +123,7 @@ export default function HubPage() {
             />
             <UniversalHeader
                 pageDepth={1}
+                hideLeftIcon
                 onMenuClick={() => setMenuOpen(true)}
             />
             <HamburgerMenu

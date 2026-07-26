@@ -355,22 +355,13 @@ export default function BankrollManagerPage() {
     });
   }, [entries, gameTypeFilter]);
 
-  const [showIntro, setShowIntro] = useState(false);
-  // Intro video removed by request
-  const introVideoRef = useRef(null);
-
+    // Intro video removed by request
+  
   // Mark intro as seen when it ends
-  const handleIntroEnd = useCallback(() => {
-    sessionStorage.setItem('bankroll-manager-intro-seen', 'true');
-    setShowIntro(false);
-  }, []);
+  []);
 
   // Attempt to unmute video after it starts playing
-  const handleIntroPlay = useCallback(() => {
-    if (introVideoRef.current) {
-      introVideoRef.current.muted = false;
-    }
-  }, []);
+  []);
 
   // Initialize bankroll for new users
   useEffect(() => {
@@ -757,58 +748,7 @@ export default function BankrollManagerPage() {
 
   return (
     <PageTransition>
-      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-      {showIntro && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 99999,
-          background: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <video
-            ref={introVideoRef}
-            src="/videos/bankroll-manager-intro.mp4"
-            autoPlay
-            muted
-            playsInline
-            onPlay={handleIntroPlay}
-            onEnded={handleIntroEnd}
-            onError={handleIntroEnd}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain'
-            }}
-          />
-          {/* Skip button */}
-          <button
-            onClick={handleIntroEnd}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              padding: '8px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderRadius: 20,
-              color: 'white',
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: 'pointer',
-              zIndex: 100000
-            }}
-          >
-            Skip
-          </button>
-        </div>
-      )}
+      
       <SEOHead
         title="Bankroll Manager — Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
@@ -819,7 +759,7 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
         <FeatureGate featureKey="bankroll_pro" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
           {/* Hamburger Menu */}

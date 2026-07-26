@@ -198,7 +198,7 @@ export default function CreateSocialPage() {
                 canonical="/hub/social-pages/create"
                 noindex={true}
             />
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
 
             <div style={{
                 minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, paddingTop: 60,

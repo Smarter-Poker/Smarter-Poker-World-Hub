@@ -124,7 +124,7 @@ export default function TokeTrackerLanding() {
             />
             <div style={s.page}>
                 <div style={s.bgGrid} />
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                 <HamburgerMenu
                     isOpen={menuOpen}

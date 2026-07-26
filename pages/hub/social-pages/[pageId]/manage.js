@@ -322,7 +322,7 @@ export default function ManageSocialPage() {
 
     if (loading) {
         return (
-            <><UniversalHeader />
+            <><UniversalHeader pageDepth={2} />
                 <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
                     <SkeletonLight variant="profile" />
                     <SkeletonLight variant="list" rows={4} />
@@ -332,7 +332,7 @@ export default function ManageSocialPage() {
 
     if (!page) {
         return (
-            <><UniversalHeader />
+            <><UniversalHeader pageDepth={2} />
                 <div style={{
                     minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
                     fontFamily: "var(--font-inter), -apple-system, sans-serif" }}>
@@ -348,7 +348,7 @@ export default function ManageSocialPage() {
                 description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingTop: 60,

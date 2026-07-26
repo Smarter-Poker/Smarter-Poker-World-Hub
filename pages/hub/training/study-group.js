@@ -139,7 +139,7 @@ export default function StudyGroupRoom() {
       <Head>
         <title>Study Group | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div style={styles.container}>
         <div style={styles.header}>

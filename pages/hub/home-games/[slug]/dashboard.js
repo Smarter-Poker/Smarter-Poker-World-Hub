@@ -366,7 +366,7 @@ export default function HomeGameDashboard() {
         <title>{group?.name ? `${group.name} Dashboard` : 'Host Dashboard'} | Smarter.Poker</title>
       </Head>
       <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter,-apple-system,sans-serif', paddingBottom: 80 }}>
-        <UniversalHeader pageDepth={3} />
+        <UniversalHeader pageDepth={2} />
 
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px' }}>
           {/* Header */}

@@ -137,7 +137,7 @@ export default function BluffCatcherTrainer() {
       <Head>
         <title>Bluff-Catching Trainer | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
       <BottomSheet
         open={infoOpen}
         onClose={() => setInfoOpen(false)}

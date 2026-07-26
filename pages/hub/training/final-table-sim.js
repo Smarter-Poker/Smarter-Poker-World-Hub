@@ -120,7 +120,7 @@ export default function FinalTableSimulator() {
       <Head>
         <title>Final Table Simulator | Smarter.Poker</title>
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} hideLeftIcon />
 
       <div style={styles.container}>
         <div style={styles.header}>

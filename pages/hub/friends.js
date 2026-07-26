@@ -1170,7 +1170,7 @@ function FriendsPage() {
             }}>
                 {/* Header - Universal Header */}
                 <UniversalHeader
-                    pageDepth={2}
+                    pageDepth={1}
                     onMenuClick={() => setMenuOpen(true)}
                 />
 

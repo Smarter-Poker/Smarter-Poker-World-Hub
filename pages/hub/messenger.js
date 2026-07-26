@@ -3409,7 +3409,7 @@ function MessengerPage() {
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
             {router.query.hideHeader !== 'true' && (
                 <UniversalHeader
-                    pageDepth={2}
+                    pageDepth={1}
                     onMenuClick={() => setMenuOpen(true)}
                 />
             )}

@@ -92,7 +92,7 @@ export default function GodModeDemoPage() {
                 padding: '40px 20px',
             }}>
                 {/* UniversalHeader */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={1} />
 
                 <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                     {/* Header */}

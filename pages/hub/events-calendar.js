@@ -759,7 +759,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         description="Search thousands of poker tournaments by date, location, buy-in, and game type. Daily tournaments, series events, and tour stops — all in one place."
         canonical="/hub/events-calendar"
       />
-      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
+      <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
         router.back();
       }} />
       <HamburgerMenu

@@ -2247,7 +2247,6 @@ export default function PokerNearMeLobby() {
           <div style={{ pointerEvents: 'auto' }}>
             <UniversalHeader
               pageDepth={2}
-              hideLeftIcon={false}
               onBackClick={() => {
                 if (typeof window !== 'undefined') {
                   const referrer = document.referrer || '';

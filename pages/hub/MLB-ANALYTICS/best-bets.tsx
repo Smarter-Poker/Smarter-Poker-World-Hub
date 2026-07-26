@@ -479,7 +479,7 @@ const BetDetailView = ({ bet, onClose }: { bet: any; onClose: () => void }) => {
 
   return (
     <div className="min-h-screen bg-[#0a0a15] text-slate-200 font-sans w-full max-w-[100vw] overflow-x-hidden box-border flex flex-col capitalize">
-      <UniversalHeader pageDepth={3} onBackClick={onClose} />
+      <UniversalHeader pageDepth={2} onBackClick={onClose} />
       <div
         className="relative flex flex-col w-full max-w-lg mx-auto flex-1 pb-[70px]"
         style={{ background: 'linear-gradient(180deg, #0d1117 0%, #131e2e 100%)' }}
@@ -2104,7 +2104,7 @@ export default function BestBetsPage() {
       <ScoringGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       {/* Page Header — Metal Vault Style */}
-      <header className="relative px-4 pt-4 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_6px_25px_rgba(0,0,0,0.7)] z-10">
+      <div className="relative px-4 pt-4 pb-4 bg-gradient-to-b from-[#1a2332] to-[#0d1117] border-b-[3px] border-[#3d4f5f] shadow-[0_6px_25px_rgba(0,0,0,0.7)] z-10">
         {/* Decorative corner bolts */}
         <div className="absolute top-3 left-3 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]" />
         <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-[#5a6a7a] to-[#3a4a5a] border border-[#1a2a3a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]" />
@@ -2213,7 +2213,7 @@ export default function BestBetsPage() {
 
         {/* Bottom neon strip */}
         <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-[#00D4FF] shadow-[0_0_8px_#00D4FF,0_0_16px_rgba(0,212,255,0.3)] rounded-t-full" />
-      </header>
+      </div>
 
       <MlbPremiumGate featureName="Best Bets Recommendations">
         <div className="w-full max-w-5xl mx-auto pt-6">
