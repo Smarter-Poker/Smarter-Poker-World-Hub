@@ -1114,7 +1114,7 @@ export default function UniversalHeader({
                             title="VIP Member"
                         >
                                 <img
-                                    src="/images/vip-card-v7.jpg"
+                                    src="/images/vip-card-v8.jpg"
                                     alt="VIP Member"
                                     style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
                                 />
