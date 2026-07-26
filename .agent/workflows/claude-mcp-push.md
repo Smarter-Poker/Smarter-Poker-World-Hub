@@ -19,6 +19,7 @@ For binary assets (e.g., `.webp`, `.png` files) where the base64 encoding ceilin
 2. Run standard local Git commands to stage and commit the files:
    `git add <files>`
    `git commit -m "your message"`
+   **Note**: If a permission request is required to run git commands, you MUST ask for permission for the entire repo root (`/Users/smarter.poker/Documents/Smarter-Poker-World-Hub`) rather than the specific subdirectory. A subdirectory grant creates a mount boundary that prevents git from discovering the `.git` directory, causing commands to fail silently. Also ensure you use explicit paths for `git add` rather than `-A` to avoid capturing unrelated work.
 3. **DO NOT attempt to `git push`.** A concurrent `git-safe-push-auto` cron process runs natively on the Mac. It will automatically detect your local commits and push them to GitHub. This bypasses both the MCP encoding ceiling and your sandbox's network block.
 
 Do not ask the user to configure `.env` tokens, give you tokens, or run manual pushes for you. Use the GitHub MCP for text, and rely on the local `git-safe-push-auto` background process to push local commits containing binaries.
