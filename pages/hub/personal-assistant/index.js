@@ -37,10 +37,6 @@ export default function PersonalAssistantPage() {
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
 
-  // Intro video - only show once per session
-      }
-    return false;
-  });
 
   // Unmuting must happen inside a real user gesture — browsers block
   // programmatic unmute of an autoplaying video.
