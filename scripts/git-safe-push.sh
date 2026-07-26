@@ -515,7 +515,7 @@ if [ "$NODE_MODULES_OK" = true ] && [ ! -d "node_modules" ]; then
     echo "     Fix: bash scripts/setup-npm-auth.sh ghp_yourToken"
     echo ""
   fi
-  npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
+  PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
   echo "✅ node_modules restored"
 elif [ ! -d "node_modules" ]; then
   echo "⚠️  node_modules is missing — auto-restoring (this will take ~30s)..."
@@ -526,7 +526,7 @@ elif [ ! -d "node_modules" ]; then
     echo "     Fix: bash scripts/setup-npm-auth.sh ghp_yourToken"
     echo ""
   fi
-  npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
+  PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>&1 | tail -3
   echo "✅ node_modules restored"
 fi
 
@@ -698,6 +698,13 @@ if [ "$BUILD_CHECK" = true ]; then
   else
     BUILD_START=$(date +%s)
     
+    echo "🛑 Checking for running dev servers that might corrupt the build..."
+    if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "   ⚠️  Found process on port 3000. Terminating to prevent .next directory corruption..."
+        lsof -Pi :3000 -sTCP:LISTEN -t | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+    
     # Capture output to check for node_modules corruption
   # MUST use --webpack: Next.js 16+ defaults to Turbopack which breaks on our
   # custom webpack config and 246+ named-export mismatches (May 2026 incident).
@@ -715,7 +722,9 @@ if [ "$BUILD_CHECK" = true ]; then
       echo "⚠️  Build failed due to corrupted node_modules. Auto-healing..."
       # MUST use --legacy-peer-deps: eslint@8 conflicts with eslint-config-next@16 peer dep requirements.
       # Without this flag npm install exits non-zero and node_modules remains broken.
-      rm -rf node_modules && npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>/dev/null
+      # Using mv instead of rm -rf to bypass macOS file lock errors (Directory not empty).
+      mv node_modules .node_modules_old_$(date +%s) 2>/dev/null || rm -rf node_modules
+      PUPPETEER_SKIP_DOWNLOAD=true npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline 2>/dev/null
       
       echo "🔨 Retrying build after environment heal..."
       node scripts/patch-next.js
