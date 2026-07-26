@@ -149,3 +149,82 @@ export async function isInReadLater(userId, articleId) {
         return false;
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GUEST-SIDE ROW CACHE (additive — the exports above are unchanged)
+//
+// Shared contract 2 stores the guest queue in localStorage['news_read_later'] as
+// a plain JSON array of article ids. That is enough to know WHAT was saved but
+// not enough to RENDER it: /hub/news can only draw a saved article it can still
+// find in the currently loaded feed, and the feed is now paginated (24 rows per
+// page) rather than a single 100-row fetch. So a guest who saved a story from
+// /hub/article — or who saved one that has since scrolled out of page 1 — saw
+// "N saved for later" in the stats bar and "Nothing saved for later yet" in the
+// list at the same time.
+//
+// This sidecar key holds the same denormalized columns the signed-in
+// `news_read_later` table stores, so both surfaces can render a saved article
+// offline. The id array remains the source of truth: a row here without a
+// matching id is ignored, and nothing here is ever invented — every field comes
+// from the article that was on screen when the user saved it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const READ_LATER_LOCAL_KEY = 'news_read_later';
+export const READ_LATER_META_KEY = 'news_read_later_meta';
+
+// Bounded so a long-lived queue cannot grow the localStorage entry without end.
+const MAX_LOCAL_META_ROWS = 200;
+
+/** Read the cached rows. Always an array; never throws (SSR-safe). */
+export function getLocalReadLaterMeta() {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = window.localStorage.getItem(READ_LATER_META_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(r => r && typeof r === 'object' && r.article_id !== undefined);
+    } catch (error) {
+        console.warn('Read later metadata unreadable:', error?.message || error);
+        return [];
+    }
+}
+
+/** Persist the cached rows (newest first, de-duped, capped). Never throws. */
+export function saveLocalReadLaterMeta(rows) {
+    if (typeof window === 'undefined') return;
+    try {
+        const seen = new Set();
+        const deduped = [];
+        for (const row of Array.isArray(rows) ? rows : []) {
+            if (!row || row.article_id === undefined || row.article_id === null) continue;
+            const key = String(row.article_id);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(row);
+            if (deduped.length >= MAX_LOCAL_META_ROWS) break;
+        }
+        window.localStorage.setItem(READ_LATER_META_KEY, JSON.stringify(deduped));
+    } catch (error) {
+        console.warn('Read later metadata not persisted:', error?.message || error);
+    }
+}
+
+/**
+ * Build the cached row for an article that is currently on screen.
+ * Column names match the `news_read_later` table so the signed-in rows and the
+ * guest rows are the same shape at the render site.
+ */
+export function toLocalReadLaterRow(articleId, article = {}) {
+    return {
+        article_id: articleId,
+        article_title: article.title || null,
+        article_url: article.source_url || article.url || null,
+        source: article.source_name || article.source || null,
+        thumbnail_url: article.image_url || article.thumbnail || null,
+        // The article's real publication date, when we have it. Kept distinct
+        // from created_at (the time it was SAVED) so a render site never has to
+        // pass the save time off as a publish time.
+        published_at: article.published_at || null,
+        created_at: new Date().toISOString()
+    };
+}
