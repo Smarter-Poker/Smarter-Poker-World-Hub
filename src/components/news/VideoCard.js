@@ -1,21 +1,40 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
-import { formatViews, FALLBACK_IMAGES } from './NewsBox';
+import { formatViews, FALLBACK_IMAGES, safeText, CardErrorBoundary } from './NewsBox';
 
-function VideoCard({ video, onClick }) {
+function VideoCardBody({ video, onClick }) {
     if (!video) return null;
 
     const openVideo = () => {
-        if (onClick) onClick(video);
+        // Handler errors are outside the error boundary's reach — contain them.
+        try {
+            if (onClick) onClick(video);
+        } catch (err) {
+            console.warn('[VideoCard] onClick failed:', err?.message || err);
+        }
     };
 
+    const title = safeText(video.title);
+    const channel = safeText(video.channel) || 'Smarter.Poker';
+    const duration = safeText(video.duration);
+    const thumbnailUrl = (typeof video.thumbnail_url === 'string' && video.thumbnail_url)
+        ? video.thumbnail_url
+        : FALLBACK_IMAGES.news;
+
+    // ACCESSIBILITY NOTE: this card contains NO nested interactive elements —
+    // the play button is a decorative aria-hidden div. A div with role="button"
+    // + tabIndex + Enter/Space is therefore a valid single interactive wrapper
+    // and does NOT trip axe's 'nested-interactive' rule (unlike NewsBox, which
+    // really did contain <button>s and has been restructured). If a real
+    // <button> is ever added inside this card, move the interaction to a
+    // stretched <button class="card-open"> sibling the way NewsBox does.
     return (
         <div
             className="video-card"
             role="button"
             tabIndex={0}
-            aria-label={video.title ? `Play video: ${video.title}` : 'Play video'}
+            aria-label={title ? `Play video: ${title}` : 'Play video'}
             onClick={openVideo}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -26,8 +45,8 @@ function VideoCard({ video, onClick }) {
         >
             <div className="video-thumbnail" style={{ position: 'relative' }}>
                 <SPImage
-                    src={video.thumbnail_url || FALLBACK_IMAGES.news}
-                    alt={video.title || 'Poker video'}
+                    src={thumbnailUrl}
+                    alt={title || 'Poker video'}
                     fill
                     style={{ objectFit: 'cover' }}
                     onError={(e) => {
@@ -36,15 +55,15 @@ function VideoCard({ video, onClick }) {
                         }
                     }}
                 />
-                {video.duration && <div className="video-duration">{video.duration}</div>}
+                {duration && <div className="video-duration">{duration}</div>}
                 <div className="play-button" aria-hidden="true">
                     <Play size={24} fill="#fff" />
                 </div>
             </div>
             <div className="video-info">
-                <h4>{video.title}</h4>
+                <h4>{title}</h4>
                 <div className="video-meta">
-                    <span className="channel">{video.channel || 'Smarter.Poker'}</span>
+                    <span className="channel">{channel}</span>
                     <span>{formatViews(video.views || 0)} views</span>
                 </div>
             </div>
@@ -170,4 +189,41 @@ function VideoCard({ video, onClick }) {
     );
 }
 
-export default React.memo(VideoCard);
+// MEMOISATION: made explicit so the memo is not defeated by callback identity.
+// Compare only the video fields this card reads; onClick is deliberately
+// excluded — if a future handler closes over fast-changing state, wrap it in
+// useCallback on the page rather than loosening this comparator.
+const COMPARED_VIDEO_FIELDS = [
+    'id',
+    'youtube_id',
+    'title',
+    'thumbnail_url',
+    'duration',
+    'channel',
+    'views'
+];
+
+export function areVideoCardPropsEqual(prev, next) {
+    if (prev === next) return true;
+    const a = prev.video;
+    const b = next.video;
+    if (a === b) return true;
+    if (!a || !b) return false;
+    for (let i = 0; i < COMPARED_VIDEO_FIELDS.length; i++) {
+        const field = COMPARED_VIDEO_FIELDS[i];
+        if (a[field] !== b[field]) return false;
+    }
+    return true;
+}
+
+// One malformed video must not blank the video row: contain it and render
+// nothing for that slot rather than fabricating a placeholder video.
+function VideoCard(props) {
+    return (
+        <CardErrorBoundary key={props?.video?.id ?? props?.video?.youtube_id ?? 'video-card'} fallback={null}>
+            <VideoCardBody {...props} />
+        </CardErrorBoundary>
+    );
+}
+
+export default React.memo(VideoCard, areVideoCardPropsEqual);

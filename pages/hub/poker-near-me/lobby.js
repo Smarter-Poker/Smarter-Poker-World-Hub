@@ -273,13 +273,21 @@ export default function PokerNearMeLobby() {
   // Once the user enables location OR dismisses the prompt, we never auto-show it again.
   // Persisted via localStorage (instant, no-auth) + Supabase prefs (cross-device).
   // Also restored from pnm_location_enabled flag (set on GPS success).
-  const [locationPromptDismissed, setLocationPromptDismissed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('pnm_location_prompt_dismissed') === '1'
-        || localStorage.getItem('pnm_location_enabled') === '1';
-    }
-    return false;
-  });
+  // Initialized to a constant and hydrated after mount: reading localStorage in a
+  // useState initializer makes the server HTML and the first client render
+  // disagree (React #418). Deferring is safe here — the only consumer is the
+  // auto-prompt effect further down, which returns early until `prefsLoaded`
+  // flips, and `prefsLoaded` is only ever set from the mount data-load effect
+  // that is declared AFTER this one (so this hydration lands first).
+  const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('pnm_location_prompt_dismissed') === '1'
+        || localStorage.getItem('pnm_location_enabled') === '1') {
+        setLocationPromptDismissed(true);
+      }
+    } catch { /* private browsing */ }
+  }, []);
   const [globalLeaders, setGlobalLeaders] = useState([]);
 
   // ─── Data State ───
@@ -324,9 +332,9 @@ export default function PokerNearMeLobby() {
   useEffect(() => { searchQueryRef.current = searchQuery; }, [searchQuery]);
 
   // ─── Menu config ───
-  const menuConfig = useMemo(() => getMenuConfig('poker-near-me', null, {}, {
-    replayTutorial: () => { setShowTutorial(true); setMenuOpen(false); },
-  }), []);
+  // Built further down the component (see "Hamburger menu config"), after
+  // handleGpsClick is declared, so the 'Location Services' toggle can drive the
+  // real GPS handler instead of a dead setter.
 
   // ─── First-visit tutorial auto-show ───
   // The tutorial is externally controlled (visible prop) — without this,
@@ -1280,6 +1288,49 @@ export default function PokerNearMeLobby() {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   }, [gpsActive, gpsLoading, userId, onGpsSuccess]);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Hamburger menu config
+  // Declared here (not with the other state) because the 'Location Services'
+  // toggle needs handleGpsClick, which is defined directly above.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Optimistic local update + write-through to the same Supabase preference
+  // store the rest of this page uses (getPokerNearMePreferences).
+  const updateMenuPreference = useCallback((key, value) => {
+    setPreferences(prev => ({ ...prev, [key]: value }));
+    if (userId) {
+      updatePokerNearMePreferences(userId, { [key]: value })
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+    }
+  }, [userId]);
+
+  // 'Location Services' reflects live GPS state and routes through handleGpsClick,
+  // which owns the enable (permission prompt) and disable (clear coords + persist
+  // locationEnabled:false) paths.
+  const handleSetLocationEnabled = useCallback((val) => {
+    const next = !!val;
+    if (next === gpsActive) return;
+    handleGpsClick();
+  }, [gpsActive, handleGpsClick]);
+
+  const menuConfig = useMemo(() => getMenuConfig('poker-near-me', null, {
+    geofenceAlerts: preferences?.geofenceAlerts !== false,
+    locationEnabled: gpsActive,
+    showNewcomerFriendly: preferences?.showNewcomerFriendly !== false,
+  }, {
+    openGlobalSearch: () => { setShowGlobalSearch(true); setMenuOpen(false); },
+    replayTutorial: () => { setShowTutorial(true); setMenuOpen(false); },
+    setGeofenceAlerts: (val) => updateMenuPreference('geofenceAlerts', !!val),
+    setLocationEnabled: handleSetLocationEnabled,
+    setShowNewcomerFriendly: (val) => updateMenuPreference('showNewcomerFriendly', !!val),
+  }), [
+    preferences?.geofenceAlerts,
+    preferences?.showNewcomerFriendly,
+    gpsActive,
+    updateMenuPreference,
+    handleSetLocationEnabled,
+  ]);
 
   // ─── Persist dismissal helper (localStorage + Supabase) ───
   const dismissLocationPrompt = useCallback(() => {

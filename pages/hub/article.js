@@ -2,6 +2,7 @@
  * Single Article Page
  */
 import SEOHead from '../../src/components/seo/SEOHead';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
@@ -10,6 +11,14 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import toast from '../../src/stores/toastStore';
 import { addNewsBookmark, removeNewsBookmark, isArticleBookmarked } from '../../src/services/newsBookmarks';
+import {
+    addToReadLater,
+    removeFromReadLater,
+    isInReadLater,
+    getLocalReadLaterMeta,
+    saveLocalReadLaterMeta,
+    toLocalReadLaterRow
+} from '../../src/services/newsReadLater';
 
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -41,6 +50,76 @@ function writeGuestBookmarks(list) {
     } catch (e) {
         console.warn('[article.js] Failed to persist guest bookmarks:', e?.message || e);
     }
+}
+
+// Guest "read later" queue. Mirrors the guest-bookmark fallback above and uses
+// the same key/shape (a JSON array of article ids) that newsReadLater's signed-in
+// path stores in `news_read_later`, so /hub/news?filter=later can read either.
+const GUEST_READ_LATER_KEY = 'news_read_later';
+
+function readGuestReadLater() {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(GUEST_READ_LATER_KEY);
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+    } catch (e) {
+        console.warn('[article.js] Failed to read guest read-later queue:', e?.message || e);
+        return [];
+    }
+}
+
+function writeGuestReadLater(list) {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(GUEST_READ_LATER_KEY, JSON.stringify(list));
+    } catch (e) {
+        console.warn('[article.js] Failed to persist guest read-later queue:', e?.message || e);
+    }
+}
+
+// Absolute origin used for canonical/JSON-LD URLs (schema.org wants absolute
+// URLs). Matches the fallback already used by handleShare below.
+const SITE_ORIGIN = 'https://smarter.poker';
+
+/**
+ * Build the schema.org NewsArticle payload for the current row.
+ *
+ * Only fields that actually exist on the article are emitted — no placeholder
+ * authors, dates or images. Returns null when there is nothing real to describe.
+ */
+function buildNewsArticleJsonLd(article) {
+    if (!article?.id || !article?.title) return null;
+
+    const url = `${SITE_ORIGIN}/hub/article?id=${encodeURIComponent(article.id)}`;
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        headline: String(article.title),
+        url,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': url }
+    };
+
+    const description = (article.content || '').replace(/\s+/g, ' ').trim();
+    if (description) jsonLd.description = description.slice(0, 300);
+    if (article.image_url) jsonLd.image = [article.image_url];
+    if (article.published_at) jsonLd.datePublished = article.published_at;
+    if (article.updated_at) jsonLd.dateModified = article.updated_at;
+    if (article.category) jsonLd.articleSection = String(article.category);
+    if (article.source_name) {
+        jsonLd.author = { '@type': 'Organization', name: String(article.source_name) };
+    }
+    // The publisher is this site — a fact about where the page is served, not
+    // article metadata, so it is always safe to state.
+    jsonLd.publisher = { '@type': 'Organization', name: 'Smarter.Poker', url: SITE_ORIGIN };
+
+    return jsonLd;
+}
+
+// Escape '<' so the serialized JSON can never terminate the <script> block it
+// lives in (e.g. a headline containing "</script>").
+function serializeJsonLd(obj) {
+    return JSON.stringify(obj).replace(/</g, '\\u003c');
 }
 
 // Bookmarks made from this page before it moved to `news_bookmarks` live in the
@@ -95,6 +174,7 @@ export default function ArticlePage() {
     const [error, setError] = useState(null);
     const [related, setRelated] = useState([]);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [isReadLater, setIsReadLater] = useState(false);
     const [userId, setUserId] = useState(null);
 
     const menuConfig = getMenuConfig('article', null, {}, {});
@@ -211,6 +291,72 @@ export default function ArticlePage() {
             cancelled = true;
         };
     }, [userId, article?.id]);
+
+    // Read-later membership. Kept separate from the bookmark check above so a
+    // failure in one never hides the other control's true state.
+    useEffect(() => {
+        if (!article?.id) return;
+        let cancelled = false;
+        const check = async () => {
+            try {
+                if (userId) {
+                    const saved = await isInReadLater(userId, article.id);
+                    if (!cancelled) setIsReadLater(saved);
+                } else {
+                    const list = readGuestReadLater();
+                    if (!cancelled) setIsReadLater(list.some((x) => String(x) === String(article.id)));
+                }
+            } catch (e) {
+                console.warn('[article.js]', e);
+            }
+        };
+        check();
+        return () => {
+            cancelled = true;
+        };
+    }, [userId, article?.id]);
+
+    const handleReadLater = async () => {
+        if (!article?.id) return;
+        const articleId = article.id;
+        try {
+            if (isReadLater) {
+                if (userId) await removeFromReadLater(userId, articleId);
+                writeGuestReadLater(readGuestReadLater().filter((x) => String(x) !== String(articleId)));
+                saveLocalReadLaterMeta(
+                    getLocalReadLaterMeta().filter((r) => String(r.article_id) !== String(articleId))
+                );
+                setIsReadLater(false);
+                toast.success('Removed From Read Later');
+            } else {
+                if (userId) {
+                    await addToReadLater(userId, articleId, {
+                        title: article.title,
+                        url: article.source_url,
+                        source: article.source_name,
+                        thumbnail: article.image_url
+                    });
+                }
+                const list = readGuestReadLater();
+                if (!list.some((x) => String(x) === String(articleId))) {
+                    writeGuestReadLater([...list, articleId]);
+                }
+                // Cache the columns /hub/news needs to RENDER this saved story.
+                // The id array alone is not enough there: the feed is paginated,
+                // so an article saved from this page is usually not in the page
+                // of rows /hub/news has loaded, and the queue would silently drop
+                // it. Real values from the row on screen only — nothing invented.
+                saveLocalReadLaterMeta([
+                    toLocalReadLaterRow(articleId, article),
+                    ...getLocalReadLaterMeta().filter((r) => String(r.article_id) !== String(articleId))
+                ]);
+                setIsReadLater(true);
+                toast.success('Saved To Read Later');
+            }
+        } catch {
+            toast.error('Failed To Update Read Later');
+        }
+    };
 
     const handleBookmark = async () => {
         if (!article?.id) return;
@@ -400,8 +546,26 @@ export default function ArticlePage() {
         .split('\n')
         .map((p) => p.trim())
         .filter(Boolean);
+    const newsArticleJsonLd = buildNewsArticleJsonLd(article);
 
     return (
+        <>
+            {/* schema.org NewsArticle for this story. Emitted only once a real
+                row has loaded, so search engines never index a skeleton.
+                MUST stay OUTSIDE <PageTransition>: that component is loaded with
+                dynamic(..., { ssr: false }), so anything inside it is absent from the
+                server-rendered HTML — and JSON-LD that is not in the SSR payload is
+                invisible to crawlers, which defeats the point of emitting it. */}
+            {newsArticleJsonLd && (
+                <Head>
+                    <script
+                        type="application/ld+json"
+                        key="article-jsonld"
+                        dangerouslySetInnerHTML={{ __html: serializeJsonLd(newsArticleJsonLd) }}
+                    />
+                </Head>
+            )}
+
         <PageTransition>
             <SEOHead
                 title={article.title || 'Poker Article'}
@@ -431,6 +595,16 @@ export default function ArticlePage() {
                         </button>
                         <button
                             type="button"
+                            onClick={handleReadLater}
+                            aria-label={isReadLater ? 'Remove from read later' : 'Save to read later'}
+                            title={isReadLater ? 'Remove from read later' : 'Save to read later'}
+                            aria-pressed={isReadLater}
+                            style={isReadLater ? { background: 'rgba(168,85,247,0.2)', borderColor: '#a855f7' } : {}}
+                        >
+                            <Clock size={18} color={isReadLater ? '#a855f7' : '#fff'} />
+                        </button>
+                        <button
+                            type="button"
                             onClick={handleBookmark}
                             aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
                             aria-pressed={isBookmarked}
@@ -441,7 +615,13 @@ export default function ArticlePage() {
                     </div>
                 </header>
 
-                {/* Hero Image */}
+                {/* Hero Image.
+                    Deliberately a raw <img>, not next/image: image_url comes from
+                    the scraper and can be ANY remote host (each publisher's CDN).
+                    next/image throws at runtime for a hostname that is not listed
+                    in next.config images.remotePatterns, which would turn a new
+                    source into a hard page error. Revisit only alongside a
+                    verified remotePatterns entry (or unoptimized/a loader). */}
                 {article.image_url && (
                     <div className="hero-image">
                         <img src={article.image_url} alt={article.title || ''} loading="eager" fetchpriority="high" decoding="async" />
@@ -648,5 +828,6 @@ export default function ArticlePage() {
             </div>
             <BottomNavBar />
         </PageTransition>
+        </>
     );
 }

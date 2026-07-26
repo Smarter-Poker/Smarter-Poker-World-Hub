@@ -28,6 +28,24 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', green: '#42B72A', red: '#E4405F',
 };
 
+// Push categories stored in the user_notification_preferences table.
+// pages/api/notifications/send.js selects the column matching a notification's
+// `category` and drops any recipient whose value is false — so writing these columns
+// genuinely stops delivery. The hamburger's "Push Notifications" item is a master
+// switch over all of them; Settings edits them individually.
+// Keep this list in sync with pages/hub/settings.js.
+const PUSH_CATEGORIES = [
+    'live_notifications',
+    'messenger_alerts',
+    'daily_challenges',
+    'diamond_rewards',
+    'club_updates',
+    'friend_activity',
+    'social_mentions',
+    'tournament_reminders',
+    'venue_alerts',
+];
+
 const timeAgo = (date) => {
     if (!date) return '';
     const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -55,6 +73,58 @@ function NotificationsPage() {
     useEffect(() => {
         try { setIsInIframe(window.self !== window.top); } catch (_) { setIsInIframe(true); }
     }, []);
+
+    // ── Hamburger menu push master switch ──
+    // Backed by the real user_notification_preferences row, so it actually changes
+    // delivery (see PUSH_CATEGORIES above). Default true matches the table's column
+    // defaults; the row is read after mount, never in the useState initializer.
+    const [pushEnabled, setPushEnabled] = useState(true);
+
+    useEffect(() => {
+        const au = getAuthUser();
+        if (!au?.id) return;
+        let cancelled = false;
+        supabase
+            .from('user_notification_preferences')
+            .select(PUSH_CATEGORIES.join(','))
+            .eq('user_id', au.id)
+            .maybeSingle()
+            .then(({ data, error }) => {
+                if (cancelled || error || !data) return;
+                // Master reads as ON unless every category is explicitly off, so a user
+                // who disabled a single category in Settings does not see "all off".
+                const anyOn = PUSH_CATEGORIES.some(c => data[c] !== false);
+                setPushEnabled(anyOn);
+            })
+            .catch(err => console.warn('[Notifications] prefs load failed:', err?.message || err));
+        return () => { cancelled = true; };
+    }, []);
+
+    const handleSetPushEnabled = useCallback(async (val) => {
+        const next = !!val;
+        const prev = pushEnabled;
+        setPushEnabled(next); // optimistic
+
+        const au = getAuthUser();
+        if (!au?.id) {
+            toast?.error?.('Sign in to change notification settings');
+            setPushEnabled(prev);
+            return;
+        }
+
+        const patch = Object.fromEntries(PUSH_CATEGORIES.map(c => [c, next]));
+        try {
+            // upsert: a user who has never opened Settings has no row yet.
+            const { error } = await supabase
+                .from('user_notification_preferences')
+                .upsert({ user_id: au.id, ...patch }, { onConflict: 'user_id' });
+            if (error) throw error;
+        } catch (err) {
+            console.warn('[Notifications] prefs save failed:', err?.message || err);
+            setPushEnabled(prev); // revert so the switch never lies about what was saved
+            toast?.error?.('Could not save notification settings');
+        }
+    }, [pushEnabled]);
 
     // ── Fetch Notifications (Authoritative Sync) ──
     const fetchNotifications = useCallback(async (signal) => {
@@ -232,7 +302,12 @@ function NotificationsPage() {
 
     useTrainingBus('notifications');
 
-    const menuConfig = getMenuConfig('notifications', user, {}, {});
+    const menuConfig = getMenuConfig(
+        'notifications',
+        user,
+        { pushEnabled },
+        { setPushEnabled: handleSetPushEnabled }
+    );
 
     useEffect(() => {
         const controller = new AbortController();
@@ -779,8 +854,12 @@ function NotificationsPage() {
                                 // ── Friends ──────────────────────────────────────────
                                 // BUG-17 FIX: friend_request has sender_id (not actor_id) in data
                                 } else if (t === 'friend_request' || t === 'friend_accepted' || t === 'friend_accept' || t === 'new_follow' || t === 'follow') {
+                                    // The old second branch tested (d.sender_id && n.actor_username)
+                                    // and was unreachable — the first branch already covers every
+                                    // case where actor_username is set. Without a username there is
+                                    // no profile URL to build, so a bare sender_id falls through to
+                                    // the friends list.
                                     if (n.actor_username) navigate(`/hub/user/${n.actor_username}`);
-                                    else if (d.sender_id && n.actor_username) navigate(`/hub/user/${n.actor_username}`);
                                     else navigate('/hub/friends');
 
                                 // ── Poker Pages / Clubs ──────────────────────────────
