@@ -1,4 +1,4 @@
-# SUPERSEDED / VOID — this handoff should never have been written
+# SUPERSEDED / VOID -- this handoff should never have been written
 
 Handoffs for push, build, or deploy work are FORBIDDEN. See
 `.agent/workflows/claude-mcp-push.md` and RULE 0 in `CLAUDE.md`.
