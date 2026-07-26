@@ -1,24 +1,43 @@
+// UNREFERENCED: nothing in the repo imports this component today (verified repo-wide) — kept pending a decision on its future.
 import React from 'react';
-import { timeAgo } from './NewsBox';
+import { timeAgo, safeText, CardErrorBoundary } from './NewsBox';
 
 const MSPT_ACCENT = '#dc2626';
 const MSPT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80';
 
-function MSPTBox({ msptNews = [], onOpenMSPT }) {
+function MSPTBoxBody({ msptNews = [], onOpenMSPT }) {
     const featured = Array.isArray(msptNews) ? msptNews[0] : null;
     const publishedLabel = featured?.published_at ? timeAgo(featured.published_at) : '';
 
+    const featuredTitle = safeText(featured?.title);
+    const prizePool = safeText(featured?.prize_pool);
+    const imageUrl = (typeof featured?.image_url === 'string' && featured.image_url)
+        ? featured.image_url
+        : MSPT_FALLBACK_IMAGE;
+
     const openFeatured = () => {
-        if (featured && onOpenMSPT) onOpenMSPT(featured);
+        // Handler errors are outside the error boundary's reach — contain them.
+        try {
+            if (featured && onOpenMSPT) onOpenMSPT(featured);
+        } catch (err) {
+            console.warn('[MSPTBox] onOpenMSPT failed:', err?.message || err);
+        }
     };
 
+    // ACCESSIBILITY NOTE: this card contains NO nested interactive elements, so
+    // a div with role="button" + tabIndex + Enter/Space is a valid single
+    // interactive wrapper and does NOT trip axe's 'nested-interactive' rule
+    // (unlike NewsBox, which really did contain <button>s and has been
+    // restructured). If a real <button> is ever added inside this card, move
+    // the interaction to a stretched <button class="card-open"> sibling the way
+    // NewsBox does.
     return (
         <div
             className="news-box mspt-box"
             style={{ '--src-accent': MSPT_ACCENT }}
             role="button"
             tabIndex={0}
-            aria-label={featured?.title ? `Open MSPT article: ${featured.title}` : 'MSPT News & Updates'}
+            aria-label={featuredTitle ? `Open MSPT article: ${featuredTitle}` : 'MSPT News & Updates'}
             onClick={openFeatured}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -30,12 +49,12 @@ function MSPTBox({ msptNews = [], onOpenMSPT }) {
             {/* Image */}
             <div className="box-image">
                 <img
-                    src={featured?.image_url || MSPT_FALLBACK_IMAGE}
-                    alt={featured?.title || 'MSPT News'}
+                    src={imageUrl}
+                    alt={featuredTitle || 'MSPT News'}
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
-                        if (e.target.src !== MSPT_FALLBACK_IMAGE) {
+                        if (e?.target && e.target.src !== MSPT_FALLBACK_IMAGE) {
                             e.target.src = MSPT_FALLBACK_IMAGE;
                         }
                     }}
@@ -46,11 +65,11 @@ function MSPTBox({ msptNews = [], onOpenMSPT }) {
             {/* Content */}
             <div className="box-content">
                 {/* Title */}
-                <h3 className="box-title">{featured?.title || "MSPT News & Updates"}</h3>
+                <h3 className="box-title">{featuredTitle || "MSPT News & Updates"}</h3>
 
                 {/* Description */}
                 <p className="box-excerpt">
-                    {featured?.prize_pool ? `${featured.prize_pool} - ` : ''}
+                    {prizePool ? `${prizePool} - ` : ''}
                     Latest updates from Mid-States Poker Tour events and tournaments.
                 </p>
 
@@ -165,4 +184,33 @@ function MSPTBox({ msptNews = [], onOpenMSPT }) {
     );
 }
 
-export default React.memo(MSPTBox);
+// MEMOISATION: made explicit so the memo is not defeated by callback identity.
+// Only the first entry of msptNews is rendered, so compare that entry's fields;
+// onOpenMSPT is deliberately excluded — if a future handler closes over
+// fast-changing state, wrap it in useCallback at the call site rather than
+// loosening this comparator.
+const COMPARED_MSPT_FIELDS = ['id', 'title', 'image_url', 'prize_pool', 'published_at'];
+
+export function areMSPTBoxPropsEqual(prev, next) {
+    if (prev === next) return true;
+    const a = Array.isArray(prev.msptNews) ? prev.msptNews[0] : null;
+    const b = Array.isArray(next.msptNews) ? next.msptNews[0] : null;
+    if (a === b) return true;
+    if (!a || !b) return false;
+    for (let i = 0; i < COMPARED_MSPT_FIELDS.length; i++) {
+        const field = COMPARED_MSPT_FIELDS[i];
+        if (a[field] !== b[field]) return false;
+    }
+    return true;
+}
+
+// A malformed MSPT row must not blank whatever surface hosts this box.
+function MSPTBox(props) {
+    return (
+        <CardErrorBoundary fallback={null}>
+            <MSPTBoxBody {...props} />
+        </CardErrorBoundary>
+    );
+}
+
+export default React.memo(MSPTBox, areMSPTBoxPropsEqual);

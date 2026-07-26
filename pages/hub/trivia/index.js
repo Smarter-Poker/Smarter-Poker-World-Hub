@@ -18,6 +18,10 @@ import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/serv
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
+// The 'Timer' hamburger toggle is not part of the original trivia preferences
+// payload, so it is mirrored to this namespaced key for durable local persistence.
+const TRIVIA_TIMER_KEY = 'trivia_timer_enabled';
+
 export default function TriviaHubPage() {
     useTrainingBus('trivia-hub');
     const { user, loading: authLoading } = useAvatar();
@@ -34,6 +38,17 @@ export default function TriviaHubPage() {
         soundEffects: true,
         showHints: true
     });
+    // Backs the menu's 'Timer' toggle. Initialized to a constant and hydrated
+    // after mount (never in the useState initializer) so SSR and the first
+    // client render agree.
+    const [timerEnabled, setTimerEnabled] = useState(true);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(TRIVIA_TIMER_KEY);
+            if (stored !== null) setTimerEnabled(stored === '1');
+        } catch (e) { console.warn('[TriviaHub] Timer preference read failed:', e); }
+    }, []);
 
     // Load preferences from localStorage on mount.
     // Phase 71: track unmount via ref so the resolved-after-unmount setState
@@ -42,7 +57,12 @@ export default function TriviaHubPage() {
         let cancelled = false;
         if (userId) {
             getTriviaPreferences(userId)
-                .then(p => { if (!cancelled) setPreferences(p); })
+                .then(p => {
+                    if (cancelled) return;
+                    setPreferences(p);
+                    // Server value wins over the local mirror when it exists.
+                    if (typeof p?.timerEnabled === 'boolean') setTimerEnabled(p.timerEnabled);
+                })
                 .catch(e => console.warn('[TriviaHub] Failed to load prefs:', e));
         }
         return () => { cancelled = true; };
@@ -51,6 +71,8 @@ export default function TriviaHubPage() {
     // Phase 71: rollback on save failure so local state doesn't drift from
     // server. User toggling a preference shouldn't see it 'stick' locally
     // while the server actually has the old value (next page load reverts).
+    // Resolves true when the value is durable, false when the server rejected it
+    // (callers that keep a second copy of the value need to roll theirs back too).
     const updatePreference = useCallback(async (key, value) => {
         const previousValue = preferences[key];
         const newPrefs = { ...preferences, [key]: value };
@@ -62,13 +84,44 @@ export default function TriviaHubPage() {
             } catch (error) {
                 console.warn('Failed to save preference, reverting:', error);
                 setPreferences(prev => ({ ...prev, [key]: previousValue }));
+                return false;
             }
         }
+        return true;
     }, [preferences, userId]);
 
-    const menuConfig = getMenuConfig('trivia', user, preferences, {
+    const writeTimerMirror = useCallback((next) => {
+        try { localStorage.setItem(TRIVIA_TIMER_KEY, next ? '1' : '0'); }
+        catch (e) { console.warn('[TriviaHub] Timer preference write failed:', e); }
+    }, []);
+
+    // Writes the local mirror and then through the shared preferences store.
+    // BUG FIX: updatePreference rolls `preferences` back when the server write
+    // fails, but `timerEnabled` and the localStorage mirror are a SECOND copy of
+    // the same value — without this rollback a failed save left the menu (and
+    // the next page load) showing a value the server never accepted.
+    const handleSetTimerEnabled = useCallback(async (val) => {
+        const next = !!val;
+        const previous = timerEnabled;
+        setTimerEnabled(next);
+        writeTimerMirror(next);
+        const ok = await updatePreference('timerEnabled', next);
+        if (!ok) {
+            setTimerEnabled(previous);
+            writeTimerMirror(previous);
+        }
+    }, [timerEnabled, updatePreference, writeTimerMirror]);
+
+    const menuConfig = getMenuConfig('trivia', user, {
+        ...preferences,
+        timerEnabled,
+        // The menu's 'Hints' toggle is backed by this page's existing showHints pref.
+        hintsEnabled: preferences.showHints
+    }, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
-        setShowHints: (val) => updatePreference('showHints', val)
+        setShowHints: (val) => updatePreference('showHints', val),
+        setHintsEnabled: (val) => updatePreference('showHints', val),
+        setTimerEnabled: handleSetTimerEnabled
     });
 
     // Using existing supabase instance from lib
