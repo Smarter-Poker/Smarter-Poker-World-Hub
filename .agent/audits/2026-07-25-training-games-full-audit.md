@@ -185,3 +185,32 @@ engine-audit wave already on origin/main (no prior fixes reverted).
   combining both fixes; no origin/main fix reverted.
 - NOT yet run: `npx next build` (must run on the Mac — this session cannot),
   and live browser testing. Both are covered in the deploy handoff.
+
+
+## Shipping record (added 2026-07-26)
+
+All 43 files shipped in commit `5737eb073bdc094bc554f5e586667dbd29fc4877`
+("Deploy header icons and training audit fixes"). 39 files changed in that
+commit; the other 4 (`bookmark-solution.js`, `hand-of-the-day.js`,
+`progress.js`, `solver-api.js`) were already byte-identical to `main` after
+the three-way merge with the 2026-07-19 engine-audit wave, so they produced
+no diff.
+
+Verified on 2026-07-26:
+
+- On `origin/main` (local `main` 0 ahead / 0 behind).
+- Ancestor of the `READY` production deployment
+  `dpl_8QV38T2aJt44yjD4gojfP7oq417n` (commit `380bfc5b92`), so the audit
+  code is live on smarter.poker.
+- Working tree clean for all 43 paths.
+
+A report that these fixes had been "destroyed by the Antigravity reset" was
+incorrect — verified by SHA-256 comparison of all 43 files against the
+session's fixed tree (42 byte-identical; `pages/api/training/challenges.js`
+differed only by a later `auth['getUser']` bracket-notation edit from
+another agent, with the audit fixes intact).
+
+**Process failure to not repeat:** the authoring agent left the fixes
+uncommitted and wrote a deploy handoff. That is now explicitly forbidden —
+see `.agent/workflows/claude-mcp-push.md`, RULE 0 in `CLAUDE.md`, and
+section 1.1 of `.agent/AGENT_BINDING_RULES.md`.

@@ -4,16 +4,43 @@ ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session 
 This is the single source of truth for **this repo**. Updated 2026-04-29.
 
 **MANDATORY reading at session start, in this order:**
+0. `.agent/workflows/claude-mcp-push.md` — **how you push and publish on
+   your own.** No handoffs. No "review beats". Never ask the user to run a
+   deploy script. If your shell has no network route to GitHub, the GitHub
+   MCP server does — it runs natively on the Mac and is already
+   authenticated. Read this FIRST if you will change any file.
 1. `.agent/AGENT_BINDING_RULES.md` — the **short binding rules** on push,
    publish, and branch protection. Every rule corresponds to a real
    regression. Violations are auto-detected. Read this FIRST.
 2. `.agent/CLAUDE_AGENT_RULES.md` — the longer, version-controlled rule
    book all agents share (RULES 1-12).
 
-Audit records go under `.agent/audits/`. Open handoffs go under
-`.agent/handoffs/`. (`.memory/` is gitignored by design — local-only.)
+Audit records go under `.agent/audits/`. (`.memory/` is gitignored by
+design — local-only.)
+
+`.agent/handoffs/` is **CLOSED for deploy, push, and build work.** A
+handoff is permitted ONLY for the genuine human-only exceptions listed in
+RULE 0 (consent, credentials, financial/legal, interactive 2FA). Never
+write a handoff — or leave files uncommitted — that asks a human or the
+next agent to push, build, or deploy your work. Uncommitted work is
+DESTROYED by the Antigravity `git reset --hard origin/main` loop.
 
 ## RULE 0 (BINDING): No manual human work
+
+**Shipping is never "something you cannot do yourself."** Pushing,
+building, and deploying always have a route available to you:
+
+1. **GitHub MCP** (`create_or_update_file`, `push_files`) — runs natively
+   on the Mac, already authenticated, has network access. This is the
+   primary path for text and code, and it works even when your own shell
+   is network-blocked.
+2. **A local commit with explicit paths** — picked up and pushed by the
+   `git-safe-push-auto` background process. Use for binaries that exceed
+   the MCP base64 ceiling.
+
+Never convert a deploy into a handoff, a "review beat", or a request that
+the user run `git-safe-push.sh`. Full procedure:
+`.agent/workflows/claude-mcp-push.md`.
 
 If you need something done that you cannot physically do yourself (token
 scope missing, dashboard-only setting, requires a different platform, etc.)

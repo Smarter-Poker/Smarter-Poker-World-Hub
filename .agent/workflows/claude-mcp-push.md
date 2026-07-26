@@ -29,3 +29,47 @@ Do NOT leave files uncommitted in the working tree to allow for a "review beat."
 Because the local environment is managed by autonomous agents, an automated `git reset --hard origin/main` loop runs between sessions. If you leave your work uncommitted, it WILL be permanently destroyed. 
 
 **For ALL changes (text or binary):** You MUST commit your changes locally before concluding your response. Once committed, the `git-safe-push-auto` background process will push and deploy them to production automatically. You are fully authorized to deploy to production without waiting for the user.
+
+
+## Run commands on the MAC, not in your cloud container
+
+If you are a Cowork/cloud agent you have TWO shells. They are different
+machines and they do NOT share a filesystem:
+
+| Tool | Runs on | Network | Sees the repo? |
+|---|---|---|---|
+| your container shell (`bash`) | Anthropic cloud sandbox | yes, but NO GitHub enrollment / no route to this repo's remotes | no — only files you staged into it |
+| `device_bash` (remote-devices MCP) | the user's Mac | **no network** | **yes** — `mnt/Smarter-Poker-World-Hub` |
+| GitHub MCP (`github__*`) | the user's Mac | **yes, authenticated** | pushes via the GitHub API |
+
+Consequences:
+
+- Edit repo files with `device_bash` (or the file tools against the mounted
+  path). Editing a copy inside your container changes nothing on the Mac.
+- Never conclude "I cannot push" because your container shell failed. Your
+  container was never the right shell. Use the GitHub MCP.
+- `device_bash` cannot delete files. `rm` fails with "Operation not
+  permitted". It also cannot remove `.git/index.lock` after a git command —
+  **move the stale lock aside (`mv .git/index.lock .git/index.lock.stale`)
+  before and after any git operation**, or the next git command (and the
+  `git-safe-push-auto` cron) will be blocked by it.
+
+## Where the environment variables live
+
+Production env vars are on the Mac at:
+
+```
+/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env
+```
+
+It is untracked by design, so the GitHub API and any repo listing will not
+show it. Read it from the local filesystem via `device_bash`. Do not ask
+the user to paste tokens, and never commit the file.
+
+## Definition of done
+
+You are done when the commit is on `origin/main` AND a production
+deployment containing it is `READY`. Verify with the Vercel MCP
+(`list_deployments` on project `hub-vanguard`) and `git merge-base
+--is-ancestor <your-sha> <deployed-sha>`. "Pushed" is not "deployed", and
+"documented" is not "shipped".

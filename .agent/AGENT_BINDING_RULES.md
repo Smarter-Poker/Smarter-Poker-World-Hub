@@ -50,6 +50,24 @@ feature branch, open a PR, auto-merge. The helper is
 | 12 | Claim "100% verified" without a real human / production click confirming the result | Past sessions wasted hours on premature success claims      | self-discipline (the user will catch you)              |
 | 13 | Skip the audit doc for substantive infra changes                      | Next agent has no record of why or what was investigated            | RULE 9 in `.agent/CLAUDE_AGENT_RULES.md`                |
 
+
+### 1.1 Exception to #9 and #10 — network-blocked agents
+
+Rows 9 and 10 assume you can reach GitHub from your shell. Some agents
+(Cowork cloud containers, Claude Desktop) cannot. For those agents the
+ordering of evils is: **uncommitted work is worse than a local commit**,
+because the Antigravity reset destroys uncommitted work outright.
+
+If you cannot reach GitHub from your shell:
+
+- **Preferred:** push through the **GitHub MCP** (`push_files` /
+  `create_or_update_file`). It runs on the Mac, is authenticated, and has
+  a network route. This keeps rule 9 intact — nothing lands on local main.
+- **Binaries only** (base64 ceiling): commit locally with **explicit file
+  paths** (never `git add -A`, rule 10 still binds) and let
+  `git-safe-push-auto` push it.
+- **Never** leave the work uncommitted "for review". See
+  `.agent/workflows/claude-mcp-push.md`.
 ---
 
 ## 2. REQUIRED workflow for any non-trivial commit
