@@ -62,6 +62,32 @@ function getAnon() {
 
 export const config = { maxDuration: 30 };
 
+// ── Ops alert (mirrors auth-integrity-audit.js's Resend block) ────────────
+// A probe_heartbeats row alone is not an alert — nobody is watching the
+// dashboard at 3am. Failure of THIS probe emails OPS_ALERT_EMAIL directly.
+async function alertOps(subject, text) {
+    try {
+        const key = (process.env.RESEND_API_KEY || '').trim();
+        const to = (process.env.OPS_ALERT_EMAIL || '').trim();
+        if (!key || !to) {
+            console.warn('[login-probe] alert email skipped: RESEND_API_KEY / OPS_ALERT_EMAIL unset');
+            return;
+        }
+        await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                from: (process.env.RESEND_FROM_EMAIL || 'alerts@smarter.poker').trim(),
+                to,
+                subject,
+                text,
+            }),
+        });
+    } catch (e) {
+        console.warn('[login-probe] alert email failed:', e?.message || e);
+    }
+}
+
 export default async function handler(req, res) {
     if (!validateCronAuth(req)) return res.status(401).json({ error: 'Unauthorized' });
     res.setHeader('Cache-Control', 'no-store');
@@ -109,28 +135,81 @@ export default async function handler(req, res) {
         }
         steps.getuser.ok = true;
 
-        // Sign out to avoid accumulating open sessions (best-effort — a sign-out
-        // problem must never flip an otherwise healthy probe into a false alarm)
-        try { await anon.auth.signOut(); } catch (_) { /* ignore */ }
-
-        // Heartbeat OK — best-effort, but never silent: supabase-js resolves with
-        // { error } instead of throwing, so the error must be read to be observable.
+        // ── Step 3: OAuth-chain health ─────────────────────────────────────
+        // [2026-07-25] This is the check that would have caught the outage
+        // where auth.smarter.poker (Supabase custom auth domain) died at the
+        // TLS layer: Google approved every sign-in, redirected the browser
+        // to the dead custom-domain callback, and users stranded — while
+        // password-based probes stayed green for weeks because they talk to
+        // the supabase.co URL directly.
+        //
+        // GoTrue advertises its external callback host inside the /authorize
+        // redirect it builds for Google, so we discover the host dynamically
+        // (zero new env vars, tracks custom-domain changes automatically)
+        // and require that host to answer /auth/v1/health over TLS.
+        steps.oauth_chain = { started_at: Date.now() };
+        const authorizeRes = await fetch(
+            `${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()}/auth/v1/authorize?provider=google`,
+            { redirect: 'manual' },
+        );
+        if (authorizeRes.status < 300 || authorizeRes.status >= 400) {
+            steps.oauth_chain.ok = false;
+            steps.oauth_chain.severity = 'CRITICAL';
+            steps.oauth_chain.error = `authorize returned ${authorizeRes.status} (expected 302 to Google — provider disabled or misconfigured?)`;
+            throw new Error(`oauth-chain: ${steps.oauth_chain.error}`);
+        }
+        let callbackHost = null;
+        const googleLocation = authorizeRes.headers.get('location') || '';
         try {
+            const redirectUri = new URL(googleLocation).searchParams.get('redirect_uri');
+            callbackHost = redirectUri ? new URL(redirectUri).host : null;
+        } catch (_parseErr) { /* handled below */ }
+        if (!callbackHost) {
+            steps.oauth_chain.ok = false;
+            steps.oauth_chain.severity = 'CRITICAL';
+            steps.oauth_chain.error = `could not parse redirect_uri from authorize Location: ${googleLocation.slice(0, 140)}`;
+            throw new Error(`oauth-chain: ${steps.oauth_chain.error}`);
+        }
+        steps.oauth_chain.callback_host = callbackHost;
+        let cbRes = null;
+        try {
+            cbRes = await fetch(`https://${callbackHost}/auth/v1/health`);
+        } catch (netErr) {
+            steps.oauth_chain.ok = false;
+            steps.oauth_chain.severity = 'CRITICAL';
+            steps.oauth_chain.error = `OAuth callback host ${callbackHost} is UNREACHABLE (TLS/DNS/connection): ${netErr?.message || netErr}. Every Google sign-in is stranding after consent.`;
+            throw new Error(`oauth-chain: ${steps.oauth_chain.error}`);
+        }
+        // 2xx = healthy. 401 = reachable GoTrue behind the apikey gate, which
+        // still proves TLS + edge routing (the layer that actually broke).
+        if (!(cbRes.ok || cbRes.status === 401)) {
+            steps.oauth_chain.ok = false;
+            steps.oauth_chain.severity = 'CRITICAL';
+            steps.oauth_chain.error = `OAuth callback host ${callbackHost} /auth/v1/health returned ${cbRes.status}`;
+            throw new Error(`oauth-chain: ${steps.oauth_chain.error}`);
+        }
+        steps.oauth_chain.ok = true;
+        steps.oauth_chain.duration_ms = Date.now() - steps.oauth_chain.started_at;
+
+        // Sign out to avoid accumulating open sessions (best-effort)
+        await anon.auth.signOut().catch(() => null);
+
+        // Heartbeat OK. NOTE: supabase-js builders resolve with {error} —
+        // they don't reject — so check the error field, not try/catch.
+        {
             const { error: hbErr } = await admin.from('probe_heartbeats').insert({
                 probe_name: 'login-probe',
                 status: 'ok',
                 duration_ms: Date.now() - startedAt,
                 details: { steps },
             });
-            if (hbErr) console.warn('[login-probe] heartbeat write failed:', hbErr.message);
-        } catch (hbThrow) {
-            console.warn('[login-probe] heartbeat write threw:', hbThrow?.message || hbThrow);
+            if (hbErr) console.warn('[login-probe] heartbeat insert failed:', hbErr.message);
         }
 
         return res.status(200).json({ status: 'ok', duration_ms: Date.now() - startedAt, steps });
     } catch (err) {
-        // Sign out any partial session (best-effort — must not mask the real failure)
-        try { await anon.auth.signOut(); } catch (_) { /* ignore */ }
+        // Sign out any partial session (best-effort)
+        await anon.auth.signOut().catch(() => null);
 
         const failure = {
             status: 'failed',
@@ -140,17 +219,26 @@ export default async function handler(req, res) {
             steps,
         };
 
-        try {
+        {
             const { error: hbErr } = await admin.from('probe_heartbeats').insert({
                 probe_name: 'login-probe',
                 status: 'failed',
                 duration_ms: failure.duration_ms,
                 details: failure,
             });
-            if (hbErr) console.warn('[login-probe] failure heartbeat write failed:', hbErr.message);
-        } catch (hbThrow) {
-            console.warn('[login-probe] failure heartbeat write threw:', hbThrow?.message || hbThrow);
+            if (hbErr) console.warn('[login-probe] heartbeat insert failed:', hbErr.message);
         }
+
+        // Active alert — email ops directly. This is the difference between
+        // "a red badge on a dashboard nobody opens" and someone finding out.
+        await alertOps(
+            `[smarter.poker] login-probe FAILED: ${failure.failed_step}`,
+            `Login probe failure at ${new Date().toISOString()}\n\n` +
+            `Failed step: ${failure.failed_step}\n` +
+            `Error: ${failure.error}\n\n` +
+            `Steps: ${JSON.stringify(steps, null, 2)}\n\n` +
+            `Dashboard: https://smarter.poker/admin/auth-health`,
+        );
 
         return res.status(503).json(failure);
     }
