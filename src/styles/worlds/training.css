@@ -1,29 +1,40 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   TRAINING THEME — Growth, Learning, Green
+   TRAINING THEME — Smarter.Poker canonical scheme (cyan on near-black navy)
+   ═══════════════════════════════════════════════════════════════════════════
+   2026-07-26: this theme used to be neon green (#00ff88) on a green-tinted
+   black (#050a08), while pages/hub/training.js declared the real product
+   scheme -- cyan #00D4FF on navy #060912 -- in its own :root block. Both fed
+   the same `sp-*` component classes, so the training dashboard rendered cyan
+   and the session-setup modal that launches from it rendered green. Same
+   feature, two palettes, one namespace.
+
+   These tokens now mirror the canonical scheme documented in
+   .agent/design/TRAINING-UI-SPEC.md. Green is retained ONLY as a semantic
+   success colour (--sp-accent-green), never as the brand accent.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-training {
-    /* Primary: Vibrant Green - growth, success */
-    --world-primary: #00ff88;
-    --world-primary-rgb: 0, 255, 136;
-    --world-primary-glow: rgba(0, 255, 136, 0.4);
+    /* Primary: Smarter.Poker cyan */
+    --world-primary: #00d4ff;
+    --world-primary-rgb: 0, 212, 255;
+    --world-primary-glow: rgba(0, 212, 255, 0.35);
 
-    /* Secondary: Emerald */
-    --world-secondary: #22c55e;
-    --world-secondary-rgb: 34, 197, 94;
+    /* Secondary: deep cyan, for gradients that need a second stop */
+    --world-secondary: #0891b2;
+    --world-secondary-rgb: 8, 145, 178;
 
-    /* Background: Dark with green undertones */
-    --world-bg-start: #050a08;
-    --world-bg-mid: #0a1a14;
-    --world-bg-end: #030504;
+    /* Background: near-black navy (matches --sp bg0/bg2 on the dashboard) */
+    --world-bg-start: #060912;
+    --world-bg-mid: #0f1424;
+    --world-bg-end: #04060e;
     --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
 
-    /* Surface: Green-tinted glass */
-    --world-surface: rgba(10, 50, 35, 0.6);
-    --world-surface-elevated: rgba(15, 70, 50, 0.8);
+    /* Surface: neutral glass, not tinted -- tinted surfaces fight the art */
+    --world-surface: rgba(255, 255, 255, 0.03);
+    --world-surface-elevated: rgba(255, 255, 255, 0.06);
 
-    /* Border: Green accent */
-    --world-border: rgba(0, 255, 136, 0.3);
+    /* Border: neutral hairline */
+    --world-border: rgba(255, 255, 255, 0.10);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -91,7 +102,7 @@ body.world-training {
    for keyboard users — pointer users don't see ugly outlines after click.
    ────────────────────────────────────────────────────────────────────────── */
 body.world-training :focus-visible {
-    outline: 2px solid var(--world-primary, #00ff88);
+    outline: 2px solid var(--world-primary, #00d4ff);
     outline-offset: 2px;
     border-radius: 4px;
 }
@@ -147,7 +158,7 @@ body.world-training [data-safe-right] {
    surface kicking in.
    ────────────────────────────────────────────────────────────────────────── */
 body.world-training {
-    background-color: var(--world-bg-start, #050a08);
+    background-color: var(--world-bg-start, #060912);
 }
 
 
@@ -393,7 +404,7 @@ body.world-training .sp-cta {
     -webkit-tap-highlight-color: transparent;
 }
 body.world-training .sp-cta-primary {
-    background: linear-gradient(135deg, var(--world-primary, #00ff88), var(--world-secondary, #22c55e));
+    background: linear-gradient(135deg, var(--world-primary, #00d4ff), var(--world-secondary, #0891b2));
     color: #000000;
     box-shadow: 0 4px 14px rgba(0, 255, 136, 0.25);
 }
@@ -411,7 +422,7 @@ body.world-training .sp-cta-secondary:hover {
 }
 body.world-training .sp-cta-ghost {
     background: transparent;
-    color: var(--world-primary, #00ff88);
+    color: var(--world-primary, #00d4ff);
 }
 body.world-training .sp-cta-ghost:hover {
     background: rgba(0, 255, 136, 0.08);
