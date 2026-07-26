@@ -582,6 +582,21 @@ const DEALER_BUTTON_POSITIONS = {
 
 // Map SEAT_CONFIGS index → law position key per table size (approximate:
 // the law's v1..v8 run clockwise from hero, nearest match to each seat's x/y)
+// Chip stack coordinates, same law, same table-area percentage basis.
+// CHIP_STACK_LAW.md: "Chip positions are always calculated as
+// button_position + offset" -- these are the user-verified resolved values.
+const CHIP_STACK_POSITIONS = {
+    hero: { left: 47.70, top: 71.82 },
+    v1: { left: 31.67, top: 69.75 },
+    v2: { left: 29.61, top: 54.61 },
+    v3: { left: 30.79, top: 31.19 },
+    v4: { left: 33.29, top: 18.01 },
+    v5: { left: 58.29, top: 17.57 },
+    v6: { left: 64.61, top: 31.52 },
+    v7: { left: 64.32, top: 53.63 },
+    v8: { left: 64.17, top: 69.10 },
+};
+
 const DEALER_BUTTON_SEAT_KEYS = {
     9: ['hero', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'],
     6: ['hero', 'v2', 'v3', 'v4', 'v6', 'v7'],
@@ -2969,6 +2984,64 @@ function UniversalDynamicTable({
                     );
                 })()}
 
+                {/* BET CHIPS - positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md.
+                    CHIP_STACK_LAW requires a chip stack wherever a seat has money
+                    in front of it. Before this the felt showed a pot total but never
+                    the per-seat bets that produced it, so a villain "raises 3bb" had
+                    no representation on the table at all. */}
+                {(() => {
+                    const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
+                    const isPreflopStreet = streetLabel === 'PREFLOP';
+
+                    // Amount committed by a seat: explicit amount/size field first,
+                    // then the first number in the action text ("RAISE 3BB" -> 3),
+                    // then posted blinds preflop when nothing else is recorded.
+                    const betFor = (seat) => {
+                        const entry = actionHistory.find(
+                            (a) => a.position?.toUpperCase() === seat.name?.toUpperCase()
+                        );
+                        if (entry) {
+                            const act = String(entry.action || '').toLowerCase();
+                            if (act.includes('fold') || act.includes('check')) return 0;
+                            const raw = entry.amount ?? entry.size ?? entry.bb;
+                            if (typeof raw === 'number' && isFinite(raw)) return raw;
+                            const m = String(entry.action || '').match(/(\d+(?:\.\d+)?)/);
+                            if (m) return parseFloat(m[1]);
+                            return 0;
+                        }
+                        if (isPreflopStreet) {
+                            const n = (seat.name || '').toUpperCase();
+                            if (n === 'SB' || n === 'BTN/SB') return 0.5;
+                            if (n === 'BB') return 1;
+                        }
+                        return 0;
+                    };
+
+                    return seats.map((seat, index) => {
+                        const amount = betFor(seat);
+                        if (!amount || amount <= 0) return null;
+                        // Only seats actually shown on the felt get chips.
+                        const isHeroSeat = index === heroSeatIndex;
+                        const shown = isHeroSeat
+                            || index === villainSeatIndex
+                            || actionHistory.some(
+                                (a) => a.position?.toUpperCase() === seat.name?.toUpperCase()
+                            );
+                        if (!shown) return null;
+                        const pos = CHIP_STACK_POSITIONS[keys[index] || 'hero']
+                            || CHIP_STACK_POSITIONS.hero;
+                        return (
+                            <div
+                                key={`chip-${index}`}
+                                style={{ ...styles.chipStack, top: `${pos.top}%`, left: `${pos.left}%` }}
+                            >
+                                <span style={styles.chipDisc} />
+                                <span style={styles.chipAmount}>{amount}</span>
+                            </div>
+                        );
+                    });
+                })()}
+
                 {/* BOARD CARDS — Multi-street-aware dealing animation */}
                 {visibleBoard.length > 0 && (
                     <div style={{...styles.boardCards, ...m.boardCards}}>
@@ -5233,6 +5306,36 @@ const styles = {
         fontFamily: "'Inter', sans-serif",
     },
 
+    chipStack: {
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 6px 2px 3px',
+        borderRadius: 10,
+        background: 'rgba(5, 10, 20, 0.72)',
+        border: '1px solid rgba(255, 255, 255, 0.14)',
+        pointerEvents: 'none',
+        zIndex: 6,
+    },
+    chipDisc: {
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at 35% 30%, #f7d774 0%, #d4a017 55%, #9a7412 100%)',
+        border: '1px solid rgba(0, 0, 0, 0.45)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.5)',
+        display: 'inline-block',
+        flexShrink: 0,
+    },
+    chipAmount: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#f8fafc',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+    },
     dealerButton: {
         position: 'absolute',
         top: -14,

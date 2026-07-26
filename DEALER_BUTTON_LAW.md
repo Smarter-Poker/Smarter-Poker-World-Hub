@@ -1,3 +1,14 @@
+> **SUPERSEDED (2026-07-26).** This document's coordinates conflict with the
+> other position LAWs and MUST NOT be implemented. The single source of truth
+> is **`DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md`**, which is the newest and the
+> one the code implements (`CHIP_STACK_POSITIONS` / `DEALER_BUTTON_POSITIONS`
+> in `src/components/training/games/UniversalDynamicTable.jsx`).
+>
+> Three documents all dated 2026-01-18 each declared themselves "ETERNAL LAW"
+> and "single source of truth" while giving different hero coordinates
+> (47.79/97.97 here vs 50.44/75.53 vs 50.49/75.74). Compliance was impossible
+> until one was picked. Retained for history only.
+
 # 🔒 DEALER BUTTON POSITION LAW 🔒
 
 **Status**: ETERNAL LAW  

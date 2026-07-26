@@ -1,3 +1,13 @@
+> **CANONICAL (2026-07-26).** This is the authoritative position LAW.
+> `DEALER_BUTTON_LAW.md` and `CHIP_STACK_LAW.md` are superseded -- they gave
+> conflicting hero coordinates, which made compliance impossible.
+>
+> Implemented in `src/components/training/games/UniversalDynamicTable.jsx` as
+> `DEALER_BUTTON_POSITIONS` (dealer button, rendered per hand) and
+> `CHIP_STACK_POSITIONS` (per-seat bet chips). Seat index -> law key mapping is
+> `DEALER_BUTTON_SEAT_KEYS`, which folds the 9-max coordinates onto the 6-max,
+> 3-max and heads-up layouts.
+
 # 🔒 DEALER BUTTON & CHIP STACK POSITION LAW 🔒
 
 **Status**: ETERNAL LAW  
