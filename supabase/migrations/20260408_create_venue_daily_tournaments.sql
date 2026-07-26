@@ -91,6 +91,9 @@ BEGIN
         EXECUTE FUNCTION public.enforce_scrape_provenance();
     END IF;
 EXCEPTION WHEN OTHERS THEN
-    -- If the function enforce_scrape_provenance() doesn't exist, log it.
+    -- If the function enforce_scrape_provenance() doesn't exist yet, don't abort
+    -- the migration — 20260401_scrape_integrity_layer.sql attaches its own
+    -- ensure_provenance_vdt trigger once the function is created.
+    RAISE NOTICE 'Skipped trg_enforce_scrape_provenance_tournaments: %', SQLERRM;
 END
 $$;

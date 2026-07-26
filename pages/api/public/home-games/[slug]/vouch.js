@@ -116,9 +116,26 @@ export default async function handler(req, res) {
                 };
             });
 
+            // has_vouched must NOT be derived from the 50-row display list.
+            // Past 50 vouches, early vouchers fall off the list and would be
+            // told has_vouched=false — the UI shows "+ Vouch", the re-insert
+            // is dup-swallowed as success, and the button oscillates on
+            // reload. Run a dedicated existence check instead.
             let hasVouched = false;
             if (user) {
-                hasVouched = voucherList.some((v) => v.user_id === user.id);
+                const { data: myVouch, error: myVouchErr } = await supabase
+                    .from('home_game_vouches')
+                    .select('id')
+                    .eq('group_id', page.linked_entity_id)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (myVouchErr) {
+                    console.warn('[vouch] has_vouched lookup failed:', myVouchErr.message);
+                    // Fall back to the display list rather than lying outright.
+                    hasVouched = voucherList.some((v) => v.user_id === user.id);
+                } else {
+                    hasVouched = !!myVouch;
+                }
             }
 
             return res.status(200).json({

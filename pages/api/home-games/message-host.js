@@ -22,6 +22,55 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Resolve the existing 1:1 DM thread shared by two users, if any.
+ *
+ * The previous implementation matched ANY conversation both users belong to.
+ * If the pair also shared a club or event group chat, the private
+ * "I want to join your home game" inquiry was posted into that group thread
+ * where every other participant could read it. social_conversations marks 1:1
+ * threads with is_group=false (there is no `type` column), so the candidate
+ * set is verified against that before reuse.
+ *
+ * Returns the earliest-created matching DM (id as tie-break) so concurrent
+ * callers deterministically converge on the same thread.
+ */
+async function findSharedDmConversationId(userId, hostId) {
+    const { data: myConvos } = await getSupabase()
+        .from('social_conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', userId)
+        .limit(1000);
+
+    if (!myConvos || myConvos.length === 0) return null;
+
+    const myConvoIds = Array.from(new Set(myConvos.map((c) => c.conversation_id).filter(Boolean)));
+    if (myConvoIds.length === 0) return null;
+
+    const { data: hostMatch } = await getSupabase()
+        .from('social_conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', hostId)
+        .in('conversation_id', myConvoIds)
+        .limit(1000);
+
+    if (!hostMatch || hostMatch.length === 0) return null;
+
+    const sharedIds = Array.from(new Set(hostMatch.map((c) => c.conversation_id).filter(Boolean)));
+    if (sharedIds.length === 0) return null;
+
+    const { data: dmRows } = await getSupabase()
+        .from('social_conversations')
+        .select('id, created_at')
+        .in('id', sharedIds)
+        .eq('is_group', false)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(1);
+
+    return dmRows && dmRows.length > 0 ? dmRows[0].id : null;
+}
+
 export default async function handler(req, res) {
     try {
         if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -71,7 +120,7 @@ export default async function handler(req, res) {
         // indefinitely by rotating fake game_ids.
         const { data: gameRow, error: gameErr } = await getSupabase()
             .from('commander_home_games')
-            .select('id, host_id, group_id')
+            .select('id, host_id, group_id, title')
             .eq('id', game_id)
             .maybeSingle();
         if (gameErr) {
@@ -114,37 +163,16 @@ export default async function handler(req, res) {
         }
 
         // Find or create a DM conversation between user and host
-        // Step 1: Check for existing DM
-        const { data: existingConvos } = await getSupabase()
-            .from('social_conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', userId);
-
-        let conversationId = null;
-
-        if (existingConvos && existingConvos.length > 0) {
-            const userConvoIds = existingConvos.map(c => c.conversation_id);
-            // Find a conversation where the host is also a participant
-            const { data: hostMatch } = await getSupabase()
-                .from('social_conversation_participants')
-                .select('conversation_id')
-                .eq('user_id', host_id)
-                .in('conversation_id', userConvoIds)
-                .limit(1);
-
-            if (hostMatch && hostMatch.length > 0) {
-                conversationId = hostMatch[0].conversation_id;
-            }
-        }
+        // Step 1: Check for an existing 1:1 DM.
+        let conversationId = await findSharedDmConversationId(userId, host_id);
 
         // Step 2: Create new conversation if none exists
         if (!conversationId) {
+            // social_conversations discriminates 1:1 threads with is_group=false
+            // (there is no `type` column) — same shape the messenger RPC uses.
             const { data: newConvo, error: convoErr } = await getSupabase()
                 .from('social_conversations')
-                .insert({
-                    type: 'dm',
-                    created_by: userId,
-                })
+                .insert({ is_group: false })
                 .select('id')
                 .maybeSingle();
 
@@ -163,10 +191,26 @@ export default async function handler(req, res) {
                     { conversation_id: conversationId, user_id: host_id },
                 ]);
             if (err_social_conversation_participants_7zo80) console.warn('[Supabase] Silent mutation failed in social_conversation_participants:', err_social_conversation_participants_7zo80.message);
+
+            // Step 2b: Check-then-insert above is not atomic — two concurrent
+            // first-contact requests both see "no DM" and both create one.
+            // Re-resolve and take the deterministic winner (earliest created,
+            // id as tie-break). Both racers converge on the SAME thread, so the
+            // messages land together instead of in two split conversations.
+            const settledId = await findSharedDmConversationId(userId, host_id);
+            if (settledId) conversationId = settledId;
         }
 
-        // Step 3: Send the message with context tag
-        const gameName = game_name || 'a home game';
+        // Step 3: Send the message with context tag.
+        // Use the authoritative title from the game row. body.game_name is
+        // caller-controlled and unbounded — it must never be interpolated raw,
+        // or it bypasses the 2000-char cap enforced on `message`.
+        const safeGameName = (typeof game_name === 'string' && game_name.trim())
+            ? game_name.trim().slice(0, 120)
+            : null;
+        const gameName = (typeof gameRow.title === 'string' && gameRow.title.trim())
+            ? gameRow.title.trim().slice(0, 120)
+            : (safeGameName || 'a home game');
         const userMessage = message?.trim()
             ? `${message.trim()}\n\n${contextTag}`
             : `Hey! I'm interested in joining ${gameName}. Is there room for a new player? ${contextTag}`;

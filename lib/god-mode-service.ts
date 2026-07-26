@@ -72,14 +72,33 @@ export interface GTOScenario {
 // SUPABASE CLIENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Lazily created + memoised. Never build the client at module scope: this module
+// is imported transitively by pages, so module scope runs during SSG/SSR where the
+// public env vars can resolve to empty strings and createClient() would throw at
+// build time (repo Immutable Rule 3).
+let _client: ReturnType<typeof createClient> | null = null;
+let _warnedMissingEnv = false;
 
-if (!supabaseUrl || !supabaseKey) {
-    console.warn('⚠️ Supabase credentials not configured for God Mode service');
+function getSupabase(): ReturnType<typeof createClient> | null {
+    if (_client) return _client;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!supabaseUrl || !supabaseKey) {
+        if (!_warnedMissingEnv) {
+            _warnedMissingEnv = true;
+            console.error(
+                '[GodMode] Supabase credentials not configured '
+                + '(NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). GTO lookups are disabled.'
+            );
+        }
+        return null;
+    }
+
+    _client = createClient(supabaseUrl, supabaseKey);
+    return _client;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -200,7 +219,10 @@ export async function getGTOStrategy(params: {
             street
         });
 
-        console.log(`🔍 Querying God Mode: ${scenarioHash}`);
+        console.log(`[GodMode] Querying: ${scenarioHash}`);
+
+        const supabase = getSupabase();
+        if (!supabase) return null;
 
         // Query database
         const { data, error } = await supabase
@@ -210,21 +232,21 @@ export async function getGTOStrategy(params: {
             .maybeSingle();
 
         if (error) {
-            console.error('❌ God Mode query error:', error);
+            console.error('[GodMode] ERR: query error:', error);
             return null;
         }
 
         if (!data) {
-            console.warn(`⚠️ No data for scenario: ${scenarioHash}`);
+            console.warn(`[GodMode] WARN: no data for scenario: ${scenarioHash}`);
             return null;
         }
 
-        console.log(`✅ God Mode hit: ${scenarioHash} (${data.macro_metrics?.hand_count || 0} hands)`);
+        console.log(`[GodMode] OK: hit ${scenarioHash} (${(data as GTOScenario).macro_metrics?.hand_count || 0} hands)`);
 
         return data as GTOScenario;
 
     } catch (err) {
-        console.error('❌ getGTOStrategy error:', err);
+        console.error('[GodMode] ERR: getGTOStrategy error:', err);
         return null;
     }
 }
@@ -275,7 +297,7 @@ export async function getGTOActionForHand(params: {
     const handStrategy = scenario.strategy_matrix[handKey];
 
     if (!handStrategy) {
-        console.warn(`⚠️ Hand ${handKey} not found in strategy matrix`);
+        console.warn(`[GodMode] WARN: hand ${handKey} not found in strategy matrix`);
         return null;
     }
 
@@ -310,6 +332,9 @@ export async function hasGTODataForScenario(params: {
             street
         });
 
+        const supabase = getSupabase();
+        if (!supabase) return false;
+
         const { data, error } = await supabase
             .from('solved_spots_gold')
             .select('id')
@@ -329,6 +354,9 @@ export async function hasGTODataForScenario(params: {
  */
 export async function getGTOScenarioCount(): Promise<number> {
     try {
+        const supabase = getSupabase();
+        if (!supabase) return 0;
+
         const { count, error } = await supabase
             .from('solved_spots_gold')
             .select('id', { count: 'exact', head: true });
@@ -414,7 +442,10 @@ export async function generateLevelQuiz(
     levelId: number
 ): Promise<LevelQuiz | null> {
     try {
-        console.log(`🎯 Generating quiz for Level ${levelId}, User: ${userId}`);
+        console.log(`[GodMode] Generating quiz for Level ${levelId}, User: ${userId}`);
+
+        const supabase = getSupabase();
+        if (!supabase) return null;
 
         // ─────────────────────────────────────────────────────────────────────
         // STEP 1: Fetch Level Recipe
@@ -427,11 +458,11 @@ export async function generateLevelQuiz(
             .maybeSingle();
 
         if (levelError || !level) {
-            console.error(`❌ Level ${levelId} not found:`, levelError);
+            console.error(`[GodMode] ERR: Level ${levelId} not found:`, levelError);
             return null;
         }
 
-        console.log(`📖 Level Recipe: ${level.level_name}`);
+        console.log(`[GodMode] Level Recipe: ${level.level_name}`);
         console.log(`   Game: ${level.game_mode}, Street: ${level.street_filter}, Stacks: ${level.stack_filter}`);
 
         const questionCount = level.questions_per_round || 20;
@@ -450,7 +481,7 @@ export async function generateLevelQuiz(
         }
 
         const seenHashes = new Set(history?.map(h => h.scenario_hash) || []);
-        console.log(`📚 User has seen ${seenHashes.size} scenarios total`);
+        console.log(`[GodMode] User has seen ${seenHashes.size} scenarios total`);
 
         // ─────────────────────────────────────────────────────────────────────
         // STEP 3: Query Fresh Questions (exclude seen)
@@ -482,10 +513,10 @@ export async function generateLevelQuiz(
             return null;
         }
 
-        console.log(`🎲 Found ${allMatches?.length || 0} total matching scenarios`);
+        console.log(`[GodMode] Found ${allMatches?.length || 0} total matching scenarios`);
 
         if (!allMatches || allMatches.length === 0) {
-            console.warn('⚠️ No scenarios match this level criteria');
+            console.warn('[GodMode] WARN: no scenarios match this level criteria');
             return null;
         }
 
@@ -494,12 +525,12 @@ export async function generateLevelQuiz(
         if (level.difficulty_rating === 'Easy') {
             // Only include scenarios with pure strategies (no mixed)
             filteredScenarios = allMatches.filter(scenario => {
-                const matrix = scenario.strategy_matrix as GTOStrategyMatrix;
+                const matrix = (scenario.strategy_matrix || {}) as GTOStrategyMatrix;
                 // Check if any hand has is_mixed = true
-                const hasMixed = Object.values(matrix).some(hand => hand.is_mixed);
+                const hasMixed = Object.values(matrix).some(hand => hand?.is_mixed);
                 return !hasMixed;
             });
-            console.log(`🎯 Filtered to ${filteredScenarios.length} pure-strategy scenarios`);
+            console.log(`[GodMode] Filtered to ${filteredScenarios.length} pure-strategy scenarios`);
         }
 
         // Separate fresh vs seen
@@ -510,8 +541,8 @@ export async function generateLevelQuiz(
             s => seenHashes.has(s.scenario_hash)
         );
 
-        console.log(`✨ Fresh scenarios available: ${freshScenarios.length}`);
-        console.log(`📖 Seen scenarios available: ${seenScenarios.length}`);
+        console.log(`[GodMode] Fresh scenarios available: ${freshScenarios.length}`);
+        console.log(`[GodMode] Seen scenarios available: ${seenScenarios.length}`);
 
         // ─────────────────────────────────────────────────────────────────────
         // STEP 4: Select Questions (fresh first, then repeats if needed)
@@ -535,7 +566,7 @@ export async function generateLevelQuiz(
         // If we need more questions, fill with repeats
         const remaining = questionCount - selectedQuestions.length;
         if (remaining > 0) {
-            console.log(`⚠️ Review Mode: Need ${remaining} more questions`);
+            console.log(`[GodMode] Review Mode: need ${remaining} more questions`);
 
             // Shuffle seen scenarios
             const shuffledSeen = seenScenarios.sort(() => Math.random() - 0.5);
@@ -568,18 +599,18 @@ export async function generateLevelQuiz(
             is_review_mode: reviewCount > 0
         };
 
-        console.log('✅ Quiz Generated:');
+        console.log('[GodMode] OK: quiz generated:');
         console.log(`   Total: ${quiz.total_questions} questions`);
         console.log(`   Fresh: ${quiz.fresh_questions}`);
         console.log(`   Review: ${quiz.review_questions}`);
         if (quiz.is_review_mode) {
-            console.log('   🔄 REVIEW MODE ACTIVE');
+            console.log('   REVIEW MODE ACTIVE');
         }
 
         return quiz;
 
     } catch (err) {
-        console.error('❌ generateLevelQuiz error:', err);
+        console.error('[GodMode] ERR: generateLevelQuiz error:', err);
         return null;
     }
 }

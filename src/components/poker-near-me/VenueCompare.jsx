@@ -50,12 +50,24 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
       const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
       return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
-    case 'trust_score': return venue.trust_score ? `${venue.trust_score}/100` : '—';
+    // BUG FIX: trust_score is recalculate_venue_trust_score()'s AVG(rating) on the
+    // 1-5 review scale (LiveGamesFeed/VenueCard both render it as "/5"). Rendering
+    // it as "/100" made a top venue read "4.8/100".
+    case 'trust_score': return venue.trust_score ? `${Number(venue.trust_score).toFixed(1)}/5` : '—';
     case 'tables_count': return venue.tables_count || venue.total_tables || '—';
     case 'venue_type': return (venue.venue_type || 'casino').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     case 'games_offered':
       return (venue.games_offered || []).join(', ') || '—';
-    case 'hours': return venue.hours_of_operation || '—';
+    // BUG FIX: hours_of_operation is not a column any migration or the venues API
+    // select defines — the row was always '—'. The real fields are hours_weekday /
+    // hours_weekend (see pages/api/poker/venues.js select list).
+    case 'hours': {
+      const weekday = venue.hours_weekday || venue.hours || venue.hours_of_operation;
+      const weekend = venue.hours_weekend;
+      if (!weekday && !weekend) return '—';
+      if (weekday && weekend && weekday !== weekend) return `Wkdy ${weekday} / Wknd ${weekend}`;
+      return weekday || weekend;
+    }
     case 'phone': return venue.phone || '—';
     default: return '—';
   }
@@ -65,6 +77,10 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [liveData, setLiveData] = useState({});
+  // BUG FIX: the picker used to unmount as soon as 2 venues were selected, so the
+  // advertised 2-3 venue comparison was capped at 2 and '+ Add Venue' dead-clicked
+  // (its onClick was `setSelectedIds(prev => prev)` — a no-op).
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -112,20 +128,26 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
   }, [venues, searchTerm]);
 
   const toggleVenue = (id) => {
+    const key = String(id);
     setSelectedIds(prev => {
-      if (prev.includes(String(id))) return prev.filter(x => x !== String(id));
+      if (prev.includes(key)) return prev.filter(x => x !== key);
       if (prev.length >= 3) return prev; // Max 3
-      return [...prev, String(id)];
+      return [...prev, key];
     });
+    // Adding the 3rd venue closes the picker again. Kept outside the updater so
+    // React StrictMode's double-invoked updater can't fire this twice.
+    if (!selectedIds.includes(key) && selectedIds.length + 1 >= 3) setShowPicker(false);
   };
 
   return (
     <div>
       {/* Selection area */}
-      {selectedVenues.length < 2 && (
+      {(selectedVenues.length < 2 || showPicker) && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.6)', marginBottom: 8, fontWeight: 600 }}>
-            Select {selectedVenues.length === 0 ? '2-3' : `${2 - selectedVenues.length} more`} venues to compare
+            {selectedVenues.length >= 2
+              ? 'Pick a third venue to compare'
+              : `Select ${selectedVenues.length === 0 ? '2-3' : `${2 - selectedVenues.length} more`} venues to compare`}
           </div>
           <input
             type="text"
@@ -203,11 +225,11 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             </span>
           ))}
           {selectedVenues.length < 3 && (
-            <button onClick={() => setSelectedIds(prev => prev)} style={{
+            <button onClick={() => setShowPicker(v => !v)} style={{
               padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
               border: '1.5px dashed rgba(148,163,184,0.2)', background: 'transparent',
               color: 'rgba(148,163,184,0.5)', cursor: 'pointer', fontFamily: 'inherit',
-            }}>+ Add Venue</button>
+            }}>{showPicker && selectedVenues.length >= 2 ? 'Done' : '+ Add Venue'}</button>
           )}
         </div>
       )}

@@ -720,6 +720,18 @@ export default async function handler(req, res) {
                   } catch (dbError) { 
                       console.warn('[App] Handled exception:', dbError?.message || dbError);
                   }
+
+                  // Supabase miss/outage: fall back to the JSON dataset (cloned), and
+                  // 404 instead of falling through to the list path, which returned
+                  // `data: []` (array) where clients expect a venue object.
+                  if (venues.length === 0) {
+                      const jsonVenue = getVenueById(numericId);
+                      if (jsonVenue && !jsonVenue.is_suppressed) {
+                          venues = [{ ...jsonVenue }];
+                      } else {
+                          return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
+                      }
+                  }
               } else {
                   // Non-numeric ID (slug): search by slug/bravo_slug in JSON data
                   const slug = String(id).toLowerCase();
@@ -788,7 +800,10 @@ export default async function handler(req, res) {
                   }
                   
                   if (slugMatch) {
-                      venues = [slugMatch];
+                      // Clone: slugMatch is a reference into the module-level JSON cache
+                      // and the single-venue path below writes daily_tournaments onto it,
+                      // which would leak into later requests.
+                      venues = [{ ...slugMatch }];
                   } else {
                       // Try Supabase text search as last resort
                       try {
@@ -904,9 +919,16 @@ export default async function handler(req, res) {
                   q = q.order('trust_score', { ascending: false, nullsFirst: false }).range(offset, offset + maxResults - 1);
                   const { data: dbVenues, error: dbErr, count: dbCount } = await q;
 
-                  if (!dbErr && dbVenues && dbVenues.length > 0) {
+                  // A successful query is authoritative even when it returns 0 rows for a
+                  // page past the end of the result set: treating that as "no data" made
+                  // those requests fall back to the JSON dataset (which ignores `offset`),
+                  // so infinite scroll restarted from venue #1 and never ended.
+                  // On the FIRST page an empty result still falls through to the JSON
+                  // dataset — that fallback covers venues the DB does not carry, and
+                  // removing it would blank out the listing entirely.
+                  if (!dbErr && (offset > 0 || (dbVenues && dbVenues.length > 0))) {
                       // Exclude "Harrahs Joliet" — confirmed no poker room at this location
-                      venues = dbVenues.filter(v => !(v.name?.toLowerCase().includes('harrah') && v.name?.toLowerCase().includes('joliet')));
+                      venues = (dbVenues || []).filter(v => !(v.name?.toLowerCase().includes('harrah') && v.name?.toLowerCase().includes('joliet')));
                       usedSupabase = true;
                   }
               } catch (dbErr) {
@@ -917,14 +939,28 @@ export default async function handler(req, res) {
               if (!usedSupabase) {
                   venues = applyFilters(getJsonVenues(), { state, city, type: effectiveType, tournaments, search, featured })
                       // Exclude "Harrahs Joliet" — confirmed no poker room at this location
-                      .filter(v => !(v.name?.toLowerCase().includes('harrah') && v.name?.toLowerCase().includes('joliet')));
+                      .filter(v => !(v.name?.toLowerCase().includes('harrah') && v.name?.toLowerCase().includes('joliet')))
+                      // Copy: everything downstream (social-page enrichment, daily_tournaments
+                      // injection, name title-casing) mutates these objects, and the JSON array
+                      // is a module-level cache shared by every request on this lambda.
+                      .map(v => ({ ...v }));
               }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
                   // --- Merge public social pages (clubs, charities, home games) ---
                   // Linked pages enrich their parent JSON venue; unlinked pages create new entries
                   try {
-                      homeGroups = await fetchPublicHomeGroups({ state, city, search, effectiveType });
+                      // Pass the effective GPS box through — the helper's radius logic
+                      // was dead code because lat/lng/radius were never supplied.
+                      homeGroups = await fetchPublicHomeGroups({
+                          state,
+                          city,
+                          search,
+                          effectiveType,
+                          lat: effectiveLat,
+                          lng: effectiveLng,
+                          radius: effectiveRadius,
+                      });
                   } catch (e) {
                       console.warn('[venues] Home group UNION failed (non-fatal):', e.message);
                   }
@@ -1042,8 +1078,24 @@ export default async function handler(req, res) {
 
                           // --- Enrich JSON venues that have a linked social page ---
                           const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
+                          // id -> slot index in the response array, so enrichment lands on
+                          // the object we actually return.
+                          const venueSlotById = new Map();
+                          venues.forEach((v, i) => { if (v && v.id != null) venueSlotById.set(String(v.id), i); });
                           for (const sp of linkedPages) {
-                              const jsonVenue = getVenueById(sp.linked_venue_id);
+                              // getVenueById returns a reference INTO the module-level JSON
+                              // cache; writing enrichment onto it persisted across requests
+                              // (sticky has_tournaments, stale is_today/today_event) and raced
+                              // between concurrent requests. Always enrich a COPY.
+                              let jsonVenue = null;
+                              const slot = venueSlotById.get(String(sp.linked_venue_id));
+                              if (slot !== undefined) {
+                                  jsonVenue = { ...venues[slot] };
+                                  venues[slot] = jsonVenue;
+                              } else {
+                                  const cachedVenue = getVenueById(sp.linked_venue_id);
+                                  if (cachedVenue) jsonVenue = { ...cachedVenue };
+                              }
                               if (jsonVenue) {
                                   jsonVenue.is_social_page = true;
                                   jsonVenue.social_page_id = sp.id;
@@ -1925,15 +1977,17 @@ export default async function handler(req, res) {
           });
 
           // ── PHASE 19: HOME GROUP UNION ────────────────────────────────
-          // Home groups are already fetched early and included in `venues`
-          // but we still return them under `home_groups` key for compatibility.
+          // Home groups enrich linked social_pages rows inside `data`, but the
+          // documented top-level envelope was hardcoded to [] / 0, so standalone
+          // groups (no linked social page) never reached the frontend.
+          const homeGroupsOut = Array.isArray(homeGroups) ? homeGroups : [];
 
           return res.status(200).json({
               success: true,
               data: limited,
-              home_groups: [],
+              home_groups: homeGroupsOut,
               total,
-              total_home_groups: 0,
+              total_home_groups: homeGroupsOut.length,
               hasGpsData: hasGps,
               offset,
           });
@@ -1944,12 +1998,21 @@ export default async function handler(req, res) {
               extra: { query: req.query },
           });
 
-          // Last resort: return JSON data unfiltered
-          const fallbackVenues = getJsonVenues();
+          // Last resort: JSON data, but still gated through applyFilters so
+          // is_active=false / is_suppressed=true venues stay hidden.
+          let fallbackVenues = [];
+          try {
+              fallbackVenues = applyFilters(getJsonVenues(), {}).map(v => ({ ...v }));
+          } catch (fallbackErr) {
+              console.warn('[venues] fallback filter failed:', fallbackErr?.message || fallbackErr);
+              fallbackVenues = [];
+          }
           return res.status(200).json({
               success: true,
               data: fallbackVenues,
+              home_groups: [],
               total: fallbackVenues.length,
+              total_home_groups: 0,
               hasGpsData: false,
           });
       }

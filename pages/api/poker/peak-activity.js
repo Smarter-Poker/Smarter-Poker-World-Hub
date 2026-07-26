@@ -22,6 +22,58 @@ function getSupabase() {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// State -> IANA timezone (same table the DailyTournamentsPanel uses client-side).
+const IANA_TZ = {
+  'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix',
+  'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
+  'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York',
+  'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
+  'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago',
+  'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago',
+  'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York',
+  'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago',
+  'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago',
+  'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York',
+  'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York',
+  'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago',
+  'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York',
+  'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago',
+  'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York',
+  'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York',
+  'WI': 'America/Chicago', 'WY': 'America/Denver',
+};
+
+/**
+ * Bucket a timestamp by the VENUE's local hour/day instead of UTC.
+ * Snapshots are stored in UTC; bucketing them with getUTCHours() reported a
+ * Las Vegas 7 PM peak as 2 AM and pushed Friday nights onto Saturday.
+ */
+function getLocalParts(value, timeZone) {
+  const dt = new Date(value);
+  if (isNaN(dt.getTime())) return null;
+  try {
+    const local = new Date(dt.toLocaleString('en-US', { timeZone }));
+    if (!isNaN(local.getTime())) return { hour: local.getHours(), day: local.getDay() };
+  } catch (_tzErr) { /* fall through to UTC */ }
+  return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
+}
+
+/** Best-effort venue timezone from poker_venues.state; defaults to Eastern. */
+async function resolveVenueTimezone(supabase, venueName) {
+  if (!venueName) return 'America/New_York';
+  try {
+    const { data } = await supabase
+      .from('poker_venues')
+      .select('state')
+      .ilike('name', `%${venueName}%`)
+      .limit(1)
+      .maybeSingle();
+    const st = (data?.state || '').toUpperCase();
+    if (IANA_TZ[st]) return IANA_TZ[st];
+  } catch (_err) { /* default below */ }
+  return 'America/New_York';
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -82,7 +134,9 @@ export default async function handler(req, res) {
         .order('snapshot_time', { ascending: true });
       
       if (safeVenueId) {
-        query = query.eq('venue_id', parseInt(safeVenueId, 10));
+        // venue_live_history is keyed on bravo_slug — it has no venue_id column,
+        // so the old .eq('venue_id', parseInt(...)) always errored (and NaN'd on slugs).
+        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
       } else if (safeVenue) {
         query = query.ilike('venue_name', `%${safeVenue}%`);
       }
@@ -126,10 +180,13 @@ export default async function handler(req, res) {
     const dayBuckets = {};  // { day: { totalTables, count } }
     const heatmap = {};     // { "day-hour": { totalTables, count } }
     
+    // Bucket in venue-local time (falls back to Eastern for multi-venue queries)
+    const venueTz = await resolveVenueTimezone(supabase, safeVenue || data[0]?.venue_name);
+
     data.forEach(row => {
-      const dt = new Date(row.snapshot_time);
-      const hour = dt.getUTCHours();
-      const day = dt.getUTCDay();
+      const parts = getLocalParts(row.snapshot_time, venueTz);
+      if (!parts) return;
+      const { hour, day } = parts;
       const tables = row.total_tables || 0;
       
       // Hour buckets
@@ -199,6 +256,7 @@ export default async function handler(req, res) {
       venue_filter: safeVenue || safeVenueId || 'all',
       data_points: data.length,
       period: '14 days',
+      timezone: venueTz,
       peak_hours: peakHours.slice(0, 6),
       peak_days: peakDays,
       heatmap: heatmapGrid,

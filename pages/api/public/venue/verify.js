@@ -2,6 +2,21 @@
  * Venue Claim Verification API
  *
  * POST: Verify a claim with code
+ *
+ * ── SECURITY NOTE ──────────────────────────────────────────────────────────
+ * This endpoint used to SELF-APPROVE a claim: a correct code granted the
+ * caller venue_managers role 'owner' with every can_* permission and flipped
+ * poker_venues.is_claimed. That was a privilege-escalation hole, because
+ * claim.js never delivers the code anywhere (see its "TODO: Send verification
+ * code via email/phone" — the code is generated, stored, and dropped). Nobody
+ * legitimate can receive it, and it is only 4 digits, so the only party the
+ * self-approval path actually served was someone guessing.
+ *
+ * Until real code delivery exists, a correct code moves the claim to
+ * 'under_review' — a valid venue_claims.status — and an admin performs the
+ * actual approval (venue_managers grant + poker_venues.is_claimed). The code
+ * check is retained as a first factor and is now bounded by an expiry window.
+ * ───────────────────────────────────────────────────────────────────────────
  */
 
 import { supabase } from '../../../../src/lib/supabase';
@@ -21,12 +36,26 @@ function getSupabase() {
 
 const MAX_VERIFICATION_ATTEMPTS = 5;
 
+// A stored verification code stops being usable after this window. Bounds how
+// long a guessable code stays live on an abandoned claim.
+const VERIFICATION_CODE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Length-independent comparison so response timing doesn't leak the code.
+function codesMatch(a, b) {
+    const sa = String(a == null ? '' : a);
+    const sb = String(b == null ? '' : b);
+    let diff = sa.length ^ sb.length;
+    const len = Math.max(sa.length, sb.length);
+    for (let i = 0; i < len; i++) {
+        diff |= (sa.charCodeAt(i) || 0) ^ (sb.charCodeAt(i) || 0);
+    }
+    return diff === 0 && sa.length > 0;
+}
+
 export default async function handler(req, res) {
   try {
-    // CDN cache: fresh for 60s, serve stale up to 300s
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    }
+    // Authenticated, per-user verification endpoint — never shared-cache it.
+    res.setHeader('Cache-Control', 'private, no-store');
 
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -81,10 +110,18 @@ export default async function handler(req, res) {
               });
           }
 
-          if (claim.status === 'rejected') {
+          if (claim.status === 'rejected' || claim.status === 'revoked') {
               return res.status(400).json({
                   success: false, error: 'Claim was rejected',
                   message: claim.rejection_reason || 'This claim was rejected. Please submit a new claim if you believe this is an error.'
+              });
+          }
+
+          if (claim.status === 'under_review') {
+              return res.status(400).json({
+                  success: false, error: 'Claim already verified',
+                  status: 'under_review',
+                  message: 'This claim has already been verified and is awaiting admin review.'
               });
           }
 
@@ -107,6 +144,16 @@ export default async function handler(req, res) {
               });
           }
 
+          // Expire stale codes. A never-delivered 4-digit code sitting on an
+          // abandoned claim forever is a standing brute-force target.
+          const claimIssuedAt = claim.created_at ? new Date(claim.created_at).getTime() : NaN;
+          if (Number.isFinite(claimIssuedAt) && Date.now() - claimIssuedAt > VERIFICATION_CODE_TTL_MS) {
+              return res.status(400).json({
+                  success: false, error: 'Verification code expired',
+                  message: 'This verification code has expired. Please submit a new claim.'
+              });
+          }
+
           // Increment attempt counter
           const { error: err_venue_claims_gil0t } = await getSupabase()
             .from('venue_claims')
@@ -118,7 +165,7 @@ export default async function handler(req, res) {
           if (err_venue_claims_gil0t) console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_gil0t.message);
 
           // Verify the code
-          if (claim.verification_code !== verification_code.trim()) {
+          if (!codesMatch(claim.verification_code, verification_code.trim())) {
               // Log failed attempt
               const { error: err_venue_verification_log_fgqda } = await getSupabase()
                 .from('venue_verification_log')
@@ -141,52 +188,28 @@ export default async function handler(req, res) {
               });
           }
 
-          // Code is correct - approve the claim
-          // Update claim status
+          // Code is correct — move the claim to 'under_review'.
+          //
+          // We deliberately do NOT self-approve here: no venue_managers grant,
+          // no poker_venues.is_claimed flip. A 4-digit code that is never
+          // delivered to anyone (claim.js has a TODO where the send should be)
+          // cannot be treated as proof of venue ownership, and approving on it
+          // handed full venue management to whoever guessed 1 of 9,000 values.
+          // An admin performs the actual approval + manager grant.
           const { error: err_venue_claims_92l5n } = await getSupabase()
             .from('venue_claims')
             .update({
-                  status: 'approved',
+                  status: 'under_review',
                   verified_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
               })
               .eq('id', claim_id);
-          if (err_venue_claims_92l5n) console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_92l5n.message);
+          if (err_venue_claims_92l5n) {
+              console.warn('[Supabase] Silent mutation failed in venue_claims:', err_venue_claims_92l5n.message);
+              return res.status(500).json({ success: false, error: 'Failed to update claim status' });
+          }
 
-          // Add user as venue manager
-          const { error: err_venue_managers_taktp } = await getSupabase()
-            .from('venue_managers')
-            .upsert({
-                  venue_id: claim.venue_id,
-                  user_id: user.id,
-                  role: 'owner',
-                  can_edit_info: true,
-                  can_edit_hours: true,
-                  can_edit_games: true,
-                  can_post_updates: true,
-                  can_respond_reviews: true,
-                  can_manage_promotions: true,
-                  can_view_analytics: true,
-                  can_invite_staff: true,
-                  is_active: true,
-                  approved_via: claim_id
-              }, {
-                  onConflict: 'venue_id,user_id'
-              });
-          if (err_venue_managers_taktp) console.warn('[Supabase] Silent mutation failed in venue_managers:', err_venue_managers_taktp.message);
-
-          // Update venue as claimed
-          const { error: err_poker_venues_4gted } = await getSupabase()
-            .from('poker_venues')
-            .update({
-                  is_claimed: true,
-                  claimed_by: user.id,
-                  claimed_at: new Date().toISOString()
-              })
-              .eq('id', claim.venue_id);
-          if (err_poker_venues_4gted) console.warn('[Supabase] Silent mutation failed in poker_venues:', err_poker_venues_4gted.message);
-
-          // Log successful verification
+          // Log successful code verification
           const { error: err_venue_verification_log_ifam7 } = await getSupabase()
             .from('venue_verification_log')
             .insert({
@@ -194,28 +217,16 @@ export default async function handler(req, res) {
                   venue_id: claim.venue_id,
                   action: 'code_verified',
                   performed_by: user.id,
+                  details: { moved_to: 'under_review' },
                   ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
                   user_agent: req.headers['user-agent']
               });
           if (err_venue_verification_log_ifam7) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_ifam7.message);
 
-          const { error: err_venue_verification_log_mz5zc } = await getSupabase()
-
-            .from('venue_verification_log')
-
-            .insert({
-                  claim_id,
-                  venue_id: claim.venue_id,
-                  action: 'approved',
-                  performed_by: user.id,
-                  details: { method: 'self_verified' }
-              });
-
-          if (err_venue_verification_log_mz5zc) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_mz5zc.message);
-
           return res.status(200).json({
               success: true,
-              message: 'Venue claim verified successfully! You now have full access to manage this venue.',
+              status: 'under_review',
+              message: 'Code verified. Your claim is now under review — our team will confirm your connection to this venue and finish activating management access.',
               venue_id: claim.venue_id
           });
 

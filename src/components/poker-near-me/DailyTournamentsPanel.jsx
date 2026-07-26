@@ -46,6 +46,35 @@ const SOURCE_COLORS = {
 function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
 function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
 
+/**
+ * Minutes since midnight for `date` as observed in `timeZone`.
+ *
+ * BUG FIX: the previous approach — `new Date(new Date().toLocaleString('en-US', { timeZone }))`
+ * — round-trips through a locale-formatted string and misparses in environments whose
+ * en-US formatting differs (and silently yields Invalid Date). Intl.DateTimeFormat
+ * with formatToParts reads the zoned wall clock directly.
+ *
+ * @returns {number|null} 0-1439, or null if the timezone is unusable.
+ */
+function zonedMinutesOfDay(date, timeZone) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone, hour12: false, hour: '2-digit', minute: '2-digit',
+    }).formatToParts(date);
+    let hour = null;
+    let minute = null;
+    for (const p of parts) {
+      if (p.type === 'hour') hour = parseInt(p.value, 10);
+      else if (p.type === 'minute') minute = parseInt(p.value, 10);
+    }
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    if (hour === 24) hour = 0; // some engines emit '24' for midnight under hour12:false
+    return hour * 60 + minute;
+  } catch (e) {
+    return null;
+  }
+}
+
 const IANA_TZ = {
   'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix', 
   'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
@@ -113,9 +142,11 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   }, [selectedDay, gameType, sortBy, selectedState, minBuyin, maxBuyin, minGuaranteed, groupByState]);
 
   // Intersection Observer for DOM Pagination
+  // The sentinel node is stable for the component's lifetime, so subscribe once.
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return undefined;
     const node = loadMoreRef.current;
-    if (!node) return;
+    if (!node) return undefined;
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         setRenderLimit(prev => prev + 20);
@@ -123,7 +154,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     }, { threshold: 0.1 });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [selectedDay]);
+  }, []);
 
   // [DTP3 FIX v2] Tick now every 60s so countdowns don't freeze after mount.
   // useMemo(()=>new Date(),[]) was stale for the entire lifetime of the component.
@@ -132,7 +163,6 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     const id = setInterval(() => setNowTick(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
-  const now = nowTick;
 
   const handleDayChange = (day) => {
     startTransition(() => {
@@ -198,6 +228,23 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
   // DOM Virtualization slice
   const visibleFiltered = useMemo(() => filtered.slice(0, renderLimit), [filtered, renderLimit]);
+
+  // BUG FIX: IntersectionObserver only fires on threshold *crossings*. If appending
+  // 20 more cards doesn't push the sentinel out of the viewport (tall desktop viewport,
+  // compact cards, grouped mode with few groups), no further callback ever fires and
+  // the remaining tournaments are unreachable until the user scrolls it out and back in.
+  // After each page, re-check whether the sentinel is still on screen and keep paging.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (renderLimit >= filtered.length) return undefined;
+    const node = loadMoreRef.current;
+    if (!node) return undefined;
+    const raf = window.requestAnimationFrame(() => {
+      const rect = node.getBoundingClientRect();
+      if (rect.top < window.innerHeight) setRenderLimit(prev => prev + 20);
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [renderLimit, filtered.length]);
 
   // [DTP5 FIX] Memoize grouped-by-state object — was recomputed on every render
   const groupedByState = useMemo(() => {
@@ -282,15 +329,23 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             let hour24 = h;
             if (ampm) { if (ampm.toUpperCase() === 'PM' && h !== 12) hour24 += 12; if (ampm.toUpperCase() === 'AM' && h === 12) hour24 = 0; }
             
-            // Timezone offset math
+            // Timezone math — compare wall-clock minutes in the venue's own zone.
+            // Driven by nowTick so the 60s interval actually refreshes the countdown.
             const tz = IANA_TZ[t.state || t.venue_state] || 'America/New_York';
-            const venueNow = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
-            const target = new Date(venueNow); 
-            target.setHours(hour24, m, 0, 0);
+            const nowMinutes = zonedMinutesOfDay(nowTick, tz);
+            if (nowMinutes === null) return null;
+            const diffMin = (hour24 * 60 + m) - nowMinutes;
 
-            if (target <= venueNow) target.setDate(target.getDate() + 1);
-            const diffMin = Math.round((target - venueNow) / 60000);
-            if (diffMin <= 0 || diffMin > 1440) return null;
+            // BUG FIX: previously a passed start time rolled the target to tomorrow,
+            // so a 7PM tournament viewed at 8PM rendered "23h 0m" — implying it was
+            // still 23 hours away today. Show an honest "Started" badge instead.
+            if (diffMin <= 0) {
+              return (
+                <div style={{ float: 'right', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(148,163,184,0.12)', color: 'rgba(203,213,225,0.7)' }}>
+                  Started
+                </div>
+              );
+            }
             const hrs = Math.floor(diffMin / 60);
             const mins = diffMin % 60;
             const isImminent = diffMin <= 60;

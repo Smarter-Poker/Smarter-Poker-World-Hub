@@ -61,6 +61,75 @@ const US_STATES = {
 };
 // Also accept abbreviations directly
 const STATE_ABBREVS = Object.values(US_STATES || {});
+// Everyday 2-letter words that collide with state codes — never treated as a state
+// unless the user typed them in uppercase.
+const LOCATIVE_STOPWORDS = ['me', 'it', 'my', 'no', 'so', 'to', 'on', 'as', 'of', 'is', 'be', 'do', 'we', 'us', 'up', 'if', 'or', 'an', 'am'];
+
+// ─── Intent application helpers ───────────────────────────────────────────────
+const GAME_TYPE_PATTERNS = {
+  PLO: /omaha|plo/i,
+  NLH: /hold\s*'?\s*em|holdem|nlh|no[\s-]?limit/i,
+  Mixed: /mixed|horse|stud|dealer/i,
+};
+const GAME_TYPE_LABELS = {
+  tournament: 'Tournaments',
+  cash: 'Cash Games',
+  live: 'Live Games',
+  PLO: 'PLO',
+  NLH: "Hold'em",
+  Mixed: 'Mixed Games',
+};
+
+// Parse 'YYYY-MM-DD' as a LOCAL date — new Date('2026-08-01') is UTC midnight, which
+// reads back as the previous day in every US timezone.
+function parseLocalDate(value) {
+  if (!value) return null;
+  const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Turn a parsed time window into a local date range: start inclusive, end exclusive
+function timeWindowRange(timeWindow) {
+  if (!timeWindow) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  switch (timeWindow) {
+    case 'today': return { start: today, end: addDays(today, 1) };
+    case 'tomorrow': return { start: addDays(today, 1), end: addDays(today, 2) };
+    case 'this_week': return { start: today, end: addDays(today, 7 - today.getDay()) };
+    case 'next_week': {
+      const start = addDays(today, 7 - today.getDay());
+      return { start, end: addDays(start, 7) };
+    }
+    case 'this_weekend': {
+      const start = addDays(today, (6 - today.getDay() + 7) % 7);
+      return { start, end: addDays(start, 2) };
+    }
+    case 'next_month': {
+      return { start: new Date(now.getFullYear(), now.getMonth() + 1, 1), end: new Date(now.getFullYear(), now.getMonth() + 2, 1) };
+    }
+    default: return null;
+  }
+}
+
+// Undated items are kept — we cannot judge them, and dropping them would hide results
+function overlapsWindow(item, range) {
+  if (!range) return true;
+  const start = parseLocalDate(item?.start_date);
+  if (!start) return true;
+  const end = parseLocalDate(item?.end_date) || start;
+  return start < range.end && end >= range.start;
+}
+
+function venueMatchesGameType(venue, gameType) {
+  const pattern = GAME_TYPE_PATTERNS[gameType];
+  if (!pattern) return true;
+  const games = Array.isArray(venue?.games_offered) ? venue.games_offered : [];
+  return games.some(g => pattern.test(String(g)));
+}
 
 function parseNaturalLanguageQuery(raw) {
   const q = (raw || '').toLowerCase().trim();
@@ -68,7 +137,7 @@ function parseNaturalLanguageQuery(raw) {
   if (!q) return result;
 
   // Detect game type intent
-  if (/\boutaha\b|\bplo8?\b|\bomaha\b/.test(q)) { result.gameType = 'PLO'; result.isNaturalLanguage = true; }
+  if (/\bplo8?\b|\bomaha\b/.test(q)) { result.gameType = 'PLO'; result.isNaturalLanguage = true; }
   else if (/\bnlh\b|\bt[exas ]*holdem\b|\bno limit\b/.test(q)) { result.gameType = 'NLH'; result.isNaturalLanguage = true; }
   else if (/\bmixed\b|\bhorse\b/.test(q)) { result.gameType = 'Mixed'; result.isNaturalLanguage = true; }
   else if (/\btournament[s]?\b|\btourney[s]?\b/.test(q)) { result.gameType = 'tournament'; result.isNaturalLanguage = true; }
@@ -88,13 +157,24 @@ function parseNaturalLanguageQuery(raw) {
     if (q.includes(name)) { result.stateCode = code; result.location = name; result.isNaturalLanguage = true; break; }
   }
   // Then 2-letter abbreviation (e.g. "in IL", " IL ")
+  // Matching ANY bare 2-letter token turned everyday words into states:
+  // "poker in vegas" -> IN (Indiana), "me"/"or"/"ok"/"hi"/"la"/"de"/"pa" likewise.
+  // A token now only counts as a state code when it either follows a locative preposition
+  // ("in IL", "near NV") or is UPPERCASE in the user's raw (un-lowercased) query.
   if (!result.stateCode) {
-    const abbrMatch = q.match(/\b([A-Za-z]{2})\b/g);
-    if (abbrMatch) {
-      for (const abbr of abbrMatch) {
-        const upper = abbr.toUpperCase();
-        if (STATE_ABBREVS.includes(upper)) { result.stateCode = upper; result.location = upper; result.isNaturalLanguage = true; break; }
-      }
+    const candidates = [];
+    const locative = /\b(?:in|near|around|at)\s+([a-z]{2})\b/g;
+    let m;
+    while ((m = locative.exec(q)) !== null) {
+      // "poker near me" must not resolve to ME (Maine) — an uppercase "ME" in the raw
+      // query still resolves via the pass below.
+      if (LOCATIVE_STOPWORDS.includes(m[1])) continue;
+      candidates.push(m[1].toUpperCase());
+    }
+    const rawUpper = String(raw || '').match(/\b[A-Z]{2}\b/g) || [];
+    for (const token of rawUpper) candidates.push(token);
+    for (const abbr of candidates) {
+      if (STATE_ABBREVS.includes(abbr)) { result.stateCode = abbr; result.location = abbr; result.isNaturalLanguage = true; break; }
     }
   }
 
@@ -113,19 +193,57 @@ function parseNaturalLanguageQuery(raw) {
   return result;
 }
 
+// ─── Inline SVG icons (no emoji — bare emoji have broken SWC/Vercel builds) ───
+const CalendarIcon = (props) => (
+  <svg width={props?.size || 12} height={props?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+const MapPinIcon = (props) => (
+  <svg width={props?.size || 12} height={props?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const PhoneIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" />
+  </svg>
+);
+const GlobeIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+  </svg>
+);
+const ClockIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const CardsIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <rect x="3" y="5" width="12" height="16" rx="2" /><path d="M9 3h8a2 2 0 012 2v12" />
+  </svg>
+);
+const MapIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" /><line x1="8" y1="3" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="21" />
+  </svg>
+);
+
 function TimeWindowLabel({ timeWindow }) {
   const labels = {
-    today: '📅 Today',
-    tomorrow: '📅 Tomorrow',
-    this_week: '📅 This Week',
-    next_week: '📅 Next Week',
-    this_weekend: '📅 This Weekend',
-    next_month: '📅 Next Month',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    this_week: 'This Week',
+    next_week: 'Next Week',
+    this_weekend: 'This Weekend',
+    next_month: 'Next Month',
   };
   const label = labels[timeWindow];
   if (!label) return null;
   return (
-    <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
+      <CalendarIcon />
       {label}
     </span>
   );
@@ -177,12 +295,12 @@ function DetailModal({ item, type, onClose }) {
           </div>
           {/* Info rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-            {address && <InfoRow icon="📍" label={address} />}
-            {phone && <InfoRow icon="📞" label={phone} href={`tel:${phone}`} />}
-            {website && <InfoRow icon="🌐" label={website.replace(/^https?:\/\//, '')} href={website} />}
-            {isVenue && (item.is_24_hours || item.hours_of_operation) && <InfoRow icon="🕐" label={item.is_24_hours ? '24/7 Open' : item.hours_of_operation} />}
-            {isVenue && item.games_offered?.length > 0 && <InfoRow icon="🃏" label={item.games_offered.slice(0, 6).join(' · ')} />}
-            {isTour && item.regions?.length > 0 && <InfoRow icon="🗺️" label={item.regions.join(' · ')} />}
+            {address && <InfoRow icon={<MapPinIcon size={14} />} label={address} />}
+            {phone && <InfoRow icon={<PhoneIcon />} label={phone} href={`tel:${phone}`} />}
+            {website && <InfoRow icon={<GlobeIcon />} label={website.replace(/^https?:\/\//, '')} href={website} />}
+            {isVenue && (item.is_24_hours || item.hours_of_operation) && <InfoRow icon={<ClockIcon />} label={item.is_24_hours ? '24/7 Open' : item.hours_of_operation} />}
+            {isVenue && item.games_offered?.length > 0 && <InfoRow icon={<CardsIcon />} label={item.games_offered.slice(0, 6).join(' · ')} />}
+            {isTour && item.regions?.length > 0 && <InfoRow icon={<MapIcon />} label={item.regions.join(' · ')} />}
           </div>
           {/* Trust score */}
           {isVenue && item.trust_score > 0 && (
@@ -236,7 +354,7 @@ function DetailModal({ item, type, onClose }) {
 function InfoRow({ icon, label, href }) {
   const inner = (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
-      <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
+      <span style={{ fontSize: 15, flexShrink: 0, display: 'flex', alignItems: 'center', color: 'rgba(110,231,239,0.7)', marginTop: 1 }}>{icon}</span>
       <span style={{ fontSize: 13, color: href ? '#6ee7ef' : 'rgba(200,214,229,0.8)', flex: 1, wordBreak: 'break-word' }}>{label}</span>
     </div>
   );
@@ -245,14 +363,14 @@ function InfoRow({ icon, label, href }) {
 }
 
 // ─── Result Cards ───
-function VenueResultCard({ venue, onClick }) {
+function VenueResultCard({ venue, onClick, isSelected = false }) {
   const typeStyle = VENUE_TYPE_STYLES[venue.venue_type] || VENUE_TYPE_STYLES.card_room;
   const city = [venue.city, venue.state].filter(Boolean).join(', ');
   return (
     <button onClick={() => onClick?.(venue)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(110,231,239,0.07)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.25)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.08)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(110,231,239,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {venue.logo_url || venue.profile_photo_url
@@ -268,13 +386,13 @@ function VenueResultCard({ venue, onClick }) {
   );
 }
 
-function TourResultCard({ tour, onClick }) {
+function TourResultCard({ tour, onClick, isSelected = false }) {
   const color = TOUR_COLORS[tour.tour_code] || '#6ee7ef';
   return (
     <button onClick={() => onClick?.(tour)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(110,231,239,0.07)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.2)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.08)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(110,231,239,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: `${color}18`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {tour.logo_url ? <img src={tour.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 11, fontWeight: 900, color }}>{tour.tour_code || '?'}</span>}
@@ -288,13 +406,13 @@ function TourResultCard({ tour, onClick }) {
   );
 }
 
-function SeriesResultCard({ series, onClick }) {
+function SeriesResultCard({ series, onClick, isSelected = false }) {
   const city = [series.city, series.state].filter(Boolean).join(', ');
   return (
     <button onClick={() => onClick?.(series)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(52,211,153,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.06)'; e.currentTarget.style.borderColor = 'rgba(52,211,153,0.2)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.08)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(52,211,153,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(52,211,153,0.1)', border: '1.5px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
@@ -479,6 +597,8 @@ export default function GlobalSearchOverlay({
     const val = e.target.value;
     setLocalQuery(val);
     onSearchChange?.(val);
+    // Typing invalidates any arrowed-to row — Enter must not fire a stale selection
+    setSelectedIndex(-1);
 
     if (!val.trim()) {
       setPhase('input');
@@ -527,7 +647,7 @@ export default function GlobalSearchOverlay({
         }
       }, 280);
     }
-  }, [onSearchChange, matchTours, matchSeries, cachedFetch]);
+  }, [onSearchChange, matchTours, matchSeries, cachedFetch, userLocation]);
 
   // Full search on submit — supports natural language queries
   const handleSubmit = useCallback(async (e, overrideQuery) => {
@@ -542,13 +662,20 @@ export default function GlobalSearchOverlay({
 
     // Parse for natural language intent
     const intent = parseNaturalLanguageQuery(rawQuery);
-    setNlIntent(intent.isNaturalLanguage ? intent : null);
+    setNlIntent(null);
+    setSelectedIndex(-1);
     const apiQuery = intent.isNaturalLanguage ? intent.cleanQuery : rawQuery;
+
+    // Track which detected intents actually shaped the results — only those get a chip,
+    // so the header never claims a filter that was never applied.
+    const applied = { stateCode: !!intent.stateCode, timeWindow: false, gameType: false };
 
     // Build venue API URL — inject state filter if detected
     const params = new URLSearchParams({ limit: '200', offset: '0', sort: 'trust' });
     if (apiQuery) params.set('search', apiQuery);
     if (intent.stateCode) params.set('state', intent.stateCode);
+    // The venues API supports tournaments=true — honour a "tournaments" intent server-side
+    if (intent.gameType === 'tournament') { params.set('tournaments', 'true'); applied.gameType = true; }
     if (userLocation?.lat && userLocation?.lng) {
       params.set('lat', userLocation.lat);
       params.set('lng', userLocation.lng);
@@ -571,15 +698,32 @@ export default function GlobalSearchOverlay({
       }
       if (signal.aborted) return;
       const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-      setVenueResults(venues);
+      // Apply a specific game-type intent (PLO / Hold'em / Mixed) against games_offered.
+      // Only keep the narrowed list when it still has results — sparse game data must not
+      // wipe out an otherwise good search.
+      let list = venues;
+      if (GAME_TYPE_PATTERNS[intent.gameType]) {
+        const narrowed = list.filter(v => venueMatchesGameType(v, intent.gameType));
+        if (narrowed.length > 0) { list = narrowed; applied.gameType = true; }
+      }
+      setVenueResults(list);
     } catch (err) {
       if (err?.name !== 'AbortError') console.warn('[GlobalSearch] Venue search failed:', err);
-      setVenueResults([]); 
+      setVenueResults([]);
     }
 
     // For tours/series — use the full raw query for broader matching
+    const range = timeWindowRange(intent.timeWindow);
+    let matchedSeries = matchSeries(rawQuery);
+    if (range) {
+      matchedSeries = matchedSeries.filter(s => overlapsWindow(s, range));
+      applied.timeWindow = true;
+    }
     setTourResults(matchTours(rawQuery));
-    setSeriesResults(matchSeries(rawQuery));
+    setSeriesResults(matchedSeries);
+    setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType)
+      ? { ...intent, applied }
+      : null);
     setIsLoading(false);
 
     // Save to recents
@@ -593,7 +737,7 @@ export default function GlobalSearchOverlay({
       return next;
     });
 
-  }, [localQuery, cachedFetch, matchTours, matchSeries]);
+  }, [localQuery, cachedFetch, matchTours, matchSeries, userLocation]);
 
   const handleSuggestionClick = useCallback((s) => {
     setLocalQuery(s); onSearchChange?.(s); handleSubmit(null, s);
@@ -638,6 +782,18 @@ export default function GlobalSearchOverlay({
       }
     }
   }, [getSelectableItems, selectedIndex, phase, handleSuggestionClick, openDetail]);
+
+  // Suggestion lists refresh asynchronously (debounced venue fetch, in-memory rematch) —
+  // drop the highlight so Enter can never activate an item the user never arrowed to.
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [citySuggestions, venueResults, tourResults, seriesResults, recentSearches]);
+
+  // Index offsets must mirror getSelectableItems() ordering: cities, venues, tours, series
+  const cityOffset = 0;
+  const venueOffset = citySuggestions.length;
+  const tourOffset = venueOffset + venueResults.length;
+  const seriesOffset = tourOffset + tourResults.length;
 
   const totalResults = venueResults.length + tourResults.length + seriesResults.length;
   const hasResults = totalResults > 0;
@@ -753,7 +909,7 @@ export default function GlobalSearchOverlay({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {recentSearches.map((rec, i) => (
                       <button key={`${rec}-${i}`} className="gso-city-btn" onClick={() => handleHistoryClick(rec)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'transparent', border: '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === i ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === i ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <span style={{ textTransform: 'capitalize' }}>{rec}</span>
                       </button>
@@ -770,9 +926,9 @@ export default function GlobalSearchOverlay({
                     label="Cities" count={citySuggestions.length}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {citySuggestions.map(city => (
+                    {citySuggestions.map((city, ci) => (
                       <button key={city} className="gso-city-btn" onClick={() => handleSuggestionClick(city)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'transparent', border: '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === cityOffset + ci ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === cityOffset + ci ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         {city}
                       </button>
@@ -789,7 +945,7 @@ export default function GlobalSearchOverlay({
                     label="Venues" count={venueResults.length}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {venueResults.map(v => <VenueResultCard key={v.id} venue={v} onClick={v => openDetail(v, 'venue')} />)}
+                    {venueResults.map((v, vi) => <VenueResultCard key={v.id} venue={v} isSelected={selectedIndex === venueOffset + vi} onClick={v => openDetail(v, 'venue')} />)}
                   </div>
                 </div>
               )}
@@ -802,7 +958,7 @@ export default function GlobalSearchOverlay({
                     label="Tours" count={tourResults.length}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {tourResults.map(t => <TourResultCard key={t.id || t.tour_code} tour={t} onClick={t => openDetail(t, 'tour')} />)}
+                    {tourResults.map((t, ti) => <TourResultCard key={t.id || t.tour_code} tour={t} isSelected={selectedIndex === tourOffset + ti} onClick={t => openDetail(t, 'tour')} />)}
                   </div>
                 </div>
               )}
@@ -815,7 +971,7 @@ export default function GlobalSearchOverlay({
                     label="Series" count={seriesResults.length}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {seriesResults.map(s => <SeriesResultCard key={s.id || s.name} series={s} onClick={s => openDetail(s, 'series')} />)}
+                    {seriesResults.map((s, sei) => <SeriesResultCard key={s.id || s.name} series={s} isSelected={selectedIndex === seriesOffset + sei} onClick={s => openDetail(s, 'series')} />)}
                   </div>
                 </div>
               )}
@@ -871,9 +1027,20 @@ export default function GlobalSearchOverlay({
                     <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} for "{localQuery}"</span>
                     {nlIntent ? (
                       <>
-                        {nlIntent.stateCode && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 11, fontWeight: 700 }}>📍 {nlIntent.stateCode}</span>}
-                        {nlIntent.timeWindow && <TimeWindowLabel timeWindow={nlIntent.timeWindow} />}
-                        {nlIntent.gameType && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 11, fontWeight: 700 }}>🃏 {nlIntent.gameType === 'tournament' ? 'Tournaments' : nlIntent.gameType === 'cash' ? 'Cash Games' : 'Live Games'}</span>}
+                        {/* Only intents that were actually applied get a chip */}
+                        {nlIntent.applied?.stateCode && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 11, fontWeight: 700 }}>
+                            <MapPinIcon />
+                            {nlIntent.stateCode}
+                          </span>
+                        )}
+                        {nlIntent.applied?.timeWindow && <TimeWindowLabel timeWindow={nlIntent.timeWindow} />}
+                        {nlIntent.applied?.gameType && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 11, fontWeight: 700 }}>
+                            <CardsIcon size={12} />
+                            {GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType}
+                          </span>
+                        )}
                       </>
                     ) : (
                       <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>— Global Search</span>
@@ -881,7 +1048,11 @@ export default function GlobalSearchOverlay({
                   </div>
                   {nlIntent?.isNaturalLanguage && (
                     <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 11, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
-                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> — Detected intent: {[nlIntent.gameType && `${nlIntent.gameType}s`, nlIntent.timeWindow?.replace('_', ' '), nlIntent.stateCode && `in ${nlIntent.stateCode}`].filter(Boolean).join(' · ')}
+                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> — Applied filters: {[
+                        nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
+                        nlIntent.applied?.timeWindow && nlIntent.timeWindow?.replace(/_/g, ' '),
+                        nlIntent.applied?.stateCode && `in ${nlIntent.stateCode}`,
+                      ].filter(Boolean).join(' · ')}
                     </div>
                   )}
                 </div>

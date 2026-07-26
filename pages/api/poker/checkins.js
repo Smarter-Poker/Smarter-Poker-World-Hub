@@ -190,12 +190,48 @@ try {
 
         // User check-in history (enriched with venue names)
         if (user_id) {
-          const { data, error } = await getSupabase()
+          // SECURITY: a user's check-in history is a physical location log.
+          // Require a JWT and only serve it to the user themselves or to an
+          // accepted friend (same friendships pattern as checkins/whos-here.js).
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Auth required to view check-in history' });
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const authUser = authData?.user;
+          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+          if (authUser.id !== user_id) {
+            // user_id is interpolated into the PostgREST .or() filter below, so it
+            // must be a plain UUID — anything else could reshape the filter.
+            if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user_id)) {
+              return res.status(400).json({ success: false, error: 'user_id must be a valid UUID' });
+            }
+            const { data: friendships } = await getSupabase()
+              .from('friendships')
+              .select('user_id, friend_id')
+              .eq('status', 'accepted')
+              .or(`and(user_id.eq.${authUser.id},friend_id.eq.${user_id}),and(user_id.eq.${user_id},friend_id.eq.${authUser.id})`)
+              .limit(1);
+            if (!friendships || friendships.length === 0) {
+              return res.status(403).json({ success: false, error: 'Not authorized to view this user\'s check-ins' });
+            }
+          }
+
+          let userQuery = getSupabase()
             .from('venue_checkins')
             .select('*')
-            .eq('user_id', user_id)
+            .eq('user_id', user_id);
+
+          // `since` was documented/sent by callers but never applied — honor it.
+          if (since) {
+            const sinceDate = new Date(since);
+            if (!isNaN(sinceDate.getTime())) {
+              userQuery = userQuery.gte('created_at', sinceDate.toISOString());
+            }
+          }
+
+          const { data, error } = await userQuery
             .order('created_at', { ascending: false })
-                .limit(100);
+            .limit(100);
 
           if (error) {
             console.warn('Error fetching user checkins:', error);

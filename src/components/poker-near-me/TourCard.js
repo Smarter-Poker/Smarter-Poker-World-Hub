@@ -26,7 +26,12 @@ const TOUR_TYPE_LABELS = {
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
+    // BUG FIX: date-only strings ('2026-08-01') parse as UTC midnight, which
+    // toLocaleDateString then renders as the PREVIOUS day for every US timezone.
+    // Append a time component so they parse in local time instead.
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(dateStr).trim())
+        ? new Date(String(dateStr).trim() + 'T00:00:00')
+        : new Date(dateStr);
     if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

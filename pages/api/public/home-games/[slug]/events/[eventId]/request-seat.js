@@ -105,7 +105,12 @@ export default async function handler(req, res) {
     const groupId = String(page.linked_entity_id);
 
     // 4. Resolve eventId → scheduled upcoming event in this group
-    const today = new Date().toISOString().slice(0, 10);
+    // Timezone safety: toISOString() is UTC, so from ~5pm local onward in US
+    // timezones the UTC date is already tomorrow — an evening seat request for
+    // TONIGHT's game would be rejected as "no longer accepting seat requests".
+    // Shift 12h west so the cutoff never runs ahead of any US local date; the
+    // rsvp_closes_at check below still enforces the host's real deadline.
+    const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const { data: event, error: eventErr } = await supabase
       .from('commander_home_games')
       .select('id, group_id, host_id, scheduled_date, start_time, status, max_players, rsvp_yes, allow_guests, guest_limit, title, rsvp_closes_at, cancelled_at')
@@ -316,6 +321,7 @@ export default async function handler(req, res) {
  */
 async function dispatchHostNotification(supabase, ctx) {
   const {
+    req,
     host_user_id,
     requester_user_id,
     group_id,
@@ -334,17 +340,23 @@ async function dispatchHostNotification(supabase, ctx) {
   // Anchor on the in-app notification row — if one exists for this triple
   // in the last 4 hours, all three surfaces were already fired and we
   // skip the whole dispatch.
+  //
+  // Filters on the `data` JSONB column — the canonical payload column on
+  // public.notifications. Filtering a column that doesn't exist makes
+  // PostgREST 42703 the query, leaving `recent` null and disabling dedup
+  // entirely, so the error is logged rather than swallowed.
   const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
   try {
-    const { data: recent } = await supabase
+    const { data: recent, error: dedupQueryErr } = await supabase
       .from('notifications')
       .select('id')
       .eq('user_id', host_user_id)
       .eq('type', 'home_game_seat_request')
       .gte('created_at', fourHoursAgo)
-      .filter('metadata->>game_id', 'eq', String(event.id))
-      .filter('metadata->>requester_id', 'eq', String(requester_user_id))
+      .filter('data->>game_id', 'eq', String(event.id))
+      .filter('data->>requester_id', 'eq', String(requester_user_id))
       .limit(1);
+    if (dedupQueryErr) console.warn('[request-seat] dedup lookup failed:', dedupQueryErr.message);
     if (recent && recent.length > 0) return;
   } catch (dedupErr) { console.warn('[App] Handled exception:', dedupErr?.message || dedupErr); }
 
@@ -385,6 +397,10 @@ async function dispatchHostNotification(supabase, ctx) {
     : `At ${group_name} — tap to approve.`;
 
   // ── 1. In-app notification row ────────────────────────────────────────────
+  // Only real columns on public.notifications: user_id, type, title, message,
+  // data, read, actor_id, link. Adding anything else (metadata / action_url /
+  // is_read) fails the whole insert with 42703 — which also destroys the dedup
+  // anchor above, since this row IS the anchor.
   try {
     const { error: notifErr } = await supabase.from('notifications').insert({
       user_id: host_user_id,
@@ -392,11 +408,8 @@ async function dispatchHostNotification(supabase, ctx) {
       title: titleText,
       message: bodyText,
       data: metadata,
-      metadata,
       actor_id: requester_user_id,
-      action_url: manageUrl,
       link: manageUrl,
-      is_read: false,
       read: false,
     });
     if (notifErr) {

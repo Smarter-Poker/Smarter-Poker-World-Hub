@@ -23,6 +23,27 @@ function getSupabase() {
     return _supabase;
 }
 
+// Supabase caps a single response at the project max (1000 rows), so an
+// unbounded select silently truncated the leaderboard input set. Page through
+// with .range() (same approach events-calendar.js uses) up to a hard ceiling.
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 20; // 20k rows ceiling — enough for the ranking window
+
+async function fetchAllRows(buildQuery) {
+    let rows = [];
+    for (let page = 0; page < MAX_PAGES; page++) {
+        const { data, error } = await buildQuery().range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (error) {
+            console.warn('[leaderboards] paged fetch error:', error.message);
+            break;
+        }
+        if (!data || data.length === 0) break;
+        rows = rows.concat(data);
+        if (data.length < PAGE_SIZE) break;
+    }
+    return rows;
+}
+
 export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -54,11 +75,14 @@ export default async function handler(req, res) {
           const leaders = [];
 
           if (type === 'checkins' || type === 'overall') {
-              let query = getSupabase()
-                  .from('venue_checkins')
-                  .select('user_id, created_at');
-              if (dateFilter) query = query.gte('created_at', dateFilter);
-              const { data: checkins } = await query;
+              const checkins = await fetchAllRows(() => {
+                  let q = getSupabase()
+                      .from('venue_checkins')
+                      .select('user_id, created_at')
+                      .order('created_at', { ascending: false });
+                  if (dateFilter) q = q.gte('created_at', dateFilter);
+                  return q;
+              });
 
               const counts = {};
               (checkins || []).forEach(c => {
@@ -97,11 +121,14 @@ export default async function handler(req, res) {
           }
 
           if (type === 'reviews' || type === 'overall') {
-              let query = getSupabase()
-                  .from('venue_reviews')
-                  .select('user_id, created_at');
-              if (dateFilter) query = query.gte('created_at', dateFilter);
-              const { data: reviews } = await query;
+              const reviews = await fetchAllRows(() => {
+                  let q = getSupabase()
+                      .from('venue_reviews')
+                      .select('user_id, created_at')
+                      .order('created_at', { ascending: false });
+                  if (dateFilter) q = q.gte('created_at', dateFilter);
+                  return q;
+              });
 
               const counts = {};
               (reviews || []).forEach(r => {
@@ -139,11 +166,14 @@ export default async function handler(req, res) {
           }
 
           if (type === 'activity' || type === 'overall') {
-              let query = getSupabase()
-                  .from('social_posts')
-                  .select('author_id, created_at');
-              if (dateFilter) query = query.gte('created_at', dateFilter);
-              const { data: posts } = await query;
+              const posts = await fetchAllRows(() => {
+                  let q = getSupabase()
+                      .from('social_posts')
+                      .select('author_id, created_at')
+                      .order('created_at', { ascending: false });
+                  if (dateFilter) q = q.gte('created_at', dateFilter);
+                  return q;
+              });
 
               const counts = {};
               (posts || []).forEach(p => {

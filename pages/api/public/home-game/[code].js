@@ -112,10 +112,18 @@ export default async function handler(req, res) {
       }
 
       // For public groups, fetch upcoming games
-      // Dan-fix/tournament-buildout: include format + starting_stack + structure
-      // + description so the client can render tournaments separately.
+      // Dan-fix/tournament-buildout: include format + description so the
+      // client can render tournaments separately.
       // Limit raised from 5 → 20 to surface a host's full upcoming schedule.
-      const { data: upcomingGames } = await getSupabase()
+      // NOTE: commander_home_games has no starting_stack/structure column —
+      // selecting them 42703's the query and silently empties this list.
+      //
+      // Timezone safety: toISOString() is UTC, so from ~5pm local onward in
+      // US timezones the UTC date is already tomorrow and tonight's game
+      // would vanish. Shift 12h west so the cutoff never runs ahead of any
+      // US local date.
+      const todayCutoff = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const { data: upcomingGames, error: upcomingErr } = await getSupabase()
         .from('commander_home_games')
         .select(`
           id,
@@ -126,8 +134,6 @@ export default async function handler(req, res) {
           format,
           buyin_min,
           buyin_max,
-          starting_stack,
-          structure,
           scheduled_date,
           start_time,
           max_players,
@@ -137,9 +143,14 @@ export default async function handler(req, res) {
         `)
         .eq('group_id', group.id)
         .in('status', ['scheduled', 'confirmed'])
-        .gte('scheduled_date', new Date().toISOString().split('T')[0])
+        .gte('scheduled_date', todayCutoff)
         .order('scheduled_date', { ascending: true })
         .limit(20);
+
+      // Surface schema drift instead of rendering "no upcoming games".
+      if (upcomingErr) {
+        console.warn('[public/home-game/[code]] upcoming games query failed:', upcomingErr.message);
+      }
 
       // Get recent game history (count only)
       const { count: recentGamesCount } = await getSupabase()

@@ -1,20 +1,20 @@
 /**
  * VenueReviews.jsx — Feature #9: Poker Room Reviews & Photos
- * Full Yelp-style review system with ratings, photos, and sub-categories.
+ * Full Yelp-style review system with ratings and sub-category scores.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const CATEGORY_ICONS = {
     dealers: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>
     ),
-    game_quality: (
+    game_selection: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
     ),
-    rake: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+    waitlist_speed: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
     ),
-    food: (
+    food_drinks: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>
     ),
     atmosphere: (
@@ -22,11 +22,16 @@ const CATEGORY_ICONS = {
     ),
 };
 
+// WIRING FIX: these keys must match CATEGORY_KEYS in pages/api/poker/reviews.js
+// ('dealers', 'atmosphere', 'food_drinks', 'waitlist_speed', 'game_selection').
+// The old keys game_quality / rake / food matched no column, so the API dropped
+// them from *_rating columns, from its category averages, and from the columns
+// its GET selects — users' ratings for those three silently disappeared.
 const CATEGORIES = [
     { key: 'dealers', label: 'Dealers' },
-    { key: 'game_quality', label: 'Game Quality' },
-    { key: 'rake', label: 'Rake' },
-    { key: 'food', label: 'Food & Drinks' },
+    { key: 'game_selection', label: 'Game Selection' },
+    { key: 'waitlist_speed', label: 'Waitlist Speed' },
+    { key: 'food_drinks', label: 'Food & Drinks' },
     { key: 'atmosphere', label: 'Atmosphere' },
 ];
 
@@ -95,8 +100,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
     const [newRating, setNewRating] = useState(0);
     const [newText, setNewText] = useState('');
     const [categoryRatings, setCategoryRatings] = useState({});
-    const [photos, setPhotos] = useState([]);
-    const fileInputRef = useRef(null);
+    const [submitError, setSubmitError] = useState('');
 
     // Fetch reviews
     const fetchReviews = useCallback(async () => {
@@ -132,22 +136,11 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         }
     });
 
-    // Handle photo upload
-    const handlePhotoUpload = (e) => {
-        const files = Array.from(e.target.files || []);
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                setPhotos(prev => [...prev, { data: ev.target.result, name: file.name }].slice(0, 5));
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
     // Submit review
     const submitReview = async () => {
         if (!newRating || !newText.trim() || !userId) return;
         setSubmitting(true);
+        setSubmitError('');
         try {
             const res = await fetch('/api/poker/reviews', {
                 method: 'POST',
@@ -155,21 +148,24 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authToken}`,
                 },
+                // GAP FIX: `photos` used to be sent here (and a "Photos (up to 5)"
+                // picker collected them), but pages/api/poker/reviews.js never reads
+                // or stores a photos field and its GET select has no photos column —
+                // every upload was silently discarded. The picker has been removed
+                // rather than keep pretending the uploads go somewhere.
                 body: JSON.stringify({
                     venue_id: venueId,
                     rating: newRating,
                     review_text: newText.trim(),
                     reviewer_name: userName || 'Anonymous',
                     category_ratings: categoryRatings,
-                    photos: photos.map(p => p.data).slice(0, 3),
                 }),
             });
-            const data = await res.json();
-            if (data.success) {
+            const data = await res.json().catch(() => null);
+            if (res.ok && data?.success) {
                 setNewRating(0);
                 setNewText('');
                 setCategoryRatings({});
-                setPhotos([]);
                 setShowWriteReview(false);
                 fetchReviews();
                 // Emit cross-page event so lobby pages can invalidate cached review stats
@@ -178,9 +174,13 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         detail: { venueId, rating: newRating }
                     }));
                 } catch { /* silent */ }
+            } else {
+                // Previously a rejected review (401/403/500) did nothing visible at all.
+                setSubmitError(data?.error || `Could not submit review (${res.status}).`);
             }
         } catch (err) {
             console.warn('Failed to submit review:', err);
+            setSubmitError('Could not reach the server. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -245,7 +245,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
                 {/* Write review button */}
                 {userId && (
-                    <button className="vr-write-btn" onClick={() => setShowWriteReview(!showWriteReview)}>
+                    <button className="vr-write-btn" onClick={() => { setSubmitError(''); setShowWriteReview(!showWriteReview); }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -290,27 +290,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             />
                         </div>
 
-                        <div className="vr-form-group">
-                            <label>Photos (up to 5)</label>
-                            <div className="vr-photo-row">
-                                {photos.map((p, i) => (
-                                    <div key={i} className="vr-photo-thumb">
-                                        <img src={p.data} alt="" />
-                                        <button className="vr-photo-remove" onClick={() => setPhotos(prev => prev.filter((_, j) => j !== i))}>×</button>
-                                    </div>
-                                ))}
-                                {photos.length < 5 && (
-                                    <button className="vr-photo-add" onClick={() => fileInputRef.current?.click()}>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                            <circle cx="8.5" cy="8.5" r="1.5" />
-                                            <polyline points="21 15 16 10 5 21" />
-                                        </svg>
-                                    </button>
-                                )}
-                            </div>
-                            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: 'none' }} />
-                        </div>
+                        {submitError && <div className="vr-submit-error">{submitError}</div>}
 
                         <button className="vr-submit-btn" onClick={submitReview} disabled={!newRating || !newText.trim() || submitting}>
                             {submitting ? 'Submitting...' : 'Submit Review'}
@@ -408,6 +388,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-form-group:last-child { margin-bottom: 0; }
         .vr-form-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .vr-category-ratings { display: flex; flex-direction: column; gap: 8px; }
+        .vr-submit-error { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
         .vr-cat-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
         .vr-cat-label { font-size: 13px; color: rgba(255,255,255,0.7); }
         .vr-textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; resize: vertical; min-height: 100px; }

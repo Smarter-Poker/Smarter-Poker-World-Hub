@@ -137,10 +137,28 @@ function getUpcomingSeries(tourCode, registryTours) {
     const todayStr = today.toISOString().split('T')[0];
     const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
 
+    // Registry stop dates are informal ("Apr 2-13", "Feb 22 - Mar 9") and carry no
+    // year. Anchor them to the CURRENT year (the old hardcoded 2026 meant every
+    // stop parsed as past from Jan 2027 onward) with a rollover heuristic: a date
+    // more than ~6 months behind today is assumed to belong to next year.
+    const CURRENT_YEAR = today.getFullYear();
+    const SIX_MONTHS_MS = 183 * 24 * 60 * 60 * 1000;
+
+    function rollYearForward(d) {
+        if (!d) return d;
+        if (today.getTime() - d.getTime() > SIX_MONTHS_MS) {
+            d.setFullYear(d.getFullYear() + 1);
+        }
+        return d;
+    }
+
     // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9"
     function parseInformalDate(dateStr) {
         if (!dateStr) return null;
         const parts = dateStr.split(/\s*[-–]\s*/);
+        // An explicit 4-digit year anywhere in the string wins over the heuristic.
+        const explicitYearMatch = dateStr.match(/\b(20\d{2})\b/);
+        const explicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : null;
         const parseOne = (s, fallbackMonth) => {
             if (!s) return null;
             s = s.trim().replace(',', '');
@@ -148,12 +166,15 @@ function getUpcomingSeries(tourCode, registryTours) {
             if (m) {
                 const month = MONTHS[m[1]];
                 if (month === undefined) return null;
-                const year = m[3] ? parseInt(m[3]) : 2026;
-                return new Date(year, month, parseInt(m[2]));
+                if (m[3]) return new Date(parseInt(m[3], 10), month, parseInt(m[2]));
+                if (explicitYear) return new Date(explicitYear, month, parseInt(m[2]));
+                return rollYearForward(new Date(CURRENT_YEAR, month, parseInt(m[2])));
             }
             const dayOnly = s.match(/^(\d{1,2})$/);
             if (dayOnly && fallbackMonth !== undefined) {
-                return new Date(2026, fallbackMonth, parseInt(dayOnly[1]));
+                const baseYear = explicitYear || CURRENT_YEAR;
+                const d = new Date(baseYear, fallbackMonth, parseInt(dayOnly[1]));
+                return explicitYear ? d : rollYearForward(d);
             }
             return null;
         };
@@ -162,7 +183,8 @@ function getUpcomingSeries(tourCode, registryTours) {
         let end = start;
         if (parts.length >= 2) {
             end = parseOne(parts[parts.length - 1], start.getMonth()) || start;
-            if (end < start && !dateStr.includes('2025')) {
+            // Range wrapping the new year (e.g. "Dec 28 - Jan 5")
+            if (end < start) {
                 end.setFullYear(end.getFullYear() + 1);
             }
         }

@@ -4,10 +4,16 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
-import { haversineMiles } from './pnm-utils';
+import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
+
+// SECURITY: Leaflet's bindPopup/divIcon take raw HTML strings. Venue and stop names
+// come from scraped external sources (Bravo/PokerAtlas), so a name such as
+// `<img src=x onerror=...>` used to execute in every planner user's browser.
+// Always run interpolated values through this before building those strings.
+const esc = (value) => escapeHtml(String(value == null ? '' : value));
 
 // haversineMiles is now imported from ./pnm-utils
 
@@ -225,10 +231,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
             const icon = L.divIcon({
                 className: 'trip-stop-marker',
-                html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 10px ${color}80;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${i + 1}</div>`,
+                html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
                 iconSize: [20, 20], iconAnchor: [10, 10],
             });
-            L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${stop.name}</b>`);
+            L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
         });
 
         // Venue markers along route
@@ -240,7 +246,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             });
             L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], { icon })
                 .addTo(map)
-                .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${v.name}</b><br/>${v.city || ''}, ${v.state || ''}</div>`);
+                .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${esc(v.name)}</b><br/>${esc(v.city)}, ${esc(v.state)}</div>`);
         });
 
         // Fit bounds

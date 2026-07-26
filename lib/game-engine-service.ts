@@ -74,10 +74,33 @@ export interface TrainingQuestion {
 // SUPABASE CLIENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Lazily created + memoised. Never build the client at module scope: this module
+// is imported transitively by pages, so module scope runs during SSG/SSR where the
+// public env vars can resolve to empty strings and createClient() would throw at
+// build time (repo Immutable Rule 3).
+let _client: ReturnType<typeof createClient> | null = null;
+let _warnedMissingEnv = false;
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getSupabase(): ReturnType<typeof createClient> | null {
+    if (_client) return _client;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!supabaseUrl || !supabaseKey) {
+        if (!_warnedMissingEnv) {
+            _warnedMissingEnv = true;
+            console.error(
+                '[GameEngine] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set. '
+                + 'Training level queries are disabled.'
+            );
+        }
+        return null;
+    }
+
+    _client = createClient(supabaseUrl, supabaseKey);
+    return _client;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEVEL MANAGEMENT
@@ -88,6 +111,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * @returns Array of training levels
  */
 export async function getAllLevels(): Promise<TrainingLevel[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
         .from('training_levels')
         .select('*')
@@ -107,6 +133,9 @@ export async function getAllLevels(): Promise<TrainingLevel[]> {
  * @returns Training level or null
  */
 export async function getLevel(levelId: number): Promise<TrainingLevel | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('training_levels')
         .select('*')
@@ -131,6 +160,9 @@ export async function getLevel(levelId: number): Promise<TrainingLevel | null> {
  * @returns Array of user progress records
  */
 export async function getUserProgress(userId: string): Promise<UserProgress[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
         .from('user_level_progress')
         .select('*')
@@ -155,6 +187,9 @@ export async function getLevelProgress(
     userId: string,
     levelId: number
 ): Promise<UserProgress | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('user_level_progress')
         .select('*')
@@ -182,6 +217,9 @@ export async function updateLevelProgress(
     levelId: number,
     updates: Partial<UserProgress>
 ): Promise<UserProgress | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('user_level_progress')
         .upsert({
@@ -218,6 +256,9 @@ export async function getNextQuestion(
     levelId: number
 ): Promise<TrainingQuestion | null> {
     try {
+        const supabase = getSupabase();
+        if (!supabase) return null;
+
         // Call database function
         const { data, error } = await supabase
             .rpc('get_next_training_question', {
@@ -258,10 +299,17 @@ export async function getNextQuestion(
 
 /**
  * Get multiple questions for a level session.
+ *
+ * get_next_training_question only excludes scenarios already recorded in
+ * user_question_history, and nothing is recorded until submitAnswer() runs after
+ * the round - so the RPC can hand back the same scenario several times inside one
+ * session. De-duplicate here (bounded retries so a small candidate pool cannot
+ * spin forever).
+ *
  * @param userId - User ID
  * @param levelId - Level ID
  * @param count - Number of questions to fetch
- * @returns Array of training questions
+ * @returns Array of training questions (no duplicate scenario_hash)
  */
 export async function getQuestionSet(
     userId: string,
@@ -269,10 +317,28 @@ export async function getQuestionSet(
     count: number = 20
 ): Promise<TrainingQuestion[]> {
     const questions: TrainingQuestion[] = [];
+    const selectedHashes = new Set<string>();
 
-    for (let i = 0; i < count; i++) {
+    // Allow a few extra draws to absorb duplicates without looping unbounded.
+    const maxAttempts = count * 3;
+    let consecutiveDuplicates = 0;
+
+    for (let attempt = 0; attempt < maxAttempts && questions.length < count; attempt++) {
         const question = await getNextQuestion(userId, levelId);
         if (!question) break;
+
+        const hash = question.scenario_hash;
+
+        if (hash && selectedHashes.has(hash)) {
+            consecutiveDuplicates++;
+            // The candidate pool is clearly exhausted - stop instead of burning
+            // round trips on scenarios we already have.
+            if (consecutiveDuplicates >= 5) break;
+            continue;
+        }
+
+        consecutiveDuplicates = 0;
+        if (hash) selectedHashes.add(hash);
         questions.push(question);
     }
 
@@ -298,6 +364,9 @@ export async function submitAnswer(params: {
     evLoss: number;
     result: 'Correct' | 'Incorrect';
 }): Promise<QuestionHistory | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
         .from('user_question_history')
         .insert({
@@ -336,6 +405,9 @@ export async function getLevelStats(
     levelId: number
 ): Promise<LevelStats | null> {
     try {
+        const supabase = getSupabase();
+        if (!supabase) return null;
+
         const { data, error } = await supabase
             .rpc('get_user_level_stats', {
                 p_user_id: userId,
@@ -374,6 +446,9 @@ export async function getQuestionHistory(
     userId: string,
     levelId?: number
 ): Promise<QuestionHistory[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     let query = supabase
         .from('user_question_history')
         .select('*')

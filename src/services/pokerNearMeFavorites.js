@@ -38,13 +38,18 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
         return null;
     }
 
+    // ignoreDuplicates makes the conflict arm DO NOTHING instead of DO UPDATE.
+    // poker_near_me_favorites has SELECT/INSERT/DELETE RLS policies but no UPDATE
+    // policy, so a DO UPDATE on an already-favorited venue (double-tap, stale UI,
+    // second tab/device) would fail with 42501 and make the caller roll the heart
+    // back even though the row exists. DO NOTHING returns zero rows instead.
     const { data, error } = await supabase
         .from('poker_near_me_favorites')
         .upsert({
             user_id: userId,
             venue_id: venueId,
             venue_name: venueData.name || null
-        }, { onConflict: 'user_id,venue_id' })
+        }, { onConflict: 'user_id,venue_id', ignoreDuplicates: true })
         .select()
         .maybeSingle();
 

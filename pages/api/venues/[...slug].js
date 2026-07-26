@@ -24,7 +24,6 @@
  */
 
 import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../src/lib/pushAlerts';
@@ -41,17 +40,35 @@ const safeBody = (v) => {
 // ─── Hono app ─────────────────────────────────────────────────────────────
 const app = new Hono().basePath('/api/venues');
 
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
+
 // Shared middleware: rate-limit + auth (all venues routes are POST writes)
 app.use('*', async (c, next) => {
+  // c.env is populated by the Node adapter at the bottom of this file — hono/vercel
+  // does NOT pass the Node req/res through on its own, which used to leave both
+  // undefined (rate limiting skipped, auth header unreadable -> permanent 401).
   const req = c.env?.req;
   const res = c.env?.res;
 
-  if (req && res && !applyRateLimit(req, res, LIMITS.write)) {
+  if (!req) {
+    console.warn('[venues] missing Node request in Hono env — cannot authenticate');
+    return c.json({ success: false, error: 'Authorization required' }, 401);
+  }
+
+  if (res && !applyRateLimit(req, res, LIMITS.write)) {
     return c.body(null, 429);
   }
 
   try {
-    const supabase = createClient();
+    const supabase = getSupabase();
     const { user: localUser } = await getServerUserWithFallback(req, supabase);
     if (!localUser) {
       return c.json({ success: false, error: 'Authorization required' }, 401);
@@ -197,17 +214,39 @@ app.post('/reviews', async (c) => {
       .maybeSingle();
 
     if (checkinErr || !checkin) {
-      return c.json({ success: false, error: 'You must check-in to this venue and wait 6 hours before reviewing.' }, 403);
+      // Message matches what is actually enforced: one review per check-in.
+      return c.json({ success: false, error: 'You must check in to this venue before reviewing it.' }, 403);
+    }
+
+    // venue_reviews has review_text / reviewer_name — there is no title or text
+    // column, so the old insert failed with 42703 and the review was never stored.
+    // Any client-supplied title is folded into the review body instead.
+    const reviewBody = [title, text].filter(v => v && String(v).trim()).join('\n\n').trim();
+
+    let reviewerName = 'Anonymous';
+    try {
+      const { data: reviewerProfile } = await adminSupabase
+        .from('profiles')
+        .select('username, full_name')
+        .eq('id', userId)
+        .maybeSingle();
+      reviewerName = reviewerProfile?.full_name || reviewerProfile?.username || 'Anonymous';
+    } catch (_profileErr) { /* keep Anonymous */ }
+
+    const ratingNum = parseInt(rating, 10);
+    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return c.json({ success: false, error: 'rating must be an integer between 1 and 5' }, 400);
     }
 
     const { error: reviewErr } = await adminSupabase
       .from('venue_reviews')
       .insert({
         user_id: userId,
-        venue_id: venue_id,
-        rating: rating,
-        title: title || '',
-        text: text || '',
+        venue_id: String(venue_id),
+        rating: ratingNum,
+        review_text: reviewBody || null,
+        reviewer_name: reviewerName,
+        created_at: new Date().toISOString(),
       });
 
     if (reviewErr) {
@@ -220,28 +259,33 @@ app.post('/reviews', async (c) => {
       .update({ review_completed: true })
       .eq('id', checkin.id);
 
-    const { data: profile } = await adminSupabase
-      .from('profiles')
-      .select('diamonds')
-      .eq('id', userId)
-      .maybeSingle();
+    // Venue names live in poker_venues (there is no `venues` table).
+    let venueName = 'Venue';
+    const venueIdNum = parseInt(venue_id, 10);
+    if (!isNaN(venueIdNum) && venueIdNum > 0) {
+      const { data: venueRow } = await adminSupabase
+        .from('poker_venues')
+        .select('name')
+        .eq('id', venueIdNum)
+        .maybeSingle();
+      if (venueRow?.name) venueName = venueRow.name;
+    }
 
-    const currentDiamonds = profile?.diamonds || 0;
-    await adminSupabase
-      .from('profiles')
-      .update({ diamonds: currentDiamonds + 50 })
-      .eq('id', userId);
+    // Atomic award + ledger entry in one statement (the old read-modify-write on
+    // profiles.diamonds lost concurrent updates).
+    const { error: awardErr } = await adminSupabase.rpc('add_diamonds_to_balance', {
+      p_user_id: userId,
+      p_amount: 50,
+      p_type: 'venue_review',
+      p_description: `Venue Review for ${venueName}`,
+      p_reference_id: null,
+    });
 
-    const venueReq = await adminSupabase.from('venues').select('name').eq('id', venue_id).maybeSingle();
-    const venueName = venueReq.data?.name || 'Venue';
-    await adminSupabase
-      .from('diamond_transactions')
-      .insert({
-        user_id: userId,
-        type: 'earn',
-        amount: 50,
-        description: `Venue Review for ${venueName}`,
-      });
+    if (awardErr) {
+      // Non-fatal: the review is already saved. Log so the award can be reconciled.
+      console.warn('[Venue Reviews] Diamond award failed (review saved):', awardErr.message || awardErr);
+      return c.json({ success: true, message: 'Review saved. Diamond award pending.', diamonds_awarded: 0 });
+    }
 
     return c.json({ success: true, message: 'Review saved, 50 diamonds awarded!' });
   } catch (err) {
@@ -250,12 +294,58 @@ app.post('/reviews', async (c) => {
   }
 });
 
-// ─── Vercel adapter ───────────────────────────────────────────────────────
-const handler = handle(app);
+// ─── Node (Pages Router) adapter ──────────────────────────────────────────
+// hono/vercel's handle() expects a Web Request (Edge / App Router). This file is
+// a Pages Router Node function, so we translate Node req -> Web Request here and
+// pass the Node req/res through as the Hono env (used by the auth/rate-limit
+// middleware above). Node 18+ provides Request/Response/Headers globally, so this
+// needs no extra dependency.
+function nodeHeadersToWeb(nodeHeaders) {
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(nodeHeaders || {})) {
+    if (value === undefined || value === null) continue;
+    try {
+      headers.set(key, Array.isArray(value) ? value.join(', ') : String(value));
+    } catch (_headerErr) { /* skip invalid header */ }
+  }
+  return headers;
+}
+
+function toWebRequest(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = req.headers.host || 'localhost';
+  const url = new URL(req.url || '/', `${proto}://${host}`);
+  const method = (req.method || 'GET').toUpperCase();
+  const init = { method, headers: nodeHeadersToWeb(req.headers) };
+
+  if (method !== 'GET' && method !== 'HEAD' && req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) {
+      init.body = req.body;
+    } else {
+      init.body = JSON.stringify(req.body);
+      init.headers.set('content-type', 'application/json');
+    }
+    // Length changes after re-serialization — let undici recompute it.
+    init.headers.delete('content-length');
+  }
+
+  return new Request(url.toString(), init);
+}
 
 export default async function vercelHandler(req, res) {
   try {
-    return await handler(req, res);
+    const response = await app.fetch(toWebRequest(req), { req, res });
+
+    // applyRateLimit may already have answered with a 429 on the Node response
+    if (res.headersSent || res.writableEnded) return;
+
+    const body = await response.text();
+    response.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (lower === 'content-length' || lower === 'content-encoding' || lower === 'transfer-encoding') return;
+      res.setHeader(key, value);
+    });
+    return res.status(response.status).send(body);
   } catch (err) {
     try {
       reportApiError(err, req);

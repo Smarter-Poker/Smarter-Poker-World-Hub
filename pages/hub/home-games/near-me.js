@@ -31,7 +31,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   MapPin,
   Loader2,
@@ -69,11 +69,18 @@ function formatStakes(minBuyin, maxBuyin, stakes) {
   return 'Stakes TBD';
 }
 
+// Every home-games page lives under /hub/home-games — there is no top-level
+// /home-games route and no rewrite for one, so a bare `/home-games/...` href
+// is a guaranteed 404.
+//
+// The canonical destination is the group's social-page slug. Club/invite codes
+// are NOT valid segments of /hub/home-games/in/[state] (that route parses its
+// segment as a state slug and 404s on anything else), so a group without a
+// slug falls back to the state listing it appears on, then to this page.
 function groupHref(g) {
-  if (g.slug) return `/home-games/${g.slug}`;
-  if (g.club_code) return `/home-games/in/${g.club_code}`;
-  if (g.invite_code) return `/home-games/in/${g.invite_code}`;
-  return `/home-games`;
+  if (g.slug) return `/hub/home-games/${g.slug}`;
+  if (g.state) return `/hub/home-games/in/${String(g.state).toLowerCase()}`;
+  return '/hub/home-games/near-me';
 }
 
 export default function HomeGamesNearMePage() {
@@ -87,7 +94,18 @@ export default function HomeGamesNearMePage() {
   const [manualState, setManualState] = useState('');
   const [manualCity,  setManualCity]  = useState('');
 
-  const search = useCallback(async ({ lat, lng, state, city, radiusMiles }) => {
+  // Last search that was actually issued — lets the error card retry the
+  // user's own query instead of re-prompting for geolocation.
+  const lastSearchRef = useRef(null);
+  // Monotonic request id. Only the newest in-flight search is allowed to
+  // commit state, so a slow earlier response (retry + radius change
+  // interleaving) can't overwrite newer results.
+  const searchSeqRef = useRef(0);
+
+  const search = useCallback(async (args) => {
+    const { lat, lng, state, city, radiusMiles } = args || {};
+    lastSearchRef.current = args || {};
+    const seq = ++searchSeqRef.current;
     setStatus('searching');
     setError(null);
     try {
@@ -104,9 +122,11 @@ export default function HomeGamesNearMePage() {
       const res = await fetch(`/api/public/home-games/discover?${params.toString()}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'discover failed');
+      if (seq !== searchSeqRef.current) return; // superseded by a newer search
       setGroups(json.groups || []);
       setStatus('ready');
     } catch (e) {
+      if (seq !== searchSeqRef.current) return; // superseded by a newer search
       setError(e.message || String(e));
       setStatus('error');
     }
@@ -138,12 +158,25 @@ export default function HomeGamesNearMePage() {
     );
   }, [search, radius]);
 
+  // Retry the last query the user actually ran. Falls back to re-requesting
+  // geolocation only when no search has been issued yet — a manual searcher
+  // who already declined the permission prompt should never be re-prompted.
+  const retryLastSearch = useCallback(() => {
+    if (lastSearchRef.current) {
+      search(lastSearchRef.current);
+      return;
+    }
+    requestGeolocation();
+  }, [search, requestGeolocation]);
+
   // Auto-prompt on mount (respects the browser's permission dialog)
   useEffect(() => { requestGeolocation(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  // When the user changes radius after a successful location, re-search
+  // When the user changes radius, re-search. Also fires after a failed
+  // search ('error') — otherwise the pill highlight moves but nothing
+  // happens and the only way out is a full page reload.
   useEffect(() => {
-    if (coords && status === 'ready') {
+    if (coords && (status === 'ready' || status === 'error')) {
       search({ lat: coords.lat, lng: coords.lng, radiusMiles: radius });
     }
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -170,7 +203,7 @@ export default function HomeGamesNearMePage() {
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/hub/home-games" className="text-[#94A3B8] hover:text-white flex items-center gap-1">
+          <Link href="/hub/home-games/in" className="text-[#94A3B8] hover:text-white flex items-center gap-1">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm">Home Games</span>
           </Link>
@@ -224,13 +257,18 @@ export default function HomeGamesNearMePage() {
           </div>
         )}
 
-        {/* Manual fallback (only when GPS denied/unavailable) */}
-        {status === 'denied' && (
+        {/* Manual fallback — shown whenever we have no GPS fix, not just on the
+            first denial. Keyed off `coords` so the form survives a manual
+            search (which flips status to searching/ready/error) and the user
+            can refine or run another query without reloading the page. */}
+        {!coords && status !== 'locating' && (
           <div className="cmd-panel p-5">
-            <div className="flex items-start gap-2 mb-4">
-              <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-[#FCD34D]">{error || 'Search by state or city instead.'}</p>
-            </div>
+            {status === 'denied' && (
+              <div className="flex items-start gap-2 mb-4">
+                <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-[#FCD34D]">{error || 'Search by state or city instead.'}</p>
+              </div>
+            )}
             <form onSubmit={handleManualSearch} className="grid sm:grid-cols-[120px_1fr_auto] gap-3">
               <select
                 value={manualState}
@@ -269,7 +307,7 @@ export default function HomeGamesNearMePage() {
                 <p className="text-sm text-[#94A3B8] mt-0.5">{error}</p>
               </div>
               <button
-                onClick={requestGeolocation}
+                onClick={retryLastSearch}
                 className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs"
               >
                 Retry

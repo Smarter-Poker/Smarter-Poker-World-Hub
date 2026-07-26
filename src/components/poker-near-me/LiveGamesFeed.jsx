@@ -649,6 +649,9 @@ function LiveGamesFeed({
                 logoUrl,
                 is_social_page: parentVenue?.is_social_page || false,
                 social_page_id: parentVenue?.social_page_id || null,
+                // Carried through so the card can show the venue's REAL spread when
+                // the live feed reports no games (see the stakes fallback below).
+                stakes_cash: parentVenue?.stakes_cash || null,
                 waitEstimate: waitEst,
                 _hasParentVenue: !!parentVenue,
                 _isLive: true,
@@ -693,6 +696,7 @@ function LiveGamesFeed({
                     logoUrl,
                     is_social_page: v.is_social_page || false,
                     social_page_id: v.social_page_id || null,
+                    stakes_cash: v.stakes_cash || null,
                     waitEstimate: null,
                     _hasParentVenue: true,
                     _isLive: false,
@@ -887,7 +891,9 @@ function LiveGamesFeed({
     // ─── RENDER: LIVE VENUE CARD (PREMIUM UPGRADE) ───
     const renderLiveVenueCard = (v, index) => {
         const dist = calcDist(v);
-        const heat = getHeatLevel(v.totalTables);
+        // BUG FIX: catalog rows set totalTables = poker_tables (room CAPACITY, no live
+        // data), so a closed 30-table room was scoring HOT. Only live counts are heat.
+        const heat = getHeatLevel(v._isLive ? v.totalTables : 0);
         const isFav = favorites && favorites[v.id];
         const initColor = getInitialsColor(v.id || 0);
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -1018,13 +1024,26 @@ function LiveGamesFeed({
 
                     {/* === LIVE BADGES === */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                        <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
-                            {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
-                        </span>
+                        {/* BUG FIX: catalog rows carry poker_tables (room capacity) in
+                            totalTables and have no live feed at all, yet this badge used to
+                            render "{n} Tables Running" with a pulsing live dot for them —
+                            a closed 30-table room advertised "30 Tables Running". Live rows
+                            keep the running badge; catalog rows state capacity honestly. */}
+                        {v._isLive ? (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
+                                {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
+                            </span>
+                        ) : (
+                            v.totalTables > 0 && (
+                                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                    {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''}
+                                </span>
+                            )
+                        )}
 
                         {!v._isLive && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>Last Known</span>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>No Live Data</span>
                         )}
                     </div>
 
@@ -1048,10 +1067,20 @@ function LiveGamesFeed({
                     {/* Game Breakdown — COLLAPSIBLE (flex-grow pushes rest to bottom) */}
                     <div style={{ flex: 1 }}>
                         {(!v.games || v.games.length === 0) ? (
+                            /* BUG FIX: this used to hardcode "STAKES PLAYED $1/$2 $2/$5" for
+                               EVERY venue with no game data — placeholder numbers presented as
+                               that venue's real spread. Show the venue's actual stakes_cash
+                               when we have it, otherwise say plainly that we have no data. */
                             <div style={{ padding: '8px 0', marginTop: 4 }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    STAKES PLAYED $1/$2 $2/$5
-                                </span>
+                                {Array.isArray(v.stakes_cash) && v.stakes_cash.length > 0 ? (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        Stakes Played {v.stakes_cash.slice(0, 4).join('  ')}
+                                    </span>
+                                ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        No live game data
+                                    </span>
+                                )}
                             </div>
                         ) : (
                             renderTableBreakdown(v.bravo_slug || v.id || `venue-${index}`, v.games)

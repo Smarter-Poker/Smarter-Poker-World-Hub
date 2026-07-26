@@ -29,6 +29,17 @@ function getSupabase() {
 
 const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Daily'];
 
+// The DB holds mixed-case day_of_week values ('saturday', 'MONDAY', 'Daily'),
+// so every comparison/grouping in this file goes through these helpers.
+function normalizeDayKey(raw) {
+    return (raw || '').toLowerCase().trim();
+}
+
+function canonicalDay(raw) {
+    const key = normalizeDayKey(raw) || 'daily';
+    return DAYS_ORDER.find(d => d.toLowerCase() === key) || (raw || 'Daily');
+}
+
 function parseTime(t) {
     if (!t) return 0;
     const m = t.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
@@ -124,12 +135,14 @@ async function handler(req, res) {
         const byDay = {};
         DAYS_ORDER.forEach(d => { byDay[d] = []; });
         recurring.forEach(r => {
-            const day = r.day_of_week || 'Daily';
+            // Canonicalize so 'saturday' / 'SATURDAY' land in the 'Saturday' bucket
+            // that active_days and the per-day sort actually look at.
+            const day = canonicalDay(r.day_of_week);
             if (!byDay[day]) byDay[day] = [];
             byDay[day].push(enrichRecord(r));
         });
         // Sort each day by start time
-        DAYS_ORDER.forEach(d => {
+        Object.keys(byDay).forEach(d => {
             byDay[d].sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
         });
 
@@ -240,10 +253,13 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
         const dow = dayName[d.getUTCDay()];
         const key = d.toISOString().split('T')[0];
 
-        // [W5 FIX] Case-insensitive 'daily' match — DB stores as 'daily', 'Daily', 'DAILY'
-        const matchingEvents = recurring.filter(r =>
-            r.day_of_week === dow || (r.day_of_week || '').toLowerCase() === 'daily'
-        );
+        // [W5 FIX v2] Case-insensitive on BOTH sides — rows stored as 'saturday'
+        // never matched the Title-case weekday name and vanished from the calendar.
+        const dowKey = dow.toLowerCase();
+        const matchingEvents = recurring.filter(r => {
+            const rDay = normalizeDayKey(r.day_of_week);
+            return rDay === dowKey || rDay === 'daily';
+        });
 
         if (matchingEvents.length > 0) {
             const seenKeys = new Set();
@@ -251,8 +267,10 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
             
             // Sort so specific-day events get priority over 'Daily' if there is a clash
             matchingEvents.sort((a, b) => {
-                if (a.day_of_week !== 'Daily' && b.day_of_week === 'Daily') return -1;
-                if (a.day_of_week === 'Daily' && b.day_of_week !== 'Daily') return 1;
+                const aDaily = normalizeDayKey(a.day_of_week) === 'daily';
+                const bDaily = normalizeDayKey(b.day_of_week) === 'daily';
+                if (!aDaily && bDaily) return -1;
+                if (aDaily && !bDaily) return 1;
                 return 0;
             });
             

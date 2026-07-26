@@ -163,7 +163,8 @@ const TOUR_MARKER_COLORS = {
 function createTourIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ef4444';
   const tourLogoUrl = venue.logo_url || '';
-  const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
+  // tour_code comes from external scrapers — escape before it reaches innerHTML
+  const tourCode = escapeHtml((venue.tour_code || 'TOUR').slice(0, 4));
   const isRunning = venue.is_running;
 
   // Circle sizing
@@ -221,8 +222,8 @@ function createTourIcon(L, venue) {
 function buildTourPopupHtml(v) {
   const tourColor = TOUR_MARKER_COLORS[v.tour_code] || '#ef4444';
   const logoHtml = v.logo_url
-    ? `<img src="${escapeHtml(v.logo_url)}" alt="" style="width:34px;height:34px;border-radius:6px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`
-    : `<div style="display:flex;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${(v.tour_code || '').slice(0, 4)}</div>`;
+    ? `<img src="${escapeHtml(v.logo_url)}" alt="" style="width:34px;height:34px;border-radius:6px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${escapeHtml((v.tour_code || '').slice(0, 4))}</div>`
+    : `<div style="display:flex;width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;">${escapeHtml((v.tour_code || '').slice(0, 4))}</div>`;
 
   const statusBadge = v.is_running
     ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
@@ -237,13 +238,13 @@ function buildTourPopupHtml(v) {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <span style="padding:2px 8px;border-radius:4px;background:${tourColor}20;color:${tourColor};font-size:10px;font-weight:700;border:1px solid ${tourColor}30;">${v.tour_code || 'TOUR'}</span>
+      <span style="padding:2px 8px;border-radius:4px;background:${tourColor}20;color:${tourColor};font-size:10px;font-weight:700;border:1px solid ${tourColor}30;">${escapeHtml(v.tour_code || 'TOUR')}</span>
       ${statusBadge}
     </div>
     ${v.stop_name ? `<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(v.stop_name)}</div>` : ''}
-    ${v.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:10px;">Dates: ${v.dates}</div>` : ''}
+    ${v.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:10px;">Dates: ${escapeHtml(v.dates)}</div>` : ''}
     <div style="display:flex;gap:6px;">
-      <button class="fsp-trigger" data-url="/hub/tours/${v.tour_code || ''}" data-title="${escapeHtml(v.tour_name || v.tour_code || '')}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#fff;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Tour</button>
+      <button class="fsp-trigger" data-url="/hub/tours/${escapeHtml(v.tour_code || '')}" data-title="${escapeHtml(v.tour_name || v.tour_code || '')}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#fff;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Tour</button>
       <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
     </div>
   </div>`;
@@ -300,6 +301,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const leafletRef = useRef(null);
   const onVenueSelectRef = useRef(onVenueSelect);
   const popupClickHandlerRef = useRef(null);
+  // Signature of the rendered venue set — lets us skip a full marker rebuild + fitBounds
+  // when the parent re-renders with a new array holding the same venues.
+  const renderedSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Keep callback ref current without triggering marker re-render
@@ -455,11 +459,30 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Phase 2: Update markers whenever venues change — now with logo pins
+  // `mapReady` is a dependency because Leaflet loads via async dynamic import: without it,
+  // venues already present when init finishes would never be drawn.
   useEffect(() => {
+    if (!mapReady) return;
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
     const layer = markersLayerRef.current;
     if (!L || !map || !layer) return;
+
+    const validVenues = venues.filter(v => v.latitude && v.longitude);
+
+    // Parents recompute the venues array inline on every render, so identity changes alone
+    // must not rebuild markers or re-fit bounds — that would yank the viewport out from
+    // under a user who is panning/zooming. Compare a stable content signature instead.
+    const signature = [
+      validVenues
+        .map(v => `${v.id || v.name || ''}:${v.latitude},${v.longitude}`)
+        .sort()
+        .join('|'),
+      userLocation ? `${userLocation.lat},${userLocation.lng}` : '',
+      radiusMiles == null ? '' : String(radiusMiles),
+    ].join('#');
+    if (signature === renderedSignatureRef.current) return;
+    renderedSignatureRef.current = signature;
 
     // Clear existing markers
     layer.clearLayers();
@@ -469,7 +492,6 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     }
 
     // Add venue markers with logo pins
-    const validVenues = venues.filter(v => v.latitude && v.longitude);
     validVenues.forEach(v => {
       // ═══ TOUR STOPS — distinct red pin + tour popup ═══
       const isTourStop = (v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour') && v.tour_code;
@@ -571,7 +593,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         ? radiusToZoom(radiusMiles) : 10;
       map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
     }
-  }, [venues, userLocation, radiusMiles]);
+  }, [venues, userLocation, radiusMiles, mapReady]);
 
   // Dynamic radius zoom is now handled by the Phase 2 markers effect above
   // (venues prop changes when radius filter changes, triggering fitBounds)

@@ -2,7 +2,7 @@
  * MoreTabPanel — Extracted from poker-near-me.js renderContent() 'more' case
  * More Tools overview + sub-tab routing for Road Trip, Social, Alerts, NearMeNow, TripCost.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
 const RoadTripPlanner = dynamic(() => import('./RoadTripPlanner'), { ssr: false });
@@ -31,8 +31,32 @@ export default function MoreTabPanel({
     setActiveTab,
     router,
     openVenueModal,
+    authToken: authTokenProp,
 }) {
     const effectiveVenues = allVenuesForMap.length > 0 ? allVenuesForMap : venues;
+
+    // `user` comes from AvatarContext — a Supabase auth user/profile object. Supabase puts
+    // the JWT on the *session*, not the user, so user?.access_token is normally undefined and
+    // SocialLayer/TournamentAlerts fetches silently ran unauthenticated. Resolve the session
+    // token here whenever the parent doesn't supply one. Uses the sanctioned authUtils
+    // helper (repo rule: never call the Supabase client's auth.getSession() directly).
+    const [sessionToken, setSessionToken] = useState(null);
+    useEffect(() => {
+        if (authTokenProp || user?.access_token) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { getFreshAccessToken } = await import('../../lib/authUtils');
+                const token = await getFreshAccessToken();
+                if (!cancelled) setSessionToken(token || null);
+            } catch {
+                if (!cancelled) setSessionToken(null);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [authTokenProp, user?.access_token, userId]);
+
+    const authToken = authTokenProp || user?.access_token || sessionToken || undefined;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0', width: '100%' }}>
@@ -78,7 +102,7 @@ export default function MoreTabPanel({
                 </div>
             )}
             {activeMoreTab === 'social' && (
-                <SocialLayer userId={userId} userLocation={userLocation} venues={effectiveVenues} authToken={user?.access_token} />
+                <SocialLayer userId={userId} userLocation={userLocation} venues={effectiveVenues} authToken={authToken} />
             )}
             
             {/* ALERTS & NOTIFICATIONS */}
@@ -99,7 +123,7 @@ export default function MoreTabPanel({
                             <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
                         </div>
                     )}
-                    <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
+                    <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} />
                 </>
             )}
 

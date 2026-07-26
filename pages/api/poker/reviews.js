@@ -203,7 +203,9 @@ try {
           const { data: allRatings, error: rErr } = await getSupabase()
             .from('venue_reviews')
             .select('venue_id, rating')
-            .in('venue_id', ids);
+            .in('venue_id', ids)
+            // Moderation: AI-flagged reviews must not count toward public ratings
+            .or('is_flagged.is.null,is_flagged.eq.false');
 
           if (rErr) {
             console.warn('Error fetching bulk stats:', rErr);
@@ -243,6 +245,9 @@ try {
           .from('venue_reviews')
           .select('id, user_id, venue_id, rating, review_text, reviewer_name, is_verified_player, helpful_count, unhelpful_count, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating, created_at, metadata')
           .eq('venue_id', venueIdStr)
+          // Moderation: hide AI-flagged reviews from the public feed. Older rows
+          // predating the moderation columns have is_flagged NULL, so keep those.
+          .or('is_flagged.is.null,is_flagged.eq.false')
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -386,36 +391,72 @@ try {
       // PATCH — Helpful / Unhelpful voting
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'PATCH') {
+        // SECURITY: voting was fully anonymous, so anyone could inflate helpful_count
+        // on their own review (and 'helpful' is a sort option). Require a JWT.
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required to vote' });
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
         const { review_id, action } = req.body;
         if (!review_id || !['helpful', 'unhelpful'].includes(action)) {
           return res.status(400).json({ success: false, error: 'review_id and action ("helpful" or "unhelpful") required' });
         }
 
-        const { data: existing, error: fetchErr } = await getSupabase()
+        const column = action === 'helpful' ? 'helpful_count' : 'unhelpful_count';
+
+        // Users cannot vote on their own review.
+        const { data: reviewRow, error: fetchErr } = await getSupabase()
           .from('venue_reviews')
-          .select('helpful_count, unhelpful_count')
+          .select('id, user_id, helpful_count, unhelpful_count')
           .eq('id', review_id)
           .maybeSingle();
 
-        if (fetchErr || !existing) {
+        if (fetchErr || !reviewRow) {
           return res.status(404).json({ success: false, error: 'Review not found' });
         }
-
-        const updatePayload = action === 'helpful'
-          ? { helpful_count: (existing.helpful_count || 0) + 1 }
-          : { unhelpful_count: (existing.unhelpful_count || 0) + 1 };
-
-        const { error: updateErr } = await getSupabase()
-          .from('venue_reviews')
-          .update(updatePayload)
-          .eq('id', review_id);
-
-        if (updateErr) {
-          console.warn(`Error updating ${action} count:`, updateErr);
-          return res.status(500).json({ success: false, error: updateErr.message });
+        if (reviewRow.user_id && String(reviewRow.user_id) === String(authUser.id)) {
+          return res.status(403).json({ success: false, error: 'You cannot vote on your own review' });
         }
 
-        return res.status(200).json({ success: true });
+        // Compare-and-set increment: the plain read-then-write lost concurrent votes.
+        // Retry a few times if another vote landed between our read and write.
+        let current = reviewRow[column] || 0;
+        let updatedRows = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const { data: updated, error: updateErr } = await getSupabase()
+            .from('venue_reviews')
+            .update({ [column]: current + 1 })
+            .eq('id', review_id)
+            .eq(column, current)
+            .select(`id, ${column}`);
+
+          if (updateErr) {
+            console.warn(`Error updating ${action} count:`, updateErr);
+            return res.status(500).json({ success: false, error: updateErr.message });
+          }
+
+          if (updated && updated.length > 0) {
+            updatedRows = updated;
+            break;
+          }
+
+          // Row changed underneath us — re-read and retry
+          const { data: fresh } = await getSupabase()
+            .from('venue_reviews')
+            .select(`id, ${column}`)
+            .eq('id', review_id)
+            .maybeSingle();
+          if (!fresh) return res.status(404).json({ success: false, error: 'Review not found' });
+          current = fresh[column] || 0;
+        }
+
+        if (!updatedRows) {
+          return res.status(409).json({ success: false, error: 'Vote conflicted, please retry' });
+        }
+
+        return res.status(200).json({ success: true, [column]: updatedRows[0][column] });
       }
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });

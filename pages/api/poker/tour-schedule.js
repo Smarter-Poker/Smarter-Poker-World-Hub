@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -65,6 +66,19 @@ const formatMoney = (amount) => {
   if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
   return '$' + amount.toLocaleString();
 };
+
+/**
+ * Midnight "today" anchored to US Eastern rather than the server timezone (UTC on
+ * Vercel). Without this, from ~8 PM ET onward the server was already on tomorrow's
+ * date and stops ending today were classified as past. Mirrors the America/New_York
+ * anchor used by daily-tournaments.getCurrentDay() and series.getTodayCST().
+ */
+function getTodayEastern() {
+    const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const d = new Date(localTime);
+    // Stop dates parse as UTC midnights, so compare against a UTC midnight too.
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
 
 // Determine current and next stop based on today's date
 const classifyStops = (events, today) => {
@@ -185,6 +199,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Standard read rate limit (this was the only poker API without one)
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   // Array injection guards — Next.js passes ?key[]=val as an array; PostgREST crashes on array input
   const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const tour_code = safeQ(req.query.tour_code);
@@ -284,8 +301,7 @@ export default async function handler(req, res) {
       }));
     } catch (_pdfErr) { console.warn('[App] Handled exception:', _pdfErr?.message || _pdfErr); }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayEastern();
 
     // Standardize DB events
     const dbEvents = (rawEvents || []).map(standardizeEvent);
@@ -442,8 +458,7 @@ async function returnRegistryFallback(tour_code, stop, res) {
 
     // Build standardized events from series_2026 registry data
     const series = tour.series_2026 || [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayEastern();
 
     const events = series.map((s, idx) => {
       const buyin = s.buyin || null;
