@@ -85,7 +85,7 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
             <mesh position={[0, 0, 0]}>
                 <planeGeometry args={[cardWidth, cardHeight]} />
                 {texture ? (
-                    <meshBasicMaterial map={texture} />
+                    <meshBasicMaterial map={texture} transparent={true} />
                 ) : (
                     <meshStandardMaterial
                         color="#0a1628"
