@@ -18,7 +18,6 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
@@ -34,7 +33,7 @@ async function fireConfetti(opts) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Calendar, PlayCircle } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, MapPin, ExternalLink, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Mail, Calendar, PlayCircle } from 'lucide-react';
 
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -47,14 +46,13 @@ const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMen
 const BottomNavBar = dynamic(() => import('../../src/components/ui/BottomNavBar'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 const NewsBox = dynamic(() => import('../../src/components/news/NewsBox'), { ssr: false });
-const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 const ReelCard = dynamic(() => import('../../src/components/news/ReelCard'), { ssr: false });
-const MSPTBox = dynamic(() => import('../../src/components/news/MSPTBox'), { ssr: false });
-const SourcePlaceholderBox = dynamic(() => import('../../src/components/news/SourcePlaceholderBox'), { ssr: false });
+const VideoCard = dynamic(() => import('../../src/components/news/VideoCard'), { ssr: false });
 
-// Fallback data
+// Fallback data — shown only when the articles API fails or returns nothing.
+// Every item is tagged is_fallback so it never triggers BREAKING badges or view-count POSTs.
 const FALLBACK_NEWS = [
-    { id: '1', title: "WSOP 2025 Schedule Released", content: "The World Series of Poker announces its biggest schedule yet", image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80", category: "tournament", read_time: 4, views: 5200, published_at: new Date().toISOString(), source_name: "PokerNews" },
+    { id: '1', title: "WSOP 2026 Schedule Released", content: "The World Series of Poker announces its biggest schedule yet", image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80", category: "tournament", read_time: 4, views: 5200, published_at: new Date().toISOString(), source_name: "PokerNews" },
     { id: '2', title: "Phil Ivey Returns to Live Poker", content: "Legendary player set for major comeback", image_url: "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80", category: "news", read_time: 3, views: 8900, published_at: new Date(Date.now() - 3600000).toISOString(), source_name: "Card Player" },
     { id: '3', title: "GTO Strategy: 3-Betting Ranges Explained", content: "Master the art of 3-betting with optimal frequencies", image_url: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=400&q=80", category: "strategy", read_time: 8, views: 12400, published_at: new Date(Date.now() - 7200000).toISOString(), source_name: "Upswing" },
     { id: '4', title: "Online Poker Traffic Hits New Records", content: "Global player pools see unprecedented growth", image_url: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80", category: "industry", read_time: 5, views: 3100, published_at: new Date(Date.now() - 10800000).toISOString(), source_name: "Poker.org" },
@@ -62,14 +60,7 @@ const FALLBACK_NEWS = [
     { id: '6', title: "Bankroll Management Essentials", content: "Protect your poker career with proper money management", image_url: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80", category: "strategy", read_time: 7, views: 6700, published_at: new Date(Date.now() - 18000000).toISOString(), source_name: "Card Player" },
     { id: '7', title: "New Poker Room Opens in Las Vegas", content: "State-of-the-art facility debuts on the Strip", image_url: "https://images.unsplash.com/photo-1517232115160-ff93364542dd?w=400&q=80", category: "industry", read_time: 4, views: 2300, published_at: new Date(Date.now() - 21600000).toISOString(), source_name: "Poker.org" },
     { id: '8', title: "WPT Championship Final Table Set", content: "Six players remain for the $10M prize pool", image_url: "https://images.unsplash.com/photo-1609743522653-52354461eb27?w=400&q=80", category: "tournament", read_time: 5, views: 7800, published_at: new Date(Date.now() - 25200000).toISOString(), source_name: "PokerNews" }
-];
-
-const FALLBACK_VIDEOS = [
-    { id: '1', title: "WSOP Main Event Day 1 Highlights", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=300&q=80", duration: "15:42", views: 125000, channel: "PokerGO" },
-    { id: '2', title: "How to Beat Small Stakes Poker", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=300&q=80", duration: "28:15", views: 89000, channel: "Jonathan Little" },
-    { id: '3', title: "Phil Hellmuth Epic Blowup Compilation", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=300&q=80", duration: "12:34", views: 450000, channel: "Poker Clips" },
-    { id: '4', title: "GTO vs Exploitative Play Breakdown", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=300&q=80", duration: "45:20", views: 67000, channel: "Upswing Poker" }
-];
+].map(a => ({ ...a, is_fallback: true }));
 
 const FALLBACK_POY = [
     { player_name: "Alex F.", points: 2850, rank: 1 },
@@ -80,18 +71,18 @@ const FALLBACK_POY = [
 ];
 
 const FALLBACK_EVENTS = [
-    { id: '1', name: "WSOP Main Event", event_date: "2025-06-28" },
-    { id: '2', name: "EPT Barcelona", event_date: "2025-08-15" },
-    { id: '3', name: "WPT Championship", event_date: "2025-12-01" }
+    { id: '1', name: "EPT Barcelona", event_date: "2026-08-17" },
+    { id: '2', name: "WSOP Circuit Vegas", event_date: "2026-10-08" },
+    { id: '3', name: "WPT Championship", event_date: "2026-12-01" }
 ];
 
 // MSPT (Mid-States Poker Tour) Fallback Data
 const FALLBACK_MSPT = [
     { id: 'mspt1', title: "MSPT Venetian $1,600 Main Event Kicks Off", source_url: "https://msptpoker.com", published_at: new Date().toISOString(), prize_pool: "$2M GTD" },
-    { id: 'mspt2', title: "MSPT Canterbury Park Results - John Smith Wins", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 86400000).toISOString(), prize_pool: "$350K" },
-    { id: 'mspt3', title: "MSPT 2025 Schedule Announced - 20+ Stops", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 172800000).toISOString(), prize_pool: null },
+    { id: 'mspt2', title: "MSPT Canterbury Park Main Event Results", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 86400000).toISOString(), prize_pool: "$350K" },
+    { id: 'mspt3', title: "MSPT 2026 Schedule Announced - 20+ Stops", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 172800000).toISOString(), prize_pool: null },
     { id: 'mspt4', title: "MSPT Player of the Year Race Heats Up", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 259200000).toISOString(), prize_pool: null }
-];
+].map(a => ({ ...a, is_fallback: true }));
 
 function timeAgo(date) {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -103,7 +94,21 @@ function timeAgo(date) {
 
 function formatEventDate(dateStr) {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (isNaN(date.getTime())) return '';
+    // Date-only strings parse as UTC midnight — format in UTC so the day never shifts
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+// Extract a YouTube video id from watch/shorts/short-link URLs (mirrors ReelCard.js)
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    return null;
 }
 
 function formatViews(num) {
@@ -122,6 +127,23 @@ const FALLBACK_IMAGES = {
 };
 
 // NewsBox, VideoCard, ReelCard, MSPTBox, SourcePlaceholderBox — extracted to src/components/news/
+
+// Sources that appear in the "More Stories" feed and the filter chips
+const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 'Pokerfuse'];
+// Sections reachable via ?tab= (hamburger menu deep links). 'bookmarks' and 'later'
+// are reached via ?filter= instead and are handled separately.
+const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
+
+// Source accent colors for color-coded borders
+const SOURCE_COLORS = {
+    'PokerNews': '#e53935',
+    'MSPT': '#1565c0',
+    'CardPlayer': '#43a047',
+    'Card Player': '#43a047',
+    'WSOP': '#f9a825',
+    'Poker.org': '#7b1fa2',
+    'Pokerfuse': '#00897b'
+};
 
 export default function NewsHub() {
     const router = useRouter();
@@ -155,14 +177,17 @@ export default function NewsHub() {
     const reelsCarouselRef = useRef(null);
 
     // Phase 3 State
-    const [viewMode, setViewMode] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('news_view_mode') || 'grid';
-        }
-        return 'grid';
-    });
+    // NOTE: initialize to the server-rendered default and hydrate from localStorage in an
+    // effect — reading storage in the useState initializer causes React #418 hydration
+    // mismatches (see usePersistedFilters.js for the canonical pattern).
+    const [viewMode, setViewMode] = useState('grid');
+    useEffect(() => {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('news_view_mode') : null;
+        if (saved === 'list' || saved === 'grid') setViewMode(saved);
+    }, []);
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [searchFocused, setSearchFocused] = useState(false);
+    const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
     const [focusedArticleIdx, setFocusedArticleIdx] = useState(-1);
 
     // Phase 4: Persist viewMode
@@ -173,27 +198,17 @@ export default function NewsHub() {
         }
     }, []);
 
-    // Phase 5: Track last visit for "NEW" badges
+    // Phase 5: Track last visit for "NEW" badges.
+    // Capture the PREVIOUS visit timestamp once, then write "now" exactly once per visit —
+    // the badge/new-count logic reads the captured state, never localStorage again.
     const [lastVisitTimestamp, setLastVisitTimestamp] = useState(null);
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem('news_last_visit');
             if (stored) setLastVisitTimestamp(new Date(stored));
-            // Update last visit to now
             localStorage.setItem('news_last_visit', new Date().toISOString());
         }
     }, []);
-    // Source accent colors for color-coded borders
-    const SOURCE_COLORS = {
-        'PokerNews': '#e53935',
-        'MSPT': '#1565c0',
-        'CardPlayer': '#43a047',
-        'Card Player': '#43a047',
-        'WSOP': '#f9a825',
-        'Poker.org': '#7b1fa2',
-        'Pokerfuse': '#00897b'
-    };
-
     // Persisted filters for activeTab and activeSection
     const { filters, setFilter } = usePersistedFilters('news', {
         activeTab: 'all',
@@ -204,6 +219,14 @@ export default function NewsHub() {
     const activeSection = filters.activeSection;
     const setActiveTab = (val) => setFilter('activeTab', val);
     const setActiveSection = (val) => setFilter('activeSection', val);
+
+    // The category-tab UI no longer exists, so a stale persisted category would
+    // silently filter the feed with no visible control — snap it back to 'all'
+    // whenever localStorage hydration resurrects one.
+    useEffect(() => {
+        if (activeTab !== 'all') setFilter('activeTab', 'all');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
     // SWR-backed static data — cached 60s, survive navigation
     const jsonFetch = (url) => fetch(url).then(r => r.json());
@@ -216,10 +239,12 @@ export default function NewsHub() {
         }));
     }, [rawSourceBoxes]);
 
+    // Videos feed — backs the ?tab=videos section. Real data only; an empty list
+    // renders the section's own empty state rather than fabricated placeholders.
     const { data: videosData } = useSWR('/api/news/videos?limit=20', jsonFetch);
-    const videos = (videosData?.success && videosData.data?.length) ? videosData.data : (typeof FALLBACK_VIDEOS !== 'undefined' ? FALLBACK_VIDEOS : []);
+    const videos = (videosData?.success && Array.isArray(videosData.data)) ? videosData.data : [];
 
-    const { data: reelsData } = useSWR('/api/news/reels?limit=20&sort=recent', jsonFetch);
+    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', jsonFetch);
     const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
 
     const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', jsonFetch);
@@ -230,15 +255,46 @@ export default function NewsHub() {
 
     const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', jsonFetch);
     const msptNews = (msptData?.success && msptData.data?.length)
-        ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || '#', published_at: a.published_at, prize_pool: null }))
-        : (typeof FALLBACK_MSPT !== 'undefined' ? FALLBACK_MSPT : []);
+        ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || null, published_at: a.published_at, prize_pool: a.prize_pool || null }))
+        : FALLBACK_MSPT;
+
+    // ── Muted sources ─────────────────────────────────────────────────────────
+    // /hub/news/sources lets the user mute a source; it writes to
+    // news_preferences.mutedSources (signed in) and localStorage 'news_muted_sources'
+    // (guests). This page is the only reader — without it the toggle is inert.
+    // Names are stored exactly as the source-boxes API reports them ('Card Player'),
+    // which matches sourceBoxes AFTER the CardPlayer normalization above.
+    const MUTED_SOURCES_KEY = 'news_muted_sources';
+    const [mutedSources, setMutedSources] = useState([]);
+    useEffect(() => {
+        // SSR-safe: read the guest copy only after mount.
+        try {
+            const raw = window.localStorage.getItem(MUTED_SOURCES_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (Array.isArray(parsed)) setMutedSources(parsed.filter(s => typeof s === 'string'));
+        } catch (err) {
+            console.warn('Muted sources unreadable:', err?.message);
+        }
+    }, []);
+    const isMuted = useCallback(
+        (name) => mutedSources.length > 0 && mutedSources.includes(name),
+        [mutedSources]
+    );
+
+    // Debounce search input into the SWR key so we don't hit the API on every keystroke
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // News articles — key changes with activeTab so SWR re-fetches and caches per tab
     const newsParams = new URLSearchParams({ limit: '100' });
     if (activeTab !== 'all') newsParams.set('category', activeTab);
-    if (searchQuery) newsParams.set('search', searchQuery);
+    if (debouncedSearch) newsParams.set('search', debouncedSearch);
     const { data: newsData, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
-    const rawNews = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
+    // While the first load is in flight render nothing (skeleton covers it) — never fake data
+    const rawNews = (newsData?.success && newsData.data?.length) ? newsData.data : (loading ? [] : FALLBACK_NEWS);
     const news = React.useMemo(() => {
         return rawNews.map(a => ({
             ...a,
@@ -251,6 +307,14 @@ export default function NewsHub() {
         if (newsData && !loading) setLastRefreshed(new Date());
     }, [newsData, loading]);
 
+    // Tick every 60s while the freshness indicator is visible so "Updated Xm ago" stays honest
+    const [, setFreshnessTick] = useState(0);
+    useEffect(() => {
+        if (!lastRefreshed) return;
+        const interval = setInterval(() => setFreshnessTick(t => t + 1), 60000);
+        return () => clearInterval(interval);
+    }, [lastRefreshed]);
+
     // Scroll progress bar
     useEffect(() => {
         const handleScroll = () => {
@@ -261,17 +325,15 @@ export default function NewsHub() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // New article notification dot
+    // New article notification dot — counts against the PREVIOUS visit timestamp captured on
+    // mount (the mount effect already advanced localStorage to "now"; re-reading it here made
+    // this count permanently 0).
     useEffect(() => {
-        if (news.length > 0) {
-            const lastVisit = localStorage.getItem('news_last_visit');
-            if (lastVisit) {
-                const count = news.filter(a => new Date(a.published_at) > new Date(lastVisit)).length;
-                setNewArticleCount(count);
-            }
-            localStorage.setItem('news_last_visit', new Date().toISOString());
+        if (news.length > 0 && lastVisitTimestamp) {
+            const count = news.filter(a => !a.is_fallback && new Date(a.published_at) > lastVisitTimestamp).length;
+            setNewArticleCount(count);
         }
-    }, [news]);
+    }, [news, lastVisitTimestamp]);
 
     // Search suggestions
     const searchSuggestions = searchQuery.length >= 2
@@ -285,19 +347,16 @@ export default function NewsHub() {
         return () => window.removeEventListener('scroll', handleScrollFAB);
     }, []);
 
-    // Toggle source filter (Phase 4: update URL for deep linking)
+    // Toggle source filter (Phase 4: update URL for deep linking).
+    // State updaters must stay pure — compute the next value first, set it, then update the
+    // URL (preserving unrelated query params) outside the updater.
     const toggleSource = (src) => {
-        setSourceFilters(prev => {
-            const next = { ...prev, [src]: !prev[src] };
-            // Update URL with active source filters for deep linking
-            const active = Object.keys(next || {}).filter(k => next[k]);
-            if (active.length === 1) {
-                router.replace({ pathname: router.pathname, query: { source: active[0] } }, undefined, { shallow: true });
-            } else {
-                router.replace({ pathname: router.pathname }, undefined, { shallow: true });
-            }
-            return next;
-        });
+        const next = { ...sourceFilters, [src]: !sourceFilters[src] };
+        setSourceFilters(next);
+        const active = Object.keys(next).filter(k => next[k]);
+        const { source: _omit, ...restQuery } = router.query;
+        const query = active.length === 1 ? { ...restQuery, source: active[0] } : restQuery;
+        router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
     };
     const activeSourceFilters = Object.keys(sourceFilters || {}).filter(k => sourceFilters[k]);
 
@@ -309,16 +368,31 @@ export default function NewsHub() {
     const [reelViewerOpen, setReelViewerOpen] = useState(false);
     const [reelViewerIndex, setReelViewerIndex] = useState(0);
     const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); };
+    const reelViewerRef = useRef(null);
+
+    // Clamp the viewer index to the live data — SWR revalidation can shrink `reels`
+    const safeReelIndex = Math.max(0, Math.min(reelViewerIndex, reels.length - 1));
+    useEffect(() => {
+        if (reels.length === 0) {
+            // The viewer only renders when reels.length > 0 — leaving it "open" with an
+            // empty list hides every control while the body scroll lock stays applied.
+            if (reelViewerOpen) setReelViewerOpen(false);
+            return;
+        }
+        if (reelViewerIndex > reels.length - 1) {
+            setReelViewerIndex(reels.length - 1);
+        }
+    }, [reels.length, reelViewerIndex, reelViewerOpen]);
 
     // Centralized YouTube error management for news reels viewer
     const { ytError: newsYtManaged } = useYouTubeErrorManager({
         active: reelViewerOpen,
-        videoId: reelViewerOpen && reels[reelViewerIndex] ? getYouTubeVideoId(reels[reelViewerIndex]?.video_url) : null,
+        videoId: reelViewerOpen && reels[safeReelIndex] ? getYouTubeVideoId(reels[safeReelIndex]?.video_url) : null,
         surface: 'NewsReelsViewer',
         autoActionDelay: 3000,
         onError: () => {
-            if (reelViewerIndex < reels.length - 1) {
-                setReelViewerIndex(prev => prev + 1);
+            if (safeReelIndex < reels.length - 1) {
+                setReelViewerIndex(safeReelIndex + 1);
             } else {
                 setReelViewerOpen(false);
             }
@@ -327,45 +401,103 @@ export default function NewsHub() {
 
 
     // Handle query parameters for deep linking (Phase 4: fixed source filter binding)
+    // Honors every hamburger-menu deep link: ?tab=news|reels|videos|events and
+    // ?filter=bookmarks|later (see src/config/hamburgerMenus.js).
+    const [feedFilter, setFeedFilter] = useState(null); // 'bookmarks' | null
+    const tabDeepLinkConsumed = useRef(undefined);
+    const filterDeepLinkConsumed = useRef(undefined);
     useEffect(() => {
         if (router.query.source) {
-            const src = router.query.source;
-            setSourceFilters(prev => ({ ...prev, [src]: true }));
-            setActiveSection('news');
-            setActiveTab('news');
-        } else if (router.query.tab) {
-            setActiveSection(router.query.tab);
-            setActiveTab(router.query.tab);
-        } else if (router.query.filter) {
-            setActiveSection(router.query.filter);
-            setActiveTab('all');
+            const raw = String(router.query.source);
+            const normalize = (s) => s.replace(/[^a-z]/gi, '').toLowerCase();
+            const match = VALID_SOURCES.find(s => normalize(s) === normalize(raw));
+            setSourceFilters(prev => ({ ...prev, [match || raw]: true }));
         }
+        // ?tab / ?filter are each consumed ONCE. toggleSource/clearFeedFilter keep
+        // unrelated query params when they router.replace, so re-applying on every
+        // query change would snap the user back to the deep-linked section whenever
+        // they touch a filter. Unknown values are ignored rather than blanking the page.
+        if (router.query.tab !== tabDeepLinkConsumed.current) {
+            tabDeepLinkConsumed.current = router.query.tab;
+            const tab = String(router.query.tab || '');
+            if (SECTION_TABS.includes(tab)) setFilter('activeSection', tab);
+        }
+        if (router.query.filter !== filterDeepLinkConsumed.current) {
+            filterDeepLinkConsumed.current = router.query.filter;
+            const f = String(router.query.filter || '');
+            if (f === 'bookmarks' || f === 'later') setFilter('activeSection', f);
+        }
+        setFeedFilter(router.query.filter === 'bookmarks' ? 'bookmarks' : null);
     }, [router.query]);
+
+    const clearFeedFilter = () => {
+        const { filter: _omit, ...restQuery } = router.query;
+        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+        setFeedFilter(null);
+    };
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
     const [subscribeError, setSubscribeError] = useState('');
+    const [subscribeMessage, setSubscribeMessage] = useState('');
 
     // UI State
-    const [darkMode, setDarkMode] = useState(true);
     const [bookmarks, setBookmarks] = useState([]);
     const [readArticles, setReadArticles] = useState([]);
     const [shareArticle, setShareArticle] = useState(null);
-    const [lastUpdate, setLastUpdate] = useState(null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [showAllStories, setShowAllStories] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
-    // Hamburger menu preferences
+    // Hamburger menu preferences — keys mirror the service + menu config
+    // (src/services/newsPreferences.js and hamburgerMenus.js both use these names)
     const [preferences, setPreferences] = useState({
-        pushNotifications: true,
+        pushNotifications: false,
         emailDigest: false
     });
 
+    // Lock body scroll while the reel viewer or share modal is open
+    useEffect(() => {
+        if (reelViewerOpen || shareArticle) {
+            const prev = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = prev; };
+        }
+    }, [reelViewerOpen, shareArticle]);
+
+    // Document-level keyboard handling: Escape closes the share modal / reel viewer,
+    // arrows step through reels (works even after the YouTube iframe steals focus)
+    useEffect(() => {
+        if (!reelViewerOpen && !shareArticle) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (reelViewerOpen) setReelViewerOpen(false);
+                else setShareArticle(null);
+                return;
+            }
+            if (!reelViewerOpen) return;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                setReelViewerIndex(prev => Math.min(prev + 1, Math.max(reels.length - 1, 0)));
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                setReelViewerIndex(prev => Math.max(prev - 1, 0));
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [reelViewerOpen, shareArticle, reels.length]);
+
+    // Focus the reel viewer container once when it opens (not on every render)
+    useEffect(() => {
+        if (reelViewerOpen) reelViewerRef.current?.focus();
+    }, [reelViewerOpen]);
+
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: News Updates
+    // TIER 3 REALTIME: News Updates — revalidate SWR directly on INSERT
     // ═══════════════════════════════════════════════════════════════════════════
+    const refreshNewsRef = useRef(null);
+    refreshNewsRef.current = refreshNews;
     useEffect(() => {
         const newsChannel = supabase
             .channel(`news-live-${Date.now()}`)
@@ -374,8 +506,7 @@ export default function NewsHub() {
                 schema: 'public',
                 table: 'poker_news'
             }, () => {
-                // Dispatch refresh event to trigger SWR revalidation
-                window.dispatchEvent(new CustomEvent('news-refresh'));
+                refreshNewsRef.current?.();
             })
             .subscribe();
 
@@ -387,9 +518,19 @@ export default function NewsHub() {
     // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {
         if (userId) {
-            getNewsPreferences(userId).then(setPreferences).catch(err => console.warn('News preferences not available:', err?.message));
+            // Merge (never replace) so unknown/extra keys and defaults survive
+            getNewsPreferences(userId)
+                .then(p => {
+                    setPreferences(prev => ({ ...prev, ...(p || {}) }));
+                    // /hub/news/sources persists muted sources here; the feed is the
+                    // only consumer, so read it back on the same load.
+                    if (Array.isArray(p?.mutedSources)) setMutedSources(p.mutedSources);
+                })
+                .catch(err => console.warn('News preferences not available:', err?.message));
 
-            // Load bookmarks
+            // Load bookmarks — the account list is authoritative and REPLACES the
+            // localStorage copy (merging made removals impossible and leaked a previous
+            // user's ids into this account on a shared browser)
             getNewsBookmarks(userId).then(data => {
                 setBookmarks((data || []).map(b => b.article_id));
             }).catch(err => console.warn('Error loading bookmarks:', err));
@@ -397,8 +538,7 @@ export default function NewsHub() {
     }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
-        const newPrefs = { ...preferences, [key]: value };
-        setPreferences(newPrefs);
+        setPreferences(prev => ({ ...prev, [key]: value }));
 
         if (userId) {
             try {
@@ -407,15 +547,23 @@ export default function NewsHub() {
                 console.warn('Failed to save preference:', error);
             }
         }
-    }, [preferences, userId]);
+    }, [userId]);
 
     const menuConfig = getMenuConfig('news', user, preferences, {
         setPushNotifications: (val) => updatePreference('pushNotifications', val),
         setEmailDigest: (val) => updatePreference('emailDigest', val)
     });
 
-    //  INTRO VIDEO STATE
+    //  INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload).
+    // Initialized false and hydrated in an effect — reading sessionStorage in the
+    // useState initializer causes React #418 hydration mismatches.
     const [showIntro, setShowIntro] = useState(false);
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !sessionStorage.getItem('news-intro-seen')) {
+            setShowIntro(true);
+        }
+    }, []);
     const introVideoRef = useRef(null);
 
     // Mark intro as seen when it ends
@@ -431,63 +579,89 @@ export default function NewsHub() {
         }
     }, []);
 
-    // Load persisted state
+    // Load persisted state. hydratedRef gates the persist effects below so the
+    // initial [] state can never overwrite saved bookmarks/read-history.
+    const hydratedRef = useRef(false);
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const savedDarkMode = localStorage.getItem('news_dark_mode');
-            if (savedDarkMode !== null) setDarkMode(savedDarkMode === 'true');
             try {
                 const savedBookmarks = localStorage.getItem('news_bookmarks');
-                if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+                if (savedBookmarks) setBookmarks(prev => [...new Set([...prev, ...JSON.parse(savedBookmarks)])]);
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             try {
                 const savedRead = localStorage.getItem('news_read');
                 if (savedRead) setReadArticles(JSON.parse(savedRead));
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
+        hydratedRef.current = true;
     }, []);
 
-    // Persist state
+    // Clear any stale site-wide scroll lock left behind by a previous modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && bookmarks.length >= 0) {
+        document.body.classList.remove('antigravity-scroll-lock');
+    }, []);
+
+    // Persist state. The mount pass is skipped: the hydration effect above only QUEUES
+    // setBookmarks/setReadArticles, so on that first flush the state is still [] and
+    // writing here would stamp "[]" over the saved values before hydration lands.
+    const bookmarksPersistedRef = useRef(false);
+    useEffect(() => {
+        if (!bookmarksPersistedRef.current) { bookmarksPersistedRef.current = true; return; }
+        if (typeof window !== 'undefined' && hydratedRef.current) {
             localStorage.setItem('news_bookmarks', JSON.stringify(bookmarks));
         }
     }, [bookmarks]);
 
+    const readPersistedRef = useRef(false);
     useEffect(() => {
-        if (typeof window !== 'undefined' && readArticles.length >= 0) {
+        if (!readPersistedRef.current) { readPersistedRef.current = true; return; }
+        if (typeof window !== 'undefined' && hydratedRef.current) {
             localStorage.setItem('news_read', JSON.stringify(readArticles));
         }
     }, [readArticles]);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('news_dark_mode', String(darkMode));
-        }
-    }, [darkMode]);
+    // Toggle functions — only mutate local state when the service write succeeds
+    // (addNewsBookmark returns null and removeNewsBookmark returns false on failure)
+    const [bookmarkNotice, setBookmarkNotice] = useState('');
+    const bookmarkNoticeTimer = useRef(null);
+    const showBookmarkNotice = useCallback((msg) => {
+        setBookmarkNotice(msg);
+        clearTimeout(bookmarkNoticeTimer.current);
+        bookmarkNoticeTimer.current = setTimeout(() => setBookmarkNotice(''), 2500);
+    }, []);
+    useEffect(() => () => clearTimeout(bookmarkNoticeTimer.current), []);
 
-    // Toggle functions
     const toggleBookmark = useCallback(async (articleId, article = {}) => {
-        if (!userId) return;
+        if (!userId) {
+            showBookmarkNotice('Sign in to save bookmarks');
+            return;
+        }
 
         if (bookmarks.includes(articleId)) {
-            await removeNewsBookmark(userId, articleId);
-            setBookmarks(prev => prev.filter(id => id !== articleId));
+            const ok = await removeNewsBookmark(userId, articleId);
+            if (ok !== false) {
+                setBookmarks(prev => prev.filter(id => id !== articleId));
+            } else {
+                showBookmarkNotice('Could not remove bookmark');
+            }
         } else {
-            await addNewsBookmark(userId, articleId, {
+            const row = await addNewsBookmark(userId, articleId, {
                 title: article.title,
                 url: article.source_url,
                 source: article.source_name,
                 thumbnail: article.image_url
             });
-            setBookmarks(prev => [...prev, articleId]);
+            if (row) {
+                setBookmarks(prev => (prev.includes(articleId) ? prev : [...prev, articleId]));
+            } else {
+                showBookmarkNotice('Could not save bookmark');
+            }
         }
-    }, [userId, bookmarks]);
+    }, [userId, bookmarks, showBookmarkNotice]);
 
     const markAsRead = (articleId) => {
-        if (!readArticles.includes(articleId)) {
-            setReadArticles(prev => [...prev, articleId]);
-        }
+        // Functional guard keeps this safe even when called from stale closures
+        setReadArticles(prev => (prev.includes(articleId) ? prev : [...prev, articleId]));
     };
 
     // Share functions (Phase 4: Web Share API with fallback)
@@ -516,9 +690,9 @@ export default function NewsHub() {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(url)}`, '_blank');
     };
 
-    const shareToSmarterPoker = (article) => {
+    const shareToFacebook = (article) => {
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
     };
 
     const copyLink = async (article) => {
@@ -530,25 +704,6 @@ export default function NewsHub() {
             console.warn('Clipboard write failed:', err);
         }
     };
-
-    // Refresh button handler (triggers SWR revalidation)
-    const { mutate: mutateNews } = useSWR(`/api/news/articles?${newsParams}`, null, { revalidateOnMount: false });
-    const refreshData = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
-        setIsRefreshing(true);
-        await mutateNews();
-        setLastUpdate(new Date());
-        setIsRefreshing(false);
-    };
-
-
-    // Search handler
-    const handleSearch = useCallback((value) => {
-        setSearchQuery(value);
-        const timer = setTimeout(() => fetchNews(), 300);
-        return () => clearTimeout(timer);
-    }, [activeTab]);
 
     // Newsletter subscription
     const handleSubscribe = async (e) => {
@@ -568,16 +723,18 @@ export default function NewsHub() {
                 body: JSON.stringify({ email })
             });
 
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const { success, error } = await res.json();
+            // Parse the body even on non-2xx so the server's specific message surfaces
+            let body = {};
+            try { body = await res.json(); } catch (_) { /* non-JSON error body */ }
 
-            if (success) {
+            if (res.ok && body.success) {
                 setSubscribed(true);
+                if (body.message) setSubscribeMessage(body.message);
             } else {
-                setSubscribeError(error || 'Subscription failed');
+                setSubscribeError(body.error || body.message || `Subscription failed (${res.status})`);
             }
         } catch (e) {
-            setSubscribeError('Network error');
+            setSubscribeError('Network error — please try again');
         } finally {
             setSubscribing(false);
         }
@@ -588,30 +745,23 @@ export default function NewsHub() {
 
     // Article navigation - uses link containment
     const openArticle = async (article) => {
-        try {
-            await fetch('/api/news/articles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id })
-            });
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        // Fallback placeholders have fabricated ids — never POST view counts for them
+        if (!article.is_fallback) {
+            try {
+                await fetch('/api/news/articles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: article.id })
+                });
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            markAsRead(article.id);
+        }
 
-        markAsRead(article.id);
-
-        if (article.source_url) {
+        if (article.source_url && article.source_url !== '#') {
             // Open full page in-app via proxy-based ArticleReaderModal
             setArticleReader({ open: true, url: article.source_url, title: article.title || 'News Article' });
-        } else {
+        } else if (!article.is_fallback) {
             router.push(`/hub/article?id=${article.id}`);
-        }
-    };
-
-    // Video navigation - uses link containment for YouTube and direct URLs
-    const openVideo = (video) => {
-        if (video.youtube_id) {
-            openExternal(`https://www.youtube.com/watch?v=${video.youtube_id}`, video.title || 'Poker Video');
-        } else if (video.url) {
-            openExternal(video.url, video.title || 'Poker Video');
         }
     };
 
@@ -619,14 +769,22 @@ export default function NewsHub() {
     // HARDENED: Source boxes come directly from /api/news/source-boxes
     // No client-side filtering - the API guarantees 1 article per source box
     // ═══════════════════════════════════════════════════════════════════════════
-    const topArticles = sourceBoxes.length > 0 ? sourceBoxes : FALLBACK_NEWS.slice(0, 6);
+    // ?filter=bookmarks must narrow the top grid too — otherwise the "Showing bookmarks
+    // only" chip sits above six articles the user never bookmarked.
+    const allTopArticles = sourceBoxes.length > 0 ? sourceBoxes : FALLBACK_NEWS.slice(0, 6);
+    // Muted sources drop out of the top grid too — the API keys boxes on _sourceName.
+    const baseTopArticles = allTopArticles.filter(a => !isMuted(a.source_name || a._sourceName));
+    const topArticles = feedFilter === 'bookmarks'
+        ? baseTopArticles.filter(a => bookmarks.includes(a.id))
+        : baseTopArticles;
     const topArticleIds = topArticles.map(a => a.id);
 
     // Filter remaining news for "More Stories" section
-    const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 'Pokerfuse'];
     const filteredNews = news.filter(article => {
         if (article.source_name === 'Smarter.Poker') return false;
+        if (isMuted(article.source_name)) return false;
         if (!VALID_SOURCES.includes(article.source_name) && !article.source_box) return false;
+        if (feedFilter === 'bookmarks' && !bookmarks.includes(article.id)) return false;
         if (searchQuery) {
             return article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 article.content?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -641,8 +799,8 @@ export default function NewsHub() {
         return true;
     });
 
-    // Breaking news = most recent article from top sources
-    const breakingNews = news.find(a => a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
+    // Breaking news = most recent real article from top sources (fallback data never qualifies)
+    const breakingNews = news.find(a => !a.is_fallback && a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
 
     // Trending = sorted by views
     const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
@@ -662,34 +820,39 @@ export default function NewsHub() {
     const uniqueSourcesRead = [...new Set(news.filter(a => readArticles.includes(a.id)).map(a => a.source_name))].length;
 
     // Keyboard navigation (J=next, K=prev, Enter=open)
-    // NOTE: Must be placed AFTER topArticles/remainingStories const declarations to avoid TDZ
+    // Everything volatile lives in refs so the window listener attaches exactly once
+    // instead of tearing down on every render (article arrays get fresh identities).
+    const keyNavRef = useRef({ articles: [], focusedIdx: -1, modalOpen: false, openArticle: () => {} });
+    keyNavRef.current.articles = [...(topArticles || []), ...(remainingStories || [])];
+    keyNavRef.current.focusedIdx = focusedArticleIdx;
+    keyNavRef.current.modalOpen = reelViewerOpen || articleReader.open || !!shareArticle || showIntro;
+    keyNavRef.current.openArticle = openArticle;
     useEffect(() => {
+        const scrollToFocused = () => setTimeout(() => document.querySelector('.keyboard-focused')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
         const handleKeyNav = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            const allArticles = [...(topArticles || []), ...(remainingStories || [])];
+            // Ignore while typing or while any modal/viewer owns the keyboard
+            if (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+            // Ignore Enter when a button/link/row already has DOM focus — its own
+            // handler activates it and this listener must not double-fire
+            if (e.key === 'Enter' && (['BUTTON', 'A'].includes(e.target.tagName) || e.target.getAttribute?.('role') === 'button')) return;
+            if (keyNavRef.current.modalOpen) return;
+            const { articles, focusedIdx } = keyNavRef.current;
             if (e.key === 'j' || e.key === 'J') {
                 e.preventDefault();
-                setFocusedArticleIdx(prev => {
-                    const next = Math.min(prev + 1, allArticles.length - 1);
-                    // Phase 6: Smooth scroll to focused article
-                    setTimeout(() => document.querySelector('.keyboard-focused')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-                    return next;
-                });
+                setFocusedArticleIdx(prev => Math.min(prev + 1, articles.length - 1));
+                scrollToFocused();
             } else if (e.key === 'k' || e.key === 'K') {
                 e.preventDefault();
-                setFocusedArticleIdx(prev => {
-                    const next = Math.max(prev - 1, 0);
-                    setTimeout(() => document.querySelector('.keyboard-focused')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-                    return next;
-                });
-            } else if (e.key === 'Enter' && focusedArticleIdx >= 0 && focusedArticleIdx < allArticles.length) {
+                setFocusedArticleIdx(prev => Math.max(prev - 1, 0));
+                scrollToFocused();
+            } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < articles.length) {
                 e.preventDefault();
-                openArticle(allArticles[focusedArticleIdx]);
+                keyNavRef.current.openArticle(articles[focusedIdx]);
             }
         };
         window.addEventListener('keydown', handleKeyNav);
         return () => window.removeEventListener('keydown', handleKeyNav);
-    }, [focusedArticleIdx, topArticles, remainingStories]);
+    }, []);
 
     // Phase 6: IntersectionObserver for infinite scroll
     const loadMoreRef = useRef(null);
@@ -781,7 +944,7 @@ export default function NewsHub() {
                     canonical="/hub/news"
                 />
 
-                <div className={`news-hub ${darkMode ? '' : 'light'}`}>
+                <div className="news-hub">
                     {/* Scroll Progress Bar */}
                     <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
@@ -812,33 +975,39 @@ export default function NewsHub() {
                             >
                                 <motion.div
                                     className="share-modal"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="share-modal-title"
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     exit={{ scale: 0.9, opacity: 0 }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <h3>Share Article</h3>
+                                    <h3 id="share-modal-title">Share Article</h3>
                                     <p>{shareArticle.title}</p>
                                     <div className="share-buttons">
-                                        <button onClick={() => { shareToTwitter(shareArticle); setShareArticle(null); }}>
+                                        <button autoFocus onClick={() => { shareToTwitter(shareArticle); setShareArticle(null); }}>
                                             <Twitter size={20} /> Twitter
                                         </button>
-                                        <button onClick={() => { shareToSmarterPoker(shareArticle); setShareArticle(null); }}>
-                                            <TrendingUp size={20} /> SmarterPoker
+                                        <button onClick={() => { shareToFacebook(shareArticle); setShareArticle(null); }}>
+                                            <Facebook size={20} /> Facebook
                                         </button>
                                         <button onClick={() => { copyLink(shareArticle); setShareArticle(null); }}>
                                             <LinkIcon size={20} /> Copy Link
                                         </button>
                                     </div>
-                                    <button className="close-modal" onClick={() => setShareArticle(null)}>×</button>
+                                    <button className="close-modal" aria-label="Close share dialog" onClick={() => setShareArticle(null)}>×</button>
                                 </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* Skeleton Loading State */}
+                    {/* Skeleton Loading State — additive, never exclusive with the layout:
+                        the SWR key carries the debounced search term, so `loading` flips back
+                        to true on every new search. Unmounting the layout there would destroy
+                        the search input (and the filters/sidebar) mid-typing. */}
                     {loading && (
-                        <div className="skeleton-grid">
+                        <div className="skeleton-grid" aria-hidden="true">
                             {[...Array(6)].map((_, i) => (
                                 <div key={i} className="skeleton-card">
                                     <div className="skeleton-image shimmer" />
@@ -865,18 +1034,57 @@ export default function NewsHub() {
 
                             {/* Auto-refresh indicator */}
                             {lastRefreshed && (
-                                <div style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                <div style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                     <span>Updated {timeAgo(lastRefreshed)}</span>
                                     <button onClick={() => refreshNews()} style={{ background: 'none', border: 'none', color: '#5ef5f0', cursor: 'pointer', fontSize: '11px', padding: 0, textDecoration: 'underline' }}>Refresh</button>
                                 </div>
                             )}
 
+                            {/* Section Tabs — News / Reels (also the way BACK from the reels view) */}
+                            <div className="section-tabs" role="tablist" aria-label="News sections">
+                                <button
+                                    role="tab"
+                                    aria-selected={activeSection === 'news'}
+                                    className={`section-tab ${activeSection === 'news' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('news')}
+                                >
+                                    <Newspaper size={14} /> News
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeSection === 'reels'}
+                                    className={`section-tab ${activeSection === 'reels' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('reels')}
+                                >
+                                    <Film size={14} /> Reels
+                                </button>
+                            </div>
+
                             {/* Breaking News Ticker */}
                             {breakingNews && (
-                                <div className="breaking-ticker" onClick={() => openArticle(breakingNews)}>
+                                <div
+                                    className="breaking-ticker"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => openArticle(breakingNews)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(breakingNews); } }}
+                                >
                                     <span className="breaking-badge">BREAKING</span>
                                     <span className="breaking-text">{breakingNews.title}</span>
                                 </div>
+                            )}
+
+                            {/* Bookmarks deep-link filter chip (?filter=bookmarks) */}
+                            {feedFilter === 'bookmarks' && (
+                                <div className="feed-filter-chip">
+                                    <BookmarkCheck size={12} /> Showing bookmarks only
+                                    <button onClick={clearFeedFilter}>Clear</button>
+                                </div>
+                            )}
+
+                            {/* Bookmark feedback toast (sign-in prompt / save errors) */}
+                            {bookmarkNotice && (
+                                <div className="bookmark-notice" role="status">{bookmarkNotice}</div>
                             )}
 
                             {/* Source Filter Chips */}
@@ -908,17 +1116,49 @@ export default function NewsHub() {
                                         className="news-search-input"
                                         placeholder="Search articles..."
                                         value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        role="combobox"
+                                        aria-expanded={searchFocused && searchSuggestions.length > 0}
+                                        aria-controls="news-search-listbox"
+                                        aria-activedescendant={activeSuggestionIdx >= 0 ? `news-suggestion-${activeSuggestionIdx}` : undefined}
+                                        aria-autocomplete="list"
+                                        onChange={(e) => { setSearchQuery(e.target.value); setActiveSuggestionIdx(-1); }}
                                         onFocus={() => setSearchFocused(true)}
-                                        onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                                        onBlur={() => setTimeout(() => { setSearchFocused(false); setActiveSuggestionIdx(-1); }, 200)}
+                                        onKeyDown={(e) => {
+                                            if (!searchSuggestions.length) return;
+                                            if (e.key === 'ArrowDown') {
+                                                e.preventDefault();
+                                                setActiveSuggestionIdx(prev => Math.min(prev + 1, searchSuggestions.length - 1));
+                                            } else if (e.key === 'ArrowUp') {
+                                                e.preventDefault();
+                                                setActiveSuggestionIdx(prev => Math.max(prev - 1, -1));
+                                            } else if (e.key === 'Enter' && activeSuggestionIdx >= 0) {
+                                                e.preventDefault();
+                                                openArticle(searchSuggestions[activeSuggestionIdx]);
+                                                setSearchQuery('');
+                                                setActiveSuggestionIdx(-1);
+                                            } else if (e.key === 'Escape') {
+                                                setSearchFocused(false);
+                                                setActiveSuggestionIdx(-1);
+                                            }
+                                        }}
                                     />
                                     {searchFocused && searchSuggestions.length > 0 && (
-                                        <div className="search-dropdown">
-                                            {searchSuggestions.map(a => (
-                                                <div key={a.id} className="search-suggestion" onClick={() => { openArticle(a); setSearchQuery(''); }}>
+                                        <div className="search-dropdown" id="news-search-listbox" role="listbox">
+                                            {searchSuggestions.map((a, i) => (
+                                                <button
+                                                    key={a.id}
+                                                    id={`news-suggestion-${i}`}
+                                                    type="button"
+                                                    role="option"
+                                                    aria-selected={activeSuggestionIdx === i}
+                                                    className={`search-suggestion ${activeSuggestionIdx === i ? 'active' : ''}`}
+                                                    onMouseDown={(e) => e.preventDefault() /* keep input focus so blur doesn't race the click */}
+                                                    onClick={() => { openArticle(a); setSearchQuery(''); setActiveSuggestionIdx(-1); }}
+                                                >
                                                     <span className="suggestion-source" style={{ color: SOURCE_COLORS[a.source_name] || '#5ef5f0' }}>{a.source_name}</span>
                                                     <span className="suggestion-title">{a.title}</span>
-                                                </div>
+                                                </button>
                                             ))}
                                         </div>
                                     )}
@@ -949,7 +1189,15 @@ export default function NewsHub() {
                                 <>
                                     {/* News Grid - 6 Source-Specific Boxes */}
                                     <section className="news-section">
-                                        {filteredNews.length === 0 && searchQuery ? (
+                                        {feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
+                                            <div className="no-results">
+                                                <BookmarkCheck size={48} />
+                                                <p>No bookmarked articles yet</p>
+                                                <button onClick={clearFeedFilter}>
+                                                    Show all news
+                                                </button>
+                                            </div>
+                                        ) : filteredNews.length === 0 && searchQuery ? (
                                             <div className="no-results">
                                                 <Globe size={48} />
                                                 <p>No articles found for "{searchQuery}"</p>
@@ -990,10 +1238,11 @@ export default function NewsHub() {
                                                 <div className="news-list">
                                                 {(() => {
                                                     let lastGroup = '';
-                                                    return remainingStories.slice(0, visibleStories).map((article) => {
+                                                    return remainingStories.slice(0, visibleStories).map((article, storyIndex) => {
                                                         const group = getTimeGroup(article.published_at);
                                                         const showHeader = group !== lastGroup;
                                                         lastGroup = group;
+                                                        const isKeyFocused = focusedArticleIdx === topArticles.length + storyIndex;
                                                         return (
                                                             <React.Fragment key={article.id}>
                                                                 {showHeader && (
@@ -1002,21 +1251,25 @@ export default function NewsHub() {
                                                                     </div>
                                                                 )}
                                                                 <motion.div
-                                                                    className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''}`}
+                                                                    className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''} ${isKeyFocused ? 'keyboard-focused' : ''}`}
                                                                     whileHover={{ x: 4 }}
+                                                                    role="button"
+                                                                    tabIndex={0}
                                                                     onClick={() => openArticle(article)}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
                                                                 >
                                                                     {isNewArticle(article) && (
                                                                         <span className="new-badge">NEW</span>
                                                                     )}
                                                                     {(article.views || 0) > 50 && (
-                                                                        <span className="trending-badge">🔥</span>
+                                                                        <span className="trending-badge" title="Trending"><TrendingUp size={11} /></span>
                                                                     )}
                                                                     <img
                                                                         src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                         alt=""
                                                                         className="list-thumb"
-                                                                        onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                                        loading="lazy"
+                                                                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGES.news; }}
                                                                     />
                                                                     <div className="list-content">
                                                                         <h4>{article.title}</h4>
@@ -1028,7 +1281,11 @@ export default function NewsHub() {
                                                                             {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
                                                                         </div>
                                                                     </div>
-                                                                    <div className="list-actions" onClick={(e) => e.stopPropagation()}>
+                                                                    <div
+                                                                        className="list-actions"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        onKeyDown={(e) => e.stopPropagation() /* row handler would swallow Enter/Space on these buttons */}
+                                                                    >
                                                                         <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
                                                                             {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                                                                         </button>
@@ -1063,12 +1320,12 @@ export default function NewsHub() {
                                                 className="see-all-btn"
                                                 onClick={() => setActiveSection('reels')}
                                             >
-                                                See All →
+                                                See All <ChevronRight size={13} style={{ verticalAlign: '-2px' }} />
                                             </button>
                                         </div>
                                         {reels.length > 0 ? (
                                             <div className="reels-carousel-wrapper">
-                                                <button className="carousel-arrow carousel-left" onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>
+                                                <button className="carousel-arrow carousel-left" aria-label="Scroll reels left" onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>
                                                     <ChevronLeft size={20} />
                                                 </button>
                                                 <div className="reels-carousel" ref={reelsCarouselRef}>
@@ -1076,12 +1333,24 @@ export default function NewsHub() {
                                                         <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
                                                     ))}
                                                 </div>
-                                                <button className="carousel-arrow carousel-right" onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>
+                                                <button className="carousel-arrow carousel-right" aria-label="Scroll reels right" onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>
                                                     <ChevronRight size={20} />
                                                 </button>
                                             </div>
+                                        ) : reelsLoading ? (
+                                            <div className="reels-empty-state">
+                                                <div className="loading-spinner" />
+                                                <span>Loading reels...</span>
+                                            </div>
+                                        ) : reelsError ? (
+                                            <div className="reels-empty-state">
+                                                <span>Could not load reels.</span>
+                                                <button onClick={() => refreshReels()}>Retry</button>
+                                            </div>
                                         ) : (
-                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
+                                            <div className="reels-empty-state">
+                                                <span>No reels yet — check back soon.</span>
+                                            </div>
                                         )}
                                     </section>
                                 </>
@@ -1206,24 +1475,33 @@ export default function NewsHub() {
                         <aside className="sidebar">
                             {/* MSPT News & Updates - Dedicated Box */}
                             <div className="widget mspt">
-                                <h4><Trophy size={14} /> MSPT News & Updates</h4>
+                                <h4><Trophy size={14} /> MSPT News & Updates{msptNews[0]?.is_fallback && <span className="sample-tag">Sample</span>}</h4>
                                 <ul className="mspt-list">
-                                    {msptNews.map((item) => (
-                                        <li
-                                            key={item.id}
-                                            onClick={() => item.source_url && window.open(item.source_url, '_blank')}
-                                        >
-                                            <div className="mspt-item">
-                                                <span className="mspt-title">{item.title}</span>
-                                                <div className="mspt-meta">
-                                                    <span className="mspt-time">{timeAgo(item.published_at)}</span>
-                                                    {item.prize_pool && (
-                                                        <span className="mspt-prize">{item.prize_pool}</span>
-                                                    )}
+                                    {msptNews.map((item) => {
+                                        const clickable = !!(item.source_url && item.source_url !== '#');
+                                        // Route through openArticle so MSPT items get the same
+                                        // reader modal, read-state, and view tracking as the feed
+                                        const open = () => clickable && openArticle(item);
+                                        return (
+                                            <li
+                                                key={item.id}
+                                                role={clickable ? 'button' : undefined}
+                                                tabIndex={clickable ? 0 : undefined}
+                                                onClick={open}
+                                                onKeyDown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } }}
+                                            >
+                                                <div className="mspt-item">
+                                                    <span className="mspt-title">{item.title}</span>
+                                                    <div className="mspt-meta">
+                                                        <span className="mspt-time">{timeAgo(item.published_at)}</span>
+                                                        {item.prize_pool && (
+                                                            <span className="mspt-prize">{item.prize_pool}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </li>
-                                    ))}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                                 <a
                                     href="https://msptpoker.com"
@@ -1240,14 +1518,20 @@ export default function NewsHub() {
                                 <h4><TrendingUp size={14} /> Trending</h4>
                                 <ul className="trending-list">
                                     {trendingNews.map((article, i) => (
-                                        <li key={article.id} onClick={() => openArticle(article)}>
-                                            <span className={`rank ${i < 3 ? `medal-${i + 1}` : ''}`}>{i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1)}</span>
+                                        <li
+                                            key={article.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => openArticle(article)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
+                                        >
+                                            <span className={`rank ${i < 3 ? `rank-medal medal-${i + 1}` : ''}`}>{i + 1}</span>
                                             <img
                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                 alt=""
                                                 className="trend-thumb"
                                                 loading="lazy"
-                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGES.news; }}
                                             />
                                             <span className="title">{article.title}</span>
                                         </li>
@@ -1257,7 +1541,7 @@ export default function NewsHub() {
 
                             {/* Player of the Year */}
                             <div className="widget leaderboard">
-                                <h4><Trophy size={14} /> Player Of The Year</h4>
+                                <h4><Trophy size={14} /> Player Of The Year{!(leaderboardData?.success && leaderboardData.data?.length) && <span className="sample-tag">Sample</span>}</h4>
                                 <ul>
                                     {leaderboard.map((player, i) => (
                                         <li key={player.id || i}>
@@ -1272,7 +1556,7 @@ export default function NewsHub() {
                             {/* Upcoming Events */}
                             <Link href="/hub/poker-near-me/lobby">
                                 <div className="widget events">
-                                    <h4><MapPin size={14} /> Poker Near Me</h4>
+                                    <h4><MapPin size={14} /> Poker Near Me{!(eventsData?.success && eventsData.data?.length) && <span className="sample-tag">Sample</span>}</h4>
                                     <ul className="events-list">
                                         {events.map(event => (
                                             <li key={event.id}>
@@ -1287,17 +1571,52 @@ export default function NewsHub() {
                                 </div>
                             </Link>
 
-                            {/* Phase 3: Reading History Widget */}
+                            {/* Newsletter Signup */}
+                            <div className="widget newsletter">
+                                <h4><Mail size={14} /> Newsletter</h4>
+                                {subscribed ? (
+                                    <div className="subscribed">
+                                        <CheckCircle size={16} /> {subscribeMessage || 'Subscribed!'}
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleSubscribe}>
+                                        <input
+                                            type="email"
+                                            placeholder="Your email"
+                                            value={email}
+                                            aria-label="Email address"
+                                            onChange={(e) => setEmail(e.target.value)}
+                                        />
+                                        <button type="submit" disabled={subscribing}>
+                                            {subscribing ? 'Joining...' : 'Join'}
+                                        </button>
+                                    </form>
+                                )}
+                                {subscribeError && <div className="error" role="alert">{subscribeError}</div>}
+                            </div>
+
+                            {/* Phase 3: Reading History Widget — most recently read first
+                                (readArticles is append-ordered, so reverse = recency order) */}
                             {readArticles.length > 0 && (
                                 <div className="widget reading-history">
                                     <h4><Eye size={14} /> Recently Read</h4>
                                     <ul className="history-list">
-                                        {news.filter(a => readArticles.includes(a.id)).slice(0, 5).map(a => (
-                                            <li key={a.id} onClick={() => openArticle(a)}>
-                                                <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
-                                                <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
-                                            </li>
-                                        ))}
+                                        {[...readArticles].reverse()
+                                            .map(id => news.find(a => a.id === id))
+                                            .filter(Boolean)
+                                            .slice(0, 5)
+                                            .map(a => (
+                                                <li
+                                                    key={a.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => openArticle(a)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(a); } }}
+                                                >
+                                                    <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                                    <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
+                                                </li>
+                                            ))}
                                     </ul>
                                 </div>
                             )}
@@ -1354,50 +1673,15 @@ export default function NewsHub() {
                             width: 100% !important;
                         }
 
-                        header.header {
-                            width: 100% !important;
-                            max-width: 100vw !important;
-                            padding: 0 !important;
-                            margin-top: 3px !important;
-                            margin-bottom: 3px !important;
-                            overflow-x: hidden !important;
-                            overflow-y: hidden !important;
-                            -webkit-overflow-scrolling: touch;
-                            height: auto !important;
-                        }
-
-                        header.header > .header-left {
-                            width: 100% !important;
-                            max-width: 100vw !important;
-                            overflow-x: hidden !important;
-                            justify-content: center !important;
-                            height: auto !important;
-                        }
-
                         .section-tabs {
-                            overflow-x: hidden !important;
                             width: 100% !important;
-                            max-width: 100vw !important;
-                            flex-direction: row !important;
-                            flex-wrap: nowrap !important;
                             justify-content: center !important;
-                            gap: 3px !important;
-                            padding: 0 3px !important;
-                            margin: 0 !important;
-                            -webkit-overflow-scrolling: touch;
+                            padding: 0 12px !important;
                         }
 
-                        .section-tab-img,
-                        .refresh-btn-img {
-                            flex: 1 1 0 !important;
-                            height: auto !important;
-                            min-width: 0 !important;
-                        }
-
-                        .section-tab-img img,
-                        .refresh-btn-img img {
-                            width: 100% !important;
-                            height: auto !important;
+                        .section-tab {
+                            flex: 1 1 0;
+                            justify-content: center;
                         }
 
                         .main-content {
@@ -1422,272 +1706,88 @@ export default function NewsHub() {
                         }
                     }
 
-                    /* Header Structure */
-                    .header {
-                        position: sticky;
-                        top: 0; /* Sticks below universal header */
-                        z-index: 100;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center; /* Center icons */
-                        padding: 8px 4px; /* More padding */
-                        background: #18191A;
-                        border-bottom: 1px solid #3E4042;
-                        gap: 0;
-                        height: 94px; /* Match 85px icons + padding */
-                        overflow: visible;
-                    }
-
-                    .header-left {
-                        display: flex;
-                        align-items: center;
-                        gap: 0; /* Zero gap */
-                        justify-content: center;
-                        height: 85px;
-                        overflow: visible;
-                    }
-
-                    .logo {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    }
-
-                    .logo :global(.logo-icon) {
-                        color: #2374E1;
-                    }
-
-                    .logo span {
-                        font-size: 18px;
-                        font-weight: 700;
-                        color: #E4E6EB;
-                    }
-
+                    /* ═══════════════════════════════════════════════ */
+                    /* SECTION TABS (News / Reels)                     */
+                    /* ═══════════════════════════════════════════════ */
                     .section-tabs {
                         display: flex;
-                        gap: 0; /* Zero gap - packed tight */
+                        gap: 8px;
                         align-items: center;
                         justify-content: center;
-                        overflow: visible;
                         padding: 0;
+                        margin: 0 0 12px;
                     }
 
                     .section-tab {
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        padding: 8px 16px;
-                        background: #3A3B3C;
-                        border: none;
-                        border-radius: 8px;
+                        padding: 8px 20px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
                         color: #B0B3B8;
                         font-size: 13px;
-                        font-weight: 500;
+                        font-weight: 600;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
 
                     .section-tab:hover {
-                        background: #4E4F50;
+                        background: rgba(255, 255, 255, 0.1);
                         color: #E4E6EB;
                     }
 
                     .section-tab.active {
-                        background: #2374E1;
-                        color: #fff;
+                        background: rgba(94, 245, 240, 0.12);
+                        border-color: rgba(94, 245, 240, 0.5);
+                        color: #5ef5f0;
                     }
 
-                    /* Custom Image Tab Buttons - Bigger & Packed */
-                    .section-tab-img, .refresh-btn-img {
-                        flex: 0 0 auto;
-                        height: 85px; /* Mobile-fit icons */
-                        width: auto;
-                        min-width: 0;
-                        padding: 0;
-                        margin: 0;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                    }
-
-                    .section-tab-img img, .refresh-btn-img img {
-                        height: 85px; /* Mobile-fit 4 icons */
-                        width: auto;
-                        object-fit: contain;
-                        display: block;
-                    }
-
-                    /* Specific styling for Latest Videos removed to ensure uniform size */
-                    .section-title-img {
-                        height: 240px;
-                        width: auto;
-                        display: block;
-                    }
-
-
-                    .section-tab-img:hover img {
-                        filter: brightness(1.15);
-                        /* Removing scale to ensure uniform size */
-                    }
-
-                    .section-tab-img.active img {
-                        filter: brightness(1.2) drop-shadow(0 0 6px rgba(0, 212, 255, 0.5));
-                        /* Removing scale to ensure uniform size */
-                    }
-
-                    /* Custom Image Refresh Button */
-                    .refresh-btn-img {
-                         background: transparent;
-                         border: none;
-                         cursor: pointer;
-                    }
-
-                    .refresh-btn-img:hover img {
-                        filter: brightness(1.2);
-                    }
-
-                    .refresh-btn-img:disabled { opacity: 0.5; }
-                    .refresh-btn-img img.spinning { animation: spin 1s linear infinite; }
-                    
-                    /* Search Box - Mobile Optimized */
-                    .search-box {
-                        display: flex;
-                        align-items: center;
-                        background: #3A3B3C;
-                        border-radius: 16px;
-                        padding: 4px 10px;
-                        width: 100px; /* Mobile-optimized */
-                        transition: background-color 0.2s;
-                        flex-shrink: 0;
-                        height: 32px;
-                    }
-
-                    .search-box input {
-                        background: transparent;
-                        border: none;
-                        color: #E4E6EB;
-                        font-size: 16px;
-                        width: 100%;
-                        outline: none;
-                    }
-                    
-                    .search-icon {
-                        color: #B0B3B8;
-                        margin-right: 8px;
-                    }
-
-                    .clear-search {
-                        position: absolute;
-                        right: 8px;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        width: 18px;
-                        height: 18px;
-                        background: rgba(255, 255, 255, 0.1);
-                        border: none;
-                        border-radius: 50%;
-                        color: #fff;
-                        font-size: 12px;
-                        cursor: pointer;
-                    }
-
-                    .refresh-btn, .theme-toggle {
-                        padding: 8px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 8px;
-                        color: rgba(255, 255, 255, 0.7);
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-
-                    .refresh-btn:hover, .theme-toggle:hover {
-                        background: rgba(255, 255, 255, 0.1);
-                        color: #fff;
-                    }
-
-                    .refresh-btn:disabled {
-                        opacity: 0.5;
-                        cursor: not-allowed;
-                    }
-
-                    .refresh-btn :global(.spinning) {
-                        animation: spin 1s linear infinite;
-                    }
-
-                    @keyframes spin {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-
-                    /* Category Bar */
-                    .category-bar {
+                    /* ═══════════════════════════════════════════════ */
+                    /* FEED FILTER CHIP + BOOKMARK TOAST               */
+                    /* ═══════════════════════════════════════════════ */
+                    .feed-filter-chip {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        padding: 12px 24px;
-                        background: rgba(10, 10, 18, 0.8);
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-                        overflow-x: auto;
-                    }
-
-                    .category-tab {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 14px;
-                        background: transparent;
-                        border: none;
-                        border-radius: 20px;
-                        color: rgba(255, 255, 255, 0.6);
+                        padding: 6px 12px;
+                        margin-bottom: 10px;
+                        background: rgba(94, 245, 240, 0.08);
+                        border: 1px solid rgba(94, 245, 240, 0.3);
+                        border-radius: 10px;
+                        color: #5ef5f0;
                         font-size: 12px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        white-space: nowrap;
+                        font-weight: 600;
                     }
 
-                    .category-tab:hover {
-                        background: rgba(255, 255, 255, 0.05);
-                        color: #fff;
-                    }
-
-                    .category-tab.active {
-                        background: rgba(0, 212, 255, 0.15);
-                        color: #2374E1;
-                    }
-
-                    .last-update {
+                    .feed-filter-chip button {
                         margin-left: auto;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
+                        padding: 3px 10px;
+                        background: rgba(255, 255, 255, 0.08);
+                        border: none;
+                        border-radius: 6px;
+                        color: #fff;
                         font-size: 11px;
-                        color: rgba(255, 255, 255, 0.4);
+                        cursor: pointer;
+                        transition: background 0.15s;
                     }
 
-                    /* Loading */
-                    .loading {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 12px;
-                        padding: 60px;
-                        color: rgba(255, 255, 255, 0.5);
+                    .feed-filter-chip button:hover {
+                        background: rgba(255, 255, 255, 0.16);
                     }
 
-                    .loading :global(.spinner) {
-                        animation: spin 1s linear infinite;
+                    .bookmark-notice {
+                        padding: 8px 12px;
+                        margin-bottom: 10px;
+                        background: rgba(251, 191, 36, 0.1);
+                        border: 1px solid rgba(251, 191, 36, 0.35);
+                        border-radius: 10px;
+                        color: #fbbf24;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-align: center;
                     }
-
-                    /* REMOVED DUPLICATE HEADER-LEFT RULE - See lines ~1769-1777 for authoritative CSS */
-
-                    /* REMOVED DUPLICATE SECTION-TABS RULES - See lines ~1782-1791 for authoritative CSS */
-
-                    /* REMOVED DUPLICATE ICON RULES - See lines ~1819-1840 for authoritative icon CSS */
 
                     /* ═══════════════════════════════════════════════ */
                     /* SKELETON SHIMMER LOADING */
@@ -1876,7 +1976,8 @@ export default function NewsHub() {
                         opacity: 0;
                         transition: opacity 0.2s;
                     }
-                    .news-list-item:hover .list-actions {
+                    .news-list-item:hover .list-actions,
+                    .news-list-item:focus-within .list-actions {
                         opacity: 1;
                     }
                     .news-list-item .list-actions button {
@@ -1920,7 +2021,7 @@ export default function NewsHub() {
                         justify-content: center;
                         gap: 8px;
                         padding: 16px;
-                        color: rgba(255,255,255,0.3);
+                        color: rgba(255,255,255,0.55);
                         font-size: 12px;
                     }
                     .loading-spinner {
@@ -1934,41 +2035,32 @@ export default function NewsHub() {
                     @keyframes spin {
                         to { transform: rotate(360deg); }
                     }
-                    .keyboard-focused {
-                        outline: 2px solid rgba(94,245,240,0.4);
+                    /* Focus ring lives on the inner card (.news-box) for grid items and on
+                       the row itself for list items — never both, no double ring */
+                    .news-list-item.keyboard-focused {
+                        outline: 2px solid #5ef5f0;
                         outline-offset: 2px;
-                        border-radius: 8px;
                     }
 
                     /* ═══════════════════════════════════════════════ */
-                    /* TRENDING BADGE & LOAD MORE */
+                    /* TRENDING BADGE */
                     /* ═══════════════════════════════════════════════ */
                     .trending-badge {
                         position: absolute;
                         top: 4px;
                         left: 4px;
-                        font-size: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: rgba(251, 146, 60, 0.18);
+                        color: #fb923c;
                         z-index: 2;
                     }
                     .news-list-item {
                         position: relative;
-                    }
-                    .load-more-btn {
-                        display: block;
-                        width: 100%;
-                        padding: 12px;
-                        margin-top: 8px;
-                        background: rgba(94, 245, 240, 0.08);
-                        border: 1px solid rgba(94, 245, 240, 0.25);
-                        border-radius: 10px;
-                        color: #5ef5f0;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .load-more-btn:hover {
-                        background: rgba(94, 245, 240, 0.15);
                     }
 
                     /* ═══════════════════════════════════════════════ */
@@ -1995,7 +2087,7 @@ export default function NewsHub() {
                         left: 0;
                         height: 3px;
                         background: linear-gradient(90deg, #5ef5f0, #00d4ff);
-                        z-index: 99999;
+                        z-index: 9999; /* Below modals (share 10000, viewers 99999) */
                         transition: width 0.1s linear;
                         box-shadow: 0 0 8px rgba(94, 245, 240, 0.5);
                     }
@@ -2097,11 +2189,30 @@ export default function NewsHub() {
                     .carousel-right { right: -12px; }
 
                     /* ═══════════════════════════════════════════════ */
-                    /* PHASE 2: TRENDING MEDAL STYLING */
+                    /* PHASE 2: TRENDING MEDAL STYLING (styled rank badges, no emoji) */
                     /* ═══════════════════════════════════════════════ */
-                    .rank.medal-1, .rank.medal-2, .rank.medal-3 {
-                        font-size: 18px;
-                        line-height: 1;
+                    .rank.rank-medal {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        font-size: 11px;
+                        font-weight: 800;
+                        flex-shrink: 0;
+                    }
+                    .rank.rank-medal.medal-1 {
+                        background: linear-gradient(135deg, #fbbf24, #d97706);
+                        color: #1a1c1e;
+                    }
+                    .rank.rank-medal.medal-2 {
+                        background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+                        color: #1a1c1e;
+                    }
+                    .rank.rank-medal.medal-3 {
+                        background: linear-gradient(135deg, #d97706, #92400e);
+                        color: #fff;
                     }
 
                     /* ═══════════════════════════════════════════════ */
@@ -2156,12 +2267,19 @@ export default function NewsHub() {
                     .search-suggestion {
                         display: flex;
                         flex-direction: column;
+                        align-items: flex-start;
                         gap: 2px;
+                        width: 100%;
                         padding: 10px 14px;
+                        background: transparent;
+                        border: none;
+                        font-family: inherit;
+                        text-align: left;
                         cursor: pointer;
                         transition: background 0.15s;
                     }
-                    .search-suggestion:hover {
+                    .search-suggestion:hover,
+                    .search-suggestion.active {
                         background: rgba(94, 245, 240, 0.08);
                     }
                     .suggestion-source {
@@ -2245,7 +2363,8 @@ export default function NewsHub() {
                     /* ═══════════════════════════════════════════════ */
                     .scroll-to-top-fab {
                         position: fixed;
-                        bottom: 24px;
+                        /* Sits above the fixed BottomNavBar (70px) + breathing room */
+                        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
                         right: 24px;
                         width: 48px;
                         height: 48px;
@@ -2344,7 +2463,7 @@ export default function NewsHub() {
 
 
 
-                    .section-title :global(svg) {
+                    .section-title svg {
                         color: #2374E1;
                     }
 
@@ -2385,100 +2504,33 @@ export default function NewsHub() {
                         pointer-events: none;
                     }
 
-                    /* Force ALL boxes to same size */
-                    .news-grid > * {
+                    /* Force all GRID boxes to the same size — list mode keeps natural
+                       row heights (:not scope stops the 340px lock from breaking it) */
+                    .news-grid:not(.news-grid-list) > * {
                         height: 340px !important;
                         min-height: 340px !important;
                         max-height: 340px !important;
                     }
 
-                    .news-grid .news-box,
-                    .news-grid .mspt-box {
+                    .news-grid:not(.news-grid-list) .news-box {
                         height: 340px !important;
                         min-height: 340px !important;
                         max-height: 340px !important;
                     }
 
                     @media (max-width: 768px) {
-                        /* CRITICAL: Override global 340px height rules */
+                        /* CRITICAL: Override the 340px grid height lock on mobile.
+                           Must repeat the :not(.news-grid-list) scope — media queries add no
+                           specificity, so a bare .news-grid selector loses to the lock above.
+                           (The card frame/image/typography overrides live in the single
+                           global mobile block near the end of the file.) */
+                        .news-grid:not(.news-grid-list) > *,
+                        .news-grid:not(.news-grid-list) .news-box,
                         .news-grid > *,
-                        .news-grid .news-box,
-                        .news-grid .mspt-box {
+                        .news-grid .news-box {
                             height: auto !important;
                             min-height: auto !important;
                             max-height: none !important;
-                        }
-
-                        .news-grid {
-                            grid-template-columns: 1fr !important;
-                            gap: 0 !important;
-                            padding: 0 !important;
-                            border-radius: 0 !important;
-                            background: transparent !important;
-                            box-shadow: none !important;
-                            border: none !important;
-                            width: 100% !important;
-                            max-width: 100vw !important;
-                        }
-
-                        /* Remove metallic border overlay */
-                        .news-grid::before {
-                            display: none !important;
-                        }
-
-                        /* ---------------------------------------------------------
-                           RESTORED METALLIC FRAME (Mobile Override)
-                           --------------------------------------------------------- */
-                        
-                        /* Restore framed card style */
-                        .news-box {
-                            height: auto !important;
-                            min-height: auto !important;
-                            max-height: none !important;
-                            aspect-ratio: auto;
-                            border-radius: 12px !important;
-                            box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
-                            border: none !important;
-                            margin-bottom: 0 !important;
-                            background: #1a1c1e;
-                            overflow: hidden !important;
-                        }
-
-                        /* Chrome frame - border only, no glow */
-                        .news-box::after {
-                            content: '' !important;
-                            display: block !important;
-                            position: absolute !important;
-                            inset: 0 !important;
-                            border-radius: 12px !important;
-                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
-                            box-shadow: none !important;
-                            pointer-events: none !important;
-                            z-index: 10 !important;
-                        }
-
-                        /* Full width image 16:9 */
-                        .box-image {
-                            height: auto !important; 
-                            aspect-ratio: 16/9;
-                            border-radius: 0 !important;
-                        }
-
-                        .box-image img {
-                            width: 100% !important;
-                            height: 100% !important;
-                            object-fit: cover !important;
-                            border-radius: 0 !important;
-                        }
-
-                        /* Adjust content padding */
-                        .box-content {
-                            padding: 12px 16px !important;
-                        }
-
-                        .box-title {
-                            font-size: 16px !important; /* Readability */
-                            line-height: 1.4 !important;
                         }
                     }
 
@@ -2489,7 +2541,7 @@ export default function NewsHub() {
                         justify-content: center;
                         gap: 12px;
                         padding: 60px;
-                        color: rgba(255, 255, 255, 0.4);
+                        color: rgba(255, 255, 255, 0.55);
                         text-align: center;
                     }
 
@@ -2502,52 +2554,9 @@ export default function NewsHub() {
                         cursor: pointer;
                     }
 
-                    .more-stories {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 6px;
-                        width: 100%;
-                        margin-top: 20px;
-                        padding: 14px 20px;
-                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(139, 92, 246, 0.1));
-                        border: 1px solid rgba(0, 212, 255, 0.3);
-                        border-radius: 10px;
-                        font-size: 14px;
-                        font-weight: 500;
-                        color: rgba(255, 255, 255, 0.8);
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                    }
-
-                    .more-stories:hover {
-                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(139, 92, 246, 0.2));
-                        border-color: rgba(0, 212, 255, 0.5);
-                        color: #fff;
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
-                    }
-
-                    .collapse-btn {
-                        margin-left: auto;
-                        padding: 4px 12px;
-                        background: rgba(255, 255, 255, 0.1);
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.6);
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-
-                    .collapse-btn:hover {
-                        background: rgba(255, 255, 255, 0.2);
-                        color: #fff;
-                    }
-
                     /* More Stories List */
-                    .more-section {
-                        margin-top: 32px;
+                    .more-stories-section {
+                        margin-top: 24px;
                     }
 
                     .news-list {
@@ -2593,33 +2602,56 @@ export default function NewsHub() {
 
                     .list-meta {
                         display: flex;
+                        align-items: center;
                         gap: 6px;
                         font-size: 11px;
-                        color: rgba(255, 255, 255, 0.4);
+                        color: rgba(255, 255, 255, 0.55);
                     }
 
-                    .list-arrow {
-                        color: rgba(255, 255, 255, 0.3);
-                    }
-
-                    /* Reels & Videos Preview Sections (on News tab) */
-                    .reels-preview-section,
-                    .videos-preview-section {
+                    /* Reels Preview Section (on News tab) */
+                    .reels-preview-section {
                         position: relative;
                         margin-top: 32px;
                         padding: 24px;
                         border: none;
                         border-radius: 16px;
-                        background: 
+                        background:
                             linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-                        border-image: url('/images/news-icons/section-frame.png') 30 round;
+                        box-shadow:
+                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                            0 8px 32px rgba(0, 0, 0, 0.6);
                         overflow: hidden;
                     }
-                    
-                    .reels-preview-section::before,
-                    .videos-preview-section::before {
+
+                    .reels-preview-section::before {
                         display: none;
+                    }
+
+                    .reels-empty-state {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        padding: 24px;
+                        color: rgba(255, 255, 255, 0.55);
+                        font-size: 13px;
+                    }
+
+                    .reels-empty-state button {
+                        padding: 6px 14px;
+                        background: rgba(94, 245, 240, 0.1);
+                        border: 1px solid rgba(94, 245, 240, 0.35);
+                        border-radius: 8px;
+                        color: #5ef5f0;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: background 0.15s;
+                    }
+
+                    .reels-empty-state button:hover {
+                        background: rgba(94, 245, 240, 0.2);
                     }
 
                     .section-header-row {
@@ -2684,13 +2716,15 @@ export default function NewsHub() {
                         border-radius: 3px;
                     }
 
-                    .reels-carousel :global(.reel-card) {
+                    /* NOTE: this is a plain global <style> tag (not styled-jsx), so child
+                       component classes are targeted directly — :global() is not valid here */
+                    .reels-carousel .reel-card {
                         flex-shrink: 0 !important;
                         width: 220px !important;
                         max-width: 220px !important;
                     }
 
-                    .reels-carousel :global(.reel-thumbnail) {
+                    .reels-carousel .reel-thumbnail {
                         width: 100% !important;
                         height: 391px !important;
                         aspect-ratio: auto !important;
@@ -2698,62 +2732,13 @@ export default function NewsHub() {
                         position: relative !important;
                     }
 
-                    .reels-carousel :global(.reel-thumbnail img) {
+                    .reels-carousel .reel-thumbnail img {
                         position: absolute !important;
                         top: 0 !important;
                         left: 0 !important;
                         width: 100% !important;
                         height: 100% !important;
                         object-fit: cover !important;
-                    }
-
-                    .videos-carousel {
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 16px;
-                    }
-
-                    @media (max-width: 768px) {
-                        .videos-carousel {
-                            grid-template-columns: 1fr;
-                        }
-                    }
-
-                    /* Videos Section */
-                    .videos-section {
-                        padding-bottom: 24px;
-                    }
-
-                    .videos-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-                        gap: 16px;
-                        padding: 20px;
-                        background: #1a1c1e;
-                        border: 12px solid transparent;
-                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 stretch;
-                        border-radius: 0;
-                    }
-
-                    .see-all-videos {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        margin-top: 24px;
-                        padding: 14px;
-                        background: linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(255, 0, 0, 0.05));
-                        border: 1px solid rgba(255, 0, 0, 0.3);
-                        border-radius: 10px;
-                        color: #ff4444;
-                        font-size: 14px;
-                        font-weight: 600;
-                        text-decoration: none;
-                        transition: all 0.2s;
-                    }
-
-                    .see-all-videos:hover {
-                        background: rgba(255, 0, 0, 0.2);
                     }
 
                     /* Reels Section */
@@ -2765,6 +2750,20 @@ export default function NewsHub() {
                         display: grid;
                         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
                         gap: 16px;
+                    }
+
+                    /* Videos section (?tab=videos) */
+                    .videos-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                        gap: 16px;
+                    }
+
+                    @media (max-width: 768px) {
+                        .videos-grid {
+                            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                            gap: 12px;
+                        }
                     }
 
                     /* Sidebar */
@@ -2812,8 +2811,21 @@ export default function NewsHub() {
                         color: #E4E6EB;
                     }
 
-                    .widget h4 :global(svg) {
+                    .widget h4 svg {
                         color: #2374E1;
+                    }
+
+                    /* "Sample" tag shown when a widget is rendering fallback data */
+                    .sample-tag {
+                        margin-left: auto;
+                        padding: 1px 6px;
+                        background: rgba(255, 255, 255, 0.12);
+                        border-radius: 6px;
+                        font-size: 9px;
+                        font-weight: 700;
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                        color: rgba(255, 255, 255, 0.65);
                     }
 
                     /* Newsletter Widget */
@@ -2824,7 +2836,7 @@ export default function NewsHub() {
                         border-radius: 8px 8px 0 0;
                     }
 
-                    .newsletter h4 :global(svg) {
+                    .newsletter h4 svg {
                         color: #fff;
                     }
 
@@ -2928,7 +2940,7 @@ export default function NewsHub() {
                         border-radius: 8px 8px 0 0;
                     }
 
-                    .leaderboard h4 :global(svg) {
+                    .leaderboard h4 svg {
                         color: #fff;
                     }
 
@@ -2996,7 +3008,7 @@ export default function NewsHub() {
                         border-radius: 8px 8px 0 0;
                     }
 
-                    .mspt h4 :global(svg) {
+                    .mspt h4 svg {
                         color: #fff;
                     }
 
@@ -3047,7 +3059,7 @@ export default function NewsHub() {
                     }
 
                     .mspt-time {
-                        color: rgba(255, 255, 255, 0.4);
+                        color: rgba(255, 255, 255, 0.6);
                     }
 
                     .mspt-prize {
@@ -3096,7 +3108,7 @@ export default function NewsHub() {
                         border-radius: 8px 8px 0 0;
                     }
 
-                    .events h4 :global(svg) {
+                    .events h4 svg {
                         color: #fff;
                     }
 
@@ -3149,7 +3161,7 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        z-index: 1000;
+                        z-index: 10000; /* Above the FAB (1000) and scroll progress (9999) */
                     }
 
                     .share-modal {
@@ -3220,53 +3232,31 @@ export default function NewsHub() {
                         cursor: pointer;
                     }
 
-                    /* Light Mode */
-                    .news-hub.light {
-                        background: #f5f5f7;
-                        color: #1a1a2e;
-                    }
-
-                    .news-hub.light .header {
-                        background: rgba(255, 255, 255, 0.95);
-                        border-bottom-color: rgba(0, 0, 0, 0.06);
-                    }
-
-                    .news-hub.light .category-bar {
-                        background: rgba(255, 255, 255, 0.8);
-                    }
-
-                    .news-hub.light .widget {
-                        background: #fff;
-                        border-color: rgba(0, 0, 0, 0.06);
+                    /* ═══════════════════════════════════════════════ */
+                    /* ACCESSIBILITY: VISIBLE KEYBOARD FOCUS           */
+                    /* ═══════════════════════════════════════════════ */
+                    .section-tab:focus-visible,
+                    .source-chip:focus-visible,
+                    .view-toggle button:focus-visible,
+                    .see-all-btn:focus-visible,
+                    .carousel-arrow:focus-visible,
+                    .scroll-to-top-fab:focus-visible,
+                    .news-list-item:focus-visible,
+                    .breaking-ticker:focus-visible,
+                    .search-suggestion:focus-visible,
+                    .share-buttons button:focus-visible,
+                    .close-modal:focus-visible,
+                    .newsletter button:focus-visible,
+                    .feed-filter-chip button:focus-visible,
+                    .reels-empty-state button:focus-visible,
+                    .mspt-list li:focus-visible,
+                    .trending-list li:focus-visible,
+                    .history-list li:focus-visible {
+                        outline: 2px solid #5ef5f0;
+                        outline-offset: 2px;
                     }
 
                     @media (max-width: 768px) {
-                        .header {
-                            flex-wrap: wrap;
-                            gap: 12px;
-                        }
-
-                        .header-left {
-                            width: 100%;
-                            justify-content: space-between;
-                        }
-
-                        .header-right {
-                            width: 100%;
-                        }
-
-                        .search-box {
-                            flex: 1;
-                        }
-
-                        .section-tabs {
-                            display: flex;
-                            width: 100%;
-                            justify-content: center;
-                            order: 10;
-                            margin-top: 0;
-                        }
-
                         .section-tab {
                             flex: 1;
                             justify-content: center;
@@ -3283,12 +3273,9 @@ export default function NewsHub() {
                     ================================================================ */}
                     <style>{`
                     @media (max-width: 768px) {
-                        /* === SCROLL UNLOCK === */
-                        body, html, body.antigravity-scroll-lock {
-                            overflow-y: auto !important;
-                            height: auto !important;
-                            position: static !important;
-                        }
+                        /* NOTE: the old body/html "SCROLL UNLOCK" override was removed — its
+                           !important beat every modal's inline body scroll lock. A stale
+                           antigravity-scroll-lock class is now cleared in JS on mount. */
 
                         /* === PAGE CONTAINER === */
                         .news-hub {
@@ -3309,57 +3296,13 @@ export default function NewsHub() {
                             width: 100% !important;
                         }
 
-                        /* === HEADER / TABS === */
-                        /* SCOPED: Use header.header (tag+class) to target ONLY the news section tabs header,
-                           NOT the UniversalHeader component which also has .header-left */
-                        header.header {
-                            width: 100% !important;
-                            max-width: 100vw !important;
-                            padding: 0 !important;
-                            margin-top: 3px !important;
-                            margin-bottom: 3px !important;
-                            overflow-x: hidden !important;
-                            overflow-y: hidden !important;
-                            -webkit-overflow-scrolling: touch;
-                            height: auto !important;
-                            top: 60px !important; /* Stick BELOW the Universal Header */
-                            background: rgba(24, 25, 26, 0.95) !important; /* Ensure opacity */
-                            backdrop-filter: blur(10px);
-                            z-index: 90 !important;
-                        }
-
-                        header.header > .header-left {
-                            width: 100% !important;
-                            max-width: 100vw !important;
-                            overflow-x: hidden !important;
-                            justify-content: center !important;
-                            height: auto !important;
-                        }
-
+                        /* === SECTION TABS === */
                         .section-tabs {
-                            overflow-x: hidden !important;
                             width: 100% !important;
                             max-width: 100vw !important;
-                            flex-direction: row !important;
-                            flex-wrap: nowrap !important;
                             justify-content: center !important;
-                            gap: 3px !important;
-                            padding: 0 3px !important;
-                            margin: 0 !important;
-                            -webkit-overflow-scrolling: touch;
-                        }
-
-                        .section-tab-img,
-                        .refresh-btn-img {
-                            flex: 1 1 0 !important;
-                            height: auto !important;
-                            min-width: 0 !important;
-                        }
-
-                        .section-tab-img img,
-                        .refresh-btn-img img {
-                            width: 100% !important;
-                            height: auto !important;
+                            padding: 8px 12px 0 !important;
+                            margin: 0 0 10px !important;
                         }
 
                         /* === MAIN CONTENT === */
@@ -3431,13 +3374,22 @@ export default function NewsHub() {
                              -webkit-overflow-scrolling: touch !important;
                         }
                         
-                        .reel-card {
+                        .reel-card,
+                        .reels-carousel .reel-card {
                              min-width: 180px !important;
                              width: 180px !important;
+                             max-width: 180px !important;
                              height: auto !important;
                              flex-shrink: 0 !important;
                              scroll-snap-align: start !important;
                              margin-right: 0 !important;
+                        }
+
+                        /* Match the desktop carousel selector's specificity so the phone
+                           sizing wins (media queries add none of their own) */
+                        .reels-carousel .reel-thumbnail {
+                             height: auto !important;
+                             aspect-ratio: 9 / 16 !important;
                         }
 
                         /* === IMAGES === */
@@ -3476,16 +3428,6 @@ export default function NewsHub() {
                         .box-meta {
                             font-size: 12px !important;
                         }
-
-                        /* === MSPT BOX === */
-                        .mspt-box {
-                            height: auto !important;
-                            min-height: auto !important;
-                            max-height: none !important;
-                            width: 100% !important;
-                            border-radius: 0 !important;
-                            box-shadow: none !important;
-                        }
                     }
                 `}</style>
                 </div>
@@ -3502,35 +3444,32 @@ export default function NewsHub() {
                 />
             )}
 
-            {/* Fullscreen Reels Viewer - TikTok-style inline playback */}
+            {/* Fullscreen Reels Viewer - TikTok-style inline playback.
+                Keyboard handling lives in a document-level effect (see above) so
+                Escape/arrows keep working even after the iframe grabs focus. */}
             {reelViewerOpen && reels.length > 0 && (() => {
-                const currentReel = reels[reelViewerIndex] || reels[0];
+                const currentReel = reels[safeReelIndex] || reels[0];
                 const videoId = getYouTubeVideoId(currentReel?.video_url);
                 const displayTitle = currentReel?.title || currentReel?.caption?.split('\n')[0] || 'Poker Reel';
                 const channelName = currentReel?.channel_name || currentReel?.profiles?.full_name || 'Smarter.Poker';
 
                 return (
                     <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Reel viewer"
                         style={{
                             position: 'fixed', inset: 0, background: '#000', zIndex: 99999,
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                         }}
                         onClick={(e) => { if (e.target === e.currentTarget) setReelViewerOpen(false); }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                                if (reelViewerIndex < reels.length - 1) setReelViewerIndex(prev => prev + 1);
-                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                                if (reelViewerIndex > 0) setReelViewerIndex(prev => prev - 1);
-                            } else if (e.key === 'Escape') {
-                                setReelViewerOpen(false);
-                            }
-                        }}
-                        tabIndex={0}
-                        ref={(el) => el && el.focus()}
+                        tabIndex={-1}
+                        ref={reelViewerRef}
                     >
                         {/* Close button - subtle, top-left */}
                         <button
                             onClick={() => setReelViewerOpen(false)}
+                            aria-label="Close reel viewer"
                             style={{
                                 position: 'absolute', top: 16, left: 16, zIndex: 10,
                                 width: 40, height: 40, borderRadius: '50%',
@@ -3539,14 +3478,15 @@ export default function NewsHub() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 transition: 'background 0.2s'
                             }}
-                            onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
-                            onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.15)'}
-                        >✕</button>
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                        >×</button>
 
                         {/* Previous arrow */}
-                        {reelViewerIndex > 0 && (
+                        {safeReelIndex > 0 && (
                             <button
-                                onClick={() => setReelViewerIndex(prev => prev - 1)}
+                                onClick={() => setReelViewerIndex(safeReelIndex - 1)}
+                                aria-label="Previous reel"
                                 style={{
                                     position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
                                     width: 48, height: 48, borderRadius: '50%',
@@ -3555,15 +3495,16 @@ export default function NewsHub() {
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     transition: 'background 0.2s'
                                 }}
-                                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
-                                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                             ><ChevronLeft size={28} /></button>
                         )}
 
                         {/* Next arrow */}
-                        {reelViewerIndex < reels.length - 1 && (
+                        {safeReelIndex < reels.length - 1 && (
                             <button
-                                onClick={() => setReelViewerIndex(prev => prev + 1)}
+                                onClick={() => setReelViewerIndex(safeReelIndex + 1)}
+                                aria-label="Next reel"
                                 style={{
                                     position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
                                     width: 48, height: 48, borderRadius: '50%',
@@ -3572,18 +3513,20 @@ export default function NewsHub() {
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     transition: 'background 0.2s'
                                 }}
-                                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
-                                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                             ><ChevronRight size={28} /></button>
                         )}
 
-                        {/* Video container */}
-                        <div style={{ width: '100%', height: '100%', maxWidth: '100vw', maxHeight: '100vh' }}>
+                        {/* Video container — sized to the 9:16 reel so the letterbox areas
+                            stay part of the backdrop and click-to-close keeps working */}
+                        <div style={{ position: 'relative', height: '100%', maxHeight: '100vh', aspectRatio: '9 / 16', maxWidth: '100vw' }}>
                             {videoId ? (
                                 <>
                                 <iframe
                                     key={currentReel.id}
-                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                                    title={displayTitle}
+                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                                     style={{ width: '100%', height: '100%', border: 'none' }}
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
@@ -3605,8 +3548,9 @@ export default function NewsHub() {
                                     controls
                                     playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                                    onClick={(e) => e.stopPropagation()}
                                     onEnded={() => {
-                                        if (reelViewerIndex < reels.length - 1) setReelViewerIndex(prev => prev + 1);
+                                        if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
                                     }}
                                 />
                             ) : null}
@@ -3628,7 +3572,7 @@ export default function NewsHub() {
                                 </div>
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }}>
-                                {reelViewerIndex + 1} / {reels.length}
+                                {safeReelIndex + 1} / {reels.length}
                             </div>
                         </div>
                     </div>

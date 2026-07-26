@@ -1,3 +1,5 @@
+import dns from 'dns';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -7,12 +9,149 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  * Two-phase approach:
  * 1. Microlink for metadata (title, image, author, description)
  * 2. Direct fetch + regex parse for full article body HTML
+ *
+ * HARDENED against SSRF: only public http(s) hosts are fetched — the target
+ * hostname is DNS-resolved and rejected if any address is private, loopback,
+ * link-local, or otherwise reserved. Redirects are followed manually with the
+ * same validation on every hop. Both fetches are time-limited and the page
+ * read is size-capped.
  */
+
+const FETCH_TIMEOUT_MS = 8000;
+const MAX_HTML_BYTES = 2 * 1024 * 1024; // 2MB cap on the page body
+const MAX_REDIRECTS = 3;
+
+/** True if an IP address (v4 or v6) is private/reserved/non-routable. */
+function isPrivateAddress(address, family) {
+    if (family === 4 || (typeof address === 'string' && address.includes('.') && !address.includes(':'))) {
+        const parts = address.split('.').map(Number);
+        if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return true;
+        const [a, b, c] = parts;
+        if (a === 0 || a === 10 || a === 127) return true;          // this-net, private, loopback
+        if (a === 100 && b >= 64 && b <= 127) return true;          // CGNAT 100.64/10
+        if (a === 169 && b === 254) return true;                    // link-local (cloud metadata)
+        if (a === 172 && b >= 16 && b <= 31) return true;           // private 172.16/12
+        if (a === 192 && b === 168) return true;                    // private 192.168/16
+        if (a === 192 && b === 0 && (c === 0 || c === 2)) return true; // reserved 192.0.0/24 + 192.0.2.0/24 only (rest of 192.0/16 is public)
+        if (a === 198 && (b === 18 || b === 19)) return true;       // benchmarking
+        if (a >= 224) return true;                                  // multicast + reserved
+        return false;
+    }
+    // IPv6
+    const lower = String(address).toLowerCase();
+    if (lower === '::' || lower === '::1') return true;             // unspecified, loopback
+    if (lower.startsWith('fe80') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true; // link-local fe80::/10
+    if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique-local fc00::/7
+    if (lower.startsWith('::ffff:')) {
+        // IPv4-mapped — validate the embedded IPv4
+        return isPrivateAddress(lower.replace('::ffff:', ''), 4);
+    }
+    return false;
+}
+
+/**
+ * Validate a URL is a public http(s) target. Returns the parsed URL or null.
+ * Resolves DNS and rejects if ANY resolved address is private/reserved.
+ */
+async function validatePublicUrl(rawUrl) {
+    let parsed;
+    try {
+        parsed = new URL(rawUrl);
+    } catch {
+        return null;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    if (parsed.username || parsed.password) return null;
+
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+    if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') ||
+        hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+        return null;
+    }
+
+    try {
+        const addresses = await dns.promises.lookup(hostname, { all: true, verbatim: true });
+        if (!addresses.length) return null;
+        for (const { address, family } of addresses) {
+            if (isPrivateAddress(address, family)) return null;
+        }
+    } catch {
+        return null; // unresolvable host
+    }
+
+    return parsed;
+}
+
+/** fetch() with an AbortController timeout. */
+async function timedFetch(url, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
+ * Fetch a validated public URL, following redirects manually so every hop is
+ * re-validated (prevents redirect-based SSRF), and reading at most
+ * MAX_HTML_BYTES of the body.
+ */
+async function safeFetchHtml(startUrl) {
+    let current = startUrl;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+        const validated = await validatePublicUrl(current);
+        if (!validated) return null;
+
+        const response = await timedFetch(validated.href, {
+            redirect: 'manual',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; SmartPokerBot/1.0)',
+                'Accept': 'text/html,application/xhtml+xml',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
+        });
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) return null;
+            current = new URL(location, validated.href).href;
+            continue;
+        }
+
+        if (!response.ok) return null;
+
+        const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+        if (contentLength > MAX_HTML_BYTES) return null;
+
+        // Stream the body with a hard size cap
+        if (response.body && typeof response.body.getReader === 'function') {
+            const reader = response.body.getReader();
+            const chunks = [];
+            let received = 0;
+            while (received < MAX_HTML_BYTES) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                received += value.byteLength;
+                chunks.push(value);
+            }
+            try { await reader.cancel(); } catch { /* noop */ }
+            return Buffer.concat(chunks.map(c => Buffer.from(c))).toString('utf8');
+        }
+        const text = await response.text();
+        return text.length > MAX_HTML_BYTES ? text.slice(0, MAX_HTML_BYTES) : text;
+    }
+    return null; // too many redirects
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+    // This endpoint performs outbound fetches on behalf of the caller — rate limit it.
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
     const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const url = safeQ(req.query.url);
 
@@ -21,12 +160,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        const targetUrl = url.startsWith('http') ? url : decodeURIComponent(url);
+        const rawTarget = url.startsWith('http') ? url : decodeURIComponent(url);
+
+        // SSRF guard: only public http(s) URLs are ever fetched
+        const validatedUrl = await validatePublicUrl(rawTarget);
+        if (!validatedUrl) {
+            return res.status(400).json({ success: false, error: 'Invalid or disallowed URL' });
+        }
+        const targetUrl = validatedUrl.href;
 
         // Phase 1: Get metadata from microlink (simple call, no selectors)
         let metadata = {};
         try {
-            const metaRes = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(targetUrl));
+            const metaRes = await timedFetch('https://api.microlink.io/?url=' + encodeURIComponent(targetUrl));
             if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
             const metaResult = await metaRes.json();
             if (metaResult.status === 'success' && metaResult.data) {
@@ -45,20 +191,11 @@ export default async function handler(req, res) {
             console.warn('[Article Extract] Microlink metadata failed:', e.message);
         }
 
-        // Phase 2: Fetch page directly and extract article content
+        // Phase 2: Fetch page directly (validated, size-capped) and extract article content
         let paragraphs = [];
         try {
-            const pageRes = await fetch(targetUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; SmartPokerBot/1.0)',
-                    'Accept': 'text/html,application/xhtml+xml',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                },
-                redirect: 'follow',
-            });
-
-            if (pageRes.ok) {
-                const html = await pageRes.text();
+            const html = await safeFetchHtml(targetUrl);
+            if (html) {
                 paragraphs = extractArticleContent(html);
             }
         } catch (e) {
@@ -85,7 +222,7 @@ export default async function handler(req, res) {
         console.warn('[Article Extract] Error:', error);
         return res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Internal server error'
         });
     }
 }

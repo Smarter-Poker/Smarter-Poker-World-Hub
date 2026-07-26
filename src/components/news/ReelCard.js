@@ -1,25 +1,16 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
-
-const FALLBACK_IMAGES = {
-    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400'
-};
-
-function formatViews(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-}
+import { formatViews, FALLBACK_IMAGES } from './NewsBox';
 
 function getYouTubeVideoId(url) {
-    if (!url) return null;
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-    if (shortsMatch) return shortsMatch[1];
-    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (!url || typeof url !== 'string') return null;
+    // Handles youtube.com/shorts/ID, /embed/ID, /live/ID, watch?v=ID (v= in any
+    // position), youtu.be/ID, and m.youtube.com variants of all of the above.
+    const pathMatch = url.match(/(?:youtube\.com\/(?:shorts|embed|live)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (pathMatch) return pathMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?(?:[^#]*&)?v=([a-zA-Z0-9_-]{11})/);
     if (watchMatch) return watchMatch[1];
-    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-    if (shortMatch) return shortMatch[1];
     return null;
 }
 
@@ -30,21 +21,41 @@ function getReelThumbnail(reel) {
     return FALLBACK_IMAGES.news;
 }
 
-export default function ReelCard({ reel, onClick }) {
+// Mirrors the server-side title derivation in pages/api/news/reels.js:
+// first caption line with any leading film-slate emoji (U+1F3AC) stripped.
+function deriveTitle(reel) {
+    if (reel.title) return reel.title;
+    const firstLine = reel.caption?.split('\n')[0];
+    const cleaned = firstLine?.replace(/^\s*\u{1F3AC}?\uFE0F?\s*/u, '').trim();
+    return cleaned || 'Poker Reel';
+}
+
+function ReelCard({ reel, onClick }) {
+    if (!reel) return null;
+
     const openReel = () => {
         if (onClick) onClick();
     };
 
     // Get display values with proper fallbacks
     const thumbnailUrl = getReelThumbnail(reel);
-    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^\s*/, '') || 'Poker Reel';
+    const displayTitle = deriveTitle(reel);
     const channelName = reel.channel_name || reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker';
     const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
 
     return (
         <div
             className="reel-card"
+            role="button"
+            tabIndex={0}
+            aria-label={`Play reel: ${displayTitle}`}
             onClick={openReel}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openReel();
+                }
+            }}
         >
             <div className="reel-thumbnail">
                 <SPImage
@@ -52,9 +63,13 @@ export default function ReelCard({ reel, onClick }) {
                     alt={displayTitle}
                     fill
                     style={{ objectFit: 'cover' }}
-                    onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                    onError={(e) => {
+                        if (e?.target && e.target.src !== FALLBACK_IMAGES.news) {
+                            e.target.src = FALLBACK_IMAGES.news;
+                        }
+                    }}
                 />
-                <div className="reel-overlay">
+                <div className="reel-overlay" aria-hidden="true">
                     <Play size={32} fill="#fff" color={isYouTube ? '#ff0000' : '#fff'} />
                 </div>
                 <div className="reel-channel">{channelName}</div>
@@ -66,10 +81,10 @@ export default function ReelCard({ reel, onClick }) {
                 </div>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .reel-card {
                     position: relative;
-                    background: 
+                    background:
                         linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
                     border: none;
                     border-radius: 12px;
@@ -78,7 +93,7 @@ export default function ReelCard({ reel, onClick }) {
                     transition: all 0.3s;
                     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
                 }
-                
+
                 /* Chrome frame overlay for reel cards - border only, no glow */
                 .reel-card::after {
                     content: '';
@@ -95,15 +110,20 @@ export default function ReelCard({ reel, onClick }) {
                 }
 
                 .reel-card:hover {
-                    box-shadow: 
+                    box-shadow:
                         0 8px 32px rgba(236, 72, 153, 0.3);
                 }
-                
+
                 .reel-card:hover::after {
                     border-color: rgba(236, 72, 153, 0.7);
-                    box-shadow: 
+                    box-shadow:
                         inset 0 0 10px rgba(236, 72, 153, 0.4),
                         0 0 15px rgba(236, 72, 153, 0.4);
+                }
+
+                .reel-card:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: 2px;
                 }
 
                 .reel-thumbnail {
@@ -112,7 +132,7 @@ export default function ReelCard({ reel, onClick }) {
                     overflow: hidden;
                 }
 
-                .reel-thumbnail img {
+                .reel-thumbnail :global(img) {
                     position: absolute;
                     top: 0;
                     left: 0;
@@ -122,7 +142,7 @@ export default function ReelCard({ reel, onClick }) {
                     transition: transform 0.3s;
                 }
 
-                .reel-card:hover .reel-thumbnail img {
+                .reel-card:hover .reel-thumbnail :global(img) {
                     transform: scale(1.05);
                 }
 
@@ -137,7 +157,8 @@ export default function ReelCard({ reel, onClick }) {
                     transition: opacity 0.2s;
                 }
 
-                .reel-card:hover .reel-overlay {
+                .reel-card:hover .reel-overlay,
+                .reel-card:focus-visible .reel-overlay {
                     opacity: 1;
                 }
 
@@ -182,3 +203,5 @@ export default function ReelCard({ reel, onClick }) {
         </div>
     );
 }
+
+export default React.memo(ReelCard);

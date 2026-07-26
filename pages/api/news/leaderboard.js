@@ -17,14 +17,11 @@ function getSupabase() {
     return _supabase;
 }
 
-// Fallback data when DB unavailable
-const FALLBACK_LEADERBOARD = [
-    { id: 1, player_name: "Alex F.", points: 2850, rank: 1 },
-    { id: 2, player_name: "Thomas B.", points: 2720, rank: 2 },
-    { id: 3, player_name: "Chad E.", points: 2580, rank: 3 },
-    { id: 4, player_name: "Stephen C.", points: 2410, rank: 4 },
-    { id: 5, player_name: "Daniel N.", points: 2290, rank: 5 }
-];
+function clampInt(value, fallback, min, max) {
+    const n = parseInt(value, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(Math.max(n, min), max);
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,24 +29,34 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      try {
-          const { year = new Date().getFullYear(), limit = 10 } = req.query;
+      // BUG FIX: query params were destructured INSIDE the inner try, so the
+      // catch referenced an out-of-scope `limit` and threw ReferenceError,
+      // turning every fallback into a 500. Parse them before the try.
+      const currentYear = new Date().getFullYear();
+      const year = clampInt(req.query.year, currentYear, 2000, currentYear + 1);
+      const limit = clampInt(req.query.limit, 10, 1, 50);
 
+      try {
           const { data, error } = await getSupabase()
               .from('poy_leaderboard')
               .select('*')
-              .eq('year', parseInt(year))
+              .eq('year', year)
               .order('points', { ascending: false })
-              .limit(parseInt(limit));
+              .limit(limit);
 
           if (error || !data?.length) {
-              // Return fallback data if table missing or empty
-              return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD.slice(0, parseInt(limit)) });
+              // No fabricated standings: return an empty list and let the
+              // frontend render its own clearly-labeled "Sample" fallback.
+              if (error) console.warn('[Leaderboard API] Query error:', error.message);
+              return res.status(200).json({ success: true, data: [], fallback: true });
           }
 
+          res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data });
-      } catch (error) { console.warn('[App] Handled exception:', error?.message || error);
-          return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD.slice(0, parseInt(limit || 10)) });
+      } catch (error) {
+          try { reportApiError(error, req); } catch (_e) { /* noop */ }
+          console.warn('[Leaderboard API] Exception:', error?.message || error);
+          return res.status(200).json({ success: true, data: [], fallback: true });
       }
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

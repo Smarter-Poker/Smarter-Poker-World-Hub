@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock, Trophy, BookOpen, Briefcase, Newspaper, Monitor } from 'lucide-react';
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -11,20 +11,27 @@ const FALLBACK_IMAGES = {
 };
 
 function formatViews(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+    const n = Number(num);
+    if (!Number.isFinite(n) || n <= 0) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return Math.floor(n).toString();
 }
 
 function timeAgo(date) {
-    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (!date) return '';
+    const t = new Date(date).getTime();
+    if (Number.isNaN(t)) return '';
+    const seconds = Math.floor((Date.now() - t) / 1000);
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
+    if (seconds < 2592000) return `${Math.floor(seconds / 86400)}d ago`;
+    if (seconds < 31536000) return `${Math.floor(seconds / 2592000)}mo ago`;
+    return `${Math.floor(seconds / 31536000)}y ago`;
 }
 
-// Source accent colors
+// Source accent colors (canonical — matches SOURCE_COLORS in pages/hub/news.js)
 const SOURCE_COLORS_LOCAL = {
     'PokerNews': '#e53935',
     'MSPT': '#1565c0',
@@ -35,25 +42,66 @@ const SOURCE_COLORS_LOCAL = {
     'Pokerfuse': '#00897b'
 };
 
-export default function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
-    // Calculate dynamic read time: ~200 words per minute or pseudo-random based on title
-    const textToEstimate = article.content || article.summary || article.excerpt || article.title || '';
-    const wordCount = textToEstimate.trim().split(/\s+/).filter(Boolean).length;
-    const dynamicReadTime = wordCount > 50 
-        ? Math.min(12, Math.max(2, Math.ceil(wordCount / 200))) 
-        : Math.min(5, Math.max(2, article.title ? (article.title.length % 4) + 2 : 3));
-    
-    // Override if we have a valid, non-default read_time in database
-    const readTime = (article.read_time && article.read_time !== 3) ? article.read_time : dynamicReadTime;
+// Minimal HTML entity decoder for excerpt text (named + numeric entities)
+function decodeEntities(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+            const code = parseInt(hex, 16);
+            return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : match;
+        })
+        .replace(/&#(\d+);/g, (match, dec) => {
+            const code = parseInt(dec, 10);
+            return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : match;
+        })
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+}
 
-    const categoryColors = {
-        tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: 'Trophy' },
-        strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
-        industry: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', icon: '💼' },
-        news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#2374E1', icon: '📰' },
-        online: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', icon: '💻' }
-    };
-    const catStyle = categoryColors[article.category] || categoryColors.news;
+// Strip tags, decode entities, and truncate at a word boundary
+function buildExcerpt(content, maxLen = 90) {
+    if (!content) return '';
+    const text = decodeEntities(String(content).replace(/<[^>]*>/g, ' '))
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!text) return '';
+    if (text.length <= maxLen) return text;
+    const cut = text.slice(0, maxLen);
+    const lastSpace = cut.lastIndexOf(' ');
+    return (lastSpace > maxLen / 2 ? cut.slice(0, lastSpace) : cut) + '...';
+}
+
+// Category icon components for the no-image placeholder
+const CATEGORY_ICONS = {
+    tournament: Trophy,
+    strategy: BookOpen,
+    industry: Briefcase,
+    news: Newspaper,
+    online: Monitor
+};
+
+function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
+    // Read time: trust any positive stored value; otherwise estimate from real
+    // content at ~200 wpm. When there is nothing to estimate, show no badge
+    // rather than a fabricated number.
+    const readTime = useMemo(() => {
+        if (!article) return null;
+        const dbTime = Number(article.read_time);
+        if (Number.isFinite(dbTime) && dbTime > 0) return Math.round(dbTime);
+        const textToEstimate = article.content || article.summary || article.excerpt || '';
+        const wordCount = textToEstimate.trim().split(/\s+/).filter(Boolean).length;
+        return wordCount > 50 ? Math.min(12, Math.max(2, Math.ceil(wordCount / 200))) : null;
+    }, [article]);
+
+    const excerpt = useMemo(() => buildExcerpt(article?.content), [article]);
+
+    if (!article) return null;
+
+    const CategoryIcon = CATEGORY_ICONS[article.category] || CATEGORY_ICONS.news;
 
     // Get image with fallback — proxy cardplayer.com images through our server (they block direct browser access)
     const rawImageUrl = article.image_url;
@@ -67,19 +115,44 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
 
     const srcColor = SOURCE_COLORS_LOCAL[article.source_name] || '#5ef5f0';
 
+    const openArticle = () => {
+        if (onOpen) onOpen(article);
+    };
+
     return (
         <div
             className={`news-box ${isRead ? 'read' : ''}`}
             data-source={article.source_name}
             style={{ '--src-accent': srcColor }}
-            onClick={() => onOpen(article)}
+            role="button"
+            tabIndex={0}
+            aria-label={article.title || 'Open article'}
+            onClick={openArticle}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openArticle();
+                }
+            }}
         >
-            {/* Quick Actions */}
-            <div className="box-actions">
-                <button onClick={(e) => { e.stopPropagation(); onBookmark(article.id, article); }} title="Bookmark">
+            {/* Quick Actions — keydown must not reach the card handler above, or
+                its preventDefault() would cancel these buttons' native activation */}
+            <div className="box-actions" onKeyDown={(e) => e.stopPropagation()}>
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); if (onBookmark) onBookmark(article.id, article); }}
+                    title={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                    aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
+                    aria-pressed={!!isBookmarked}
+                >
                     {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onShare(article); }} title="Share">
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); if (onShare) onShare(article); }}
+                    title="Share"
+                    aria-label="Share article"
+                >
                     <Share2 size={14} />
                 </button>
             </div>
@@ -102,8 +175,9 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
             <div className="box-image">
                 <img
                     src={imageUrl}
-                    alt={article.title}
+                    alt={article.title || 'Poker news article'}
                     loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                         // Try category fallback before giving up
                         if (e.target.src !== fallbackUrl) {
@@ -114,8 +188,8 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                         }
                     }}
                 />
-                <div className="image-placeholder">
-                    <span className="placeholder-icon">{catStyle.icon}</span>
+                <div className="image-placeholder" aria-hidden="true">
+                    <span className="placeholder-icon"><CategoryIcon size={48} /></span>
                     <span className="placeholder-text">{article.category?.toUpperCase() || 'POKER'}</span>
                 </div>
                 <div className="box-overlay" />
@@ -124,8 +198,8 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
             {/* Content - compact: title + excerpt + meta */}
             <div className="box-content">
                 <h3 className="box-title">{article.title}</h3>
-                {article.content && (
-                    <p className="box-excerpt">{article.content.replace(/<[^>]*>/g, '').slice(0, 90)}...</p>
+                {excerpt && (
+                    <p className="box-excerpt">{excerpt}</p>
                 )}
                 <div className="box-meta">
                     <span className="source" style={{ color: srcColor }}>{article.source_name || 'Smarter.Poker'}</span>
@@ -136,7 +210,7 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                 </div>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;
@@ -149,7 +223,7 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     height: 340px;
                     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
                 }
-                
+
                 /* Chrome frame overlay - border only, no glow */
                 .news-box::after {
                     content: '';
@@ -165,10 +239,14 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     z-index: 100;
                 }
 
-
                 .news-box:hover {
                     transform: translateY(-2px);
                     filter: brightness(1.05);
+                }
+
+                .news-box:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: 2px;
                 }
 
                 .news-box.read {
@@ -190,7 +268,8 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     transition: opacity 0.2s;
                 }
 
-                .news-box:hover .box-actions {
+                .news-box:hover .box-actions,
+                .news-box:focus-within .box-actions {
                     opacity: 1;
                 }
 
@@ -209,7 +288,8 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     transition: all 0.2s;
                 }
 
-                .box-actions button:hover {
+                .box-actions button:hover,
+                .box-actions button:focus-visible {
                     background: rgba(0, 212, 255, 0.4);
                 }
 
@@ -277,8 +357,11 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                 }
 
                 .placeholder-icon {
-                    font-size: 48px;
-                    opacity: 0.6;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: rgba(255, 255, 255, 0.6);
+                    opacity: 0.8;
                 }
 
                 .placeholder-text {
@@ -296,26 +379,13 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     flex-direction: column;
                     justify-content: center;
                     gap: 2px;
-                    height: auto !important;
-                    min-height: 60px !important;
+                    height: auto;
+                    min-height: 60px;
                     flex-grow: 1;
                     flex-shrink: 0;
                     background: #1a1c1e;
                     overflow: hidden;
                     border-radius: 6px 6px 0 0;
-                }
-
-                .box-category {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 4px 10px;
-                    border-radius: 20px;
-                    font-size: 10px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    width: fit-content;
                 }
 
                 .box-title {
@@ -329,15 +399,16 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                     margin: 0;
                 }
 
-                .news-box-large .box-title {
-                    font-size: 18px;
-                    -webkit-line-clamp: 3;
-                }
-
+                /* Values mirror the page-level .box-excerpt rule in
+                   pages/hub/news.js ("PHASE 2: ARTICLE EXCERPT"). Scoping this
+                   block raised its specificity to (0,2,0), so that plain (0,1,0)
+                   page rule no longer wins; declare the intended values here so
+                   the rendered result is unchanged. */
                 .box-excerpt {
-                    font-size: 13px;
-                    color: rgba(255, 255, 255, 0.6);
-                    line-height: 1.5;
+                    font-size: 11px;
+                    color: rgba(255, 255, 255, 0.45);
+                    margin: 2px 0 4px;
+                    line-height: 1.4;
                     display: -webkit-box;
                     -webkit-line-clamp: 2;
                     -webkit-box-orient: vertical;
@@ -370,71 +441,75 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                 }
 
                 /* =============================================================
-                   SOCIAL MEDIA FORMULA - Mobile Override (INSIDE NewsBox scope)
-                   styled-jsx scoping requires these rules HERE, not in the parent
+                   SOCIAL MEDIA FORMULA - Mobile Override (scoped to NewsBox).
+                   Intentionally NOT !important: the page-level global mobile
+                   override in pages/hub/news.js uses !important and must keep
+                   winning where the two disagree.
                    ============================================================= */
                 @media (max-width: 768px) {
                     .news-box {
-                        height: auto !important;
-                        min-height: auto !important;
-                        max-height: none !important;
-                        border-radius: 12px !important;
-                        box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
-                        border: none !important;
-                        margin-bottom: 0 !important;
-                        overflow: hidden !important;
+                        height: auto;
+                        min-height: auto;
+                        max-height: none;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                        border: none;
+                        margin-bottom: 0;
+                        overflow: hidden;
                     }
 
                     .news-box::after {
-                        content: '' !important;
-                        display: block !important;
-                        position: absolute !important;
-                        inset: 0 !important;
-                        border-radius: 12px !important;
-                        border: 4px solid rgba(180, 195, 220, 0.9) !important;
-                        box-shadow: none !important;
-                        pointer-events: none !important;
-                        z-index: 10 !important;
+                        content: '';
+                        display: block;
+                        position: absolute;
+                        inset: 0;
+                        border-radius: 12px;
+                        border: 4px solid rgba(180, 195, 220, 0.9);
+                        box-shadow: none;
+                        pointer-events: none;
+                        z-index: 10;
                     }
 
                     .box-image {
-                        height: auto !important;
+                        height: auto;
                         aspect-ratio: 16/9;
-                        border-radius: 0 !important;
+                        border-radius: 0;
                     }
 
                     .box-image img {
-                        position: relative !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        object-fit: cover !important;
-                        border-radius: 0 !important;
+                        position: relative;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        border-radius: 0;
                     }
 
                     .box-content {
-                        padding: 12px 16px !important;
+                        padding: 12px 16px;
                     }
 
                     .box-title {
-                        font-size: 15px !important;
-                        line-height: 1.4 !important;
-                        white-space: normal !important;
-                        overflow: visible !important;
-                        text-overflow: unset !important;
+                        font-size: 15px;
+                        line-height: 1.4;
+                        white-space: normal;
+                        overflow: visible;
+                        text-overflow: unset;
                     }
 
                     .box-overlay {
-                        display: none !important;
+                        display: none;
                     }
 
                     .box-meta {
-                        font-size: 12px !important;
+                        font-size: 12px;
                     }
                 }
             `}</style>
         </div>
     );
 }
+
+export default React.memo(NewsBox);
 
 // Re-export helpers for sibling components
 export { FALLBACK_IMAGES, formatViews, timeAgo, SOURCE_COLORS_LOCAL };

@@ -1,6 +1,13 @@
 /**
  * Re-fetch Images - Fetches og:image from article source URLs
  * This updates existing articles with real thumbnail images
+ *
+ * Processes a bounded batch per invocation (default 10, ?batch=1-20) with
+ * limited concurrency so the function finishes well inside serverless time
+ * limits. Successfully updated rows drop out of DEFAULT_IMAGE_PATTERNS on the
+ * next run; rows whose extraction permanently fails do not, so use ?offset=
+ * (echoed back as `nextOffset`) to walk past them instead of re-processing the
+ * same sticky head of the queue every time.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -9,7 +16,26 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+// Admin/maintenance guard: CRON_SECRET bearer (cron jobs) or x-admin-key
+// (operators). Credentials are required in EVERY environment — no NODE_ENV
+// escape hatch, which would leave preview/staging deploys wide open.
+function isAuthorized(req) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    const adminKey = process.env.ADMIN_API_KEY;
+    if (adminKey && req.headers['x-admin-key'] === adminKey) return true;
+    return false;
+}
 
 // Default/bad images to detect (we want to replace these with real images)
 const DEFAULT_IMAGE_PATTERNS = [
@@ -161,26 +187,21 @@ async function fetchOgImage(url) {
 }
 
 export default async function handler(req, res) {
-  // Admin-only route — require CRON_SECRET authorization
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  // GET is kept because scheduled cron invocations issue GET with the
+  // CRON_SECRET bearer header; auth below is what gates the mutation.
+  if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+  if (!isAuthorized(req)) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
   try {
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-          return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
-      }
-
-      let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+      const batchSize = Math.min(Math.max(parseInt(req.query.batch, 10) || 10, 1), 20);
+      // ?offset= lets the caller walk past rows whose og:image extraction
+      // permanently fails (no source_url, paywalled, logo-only og:image).
+      // Without it those rows keep occupying the head of the queue and the
+      // articles behind them are never reached.
+      const offset = Math.min(Math.max(parseInt(req.query.offset, 10) || 0, 0), 50);
 
       try {
           // Get articles that have default/placeholder images
@@ -188,7 +209,7 @@ function getSupabase() {
               .from('poker_news')
               .select('id, title, source_url, image_url, category')
               .order('published_at', { ascending: false })
-              .limit(50); // Process most recent 50
+              .limit(50); // Consider most recent 50
 
           if (fetchError) throw fetchError;
 
@@ -198,44 +219,62 @@ function getSupabase() {
               return DEFAULT_IMAGE_PATTERNS.some(pattern => a.image_url.includes(pattern));
           });
 
+          // Process only a bounded batch this invocation, starting at ?offset=
+          const batch = articlesToUpdate.slice(offset, offset + batchSize);
 
           let updated = 0;
           let failed = 0;
           const results = [];
 
-          for (const article of articlesToUpdate) {
+          // Bounded concurrency (5 at a time) instead of a serial loop with sleeps
+          const CONCURRENCY = 5;
+          for (let i = 0; i < batch.length; i += CONCURRENCY) {
+              const chunk = batch.slice(i, i + CONCURRENCY);
+              const outcomes = await Promise.allSettled(chunk.map(async (article) => {
+                  const newImageUrl = await fetchOgImage(article.source_url);
+                  if (!newImageUrl) return { ok: false };
 
-              const newImageUrl = await fetchOgImage(article.source_url);
-
-              if (newImageUrl) {
                   const { error: updateError } = await getSupabase()
                       .from('poker_news')
                       .update({ image_url: newImageUrl })
                       .eq('id', article.id);
 
-                  if (!updateError) {
+                  if (updateError) return { ok: false };
+                  return {
+                      ok: true,
+                      result: {
+                          id: article.id,
+                          title: article.title?.substring(0, 40) || '',
+                          newImage: newImageUrl.substring(0, 60)
+                      }
+                  };
+              }));
+
+              for (const outcome of outcomes) {
+                  if (outcome.status === 'fulfilled' && outcome.value.ok) {
                       updated++;
-                      results.push({ id: article.id, title: article.title.substring(0, 40), newImage: newImageUrl.substring(0, 60) });
+                      results.push(outcome.value.result);
                   } else {
                       failed++;
                   }
-              } else {
-                  failed++;
               }
-
-              // Small delay to be nice to servers
-              await new Promise(r => setTimeout(r, 500));
           }
 
           return res.status(200).json({
               success: true,
               total: articlesToUpdate.length,
+              offset,
+              processed: batch.length,
+              // Rows after this batch — feed back as ?offset= to keep walking.
+              remaining: Math.max(articlesToUpdate.length - (offset + batch.length), 0),
+              nextOffset: offset + batch.length < articlesToUpdate.length ? offset + batch.length : null,
               updated,
               failed,
               results
           });
 
       } catch (error) {
+          try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('Error refetching images:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }

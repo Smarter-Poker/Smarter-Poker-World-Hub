@@ -1,40 +1,65 @@
 import React from 'react';
+import { Newspaper, Trophy, BookOpen, Globe, TrendingUp } from 'lucide-react';
+import { SOURCE_COLORS_LOCAL } from './NewsBox';
 
-export default function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
-    const sourceInfo = {
-        'PokerNews': { icon: '', color: '#2374E1', url: 'https://www.pokernews.com' },
-        'MSPT': { icon: '', color: '#dc2626', url: 'https://msptpoker.com' },
-        'CardPlayer': { icon: 's', color: '#22c55e', url: 'https://www.cardplayer.com' },
-        'WSOP': { icon: 'Trophy', color: '#fbbf24', url: 'https://www.wsop.com' },
-        'Poker.org': { icon: 'd', color: '#8b5cf6', url: 'https://www.poker.org' },
-        'Pokerfuse': { icon: '', color: '#f97316', url: 'https://pokerfuse.com' }
+// Per-source icon + homepage. Colors come from the shared canonical
+// SOURCE_COLORS_LOCAL map so branding matches the regular news cards.
+const SOURCE_INFO = {
+    'PokerNews': { Icon: Newspaper, url: 'https://www.pokernews.com' },
+    'MSPT': { Icon: Trophy, url: 'https://msptpoker.com' },
+    'CardPlayer': { Icon: BookOpen, url: 'https://www.cardplayer.com' },
+    'Card Player': { Icon: BookOpen, url: 'https://www.cardplayer.com' },
+    'WSOP': { Icon: Trophy, url: 'https://www.wsop.com' },
+    'Poker.org': { Icon: Globe, url: 'https://www.poker.org' },
+    'Pokerfuse': { Icon: TrendingUp, url: 'https://pokerfuse.com' }
+};
+
+function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
+    const info = SOURCE_INFO[sourceName] || { Icon: Newspaper, url: '#' };
+    const color = SOURCE_COLORS_LOCAL[sourceName] || '#5ef5f0';
+    const SourceIcon = info.Icon;
+
+    const openSource = () => {
+        if (openExternal) openExternal(sourceUrl || info.url, `${sourceName} News`);
     };
-
-    const info = sourceInfo[sourceName] || { icon: '📰', color: '#2374E1', url: '#' };
 
     return (
         <div
             className="news-box placeholder-box"
-            onClick={() => openExternal(sourceUrl || info.url, `${sourceName} News`)}
+            style={{
+                '--src-accent': color,
+                '--ph-color': color,
+                '--ph-color-soft': `${color}20`
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Visit ${sourceName || 'source'} website`}
+            onClick={openSource}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openSource();
+                }
+            }}
         >
             <div className="box-image">
                 <div className="placeholder-content">
-                    <span className="placeholder-icon">{info.icon}</span>
+                    <span className="placeholder-icon" aria-hidden="true"><SourceIcon size={48} /></span>
                     <span className="placeholder-name">{sourceName}</span>
                 </div>
                 <div className="box-overlay" />
             </div>
             <div className="box-content">
                 <h3 className="box-title">Latest from {sourceName}</h3>
-                <p className="box-excerpt">Loading news from {sourceName}... Check back soon for the latest updates.</p>
+                <p className="box-excerpt">Read the latest headlines directly on {sourceName}.</p>
                 <div className="box-meta">
-                    <span className="source" style={{ color: info.color }}>{sourceName}</span>
+                    <span className="source" style={{ color }}>{sourceName}</span>
                     <span className="separator">•</span>
                     <span className="time">Visit Site →</span>
                 </div>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;
@@ -60,11 +85,14 @@ export default function SourcePlaceholderBox({ sourceName, sourceUrl, index, ope
                     transform: translateY(-2px);
                     filter: brightness(1.05);
                 }
-                .placeholder-box {
-                    border-color: ${info.color}40 !important;
+                .news-box:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: 2px;
                 }
-                .placeholder-box:hover {
-                    border-color: ${info.color}80 !important;
+                /* Source brand tint on the visible chrome frame on hover
+                   (a border on the box itself would sit underneath ::after). */
+                .placeholder-box:hover::after {
+                    border-color: var(--ph-color);
                 }
                 .box-image {
                     position: relative;
@@ -86,16 +114,19 @@ export default function SourcePlaceholderBox({ sourceName, sourceUrl, index, ope
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    background: linear-gradient(135deg, #1a1a2e 0%, ${info.color}20 50%, #16213e 100%);
+                    background: linear-gradient(135deg, #1a1a2e 0%, var(--ph-color-soft) 50%, #16213e 100%);
                 }
                 .placeholder-icon {
-                    font-size: 48px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--ph-color);
                     margin-bottom: 8px;
                 }
                 .placeholder-name {
                     font-size: 14px;
                     font-weight: 600;
-                    color: ${info.color};
+                    color: var(--ph-color);
                     letter-spacing: 1px;
                 }
                 .box-content {
@@ -133,3 +164,5 @@ export default function SourcePlaceholderBox({ sourceName, sourceUrl, index, ope
         </div>
     );
 }
+
+export default React.memo(SourcePlaceholderBox);

@@ -17,12 +17,11 @@ function getSupabase() {
     return _supabase;
 }
 
-// Fallback data when DB unavailable
-const FALLBACK_EVENTS = [
-    { id: 1, name: "WSOP Main Event", event_date: "2026-06-27", location: "Las Vegas" },
-    { id: 2, name: "EPT Barcelona", event_date: "2026-08-14", location: "Barcelona" },
-    { id: 3, name: "WPT Championship", event_date: "2026-12-01", location: "Las Vegas" }
-];
+function clampInt(value, fallback, min, max) {
+    const n = parseInt(value, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(Math.max(n, min), max);
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,14 +30,15 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { limit = 5, featured } = req.query;
+          const limit = clampInt(req.query.limit, 5, 1, 50);
+          const featured = Array.isArray(req.query.featured) ? req.query.featured[0] : req.query.featured;
 
           let query = getSupabase()
               .from('poker_events')
               .select('*')
               .gte('event_date', new Date().toISOString().split('T')[0])
               .order('event_date', { ascending: true })
-              .limit(parseInt(limit));
+              .limit(limit);
 
           if (featured === 'true') {
               query = query.eq('is_featured', true);
@@ -47,12 +47,18 @@ export default async function handler(req, res) {
           const { data, error } = await query;
 
           if (error || !data?.length) {
-              return res.status(200).json({ success: true, data: FALLBACK_EVENTS.slice(0, parseInt(limit)) });
+              // No invented server-side events: return an empty list and let the
+              // frontend render its own clearly-labeled "Sample" fallback.
+              if (error) console.warn('[Events API] Query error:', error.message);
+              return res.status(200).json({ success: true, data: [], fallback: true });
           }
 
+          res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data });
       } catch (error) {
-          return res.status(200).json({ success: true, data: FALLBACK_EVENTS });
+          try { reportApiError(error, req); } catch (_e) { /* noop */ }
+          console.warn('[Events API] Exception:', error?.message || error);
+          return res.status(200).json({ success: true, data: [], fallback: true });
       }
 
   } catch (err) {

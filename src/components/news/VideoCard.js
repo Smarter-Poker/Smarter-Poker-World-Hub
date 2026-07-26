@@ -1,35 +1,55 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
+import { formatViews, FALLBACK_IMAGES } from './NewsBox';
 
-function formatViews(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-}
+function VideoCard({ video, onClick }) {
+    if (!video) return null;
 
-export default function VideoCard({ video, onClick }) {
+    const openVideo = () => {
+        if (onClick) onClick(video);
+    };
+
     return (
         <div
             className="video-card"
-            onClick={() => onClick(video)}
+            role="button"
+            tabIndex={0}
+            aria-label={video.title ? `Play video: ${video.title}` : 'Play video'}
+            onClick={openVideo}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openVideo();
+                }
+            }}
         >
             <div className="video-thumbnail" style={{ position: 'relative' }}>
-                <SPImage src={video.thumbnail_url} alt={video.title} fill style={{ objectFit: 'cover' }} />
-                <div className="video-duration">{video.duration}</div>
-                <div className="play-button">
+                <SPImage
+                    src={video.thumbnail_url || FALLBACK_IMAGES.news}
+                    alt={video.title || 'Poker video'}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    onError={(e) => {
+                        if (e?.target && e.target.src !== FALLBACK_IMAGES.news) {
+                            e.target.src = FALLBACK_IMAGES.news;
+                        }
+                    }}
+                />
+                {video.duration && <div className="video-duration">{video.duration}</div>}
+                <div className="play-button" aria-hidden="true">
                     <Play size={24} fill="#fff" />
                 </div>
             </div>
             <div className="video-info">
                 <h4>{video.title}</h4>
                 <div className="video-meta">
-                    <span className="channel">{video.channel}</span>
-                    <span>{formatViews(video.views)} views</span>
+                    <span className="channel">{video.channel || 'Smarter.Poker'}</span>
+                    <span>{formatViews(video.views || 0)} views</span>
                 </div>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .video-card {
                     position: relative;
                     background: #1a1c1e;
@@ -42,7 +62,7 @@ export default function VideoCard({ video, onClick }) {
                     flex-direction: column;
                     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
                 }
-                
+
                 /* Chrome frame overlay for video cards - border only, no glow */
                 .video-card::after {
                     content: '';
@@ -63,6 +83,11 @@ export default function VideoCard({ video, onClick }) {
                     filter: brightness(1.05);
                 }
 
+                .video-card:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: 2px;
+                }
+
                 .video-thumbnail {
                     position: relative;
                     width: 100%;
@@ -71,14 +96,14 @@ export default function VideoCard({ video, onClick }) {
                     border-radius: 12px 12px 0 0;
                 }
 
-                .video-thumbnail img {
+                .video-thumbnail :global(img) {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
                     transition: transform 0.3s;
                 }
 
-                .video-card:hover .video-thumbnail img {
+                .video-card:hover .video-thumbnail :global(img) {
                     transform: scale(1.05);
                 }
 
@@ -110,7 +135,8 @@ export default function VideoCard({ video, onClick }) {
                     transition: opacity 0.2s;
                 }
 
-                .video-card:hover .play-button {
+                .video-card:hover .play-button,
+                .video-card:focus-visible .play-button {
                     opacity: 1;
                 }
 
@@ -143,3 +169,5 @@ export default function VideoCard({ video, onClick }) {
         </div>
     );
 }
+
+export default React.memo(VideoCard);

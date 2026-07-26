@@ -1,27 +1,44 @@
 import React from 'react';
+import { timeAgo } from './NewsBox';
 
-function timeAgo(date) {
-    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-}
+const MSPT_ACCENT = '#dc2626';
+const MSPT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80';
 
-export default function MSPTBox({ msptNews, onOpenMSPT }) {
-    const featured = msptNews[0];
+function MSPTBox({ msptNews = [], onOpenMSPT }) {
+    const featured = Array.isArray(msptNews) ? msptNews[0] : null;
+    const publishedLabel = featured?.published_at ? timeAgo(featured.published_at) : '';
+
+    const openFeatured = () => {
+        if (featured && onOpenMSPT) onOpenMSPT(featured);
+    };
 
     return (
         <div
             className="news-box mspt-box"
-            onClick={() => featured && onOpenMSPT(featured)}
+            style={{ '--src-accent': MSPT_ACCENT }}
+            role="button"
+            tabIndex={0}
+            aria-label={featured?.title ? `Open MSPT article: ${featured.title}` : 'MSPT News & Updates'}
+            onClick={openFeatured}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openFeatured();
+                }
+            }}
         >
             {/* Image */}
             <div className="box-image">
                 <img
-                    src={featured?.image_url || "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80"}
-                    alt="MSPT News"
+                    src={featured?.image_url || MSPT_FALLBACK_IMAGE}
+                    alt={featured?.title || 'MSPT News'}
                     loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                        if (e.target.src !== MSPT_FALLBACK_IMAGE) {
+                            e.target.src = MSPT_FALLBACK_IMAGE;
+                        }
+                    }}
                 />
                 <div className="box-overlay" />
             </div>
@@ -41,11 +58,11 @@ export default function MSPTBox({ msptNews, onOpenMSPT }) {
                 <div className="box-meta">
                     <span className="source">MSPT</span>
                     <span className="separator">•</span>
-                    <span className="time">{featured ? timeAgo(featured.published_at) : 'Live'}</span>
+                    <span className="time">{publishedLabel || 'Live'}</span>
                 </div>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;
@@ -70,13 +87,21 @@ export default function MSPTBox({ msptNews, onOpenMSPT }) {
                     transform: translateY(-2px);
                     filter: brightness(1.05);
                 }
+                .news-box:focus-visible {
+                    outline: 2px solid #5ef5f0;
+                    outline-offset: 2px;
+                }
                 .mspt-box {
-                    border: 1px solid rgba(220, 38, 38, 0.4) !important;
-                    height: 340px !important;
+                    height: 340px;
+                }
+                /* MSPT brand accent lives on the chrome frame so it is
+                   actually visible (a border on the box itself would be
+                   hidden underneath the ::after frame). */
+                .mspt-box:hover::after {
+                    border-color: rgba(220, 38, 38, 0.7);
                 }
                 .mspt-box:hover {
-                    border-color: rgba(220, 38, 38, 0.7) !important;
-                    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.2) !important;
+                    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.2);
                 }
                 .box-image {
                     position: relative;
@@ -139,3 +164,5 @@ export default function MSPTBox({ msptNews, onOpenMSPT }) {
         </div>
     );
 }
+
+export default React.memo(MSPTBox);

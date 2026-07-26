@@ -937,8 +937,8 @@ export default function UniversalHeader({
                     transform: scale(0.92);
                 }
                 
-                /* MOBILE + TABLET: Compact layout with all icons visible */
-                @media (max-width: 768px) {
+                /* MOBILE: Compact layout with all icons visible */
+                @media (max-width: 640px) {
                     .universal-header {
                         padding: 6px 6px;
                         gap: 2px;
@@ -1021,8 +1021,8 @@ export default function UniversalHeader({
                     }
                 }
                 
-                /* Large desktops only */
-                @media (min-width: 769px) {
+                /* Tablets and Desktops */
+                @media (min-width: 641px) {
                     .universal-header {
                         padding: 8px 16px;
                         gap: 12px;

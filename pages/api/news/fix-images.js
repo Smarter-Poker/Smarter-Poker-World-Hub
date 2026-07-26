@@ -8,7 +8,26 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+// Admin/maintenance guard: CRON_SECRET bearer (cron jobs) or x-admin-key
+// (operators). Credentials are required in EVERY environment — no NODE_ENV
+// escape hatch, which would leave preview/staging deploys wide open.
+function isAuthorized(req) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    const adminKey = process.env.ADMIN_API_KEY;
+    if (adminKey && req.headers['x-admin-key'] === adminKey) return true;
+    return false;
+}
 
 // Default category images - must match scraper
 const DEFAULT_CATEGORY_IMAGES = {
@@ -20,27 +39,15 @@ const DEFAULT_CATEGORY_IMAGES = {
 };
 
 export default async function handler(req, res) {
-  // Admin-only route — require CRON_SECRET authorization
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  // GET is kept because scheduled cron invocations issue GET with the
+  // CRON_SECRET bearer header; auth below is what gates the mutation.
+  if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+  if (!isAuthorized(req)) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
   try {
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-          return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
-      }
-
-      let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
-
       try {
           // Get all articles with null or empty image_url
           const { data: articles, error: fetchError } = await getSupabase()
@@ -51,33 +58,42 @@ function getSupabase() {
 
           if (fetchError) throw fetchError;
 
-
           let updated = 0;
           const errors = [];
 
-          for (const article of (articles || [])) {
-              const imageUrl = DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
+          // Update in small concurrent chunks (much faster than serial, but
+          // bounded so we do not open 100 simultaneous connections)
+          const CHUNK_SIZE = 10;
+          const rows = articles || [];
+          for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+              const chunk = rows.slice(i, i + CHUNK_SIZE);
+              const outcomes = await Promise.allSettled(chunk.map(async (article) => {
+                  const imageUrl = DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
+                  const { error: updateError } = await getSupabase()
+                      .from('poker_news')
+                      .update({ image_url: imageUrl })
+                      .eq('id', article.id);
+                  if (updateError) throw Object.assign(new Error(updateError.message), { articleId: article.id });
+              }));
 
-              const { error: updateError } = await getSupabase()
-                  .from('poker_news')
-                  .update({ image_url: imageUrl })
-                  .eq('id', article.id);
-
-              if (updateError) {
-                  errors.push({ id: article.id, error: updateError.message });
-              } else {
-                  updated++;
-              }
+              outcomes.forEach((outcome, idx) => {
+                  if (outcome.status === 'fulfilled') {
+                      updated++;
+                  } else {
+                      errors.push({ id: chunk[idx].id, error: outcome.reason?.message || 'Update failed' });
+                  }
+              });
           }
 
           return res.status(200).json({
               success: true,
-              found: articles?.length || 0,
+              found: rows.length,
               updated,
               errors: errors.length > 0 ? errors : undefined
           });
 
       } catch (error) {
+          try { reportApiError(error, req); } catch (_e) { /* noop */ }
           console.warn('Error fixing images:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }

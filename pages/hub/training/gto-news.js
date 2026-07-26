@@ -228,8 +228,16 @@ function CategoryIcon({ cat, size=14 }) {
   }
 }
 
-const CAT_ICONS = { Preflop: '🃏', Postflop: '🎯', Math: '🧮', Mental: '🧠' };
 const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Mental: 'var(--sp-accent-purple)' };
+// Tinted pill backgrounds. The old `${CAT_COLORS[cat]}12` hex-alpha concat broke
+// when CAT_COLORS moved to var() tokens (produced invalid `var(...)12`), so the
+// tint is derived from the same tokens via color-mix instead.
+const CAT_COLORS_BG = {
+  Preflop: 'color-mix(in srgb, var(--sp-accent-blue) 8%, transparent)',
+  Postflop: 'color-mix(in srgb, var(--sp-accent-green) 8%, transparent)',
+  Math: 'color-mix(in srgb, var(--sp-accent-amber) 8%, transparent)',
+  Mental: 'color-mix(in srgb, var(--sp-accent-purple) 8%, transparent)',
+};
 
 export default function GtoNewsPage() {
   const router = useRouter();
@@ -251,17 +259,13 @@ export default function GtoNewsPage() {
     } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
-  // EventBus listener for cross-page reactivity
-  useEffect(() => {
-    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', (e) => {
-      if (e?.source === 'GtoNews') return;
-    });
-    return unsub;
-  }, []);
-
   const toggleBookmark = (id) => {
     const next = new Set(bookmarks);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
     setBookmarks(next);
     try {
       localStorage.setItem('gto-news-bookmarks', JSON.stringify([...next]));
@@ -286,6 +290,9 @@ export default function GtoNewsPage() {
           body: JSON.stringify({
             gameId: 'gto-news',
             gameName: `GTO News (${next.size} articles read)`,
+            // Tag so stats aggregators can exclude reading progress from
+            // real training accuracy/leaderboard numbers.
+            sessionType: 'reading',
             gtowScore: Math.round((next.size / ARTICLES.length) * 100),
             totalEVLoss: 0,
             handsPlayed: next.size,
@@ -316,6 +323,17 @@ export default function GtoNewsPage() {
     markRead(id);
   };
 
+  // TRAIN-NEWS-A11Y: keyboard activation for the clickable article cards
+  const handleCardKeyDown = (e, id) => {
+    // Ignore keys bubbling up from nested controls (e.g. the bookmark button),
+    // otherwise preventDefault() here cancels their own keyboard activation.
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      handleExpand(id);
+    }
+  };
+
   // Filtered and searched articles
   const filtered = useMemo(() => {
     let list = ARTICLES;
@@ -330,9 +348,15 @@ export default function GtoNewsPage() {
     return list;
   }, [catFilter, search, showBookmarksOnly, bookmarks]);
 
-  // Daily tip of the day
-  const dayOfYear = Math.floor((Date.now() - new Date(2026, 0, 1)) / 86400000);
-  const dailyTip = ARTICLES[dayOfYear % ARTICLES.length];
+  // Daily tip of the day. Computed client-side after mount so SSR and
+  // hydration never disagree across midnight/timezone boundaries, with a
+  // safe modulo so a skewed clock (before the epoch) can't index negatively.
+  const [dailyTip, setDailyTip] = useState(ARTICLES[0]);
+  useEffect(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(2026, 0, 1).getTime()) / 86400000);
+    const idx = ((dayOfYear % ARTICLES.length) + ARTICLES.length) % ARTICLES.length;
+    setDailyTip(ARTICLES[idx]);
+  }, []);
 
   return (
     <>
@@ -471,8 +495,10 @@ export default function GtoNewsPage() {
             {CATS.map((c) => (
               <motion.button
                 key={c}
+                type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
+                aria-pressed={catFilter === c}
                 style={{
                   flex: 1,
                   padding: '6px',
@@ -540,6 +566,11 @@ export default function GtoNewsPage() {
                 border: `1px solid ${readArticles.has(a.id) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'}`,
                 cursor: 'pointer',
               }}
+              role="button"
+              tabIndex={0}
+              aria-expanded={expanded === a.id}
+              aria-label={`${a.title}${readArticles.has(a.id) ? ' (read)' : ''}`}
+              onKeyDown={(e) => handleCardKeyDown(e, a.id)}
               onClick={() => handleExpand(a.id)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -550,7 +581,7 @@ export default function GtoNewsPage() {
                     style={{
                       padding: '1px 6px',
                       borderRadius: 3,
-                      background: `${CAT_COLORS[a.cat]}12`,
+                      background: CAT_COLORS_BG[a.cat] || 'rgba(255,255,255,0.06)',
                       color: CAT_COLORS[a.cat],
                       fontSize: 8,
                       fontWeight: 700,

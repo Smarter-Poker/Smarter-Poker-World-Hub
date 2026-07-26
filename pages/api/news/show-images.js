@@ -17,9 +17,23 @@ function getSupabase() {
     return _supabase;
 }
 
+// Debug/introspection guard: CRON_SECRET bearer, x-admin-key, or non-production.
+function isAuthorized(req) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    const adminKey = process.env.ADMIN_API_KEY;
+    if (adminKey && req.headers['x-admin-key'] === adminKey) return true;
+    return process.env.NODE_ENV !== 'production';
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+    // Debug endpoint — hidden in production unless an admin key is presented
+    // (matches debug-extraction.js behavior).
+    if (!isAuthorized(req)) {
+        return res.status(404).json({ error: 'Not found' });
     }
     try {
         const { data: articles } = await getSupabase()
@@ -36,7 +50,9 @@ export default async function handler(req, res) {
             sourceUrl: a.source_url?.substring(0, 60)
         }));
 
-        res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+        // Never let a shared/CDN cache serve this gated debug payload to an
+        // unauthenticated caller (the edge keys on URL only, not credentials).
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({ articles: summary });
 
     } catch (err) {
