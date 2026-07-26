@@ -85,6 +85,7 @@ logs
 logs/
 node_modules
 .node_modules_safe
+.node_modules_old_*/
 npm-debug.log*
 pnpm-debug.log*
 pokerbrain-assets/
