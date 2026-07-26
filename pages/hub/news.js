@@ -315,10 +315,13 @@ export default function NewsHub() {
             const src = router.query.source;
             setSourceFilters(prev => ({ ...prev, [src]: true }));
             setActiveSection('news');
+            setActiveTab('news');
         } else if (router.query.tab) {
             setActiveSection(router.query.tab);
+            setActiveTab(router.query.tab);
         } else if (router.query.filter) {
             setActiveSection(router.query.filter);
+            setActiveTab('all');
         }
     }, [router.query]);
     const [email, setEmail] = useState('');

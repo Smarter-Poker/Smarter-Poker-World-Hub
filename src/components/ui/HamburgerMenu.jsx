@@ -207,13 +207,24 @@ export default function HamburgerMenu({
 
       case 'toggle':
         return (
-          <div key={index} style={{ padding: '12px 16px' }}>
+          <div 
+            key={index} 
+            style={{ padding: '12px 16px', cursor: 'pointer' }}
+            onClick={(e) => {
+              // Ensure we don't trigger twice if they clicked the exact button element
+              if (e.target.closest('button')) return;
+              if (item.onChange) item.onChange(!item.checked);
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>
+              <label style={{ fontSize: 15, fontWeight: 500, color: colors.text, cursor: 'pointer' }}>
                 {item.label}
               </label>
               <button
-                onClick={() => item.onChange && item.onChange(!item.checked)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.onChange) item.onChange(!item.checked);
+                }}
                 style={{
                   width: 52,
                   height: 28,
