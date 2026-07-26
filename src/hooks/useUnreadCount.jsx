@@ -81,7 +81,7 @@ export function UnreadProvider({ children }) {
         return () => { try { sub?.unsubscribe(); } catch (_) { /* already gone */ } };
     }, []);
 
-    // ── Fetch unread MESSAGE count ──────────────────────────────────────────
+    // ── Fetch unread MESSAGE count ───────────────────────────────────────
     const refreshUnread = async () => {
         if (!userId) return;
 
@@ -131,7 +131,7 @@ export function UnreadProvider({ children }) {
         }
     };
 
-    // ── Fetch unread NOTIFICATION count ─────────────────────────────────────
+    // ── Fetch unread NOTIFICATION count ─────────────────────────────────
     // BUG-FIX-LIVE-6: read both `read` and `is_read` columns because the table
     // has both (legacy schema) and individual code paths historically wrote to
     // one or the other. We treat "unread" as "neither flag set to true."
@@ -340,7 +340,7 @@ export function UnreadProvider({ children }) {
         broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
     };
 
-    // ── Derived totals + backwards-compat alias ─────────────────────────────
+    // ── Derived totals + backwards-compat alias ────────────────────────────
     const total = messageCount + notificationCount;
 
     return (
