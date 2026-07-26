@@ -1,13 +1,15 @@
 /**
  * Venue Scraper — Receive Endpoint
- * 
+ *
  * Receives scraped venue data from Manus AI and persists to Supabase.
  * Handles daily tournament schedules and venue news/promotions.
  *
- * Auth: x-venue-scraper-key header
+ * Auth: x-venue-scraper-key header. Accepts either the raw VENUE_SCRAPER_SECRET
+ *       (legacy) or a short-lived per-batch HMAC token minted by trigger.js.
  * Method: POST only
  */
 
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -18,7 +20,11 @@ let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        // Service role ONLY — never silently downgrade to the anon key. Writes here
+        // target RLS-protected tables; running as anon fails (or partially applies)
+        // while the endpoint still reports success.
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -26,15 +32,99 @@ function getSupabase() {
 
 const VENUE_SCRAPER_SECRET = process.env.VENUE_SCRAPER_SECRET;
 
+function safeEqual(a, b) {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) return false;
+    return timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * Verifies a per-batch token of the form `<base64url(payload)>.<hmac-sha256-hex>`
+ * where payload is JSON `{ b: <batch_id>, e: <expiry epoch seconds> }`.
+ * Minted by pages/api/venue-scraper/trigger.js so the raw shared secret never
+ * leaves the platform.
+ */
+function verifyBatchToken(token, secret) {
+    if (typeof token !== 'string' || token.indexOf('.') === -1) return false;
+    const dot = token.lastIndexOf('.');
+    const payloadB64 = token.slice(0, dot);
+    const signature = token.slice(dot + 1);
+    if (!payloadB64 || !signature) return false;
+
+    const expected = createHmac('sha256', secret).update(payloadB64).digest('hex');
+    if (!safeEqual(signature, expected)) return false;
+
+    try {
+        const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        if (!payload || typeof payload.e !== 'number') return false;
+        return payload.e * 1000 > Date.now();
+    } catch (_err) {
+        return false;
+    }
+}
+
+// Non-negotiable columns on venue_daily_tournaments (all NOT NULL).
+function buildTournamentRow(t, ctx) {
+    const dayOfWeek = t.day_of_week ? String(t.day_of_week).trim() : null;
+    if (!dayOfWeek) return null;
+
+    const startTime = t.start_time ? String(t.start_time).trim() : null;
+    if (!startTime) return null;
+
+    const buyIn = t.buy_in != null && !isNaN(t.buy_in) ? Math.round(parseFloat(t.buy_in)) : null;
+    if (buyIn == null) return null;
+
+    const gameType = t.game_type ? String(t.game_type).trim().toUpperCase() : 'NLH';
+    const tournamentName = t.tournament_name
+        ? String(t.tournament_name).trim()
+        : `$${buyIn} ${gameType}`;
+
+    return {
+        venue_id: ctx.venueId,
+        venue_name: ctx.venueName,
+        day_of_week: dayOfWeek,
+        event_date: null, // recurring weekly pattern
+        start_time: startTime,
+        tournament_name: tournamentName,
+        buy_in: buyIn,
+        rebuy_addon: t.rebuy_addon ? String(t.rebuy_addon).trim() : null,
+        starting_stack: t.starting_stack != null && !isNaN(t.starting_stack) ? parseInt(t.starting_stack, 10) : null,
+        blind_levels: t.blind_levels ? String(t.blind_levels).trim() : null,
+        game_type: gameType,
+        format: t.format ? String(t.format).trim() : null,
+        guaranteed: t.guaranteed != null && !isNaN(t.guaranteed) ? Math.round(parseFloat(t.guaranteed)) : null,
+        source_url: ctx.sourceUrl,
+        last_scraped: ctx.scrapeTimestamp,
+        is_active: true,
+        // 15-Layer scrape-integrity provenance (all NOT NULL + trigger-enforced)
+        data_quality: 'scraped_verified',
+        scrape_html_hash: ctx.htmlHash,
+        scrape_timestamp: ctx.scrapeTimestamp,
+        scrape_batch_id: ctx.batchId,
+    };
+}
+
 export default async function handler(req, res) {
     try {
         if (req.method !== 'POST') {
             return res.status(405).json({ error: 'POST only' });
         }
 
-        // Auth
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.warn('[Venue Receive] SUPABASE_SERVICE_ROLE_KEY missing — refusing to write as anon');
+            return res.status(500).json({ error: 'Server misconfigured: service role key unavailable' });
+        }
+
+        // Auth — raw shared secret (legacy) or short-lived per-batch HMAC token.
         const secretKey = req.headers['x-venue-scraper-key'];
-        if (!secretKey || !VENUE_SCRAPER_SECRET || secretKey !== VENUE_SCRAPER_SECRET) {
+        if (!secretKey || !VENUE_SCRAPER_SECRET) {
+            return res.status(401).json({ error: 'Invalid scraper key' });
+        }
+        const authOk =
+            safeEqual(secretKey, VENUE_SCRAPER_SECRET) ||
+            verifyBatchToken(secretKey, VENUE_SCRAPER_SECRET);
+        if (!authOk) {
             return res.status(401).json({ error: 'Invalid scraper key' });
         }
 
@@ -46,9 +136,14 @@ export default async function handler(req, res) {
 
         console.debug(`[Venue Receive] Batch ${batch_id || '?'}, Tier: ${source_tier || '?'}, Venues: ${venues.length}`);
 
+        const batchId = String(batch_id || `receive-${Date.now()}`);
+
         const results = {
             tournaments_upserted: 0,
+            tournaments_skipped: 0,
+            tournaments_deactivated: 0,
             news_inserted: 0,
+            news_duplicates: 0,
             venues_updated: 0,
             errors: [],
         };
@@ -70,76 +165,159 @@ export default async function handler(req, res) {
                 }
 
                 // ── Upsert daily tournaments ──
+                // NOTE: no delete-first refresh. venue_daily_tournaments carries a
+                // 7-column unique key (venue_id, venue_name, day_of_week, event_date,
+                // start_time, buy_in, game_type); we upsert on it and only retire rows
+                // that this run did not refresh, after the upsert succeeded.
                 if (tournaments && Array.isArray(tournaments) && tournaments.length > 0) {
-                    // Delete existing tournaments for this venue (full refresh)
-                    const { error: err_venue_daily_tournaments_wytc3 } = await getSupabase()
-                      .from('venue_daily_tournaments')
-                      .delete()
-                        .eq('venue_id', vid);
-                    if (err_venue_daily_tournaments_wytc3) console.warn('[Supabase] Silent mutation failed in venue_daily_tournaments:', err_venue_daily_tournaments_wytc3.message);
+                    // venue_name is NOT NULL — prefer the payload, fall back to the DB.
+                    let venueName = venueData.venue_name || venueData.name || null;
+                    if (!venueName) {
+                        const { data: venueRow } = await getSupabase()
+                            .from('poker_venues')
+                            .select('name')
+                            .eq('id', vid)
+                            .maybeSingle();
+                        venueName = venueRow?.name || null;
+                    }
 
-                    // Get venue name from the batch data
-                    const venueName = venueData.venue_name || venueData.name || null;
+                    const sourceUrl = source_url ? String(source_url).trim() : null;
 
-                    const tournamentRows = tournaments
-                        .filter(t => t.day_of_week) // must have at least a day
-                        .map(t => ({
-                            venue_id: vid,
-                            venue_name: venueName || null,
-                            day_of_week: String(t.day_of_week).trim(),
-                            start_time: t.start_time ? String(t.start_time).trim() : null,
-                            tournament_name: t.tournament_name ? String(t.tournament_name).trim() : null,
-                            buy_in: t.buy_in != null && !isNaN(t.buy_in) ? parseFloat(t.buy_in) : null,
-                            rebuy_addon: t.rebuy_addon ? String(t.rebuy_addon).trim() : null,
-                            starting_stack: t.starting_stack != null && !isNaN(t.starting_stack) ? parseInt(t.starting_stack, 10) : null,
-                            blind_levels: t.blind_levels ? String(t.blind_levels).trim() : null,
-                            game_type: t.game_type ? String(t.game_type).trim().toUpperCase() : null,
-                            format: t.format ? String(t.format).trim() : null,
-                            guaranteed: t.guaranteed != null && !isNaN(t.guaranteed) ? parseFloat(t.guaranteed) : null,
-                            source_url: source_url || null,
-                            last_scraped: new Date().toISOString(),
-                            is_active: true,
-                        }));
+                    if (!venueName || !sourceUrl) {
+                        results.errors.push(
+                            `Venue ${vid} tournaments: missing ${!venueName ? 'venue_name' : 'source_url'} (required)`,
+                        );
+                    } else {
+                        const scrapeTimestamp = new Date().toISOString();
+                        const htmlHash = createHash('sha256')
+                            .update(JSON.stringify({ venue_id: vid, source_url: sourceUrl, tournaments }))
+                            .digest('hex');
 
-                    if (tournamentRows.length > 0) {
-                        const { error: tErr } = await getSupabase()
-                            .from('venue_daily_tournaments')
-                            .insert(tournamentRows);
+                        const ctx = { venueId: vid, venueName, sourceUrl, scrapeTimestamp, htmlHash, batchId };
+                        // Collapse rows that share the ON CONFLICT key BEFORE sending the
+                        // batch: Postgres aborts the whole statement with 21000
+                        // ("ON CONFLICT DO UPDATE command cannot affect row a second
+                        // time") if one upsert payload contains the same key twice, and
+                        // scraped payloads routinely repeat a tournament.
+                        const rowsByKey = new Map();
+                        for (const t of tournaments) {
+                            const row = buildTournamentRow(t, ctx);
+                            if (!row) {
+                                results.tournaments_skipped++;
+                                continue;
+                            }
+                            const key = [
+                                row.venue_id,
+                                row.venue_name,
+                                row.day_of_week,
+                                row.event_date,
+                                row.start_time,
+                                row.buy_in,
+                                row.game_type,
+                            ].join('\u0000');
+                            if (rowsByKey.has(key)) results.tournaments_skipped++;
+                            rowsByKey.set(key, row); // last write wins — richest payload usually comes last
+                        }
+                        const tournamentRows = Array.from(rowsByKey.values());
 
-                        if (tErr) {
-                            console.warn(`[Venue Receive] Tournament insert error for venue ${vid}:`, tErr.message);
-                            results.errors.push(`Venue ${vid} tournaments: ${tErr.message}`);
-                        } else {
-                            results.tournaments_upserted += tournamentRows.length;
+                        if (tournamentRows.length > 0) {
+                            const { error: tErr } = await getSupabase()
+                                .from('venue_daily_tournaments')
+                                .upsert(tournamentRows, {
+                                    onConflict:
+                                        'venue_id,venue_name,day_of_week,event_date,start_time,buy_in,game_type',
+                                });
+
+                            if (tErr) {
+                                console.warn(`[Venue Receive] Tournament upsert error for venue ${vid}:`, tErr.message);
+                                results.errors.push(`Venue ${vid} tournaments: ${tErr.message}`);
+                            } else {
+                                results.tournaments_upserted += tournamentRows.length;
+
+                                // Retire rows this batch did not refresh (schedule changed /
+                                // tournament cancelled). Never delete — flag as stale so the
+                                // public view (is_active + data_quality) stops showing them.
+                                const { data: staleRows, error: staleErr } = await getSupabase()
+                                    .from('venue_daily_tournaments')
+                                    .update({ is_active: false, data_quality: 'stale' })
+                                    .eq('venue_id', vid)
+                                    .eq('is_active', true)
+                                    .lt('scrape_timestamp', scrapeTimestamp)
+                                    .select('id');
+
+                                if (staleErr) {
+                                    console.warn(`[Venue Receive] Stale sweep failed for venue ${vid}:`, staleErr.message);
+                                    results.errors.push(`Venue ${vid} stale sweep: ${staleErr.message}`);
+                                } else {
+                                    results.tournaments_deactivated += Array.isArray(staleRows) ? staleRows.length : 0;
+                                }
+                            }
                         }
                     }
                 }
 
-                // ── Insert venue news ──
+                // ── Insert venue news (deduped on venue_id + title) ──
                 if (news && Array.isArray(news) && news.length > 0) {
-                    const newsRows = news
-                        .filter(n => n.title && n.title.trim().length > 0)
-                        .map(n => ({
-                            venue_id: vid,
-                            title: String(n.title).trim(),
-                            content: n.content ? String(n.content).trim() : null,
-                            source_url: source_url || null,
-                            image_url: n.image_url || null,
-                            published_at: n.published_at || null,
-                            scraped_at: new Date().toISOString(),
-                            is_active: true,
-                        }));
+                    const candidates = news
+                        .filter(n => n.title && String(n.title).trim().length > 0)
+                        .map(n => {
+                            // published_at must parse as a timestamp or the whole batch fails.
+                            let publishedAt = null;
+                            if (n.published_at) {
+                                const parsed = Date.parse(n.published_at);
+                                if (!isNaN(parsed)) publishedAt = new Date(parsed).toISOString();
+                            }
+                            return {
+                                venue_id: vid,
+                                title: String(n.title).trim(),
+                                content: n.content ? String(n.content).trim() : null,
+                                source_url: source_url || null,
+                                image_url: n.image_url || null,
+                                published_at: publishedAt,
+                                scraped_at: new Date().toISOString(),
+                                is_active: true,
+                            };
+                        });
 
-                    if (newsRows.length > 0) {
-                        const { error: nErr } = await getSupabase()
+                    if (candidates.length > 0) {
+                        // venue_news has no unique constraint — dedupe by reading the
+                        // venue's existing titles so repeat runs don't stack duplicates.
+                        const { data: existingNews, error: exErr } = await getSupabase()
                             .from('venue_news')
-                            .insert(newsRows);
+                            .select('title')
+                            .eq('venue_id', vid)
+                            .eq('is_active', true);
 
-                        if (nErr) {
-                            console.warn(`[Venue Receive] News insert error for venue ${vid}:`, nErr.message);
-                            results.errors.push(`Venue ${vid} news: ${nErr.message}`);
+                        if (exErr) {
+                            console.warn(`[Venue Receive] News dedup lookup failed for venue ${vid}:`, exErr.message);
+                            results.errors.push(`Venue ${vid} news: ${exErr.message}`);
                         } else {
-                            results.news_inserted += newsRows.length;
+                            const known = new Set(
+                                (existingNews || []).map(r => String(r.title || '').trim().toLowerCase()),
+                            );
+                            const newsRows = [];
+                            for (const row of candidates) {
+                                const key = row.title.toLowerCase();
+                                if (known.has(key)) {
+                                    results.news_duplicates++;
+                                    continue;
+                                }
+                                known.add(key);
+                                newsRows.push(row);
+                            }
+
+                            if (newsRows.length > 0) {
+                                const { error: nErr } = await getSupabase()
+                                    .from('venue_news')
+                                    .insert(newsRows);
+
+                                if (nErr) {
+                                    console.warn(`[Venue Receive] News insert error for venue ${vid}:`, nErr.message);
+                                    results.errors.push(`Venue ${vid} news: ${nErr.message}`);
+                                } else {
+                                    results.news_inserted += newsRows.length;
+                                }
+                            }
                         }
                     }
                 }
@@ -171,8 +349,12 @@ export default async function handler(req, res) {
             console.warn('[Venue Receive] Failed to log run:', logErr.message);
         }
 
-        return res.status(200).json({
-            success: true,
+        const nothingWritten =
+            results.tournaments_upserted === 0 && results.news_inserted === 0 && results.errors.length > 0;
+
+        return res.status(nothingWritten ? 500 : 200).json({
+            success: results.errors.length === 0,
+            status: results.errors.length === 0 ? 'success' : 'partial',
             batch_id,
             results,
         });

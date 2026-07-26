@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         let socialPage = null;
         const { data: spById, error: spError } = await getSupabase()
           .from('social_pages')
-          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
+          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
           .eq('id', id)
           .maybeSingle();
 
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
           // Second fallback: check if id is a linked_venue_id (integer venue ID → social page)
           const { data: spByLinked, error: linkedError } = await getSupabase()
             .from('social_pages')
-            .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
+            .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
             .eq('linked_venue_id', id)
             .limit(1)
             .maybeSingle();
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
             // Final fallback: try slug-based lookup
             const { data: spBySlug, error: slugError } = await getSupabase()
               .from('social_pages')
-              .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
+              .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
               .eq('slug', id)
               .maybeSingle();
 
@@ -138,26 +138,34 @@ export default async function handler(req, res) {
           data: { page_id: socialPage.id, linked_venue_id: linkedVenueId },
         });
 
-        // Try metadata.linked_venue_id first, then name match
+        // Try metadata.linked_venue_id first, then name match.
+        // NOTE: keep this column list to columns that actually exist on
+        // poker_venues. `slug` used to be selected here and is defined in no
+        // migration — the select errored, `lv` stayed null, and because the
+        // code only checks `if (lv)` the whole Commander bridge (live games,
+        // tournaments, trust score, hours, followers) silently never rendered.
+        // Errors are logged now so the next drift is visible.
         if (linkedVenueId) {
-          const { data: lv } = await getSupabase()
+          const { data: lv, error: lvErr } = await getSupabase()
             .from('poker_venues')
-            .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
+            .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, has_tournaments')
             .eq('id', linkedVenueId)
             .eq('is_active', true)
             .maybeSingle();
+          if (lvErr) console.warn('[venue-detail] linked venue lookup failed:', lvErr.message);
           if (lv) linkedVenue = lv;
         }
 
         if (!linkedVenue) {
           // Fallback: find poker_venue by name match
-          const { data: lv } = await getSupabase()
+          const { data: lv, error: lvNameErr } = await getSupabase()
             .from('poker_venues')
-            .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
+            .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, has_tournaments')
             .ilike('name', socialPage.name)
             .eq('is_active', true)
             .limit(1)
             .maybeSingle();
+          if (lvNameErr) console.warn('[venue-detail] linked venue name-match lookup failed:', lvNameErr.message);
           if (lv) {
             linkedVenue = lv;
             linkedVenueId = lv.id;

@@ -1,5 +1,61 @@
 -- =====================================================
--- POKER NEAR ME - LIVE GAMES SYSTEM
+-- ⚠️  ARCHIVED — NEVER APPLIED / SUPERSEDED. DO NOT RUN.
+-- =====================================================
+-- This file does NOT describe the live_games table that exists in production.
+-- It is retained only for history. Nothing below is authoritative.
+--
+-- Why it never applied:
+--   * live_games was already created by
+--     archive/20260130_social_pages_tables.sql:61 with a different shape, so the
+--     `CREATE TABLE IF NOT EXISTS live_games` below is a silent no-op.
+--   * The `live_games_update` policy below filters on `reported_by`, a column
+--     that does not exist on the real table. CREATE POLICY therefore errors and
+--     rolls back this whole (transactional) file — including its RLS policies
+--     and the find_nearby_venues / find_live_games_nearby / report_live_game
+--     functions. Those RPCs were reimplemented against the real schema in
+--     20260511220000_phantom_rpcs_real_impls_r5.sql and
+--     20260511230000_phantom_rpcs_r6_critical_security_and_triggers.sql — use
+--     those, not this file.
+--
+-- Shape of live_games INFERRED from the applied RPCs in
+-- 20260511230000_phantom_rpcs_r6_critical_security_and_triggers.sql:397-495.
+-- This is not a verified dump — no migration in this repo has been confirmed to
+-- produce it, so treat it as a starting point to check against prod, not as
+-- settled truth:
+--   id           uuid          (PK)
+--   venue_id     -- see the type conflict noted below
+--   user_id      -- reporter
+--   game_type    text
+--   stakes       text
+--   table_count  integer
+--   wait_time    integer       -- the RPC returns seats_open / waitlist_size as
+--                              -- NULL::integer, i.e. not stored on live_games
+--   notes        text
+--   game_quality text          -- added outside migrations; see note below
+--   is_active    boolean       -- added outside migrations; see note below
+--   created_at   timestamptz
+--   expires_at   timestamptz
+--
+-- UNRESOLVED CONFLICTS — do not "fix" application code from this comment alone:
+--   * venue_id type. The only live_games DDL in this repo,
+--     archive/20260130_social_pages_tables.sql:61, declares `venue_id TEXT`.
+--     The applied RPC does `JOIN poker_venues pv ON pv.id = lg.venue_id` and
+--     declares `venue_id integer` in its RETURNS TABLE, which only works if the
+--     real column is integer. A plpgsql body is not type-checked at CREATE
+--     time, so the RPC existing does not prove the column type. Confirm against
+--     the live database before changing pages/api/poker/live-games.js (TEXT) or
+--     anything else that depends on this.
+--   * is_active / game_quality appear in no migration at all, yet the applied
+--     RPC filters and selects them — so the production table has drifted from
+--     the migration history by some out-of-band change.
+--   * Columns declared below that no other artifact references: seats_open,
+--     waitlist_size, reported_by, reported_at, average_stack,
+--     confirmation_count, last_confirmed_at. Code reading them (e.g.
+--     pages/api/public/live-games/[id].js) is likely reading phantom columns —
+--     again, verify against prod first.
+--
+-- =====================================================
+-- POKER NEAR ME - LIVE GAMES SYSTEM (original header)
 -- =====================================================
 -- Tables: live_games, live_game_reports
 -- Features: PostGIS nearby search, real-time game tracking

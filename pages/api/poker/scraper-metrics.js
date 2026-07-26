@@ -50,7 +50,9 @@ export default async function handler(req, res) {
     const summarize = (rows) => {
       if (rows.length === 0) return { cycles: 0, avg_duration: 0, total_errors: 0, avg_records: 0 };
       const totalDuration = rows.reduce((s, r) => s + (r.duration_seconds || 0), 0);
-      const totalErrors = rows.reduce((s, r) => s + (r.error_count || 0), 0);
+      // Column is `errors` (see 20260329_scraper_infrastructure.sql) — reading
+      // r.error_count always yielded undefined, so totals were permanently 0.
+      const totalErrors = rows.reduce((s, r) => s + (r.errors || 0), 0);
       const totalRecords = rows.reduce((s, r) => s + (r.records_saved || 0), 0);
       return {
         cycles: rows.length,
@@ -72,7 +74,7 @@ export default async function handler(req, res) {
           duration: m.duration_seconds,
           records: m.records_saved,
           venues: m.venues_scraped,
-          errors: m.error_count,
+          errors: m.errors || 0,
         })),
       },
       pokeratlas: {
@@ -82,7 +84,7 @@ export default async function handler(req, res) {
           duration: m.duration_seconds,
           records: m.records_saved,
           venues: m.venues_scraped,
-          errors: m.error_count,
+          errors: m.errors || 0,
         })),
       },
     });

@@ -145,9 +145,12 @@ export default function PodHomeGames({
   loading, setLoading,
   favorites, handleToggleFavorite,
   checkinCounts, reviewStatsMap,
-  handleVenueNavigate,
-  onHomeGameCreated
+  handleVenueNavigate
 }) {
+  // NOTE: no onHomeGameCreated prop — CreateHomeGame routes users through the
+  // Club Commander wizard on another page (it never creates a listing
+  // in-place), so there is no creation event to forward. New listings appear
+  // via the discover API on the next search.
   const hgSearch = filters.hgSearch || '';
   const hgState = filters.hgState || 'all';
   const hgHasSearched = filters.hgHasSearched || false;

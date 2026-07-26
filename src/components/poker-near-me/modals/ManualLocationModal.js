@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function ManualLocationModal({
-showManualLocation, setShowManualLocation, manualAddress, setManualAddress, handleGeocodeAddress, isSearching
+showManualLocation, setShowManualLocation, manualCity, setManualCity, manualState, setManualState,
+handleManualLocationSet, gpsLoading, gpsError, handleGpsClick, dismissLocationPrompt
 }) {
     return (
         <div style={{

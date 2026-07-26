@@ -5,6 +5,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const REFRESH_INTERVAL = 60000; // 1 minute
+// Friend check-ins older than this are history, not "at the venue right now".
+const CHECKIN_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function timeAgo(dateStr) {
     const now = Date.now();
@@ -72,6 +74,11 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             const data = await res.json();
             if (!isMounted.current) return;
             setFriendsList(data.friends || data.data || []);
+            // BUG FIX: loading was only cleared on !res.ok or catch. A successful
+            // response with zero friends left the spinner ("Finding friends...") up
+            // forever, because the effect below skips fetchFriendCheckins — the only
+            // other success-path setLoading(false) — when the list is empty.
+            setLoading(false);
         } catch (err) {
             if (!isMounted.current) return;
             console.warn('Failed to fetch friends:', err);
@@ -91,21 +98,41 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 return;
             }
 
-            // Batch fetch checkins for each friend (last 24h)
+            // Batch fetch checkins for each friend (last 24h).
+            // BUG FIX 1: the request carried no time bound, so a friend's ENTIRE
+            // check-in history came back and every row was rendered with a green
+            // "online" dot and counted in the "N active" badge — a check-in from
+            // three weeks ago looked like the friend was at the venue right now.
+            // BUG FIX 2: this was a serial await loop (up to 50 sequential round
+            // trips); NearMeNowFeed already uses Promise.allSettled for the same job.
+            const cutoffMs = Date.now() - CHECKIN_WINDOW_MS;
+            const since = new Date(cutoffMs).toISOString();
+            const targets = friendIds.slice(0, 50);
+            const results = await Promise.allSettled(
+                targets.map(fid =>
+                    fetch(`/api/poker/checkins?user_id=${fid}&since=${encodeURIComponent(since)}`, { signal: abortRef.current?.signal })
+                        .then(r => (r.ok ? r.json() : { checkins: [] }))
+                        .then(data => ({ fid, checkins: data.checkins || [] }))
+                        .catch(() => ({ fid, checkins: [] }))
+                )
+            );
+            if (!isMounted.current) return;
+
             const allCheckins = [];
-            for (const fid of friendIds.slice(0, 50)) {
-                if (!isMounted.current) return;
-                try {
-                    const res = await fetch(`/api/poker/checkins?user_id=${fid}`, { signal: abortRef.current?.signal });
-                    const data = await res.json();
-                    if (data.checkins) {
-                        allCheckins.push(...data.checkins.map(c => ({
-                            ...c,
-                            friend: friendsList.find(f => (f.friend_id || f.id) === fid),
-                        })));
-                    }
-                } catch { /* continue */ }
-            }
+            results.forEach(result => {
+                if (result.status !== 'fulfilled') return;
+                const { fid, checkins } = result.value;
+                checkins.forEach(c => {
+                    // The API ignores `since` on the user_id branch, so enforce the
+                    // 24h window client-side too.
+                    const ts = c.created_at ? new Date(c.created_at).getTime() : NaN;
+                    if (isNaN(ts) || ts < cutoffMs) return;
+                    allCheckins.push({
+                        ...c,
+                        friend: friendsList.find(f => (f.friend_id || f.id) === fid),
+                    });
+                });
+            });
 
             // Sort by most recent
             allCheckins.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

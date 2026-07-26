@@ -101,6 +101,8 @@ export default function MapTabPanel({
                             <option value={25} style={{ background: '#0a0a15' }}>25 Mi</option>
                             <option value={50} style={{ background: '#0a0a15' }}>50 Mi</option>
                             <option value={100} style={{ background: '#0a0a15' }}>100 Mi</option>
+                            {/* 150 is set by the Venues tab "Search Farther" tier — keep it selectable here */}
+                            <option value={150} style={{ background: '#0a0a15' }}>150 Mi</option>
                             <option value={200} style={{ background: '#0a0a15' }}>200 Mi</option>
                             <option value={250} style={{ background: '#0a0a15' }}>250 Mi</option>
                             <option value={500} style={{ background: '#0a0a15' }}>500 Mi</option>

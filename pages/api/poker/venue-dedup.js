@@ -55,39 +55,135 @@ Object.entries(VENUE_ALIASES || {}).forEach(([canonical, aliases]) => {
   ALIAS_LOOKUP[canonical.toLowerCase()] = canonical;
 });
 
+// Generic descriptors that differ between sources ("Bellagio" vs "Bellagio Poker
+// Room"). Stripped only from the END of a name so distinct venues that share a
+// brand but differ by city ("Golden Nugget Las Vegas") never collapse together.
+const GENERIC_SUFFIXES = [
+  'poker room', 'poker club', 'card club', 'card room', 'cardroom',
+  'hotel and casino', 'hotel casino and spa', 'hotel casino', 'casino and hotel',
+  'casino hotel', 'casino resort', 'resort and casino', 'resort casino',
+  'casino and racing', 'racing and card club', 'and racing',
+  'resort', 'casino', 'hotel', 'poker',
+];
+
+/** Lowercase, punctuation-free form used for cross-source matching. */
+export function normalizeForMatch(name) {
+  if (!name) return '';
+  return String(name).toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/'/g, '')
+    .replace(/-/g, ' ')
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Normalized "core" name: alias-resolved when known, otherwise the name with a
+ * leading "the" and any trailing generic descriptor removed. This is the dedup
+ * fallback for the ~460 venues that are not in the hand-maintained alias table.
+ */
+export function normalizeVenueName(name) {
+  const alias = name ? ALIAS_LOOKUP[String(name).toLowerCase()] : null;
+  let core = normalizeForMatch(alias || name);
+  if (!core) return '';
+
+  core = core.replace(/^the /, '');
+
+  // Strip trailing descriptors repeatedly ("hard rock hotel and casino" -> "hard rock")
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    // Stripping a suffix can leave a dangling conjunction ("winstar world casino
+    // and resort" -> "winstar world casino and"), which blocks every further
+    // strip and made that name miss its own "winstar world casino" variant.
+    if (core.endsWith(' and')) {
+      const trimmed = core.slice(0, -4).trim();
+      if (trimmed.length >= 4) {
+        core = trimmed;
+        changed = true;
+        continue;
+      }
+    }
+
+    for (const suffix of GENERIC_SUFFIXES) {
+      if (core.endsWith(' ' + suffix)) {
+        const stripped = core.slice(0, -(suffix.length + 1)).trim();
+        // Never strip down to something too short to be distinctive
+        if (stripped.length >= 4) {
+          core = stripped;
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return core;
+}
+
 export function resolveVenueName(name) {
   if (!name) return name;
   return ALIAS_LOOKUP[name.toLowerCase()] || name;
 }
 
 export function mergeVenueData(tables) {
-  // Group tables by canonical venue name
-  const merged = {};
-  
+  // Group tables by canonical venue name. Grouping used to rely purely on the
+  // 22-entry alias table, so any unlisted venue whose sources spelled it
+  // differently ("X" vs "X Poker Room") stayed split; the normalized core name
+  // is used as the grouping key so those merge too.
+  const byCore = {};
+
   tables.forEach(table => {
-    const canonical = resolveVenueName(table.venue_name);
-    if (!merged[canonical]) {
-      merged[canonical] = {
-        venue_name: canonical,
+    const aliasCanonical = resolveVenueName(table.venue_name);
+    const core = normalizeVenueName(table.venue_name) || normalizeForMatch(table.venue_name) || String(table.venue_name || '');
+
+    if (!byCore[core]) {
+      byCore[core] = {
+        venue_name: aliasCanonical,
+        _hasAlias: aliasCanonical !== table.venue_name,
         original_names: new Set(),
         sources: new Set(),
         games: [],
         total_tables: 0,
       };
     }
-    
-    merged[canonical].original_names.add(table.venue_name);
-    merged[canonical].sources.add(table.source);
-    merged[canonical].games.push(table);
-    merged[canonical].total_tables += (table.tables_running || 1);
+
+    const entry = byCore[core];
+    // Prefer an alias-table canonical name; otherwise keep the longest spelling.
+    const isAliasName = aliasCanonical !== table.venue_name;
+    if (isAliasName && !entry._hasAlias) {
+      entry.venue_name = aliasCanonical;
+      entry._hasAlias = true;
+    } else if (!entry._hasAlias && String(table.venue_name || '').length > String(entry.venue_name || '').length) {
+      entry.venue_name = table.venue_name;
+    }
+
+    entry.original_names.add(table.venue_name);
+    entry.sources.add(table.source);
+    entry.games.push(table);
+    entry.total_tables += (table.tables_running || 1);
   });
-  
-  // Convert Sets to arrays for JSON serialization
-  Object.values(merged || {}).forEach(v => {
+
+  // Re-key by the display name so the returned shape stays { canonical_name: {...} }
+  const merged = {};
+  Object.values(byCore || {}).forEach(v => {
+    delete v._hasAlias;
     v.original_names = [...v.original_names];
     v.sources = [...v.sources];
+    const key = v.venue_name;
+    if (merged[key]) {
+      // Two cores resolved to the same display name — fold them together
+      merged[key].original_names = [...new Set([...merged[key].original_names, ...v.original_names])];
+      merged[key].sources = [...new Set([...merged[key].sources, ...v.sources])];
+      merged[key].games = merged[key].games.concat(v.games);
+      merged[key].total_tables += v.total_tables;
+    } else {
+      merged[key] = v;
+    }
   });
-  
+
   return merged;
 }
 

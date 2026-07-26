@@ -252,16 +252,24 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
         const host_user_id = groupRow?.owner_id;
         if (!host_user_id || host_user_id === follower_user_id) return;
 
-        // 24-hour dedup
+        // 24-hour dedup.
+        // Filters on the `data` JSONB column — the canonical payload column on
+        // public.notifications. Filtering a column the table doesn't have makes
+        // PostgREST 42703 the whole query, which would leave `recent` null and
+        // silently disable dedup (host gets a push on every follow/unfollow
+        // toggle), so the error is logged rather than swallowed.
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { data: recent } = await supabase
+        const { data: recent, error: recentErr } = await supabase
             .from('notifications')
             .select('id')
             .eq('user_id', host_user_id)
             .eq('type', 'home_game_new_follower')
             .gte('created_at', oneDayAgo)
-            .filter('metadata->>follower_id', 'eq', String(follower_user_id))
+            .filter('data->>follower_id', 'eq', String(follower_user_id))
             .limit(1);
+        if (recentErr) {
+            console.warn('[follow] dedup lookup failed:', recentErr.message);
+        }
         if (recent && recent.length > 0) return;
 
         // Resolve follower display name
@@ -284,18 +292,20 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
             group_name: gameName,
         };
 
-        // In-app notification
+        // In-app notification.
+        // Only real columns on public.notifications: user_id, type, title,
+        // message, data, read, actor_id, link. Adding anything else (metadata /
+        // action_url / is_read) fails the whole insert with 42703, which used to
+        // mean the host never got the bell notification AND the dedup anchor
+        // above never existed.
         const { error: err_notifications_vjuvs } = await supabase.from('notifications').insert({
             user_id: host_user_id,
             type: 'home_game_new_follower',
             title: titleText,
             message: bodyText,
             data: metadata,
-            metadata,
             actor_id: follower_user_id,
-            action_url: manageUrl,
             link: manageUrl,
-            is_read: false,
             read: false,
         });
         if (err_notifications_vjuvs) console.warn('[Supabase] Silent mutation failed in notifications:', err_notifications_vjuvs.message);

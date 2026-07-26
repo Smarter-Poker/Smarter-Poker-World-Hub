@@ -13,6 +13,14 @@ function formatMoney(amount) {
     return '$' + amount.toLocaleString();
 }
 
+// Buy-in can arrive null/empty/non-numeric from the scrapers — never render a bare '$'
+function formatBuyIn(amount) {
+    if (amount === null || amount === undefined || amount === '') return 'TBD';
+    const num = Number(amount);
+    if (!Number.isFinite(num)) return 'TBD';
+    return '$' + num.toLocaleString();
+}
+
 function formatGameType(raw) {
     if (!raw) return 'NLH';
     const lower = raw.toLowerCase();
@@ -67,7 +75,7 @@ export default function DailyTournamentsTabPanel({
                         key={day}
                         className={'day-btn' + (filters.selectedDay === day ? ' active' : '')}
                         onClick={() => {
-                            setFilters({ ...filters, selectedDay: day });
+                            setFilters(f => ({ ...f, selectedDay: day }));
                             fetchDailyTournaments(day);
                         }}
                     >
@@ -128,8 +136,8 @@ export default function DailyTournamentsTabPanel({
                             <h4>{t.venue_name}</h4>
                             {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
                             <div className="card-tags">
-                                <span className="tag buyin">${t.buy_in}</span>
-                                {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
+                                <span className="tag buyin">{formatBuyIn(t.buy_in)}</span>
+                                {t.guaranteed > 0 && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
                                 {t.format && <span className="tag format">{t.format}</span>}
                             </div>
                             {t.tournament_name && (

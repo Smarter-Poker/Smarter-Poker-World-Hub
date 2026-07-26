@@ -560,6 +560,38 @@ export default function PublicHomeGamePage({ data, serverError }) {
     }
   }, [router?.query?.seatEvent, data?.upcoming_games, seatEvent]);
 
+  // ── Add Friend status ───────────────────────────────────────────────────────
+  // Check friend status on mount, then allow sending a request (handler lives
+  // below, after the guard — it isn't a hook).
+  //
+  // HOOKS-ORDER: this MUST stay above the `serverError || !data` early return.
+  // Client-side navigation between two /hub/home-games/[slug] URLs re-renders
+  // the same mounted component; if one render errors and the next doesn't, a
+  // hook declared below the return changes the hook count and React throws
+  // "Rendered fewer hooks than expected". Read host off `data` (the prop) so
+  // it doesn't depend on the destructuring that happens after the guard.
+  const hostIdForFriendCheck = data?.host?.id || null;
+  useEffect(() => {
+    if (!hostIdForFriendCheck || !currentUserId || currentUserId === hostIdForFriendCheck) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch(`/api/friends?action=status&user_id=${hostIdForFriendCheck}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (json.status === 'friends') setFriendState('friends');
+        else if (json.status === 'pending') setFriendState('pending');
+        else setFriendState('none');
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [hostIdForFriendCheck, currentUserId]);
+
   // Server-error fallback (rare — API returned 5xx)
   if (serverError || !data) {
     return (
@@ -570,7 +602,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
           <div className="hgs-notfound">
             <h1>Temporarily Unavailable</h1>
             <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>
-            <Link href="/hub/home-games" className="hgs-primary-btn">Browse Home Games</Link>
+            {/* There is no /hub/home-games index route — near-me is the
+                real discovery surface. */}
+            <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
           </div>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
           <style>{pageStyles}</style>
@@ -659,29 +693,6 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/hub/messenger?recipientId=${hostId}&recipientName=${encodeURIComponent(host?.display_name || 'Host')}`);
     }
   };
-
-  // ── Add Friend ──────────────────────────────────────────────────────────────
-  // Check friend status on mount, then allow sending a request.
-  useEffect(() => {
-    if (!host?.id || !currentUserId || currentUserId === host.id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = await getAccessToken();
-        if (!token) return;
-        const res = await fetch(`/api/friends?action=status&user_id=${host.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const json = await res.json().catch(() => ({}));
-        if (cancelled) return;
-        if (json.status === 'friends') setFriendState('friends');
-        else if (json.status === 'pending') setFriendState('pending');
-        else setFriendState('none');
-      } catch { /* non-fatal */ }
-    })();
-    return () => { cancelled = true; };
-  }, [host?.id, currentUserId]);
 
   const handleAddFriend = async () => {
     if (friendBusy || friendState !== 'none' || friendLockRef.current) return;
@@ -1030,13 +1041,16 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   <div><dt>Buy-in</dt><dd>${group.typical_buyin_min || '?'} – ${group.typical_buyin_max || '?'}</dd></div>
                 )}
                 {(() => {
+                    // max_players is a single group-level column: the total cap
+                    // for the whole game, NOT a per-table seat count. Multiplying
+                    // it by the table count double-counted the cap (18-player
+                    // group with 2 tables rendered as "36"). Show the cap as-is
+                    // and use the table count only as context.
+                    const totalMax = group.max_players || null;
+                    if (!totalMax) return null;
                     // num_tables: count configured cash-game tables from settings (fallback: 1)
                     const numTables = group.settings?.tables?.length || 1;
-                    // seatsPerTable: max_players is the total cap for the whole game
-                    const seatsPerTable = group.max_players || null;
-                    const totalMax = seatsPerTable ? numTables * seatsPerTable : null;
-                    if (!totalMax) return null;
-                    const detail = numTables > 1 ? ` (${numTables} tables × ${seatsPerTable})` : '';
+                    const detail = numTables > 1 ? ` (across ${numTables} tables)` : '';
                     return <div><dt>Max Players</dt><dd>{totalMax}{detail}</dd></div>;
                 })()}
                 {group.contact_phone && (

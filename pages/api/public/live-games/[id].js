@@ -58,11 +58,14 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, id) {
     try {
+        // NOTE: there is NO foreign key from live_games.venue_id to
+        // poker_venues (index.js says the same), so a PostgREST
+        // `venue:poker_venues(...)` embed errors out and used to 404 every
+        // single detail request. Fetch the venue with a second query instead.
         const { data: game, error } = await getSupabase()
             .from('live_games')
             .select(`
                 *,
-                venue:poker_venues(id, name, address, city, state, latitude, longitude, phone, website),
                 confirmations:live_game_confirmations(
                     id, action, seats_open, waitlist_size, notes, created_at,
                     user:profiles(id, username, avatar_url)
@@ -72,10 +75,28 @@ async function handleGet(req, res, id) {
             .maybeSingle();
 
         if (error || !game) {
+            if (error) console.warn('Live game lookup failed:', error.message);
             return res.status(404).json({ success: false, error: 'Game not found' });
         }
 
-        return res.status(200).json(game);
+        // Enrich with venue data. Best-effort — a missing/failed venue lookup
+        // must not turn a real game into a 404.
+        let venue = null;
+        if (game.venue_id != null) {
+            const { data: venueRow, error: venueErr } = await getSupabase()
+                .from('poker_venues')
+                .select('id, name, address, city, state, latitude, longitude, phone, website')
+                .eq('id', game.venue_id)
+                .maybeSingle();
+            if (venueErr) console.warn('Live game venue lookup failed:', venueErr.message);
+            venue = venueRow || null;
+        }
+
+        return res.status(200).json({
+            ...game,
+            reported_at: game.reported_at || game.created_at,
+            venue,
+        });
 
     } catch (error) {
         console.warn('Live game GET error:', error);
@@ -138,19 +159,31 @@ async function handlePost(req, res, id) {
             return res.status(500).json({ success: false, error: 'Failed to log confirmation' });
         }
 
-        // Update game based on action
-        let updateData = {
-            last_confirmed_at: new Date().toISOString()
-        };
+        // Update game based on action.
+        // live_games has NO last_confirmed_at / seats_open / waitlist_size
+        // columns — those live on live_game_confirmations (logged above).
+        // Including them here 42703'd the UPDATE, which was only console.warn'd,
+        // so confirmations never actually extended expires_at.
+        // waitlist_size is folded into the `wait_time` column instead, using the
+        // same derivation as the report_live_game RPC.
+        const updateData = {};
+        // confirmation_count may be absent/null on older rows — coalesce so we
+        // never write NaN.
+        const nextConfirmationCount = Number(game.confirmation_count || 0) + 1;
 
         if (action === 'confirm') {
-            updateData.confirmation_count = game.confirmation_count + 1;
+            updateData.confirmation_count = nextConfirmationCount;
             updateData.expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
         } else if (action === 'update') {
-            updateData.confirmation_count = game.confirmation_count + 1;
+            updateData.confirmation_count = nextConfirmationCount;
             updateData.expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-            if (seats_open !== undefined) updateData.seats_open = seats_open;
-            if (waitlist_size !== undefined) updateData.waitlist_size = waitlist_size;
+            const waitlistNum = Number(waitlist_size);
+            if (waitlist_size !== undefined && waitlist_size !== null && Number.isFinite(waitlistNum)) {
+                const tables = Math.max(1, Number(game.table_count) || 1);
+                updateData.wait_time = waitlistNum <= 0
+                    ? 0
+                    : Math.min(180, Math.floor((waitlistNum * 10) / tables));
+            }
             if (notes) updateData.notes = notes;
         } else if (action === 'expired' || action === 'incorrect') {
             // If multiple people mark as expired/incorrect, deactivate
@@ -161,9 +194,17 @@ async function handlePost(req, res, id) {
                 .in('action', ['expired', 'incorrect'])
                     .limit(100);
 
-            if (count >= 2) {
+            if ((count || 0) >= 2) {
                 updateData.is_active = false;
             }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(200).json({
+                success: true,
+                action,
+                message: `Game ${action} recorded`
+            });
         }
 
         const { error: updateError } = await getSupabase()
@@ -203,18 +244,24 @@ async function handleDelete(req, res, id) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
-        // Check if user is the reporter
+        // Check if user is the reporter.
+        // The reporter column on live_games is `user_id` — there is no
+        // `reported_by` column. Selecting it errored, so gameError was always
+        // set and every owner delete returned 404 "Game not found".
+        // pages/api/poker/live-games.js DELETE uses user_id for the same check.
         const { data: game, error: gameError } = await getSupabase()
             .from('live_games')
-            .select('reported_by')
+            .select('id, user_id')
             .eq('id', id)
             .maybeSingle();
 
         if (gameError || !game) {
+            if (gameError) console.warn('Live game ownership lookup failed:', gameError.message);
             return res.status(404).json({ success: false, error: 'Game not found' });
         }
 
-        if (game.reported_by !== user.id) {
+        // user_id is stored as TEXT on live_games — compare as strings.
+        if (String(game.user_id) !== String(user.id)) {
             return res.status(403).json({ success: false, error: 'Only the reporter can delete this game' });
         }
 
