@@ -57,7 +57,7 @@ export const TOKE_TRACKER_ORB: OrbConfig = {
     color: '#f59e0b',
     label: 'Toke Tracker',
     gradient: ['#f59e0b', '#b45309'],
-    imageUrl: '/cards/toke-tracker.png?v=splash1',
+    imageUrl: '/cards/toke-tracker.png?v=splash2',
     description: 'DEALER INCOME ENGINE — TRACK TOKES, DOWNS, EXPENSES & CAREER STATS',
 };
 
