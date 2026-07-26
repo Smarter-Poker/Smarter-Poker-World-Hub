@@ -128,6 +128,11 @@ export default function NewsHub() {
     const { user } = useAvatar();
     const userId = user?.id;
 
+    useEffect(() => {
+        // Ensure page always starts at top on load
+        window.scrollTo(0, 0);
+    }, []);
+
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
     const [sourceFilters, setSourceFilters] = useState({});

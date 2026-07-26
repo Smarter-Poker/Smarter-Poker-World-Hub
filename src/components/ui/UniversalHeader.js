@@ -938,7 +938,7 @@ export default function UniversalHeader({
                 }
                 
                 /* MOBILE + TABLET: Compact layout with all icons visible */
-                @media (max-width: 1024px) {
+                @media (max-width: 768px) {
                     .universal-header {
                         padding: 6px 6px;
                         gap: 2px;
@@ -1022,7 +1022,7 @@ export default function UniversalHeader({
                 }
                 
                 /* Large desktops only */
-                @media (min-width: 1025px) {
+                @media (min-width: 769px) {
                     .universal-header {
                         padding: 8px 16px;
                         gap: 12px;
@@ -1116,7 +1116,7 @@ export default function UniversalHeader({
                                 <img
                                     src="/images/vip-card-v6.png"
                                     alt="VIP Member"
-                                    style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+                                    style={{ width: '80%', height: '80%', objectFit: 'contain' }}
                                 />
                         </button>
                     )}
