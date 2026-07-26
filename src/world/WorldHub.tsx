@@ -440,7 +440,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         if (!orbs.find(o => o.id === 'toke-tracker')) {
             orbs.splice(2, 0, TOKE_TRACKER_ORB);
         }
-        if (hasCommanderAccount) orbs.unshift(COMMANDER_ORB);
+        if (hasCommanderAccount) orbs.splice(1, 0, COMMANDER_ORB);
         // Filter out user-hidden cards — PINNED cards are immune to filtering
         return hiddenCardIds.length > 0
             ? orbs.filter(o => !hiddenCardIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
