@@ -23,6 +23,10 @@ PA_PLIST="com.smarter-poker.pokeratlas-daemon"
 # Max heartbeat age in seconds before auto-restart (30 minutes)
 MAX_HEARTBEAT_AGE=1800
 
+# Restart once a daemon reports this many consecutive failures, even if it is
+# still writing fresh heartbeats.
+MAX_CONSECUTIVE_FAILURES=3
+
 # Ensure log directory exists
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -102,9 +106,44 @@ check_heartbeat() {
     discord_alert "${name}: Auto-restarted (heartbeat was ${age_min}min stale)"
   else
     local age_min=$((age / 60))
-    # Read status from heartbeat file
+    # Read status + failure streak from the heartbeat file.
     local status=$(python3 -c "import json; print(json.load(open('$heartbeat_file')).get('status', 'unknown'))" 2>/dev/null || echo "unknown")
-    log "  ${name}: OK (heartbeat ${age_min}min ago, status=${status})"
+    local fails=$(python3 -c "import json; print(int(json.load(open('$heartbeat_file')).get('consecutive_failures', 0) or 0))" 2>/dev/null || echo 0)
+
+    # ─────────────────────────────────────────────────────────────────────
+    # A FRESH HEARTBEAT IS NOT A HEALTHY HEARTBEAT.
+    # The daemons keep writing heartbeats while stuck in a connect/retry
+    # loop, so freshness alone reported "OK" indefinitely. On 2026-07-26 both
+    # daemons sat at status=connect_failed (7 and 5 consecutive failures) for
+    # hours while this watchdog logged them healthy, because status was read
+    # and then thrown away. Treat a failing status as down.
+    # ─────────────────────────────────────────────────────────────────────
+    case "$status" in
+      running|ok|healthy|scraping|idle) : ;;
+      *)
+        log "  ${name}: UNHEALTHY status='${status}' (${fails} consecutive failures) — restarting"
+        launchctl stop "$plist" 2>/dev/null
+        sleep 2
+        launchctl start "$plist" 2>/dev/null
+        notify "${name}: Restarted (status=${status}, ${fails} failures)"
+        discord_alert "${name}: Restarted — status=${status} after ${fails} consecutive failures"
+        return
+        ;;
+    esac
+
+    # Healthy status but a climbing failure streak still means it is not
+    # producing data; restart before the streak becomes permanent.
+    if [ "$fails" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
+      log "  ${name}: ${fails} consecutive failures (>= ${MAX_CONSECUTIVE_FAILURES}) — restarting"
+      launchctl stop "$plist" 2>/dev/null
+      sleep 2
+      launchctl start "$plist" 2>/dev/null
+      notify "${name}: Restarted (${fails} consecutive failures)"
+      discord_alert "${name}: Restarted — ${fails} consecutive failures"
+      return
+    fi
+
+    log "  ${name}: OK (heartbeat ${age_min}min ago, status=${status}, failures=${fails})"
   fi
 }
 
