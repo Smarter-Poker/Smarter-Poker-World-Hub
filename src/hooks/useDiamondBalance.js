@@ -30,23 +30,38 @@ function getAccessToken() {
 }
 
 // ── Helper: update cached diamond balance in localStorage ──
-function updateCachedBalance(diamonds) {
+// Never write an unattributed payload — an entry without a userId defeats the owner
+// guard in BOTH this file and UniversalHeader (whose check is `if (data?.userId && ...)`,
+// so a falsy userId skips validation entirely).
+function updateCachedBalance(diamonds, userId) {
     try {
         const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+        const owner = cached?.userId || cached?.id || null;
+        if (userId && owner && owner !== userId) return; // belongs to another account
         cached.diamonds = diamonds;
+        if (userId) { cached.userId = userId; cached.id = userId; }
         cached._ts = Date.now(); // Refresh TTL on balance update
         localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // ── Helper: read cached diamond balance from localStorage ──
-function getCachedBalance() {
+// BUGFIX (header-audit #7): this used to return `data.diamonds` with NO owner check and
+// NO TTL — unlike UniversalHeader's own cache reader, which checks both. Log out, log in
+// as someone else on the same device, and the header rendered the PREVIOUS user's diamond
+// balance until the API round-trip landed. Now the cache is only trusted when it belongs
+// to this user and is inside the same 24h window the writer stamps.
+const DIAMOND_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+function getCachedBalance(userId) {
     try {
         const cached = localStorage.getItem('sp-cached-header-user');
-        if (cached) {
-            const data = JSON.parse(cached);
-            return data.diamonds ?? 0;
-        }
+        if (!cached) return 0;
+        const data = JSON.parse(cached);
+        const owner = data?.userId || data?.id || null;
+        if (userId && owner && owner !== userId) return 0;   // different account
+        if (!owner) return 0;                                 // unattributed — do not trust
+        if (data?._ts && (Date.now() - data._ts) > DIAMOND_CACHE_TTL_MS) return 0;
+        return data.diamonds ?? 0;
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return 0;
 }
@@ -55,7 +70,7 @@ export function useDiamondBalance(userId) {
     // Initialize from cache for instant display
     const [balance, setBalance] = useState(() => {
         if (typeof window === 'undefined') return 0;
-        return getCachedBalance();
+        return getCachedBalance(userId);
     });
     const mountedRef = useRef(true);
 
@@ -76,7 +91,7 @@ export function useDiamondBalance(userId) {
             if (result.success && result.profile && mountedRef.current) {
                 const newBalance = result.profile.diamonds ?? 0;
                 setBalance(newBalance);
-                updateCachedBalance(newBalance);
+                updateCachedBalance(newBalance, userId);
             }
         } catch (e) {
             console.warn('[useDiamondBalance] Refresh failed:', e.message);
@@ -109,10 +124,17 @@ export function useDiamondBalance(userId) {
         onDiamondsUpdate: (diamonds) => {
             if (mountedRef.current) {
                 setBalance(diamonds);
-                updateCachedBalance(diamonds);
+                updateCachedBalance(diamonds, userId);
             }
         },
     });
+
+    // Re-seed from cache when the resolved user changes (login, account switch).
+    // The useState initializer only ran once, before userId was known.
+    useEffect(() => {
+        if (!userId) return;
+        setBalance(getCachedBalance(userId));
+    }, [userId]);
 
     // ── Cross-tab sync via BroadcastChannel ──
     useEffect(() => {
@@ -135,8 +157,8 @@ export function useDiamondBalance(userId) {
     // ── Direct setter for cases where the balance comes from another API ──
     const setBalanceDirect = useCallback((newBalance) => {
         setBalance(newBalance);
-        updateCachedBalance(newBalance);
-    }, []);
+        updateCachedBalance(newBalance, userId);
+    }, [userId]);
 
     return { balance, refreshBalance, setBalance: setBalanceDirect };
 }
