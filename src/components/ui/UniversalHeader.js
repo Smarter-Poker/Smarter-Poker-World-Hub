@@ -1116,7 +1116,7 @@ export default function UniversalHeader({
                                 <img
                                     src="/images/vip-card-v6.png"
                                     alt="VIP Member"
-                                    style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+                                    style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
                                 />
                         </button>
                     )}
