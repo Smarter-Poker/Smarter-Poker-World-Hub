@@ -1333,7 +1333,7 @@ function UniversalDynamicTable({
 
     // Phase 16: Computed height for the scale container to prevent layout collapse
     const scaledTableHeight = useMemo(() => {
-        // Design height of the table area canvas (fixed) — must match styles.tableArea.height
+                // Design height of the table area canvas (fixed) — must match styles.tableArea.height
         const DESIGN_HEIGHT = 600;
         return DESIGN_HEIGHT * scaleFactor;
     }, [scaleFactor]);
@@ -2663,6 +2663,18 @@ function UniversalDynamicTable({
 
 
 
+            {/* QUESTION PROMPT — 2026-07-26. questionText was computed and never
+                rendered at all, so the player only ever saw the context strip and had
+                to infer what was being asked. The first placement put it INSIDE the
+                table container where, being position:static with no z-index, it sat
+                directly on top of the villain's hole cards and the pot readout. That
+                was invisible in source review and obvious the moment the hand was on
+                screen. It now renders above the felt, outside the table, so it cannot
+                overlap the seats. */}
+            {questionText && questionText !== 'Loading question...' && (
+                <div style={styles.questionPrompt}>{questionText}</div>
+            )}
+
             {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
 
@@ -3002,18 +3014,6 @@ function UniversalDynamicTable({
                         );
                     })}
                 </div>
-
-                {/* QUESTION PROMPT - 2026-07-26 UX FIX: questionText was computed and
-
-                    never rendered, so the player only ever saw the position/action context
-
-                    line and had to infer what was actually being asked. */}
-
-                {questionText && questionText !== 'Loading question...' && (
-
-                    <div style={styles.questionPrompt}>{questionText}</div>
-
-                )}
 
 
                 {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
