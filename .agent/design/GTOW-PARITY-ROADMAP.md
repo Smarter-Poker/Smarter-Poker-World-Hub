@@ -193,23 +193,20 @@ High/Low mode.
     dashboard was cyan; both fed the same `sp-*` classes.
 46. **Numerals render in the intended face.** DONE — `font-family:'Orbitron'`
     never resolves under `next/font`.
-47. **Page scrolls.** BROKEN — still unresolved on /hub/training.
-    2026-07-26: a body scroll lock was added to `GodModeArena` under this item,
-    but that locks the ARENA; #47 is about the library page failing to scroll,
-    so the underlying report is untouched. That lock also captured
-    `document.body.style.overflow` at mount and restored the captured value on
-    unmount -- if it ever mounted while the body was already locked it restored
-    'hidden' and stranded the whole app, which is the very symptom described
-    here. It is now reference-counted: the last release CLEARS the property
-    instead of restoring a stale value, so overlapping locks are safe.
-    (The earlier note that 'no component locks body scroll' is superseded.)
-    LEAD, unverified: `PageTransition` animates `scale` via framer-motion, and
-    a transform on an ancestor creates a containing block -- any
-    `position:fixed` descendant (UniversalHeader, BottomNavBar) is then
-    positioned against that wrapper instead of the viewport. Check whether the
-    bottom nav is overlaying the scroll region. Confirm with one
-    `execute_javascript` call against a running Chrome before changing
-    anything; four attempts this session found Chrome closed.
+47. **Page scrolls.** BUILT 2026-07-26 — two defences, still awaiting one
+    on-screen confirmation before this becomes DONE.
+    (a) `GodModeArena`'s body scroll lock was capture-and-restore: it saved
+    `document.body.style.overflow` at mount and wrote that value back on
+    unmount, so mounting while the body was already locked restored 'hidden'
+    and stranded the entire app -- the exact symptom reported here. It is now
+    reference-counted via `window.__spScrollLocks`; the last release CLEARS the
+    property rather than restoring a possibly-stale value.
+    (b) `/hub/training` is where the damage shows, so it now refuses to render
+    locked: when no arena is mounted and no lock is outstanding, a leftover
+    `overflow: hidden` on the body is removed. Decision table unit-checked --
+    it never fights a live locker and never touches a clean page.
+    Note the earlier claim that a lock added to `GodModeArena` fixed this item
+    was addressing the ARENA; #47 is about the library page.
 48. **375px layout.** GAP — unverified since the changes.
 
 ---

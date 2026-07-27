@@ -142,6 +142,24 @@ export default function TrainingPage() {
   // 2026-07-26 UX FIX: this discarded the prefs the user just picked, so the
   // arena fell back to its own defaults AND showed a second identical setup
   // screen (difficulty / timer / mode) before you could play.
+  // roadmap #47 — defensive unlock. The library page is the reported symptom:
+  // it will not scroll. GodModeArena locks body overflow while mounted, and any
+  // path that leaves that lock behind (an unmount whose cleanup did not run, a
+  // stale value restored by the pre-2026-07-26 capture-and-restore version, a
+  // crashed arena) strands this page permanently with no way back short of a
+  // reload. The arena's lock is now reference-counted, but this page is where
+  // the damage shows, so it also refuses to render locked: if no arena is
+  // mounted, no lock may be outstanding.
+  useEffect(() => {
+    if (showArena) return;              // the arena is entitled to hold the lock
+    if (typeof window === 'undefined') return;
+    if ((window.__spScrollLocks || 0) > 0) return; // a live locker owns it
+    if (document.body.style.overflow === 'hidden') {
+      document.body.style.removeProperty('overflow');
+      console.debug('[Training] cleared a stale body scroll lock');
+    }
+  }, [showArena]);
+
   const handleSetupStart = useCallback((prefs) => {
     setArenaConfig(prefs ? { 
       difficulty: prefs.difficulty, 
