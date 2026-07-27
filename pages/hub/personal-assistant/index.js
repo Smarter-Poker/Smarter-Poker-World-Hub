@@ -305,6 +305,10 @@ const S = {
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     backgroundColor: '#0a1628', // Fallback color
+    backgroundImage: 'url(/images/jarvis-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
