@@ -307,7 +307,7 @@ const S = {
   // Page base
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-    background: 'url(/images/jarvis-bg.jpg) center center / cover no-repeat fixed',
+    background: 'url(/images/jarvis-bg.png) center center / cover no-repeat fixed',
     backgroundColor: '#0a1628', // Fallback color
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',

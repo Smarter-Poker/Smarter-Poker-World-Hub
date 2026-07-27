@@ -61,6 +61,19 @@ const MODE_OPTIONS = [
   { id: 'import',     label: 'Import HH',   desc: 'Your hands' },
 ];
 
+const SCOPE_OPTIONS = [
+  { id: 'full',   label: 'Full Hand', desc: 'Preflop to River' },
+  { id: 'spot',   label: 'Spot',      desc: 'Specific Node' },
+  { id: 'street', label: 'Street',    desc: 'Single Street' },
+];
+
+const SPEED_OPTIONS = [
+  { id: 'normal', label: 'Normal', desc: '3s delay' },
+  { id: 'fast',   label: 'Fast',   desc: '1.5s delay' },
+  { id: 'turbo',  label: 'Turbo',  desc: 'No delay' },
+];
+
+
 function readPrefs(gameId) {
   if (typeof window === 'undefined') return null;
   try {
@@ -106,6 +119,8 @@ export default function SessionSetupModal({
   const [difficulty, setDifficulty] = useState(initialPrefs.difficulty || 'standard');
   const [timer,      setTimer]      = useState(initialPrefs.timer      || 'standard');
   const [mode,       setMode]       = useState(initialPrefs.mode       || 'standard');
+  const [scope,      setScope]      = useState(initialPrefs.scope      || 'full');
+  const [speed,      setSpeed]      = useState(initialPrefs.speed      || 'normal');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -151,9 +166,9 @@ export default function SessionSetupModal({
   }, [isOpen, onClose]);
 
   const handleStart = useCallback(() => {
-    if (gameId) writePrefs(gameId, { difficulty, timer, mode });
-    onStart?.({ game, difficulty, timer, mode });
-  }, [game, gameId, difficulty, timer, mode, onStart]);
+    if (gameId) writePrefs(gameId, { difficulty, timer, mode, scope, speed });
+    onStart?.({ game, difficulty, timer, mode, scope, speed });
+  }, [game, gameId, difficulty, timer, mode, scope, speed, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -257,6 +272,18 @@ export default function SessionSetupModal({
         <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
           <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Training mode</legend>
           <PillRow options={MODE_OPTIONS} value={mode} onChange={setMode} name="mode" tile />
+        </fieldset>
+
+        {/* GAME SCOPE */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Game scope</legend>
+          <PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" />
+        </fieldset>
+
+        {/* GAME SPEED */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Game speed</legend>
+          <PillRow options={SPEED_OPTIONS} value={speed} onChange={setSpeed} name="speed" />
         </fieldset>
 
         {/* CTA */}
