@@ -132,6 +132,47 @@ function applyDifficultyToQuestion(question, difficultyMode) {
   return question;
 }
 
+
+/**
+ * roadmap #7 — HAND SELECTION.
+ * GTO Wizard lets you filter out trivial spots, or drill only close decisions.
+ * A trivial spot is one the solver plays almost purely (one action at ~100%):
+ * you learn nothing from being told to fold 72o. A close decision is one where
+ * the top two actions sit within a few points of each other -- the spots that
+ * actually decide winrate.
+ *
+ * Applied to the preloaded batch so it costs nothing per hand. Never returns an
+ * empty queue: if a filter would leave nothing, the unfiltered set is served
+ * rather than stranding the player on an empty session.
+ *
+ *   'all'      -> everything (default)
+ *   'no-trivial' -> drop spots whose top action is >= 95%
+ *   'close'    -> keep only spots where the top two actions are within 20 pts
+ */
+export function applyHandSelection(questions, mode) {
+  if (!Array.isArray(questions) || questions.length === 0) return questions;
+  if (!mode || mode === 'all') return questions;
+
+  const sortedFreqs = (q) => {
+    const f = q?.gtoFrequencies;
+    if (!f || typeof f !== 'object') return [];
+    return Object.values(f)
+      .map((v) => Number(v) || 0)
+      .sort((a, b) => b - a);
+  };
+
+  const filtered = questions.filter((q) => {
+    const fr = sortedFreqs(q);
+    if (fr.length < 2) return mode !== 'close'; // no distribution to judge
+    const [top, second] = fr;
+    if (mode === 'no-trivial') return top < 95;
+    if (mode === 'close') return (top - second) <= 20;
+    return true;
+  });
+
+  return filtered.length > 0 ? filtered : questions;
+}
+
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
@@ -414,11 +455,17 @@ export default function useGTOTrainer(
 
       console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
-      setPreloadedQuestions(data.questions);
+      // roadmap #7 — hand selection filter, applied once to the batch.
+      const selected = applyHandSelection(data.questions, trainerConfig?.handSelection);
+      if (selected.length !== data.questions.length) {
+        console.debug(`[GTOTrainer] hand selection '${trainerConfig?.handSelection}': ${data.questions.length} -> ${selected.length}`);
+      }
+
+      setPreloadedQuestions(selected);
       setPreloadComplete(true);
       // Apply difficulty simplification to the first question too (later
       // questions get it in nextQuestion)
-      setCurrentQuestion(applyDifficultyToQuestion(data.questions[0], resolveDifficultyMode()));
+      setCurrentQuestion(applyDifficultyToQuestion(selected[0], resolveDifficultyMode()));
 
       // Bug 5 fix: Cap question count at actual returned count to prevent game never ending
       if (data.questions.length < effectiveQuestionsPerLevel) {

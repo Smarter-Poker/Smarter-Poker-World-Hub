@@ -71,7 +71,14 @@ High/Low mode.
    `trainerConfig.feedbackRule`: 'every' (never auto-advance), 'mistakes'
    (roll through best/correct, STOP on inaccuracy and worse), 'auto' (legacy).
    Defaults to 'every'. Blunders never auto-advance under any rule.
-7. **Hand selection: filter trivial / close decisions only.** GAP.
+7. **Hand selection: filter trivial / close decisions only.** BUILT
+   2026-07-26 — `trainerConfig.handSelection`: 'all', 'no-trivial' (drops
+   spots whose top action is >=95%, i.e. being told to fold 72o), 'close'
+   (keeps only spots where the top two actions are within 20 points -- the
+   ones that actually decide winrate). Applied once to the preloaded batch, so
+   it costs nothing per hand, and it never returns an empty queue: if a filter
+   would strand the player it serves the unfiltered set. Unit-tested across all
+   three modes plus the empty guard.
 8. **Board-texture targeting.** BUILT via the config modal; unverified.
 9. **Game speed Normal / Fast / Turbo.** GAP.
 10. **Up to 4 simultaneous tables.** GAP — a `useMultiTable` hook exists but
@@ -159,7 +166,16 @@ High/Low mode.
     dashboard was cyan; both fed the same `sp-*` classes.
 46. **Numerals render in the intended face.** DONE — `font-family:'Orbitron'`
     never resolves under `next/font`.
-47. **Page scrolls.** BROKEN — unresolved; needs live DOM inspection.
+47. **Page scrolls.** BROKEN — unresolved. Ruled out by reading source: no
+    `overflow:hidden` on html/body or any page container, `.sp-main` has a
+    120px bottom pad, and no component locks body scroll.
+    LEAD, unverified: `PageTransition` animates `scale` via framer-motion, and
+    a transform on an ancestor creates a containing block -- any
+    `position:fixed` descendant (UniversalHeader, BottomNavBar) is then
+    positioned against that wrapper instead of the viewport. Check whether the
+    bottom nav is overlaying the scroll region. Confirm with one
+    `execute_javascript` call against a running Chrome before changing
+    anything; four attempts this session found Chrome closed.
 48. **375px layout.** GAP — unverified since the changes.
 
 ---
