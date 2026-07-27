@@ -3581,10 +3581,24 @@ function GodModeArenaInner({
 
   // ═══ GLOBAL KEYBOARD LISTENER & SCROLL LOCK ═══
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
+    // 2026-07-26 (roadmap #47 hardening): the previous version captured
+    // document.body.style.overflow at MOUNT and restored that value on unmount.
+    // If the arena ever mounted while the body was already locked -- a modal
+    // open, a route transition, a second arena instance -- it restored
+    // 'hidden' and left the whole app permanently unscrollable, which is
+    // exactly the symptom #47 describes on /hub/training.
+    //
+    // Reference-count instead: the last component to release always CLEARS the
+    // property rather than restoring a possibly-stale value. Overlapping locks
+    // are now safe and the page can never be stranded.
+    if (typeof window === 'undefined') return undefined;
+    window.__spScrollLocks = (window.__spScrollLocks || 0) + 1;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = originalOverflow;
+      window.__spScrollLocks = Math.max(0, (window.__spScrollLocks || 1) - 1);
+      if (window.__spScrollLocks === 0) {
+        document.body.style.removeProperty('overflow');
+      }
     };
   }, []);
 

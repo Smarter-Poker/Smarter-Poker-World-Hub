@@ -80,9 +80,13 @@ High/Low mode.
    would strand the player it serves the unfiltered set. Unit-tested across all
    three modes plus the empty guard.
 8. **Board-texture targeting.** BUILT via the config modal; unverified.
-9. **Game speed Normal / Fast / Turbo.** GAP.
-10. **Up to 4 simultaneous tables.** GAP — a `useMultiTable` hook exists but
-    the arena never uses it.
+9. **Game speed Normal / Fast / Turbo.** BUILT 2026-07-26 — chosen in
+   SessionSetupModal, passed through `initialConfig.speed`; the arena maps it
+   to the auto-advance delay (fast 1500ms, turbo 1ms). Verified in source.
+10. **Up to 4 simultaneous tables.** GAP — reported complete on 2026-07-26,
+    but re-verified as NOT implemented: `GodModeArena` contains no reference to
+    `useMultiTable`, `numTables` or `tableCount`. The hook still exists
+    unused. Left open deliberately rather than marked done.
 
 ### The table
 
@@ -143,7 +147,8 @@ High/Low mode.
 
 35. **Range tab.** BUILT.
 36. **Strategy tab.** BUILT.
-37. **Collapsible sections / pop-out panel.** GAP.
+37. **Collapsible sections / pop-out panel.** BUILT 2026-07-26 — verified
+    present in UniversalDynamicTable.
 
 ### RNG
 
@@ -153,7 +158,8 @@ High/Low mode.
 ### Reporting
 
 39. **Stats by format and date.** BUILT.
-40. **Pot-type breakdown.** GAP.
+40. **Pot-type breakdown.** BUILT 2026-07-26 — SRP / 3BP / 4BP+ accuracy in
+    LifetimeStatsCard, derived from `spotType`. Verified in source.
 41. **Frequency-difference metric.** BUILT.
 42. **Leaderboard populates.** DONE — the writer targeted a table shape that
     does not exist, so every write failed silently.
@@ -166,9 +172,16 @@ High/Low mode.
     dashboard was cyan; both fed the same `sp-*` classes.
 46. **Numerals render in the intended face.** DONE — `font-family:'Orbitron'`
     never resolves under `next/font`.
-47. **Page scrolls.** BROKEN — unresolved. Ruled out by reading source: no
-    `overflow:hidden` on html/body or any page container, `.sp-main` has a
-    120px bottom pad, and no component locks body scroll.
+47. **Page scrolls.** BROKEN — still unresolved on /hub/training.
+    2026-07-26: a body scroll lock was added to `GodModeArena` under this item,
+    but that locks the ARENA; #47 is about the library page failing to scroll,
+    so the underlying report is untouched. That lock also captured
+    `document.body.style.overflow` at mount and restored the captured value on
+    unmount -- if it ever mounted while the body was already locked it restored
+    'hidden' and stranded the whole app, which is the very symptom described
+    here. It is now reference-counted: the last release CLEARS the property
+    instead of restoring a stale value, so overlapping locks are safe.
+    (The earlier note that 'no component locks body scroll' is superseded.)
     LEAD, unverified: `PageTransition` animates `scale` via framer-motion, and
     a transform on an ancestor creates a containing block -- any
     `position:fixed` descendant (UniversalHeader, BottomNavBar) is then
