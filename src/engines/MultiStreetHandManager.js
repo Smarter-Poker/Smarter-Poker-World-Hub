@@ -69,7 +69,12 @@ function computePotAfterAction(currentPot, action) {
     if (betMatch) {
         const pct = parseInt(betMatch[1]);
         const betSize = currentPot * (pct / 100);
-        return currentPot + betSize; // Simplified: hero bets X, villain calls
+        // The model here is "hero bets X, villain calls" -- its own comment said
+        // so -- but only ONE bet was ever added. A called bet puts X in from BOTH
+        // players, so the pot grows by 2X. Understating it compounds: the turn is
+        // sized off a short flop pot, the river off a short turn pot, and every
+        // downstream pot-odds and SPR number inherits the error.
+        return currentPot + betSize * 2;
     }
 
     if (action === 'allin') return currentPot * 2; // Rough approximation
@@ -201,8 +206,13 @@ export class MultiStreetHand {
             nextQuestion.scenario = {
                 ...nextQuestion.scenario,
                 pot: Math.round(this.pot),
-                heroStack: this.stackDepth,
-                villainStack: this.stackDepth,
+                // Stacks have to SHRINK as chips go in, or SPR is computed
+                // against the starting stack and is wrong on every street after
+                // the flop -- worst on the river, where SPR matters most. Both
+                // players put in half of the pot's growth under this bet/call
+                // model, so that is what each has left.
+                heroStack: Math.max(0, this.stackDepth - (this.pot - this.initialPot) / 2),
+                villainStack: Math.max(0, this.stackDepth - (this.pot - this.initialPot) / 2),
                 heroPosition: this.heroPosition,
                 villainPosition: this.villainPosition,
                 board: this.boardCards.join(' '),
