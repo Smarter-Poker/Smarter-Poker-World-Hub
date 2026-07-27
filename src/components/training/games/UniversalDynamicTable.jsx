@@ -2259,12 +2259,6 @@ function UniversalDynamicTable({
                 player is being asked. It previously rendered nowhere at all, then
                 mid-page on top of the villain's cards. It now sits above everything
                 and sticks while the felt scrolls under it. */}
-            {questionText && questionText !== 'Loading question...' && (
-                <div style={styles.questionPrompt}>
-                    <span style={styles.questionPromptLabel}>YOUR SPOT</span>
-                    <span style={styles.questionPromptText}>{questionText}</span>
-                </div>
-            )}
             {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
@@ -2567,7 +2561,14 @@ function UniversalDynamicTable({
                             letterSpacing: 1,
                             textShadow: '0 2px 4px rgba(0,0,0,0.8)',
                         }}>
-                            {contextString}
+                            {(
+                        <span style={styles.spotBlock}>
+                            {questionText && questionText !== 'Loading question...' && (
+                                <span style={styles.spotQuestion}>{questionText}</span>
+                            )}
+                            <span style={styles.spotContext}>{contextString}</span>
+                        </span>
+                    )}
                         </div>
                     )}
                     {/* Settings Gear — upper right of scenario area */}
@@ -5272,6 +5273,36 @@ const styles = {
     questionPromptText: {
         flex: 1,
         minWidth: 0,
+    },
+
+    // The question and the scenario are ONE unit, and they belong to the table
+    // -- they describe the felt directly beneath them. The page header above
+    // carries identity and progress (game name, score, hand number); it is not
+    // where you read what you are being asked.
+    spotBlock: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+        width: '100%',
+        textTransform: 'none',
+        letterSpacing: 'normal',
+    },
+    spotQuestion: {
+        fontSize: 15,
+        fontWeight: 700,
+        lineHeight: 1.35,
+        color: '#eaf6fb',
+        textTransform: 'none',
+        letterSpacing: 0.1,
+        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+    },
+    spotContext: {
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: 1.3,
+        textTransform: 'uppercase',
+        color: 'rgba(0,212,255,0.85)',
     },
 
     // Session modes, folded into the HUD cluster.
