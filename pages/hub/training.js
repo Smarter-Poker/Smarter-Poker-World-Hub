@@ -701,6 +701,16 @@ function GlobalStyle() {
       .sp-skip { position: absolute; left: -9999px; }
       .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
       .sp-num { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
+      /* 2026-07-26 — VERIFIED ON SCREEN. Orbitron's zero is a squared glyph with
+         a diagonal slash. At the 22px stat size it reads as a missing-glyph box,
+         so a dashboard of zeroes looked like four broken tiles -- this was the
+         "boxes" defect reported against the training dashboard. It was never a
+         font-loading failure: Orbitron loads fine and document.fonts.check()
+         passes for digits. Data numerals therefore use Inter with tabular
+         figures; Orbitron stays on the display numerals (.sp-grade-letter),
+         where it is large enough to read as deliberate. */
+      .sp-stat-value.sp-num { font-family: var(--font-inter), 'Inter', system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+      .sp-stat-unit { margin-left: 4px; }
 
       .sp-main {
         max-width: 1280px; margin: 0 auto; padding: 24px 20px 120px;
