@@ -1333,16 +1333,6 @@ function UniversalDynamicTable({
 
     // Phase 16: Computed height for the scale container to prevent layout collapse
     const scaledTableHeight = useMemo(() => {
-        {/* QUESTION PROMPT — 2026-07-26. questionText was computed and never
-                    rendered at all, so the player only saw the context strip. First
-                    placement put it INSIDE the table container, where (position:
-                    static, no z-index) it sat on top of the villain's hole cards and
-                    the pot — caught by looking at the screen, not the code. It now
-                    renders above the felt, outside the table, where it cannot
-                    overlap anything. */}
-                {questionText && questionText !== 'Loading question...' && (
-                    <div style={styles.questionPrompt}>{questionText}</div>
-                )}
                 // Design height of the table area canvas (fixed) — must match styles.tableArea.height
         const DESIGN_HEIGHT = 600;
         return DESIGN_HEIGHT * scaleFactor;
@@ -2672,6 +2662,18 @@ function UniversalDynamicTable({
             </div>
 
 
+
+            {/* QUESTION PROMPT — 2026-07-26. questionText was computed and never
+                rendered at all, so the player only ever saw the context strip and had
+                to infer what was being asked. The first placement put it INSIDE the
+                table container where, being position:static with no z-index, it sat
+                directly on top of the villain's hole cards and the pot readout. That
+                was invisible in source review and obvious the moment the hand was on
+                screen. It now renders above the felt, outside the table, so it cannot
+                overlap the seats. */}
+            {questionText && questionText !== 'Loading question...' && (
+                <div style={styles.questionPrompt}>{questionText}</div>
+            )}
 
             {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
