@@ -119,13 +119,20 @@ High/Low mode.
     carries a double check, Correct a single one. Also renamed the tiers to
     GTOW's own terminology: 'Correct Move' was labelled 'Excellent', which is
     not a tier name in the reference product.
-25. **GTOW Score -100..+100.** BROKEN — DELIBERATELY NOT RESCALED YET.
-    Ours is a 0-100 weighted average. Rescaling is a two-line change but it
-    silently corrupts historical data: `training_sessions.gtow_score` and
-    `training_leaderboard.gtow_score_avg` already hold 0-100 values, and mixing
-    scales makes every stored average meaningless. Needs a migration that
-    either backfills or version-tags the column. Do not 'fix' this without
-    that migration.
+25. **GTOW Score -100..+100.** BUILT 2026-07-26 — unblocked and done. The
+    blocker was data, not code: the classification weights already run 1.0
+    (BEST) .. 0.0 (BLUNDER), so signed = w*200-100 is an exact linear remap and
+    stored history converts losslessly with v*2-100. Migrations
+    20260726190000 + 20260726190500 backfilled production (sessions 74 -> 48,
+    leaderboard 38.5 -> -23.0) and added `score_scale` to both tables (1 =
+    legacy, 2 = signed). Grade and colour bands were rebased through the same
+    transform and unit-checked: zero grade changes across the full 0..100
+    input range, so every historical session keeps the grade it had.
+    Trap worth remembering: the FIRST migration's backfill silently did
+    nothing. Adding `score_scale` with `DEFAULT 2` stamps every existing row as
+    already-migrated, so `WHERE score_scale <> 2` matched nothing — and the
+    range assertion passed anyway, because legacy values (74..100) sit inside
+    -100..100. A range check is not a check that conversion happened.
 26. **EV loss in bb.** DONE — was inflated by a factor of the pot size.
 27. **EV loss as % of pot.** DONE 2026-07-26 — the engine formula was fixed
     earlier; the value was computed and then displayed nowhere. The feedback

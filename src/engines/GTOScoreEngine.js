@@ -39,24 +39,30 @@ export function classifyMove(evLoss) {
 /**
  * Get the color for a GTO score percentage.
  */
+// roadmap #25 — thresholds rebased onto the signed -100..+100 GTOW scale.
+// The old cut-offs assumed 0-100; leaving them would have graded a perfectly
+// respectable +70 signed score (equivalent to 85 on the old scale) as red.
 export function getScoreColor(score) {
-    if (score >= 90) return '#27ae60'; // Green
-    if (score >= 70) return '#f39c12'; // Yellow/Orange
+    if (score >= 80) return '#27ae60'; // Green
+    if (score >= 40) return '#f39c12'; // Yellow/Orange
     return '#e74c3c';                   // Red
 }
 
 /**
  * Get the grade label for a GTO score.
  */
+// Signed-scale grade bands. Each is the old 0-100 cut-off mapped through the
+// same v*2-100 transform used to backfill stored scores, so a session that
+// graded 'A' before still grades 'A' now.
 export function getScoreGrade(score) {
-    if (score >= 95) return 'S';
-    if (score >= 90) return 'A+';
-    if (score >= 85) return 'A';
-    if (score >= 80) return 'B+';
-    if (score >= 75) return 'B';
-    if (score >= 70) return 'C+';
-    if (score >= 60) return 'C';
-    if (score >= 50) return 'D';
+    if (score >= 90) return 'S';    // was 95
+    if (score >= 80) return 'A+';   // was 90
+    if (score >= 70) return 'A';    // was 85
+    if (score >= 60) return 'B+';   // was 80
+    if (score >= 50) return 'B';    // was 75
+    if (score >= 40) return 'C+';   // was 70
+    if (score >= 20) return 'C';    // was 60
+    if (score >= 0)  return 'D';    // was 50
     return 'F';
 }
 

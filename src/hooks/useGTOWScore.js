@@ -388,7 +388,15 @@ export default function useGTOWScore() {
             }
         });
         if (counted === 0) return 100;
-        return Math.round(Math.max(0, Math.min(100, (weighted / counted) * 100)));
+        // roadmap #25 — GTO Wizard scores from -100% to +100%, not 0-100. The
+        // classification weights already run 1.0 (BEST) .. 0.0 (BLUNDER), so the
+        // signed score is an exact linear remap: w=1 -> +100, w=0.5 -> 0,
+        // w=0 -> -100. Stored history was backfilled with the same transform by
+        // migration gtow_score_rescale_* so old and new rows average together
+        // correctly; training_sessions.score_scale / training_leaderboard
+        // .score_scale record which convention a row uses (2 = signed).
+        const signed = ((weighted / counted) * 200) - 100;
+        return Math.round(Math.max(-100, Math.min(100, signed)));
     }, [classificationCounts, movesMade]);
 
     const avgEVLossPerHand = useMemo(() => {
