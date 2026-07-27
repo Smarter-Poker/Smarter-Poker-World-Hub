@@ -34,7 +34,7 @@ export const CLASSIFICATION_CONFIG = {
     // 'Excellent', which is not a tier name in the reference product at all.
     [MOVE_CLASSIFICATIONS.BEST]: {
         label: 'Best Move',
-        mark: '\u2713\u2713',   // double check
+        mark: '✓✓',   // double check
         color: '#22c55e',       // Green
         bgColor: 'rgba(34, 197, 94, 0.15)',
         borderColor: '#22c55e',
@@ -43,7 +43,7 @@ export const CLASSIFICATION_CONFIG = {
     },
     [MOVE_CLASSIFICATIONS.CORRECT]: {
         label: 'Correct Move',
-        mark: '\u2713',         // single check
+        mark: '✓',         // single check
         color: '#84cc16',       // Yellow-Green
         bgColor: 'rgba(132, 204, 22, 0.12)',
         borderColor: '#84cc16',
@@ -259,6 +259,27 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
 
     // Frequency difference from the most frequent action
     const frequencyDiff = Math.abs(correctFreq - selectedFreq);
+
+    // ═══ NO SOLVER DATA — do not accuse the player ═══
+    // Observed in production: a spot arrived with every frequency at 0, so the
+    // player picked Fold, got "BLUNDER" in red, and the panel underneath read
+    // "EV: 0.00 BB" with Call 0% and Fold 0% -- while also claiming "Best: Call".
+    // Nothing there is defensible. With no distribution we cannot say an action
+    // is never played, and calling a zero-EV decision a blunder is simply wrong.
+    // Fall back to exact-match grading and never emit the two worst labels.
+    const hasDistribution = Object.values(gtoFrequencies || {}).some((v) => Number(v) > 0);
+    if (!hasDistribution) {
+        const matched = selectedNorm === correctNorm;
+        return {
+            classification: matched ? MOVE_CLASSIFICATIONS.BEST : MOVE_CLASSIFICATIONS.INACCURACY,
+            evLoss: 0,
+            frequencyDiff: 0,
+            selectedFreq: null,
+            correctFreq: null,
+            isRealData: false,
+            noSolverData: true,
+        };
+    }
 
     // ═══ MIXED STRATEGY CLASSIFICATION (Real Solver Logic) ═══
     // GTO Wizard treats any action with significant frequency as valid.
