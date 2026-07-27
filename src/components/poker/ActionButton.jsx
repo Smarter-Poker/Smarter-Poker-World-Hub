@@ -142,7 +142,7 @@ const ActionButton = React.forwardRef(function ActionButton(
       : selected
         ? `0 0 0 1.5px ${theme.border}`
         : '0 1px 2px rgba(0,0,0,0.3)',
-    transition: 'transform 120ms ease, box-shadow 120ms ease, background 120ms ease',
+    transition: 'transform 140ms cubic-bezier(0.22,0.9,0.3,1), box-shadow 140ms ease, background 120ms ease',
     outline: 'none',
     WebkitTapHighlightColor: 'transparent',
   };
@@ -196,12 +196,35 @@ const ActionButton = React.forwardRef(function ActionButton(
     zIndex: 2,
   };
 
+  // Microinteractions: hover lifts the button off the surface, press drives it
+  // back in. Both are pure transform/box-shadow so they cost nothing, and both
+  // are suppressed when the OS asks for reduced motion.
+  const wantsMotion = () => (
+    typeof window === 'undefined'
+    || typeof window.matchMedia !== 'function'
+    || !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+  const restShadow = recommended
+    ? `0 0 0 2px ${theme.border}, 0 4px 14px ${theme.border}33`
+    : selected
+      ? `0 0 0 1.5px ${theme.border}`
+      : '0 1px 2px rgba(0,0,0,0.3)';
+  const onMouseEnter = (e) => {
+    if (disabled || !wantsMotion()) return;
+    e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+    e.currentTarget.style.boxShadow = `${restShadow}, 0 10px 22px rgba(0,0,0,0.45), 0 0 16px ${theme.border}33`;
+  };
   const onMouseDown = (e) => {
     if (disabled) return;
-    e.currentTarget.style.transform = 'translateY(1px)';
+    e.currentTarget.style.transform = wantsMotion() ? 'translateY(1px) scale(0.97)' : 'none';
   };
   const onMouseUp = (e) => {
-    e.currentTarget.style.transform = 'translateY(0)';
+    if (disabled) return;
+    e.currentTarget.style.transform = wantsMotion() ? 'translateY(-2px) scale(1.02)' : 'none';
+  };
+  const onMouseLeave = (e) => {
+    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+    e.currentTarget.style.boxShadow = restShadow;
   };
 
   const showShortcut = shortcut !== undefined && shortcut !== null && resolvedShortcutPosition !== null;
@@ -217,9 +240,10 @@ const ActionButton = React.forwardRef(function ActionButton(
       aria-pressed={selected ? true : undefined}
       data-action={action}
       data-recommended={recommended ? 'true' : undefined}
+      onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
+      onMouseLeave={onMouseLeave}
       style={{ ...baseStyle, ...(style || {}) }}
       {...rest}
     >

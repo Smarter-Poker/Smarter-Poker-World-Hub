@@ -13,7 +13,7 @@
 
 // TRAIN-CSS-TOKENS-SHARED-5 — token adoption in UniversalDynamicTable (5496 lines, 366 hex)
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import RangeGrid from '../RangeGrid';
 import {
     MOVE_CLASSIFICATIONS,
@@ -528,34 +528,45 @@ function StreakToast({ message }) {
 // SEAT POSITIONS — 9-Max Layout (portrait orientation)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Entry 0 is ALWAYS hero and the rest run clockwise from him. This ordering is
+// the hero-relative coordinate space that DEALER_BUTTON_SEAT_KEYS,
+// DEALER_BUTTON_POSITIONS and CHIP_STACK_POSITIONS are keyed in; absolute
+// `seats` indices must be rotated into it before they touch those tables.
+//
+// 2026-07-27: the mid rows were pulled clear of the board's horizontal band.
+// The felt is a 1:1.45 PORTRAIT oval, so a five-card board is nearly as wide as
+// the felt is at its waist -- seats parked at 30% / 58% had their nameplates and
+// cards running straight through the community cards. Rows moved outward along
+// the oval, not sideways, so each seat keeps its relationship to its own dealer
+// button and chip slot (both of which sit between the seat and the pot).
 const SEAT_CONFIGS = {
     // 9-Max positions — SPREAD WIDE to prevent overlap
     // Seats hug the outer edge of the felt oval
     9: [
-        { id: 0, name: 'BTN', x: 50, y: 82 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 24, y: 74 },    // Bottom-left (wider)
-        { id: 2, name: 'BB', x: 16, y: 52 },    // Mid-left (wider)
-        { id: 3, name: 'UTG', x: 22, y: 30 },   // Upper-mid-left
-        { id: 4, name: 'UTG+1', x: 38, y: 18 }, // Top-left (higher)
-        { id: 5, name: 'MP', x: 62, y: 18 },    // Top-right (higher)
-        { id: 6, name: 'MP+1', x: 78, y: 30 },  // Upper-mid-right (wider)
-        { id: 7, name: 'HJ', x: 84, y: 52 },    // Mid-right (wider)
-        { id: 8, name: 'CO', x: 76, y: 74 },    // Bottom-right (wider)
+        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 24, y: 76 },    // Bottom-left
+        { id: 2, name: 'BB', x: 16, y: 59 },    // Mid-left
+        { id: 3, name: 'UTG', x: 21, y: 21 },   // Upper-mid-left
+        { id: 4, name: 'UTG+1', x: 38, y: 15 }, // Top-left
+        { id: 5, name: 'MP', x: 62, y: 15 },    // Top-right
+        { id: 6, name: 'MP+1', x: 79, y: 21 },  // Upper-mid-right
+        { id: 7, name: 'HJ', x: 84, y: 59 },    // Mid-right
+        { id: 8, name: 'CO', x: 76, y: 76 },    // Bottom-right
     ],
-    // 6-Max positions — Wider spread
+    // 6-Max positions — evenly spaced around the oval, clear of the board band
     6: [
-        { id: 0, name: 'BTN', x: 50, y: 80 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 22, y: 58 },    // Mid-left
-        { id: 2, name: 'BB', x: 25, y: 30 },    // Upper-left
-        { id: 3, name: 'UTG', x: 50, y: 18 },   // Top center
-        { id: 4, name: 'HJ', x: 75, y: 30 },    // Upper-right
-        { id: 5, name: 'CO', x: 78, y: 58 },    // Mid-right
+        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 21, y: 62 },    // Mid-left
+        { id: 2, name: 'BB', x: 24, y: 21 },    // Upper-left
+        { id: 3, name: 'UTG', x: 50, y: 15 },   // Top center
+        { id: 4, name: 'HJ', x: 76, y: 21 },    // Upper-right
+        { id: 5, name: 'CO', x: 79, y: 62 },    // Mid-right
     ],
     // 3-Max (Spins) — Spread
     3: [
-        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 30, y: 28 },    // Top-left (wider)
-        { id: 2, name: 'BB', x: 70, y: 28 },    // Top-right (wider)
+        { id: 0, name: 'BTN', x: 50, y: 84 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 28, y: 21 },    // Top-left
+        { id: 2, name: 'BB', x: 72, y: 21 },    // Top-right
     ],
     // Heads-Up
     2: [
@@ -1326,12 +1337,58 @@ function UniversalDynamicTable({
         badge: isMobile ? { padding: '2px 5px', fontSize: 8 } : {},
         card: isMobile ? { width: 36, height: 52, borderRadius: 3 } : {},
         boardCard: isMobile ? { width: 34, height: 48, borderRadius: 3 } : {},
-        pot: isMobile ? { top: '20%', fontSize: 13 } : {},
+        pot: isMobile ? { fontSize: 13 } : {},
         actionButton: isMobile ? { padding: '10px 4px', minHeight: 50, fontSize: 12 } : {},
         villainCard: isMobile ? { width: 16, height: 22 } : {},
         boardCards: isMobile ? { gap: 3 } : {},
         seat: isMobile ? { gap: 2 } : {},
     }), [isMobile]);
+
+    // ═══ FELT-FIT SCALE ═══════════════════════════════════════════════════
+    // Seat coordinates are percentages of the felt, but seat FURNITURE (avatar,
+    // nameplate, hole cards, chips) was sized in fixed pixels. On a short
+    // viewport the felt shrinks and the furniture does not, so hero's cards
+    // spilled past the bottom of the felt onto the stats strip and the villain
+    // bubble climbed over the HUD header -- tableArea is `overflow: visible`, so
+    // nothing clipped it, it just sat on top of other chrome. Measuring the felt
+    // and scaling every piece of furniture by the same factor makes the felt
+    // reserve room for its own furniture at every table size.
+    // The felt's own full-size content box: styles.basicTable is maxWidth 440
+    // with a 1px border each side and a 1 / 1.45 aspect ratio.
+    const FELT_DESIGN_W = 438;
+    const FELT_DESIGN_H = 635;
+    const tableRef = useRef(null);
+    const [feltBox, setFeltBox] = React.useState({ w: FELT_DESIGN_W, h: FELT_DESIGN_H });
+    useEffect(() => {
+        const el = tableRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return undefined;
+        const ro = new ResizeObserver((entries) => {
+            for (const e of entries) {
+                const r = e.contentRect;
+                if (r.width > 0 && r.height > 0) setFeltBox({ w: r.width, h: r.height });
+            }
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    // 1.0 at full size, never upscaled, floored so text stays legible.
+    // BOTH axes matter: when the viewport is short, maxHeight wins over the
+    // aspect ratio and the oval squashes vertically while keeping its width.
+    // Scaling off the width alone would leave the furniture too tall for the
+    // felt it now has to live on -- which is exactly how hero's cards used to
+    // end up over the stats strip on a laptop.
+    const feltScale = useMemo(() => {
+        const byW = feltBox.w / FELT_DESIGN_W;
+        const byH = feltBox.h / FELT_DESIGN_H;
+        return Math.max(0.58, Math.min(1, byW, byH));
+    }, [feltBox.w, feltBox.h]);
+    // ui(px) -> px scaled to the measured felt. Use for EVERY fixed dimension
+    // drawn inside styles.basicTable.
+    const ui = useCallback((n) => Math.round(n * feltScale), [feltScale]);
+
+    // Honour the OS "reduce motion" setting: no deal-in, no travel, no pulse.
+    const reduceMotion = useReducedMotion();
 
     // Phase 16: Computed height for the scale container to prevent layout collapse
     const scaledTableHeight = useMemo(() => {
@@ -2275,6 +2332,29 @@ function UniversalDynamicTable({
                     0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.4); }
                     50% { box-shadow: 0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.6); }
                 }
+                /* Active-seat rim light: the single strongest cue on the felt.
+                   Slow, so it reads as "this seat is live" and not as an alarm. */
+                @keyframes sp-seat-rim {
+                    0%, 100% {
+                        box-shadow: 0 0 0 2px rgba(255,199,84,0.85),
+                                    0 0 14px 2px rgba(255,178,44,0.45),
+                                    inset 0 2px 6px rgba(0,0,0,0.55);
+                    }
+                    50% {
+                        box-shadow: 0 0 0 2.5px rgba(255,214,120,1),
+                                    0 0 26px 7px rgba(255,178,44,0.60),
+                                    inset 0 2px 6px rgba(0,0,0,0.55);
+                    }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .gto-trainer-container *,
+                    .gto-trainer-container *::before,
+                    .gto-trainer-container *::after {
+                        animation-duration: 0.001ms !important;
+                        animation-iteration-count: 1 !important;
+                        transition-duration: 0.001ms !important;
+                    }
+                }
                 @media (min-width: 900px) {
                     .gto-trainer-container {
                         max-width: 900px !important;
@@ -2634,7 +2714,12 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div style={styles.basicTable}>
+                <div ref={tableRef} style={styles.basicTable}>
+
+                {/* THE FELT — inset into the rail above. Purely decorative and
+                    pointer-transparent; every seat, chip and card is drawn on
+                    top of it in the same percentage coordinate space. */}
+                <div style={{ ...styles.feltSurface, inset: ui(15) }} />
 
                 {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
                 <div style={styles.seatsContainer}>
@@ -2663,7 +2748,16 @@ function UniversalDynamicTable({
                             || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
                         if (!isHero && !isActiveVillain) return null;
 
-                        // Phase 13: Strict Standalone Table override — force Hero exact bottom edge, Villain exact top edge
+                        // ── SEAT GEOMETRY ────────────────────────────────
+                        // SEAT_CONFIGS is HERO-RELATIVE by construction: entry 0
+                        // is hero at the bottom of the felt and the rest run
+                        // clockwise from him -- the SAME ordering that
+                        // DEALER_BUTTON_SEAT_KEYS / DEALER_BUTTON_POSITIONS /
+                        // CHIP_STACK_POSITIONS use. Absolute `seats` indices are
+                        // rotated into that space with
+                        //   ((absolute - heroSeatIndex) % playerCount + playerCount) % playerCount
+                        // wherever they meet those tables (dealer button and chip
+                        // blocks below). Nothing here changes that contract.
                         const activeCount = seats.filter((s, i) => {
                             if (i === heroSeatIndex) return true;
                             return i === villainSeatIndex
@@ -2671,18 +2765,76 @@ function UniversalDynamicTable({
                         }).length;
                         let seatX = seat.x;
                         let seatY = seat.y;
+                        // Heads-up used to slam the lone villain to y = -8%, i.e.
+                        // clean OFF the felt and on top of the HUD header. Because
+                        // tableArea is overflow:visible nothing clipped it -- it
+                        // just covered the question. Both seats now sit ON the felt.
                         if (activeCount <= 2) {
-                            // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 82 : -8;
+                            seatY = isHero ? 84 : 17;
+                        } else if (isHero) {
+                            // Hero owns the bottom edge of the oval, centered.
+                            seatY = 84;
                         }
+
+                        // ── FURNITURE FOOTPRINT ──────────────────────────
+                        // Every fixed dimension below is scaled by ui() against
+                        // the MEASURED felt, and the seat centre is then clamped
+                        // so the whole cluster stays inside the felt at any table
+                        // size. This is what stops hero's cards spilling onto the
+                        // stats strip and the villain bubble climbing over the HUD.
+                        const avatarPx = isHero ? ui(66) : ui(52);
+                        const plateW = isHero ? ui(94) : ui(78);
+                        const plateH = ui(34);
+                        const heroCardW = ui(46);
+                        const heroCardH = ui(64);
+                        const vilCardW = ui(25);
+                        const vilCardH = ui(35);
+                        const bubbleH = ui(26);
+                        const boxH = isHero
+                            ? (avatarPx + plateH - ui(8))
+                            : (avatarPx + plateH - ui(8) + ui(3) + vilCardH);
+                        // plateW is the nameplate's FULL width, not its content
+                        // width -- boxSizing below is border-box precisely so the
+                        // footprint used for the clamp matches what is painted.
+                        const boxHalfW = Math.max(avatarPx, plateW) / 2 + 2;
+                        // The villain bubble is pinned to the seat's right edge and
+                        // hangs `bubbleOverhang` past it; it is also capped at the
+                        // nameplate width so a long action string can never widen
+                        // the seat's footprint. Hero has no bubble, but his hole
+                        // cards hang off the RIGHT of his nameplate instead.
+                        const bubbleOverhang = isHero ? 0 : ui(6);
+                        const rightExtent = isHero
+                            ? (boxHalfW + heroCardW * 1.7)
+                            : (boxHalfW + ui(8));
+                        const leftExtent = boxHalfW + bubbleOverhang;
+                        const topExtent = (boxH / 2) + (isHero ? 0 : bubbleH);
+                        const railPx = ui(15) + 10;
+                        const pctY = (px) => (px / Math.max(1, feltBox.h)) * 100;
+                        const pctX = (px) => (px / Math.max(1, feltBox.w)) * 100;
+                        seatY = Math.min(
+                            Math.max(seatY, pctY(railPx + topExtent)),
+                            100 - pctY(railPx + boxH / 2)
+                        );
+                        seatX = Math.min(
+                            Math.max(seatX, pctX(railPx + leftExtent)),
+                            100 - pctX(railPx + rightExtent)
+                        );
+
+                        // The strongest single cue on the felt is whose turn it
+                        // is. In the trainer that is hero, until he has acted.
+                        const isActiveSeat = isHero && !showFeedback;
+                        const rimShadow = '0 0 0 2px rgba(255,199,84,0.85), 0 0 16px 3px rgba(255,178,44,0.45), inset 0 2px 6px rgba(0,0,0,0.55)';
+                        const seatLabel = isHero
+                            ? (playerName || 'HERO')
+                            : (index === villainSeatIndex ? (villainPosition || seat.name) : (seat.name || 'Villain'));
 
                         return (
                             <motion.div
                                 key={seat.id}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: villainFolded ? 0.35 : 1, scale: 1 }}
-                                transition={{ delay: index * 0.05, duration: 0.3 }}
+                                initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
+                                animate={{ opacity: villainFolded ? 0.42 : 1, scale: 1 }}
+                                transition={{ delay: reduceMotion ? 0 : index * 0.04, duration: 0.28 }}
                                 style={{
                                     ...styles.seat,
                                     ...m.seat,
@@ -2692,16 +2844,29 @@ function UniversalDynamicTable({
                                     y: '-50%',
                                 }}
                             >
-                                {/* Illustrated Avatar — stacked vertically */}
+                                {/* CIRCULAR AVATAR — gold rim-light plus outer
+                                    glow when this seat is the one to act. */}
                                 <motion.div
-                                    initial={{ scale: 0, opacity: 0 }}
+                                    initial={reduceMotion ? false : { scale: 0.4, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.3, delay: 0.1 }}
+                                    transition={{ duration: 0.26, delay: reduceMotion ? 0 : 0.06 }}
                                     style={{
-                                        width: isHero ? (isMobile ? 56 : 70) : (isMobile ? 48 : 60),
-                                        height: isHero ? (isMobile ? 67 : 84) : (isMobile ? 58 : 72),
+                                        width: avatarPx,
+                                        height: avatarPx,
+                                        borderRadius: '50%',
+                                        overflow: 'hidden',
                                         position: 'relative',
                                         zIndex: 2,
+                                        flexShrink: 0,
+                                        background: 'radial-gradient(circle at 50% 22%, #24304a 0%, #121a2c 68%, #070b14 100%)',
+                                        border: `${Math.max(1.5, ui(2))}px solid ${isActiveSeat ? '#ffc754' : 'rgba(0,212,255,0.30)'}`,
+                                        boxShadow: isActiveSeat
+                                            ? rimShadow
+                                            : 'inset 0 2px 6px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.6)',
+                                        animation: (isActiveSeat && !reduceMotion)
+                                            ? 'sp-seat-rim 2.4s ease-in-out infinite'
+                                            : 'none',
+                                        filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
                                     }}
                                 >
                                     <img
@@ -2710,82 +2875,92 @@ function UniversalDynamicTable({
                                         style={{
                                             width: '100%',
                                             height: '100%',
-                                            objectFit: 'contain',
-                                            filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
+                                            objectFit: 'cover',
+                                            objectPosition: '50% 20%',
+                                            display: 'block',
                                         }}
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                     />
                                 </motion.div>
 
-                                {/* Gold Name Badge Container (Relative anchor for absolute decorators) */}
+                                {/* NAMEPLATE — name on one line, stack on the next.
+                                    Anchor for hero's hole cards, which hang off
+                                    its right edge and overlap it slightly. */}
                                 <motion.div
-                                    initial={{ y: 10, opacity: 0 }}
+                                    initial={reduceMotion ? false : { y: 8, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
-                                    transition={{ duration: 0.3, delay: 0.2 }}
+                                    transition={{ duration: 0.26, delay: reduceMotion ? 0 : 0.12 }}
                                     style={{
-                                        background: isHero
-                                            ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
-                                            : 'linear-gradient(180deg, #555 0%, #333 100%)',
-                                        border: isHero ? '2px solid #8b6914' : '2px solid #555',
-                                        borderRadius: 8,
-                                        padding: '4px 12px',
-                                        minWidth: 70,
-                                        textAlign: 'center',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                        marginTop: -8, // Slight overlap with avatar
                                         position: 'relative',
                                         zIndex: 3,
+                                        boxSizing: 'border-box',
+                                        marginTop: -ui(8),
+                                        minWidth: plateW,
+                                        maxWidth: plateW,
+                                        padding: `${ui(3)}px ${ui(9)}px ${ui(4)}px`,
+                                        borderRadius: ui(8),
+                                        textAlign: 'center',
+                                        lineHeight: 1.18,
+                                        background: 'linear-gradient(180deg, rgba(21,31,52,0.97) 0%, rgba(7,11,22,0.98) 100%)',
+                                        border: `1px solid ${isActiveSeat ? 'rgba(255,199,84,0.55)' : 'rgba(0,212,255,0.22)'}`,
+                                        boxShadow: '0 5px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
                                     }}
                                 >
                                     <div style={{
-                                        fontSize: 13,
-                                        fontWeight: 'bold',
-                                        color: isHero ? '#000' : '#ccc',
-                                        textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
+                                        fontSize: Math.max(9, ui(11)),
+                                        fontWeight: 800,
+                                        letterSpacing: 0.4,
+                                        textTransform: 'uppercase',
+                                        color: isHero ? '#ffffff' : '#c6d5e3',
                                         whiteSpace: 'nowrap',
-                                        letterSpacing: 0.5,
                                     }}>
-                                        {isHero ? (playerName || 'HERO') : (index === villainSeatIndex ? (villainPosition || seat.name) : (seat.name || 'Villain'))}
+                                        {seatLabel}
                                     </div>
                                     <div style={{
-                                        fontSize: 13,
-                                        fontWeight: 'bold',
-                                        color: isHero ? '#1a1a00' : 'var(--sp-accent-green)',
+                                        fontSize: Math.max(9, ui(11)),
+                                        fontWeight: 800,
+                                        fontVariantNumeric: 'tabular-nums',
+                                        color: isActiveSeat ? '#ffd67a' : 'var(--sp-accent-cyan)',
+                                        whiteSpace: 'nowrap',
                                     }}>
                                         {stackSize} bb
                                     </div>
 
-                                    {/* Dealer Button — rendered at table level per
-                                        DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md (see below the seat map) */}
-
-                                </motion.div>
-
-                                    {/* Hero: face-up cards — CENTERED below badge.
-                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a golden halo. */}
+                                    {/* HERO HOLE CARDS — immediately to the RIGHT
+                                        of the nameplate, overlapping it, angled and
+                                        larger than villain cards. They used to sit
+                                        stacked underneath, which pushed the cluster
+                                        off the bottom of the felt.
+                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a
+                                        golden halo. */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
+                                            position: 'absolute',
+                                            left: '100%',
+                                            bottom: -ui(3),
+                                            marginLeft: -ui(13),
                                             display: 'flex',
-                                            justifyContent: 'center',
-                                            gap: 3,
-                                            marginTop: 2,
-                                            zIndex: 5,
-                                            borderRadius: 8,
-                                            animation: 'pulse-glow 2s ease-in-out infinite',
+                                            alignItems: 'flex-end',
+                                            zIndex: 6,
+                                            borderRadius: ui(6),
+                                            pointerEvents: 'none',
+                                            animation: reduceMotion ? 'none' : 'pulse-glow 2s ease-in-out infinite',
                                         }}>
                                             {heroCards[0] && (
                                                 <motion.img
                                                     key={`hero-seat-0-${questionNumber}`}
                                                     src={getCardPath(heroCards[0])}
                                                     alt={heroCards[0]}
-                                                    initial={{ scale: 0.6, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
+                                                    initial={reduceMotion ? false : { x: -ui(34), y: -ui(26), rotate: -34, opacity: 0, scale: 0.72 }}
+                                                    animate={{ x: 0, y: 0, rotate: -9, opacity: 1, scale: 1 }}
+                                                    transition={{ delay: reduceMotion ? 0 : 0.04, duration: 0.26, type: 'spring', stiffness: 240, damping: 22 }}
                                                     style={{
-                                                        width: 44,
-                                                        height: 62,
-                                                        borderRadius: 4,
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
-                                                        border: '2px solid rgba(255,255,255,0.4)',
+                                                        width: heroCardW,
+                                                        height: heroCardH,
+                                                        borderRadius: ui(5),
+                                                        transformOrigin: 'bottom center',
+                                                        boxShadow: '0 10px 22px rgba(0,0,0,0.8)',
+                                                        border: '1px solid rgba(255,255,255,0.55)',
                                                     }}
                                                 />
                                             )}
@@ -2794,73 +2969,101 @@ function UniversalDynamicTable({
                                                     key={`hero-seat-1-${questionNumber}`}
                                                     src={getCardPath(heroCards[1])}
                                                     alt={heroCards[1]}
-                                                    initial={{ scale: 0.6, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
+                                                    initial={reduceMotion ? false : { x: -ui(34), y: -ui(26), rotate: -34, opacity: 0, scale: 0.72 }}
+                                                    animate={{ x: 0, y: 0, rotate: 8, opacity: 1, scale: 1 }}
+                                                    transition={{ delay: reduceMotion ? 0 : 0.14, duration: 0.26, type: 'spring', stiffness: 240, damping: 22 }}
                                                     style={{
-                                                        width: 44,
-                                                        height: 62,
-                                                        borderRadius: 4,
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
-                                                        border: '2px solid rgba(255,255,255,0.4)',
+                                                        width: heroCardW,
+                                                        height: heroCardH,
+                                                        marginLeft: -ui(14),
+                                                        borderRadius: ui(5),
+                                                        transformOrigin: 'bottom center',
+                                                        boxShadow: '0 10px 22px rgba(0,0,0,0.8)',
+                                                        border: '1px solid rgba(255,255,255,0.55)',
                                                     }}
                                                 />
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Villain: face-down cards — CENTERED below badge.
-                                        ACTIVE_HAND_GLOW_LAW: active hands pulse a golden halo;
-                                        folded hands stay visible but grey out. */}
+                                    {/* Dealer Button — rendered at table level per
+                                        DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
+
+                                </motion.div>
+
+                                    {/* Villain: face-down cards, centered under the
+                                        plate. ACTIVE_HAND_GLOW_LAW: active hands
+                                        pulse a golden halo; folded hands stay
+                                        visible but grey out. */}
                                     {!isHero && (
                                         <div style={{
                                             display: 'flex',
                                             justifyContent: 'center',
-                                            gap: 2,
-                                            marginTop: 2,
+                                            gap: ui(2),
+                                            marginTop: ui(3),
                                             zIndex: 1,
-                                            borderRadius: 8,
+                                            borderRadius: ui(5),
                                             ...(villainFolded
                                                 ? { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }
-                                                : { animation: 'pulse-glow 2s ease-in-out infinite' }),
+                                                : { animation: reduceMotion ? 'none' : 'pulse-glow 2s ease-in-out infinite' }),
                                         }}>
-                                            <div style={{
-                                                width: 28, height: 40, borderRadius: 4,
-                                                background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
-                                                border: '2px solid #FFD700',
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}>
-                                                <div style={{
-                                                    width: 16, height: 28, borderRadius: 2,
-                                                    border: '1px solid rgba(255,215,0,0.4)',
-                                                    background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,215,0,0.1) 3px, rgba(255,215,0,0.1) 6px)',
-                                                }} />
-                                            </div>
-                                            <div style={{
-                                                width: 28, height: 40, borderRadius: 4,
-                                                background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
-                                                border: '2px solid #FFD700',
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}>
-                                                <div style={{
-                                                    width: 16, height: 28, borderRadius: 2,
-                                                    border: '1px solid rgba(255,215,0,0.4)',
-                                                    background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,215,0,0.1) 3px, rgba(255,215,0,0.1) 6px)',
-                                                }} />
-                                            </div>
+                                            {[0, 1].map((ci) => (
+                                                <motion.div
+                                                    key={`vc-${ci}`}
+                                                    initial={reduceMotion ? false : { y: -ui(18), rotate: ci ? 14 : -14, opacity: 0 }}
+                                                    animate={{ y: 0, rotate: 0, opacity: 1 }}
+                                                    transition={{ delay: reduceMotion ? 0 : 0.06 + ci * 0.06, duration: 0.24 }}
+                                                    style={{
+                                                        width: vilCardW, height: vilCardH, borderRadius: ui(4),
+                                                        background: 'linear-gradient(135deg, #7d0f14 0%, #b02a2a 50%, #7d0f14 100%)',
+                                                        border: `1px solid rgba(255,199,84,0.75)`,
+                                                        boxShadow: '0 3px 8px rgba(0,0,0,0.6)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        width: vilCardW * 0.56, height: vilCardH * 0.68, borderRadius: 2,
+                                                        border: '1px solid rgba(255,199,84,0.35)',
+                                                        background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,199,84,0.12) 3px, rgba(255,199,84,0.12) 6px)',
+                                                    }} />
+                                                </motion.div>
+                                            ))}
                                         </div>
                                     )}
 
-                                    {/* Villain action speech bubble (computed above, now rendered).
-                                        Entries come from scenario actionHistory ({ position, action,
-                                        amount?/size? }) or the fallback { action: villainAction }. */}
+                                    {/* Villain action bubble — pinned to the seat's
+                                        own upper-right corner so it can never travel
+                                        off the felt and over the HUD header. */}
                                     {villainSeatAction && villainSeatAction.action && (
-                                        <div style={styles.villainActionBubble}>
+                                        <motion.div
+                                            initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.9 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            transition={{ duration: 0.22, delay: reduceMotion ? 0 : 0.18 }}
+                                            style={{
+                                                ...styles.villainActionBubble,
+                                                top: -bubbleH,
+                                                right: -bubbleOverhang,
+                                                left: 'auto',
+                                                padding: `${ui(3)}px ${ui(7)}px`,
+                                                fontSize: Math.max(9, ui(11)),
+                                                minWidth: ui(54),
+                                                maxWidth: plateW + ui(14),
+                                                boxSizing: 'border-box',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                borderRadius: ui(9),
+                                            }}
+                                        >
                                             {villainSeatAction.action}{(villainSeatAction.amount ?? villainSeatAction.size) ? ` ${villainSeatAction.amount ?? villainSeatAction.size}` : ''}
-                                            <div style={styles.speechTail} />
-                                        </div>
+                                            <div style={{
+                                                ...styles.speechTail,
+                                                bottom: -ui(7),
+                                                borderLeft: `${ui(7)}px solid transparent`,
+                                                borderRight: `${ui(7)}px solid transparent`,
+                                                borderTop: `${ui(7)}px solid #dc2626`,
+                                            }} />
+                                        </motion.div>
                                     )}
                                 </motion.div>
                         );
@@ -2885,6 +3088,9 @@ function UniversalDynamicTable({
                             ...styles.dealerButton,
                             top: `${btnPos.top}%`,
                             left: `${btnPos.left}%`,
+                            width: ui(22),
+                            height: ui(22),
+                            fontSize: Math.max(8, ui(11)),
                         }}>
                             D
                         </div>
@@ -2944,14 +3150,32 @@ function UniversalDynamicTable({
                         if (!chipKey) return null;
                         const pos = CHIP_STACK_POSITIONS[chipKey];
                         if (!pos) return null;
+                        // Chips travel from the seat they were bet from toward
+                        // the pot and settle in their law-defined slot. Keyed on
+                        // the amount so a NEW bet re-runs the slide and an
+                        // unchanged one does not.
+                        const srcTop = isHeroSeat ? 84 : seat.y;
+                        const srcLeft = seat.x;
                         return (
-                            <div
-                                key={`chip-${index}`}
-                                style={{ ...styles.chipStack, top: `${pos.top}%`, left: `${pos.left}%` }}
+                            <motion.div
+                                key={`chip-${index}-${amount}`}
+                                initial={reduceMotion
+                                    ? false
+                                    : { top: `${srcTop}%`, left: `${srcLeft}%`, opacity: 0, scale: 0.55 }}
+                                animate={{ top: `${pos.top}%`, left: `${pos.left}%`, opacity: 1, scale: 1 }}
+                                transition={{ duration: reduceMotion ? 0 : 0.34, ease: [0.22, 0.9, 0.3, 1] }}
+                                style={{
+                                    ...styles.chipStack,
+                                    top: `${pos.top}%`,
+                                    left: `${pos.left}%`,
+                                    gap: ui(4),
+                                    padding: `${ui(2)}px ${ui(7)}px ${ui(2)}px ${ui(3)}px`,
+                                    borderRadius: ui(10),
+                                }}
                             >
-                                <span style={styles.chipDisc} />
-                                <span style={styles.chipAmount}>{amount}</span>
-                            </div>
+                                <span style={{ ...styles.chipDisc, width: ui(13), height: ui(13) }} />
+                                <span style={{ ...styles.chipAmount, fontSize: Math.max(8, ui(11)) }}>{amount}</span>
+                            </motion.div>
                         );
                     });
                 })()}
@@ -2978,18 +3202,19 @@ function UniversalDynamicTable({
                             return (
                                 <motion.div
                                     key={`${handKey}-${card}-${i}`}
-                                    initial={isExistingCard
+                                    initial={(isExistingCard || reduceMotion)
                                         ? { y: 0, rotateY: 0, scale: 1, opacity: 1 } // Existing cards: no re-animation
                                         : isNewStreetCard
-                                            ? { y: -80, rotateY: 180, scale: 0.4, opacity: 0 } // New street card: dramatic entrance
-                                            : { y: -60, rotateY: 180, scale: 0.6, opacity: 0 } // Initial deal
+                                            ? { y: -70, rotateY: 180, scale: 0.5, opacity: 0 } // New street card
+                                            : { y: -52, rotateY: 180, scale: 0.65, opacity: 0 } // Initial deal
                                     }
                                     animate={{ y: 0, rotateY: 0, scale: 1, opacity: 1 }}
-                                    transition={isExistingCard
+                                    transition={(isExistingCard || reduceMotion)
                                         ? { duration: 0 } // Instant — no animation for existing cards
                                         : isNewStreetCard
-                                            ? { delay: 0.3, duration: 0.7, type: 'spring', stiffness: 120, damping: 14 }
-                                            : { delay: i * 0.25, duration: 0.5, type: 'spring', stiffness: 160, damping: 18 }
+                                            ? { delay: 0.06, duration: 0.34, type: 'spring', stiffness: 220, damping: 20 }
+                                            // Whole flop is on the felt inside 250ms of stagger.
+                                            : { delay: i * 0.06, duration: 0.3, type: 'spring', stiffness: 220, damping: 20 }
                                     }
                                     onAnimationComplete={() => {
                                         if (!isExistingCard) SoundEngine.play('card_flip');
@@ -3002,6 +3227,9 @@ function UniversalDynamicTable({
                                         style={{
                                             ...styles.boardCard,
                                             ...m.boardCard,
+                                            width: ui(50),
+                                            height: ui(70),
+                                            borderRadius: ui(6),
                                             backfaceVisibility: 'hidden',
                                             // Highlight new street card with a glow
                                             ...(isNewStreetCard ? {
@@ -3049,10 +3277,10 @@ function UniversalDynamicTable({
                         >
                             {[0, 1, 2].map(i => (
                                 <div key={i} style={{
-                                    width: 48, height: 68, borderRadius: 5,
-                                    background: 'linear-gradient(180deg, #2a3a2a 0%, #1a2a1a 100%)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                    width: ui(50), height: ui(70), borderRadius: ui(6),
+                                    background: 'linear-gradient(180deg, rgba(9,45,34,0.85) 0%, rgba(5,26,20,0.9) 100%)',
+                                    border: '1px solid rgba(0,212,255,0.10)',
+                                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)',
                                 }} />
                             ))}
                         </motion.div>
@@ -3065,19 +3293,39 @@ function UniversalDynamicTable({
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        style={{...styles.pot, ...m.pot, x: '-50%', y: '-50%'}}
+                        style={{
+                            ...styles.pot,
+                            ...m.pot,
+                            x: '-50%',
+                            y: '-50%',
+                            padding: `${ui(4)}px ${ui(12)}px ${ui(5)}px`,
+                            borderRadius: ui(11),
+                            background: 'linear-gradient(180deg, rgba(6,11,22,0.82) 0%, rgba(3,6,14,0.88) 100%)',
+                            border: '1px solid rgba(0,212,255,0.22)',
+                            boxShadow: '0 6px 16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)',
+                            gap: ui(2),
+                        }}
                     >
-                        {/* Chip icon */}
-                        <div style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: '50%',
-                            background: 'linear-gradient(180deg, #555 0%, #222 100%)',
-                            border: '2px solid #666',
-                            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
-                            flexShrink: 0,
-                        }} />
-                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: 'var(--sp-fg)' }}>Pot: {displayPot} bb</span>
+                        <span style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: ui(6),
+                            fontSize: Math.max(11, ui(15)),
+                            fontWeight: 800,
+                            color: 'var(--sp-fg)',
+                            fontVariantNumeric: 'tabular-nums',
+                        }}>
+                            <span style={{
+                                width: ui(14),
+                                height: ui(14),
+                                borderRadius: '50%',
+                                background: 'radial-gradient(circle at 34% 28%, #eaf7ff 0%, #7fd6ef 45%, #1c7f9c 100%)',
+                                border: '1px solid rgba(0,0,0,0.5)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                                flexShrink: 0,
+                            }} />
+                            POT {displayPot} bb
+                        </span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
@@ -5204,16 +5452,29 @@ const styles = {
         padding: 0,
     },
 
-    // ── RACETRACK TABLE — Phase 18: Tall oval, NO overflow hidden so seats stay visible
+    // ── THE TABLE — a rounded-oval felt INSET into a deep near-black rail.
+    //    `basicTable` is the RAIL (the dark patterned surround); `feltSurface`
+    //    is the recessed green felt drawn inside it. Two layers, because the
+    //    felt has to read as sunk into the furniture rather than painted on it.
+    //    NO overflow hidden so seats stay visible (see tableArea).
     basicTable: {
         position: 'relative',
-        width: '90%',
-        maxWidth: 420,
+        boxSizing: 'border-box',
+        width: '92%',
+        maxWidth: 440,
         aspectRatio: '1 / 1.45',
-        borderRadius: '50% / 25%',
-        backgroundColor: '#1E3B22',
-        border: '8px solid #1a1a1a',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+        borderRadius: '50% / 26%',
+        background: [
+            'radial-gradient(ellipse at 50% -8%, rgba(0,212,255,0.10) 0%, rgba(0,212,255,0) 52%)',
+            'repeating-linear-gradient(135deg, rgba(255,255,255,0.020) 0px, rgba(255,255,255,0.020) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 7px)',
+            'linear-gradient(180deg, #141c30 0%, #0a0e1c 55%, #060912 100%)',
+        ].join(', '),
+        border: '1px solid rgba(0,212,255,0.16)',
+        boxShadow: [
+            '0 26px 60px rgba(0,0,0,0.78)',
+            'inset 0 2px 0 rgba(255,255,255,0.055)',
+            'inset 0 -22px 44px rgba(0,0,0,0.55)',
+        ].join(', '),
         margin: '0 auto',
         // Shrink with the container rather than overflow it (see tableArea).
         flexShrink: 1,
@@ -5221,6 +5482,25 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+    },
+
+    // The recessed felt. `inset` is applied inline from ui() so the rail keeps
+    // its proportion when the table shrinks.
+    feltSurface: {
+        position: 'absolute',
+        borderRadius: '50% / 26%',
+        background: [
+            'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0) 58%)',
+            'radial-gradient(ellipse at 50% 42%, #1d6a4c 0%, #155641 40%, #0e3d2f 72%, #082a21 100%)',
+        ].join(', '),
+        boxShadow: [
+            'inset 0 12px 30px rgba(0,0,0,0.62)',
+            'inset 0 -16px 38px rgba(0,0,0,0.58)',
+            'inset 0 0 0 1px rgba(0,212,255,0.20)',
+            '0 0 24px rgba(0,212,255,0.07)',
+        ].join(', '),
+        pointerEvents: 'none',
+        zIndex: 0,
     },
 
     seatsContainer: {
@@ -5470,14 +5750,15 @@ const styles = {
         width: 18,
         height: 18,
         borderRadius: '50%',
-        background: '#2a2a32',
-        color: 'var(--sp-fg)',
+        background: 'radial-gradient(circle at 34% 28%, #fff6dc 0%, #f3d489 45%, #c99b2a 100%)',
+        color: '#3a2a05',
         fontSize: 9,
-        fontWeight: 'bold',
+        fontWeight: 900,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '1.5px solid rgba(255,255,255,0.3)',
+        border: '1px solid rgba(90,64,10,0.7)',
+        boxShadow: '0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.8)',
         zIndex: 10,
     },
 
@@ -5565,7 +5846,7 @@ const styles = {
 
     boardCards: {
         position: 'absolute',
-        top: '45%',
+        top: '38%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
@@ -5585,7 +5866,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '20%',
+        top: '52%',
         left: '50%',
         // NOTE: Do NOT use CSS transform here — framer-motion's scale animation overrides it.
         // x/y are set inline on the <motion.div> to compose with scale.
