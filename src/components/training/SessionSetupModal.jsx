@@ -73,6 +73,12 @@ const SPEED_OPTIONS = [
   { id: 'turbo',  label: 'Turbo',  desc: 'No delay' },
 ];
 
+const TABLE_OPTIONS = [
+  { id: '1', label: '1 Table', desc: 'Single focus' },
+  { id: '2', label: '2 Tables', desc: 'Split screen' },
+  { id: '4', label: '4 Tables', desc: 'Mass multi-table' },
+];
+
 
 function readPrefs(gameId) {
   if (typeof window === 'undefined') return null;
@@ -114,13 +120,14 @@ export default function SessionSetupModal({
   userId,
 }) {
   const gameId = game?.id || game?.slug || '';
-  const initialPrefs = (gameId && readPrefs(gameId)) || {};
+  const saved  = (gameId && readPrefs(gameId)) || {};
 
-  const [difficulty, setDifficulty] = useState(initialPrefs.difficulty || 'standard');
-  const [timer,      setTimer]      = useState(initialPrefs.timer      || 'standard');
-  const [mode,       setMode]       = useState(initialPrefs.mode       || 'standard');
-  const [scope,      setScope]      = useState(initialPrefs.scope      || 'full');
-  const [speed,      setSpeed]      = useState(initialPrefs.speed      || 'normal');
+  const [difficulty, setDifficulty] = useState(saved.difficulty || 'standard');
+  const [timer,      setTimer]      = useState(saved.timer      || 'standard');
+  const [mode,       setMode]       = useState(saved.mode       || 'standard');
+  const [scope,      setScope]      = useState(saved.scope      || 'full');
+  const [speed,      setSpeed]      = useState(saved.speed      || 'normal');
+  const [tables,     setTables]     = useState(saved.tables     || '1');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -166,9 +173,17 @@ export default function SessionSetupModal({
   }, [isOpen, onClose]);
 
   const handleStart = useCallback(() => {
-    if (gameId) writePrefs(gameId, { difficulty, timer, mode, scope, speed });
-    onStart?.({ game, difficulty, timer, mode, scope, speed });
-  }, [game, gameId, difficulty, timer, mode, scope, speed, onStart]);
+    const prefs = {
+      difficulty,
+      timer,
+      mode,
+      scope,
+      speed,
+      tables,
+    };
+    if (gameId) writePrefs(gameId, prefs);
+    onStart?.({ game, ...prefs });
+  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -284,6 +299,12 @@ export default function SessionSetupModal({
         <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
           <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Game speed</legend>
           <PillRow options={SPEED_OPTIONS} value={speed} onChange={setSpeed} name="speed" />
+        </fieldset>
+
+        {/* TABLES */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Tables</legend>
+          <PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" />
         </fieldset>
 
         {/* CTA */}

@@ -148,7 +148,8 @@ export default function TrainingPage() {
       timer: prefs.timer, 
       mode: prefs.mode,
       scope: prefs.scope,
-      speed: prefs.speed 
+      speed: prefs.speed,
+      tables: prefs.tables
     } : null);
     setSetupGame(null);
     setShowArena(true);

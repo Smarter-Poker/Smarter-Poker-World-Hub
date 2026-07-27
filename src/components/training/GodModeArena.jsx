@@ -2779,7 +2779,21 @@ function GodModeArenaInner({
   const engineType = getEngineType(gameId);
 
   // Trainer config state
-  const [trainerConfig, setTrainerConfig] = useState(null);
+  const [trainerConfig, setTrainerConfig] = useState(() => {
+    if (initialConfig) {
+      let delayMs = 3000;
+      if (initialConfig.speed === 'fast') delayMs = 1500;
+      if (initialConfig.speed === 'turbo') delayMs = 1;
+
+      return {
+        ...initialConfig,
+        autoAdvanceDelayMs: delayMs,
+        feedbackRule: 'mistakes',
+        autoAdvance: true,
+      };
+    }
+    return null;
+  });
   const [showConfigModal, setShowConfigModal] = useState(false);
 
   const handleConfigStart = useCallback((config) => {
