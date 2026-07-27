@@ -1020,20 +1020,23 @@ export default function UniversalHeader({
                     
                     /* Hamburger button - mobile sizing */
                     .header-img-btn {
-                        height: 20px;
-                        width: 20px;
+                        height: 24px;
+                        width: 24px;
+                        padding: 2px;
                     }
 
                     /* CRITICAL: Cap BACK/HUB nav button width on mobile */
                     .header-nav-btn {
-                        height: 16px;
+                        height: 24px;
                         width: auto;
-                        max-width: 60px;
+                        max-width: 50px;
+                        padding: 4px;
                     }
                     
                     .hamburger-btn {
-                        width: 20px;
-                        height: 20px;
+                        width: 24px;
+                        height: 24px;
+                        padding: 4px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
@@ -1090,7 +1093,7 @@ export default function UniversalHeader({
                             aria-label="Open Menu"
                             style={{ padding: 0 }}
                         >
-                            <img src="/images/btn-hamburger-v4.png" alt="Menu" style={{ width: 'auto', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/btn-hamburger-v4.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     {!hideLeftIcon && (
@@ -1102,7 +1105,7 @@ export default function UniversalHeader({
                             <img
                                 src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-v4.png'}
                                 alt={pageDepth >= 2 ? 'Back' : 'Hub'}
-                                style={{ height: '100%', width: 'auto', objectFit: 'contain' }}
+                                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
                             />
                         </button>
                     )}
@@ -1154,7 +1157,7 @@ export default function UniversalHeader({
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
                     >
-                        <img src="/images/header-wallet-v4.png" alt="Wallet" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                        <img src="/images/header-wallet-v4.png" alt="Wallet" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
                     </button>
 
                     {/* VIP Card Icon — only for VIP members */}
@@ -1168,7 +1171,7 @@ export default function UniversalHeader({
                                 <img
                                     src="/images/vip-card-v8.jpg"
                                     alt="VIP Member"
-                                    style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }}
+                                    style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }}
                                 />
                         </button>
                     )}
@@ -1178,7 +1181,7 @@ export default function UniversalHeader({
                         SPA state and re-downloaded the bundle on every click. router.push keeps the
                         "no popup" behaviour the old comment was protecting. */}
                     <button onClick={() => router.push('/hub/messenger')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages" aria-label="Messages">
-                            <img src="/images/header-messenger-v4.png" alt="Messages" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                            <img src="/images/header-messenger-v4.png" alt="Messages" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
@@ -1197,7 +1200,7 @@ export default function UniversalHeader({
                         markAllNotificationsRead();
                         openOverlay('notifications');
                     }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications" aria-label="Notifications">
-                            <img src="/images/notification-bell-trimmed.png" alt="Notifications" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                            <img src="/images/notification-bell-trimmed.png" alt="Notifications" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
                             {safeNotificationCount > 0 && (
                                 <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
                             )}
@@ -1205,7 +1208,7 @@ export default function UniversalHeader({
 
                     {/* Settings - Custom Metallic Gear icon */}
                     <button onClick={() => onSettingsClick ? onSettingsClick() : openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
-                            <img src="/images/header-settings-v4.png" alt="Settings" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                            <img src="/images/header-settings-v4.png" alt="Settings" style={{ width: '100%', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
                     </button>
 
                     {/* Live Help - Hidden on mobile */}
