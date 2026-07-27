@@ -54,7 +54,7 @@ body.world-training {
    scroll regions (charts, tables) when they really do need to overflow.
    ────────────────────────────────────────────────────────────────────────── */
 body.world-training {
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: contain;
 }
 

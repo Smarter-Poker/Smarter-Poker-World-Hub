@@ -607,6 +607,20 @@ export default function App({ Component, pageProps }) {
     path.includes('/union')
   ) && !isPokerTool;
 
+  // Global Failsafe: Clear stranded scroll locks on route change
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (typeof window !== 'undefined' && document.body) {
+        if (document.body.style.overflow === 'hidden' && (window.__spScrollLocks || 0) === 0) {
+          document.body.style.removeProperty('overflow');
+          console.debug('[App] Cleared stale body overflow lock on route change');
+        }
+      }
+    };
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => router.events.off('routeChangeComplete', handleRouteChange);
+  }, [router]);
+
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider, use: [swrCacheMiddleware] }}>
       <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
