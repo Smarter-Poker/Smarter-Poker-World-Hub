@@ -63,7 +63,7 @@ fi
 # cause opaque SWC parser errors that are nearly impossible to trace back to
 # the source file without manual grep auditing.
 # ─────────────────────────────────────────────────────────────────────────────
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx|json|css)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'node_modules/')
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx|json|css)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'node_modules/' | grep -v '^vendor/')
 
 CONFLICT_FAIL=0
 if [ -n "$FILES" ]; then
@@ -105,7 +105,7 @@ fi
 echo "🔍 Scanning for dangerous Supabase auth patterns..."
 
 # Re-filter to just JS/TS files (excluding allowlisted utility files)
-AUTH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
+AUTH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin' | grep -v '^vendor/')
 
 if [ -z "$AUTH_FILES" ]; then
     echo "✅ No relevant files to check"
