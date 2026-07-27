@@ -1,11 +1,11 @@
 /**
  * QUICK WARMUP — 5-Minute Speed Session
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Instant 5-minute timed session — no setup, no choices. Mixes questions
  * from weakest areas + random variety. Designed for pre-session warmups.
  *
  * Route: /hub/training/quick-warmup
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-42 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -39,9 +39,9 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
   ),
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // WARMUP CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const WARMUP_DURATION = 300; // 5 minutes in seconds
 const WARMUP_GAMES = [
@@ -106,9 +106,9 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function QuickWarmupPage() {
   const router = useRouter();
@@ -310,7 +310,7 @@ export default function QuickWarmupPage() {
                 transition={{ duration: 2, repeat: Infinity }}
                 style={{ fontSize: 60, marginBottom: 20 }}
               >
-                ⚡
+
               </motion.div>
               <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 8 }}>
                 Quick Warmup
@@ -325,9 +325,9 @@ export default function QuickWarmupPage() {
               {/* Warmup mode selector */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 24, justifyContent: 'center' }}>
                 {[
-                  { id: 'auto', label: 'Auto', desc: 'Weakest area', icon: '🎯' },
-                  { id: 'position', label: 'Positions', desc: 'BB/BTN focus', icon: '♠️' },
-                  { id: 'postflop', label: 'Postflop', desc: 'Flop-Turn-River', icon: '🃏' },
+                  { id: 'auto', label: 'Auto', desc: 'Weakest area', icon: '◆' },
+                  { id: 'position', label: 'Positions', desc: 'BB/BTN focus', icon: '♠' },
+                  { id: 'postflop', label: 'Postflop', desc: 'Flop-Turn-River', icon: '◇' },
                 ].map((mode) => {
                   const isActive = (warmupMode || 'auto') === mode.id;
                   return (
@@ -427,7 +427,7 @@ export default function QuickWarmupPage() {
               style={{ textAlign: 'center', padding: '20px 0' }}
             >
               <div style={{ fontSize: 40, marginBottom: 12 }}>
-                {results?.accuracy >= 80 ? '🔥' : results?.accuracy >= 60 ? '👍' : '💪'}
+                {results?.accuracy >= 80 ? '▲' : results?.accuracy >= 60 ? '✓' : '▲'}
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 4 }}>
                 Warmup Complete

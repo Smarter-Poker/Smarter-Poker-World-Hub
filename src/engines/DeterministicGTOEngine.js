@@ -1,5 +1,5 @@
 /**
- * 🎯 DETERMINISTIC GTO ENGINE
+ * DETERMINISTIC GTO ENGINE
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure solver-driven question generation — NO Grok AI, NO randomness in data.
  * Uses solved_spots_gold (187k+ records) and memory_charts_gold for real PIO data.
@@ -573,7 +573,7 @@ export class DeterministicGTOEngine {
             questions.push(q);
         }
 
-        console.debug(`[DeterministicEngine] ✅ Generated ${questions.length} postflop questions for L${level}`);
+        console.debug(`[DeterministicEngine] ✓ Generated ${questions.length} postflop questions for L${level}`);
         return questions;
     }
 
@@ -1008,7 +1008,7 @@ export class DeterministicGTOEngine {
             });
             sortedScenarios = [...targeted, ...others];
             if (targeted.length > 0) {
-                console.debug(`[DeterministicEngine] 🎯 Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
+                console.debug(`[DeterministicEngine] Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
             }
         }
 
@@ -1122,7 +1122,7 @@ export class DeterministicGTOEngine {
                 if (question) {
                     // Override generic scenario values with the actual hand state
                     this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
-                    console.debug(`[DeterministicEngine] ✅ Multi-street: found ${street} data for board ${boardStr}`);
+                    console.debug(`[DeterministicEngine] ✓ Multi-street: found ${street} data for board ${boardStr}`);
                     return question;
                 }
             }
@@ -1193,7 +1193,7 @@ export class DeterministicGTOEngine {
                     question.boardCards = boardCards;
                     // Override generic scenario values with the actual hand state
                     this._applyNextStreetOverrides(question, { pot, heroPosition, villainPosition, stackDepth });
-                    console.debug(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
+                    console.debug(`[DeterministicEngine] ✓ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
                     return question;
                 }
             }
@@ -1201,7 +1201,7 @@ export class DeterministicGTOEngine {
             // BUG-G FIX: Removed 3rd-tier 'ANY scenario' fallback.
             // Grabbing solver data from a completely different board is misleading —
             // the frequencies don't apply to our board texture. Instead, end the hand cleanly.
-            console.debug(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
+            console.debug(`[DeterministicEngine] ✕ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
             return null;
         } catch (err) {
             console.warn('[DeterministicEngine] queryNextStreet error:', err.message);
@@ -1322,7 +1322,7 @@ export class DeterministicGTOEngine {
                     // Only apply filter if it returns results; otherwise fall through with full pool
                     if (filtered.length > 0) {
                         allData = filtered;
-                        console.debug(`[DeterministicEngine] 🎯 SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
+                        console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
                     } else {
                         console.debug(`[DeterministicEngine] SpotType filter: ${spotTypes.join(',')} matched 0 scenarios, falling through with full pool`);
                     }
@@ -5057,33 +5057,33 @@ export class DeterministicGTOEngine {
 
         // Street + action coaching tips
         if (street === 'river' && actionBucket === 'fold') {
-            return '⚠️ You tend to over-fold rivers — remember that bluff-catchers need to call enough to keep villain honest.';
+            return '▲ You tend to over-fold rivers — remember that bluff-catchers need to call enough to keep villain honest.';
         }
         if (street === 'river' && actionBucket === 'bet') {
-            return '⚠️ River betting is a common leak area for you — focus on whether your hand is polarized (value or bluff) vs. a check-back.';
+            return '▲ River betting is a common leak area for you — focus on whether your hand is polarized (value or bluff) vs. a check-back.';
         }
         if (street === 'turn' && actionBucket === 'check') {
-            return '⚠️ Turn checking decisions have been tricky — consider whether you\'re pot-controlling with medium strength or giving up too cheaply.';
+            return '▲ Turn checking decisions have been tricky — consider whether you\'re pot-controlling with medium strength or giving up too cheaply.';
         }
         if (street === 'flop' && actionBucket === 'bet') {
-            return '⚠️ Flop bet sizing has been a pattern — focus on whether the board favors range bets (small) or polarized bets (large).';
+            return '▲ Flop bet sizing has been a pattern — focus on whether the board favors range bets (small) or polarized bets (large).';
         }
 
         // Hand category coaching tips
         if (handBucket === 'flush_draw' || handBucket === 'straight_draw') {
-            return '⚠️ Draw decisions are a leak area — evaluate pot odds, implied odds, and whether you have fold equity with a semi-bluff.';
+            return '▲ Draw decisions are a leak area — evaluate pot odds, implied odds, and whether you have fold equity with a semi-bluff.';
         }
         if (handBucket === 'top_pair' || handBucket === 'overpair') {
-            return '⚠️ Playing strong-but-vulnerable hands is tricky for you — think about protection vs. pot control based on board texture.';
+            return '▲ Playing strong-but-vulnerable hands is tricky for you — think about protection vs. pot control based on board texture.';
         }
         if (handBucket === 'air' || handBucket === 'overcards') {
-            return '⚠️ Bluffing spots have been challenging — look for hands with blockers and backdoor equity rather than pure air.';
+            return '▲ Bluffing spots have been challenging — look for hands with blockers and backdoor equity rather than pure air.';
         }
         if (handBucket === 'middle_pair' || handBucket === 'bottom_pair') {
-            return '⚠️ Medium-strength hand decisions are a weak spot — these are often check-call candidates, not bets.';
+            return '▲ Medium-strength hand decisions are a weak spot — these are often check-call candidates, not bets.';
         }
 
-        return '⚠️ This is a spot type where you\'ve been making frequent mistakes — pay close attention to the reasoning below.';
+        return '▲ This is a spot type where you\'ve been making frequent mistakes — pay close attention to the reasoning below.';
     }
 
     /**
@@ -5672,16 +5672,16 @@ export class DeterministicGTOEngine {
         if (isCheck && isStrong) {
             if (texture && texture.dry) {
                 if (isVeryStrong) {
-                    return `🎯 Trapping play: checking ${handStrength} on a dry board is a classic slow-play — few draws can outdraw you, and checking induces bluffs or lighter bets from villain on later streets.`;
+                    return `Trapping play: checking ${handStrength} on a dry board is a classic slow-play — few draws can outdraw you, and checking induces bluffs or lighter bets from villain on later streets.`;
                 }
-                return `🎯 Slow-play: checking with strong hands on dry boards protects your checking range — if you always bet your best hands, villain can exploit your checks by over-bluffing.`;
+                return `Slow-play: checking with strong hands on dry boards protects your checking range — if you always bet your best hands, villain can exploit your checks by over-bluffing.`;
             }
 
             if (texture && texture.wet) {
                 if (freq >= 0.5) {
-                    return `🎯 Trap on a wet board: the solver still prefers checking even on a draw-heavy board — this may protect your checking range or set up a check-raise if villain bets.`;
+                    return `Trap on a wet board: the solver still prefers checking even on a draw-heavy board — this may protect your checking range or set up a check-raise if villain bets.`;
                 }
-                return `⚠️ Careful slow-play: checking strong hands on wet boards is risky since draws can get there. The solver mixes here — sometimes you need to protect your equity by betting.`;
+                return `▲ Careful slow-play: checking strong hands on wet boards is risky since draws can get there. The solver mixes here — sometimes you need to protect your equity by betting.`;
             }
 
             if (nodeType === 'hero_faces_bet' || isCall) {
@@ -5690,17 +5690,17 @@ export class DeterministicGTOEngine {
 
             // Generic trap
             if (isVeryStrong && street !== 'river') {
-                return `🎯 Trap: checking a monster on ${street} builds the pot on later streets when villain bets or lets you check-raise for maximum value.`;
+                return `Trap: checking a monster on ${street} builds the pot on later streets when villain bets or lets you check-raise for maximum value.`;
             }
             if (isVeryStrong && street === 'river') {
-                return `🎯 River check with a monster: this could be a trap hoping villain bluffs, or the solver recognizes that betting won\'t get called by worse hands often enough.`;
+                return `River check with a monster: this could be a trap hoping villain bluffs, or the solver recognizes that betting won\'t get called by worse hands often enough.`;
             }
         }
 
         // Flat-calling with a strong hand (when facing a bet)
         if (isCall && isStrong && nodeType === 'hero_faces_bet') {
             if (isVeryStrong) {
-                return `🎯 Flat-calling with a monster: just calling instead of raising disguises your hand strength — this lets villain continue bluffing or value-betting thinner on later streets.`;
+                return `Flat-calling with a monster: just calling instead of raising disguises your hand strength — this lets villain continue bluffing or value-betting thinner on later streets.`;
             }
         }
 
@@ -6349,7 +6349,7 @@ export class DeterministicGTOEngine {
             else if (topWeak.key.includes('top_pair')) suggestion = 'Top pair play needs work — focus on kicker strength, board texture, and when to slow down vs. bet for value.';
             else suggestion = `Focus on ${topWeak.description} — review the solver explanations in these spots and look for patterns in your mistakes.`;
 
-            summaryParts.push(`💡 Suggestion: ${suggestion}`);
+            summaryParts.push(`Suggestion: ${suggestion}`);
         }
 
         return {
@@ -6555,15 +6555,15 @@ export class DeterministicGTOEngine {
         // Every 10 questions
         if (questionNumber % 10 === 0 && questionNumber > 0) {
             if (recentAcc >= 80) {
-                return `🔥 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. You're in the zone — the solver would be proud.`;
+                return `▲ ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. You're in the zone — the solver would be proud.`;
             }
             if (recentAcc >= 60) {
-                return `📊 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Solid progress — keep focusing on the explanations for spots you miss.`;
+                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Solid progress — keep focusing on the explanations for spots you miss.`;
             }
             if (recentAcc >= 40) {
-                return `💪 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Room to improve — try reading each explanation carefully and look for patterns in your mistakes.`;
+                return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Room to improve — try reading each explanation carefully and look for patterns in your mistakes.`;
             }
-            return `📈 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Consider dropping down a level to build confidence, then come back stronger.`;
+            return `${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Consider dropping down a level to build confidence, then come back stronger.`;
         }
 
         // Every 25 questions — deeper analysis
@@ -6577,9 +6577,9 @@ export class DeterministicGTOEngine {
             if (weakest.length > 0) {
                 const [key, data] = weakest[0];
                 const mistakeRate = Math.round((data.mistakes / data.total) * 100);
-                return `📋 ${questionNumber}-question checkpoint! Overall: ${accuracy}%. Your biggest leak: "${key.replace(/_/g, ' ')}" (${mistakeRate}% mistake rate, ${data.total} samples). Focus on this area to see the biggest improvement.`;
+                return `${questionNumber}-question checkpoint! Overall: ${accuracy}%. Your biggest leak: "${key.replace(/_/g, '')}"(${mistakeRate}% mistake rate, ${data.total} samples). Focus on this area to see the biggest improvement.`;
             }
-            return `📋 ${questionNumber}-question checkpoint! Overall accuracy: ${accuracy}%. ${accuracy >= 70 ? 'Great session — you\'re building strong GTO fundamentals.' : 'Keep grinding — consistency is key to improving.'}`;
+            return `${questionNumber}-question checkpoint! Overall accuracy: ${accuracy}%. ${accuracy >= 70 ? 'Great session — you\'re building strong GTO fundamentals.': 'Keep grinding — consistency is key to improving.'}`;
         }
 
         return null;
@@ -7780,7 +7780,7 @@ export class DeterministicGTOEngine {
         if (street === 'flop' && (n.includes('c-bet') || n.includes('flop'))) score += 1;
 
         // Warning/coaching markers
-        if (n.includes('⚠️') || n.includes('🎯') || n.includes('warning') || n.includes('caution')) score += 1;
+        if (n.includes('▲') || n.includes('') || n.includes('warning') || n.includes('caution')) score += 1;
 
         // Numeric/quantitative notes (EV, percentage, outs)
         if (n.includes('%') || n.includes('bb') || n.includes('outs') || n.includes('equity')) score += 0.5;
@@ -7838,7 +7838,7 @@ export class DeterministicGTOEngine {
         const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair', 'weak_pair'].includes(handToken);
 
         if (a === 'f' && isMedium) {
-            return '🎯 Multi-way pot: medium-strength hands lose significant value with multiple opponents — more players means someone likely has you beat. Folding marginal hands is correct.';
+            return 'Multi-way pot: medium-strength hands lose significant value with multiple opponents — more players means someone likely has you beat. Folding marginal hands is correct.';
         }
         if (this._isAggressiveAction(a) && isStrong) {
             return 'Multi-way pot: with a strong hand, bet for value against multiple opponents who may each have some equity. Thin value goes up when facing wide ranges.';
@@ -7899,7 +7899,7 @@ export class DeterministicGTOEngine {
         const isDry = texture && (texture.dry || !(texture.flushy || texture.monotone));
 
         if (isMedium && street === 'flop') {
-            return '🎯 Check-back for pot control: medium-strength hands benefit from seeing another card cheaply. Betting risks getting raised off the best hand or building a pot you can\'t win.';
+            return 'Check-back for pot control: medium-strength hands benefit from seeing another card cheaply. Betting risks getting raised off the best hand or building a pot you can\'t win.';
         }
         if (isStrong && isDry && street === 'flop') {
             return 'Check-back to trap: on a dry board, villain has few draws. Checking back a strong hand disguises your strength and may induce bluffs on later streets.';
@@ -7959,7 +7959,7 @@ export class DeterministicGTOEngine {
         const hasDraw = ['gutshot', 'oesd', 'flush_draw', 'backdoor_flush_draw', 'combo_draw'].includes(handToken);
 
         if (isWeak) {
-            return '🎯 Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last — if villain shows weakness by checking, you can bluff profitably.';
+            return 'Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last — if villain shows weakness by checking, you can bluff profitably.';
         }
         if (hasDraw) {
             return 'Float with a draw: calling IP to see another card. If you hit, you can extract value. If villain checks the turn, you can semi-bluff with your draw or take a free card.';
@@ -8024,7 +8024,7 @@ export class DeterministicGTOEngine {
         flopSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
         const flushDrawSuit = Object.entries(suitCounts || {}).find(([_, ct]) => ct >= 2);
         if (flushDrawSuit && turnSuit === flushDrawSuit[0]) {
-            return `⚠️ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic — flush draws got there, and hands without a flush need to proceed cautiously.`;
+            return `▲ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic — flush draws got there, and hands without a flush need to proceed cautiously.`;
         }
 
         // Overcard
@@ -8064,7 +8064,7 @@ export class DeterministicGTOEngine {
 
         if (this._isAggressiveAction(a)) {
             if (isStrong) return 'River value bet: with a strong hand, bet for maximum value. Choose a size that gets called by enough worse hands — balance between frequency and size.';
-            if (isWeak) return '🎯 River bluff: with a weak hand, betting turns your hand into a bluff. The key question: does villain fold enough to make this profitable? Target their bluff-catching range.';
+            if (isWeak) return 'River bluff: with a weak hand, betting turns your hand into a bluff. The key question: does villain fold enough to make this profitable? Target their bluff-catching range.';
             if (isMedium) return 'River thin value: a medium-strength bet targeting worse hands that might call. Be careful — if villain only calls with better, this is a losing bet.';
         }
         if (a === 'call') {
@@ -8277,7 +8277,7 @@ export class DeterministicGTOEngine {
         if (chosenStr < correctStr) {
             if (chosen === 'f') {
                 this._deviationTracker.overFold++;
-                return `⚠️ Deviation: folding when GTO says ${correct === 'call' ? 'call' : 'raise'}. You may be over-folding — this leak gives villain free equity when they bet.`;
+                return `▲ Deviation: folding when GTO says ${correct === 'call'? 'call': 'raise'}. You may be over-folding — this leak gives villain free equity when they bet.`;
             }
             this._deviationTracker.overCall++;
             return `Deviation: calling when GTO says raise. Passive play lets villain control the pot size and realize equity cheaply.`;
@@ -8285,7 +8285,7 @@ export class DeterministicGTOEngine {
         if (chosenStr > correctStr) {
             if (correct === 'f') {
                 this._deviationTracker.overCall++;
-                return `⚠️ Deviation: calling/raising when GTO says fold. You may be defending too wide — losing money in spots where your equity is too low.`;
+                return `▲ Deviation: calling/raising when GTO says fold. You may be defending too wide — losing money in spots where your equity is too low.`;
             }
             this._deviationTracker.overRaise++;
             return `Deviation: raising when GTO says ${correct}. Over-aggression bloats pots with hands that don't have enough equity.`;
@@ -8331,13 +8331,13 @@ export class DeterministicGTOEngine {
         if (this._sessionStats.total % 5 !== 0) return '';
 
         if (a.startsWith('r') && isStrong) {
-            return '💡 Exploit tip: vs opponents who call too much, increase your value bet sizing. GTO uses balanced sizes, but exploitatively you can size up against calling stations.';
+            return 'Exploit tip: vs opponents who call too much, increase your value bet sizing. GTO uses balanced sizes, but exploitatively you can size up against calling stations.';
         }
         if (a === 'f' && isMedium) {
-            return '💡 Exploit tip: GTO folds here, but vs opponents who bluff too much, consider calling. Adjust your defense frequency upward against overly aggressive players.';
+            return 'Exploit tip: GTO folds here, but vs opponents who bluff too much, consider calling. Adjust your defense frequency upward against overly aggressive players.';
         }
         if (a.startsWith('r') && !isStrong) {
-            return '💡 Exploit tip: vs opponents who over-fold, increase your bluffing frequency. GTO balances bluffs and value, but exploitatively you can bluff more against tight players.';
+            return 'Exploit tip: vs opponents who over-fold, increase your bluffing frequency. GTO balances bluffs and value, but exploitatively you can bluff more against tight players.';
         }
         return '';
     }
@@ -8708,15 +8708,15 @@ export class DeterministicGTOEngine {
         const isCorrect = classification === 'CORRECT' || classification === 'GOOD';
 
         if (tone === 'challenging') {
-            if (isCorrect) return questionNumber % 3 === 0 ? '✅ Solid play. Can you explain WHY this is correct without looking at the explanation?' : null;
-            return '❌ You should know this one. Study the explanation carefully and don\'t repeat this mistake.';
+            if (isCorrect) return questionNumber % 3 === 0 ? '✓ Solid play. Can you explain WHY this is correct without looking at the explanation?': null;
+            return '✕ You should know this one. Study the explanation carefully and don\'t repeat this mistake.';
         }
         if (tone === 'supportive') {
-            if (isCorrect) return '🎯 Great job! You got this one right — you\'re building strong GTO instincts!';
+            if (isCorrect) return 'Great job! You got this one right — you\'re building strong GTO instincts!';
             return 'Don\'t worry about this one — every top player made these mistakes while learning. Focus on the concept.';
         }
         if (tone === 'encouraging') {
-            if (isCorrect) return questionNumber % 5 === 0 ? '💪 Keep it up! Your understanding is growing with every question.' : null;
+            if (isCorrect) return questionNumber % 5 === 0 ? 'Keep it up! Your understanding is growing with every question.': null;
             return 'Close! Review the explanation — these spots get easier with practice.';
         }
         // neutral
@@ -8876,7 +8876,7 @@ export class DeterministicGTOEngine {
         if (flushSuit) {
             const hasNutFlushBlocker = heroRanks[0] === 'A' || heroRanks[1] === 'A';
             if (hasNutFlushBlocker) {
-                return `🎯 Nut flush blocker: your Ace blocks the nut flush, making villain less likely to have the nuts. This makes your bluff more effective — they can\'t confidently call with non-nut hands.`;
+                return `Nut flush blocker: your Ace blocks the nut flush, making villain less likely to have the nuts. This makes your bluff more effective — they can\'t confidently call with non-nut hands.`;
             }
         }
 
@@ -9104,7 +9104,7 @@ export class DeterministicGTOEngine {
             return 'Multi-street planning: when you start bluffing the flop, have a plan for turn and river. Which turn cards do you barrel? Which do you give up? Good bluffs have clear barrel-or-give-up criteria.';
         }
         if (street === 'turn' && isWeak) {
-            return '🎯 Turn barrel commitment: you\'ve bet the flop and now the turn. If you plan to bluff the river too (triple barrel), you need to commit ~65% of your stack total. Make sure the story is consistent.';
+            return 'Turn barrel commitment: you\'ve bet the flop and now the turn. If you plan to bluff the river too (triple barrel), you need to commit ~65% of your stack total. Make sure the story is consistent.';
         }
         if (street === 'turn' && hasDraw) {
             return 'Turn semi-bluff: your draw gives you a safety net — if called, you can still hit. If you miss the river, you can give up or fire the third barrel as a pure bluff.';
@@ -9162,7 +9162,7 @@ export class DeterministicGTOEngine {
             return `River overbet for value (${sizePct}% pot): with the nuts, overbetting extracts maximum value. Villain's calling range narrows but each call pays more. This is optimal when you have a hand that beats everything but the absolute nuts.`;
         }
         if (isAir) {
-            return `🎯 River overbet bluff (${sizePct}% pot): a maximally polarized bluff. The large size means villain needs to be right a high percentage of the time to call — even strong one-pair hands might fold. You need this to work ~${(sizePct / (100 + sizePct) * 100).toFixed(0)}% of the time.`;
+            return `River overbet bluff (${sizePct}% pot): a maximally polarized bluff. The large size means villain needs to be right a high percentage of the time to call — even strong one-pair hands might fold. You need this to work ~${(sizePct / (100 + sizePct) * 100).toFixed(0)}% of the time.`;
         }
         return '';
     }
@@ -9190,7 +9190,7 @@ export class DeterministicGTOEngine {
             return 'Thin value bet: your hand beats some of villain\'s calling range but loses to some too. Size smaller to get called by more worse hands while minimizing losses against better.';
         }
         if (isVeryThin && street === 'river') {
-            return '⚠️ Very thin value: this bet targets a narrow slice of villain\'s range that is worse but might call. The risk: getting raised means you\'re almost always behind. Consider check-calling instead.';
+            return '▲ Very thin value: this bet targets a narrow slice of villain\'s range that is worse but might call. The risk: getting raised means you\'re almost always behind. Consider check-calling instead.';
         }
         return '';
     }
@@ -9234,7 +9234,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 15 !== 0) return '';
         if (this._sessionStats.total < 15) return '';
 
-        return '💡 GTO concept — Node Locking: in real solvers, you can "lock" villain\'s strategy at a node (e.g., force them to always fold) and re-solve to find the best exploit. This is how pros find maximum deviation from GTO against specific player types.';
+        return 'GTO concept — Node Locking: in real solvers, you can "lock"villain\'s strategy at a node (e.g., force them to always fold) and re-solve to find the best exploit. This is how pros find maximum deviation from GTO against specific player types.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9253,10 +9253,10 @@ export class DeterministicGTOEngine {
 
         const a = (optimalAction || '').toLowerCase();
         if (a === 'f') {
-            return '💡 Tournament concept — ICM: in tournaments, chips lost are worth more than chips won (diminishing marginal utility). This means folding borderline spots is more correct than in cash games. Survival is paramount near pay jumps.';
+            return 'Tournament concept — ICM: in tournaments, chips lost are worth more than chips won (diminishing marginal utility). This means folding borderline spots is more correct than in cash games. Survival is paramount near pay jumps.';
         }
         if (a.startsWith('r') || a === 'allin') {
-            return '💡 Tournament concept — ICM pressure: raising and going all-in applies ICM pressure to opponents who can\'t afford to bust. Players with medium stacks near the bubble fold more than GTO dictates.';
+            return 'Tournament concept — ICM pressure: raising and going all-in applies ICM pressure to opponents who can\'t afford to bust. Players with medium stacks near the bubble fold more than GTO dictates.';
         }
         return '';
     }
@@ -9274,7 +9274,7 @@ export class DeterministicGTOEngine {
         if (!stackDepth || stackDepth > 50) return '';
         if (!this._sessionStats || this._sessionStats.total % 18 !== 0) return '';
 
-        return '💡 Bubble Factor: the ratio of chip value when losing vs winning. On the bubble, losing your stack costs much more (in $ EV) than doubling up gains. A bubble factor of 2.0 means you need 2x the chip equity to call compared to a cash game. Tighten your calling range near the bubble.';
+        return 'Bubble Factor: the ratio of chip value when losing vs winning. On the bubble, losing your stack costs much more (in $ EV) than doubling up gains. A bubble factor of 2.0 means you need 2x the chip equity to call compared to a cash game. Tighten your calling range near the bubble.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9329,7 +9329,7 @@ export class DeterministicGTOEngine {
         const isPremium = ['nuts', 'second_nuts'].includes(handStrength) || handStrength === 'premium_pair';
 
         if (a.startsWith('r') && isPremium) {
-            return '🎯 Limp-raise trap: limping in first with a premium hand, then raising over an isolator. This is an exploitative play that works against aggressive opponents who iso-raise frequently. In GTO, limping is generally avoided.';
+            return 'Limp-raise trap: limping in first with a premium hand, then raising over an isolator. This is an exploitative play that works against aggressive opponents who iso-raise frequently. In GTO, limping is generally avoided.';
         }
         return '';
     }
@@ -9466,12 +9466,12 @@ export class DeterministicGTOEngine {
      */
     getStreakMessage(currentStreak) {
         if (!currentStreak || currentStreak < 3) return null;
-        if (currentStreak === 3) return '🔥 3 in a row! You\'re warming up!';
-        if (currentStreak === 5) return '🔥🔥 5-streak! Your GTO instincts are sharp!';
-        if (currentStreak === 10) return '🔥🔥🔥 10 in a row! You\'re in the zone — GTO machine!';
-        if (currentStreak === 15) return '⚡ 15 streak! You\'re playing at an elite level!';
-        if (currentStreak === 20) return '🏆 20 in a row! Solver-level accuracy — incredible!';
-        if (currentStreak >= 25 && currentStreak % 5 === 0) return `🏆🏆 ${currentStreak} streak! You might be the best player in this training session ever!`;
+        if (currentStreak === 3) return '▲ 3 in a row! You\'re warming up!';
+        if (currentStreak === 5) return '▲▲ 5-streak! Your GTO instincts are sharp!';
+        if (currentStreak === 10) return '▲▲▲ 10 in a row! You\'re in the zone — GTO machine!';
+        if (currentStreak === 15) return '15 streak! You\'re playing at an elite level!';
+        if (currentStreak === 20) return '20 in a row! Solver-level accuracy — incredible!';
+        if (currentStreak >= 25 && currentStreak % 5 === 0) return `${currentStreak} streak! You might be the best player in this training session ever!`;
         return null;
     }
 
@@ -9683,7 +9683,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 20 !== 0) return '';
         if (this._sessionStats.total < 20) return '';
 
-        return '💡 Opponent modeling: in real games, categorize opponents. TAG (Tight-Aggressive): plays few hands, bets strong — respect their bets. LAG (Loose-Aggressive): plays many hands aggressively — widen your calling range. Nit: folds too much — bluff more. Fish: calls too much — value bet wider, bluff less.';
+        return 'Opponent modeling: in real games, categorize opponents. TAG (Tight-Aggressive): plays few hands, bets strong — respect their bets. LAG (Loose-Aggressive): plays many hands aggressively — widen your calling range. Nit: folds too much — bluff more. Fish: calls too much — value bet wider, bluff less.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -9940,7 +9940,7 @@ export class DeterministicGTOEngine {
         if (!this._sessionStats || this._sessionStats.total % 10 !== 0) return '';
         if (this._sessionStats.total < 10) return '';
 
-        return '💡 Think in ranges, not hands: instead of asking "what does villain have?", ask "what does villain\'s RANGE look like?". GTO strategy is about balancing your range — not reading a specific hand. Every decision should consider how your entire range plays, not just this one hand.';
+        return 'Think in ranges, not hands: instead of asking "what does villain have?", ask "what does villain\'s RANGE look like?". GTO strategy is about balancing your range — not reading a specific hand. Every decision should consider how your entire range plays, not just this one hand.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10035,17 +10035,17 @@ export class DeterministicGTOEngine {
         const recentWrong = recent.filter(r => !r).length;
 
         if (recentWrong >= 4) {
-            return '🧠 Mental game check: 4 of your last 5 answers were incorrect. This might be tilt creeping in — take a deep breath, refocus on the fundamentals. Quality of study matters more than quantity.';
+            return 'Mental game check: 4 of your last 5 answers were incorrect. This might be tilt creeping in — take a deep breath, refocus on the fundamentals. Quality of study matters more than quantity.';
         }
         if (recentWrong >= 3) {
-            return '🧠 Tough stretch — don\'t let frustration affect your next decision. Each question is independent. Reset and focus on the current hand only.';
+            return 'Tough stretch — don\'t let frustration affect your next decision. Each question is independent. Reset and focus on the current hand only.';
         }
 
         // Periodic mental game tips
         const total = this._sessionStats.total;
-        if (total === 30) return '🧠 30 questions in! Stay focused — fatigue can creep in. Take a short break if you need it.';
-        if (total === 50) return '🧠 50 questions! Great session length. Studies show GTO training is most effective in 30-60 minute sessions.';
-        if (total === 75) return '🧠 Long session! Your concentration may be waning. Consider wrapping up and reviewing your session report.';
+        if (total === 30) return '30 questions in! Stay focused — fatigue can creep in. Take a short break if you need it.';
+        if (total === 50) return '50 questions! Great session length. Studies show GTO training is most effective in 30-60 minute sessions.';
+        if (total === 75) return 'Long session! Your concentration may be waning. Consider wrapping up and reviewing your session report.';
 
         return null;
     }
@@ -10063,12 +10063,12 @@ export class DeterministicGTOEngine {
 
         const accuracy = this._sessionStats.correct / this._sessionStats.total;
         if (accuracy >= 0.75) {
-            return '💰 Bankroll tip: with your accuracy level, you should be profitable at the tables. The standard recommendation is 20-30 buy-ins for cash games and 100+ for tournaments.';
+            return 'Bankroll tip: with your accuracy level, you should be profitable at the tables. The standard recommendation is 20-30 buy-ins for cash games and 100+ for tournaments.';
         }
         if (accuracy >= 0.55) {
-            return '💰 Bankroll tip: you\'re developing solid fundamentals. Focus on building a bankroll of 30+ buy-ins before moving up in stakes. Proper bankroll management prevents going broke during downswings.';
+            return 'Bankroll tip: you\'re developing solid fundamentals. Focus on building a bankroll of 30+ buy-ins before moving up in stakes. Proper bankroll management prevents going broke during downswings.';
         }
-        return '💰 Bankroll tip: while you\'re still building your GTO knowledge, play at stakes where losses won\'t affect your bankroll significantly. Study is more important than playing right now.';
+        return 'Bankroll tip: while you\'re still building your GTO knowledge, play at stakes where losses won\'t affect your bankroll significantly. Study is more important than playing right now.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -10299,7 +10299,7 @@ export class DeterministicGTOEngine {
         const a = (optimalAction || '').toLowerCase();
 
         if (parseInt(investedPct) >= 33 && a === 'f') {
-            return `⚠️ Pot commitment: you've invested ~${investedPct}% of your stack. At this point, folding is expensive. The threshold for pot commitment is typically 30-33% — once past that, you often need a very strong reason to fold.`;
+            return `▲ Pot commitment: you've invested ~${investedPct}% of your stack. At this point, folding is expensive. The threshold for pot commitment is typically 30-33% — once past that, you often need a very strong reason to fold.`;
         }
         if (parseInt(investedPct) >= 50) {
             return `Pot committed (~${investedPct}% of stack invested): you're essentially committed to this pot. Getting all-in is almost always correct — the remaining stack is too small relative to the pot.`;
@@ -10328,7 +10328,7 @@ export class DeterministicGTOEngine {
             return 'Check-call: your hand beats bluffs but loses to value. Calling keeps villain\'s bluffs in your range. Key question: does villain bluff enough to justify calling?';
         }
         if (a === 'call' && isWeak && street === 'river') {
-            return '🎯 Bluff-catching: calling with a weak hand to catch bluffs. This only works if villain bluffs frequently enough. Calculate: you need to be right > pot odds % of the time.';
+            return 'Bluff-catching: calling with a weak hand to catch bluffs. This only works if villain bluffs frequently enough. Calculate: you need to be right > pot odds % of the time.';
         }
         if (a === 'f' && isMedium) {
             return 'Check-fold with a medium hand: GTO says fold here. Villain\'s betting range is too strong — your hand doesn\'t beat enough of their value bets, and they\'re not bluffing enough to justify calling.';
@@ -10378,13 +10378,13 @@ export class DeterministicGTOEngine {
 
         const isDry = texture && texture.dry && !(texture.flushy || texture.monotone);
         const criteria = [];
-        if (isDry) criteria.push('✅ Dry board (villain has few draws)');
-        else criteria.push('❌ Wet board (draws can outdraw you — prefer betting)');
+        if (isDry) criteria.push('✓ Dry board (villain has few draws)');
+        else criteria.push('✕ Wet board (draws can outdraw you — prefer betting)');
 
-        if (street === 'flop') criteria.push('✅ Early street (time to trap on later streets)');
-        if (street === 'river') criteria.push('❌ River (no more streets to extract value)');
+        if (street === 'flop') criteria.push('✓ Early street (time to trap on later streets)');
+        if (street === 'river') criteria.push('✕ River (no more streets to extract value)');
 
-        if (criteria.some(c => c.startsWith('❌'))) {
+        if (criteria.some(c => c.startsWith('✕'))) {
             return `Slow-play analysis: ${criteria.join('. ')}. Consider whether slow-playing is optimal — wet boards and late streets often favor fast-playing strong hands.`;
         }
         return `Slow-play checklist: ${criteria.join('. ')}. Conditions favor a trap — villain can't outdraw you and has room to bluff on later streets.`;
@@ -10406,11 +10406,11 @@ export class DeterministicGTOEngine {
         const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
         const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
 
-        if (isNuts) criteria.push('✅ Nutted hand — overbet for max value');
-        if (isAir) criteria.push('✅ Air — overbet as a bluff to maximize fold equity');
-        if (street === 'river') criteria.push('✅ River — maximum polarization');
-        if (stackDepth && estimatedPot && stackDepth > estimatedPot * 2) criteria.push('✅ Deep enough stacks for overbet');
-        if (texture && texture.dry) criteria.push('✅ Dry/static board — ranges are clearer');
+        if (isNuts) criteria.push('✓ Nutted hand — overbet for max value');
+        if (isAir) criteria.push('✓ Air — overbet as a bluff to maximize fold equity');
+        if (street === 'river') criteria.push('✓ River — maximum polarization');
+        if (stackDepth && estimatedPot && stackDepth > estimatedPot * 2) criteria.push('✓ Deep enough stacks for overbet');
+        if (texture && texture.dry) criteria.push('✓ Dry/static board — ranges are clearer');
 
         if (criteria.length >= 3) {
             return `Overbet criteria (${sizePct}% pot): ${criteria.join('. ')}. Multiple conditions met — overbet is well-justified.`;
@@ -10704,24 +10704,24 @@ export class DeterministicGTOEngine {
         const accuracy = total > 0 ? correct / total : 0;
 
         // Question count badges
-        if (total >= 10 && !this._achievements.has('first_10')) { this._achievements.add('first_10'); newBadges.push({ id: 'first_10', name: '🎯 Getting Started', desc: 'Answered 10 questions' }); }
-        if (total >= 50 && !this._achievements.has('fifty_club')) { this._achievements.add('fifty_club'); newBadges.push({ id: 'fifty_club', name: '💪 Fifty Club', desc: 'Answered 50 questions in one session' }); }
-        if (total >= 100 && !this._achievements.has('century')) { this._achievements.add('century'); newBadges.push({ id: 'century', name: '🏆 Century', desc: '100 questions in one session!' }); }
+        if (total >= 10 && !this._achievements.has('first_10')) { this._achievements.add('first_10'); newBadges.push({ id: 'first_10', name: 'Getting Started', desc: 'Answered 10 questions'}); }
+        if (total >= 50 && !this._achievements.has('fifty_club')) { this._achievements.add('fifty_club'); newBadges.push({ id: 'fifty_club', name: 'Fifty Club', desc: 'Answered 50 questions in one session'}); }
+        if (total >= 100 && !this._achievements.has('century')) { this._achievements.add('century'); newBadges.push({ id: 'century', name: 'Century', desc: '100 questions in one session!'}); }
 
         // Accuracy badges
-        if (total >= 20 && accuracy >= 0.8 && !this._achievements.has('sharpshooter')) { this._achievements.add('sharpshooter'); newBadges.push({ id: 'sharpshooter', name: '🎯 Sharpshooter', desc: '80%+ accuracy over 20+ questions' }); }
-        if (total >= 30 && accuracy >= 0.9 && !this._achievements.has('gto_master')) { this._achievements.add('gto_master'); newBadges.push({ id: 'gto_master', name: '👑 GTO Master', desc: '90%+ accuracy over 30+ questions' }); }
+        if (total >= 20 && accuracy >= 0.8 && !this._achievements.has('sharpshooter')) { this._achievements.add('sharpshooter'); newBadges.push({ id: 'sharpshooter', name: 'Sharpshooter', desc: '80%+ accuracy over 20+ questions'}); }
+        if (total >= 30 && accuracy >= 0.9 && !this._achievements.has('gto_master')) { this._achievements.add('gto_master'); newBadges.push({ id: 'gto_master', name: 'GTO Master', desc: '90%+ accuracy over 30+ questions'}); }
 
         // Streak badges
         const streak = this._sessionBests?.streak || 0;
-        if (streak >= 10 && !this._achievements.has('hot_streak')) { this._achievements.add('hot_streak'); newBadges.push({ id: 'hot_streak', name: '🔥 Hot Streak', desc: '10 correct answers in a row' }); }
-        if (streak >= 20 && !this._achievements.has('unstoppable')) { this._achievements.add('unstoppable'); newBadges.push({ id: 'unstoppable', name: '⚡ Unstoppable', desc: '20 correct answers in a row' }); }
+        if (streak >= 10 && !this._achievements.has('hot_streak')) { this._achievements.add('hot_streak'); newBadges.push({ id: 'hot_streak', name: '▲ Hot Streak', desc: '10 correct answers in a row'}); }
+        if (streak >= 20 && !this._achievements.has('unstoppable')) { this._achievements.add('unstoppable'); newBadges.push({ id: 'unstoppable', name: 'Unstoppable', desc: '20 correct answers in a row'}); }
 
         // Concept badges
         const concepts = this.getConceptMastery();
         const mastered = Object.values(concepts || {}).filter(c => c.mastery === 'mastered').length;
-        if (mastered >= 3 && !this._achievements.has('well_rounded')) { this._achievements.add('well_rounded'); newBadges.push({ id: 'well_rounded', name: '🌟 Well-Rounded', desc: 'Mastered 3+ GTO concepts' }); }
-        if (mastered >= 8 && !this._achievements.has('gto_scholar')) { this._achievements.add('gto_scholar'); newBadges.push({ id: 'gto_scholar', name: '📚 GTO Scholar', desc: 'Mastered 8+ GTO concepts' }); }
+        if (mastered >= 3 && !this._achievements.has('well_rounded')) { this._achievements.add('well_rounded'); newBadges.push({ id: 'well_rounded', name: 'Well-Rounded', desc: 'Mastered 3+ GTO concepts'}); }
+        if (mastered >= 8 && !this._achievements.has('gto_scholar')) { this._achievements.add('gto_scholar'); newBadges.push({ id: 'gto_scholar', name: 'GTO Scholar', desc: 'Mastered 8+ GTO concepts'}); }
 
         return { newBadges, totalBadges: this._achievements.size, allBadges: [...this._achievements] };
     }
@@ -11027,7 +11027,7 @@ export class DeterministicGTOEngine {
             mistakes: c.count,
             avgLossPerMistake: c.count > 0 ? (c.total / c.count).toFixed(1) + 'bb' : '0bb',
             costPerHundred: this._sessionStats?.total > 0 ? ((c.total / this._sessionStats.total) * 100).toFixed(1) + 'bb/100' : 'N/A',
-            message: c.total > 50 ? '⚠️ Significant EV leakage — focus on your biggest mistake categories.' :
+            message: c.total > 50 ? '▲ Significant EV leakage — focus on your biggest mistake categories.':
                 c.total > 20 ? 'Moderate leaks — fixing your top 3 mistakes would save most of this.' :
                 'Small leaks — you\'re playing close to GTO. Fine-tuning will get you even closer.',
         };
@@ -11749,9 +11749,9 @@ export class DeterministicGTOEngine {
         if (this._sessionStats.total < 30) return '';
 
         if (stackDepth && stackDepth <= 30) {
-            return '💡 Tournament adjustment: at short stacks in tournaments, ICM makes survival more important than chip accumulation. Fold more marginal spots, especially near pay jumps. Push/fold charts become essential under 15BB.';
+            return 'Tournament adjustment: at short stacks in tournaments, ICM makes survival more important than chip accumulation. Fold more marginal spots, especially near pay jumps. Push/fold charts become essential under 15BB.';
         }
-        return '💡 Tournament vs cash: key differences — (1) ICM pressure means chips lost > chips won, (2) No rebuying means survival matters, (3) Antes increase steal profitability, (4) Bubble dynamics create exploitable spots against medium stacks.';
+        return 'Tournament vs cash: key differences — (1) ICM pressure means chips lost > chips won, (2) No rebuying means survival matters, (3) Antes increase steal profitability, (4) Bubble dynamics create exploitable spots against medium stacks.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -11767,9 +11767,9 @@ export class DeterministicGTOEngine {
 
         const accuracy = this._sessionStats.correct / this._sessionStats.total;
         if (accuracy >= 0.7) {
-            return '💡 Multi-table ready: your accuracy is strong enough to consider playing multiple tables. Start with 2 tables and add more as your speed improves. Focus on making quick, correct decisions rather than perfect ones.';
+            return 'Multi-table ready: your accuracy is strong enough to consider playing multiple tables. Start with 2 tables and add more as your speed improves. Focus on making quick, correct decisions rather than perfect ones.';
         }
-        return '💡 Multi-table advice: focus on single-tabling until your accuracy reaches 70%+. Quality decisions at one table build better habits than hasty decisions at many.';
+        return 'Multi-table advice: focus on single-tabling until your accuracy reaches 70%+. Quality decisions at one table build better habits than hasty decisions at many.';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -11792,21 +11792,21 @@ export class DeterministicGTOEngine {
         if (wrongCount >= 7) {
             return {
                 level: 'SEVERE',
-                message: '🛑 Tilt alert: 7+ wrong in the last 8 questions. Your decision-making may be compromised. Take a 5-minute break, breathe deeply, and reset. Coming back fresh will save you EV.',
+                message: 'Tilt alert: 7+ wrong in the last 8 questions. Your decision-making may be compromised. Take a 5-minute break, breathe deeply, and reset. Coming back fresh will save you EV.',
                 action: 'SUGGEST_BREAK',
             };
         }
         if (wrongCount >= 5 || suddenDrop) {
             return {
                 level: 'MODERATE',
-                message: '⚠️ Tilt warning: accuracy dropping. You may be rushing or letting frustration guide decisions. Slow down — take an extra 5 seconds per question.',
+                message: '▲ Tilt warning: accuracy dropping. You may be rushing or letting frustration guide decisions. Slow down — take an extra 5 seconds per question.',
                 action: 'SUGGEST_SLOWDOWN',
             };
         }
         if (wrongCount >= 4) {
             return {
                 level: 'MILD',
-                message: '📝 Rough patch — 4+ wrong in the last 8. Stay process-oriented: focus on HOW you decide, not the results.',
+                message: 'Rough patch — 4+ wrong in the last 8. Stay process-oriented: focus on HOW you decide, not the results.',
                 action: 'COACH',
             };
         }
@@ -12487,7 +12487,7 @@ export class DeterministicGTOEngine {
             strong: { tier: 'strong', label: 'Strong', color: '#4ade80', icon: '★★☆', playabilityScore: 80 },
             medium: { tier: 'medium', label: 'Marginal', color: '#fbbf24', icon: '★☆☆', playabilityScore: 55 },
             weak: { tier: 'weak', label: 'Weak', color: '#f97316', icon: '☆☆☆', playabilityScore: 30 },
-            trash: { tier: 'trash', label: 'Air', color: '#ef4444', icon: '✗', playabilityScore: 10 },
+            trash: { tier: 'trash', label: 'Air', color: '#ef4444', icon: '✕', playabilityScore: 10 },
             draw: { tier: 'draw', label: 'Draw', color: '#3b82f6', icon: '♦', playabilityScore: 50 },
         };
         let tier = 'medium';
@@ -13986,25 +13986,25 @@ export class DeterministicGTOEngine {
         const stats = this._sessionStats;
         const milestones = [];
 
-        if (stats.total >= 5) milestones.push({ id: 'warmup', label: 'Warm Up', description: '5 hands completed', achieved: true, icon: '🔥' });
-        if (stats.total >= 10) milestones.push({ id: 'focused', label: 'Focused', description: '10 hands completed', achieved: true, icon: '🎯' });
-        if (stats.total >= 25) milestones.push({ id: 'grinder', label: 'Grinder', description: '25 hands completed', achieved: true, icon: '⚡' });
-        if (stats.total >= 50) milestones.push({ id: 'marathon', label: 'Marathon', description: '50 hands completed', achieved: true, icon: '🏆' });
+        if (stats.total >= 5) milestones.push({ id: 'warmup', label: 'Warm Up', description: '5 hands completed', achieved: true, icon: '▲'});
+        if (stats.total >= 10) milestones.push({ id: 'focused', label: 'Focused', description: '10 hands completed', achieved: true, icon: ''});
+        if (stats.total >= 25) milestones.push({ id: 'grinder', label: 'Grinder', description: '25 hands completed', achieved: true, icon: ''});
+        if (stats.total >= 50) milestones.push({ id: 'marathon', label: 'Marathon', description: '50 hands completed', achieved: true, icon: ''});
 
         const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-        if (accuracy >= 90 && stats.total >= 10) milestones.push({ id: 'precision', label: 'Precision', description: '90%+ accuracy (10+ hands)', achieved: true, icon: '💎' });
-        if (accuracy >= 80 && stats.total >= 20) milestones.push({ id: 'consistent', label: 'Consistent', description: '80%+ accuracy (20+ hands)', achieved: true, icon: '⭐' });
+        if (accuracy >= 90 && stats.total >= 10) milestones.push({ id: 'precision', label: 'Precision', description: '90%+ accuracy (10+ hands)', achieved: true, icon: ''});
+        if (accuracy >= 80 && stats.total >= 20) milestones.push({ id: 'consistent', label: 'Consistent', description: '80%+ accuracy (20+ hands)', achieved: true, icon: '★'});
 
         // Streak-based
         const streak = stats.currentStreak || 0;
-        if (streak >= 5) milestones.push({ id: 'hot_streak', label: 'Hot Streak', description: '5+ correct in a row', achieved: true, icon: '🔥' });
-        if (streak >= 10) milestones.push({ id: 'unstoppable', label: 'Unstoppable', description: '10+ correct in a row', achieved: true, icon: '💫' });
+        if (streak >= 5) milestones.push({ id: 'hot_streak', label: 'Hot Streak', description: '5+ correct in a row', achieved: true, icon: '▲'});
+        if (streak >= 10) milestones.push({ id: 'unstoppable', label: 'Unstoppable', description: '10+ correct in a row', achieved: true, icon: ''});
 
         // Recovery milestone
         try {
             const recovery = this.getMistakeRecoveryRate();
             if (recovery && recovery.grade === 'A' && stats.total >= 10) {
-                milestones.push({ id: 'resilient', label: 'Resilient', description: 'Grade A mistake recovery', achieved: true, icon: '🛡' });
+                milestones.push({ id: 'resilient', label: 'Resilient', description: 'Grade A mistake recovery', achieved: true, icon: ''});
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 

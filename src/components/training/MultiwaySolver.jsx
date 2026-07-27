@@ -48,7 +48,7 @@ export default function MultiwaySolver() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        👥 Multiway AI Solver
+        Multiway AI Solver
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Solve 3-way and 4-way postflop scenarios in seconds.</p>
 
@@ -77,7 +77,7 @@ export default function MultiwaySolver() {
         {solving && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{ textAlign: 'center', padding: 20, color: '#f59e0b' }}>
-            ⏳ Solving {scen.players}-way pot...
+            Solving {scen.players}-way pot...
           </motion.div>
         )}
 

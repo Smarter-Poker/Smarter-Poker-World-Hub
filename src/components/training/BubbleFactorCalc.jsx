@@ -1,6 +1,6 @@
 /**
  * BubbleFactorCalc — ICM Bubble Factor Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate bubble factors for tournament decisions. Shows how ICM
  * pressure affects calling ranges near the money bubble.
  */

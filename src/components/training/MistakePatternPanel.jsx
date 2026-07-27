@@ -1,6 +1,6 @@
 /**
  * MISTAKE PATTERN PANEL — Clustered Mistake Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 16: Shows the user's most common and costly mistake patterns,
  * clustered by spot type, position, and street.
  *
@@ -90,7 +90,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                     animate={{ opacity: 1, y: 0 }}
                     style={styles.topInsight}
                 >
-                    <div style={styles.insightIcon}>⚠️</div>
+                    <div style={styles.insightIcon}>▲</div>
                     <div style={styles.insightText}>
                         {generateInsight(mistakePatterns[0])}
                         <span style={styles.insightMeta}>

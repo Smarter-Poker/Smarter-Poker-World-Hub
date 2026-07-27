@@ -1,6 +1,6 @@
 /**
  * TiltRecoverySystem — Mental Game Tilt Management
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Identify tilt type, assess severity, and get recovery strategies.
  * Interactive system to help players regain their A-game.
  */

@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * HAND ANALYZER — Map Played Hands to GTO Solutions
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Analyzes parsed hand histories against GTO strategy:
  *   - Map each decision point to closest solver solution
@@ -11,7 +11,7 @@
  *
  * Works with HandHistoryParser for input and PostflopStrategyEngine
  * for GTO reference at each node.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { getHeroDecisionPoints, getBoardAtStreet } from './HandHistoryParser';
@@ -21,9 +21,9 @@ import { getPostflopStrategy } from './PostflopStrategyEngine';
 import { calculateEVLoss, calculateActionEVs } from './EVCalculator';
 import { classifyMove, MOVE_CLASSIFICATIONS } from './GTOScoreEngine';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND ANALYSIS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Analyze a single parsed hand, evaluating all hero decision points.
@@ -151,9 +151,9 @@ function analyzeDecision(point, hand) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SESSION ANALYSIS — Analyze multiple hands
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Analyze an entire session of hands.
@@ -245,9 +245,9 @@ export function analyzeSession(hands) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HELPERS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function _getPositionContext(position, hand) {
     // Determine if hero is IP or OOP relative to villain

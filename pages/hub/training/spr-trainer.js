@@ -96,12 +96,12 @@ function getExplanation(spr, handId, correct) {
       ? `With ${hs?.label}, you can profitably commit stacks when SPR ≤ ${hs?.commit_to}.`
       : `With ${hs?.label}, you can profitably commit stacks at any SPR.`,
   ];
-  if (correct === 'commit') lines.push('✅ **Commit**: Stack-off is profitable. Get the money in.');
+  if (correct === 'commit') lines.push('✓ **Commit**: Stack-off is profitable. Get the money in.');
   else if (correct === 'neutral')
-    lines.push('💧 **Neutral**: Play carefully. Control pot size. Re-evaluate on each street.');
+    lines.push('**Neutral**: Play carefully. Control pot size. Re-evaluate on each street.');
   else
     lines.push(
-      '❌ **Fold**: Against aggression at this SPR, this hand does not have the equity to commit.'
+      '✕ **Fold**: Against aggression at this SPR, this hand does not have the equity to commit.'
     );
   return lines;
 }
@@ -120,9 +120,9 @@ function genScenario() {
 }
 
 const ACTION_CONFIG = {
-  commit: { label: '💪 COMMIT', color: 'var(--sp-accent-green)', sub: 'Stack off / Call all-in' },
-  neutral: { label: '💧 NEUTRAL', color: 'var(--sp-accent-orange)', sub: 'Play carefully, control pot' },
-  fold: { label: '❌ FOLD', color: 'var(--sp-accent-red)', sub: 'Give up — SPR too high' },
+  commit: { label: 'COMMIT', color: 'var(--sp-accent-green)', sub: 'Stack off / Call all-in' },
+  neutral: { label: 'NEUTRAL', color: 'var(--sp-accent-orange)', sub: 'Play carefully, control pot' },
+  fold: { label: '✕ FOLD', color: 'var(--sp-accent-red)', sub: 'Give up — SPR too high' },
 };
 
 export default function SPRTrainer({ onExit } = {}) {
@@ -308,7 +308,7 @@ export default function SPRTrainer({ onExit } = {}) {
                 fontSize: 22,
               }}
             >
-              📐
+              ■
             </div>
             <div>
               <h1
@@ -620,8 +620,8 @@ export default function SPRTrainer({ onExit } = {}) {
                       }}
                     >
                       {choice === correctAction
-                        ? '✅ CORRECT!'
-                        : `❌ WRONG — Correct: ${ACTION_CONFIG[correctAction].label}`}
+                        ? '✓ CORRECT!'
+                        : `✕ WRONG — Correct: ${ACTION_CONFIG[correctAction].label}`}
                     </div>
 
                     {/* Explanation */}
@@ -636,7 +636,7 @@ export default function SPRTrainer({ onExit } = {}) {
                           marginBottom: 8,
                         }}
                       >
-                        📚 SPR Breakdown
+                        SPR Breakdown
                       </div>
                       {explanation.map((line, i) => (
                         <div

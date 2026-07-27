@@ -1,10 +1,10 @@
 /**
- * 📝 SolverLineSummary — Human-Readable Strategy Paragraph
- * ═══════════════════════════════════════════════════════════════════════════
+ * SolverLineSummary — Human-Readable Strategy Paragraph
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Auto-generates a natural language summary of the solver's strategy
  * from grid data, classification data, and board texture.
  * This is a premium feature — GTO Wizard charges extra for this.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useMemo } from 'react';

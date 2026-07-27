@@ -1,6 +1,6 @@
 /**
  * FoldEquityCalc — GTO Wizard-Style Fold Equity Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate how much fold equity you need for bluffs to be profitable.
  * Shows breakeven fold %, EV of bluffing, and semi-bluff analysis.
  */

@@ -1,10 +1,10 @@
 /**
  * MY PLAYBOOK — Custom Strategy Builder
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Create custom named strategies with hole combos, board textures, and notes.
  *
  * Route: /hub/training/my-playbook
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-34 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -22,7 +22,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
 
 // BUG FIX (TRAIN-PLAYBOOK-A11Y-1): SVG icon components replacing the
-// emojis on the my-playbook surface (📖 empty state, 📌 pin marker + pin
+// emojis on the my-playbook surface (□ empty state, ● pin marker + pin
 // toggle, ✕ delete) and a bare ← back-button entity. Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
 // #332/#333/#334/#335.
@@ -509,7 +509,7 @@ export default function MyPlaybookPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces 📌 marker */}
+                      {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces ● marker */}
                       {p.pinned && <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
                       <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
                     </div>
@@ -528,7 +528,7 @@ export default function MyPlaybookPage() {
                           display: 'inline-flex',
                         }}
                       >
-                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin toggle replaces 📌 */}
+                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin toggle replaces ● */}
                         <PinIcon size={14} filled={p.pinned} />
                       </button>
                       <button

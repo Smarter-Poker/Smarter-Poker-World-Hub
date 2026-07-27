@@ -1,6 +1,6 @@
 /**
  * TurnCardImpactAnalyzer — How Turn Cards Change Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyze how different turn card categories impact equity distribution,
  * range advantage, and optimal strategy adjustments.
  */

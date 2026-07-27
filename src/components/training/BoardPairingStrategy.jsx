@@ -30,7 +30,7 @@ export default function BoardPairingStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🃏 Board Pairing Strategy
+        Board Pairing Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Paired boards are gold for the PFR — learn to exploit them.</p>
 
@@ -68,14 +68,14 @@ export default function BoardPairingStrategy() {
 
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{board.strategy}</p>
         <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>🔑 Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Insight</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.key}</div>
         </div>
       </motion.div>
 
       {/* General rules */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>📐 Paired Board Rules</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>Paired Board Rules</div>
         {[
           'Higher the pair = more PFR advantage',
           'Small sizing (25-33%) works best on paired boards',

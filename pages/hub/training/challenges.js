@@ -30,8 +30,8 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-3e — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-CHALLENGES-A11Y-1): SVG icon components replacing the page's
-// emoji set (🎯 header / sign-in / empty-state, 📅 weekly badge, 📆 monthly
-// badge, 💎 diamond reward, ✅ claimed badge). Emojis read inconsistently
+// emoji set (header / sign-in / empty-state, weekly badge, monthly
+// badge, diamond reward, ✓ claimed badge). Emojis read inconsistently
 // across screen readers and don't theme via currentColor. Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327/#328.
 const ICON_PROPS = {
@@ -166,7 +166,7 @@ export default function ChallengesPage() {
           <UniversalHeader pageDepth={2} />
           <div style={styles.content}>
             <div style={styles.signInPrompt}>
-              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces 🎯 fontSize:48 */}
+              {/* TRAIN-CHALLENGES-A11Y-1: SVG target replaces fontSize:48 */}
               <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
                 <TargetIcon size={48} />
               </span>
@@ -236,7 +236,7 @@ export default function ChallengesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
                   >
-                    {/* TRAIN-CHALLENGES-A11Y-1: SVG calendar icon replaces 📅 / 📆.
+                    {/* TRAIN-CHALLENGES-A11Y-1: SVG calendar icon replaces / .
                         Period label remains the readable 'Weekly' / 'Monthly'. */}
                     <div style={styles.typeBadge}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -280,7 +280,7 @@ export default function ChallengesPage() {
                     {/* Reward + Action */}
                     <div style={styles.rewardRow}>
                       <div style={styles.reward}>
-                        {/* TRAIN-CHALLENGES-A11Y-1: SVG diamond replaces 💎 */}
+                        {/* TRAIN-CHALLENGES-A11Y-1: SVG diamond replaces */}
                         <span style={{ display: 'inline-flex', color: '#00E0FF' }} aria-hidden>
                           <DiamondIcon size={16} />
                         </span>
@@ -289,7 +289,7 @@ export default function ChallengesPage() {
 
                       {challenge.claimed ? (
                         <span style={styles.claimedBadge}>
-                          {/* TRAIN-CHALLENGES-A11Y-1: SVG check replaces ✅ */}
+                          {/* TRAIN-CHALLENGES-A11Y-1: SVG check replaces ✓ */}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <CheckIcon size={14} />
                             Claimed

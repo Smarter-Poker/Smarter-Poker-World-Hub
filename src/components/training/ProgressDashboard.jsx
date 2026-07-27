@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PROGRESS_AREAS = [
-  { area: 'Preflop Fundamentals', icon: '🎴', color: '#22c55e',
+  { area: 'Preflop Fundamentals', icon: '◇', color: '#22c55e',
     skills: ['Open-raise ranges by position', '3-bet/4-bet ranges', 'Blind defense frequencies', 'Squeeze play spots'],
     metrics: 'VPIP: 22-28% | PFR: 18-24% | 3-Bet: 7-10%',
     checkpoints: '[ ] Can recite UTG range from memory | [ ] Know 3-bet ranges vs each position | [ ] Understand SB 3-bet or fold',
     mastery: 'When you auto-pilot correct preflop decisions without thinking, you\'ve mastered this.' },
-  { area: 'Postflop Play', icon: '🎯', color: '#3b82f6',
+  { area: 'Postflop Play', icon: '◆', color: '#3b82f6',
     skills: ['C-bet frequency by texture', 'Check-raise construction', 'Multi-street planning', 'River decision-making'],
     metrics: 'C-Bet: 55-65% IP | Turn Barrel: 45-55% | River Bet: 35-45%',
     checkpoints: '[ ] Can identify wet vs dry boards | [ ] Plan all three streets before acting | [ ] Comfortable with check-raises',
     mastery: 'When you can articulate your range on every street and your opponent\'s range too.' },
-  { area: 'Hand Reading', icon: '🔍', color: '#f59e0b',
+  { area: 'Hand Reading', icon: '○', color: '#f59e0b',
     skills: ['Range narrowing per street', 'Combo counting on boards', 'Blocker awareness', 'Behavioral tells (live)'],
     metrics: 'Accuracy improves with volume — track your predictions vs actual holdings.',
     checkpoints: '[ ] Can count combos quickly | [ ] Understand how board texture filters ranges | [ ] Use blockers in bluff decisions',
     mastery: 'When you regularly predict villain\'s holding within a 5-combo range on the river.' },
-  { area: 'Mental Game', icon: '🧠', color: '#8b5cf6',
+  { area: 'Mental Game', icon: '◇', color: '#8b5cf6',
     skills: ['Tilt recognition and control', 'Session management', 'Emotional regulation', 'Focus and attention span'],
     metrics: 'Tilt sessions per month < 2 | Average session rating > 7/10',
     checkpoints: '[ ] Can identify when tilting | [ ] Have a stop-loss rule | [ ] Meditate or warm up before sessions',
     mastery: 'When bad beats don\'t change your play quality for more than one hand.' },
-  { area: 'GTO Understanding', icon: '🤖', color: '#ef4444',
+  { area: 'GTO Understanding', icon: '■', color: '#ef4444',
     skills: ['Solver output interpretation', 'Frequency understanding', 'Node locking', 'Equilibrium concepts'],
     metrics: 'Can explain why solver prefers action X in most common spots.',
     checkpoints: '[ ] Can use GTO Wizard/Pio | [ ] Understand mixed strategies | [ ] Know when to deviate from GTO',
@@ -40,7 +40,7 @@ export default function ProgressDashboard() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🏅 Progress Dashboard
+        Progress Dashboard
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Track your poker skills across all areas.</p>
 

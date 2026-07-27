@@ -1,6 +1,6 @@
 /**
  * ADVANCED SOLVER MIMICRY UI — Game-Specific Training Component
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized UI for adv-001 (Solver Mimicry) and adv-017 (Capped Ranges)
  * 
  * Features:
@@ -8,7 +8,7 @@
  * - EV comparison chart
  * - Range strength indicator
  * - Solver recommendation display
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

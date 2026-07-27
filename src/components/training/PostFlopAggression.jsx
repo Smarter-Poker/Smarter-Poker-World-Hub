@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const AGGRESSION_SPOTS = [
-  { spot: 'IP as PFR on Dry Flop', aggFreq: '70-80%', color: '#22c55e', icon: '🔥',
+  { spot: 'IP as PFR on Dry Flop', aggFreq: '70-80%', color: '#22c55e', icon: '▲',
     board: 'K♠7♦2♣',
     why: 'Dry boards favor the raiser. Few draws possible. Your range has all the overpairs and big kings.',
     sizing: '33% pot — small c-bet. You want to deny equity cheaply with your entire range.',
     mistake: 'Checking back too much. On K72r, you should be c-betting nearly everything.' },
-  { spot: 'OOP as PFR on Wet Flop', aggFreq: '35-45%', color: '#f59e0b', icon: '⚡',
+  { spot: 'OOP as PFR on Wet Flop', aggFreq: '35-45%', color: '#f59e0b', icon: '⌁',
     board: 'J♥T♥8♣',
     why: 'Connected wet boards hit both ranges. Being OOP makes aggression riskier — you face raises.',
     sizing: '50-66% pot — you need to charge draws. Small bets don\'t accomplish enough.',
     mistake: 'C-betting your whole range. On JT8hh, check most air and check-raise your monsters.' },
-  { spot: 'IP as Caller on Checked Flop', aggFreq: '50-60%', color: '#3b82f6', icon: '💪',
+  { spot: 'IP as Caller on Checked Flop', aggFreq: '50-60%', color: '#3b82f6', icon: '▲',
     board: '9♦6♣3♠',
     why: 'When PFR checks, their range is capped. Stab with any piece of equity. Dead money is free.',
     sizing: '50% pot — standard delayed stab. Big enough to push out weak hands.',
     mistake: 'Checking back marginal hands. When they check to you, bet with 66+ and any draw.' },
-  { spot: 'Turn After Check-Calling Flop', aggFreq: '20-30%', color: '#8b5cf6', icon: '🎯',
+  { spot: 'Turn After Check-Calling Flop', aggFreq: '20-30%', color: '#8b5cf6', icon: '◆',
     board: 'A♠9♥4♣ → 2♦',
     why: 'After check-calling, your range is defined as medium strength. Lead selectively for balance.',
     sizing: '66-75% pot — probe bets should be meaningful. Small probes don\'t accomplish anything.',
     mistake: 'Being too passive. A well-timed donk lead on the turn can win pots the PFR gives up on.' },
-  { spot: 'River After Two Streets of Checking', aggFreq: '15-25%', color: '#ef4444', icon: '🃏',
+  { spot: 'River After Two Streets of Checking', aggFreq: '15-25%', color: '#ef4444', icon: '◇',
     board: 'Q♠J♦7♣ 5♥ → 3♠',
     why: 'Both players showed weakness. River aggression picks up dead money but beware of traps.',
     sizing: '50-66% pot — don\'t overbet when both ranges are weak. Medium sizing folds out air.',
@@ -40,7 +40,7 @@ export default function PostFlopAggression() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔥 Postflop Aggression Guide
+        Postflop Aggression Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when to fire and when to slow down.</p>
 

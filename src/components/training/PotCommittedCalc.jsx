@@ -20,10 +20,10 @@ export default function PotCommittedCalc() {
     const breakEvenEq = (potOdds * 100).toFixed(1);
 
     let verdict, color, emoji;
-    if (spr <= 1) { verdict = 'FULLY COMMITTED — Just get it in'; color = '#ef4444'; emoji = '🔴'; }
-    else if (spr <= 2) { verdict = 'POT COMMITTED — Very hard to fold'; color = '#f59e0b'; emoji = '🟡'; }
-    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED — Need decent equity'; color = '#3b82f6'; emoji = '🔵'; }
-    else { verdict = 'NOT COMMITTED — Can still fold'; color = '#22c55e'; emoji = '🟢'; }
+    if (spr <= 1) { verdict = 'FULLY COMMITTED — Just get it in'; color = '#ef4444'; emoji = '●'; }
+    else if (spr <= 2) { verdict = 'POT COMMITTED — Very hard to fold'; color = '#f59e0b'; emoji = '●'; }
+    else if (spr <= 4) { verdict = 'SOMEWHAT COMMITTED — Need decent equity'; color = '#3b82f6'; emoji = '●'; }
+    else { verdict = 'NOT COMMITTED — Can still fold'; color = '#22c55e'; emoji = '●'; }
 
     return { spr: spr.toFixed(2), sprAfterCall: sprAfterCall.toFixed(2), potOdds: breakEvenEq, committed, verdict, color, emoji, remainAfterCall };
   }, [stack, pot, betToCall]);
@@ -42,7 +42,7 @@ export default function PotCommittedCalc() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💰 Pot Committed Calculator
+        Pot Committed Calculator
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're priced in and can't fold.</p>
 

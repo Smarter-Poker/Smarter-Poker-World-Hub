@@ -181,7 +181,7 @@ function HandRankingQuiz() {
               border: `1px solid ${selected === question.answer ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
             }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: selected === question.answer ? '#10b981' : '#ef4444', marginBottom: 6 }}>
-                {selected === question.answer ? '✓ Correct!' : '✗ Incorrect'}
+                {selected === question.answer ? '✓ Correct!': '✕ Incorrect'}
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{question.explanation}</div>
             </div>

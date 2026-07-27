@@ -40,7 +40,7 @@ export default function RiverCardImpact() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎰 River Card Impact
+        River Card Impact
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How each river card type changes your decision tree.</p>
 

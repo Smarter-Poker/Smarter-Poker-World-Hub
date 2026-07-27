@@ -309,7 +309,7 @@ export default function GTOQuestionCard({
             {showFeedback && (
                 <div style={styles.feedbackOverlay}>
                     <div style={styles.feedbackIcon}>
-                        {feedbackResult === 'correct' ? '✓' : '✗'}
+                        {feedbackResult === 'correct'? '✓': '✕'}
                     </div>
                     <div style={{
                         ...styles.feedbackText,

@@ -1,11 +1,11 @@
 /**
  * GTO PRELOADER — Offline Cache Manager
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Settings UI to "download" specific game trees for offline use.
  * Now integrated with actual IndexedDB via idbCacheStore to write binary blobs.
  *
  * Route: /hub/training/gto-preloader
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-19 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -249,7 +249,7 @@ export default function GtoPreloaderPage() {
                 fontSize: 24,
               }}
             >
-              💾
+
             </div>
             <div>
               <div

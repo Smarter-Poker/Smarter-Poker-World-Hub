@@ -1,6 +1,6 @@
 /**
  * PreFlopAllInEquity — Preflop All-In Equity Matchup Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Quick reference for preflop all-in equity matchups. Shows common
  * hand-vs-hand and hand-vs-range equity.
  */

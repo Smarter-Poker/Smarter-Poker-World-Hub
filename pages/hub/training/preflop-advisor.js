@@ -415,7 +415,7 @@ export default function PreflopAdvisor() {
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
 
   const ACTION_COLORS = { raise: 'var(--sp-accent-green)', call: 'var(--sp-accent-orange)', fold: 'var(--sp-accent-red)' };
-  const ACTION_ICONS = { raise: '⬆️', call: '📞', fold: '❌' };
+  const ACTION_ICONS = { raise: '', call: '', fold: '✕'};
 
   const C = {
     page: {
@@ -478,7 +478,7 @@ export default function PreflopAdvisor() {
                 fontSize: 22,
               }}
             >
-              🃏
+              
             </div>
             <div>
               <h1
@@ -676,8 +676,8 @@ export default function PreflopAdvisor() {
                       }}
                     >
                       {decision === gtoAction
-                        ? '✅ CORRECT!'
-                        : `❌ WRONG — GTO: ${ACTION_ICONS[gtoAction] || ''} ${(gtoAction || 'fold').toUpperCase()}`}
+                        ? '✓ CORRECT!'
+                        : `✕ WRONG — GTO: ${ACTION_ICONS[gtoAction] || ''} ${(gtoAction || 'fold').toUpperCase()}`}
                     </div>
                     <div
                       style={{
@@ -698,7 +698,7 @@ export default function PreflopAdvisor() {
                           letterSpacing: 1,
                         }}
                       >
-                        📚 GTO Reasoning
+                         GTO Reasoning
                       </strong>
                       <strong style={{ color: 'var(--sp-accent-purple)' }}>{canonical}</strong> —{' '}
                       {getRangeNote(hand.pos, canonical)}

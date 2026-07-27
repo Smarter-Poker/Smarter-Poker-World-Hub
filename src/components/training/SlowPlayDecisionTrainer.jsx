@@ -98,7 +98,7 @@ function SlowPlayDecisionTrainer() {
           <div>
             <div style={{ padding: 12, borderRadius: 8, marginBottom: 12, textAlign: 'center', background: userChoice === spot.correct ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${userChoice === spot.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: userChoice === spot.correct ? '#10b981' : '#ef4444' }}>
-                {userChoice === spot.correct ? '✓ Correct!' : `✗ Optimal: ${spot.action}`}
+                {userChoice === spot.correct ? '✓ Correct!': `✕ Optimal: ${spot.action}`}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>

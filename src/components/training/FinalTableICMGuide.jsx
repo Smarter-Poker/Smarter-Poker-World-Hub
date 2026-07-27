@@ -1,6 +1,6 @@
 /**
  * FinalTableICMGuide — Final Table ICM Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Deep guide on ICM strategy at final tables. Covers pay jumps,
  * stack sizes, bubble factor, and optimal play adjustments.
  */

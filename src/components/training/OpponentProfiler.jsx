@@ -1,6 +1,6 @@
 /**
  * OPPONENT PROFILER — Player Type Classification & Exploitative Adjustments
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style opponent modeling tool:
  *   - Classify opponents into archetypes (TAG, LAG, NIT, Fish, Maniac)
@@ -10,19 +10,19 @@
  *   - Visual player profile cards
  *
  * Educational tool — teaches how to adapt GTO strategy vs different types.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 
-// ── Player Archetypes ───────────────────────────────────────────────────
+// ●● Player Archetypes ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const ARCHETYPES = {
     TAG: {
         label: 'TAG',
         fullName: 'Tight-Aggressive',
-        icon: '🎯',
+        icon: '◆',
         color: '#3b82f6',
         stats: { vpip: 22, pfr: 18, threeBet: 8, aggPct: 42, wtsd: 28 },
         description: 'Plays a strong, selected range and bets aggressively with it. The default GTO-style player.',
@@ -36,7 +36,7 @@ const ARCHETYPES = {
     LAG: {
         label: 'LAG',
         fullName: 'Loose-Aggressive',
-        icon: '🔥',
+        icon: '▲',
         color: '#f59e0b',
         stats: { vpip: 30, pfr: 24, threeBet: 12, aggPct: 48, wtsd: 30 },
         description: 'Plays many hands and applies constant pressure. Harder to read — can have anything.',
@@ -50,7 +50,7 @@ const ARCHETYPES = {
     NIT: {
         label: 'NIT',
         fullName: 'Tight-Passive',
-        icon: '🛡️',
+        icon: '■',
         color: '#22c55e',
         stats: { vpip: 14, pfr: 10, threeBet: 4, aggPct: 28, wtsd: 22 },
         description: 'Only plays premium hands and avoids confrontation. Very predictable and easy to play against.',
@@ -64,7 +64,7 @@ const ARCHETYPES = {
     FISH: {
         label: 'Fish',
         fullName: 'Loose-Passive',
-        icon: '🐟',
+        icon: '▲',
         color: '#ef4444',
         stats: { vpip: 45, pfr: 10, threeBet: 3, aggPct: 22, wtsd: 40 },
         description: 'Calls too much and rarely raises. Stations who see every flop and call down with weak hands.',
@@ -78,7 +78,7 @@ const ARCHETYPES = {
     MANIAC: {
         label: 'Maniac',
         fullName: 'Ultra-Aggressive',
-        icon: '💥',
+        icon: '▲',
         color: '#a855f7',
         stats: { vpip: 55, pfr: 40, threeBet: 20, aggPct: 60, wtsd: 35 },
         description: 'Raises and re-raises with a huge range. Creates massive pots with weak holdings. Volatile.',
@@ -92,7 +92,7 @@ const ARCHETYPES = {
     GTO: {
         label: 'GTO',
         fullName: 'Balanced/Solver',
-        icon: '🤖',
+        icon: '■',
         color: '#00d4ff',
         stats: { vpip: 25, pfr: 20, threeBet: 9, aggPct: 40, wtsd: 27 },
         description: 'Plays a balanced, unexploitable strategy. Mixed frequencies make them hard to read or exploit.',
@@ -105,7 +105,7 @@ const ARCHETYPES = {
     },
 };
 
-// ── Stat Bar ────────────────────────────────────────────────────────────
+// ●● Stat Bar ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StatBar = memo(({ label, value, max = 60, color, description }) => (
     <div style={{ marginBottom: 6 }}>
@@ -129,7 +129,7 @@ const StatBar = memo(({ label, value, max = 60, color, description }) => (
     </div>
 ));
 
-// ── Player Profile Card ─────────────────────────────────────────────────
+// ●● Player Profile Card ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const ProfileCard = memo(({ archetype, isSelected, onClick }) => {
     const a = ARCHETYPES[archetype];
@@ -171,7 +171,7 @@ const ProfileCard = memo(({ archetype, isSelected, onClick }) => {
     );
 });
 
-// ── Exploitative Adjustment Panel ───────────────────────────────────────
+// ●● Exploitative Adjustment Panel ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const AdjustmentsPanel = memo(({ archetype }) => {
     const a = ARCHETYPES[archetype];
@@ -210,7 +210,7 @@ const AdjustmentsPanel = memo(({ archetype }) => {
     );
 });
 
-// ── Stat Comparison Table ───────────────────────────────────────────────
+// ●● Stat Comparison Table ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StatComparisonTable = memo(({ selectedTypes }) => {
     const stats = ['vpip', 'pfr', 'threeBet', 'aggPct', 'wtsd'];
@@ -255,7 +255,7 @@ const StatComparisonTable = memo(({ selectedTypes }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function OpponentProfiler() {
     const [selectedType, setSelectedType] = useState('TAG');

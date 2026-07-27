@@ -51,7 +51,7 @@ export default function AggregatedFlopReport() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🗺️ Aggregated Flop Report
+        · Aggregated Flop Report
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Strategy trends across all 1,755 strategically distinct flops.</p>
 

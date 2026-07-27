@@ -1,6 +1,6 @@
 /**
  * FrequencyTrainer — GTO Wizard-Style Mixed Strategy Training
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tracks whether the player is correctly randomizing their actions to
  * match solver frequencies. Shows real-time feedback on mixing accuracy.
  *
@@ -15,15 +15,15 @@
  *   - Entropy score (measures randomness quality)
  *   - GTO Wizard-style frequency dial visualization
  *   - Session frequency grade (A-F)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useMemo, useState, memo } from 'react';
 import { motion } from 'framer-motion';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FREQUENCY ANALYSIS ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Analyze frequency adherence across a set of hands.
@@ -128,9 +128,9 @@ function analyzeFrequencyAdherence(hands) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FREQUENCY DIAL (SVG circular gauge)
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function FrequencyDial({ score, grade, size = 100 }) {
     const radius = (size - 12) / 2;
@@ -186,9 +186,9 @@ function FrequencyDial({ score, grade, size = 100 }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FREQUENCY BAR COMPARISON
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function FrequencyComparisonBar({ action, targetPct, actualPct, deviation, deviationDirection }) {
     const isGood = deviation < 8;
@@ -265,9 +265,9 @@ function FrequencyComparisonBar({ action, targetPct, actualPct, deviation, devia
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RANDOMIZATION TIPS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function MixingTips({ analysis }) {
     if (!analysis) return null;
@@ -325,9 +325,9 @@ function MixingTips({ analysis }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function FrequencyTrainer({ handHistory, compact = false }) {
     const [window, setWindow] = useState('all'); // 'all' | 'last10' | 'last25'

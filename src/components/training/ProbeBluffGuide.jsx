@@ -12,7 +12,7 @@ const PROBE_SCENARIOS = [
   { board: 'A♥ T♣ 5♦ → 2♠', position: 'BB vs CO', action: 'PROBE 33%',
     reason: 'Brick turn after checked A-high flop. CO likely has medium pairs. Small probe folds them out.',
     sizing: '40-50% pot', color: '#22c55e' },
-  { board: 'Q♠ J♥ 8♣ → 9♦', position: 'BB vs BTN', action: 'CHECK ✋',
+  { board: 'Q♠ J♥ 8♣ → 9♦', position: 'BB vs BTN', action: 'CHECK ',
     reason: '4 to a straight on board. Too dangerous to probe — villain could easily have a straight or strong draw.',
     sizing: 'N/A', color: '#ef4444' },
   { board: 'T♦ 6♦ 2♣ → K♠', position: 'SB vs HJ', action: 'PROBE 66%',
@@ -37,7 +37,7 @@ export default function ProbeBluffGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #10b981, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Probe Bluff Guide
+         Probe Bluff Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Attack when the PFR shows weakness by checking back.</p>
 

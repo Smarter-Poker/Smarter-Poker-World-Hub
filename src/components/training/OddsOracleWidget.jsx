@@ -1,18 +1,18 @@
 /**
  * ODDS ORACLE WIDGET
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Quick-reference odds and probability tool:
  * - Preflop all-in equity matchups
  * - Common hand vs hand scenarios
  * - Outs-to-equity conversion chart
  * - Rule of 2 and 4 calculator
  * - Probability of hitting draws
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState } from 'react';
 
-// ═══ COMMON MATCHUPS ═══
+// ●●● COMMON MATCHUPS ●●●
 const MATCHUPS = [
   { hero: 'AA', villain: 'KK', equity: 81.9, type: 'Overpair vs Underpair' },
   { hero: 'AA', villain: 'AKs', equity: 87.2, type: 'Pair vs Dominated' },
@@ -28,7 +28,7 @@ const MATCHUPS = [
   { hero: 'AJs', villain: 'KQo', equity: 60.3, type: 'Ace-High vs Broadway' },
 ];
 
-// ═══ OUTS TABLE ═══
+// ●●● OUTS TABLE ●●●
 const OUTS_TABLE = [
   { outs: 1, flop: 4.3, turn: 2.2, desc: '1 out (e.g., one specific card)' },
   { outs: 2, flop: 8.4, turn: 4.3, desc: '2 outs (e.g., pocket pair to set)' },
@@ -44,7 +44,7 @@ const OUTS_TABLE = [
   { outs: 15, flop: 54.1, turn: 32.6, desc: '15 outs (e.g., mega combo draw)' },
 ];
 
-// ═══ QUICK PROBABILITIES ═══
+// ●●● QUICK PROBABILITIES ●●●
 const QUICK_PROBS = [
   { event: 'Flopping a set with pocket pair', prob: 11.8 },
   { event: 'Flopping two pair (unpaired hand)', prob: 2.02 },
@@ -60,7 +60,7 @@ const QUICK_PROBS = [
   { event: 'Both overcards pairing by river (with AK)', prob: 48.7 },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function OddsOracleWidget() {
   const [activeTab, setActiveTab] = useState('matchups'); // matchups | outs | probs
   const [outsInput, setOutsInput] = useState(9);

@@ -1,6 +1,6 @@
 /**
  * StackToRatioCalc — GTO Wizard-Style SPR Calculator & Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate stack-to-pot ratios and understand how SPR affects postflop
  * strategy. Shows commitment thresholds and hand strength requirements.
  */
@@ -92,7 +92,7 @@ function StackToRatioCalc() {
                 left: `${Math.min((calc.spr / 20) * 100, 100)}%`,
                 transform: 'translateX(-50%)',
                 fontSize: 14, color: '#fff',
-              }}>▲</div>
+              }}>●</div>
             </div>
           )}
         </div>

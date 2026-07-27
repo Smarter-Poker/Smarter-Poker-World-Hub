@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const BLUFFCATCH_SPOTS = [
-  { spot: 'Missed Draw Board — Villain Bets Big', color: '#22c55e', icon: '✅',
+  { spot: 'Missed Draw Board — Villain Bets Big', color: '#22c55e', icon: '✓',
     board: 'K♥9♥4♣ 2♦ → 6♠', betSize: '80% pot',
     decision: 'CALL', confidence: 'High',
     reason: 'Flush draw bricked. Many combos of A♥x, Q♥x missed. Villain has plenty of bluffs here.',
     checklist: 'Does villain bluff missed draws? Is the bet sizing consistent with bluffs? Do I block value hands?' },
-  { spot: 'Static Board — Small River Bet', color: '#ef4444', icon: '❌',
+  { spot: 'Static Board — Small River Bet', color: '#ef4444', icon: '✕',
     board: 'A♠K♦8♣ 3♠ → 2♦', betSize: '33% pot',
     decision: 'FOLD', confidence: 'Medium',
     reason: 'Small river bets on static boards are almost always thin value. Villain wants a call with Ax.',
     checklist: 'Small bets = value at low stakes. Does villain ever bluff this size? Usually no.' },
-  { spot: 'Overbet on Scary River', color: '#f59e0b', icon: '⚠️',
+  { spot: 'Overbet on Scary River', color: '#f59e0b', icon: '▲',
     board: 'Q♠J♦T♣ 5♥ → 9♠', betSize: '150% pot',
     decision: 'DEPENDS', confidence: 'Low',
     reason: 'Four-to-a-straight on board. Overbets are polarized — either the nuts or air. MDF says call ~40%.',
     checklist: 'Is villain capable of overbetting as a bluff? Do I have a blocker to the straight (K, 8)?' },
-  { spot: 'Check-Raise on River', color: '#ef4444', icon: '🚨',
+  { spot: 'Check-Raise on River', color: '#ef4444', icon: '',
     board: 'J♠8♦4♣ 2♥ → 7♠', betSize: 'X/R to 3x',
     decision: 'FOLD', confidence: 'High',
     reason: 'River check-raises at low/mid stakes are almost NEVER bluffs. This is a set, straight, or two pair.',
     checklist: 'At lower stakes, river X/R = fold everything except the nuts. Trust this until proven otherwise.' },
-  { spot: 'Triple Barrel on Dry Board', color: '#22c55e', icon: '🎭',
+  { spot: 'Triple Barrel on Dry Board', color: '#22c55e', icon: '',
     board: 'K♠7♦2♣ 5♣ → 9♥', betSize: '75% pot',
     decision: 'CALL', confidence: 'Medium',
     reason: 'Dry board means few value combos (KK, 77, 22, K7s). Villain\'s range has many bluffs after 3 barrels.',
@@ -40,7 +40,7 @@ export default function RiverBluffCatcher() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🕵️ River Bluff Catcher
+         River Bluff Catcher
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Call or fold? The hardest decision in poker.</p>
 

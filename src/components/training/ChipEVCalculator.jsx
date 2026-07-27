@@ -1,18 +1,18 @@
 /**
  * CHIP EV CALCULATOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tournament chip EV calculations:
  * - Compare chip EV vs $EV in ICM spots
  * - Push/fold equity calculations
  * - Risk premium visualization
  * - Bubble factor analysis
  * - Stack-to-pot ratio considerations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ TOURNAMENT SCENARIOS ═══
+// ●●● TOURNAMENT SCENARIOS ●●●
 const SCENARIOS = [
   {
     id: 'bubble_shove',
@@ -98,7 +98,7 @@ const SCENARIOS = [
   },
 ];
 
-// ═══ HELPER COMPONENTS ═══
+// ●●● HELPER COMPONENTS ●●●
 function StackBar({ player, maxChips, isHero }) {
   const pct = (player.chips / maxChips) * 100;
   return (
@@ -150,7 +150,7 @@ function EVComparisonBar({ chipEV, dollarEV }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function ChipEVCalculator() {
   const [selectedScenario, setSelectedScenario] = useState(SCENARIOS[0]);
 

@@ -1,11 +1,11 @@
 /**
  * GTO SCORECARD — Frequency Deviation Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Aggregates all session data and compares per-position action frequencies
  * against GTO baselines. Shows a composite GTO Proximity Score (0-100).
  *
  * Route: /hub/training/gto-scorecard
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-21 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -20,9 +20,9 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GTO BASELINES — Optimal frequencies by position (6-max Cash, 100BB)
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
@@ -55,9 +55,9 @@ const STAT_DESCRIPTIONS = {
   wwsf: 'Won When Saw Flop',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // COMPUTATIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function computePlayerStats(sessions) {
   const byPosition = {};
@@ -185,9 +185,9 @@ function computeGTOProximityScore(playerStats) {
   return Math.max(0, Math.min(100, Math.round(100 - avgDev * 2.5)));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DEVIATION CELL COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DeviationCell({ userVal, gtoVal, label }) {
   if (userVal === null) {
@@ -239,9 +239,9 @@ function DeviationCell({ userVal, gtoVal, label }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // BUG FIX (TRAIN-SCORECARD-A11Y-1): SVG back arrow + button hardening.
 // The rendered UI was already emoji-free. Same surface-specific a11y

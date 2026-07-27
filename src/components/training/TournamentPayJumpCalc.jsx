@@ -1,6 +1,6 @@
 /**
  * TournamentPayJumpCalc — Pay Jump Equity Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate equity gained/lost from pay jumps in tournament situations.
  * Shows how ICM equity changes with each elimination.
  */

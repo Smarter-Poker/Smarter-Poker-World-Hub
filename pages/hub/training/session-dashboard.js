@@ -1,9 +1,9 @@
 /**
- * 📈 SESSION HISTORY DASHBOARD — Training Progress Tracker
- * ═══════════════════════════════════════════════════════════════════════════
+ * SESSION HISTORY DASHBOARD — Training Progress Tracker
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Aggregates all training sessions from Supabase and visualizes progress
  * over time with SVG charts, streak tracking, and per-game breakdowns.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-6 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -17,14 +17,14 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ── Phase 3 Engine: Session tracking with trends + leak identification ──
+// ●● Phase 3 Engine: Session tracking with trends + leak identification ●●
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SVG LINE CHART COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-cyan)', label = '' }) {
   if (!data || data.length < 2) {
@@ -103,9 +103,9 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STAT TILE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function StatTile({ label, value, color, icon, subtitle }) {
   return (
@@ -139,9 +139,9 @@ function StatTile({ label, value, color, icon, subtitle }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GAME TYPE PERFORMANCE TABLE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function PerformanceTable({ sessions }) {
   const gameStats = useMemo(() => {
@@ -243,9 +243,9 @@ function PerformanceTable({ sessions }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STREAK TRACKER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function StreakTracker({ sessions }) {
   const streaks = useMemo(() => {
@@ -325,7 +325,7 @@ function StreakTracker({ sessions }) {
           marginBottom: 12,
         }}
       >
-        🔥 Training Streak
+        Training Streak
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
@@ -369,9 +369,9 @@ function StreakTracker({ sessions }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LOADING SKELETON
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DashboardSkeleton() {
   const shimmer = {
@@ -395,9 +395,9 @@ function DashboardSkeleton() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // COACH'S NOTES — AI COACHING CARD
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function CoachingCard({ session }) {
   const [coaching, setCoaching] = React.useState(null);
@@ -507,7 +507,7 @@ function CoachingCard({ session }) {
           )}
         </div>
         <span style={{ color: 'var(--sp-fg-dim)', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-          ▼
+
         </span>
       </button>
 
@@ -572,9 +572,9 @@ function CoachingCard({ session }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function SessionDashboard() {
   const router = useRouter();
@@ -839,8 +839,8 @@ export default function SessionDashboard() {
                         return displayEntries.map((e, i) => (
                         <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === displayEntries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', flex: 1 }}>
-                            {i === 0 && <span style={{ color: 'var(--sp-accent-green)', marginRight: 4 }}>▲</span>}
-                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: 'var(--sp-accent-red)', marginRight: 4 }}>▼</span>}
+                            {i === 0 && <span style={{ color: 'var(--sp-accent-green)', marginRight: 4 }}>●</span>}
+                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: 'var(--sp-accent-red)', marginRight: 4 }}>●</span>}
                             {e.name}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -860,11 +860,11 @@ export default function SessionDashboard() {
               {/* Stat Tiles */}
               {stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
-                  <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="🎮" />
-                  <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="🃏" />
-                  <StatTile label="Avg Accuracy" value={`${stats.avgAccuracy}%`} color={stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="🎯" />
-                  <StatTile label="Total EV Loss" value={stats.totalEV.toFixed(1)} color="#ef4444" icon="📉" subtitle="bb total" />
-                  <StatTile label="Win Rate" value={`${stats.sessions > 0 ? Math.round((stats.wins / stats.sessions) * 100) : 0}%`} color="#a855f7" icon="🏆" subtitle={`${stats.wins}/${stats.sessions} sessions`} />
+                  <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="●" />
+                  <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="◇" />
+                  <StatTile label="Avg Accuracy" value={`${stats.avgAccuracy}%`} color={stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)'} icon="◆" />
+                  <StatTile label="Total EV Loss" value={stats.totalEV.toFixed(1)} color="#ef4444" icon="▼" subtitle="bb total" />
+                  <StatTile label="Win Rate" value={`${stats.sessions > 0 ? Math.round((stats.wins / stats.sessions) * 100) : 0}%`} color="#a855f7" icon="★" subtitle={`${stats.wins}/${stats.sessions} sessions`} />
                 </div>
               )}
 

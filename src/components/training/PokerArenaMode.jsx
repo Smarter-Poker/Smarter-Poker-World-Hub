@@ -7,11 +7,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RANKS = [
-  { name: 'Iron', range: '0-1199', color: '#64748b', icon: '🔩', div: ['III', 'II', 'I'] },
-  { name: 'Bronze', range: '1200-1499', color: '#cd7f32', icon: '🥉', div: ['III', 'II', 'I'] },
-  { name: 'Silver', range: '1500-1799', color: '#c0c0c0', icon: '🥈', div: ['III', 'II', 'I'] },
-  { name: 'Gold', range: '1800-2099', color: '#ffd700', icon: '🥇', div: ['III', 'II', 'I'] },
-  { name: 'Diamond', range: '2100+', color: '#06b6d4', icon: '💎', div: ['III', 'II', 'I'] },
+  { name: 'Iron', range: '0-1199', color: '#64748b', icon: '●', div: ['III', 'II', 'I'] },
+  { name: 'Bronze', range: '1200-1499', color: '#cd7f32', icon: '●', div: ['III', 'II', 'I'] },
+  { name: 'Silver', range: '1500-1799', color: '#c0c0c0', icon: '●', div: ['III', 'II', 'I'] },
+  { name: 'Gold', range: '1800-2099', color: '#ffd700', icon: '●', div: ['III', 'II', 'I'] },
+  { name: 'Diamond', range: '2100+', color: '#06b6d4', icon: '◆', div: ['III', 'II', 'I'] },
 ];
 
 const LEADERBOARD = [
@@ -53,7 +53,7 @@ export default function PokerArenaMode() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🏟️ Poker Arena — Competitive 1v1
+        Poker Arena — Competitive 1v1
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Play heads-up against real opponents. Climb the ranks. Prove your skills.</p>
 
@@ -76,7 +76,7 @@ export default function PokerArenaMode() {
 
       {/* Tab Selector */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        {[{ id: 'play', label: '🎮 Play', color: '#22c55e' }, { id: 'leaderboard', label: '🏆 Leaderboard', color: '#f59e0b' }, { id: 'history', label: '📖 History', color: '#3b82f6' }, { id: 'ranks', label: '🎖️ Ranks', color: '#8b5cf6' }].map(t => (
+        {[{ id: 'play', label: 'Play', color: '#22c55e' }, { id: 'leaderboard', label: 'Leaderboard', color: '#f59e0b' }, { id: 'history', label: 'History', color: '#3b82f6' }, { id: 'ranks', label: 'Ranks', color: '#8b5cf6' }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ padding: '6px 12px', borderRadius: 8, border: tab === t.id ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: tab === t.id ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
@@ -90,14 +90,14 @@ export default function PokerArenaMode() {
         {tab === 'play' && (
           <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}>🥊</div>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>»</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>Heads-Up Hyper-Turbo</div>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>500 chips • 10/20 blinds • 2-min levels</div>
             <button onClick={handleFindMatch} disabled={searching}
               style={{ padding: '12px 32px', borderRadius: 12, border: 'none', cursor: searching ? 'wait' : 'pointer',
                 background: searching ? 'rgba(245,158,11,0.3)' : matched ? 'rgba(34,197,94,0.3)' : 'linear-gradient(135deg, #ef4444, #f59e0b)',
                 fontSize: 16, fontWeight: 800, color: '#fff', minWidth: 200 }}>
-              {searching ? '🔍 Finding opponent...' : matched ? '✓ Match Found — GTOCrusher (2301)' : '🚀 Find Match'}
+              {searching ? '○ Finding opponent...' : matched ? '✓ Match Found — GTOCrusher (2301)' : '● Find Match'}
             </button>
             {matched && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -123,7 +123,7 @@ export default function PokerArenaMode() {
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{p.name}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', fontFamily: 'monospace' }}>{p.elo}</span>
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>{p.wins}-{p.losses}</span>
-                <span style={{ fontSize: 11, color: p.streak > 0 ? '#22c55e' : '#64748b' }}>{p.streak > 0 ? `🔥${p.streak}` : '-'}</span>
+                <span style={{ fontSize: 11, color: p.streak > 0 ? '#22c55e' : '#64748b' }}>{p.streak > 0 ? `▲${p.streak}` : '-'}</span>
               </div>
             ))}
           </motion.div>

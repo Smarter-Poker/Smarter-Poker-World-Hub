@@ -1,6 +1,6 @@
 /**
  * MassDataAnalysis — Aggregate Stats Dashboard
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * View aggregated training statistics and patterns across all sessions.
  * Identifies strengths, weaknesses, and improvement trends.
  */

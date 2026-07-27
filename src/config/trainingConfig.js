@@ -1,12 +1,12 @@
 /**
  * Training Level Configuration
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * 100 games × 25 questions × 12 levels (Foundations → Boss Mode)
  * Pass threshold: 85% (standard) / 90% (Boss Mode Level 12)
  *
  * SOURCE OF TRUTH: LevelRegistry.ts
  * This file is a JS bridge so existing .js components can import it.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, BOSS_MODE_THRESHOLD, MIN_QUESTIONS_REQUIRED } from './LevelRegistry';

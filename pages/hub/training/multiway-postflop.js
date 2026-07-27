@@ -1,5 +1,5 @@
 /**
- * 🃏 MULTIWAY POSTFLOP SOLVER — 3-Way Pot Strategy Analysis
+ * MULTIWAY POSTFLOP SOLVER — 3-Way Pot Strategy Analysis
  * ═══════════════════════════════════════════════════════════════════════════
  * Pre-computed 3-way postflop scenarios showing optimal frequencies for
  * each player position (IP, OOP, 3rd player). Visualizes range advantage
@@ -230,7 +230,7 @@ function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
           </div>
         )) : (
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sp-fg-dim)', fontSize: 9, fontWeight: 700 }}>
-            ❓ HIDDEN (QUIZ MODE)
+            ? HIDDEN (QUIZ MODE)
           </div>
         )}
       </div>
@@ -599,7 +599,7 @@ export default function MultiwayPostflop() {
                       gap: 6,
                     }}
                   >
-                    {quizMode ? '🎯 Quiz Mode: ON' : '🎯 Practice Quiz'}
+                    {quizMode ? 'Quiz Mode: ON': 'Practice Quiz'}
                   </button>
                 </div>
 
@@ -753,7 +753,7 @@ export default function MultiwayPostflop() {
                     }}
                   >
                     <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--sp-accent-amber)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-                      💡 Solver Insight
+                       Solver Insight
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
                       {scenario.notes}
@@ -781,7 +781,7 @@ export default function MultiwayPostflop() {
                       boxShadow: '0 4px 20px rgba(168,85,247,0.3)',
                     }}
                   >
-                    👁️ Reveal Solution
+                     Reveal Solution
                   </motion.button>
                 )}
                 {quizMode && showAnswers && (

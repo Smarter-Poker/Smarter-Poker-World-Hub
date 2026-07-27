@@ -1,10 +1,10 @@
 /**
  * WEAKNESS SCANNER — Auto-Leak Finder
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyzes session data to find statistical leaks by position and phase.
  *
  * Route: /hub/training/weakness-scanner
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-63 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -19,7 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-// ── Phase 5 Engine: Auto-detect leaks against GTO benchmarks ────────────
+// ●● Phase 5 Engine: Auto-detect leaks against GTO benchmarks ●●●●●●●●●●●●
 import { detectLeaks, generateDrillRecommendations, LEAK_TYPES } from '../../../src/engines/LeakDetector';
 import { identifyLeaks as identifySessionLeaks } from '../../../src/engines/SessionTracker';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -110,7 +110,7 @@ function analyzeData(sessions) {
 
   leaks.sort((a, b) => a.acc - b.acc);
 
-  // ── Engine enrichment: GTO benchmark leak detection ──────────────────
+  // ●● Engine enrichment: GTO benchmark leak detection ●●●●●●●●●●●●●●●●●●
   let engineLeaks = [];
   let drillRecommendations = [];
   try {
@@ -153,7 +153,7 @@ function analyzeData(sessions) {
 }
 
 // BUG FIX (TRAIN-WEAKNESS-A11Y-1): SVG icon components replacing the
-// weakness-scanner emojis (📊 empty state, ← back). Time-filter and CTA
+// weakness-scanner emojis (■ empty state, ← back). Time-filter and CTA
 // buttons gain type+aria. Same surface-specific a11y pattern as PR
 // #320/#322/#324/#327-#346.
 const _WK_ICON_PROPS = {

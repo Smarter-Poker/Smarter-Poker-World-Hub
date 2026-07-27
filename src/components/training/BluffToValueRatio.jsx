@@ -1,6 +1,6 @@
 /**
  * BluffToValueRatio — Optimal Bluff-to-Value Ratio Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate and visualize the GTO optimal ratio of bluffs to value bets
  * based on bet sizing. Interactive tool with visual breakdowns.
  */

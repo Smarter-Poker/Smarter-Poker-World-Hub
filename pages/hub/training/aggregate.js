@@ -1,10 +1,10 @@
 /**
- * 📈 AGGREGATE FLOP REPORTS — GTO Wizard-Style Texture Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * AGGREGATE FLOP REPORTS — GTO Wizard-Style Texture Analysis
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Aggregated strategy data across ALL possible flops for a given preflop spot.
  * Shows C-bet / check frequencies by flop texture (monotone, paired, connected, etc).
  * The "missing piece" from GTO Wizard that provides strategic insight at scale.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-2 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -25,14 +25,14 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-5e — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // BUG FIX (TRAIN-AGGREGATE-A11Y-1): SVG icon components replacing the
-// aggregate-reports emoji set (📈 header, 💰 🎯 🏆 game-type icons,
-// 📊 results header, 🎨 textures, 📭 empty state, 🪑 position row,
-// ⚠️ error). Plus ← back arrow hardening. Same surface-specific a11y
+// aggregate-reports emoji set (▲ header, ● ◆ ★ game-type icons,
+// results header, ◇ textures, □ empty state, ● position row,
+// ▲ error). Plus ← back arrow hardening. Same surface-specific a11y
 // pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/
 // #335/#336/#337/#338/#339.
 const ICON_PROPS = {
@@ -83,9 +83,9 @@ const POSITIONS = [
   { key: 'BB', label: 'BB' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 export default function AggregateReports() {
   const router = useRouter();
   useTrainingBus('aggregate-reports');
@@ -168,7 +168,7 @@ export default function AggregateReports() {
             </span>
           </motion.button>
           <h1 style={styles.title}>
-            {/* TRAIN-AGGREGATE-A11Y-1: SVG TrendingUp replaces 📈 */}
+            {/* TRAIN-AGGREGATE-A11Y-1: SVG TrendingUp replaces ▲ */}
             <span style={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--sp-accent-cyan)' }} aria-hidden><TrendingUpIcon size={28} /></span> Aggregate Reports
           </h1>
         </div>
@@ -265,7 +265,7 @@ export default function AggregateReports() {
         {/* Error */}
         {error && !loading && <div style={styles.errorBox} role="alert">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {/* TRAIN-AGGREGATE-A11Y-1: SVG alert replaces ⚠️ */}
+              {/* TRAIN-AGGREGATE-A11Y-1: SVG alert replaces ▲ */}
               <AlertIcon size={14} /> {error}
             </span>
           </div>}
@@ -282,7 +282,7 @@ export default function AggregateReports() {
               {/* Overall Stats */}
               <div style={styles.overallCard}>
                 <div style={styles.overallHeader}>
-                  {/* TRAIN-AGGREGATE-A11Y-1: SVG bar chart replaces 📊 */}
+                  {/* TRAIN-AGGREGATE-A11Y-1: SVG bar chart replaces ■ */}
                   <span style={{ display: 'inline-flex', color: 'var(--sp-accent-cyan)' }} aria-hidden><ChartBarIcon size={24} /></span>
                   <span style={styles.overallTitle}>Overall Summary</span>
                   <span style={styles.spotCount}>
@@ -308,7 +308,7 @@ export default function AggregateReports() {
 
               {/* Texture Breakdown */}
               <div style={styles.sectionHeader}>
-                {/* TRAIN-AGGREGATE-A11Y-1: SVG palette replaces 🎨 */}
+                {/* TRAIN-AGGREGATE-A11Y-1: SVG palette replaces ◇ */}
                 <span style={{ display: 'inline-flex', color: 'var(--sp-accent-purple)' }} aria-hidden><PaletteIcon size={18} /></span>
                 <span>Strategy by Flop Texture</span>
               </div>
@@ -380,7 +380,7 @@ export default function AggregateReports() {
               {report.positions && report.positions.length > 0 && (
                 <>
                   <div style={{ ...styles.sectionHeader, marginTop: 24 }}>
-                    {/* TRAIN-AGGREGATE-A11Y-1: SVG chair replaces 🪑 */}
+                    {/* TRAIN-AGGREGATE-A11Y-1: SVG chair replaces ● */}
                     <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><ChairIcon size={18} /></span>
                     <span>Strategy by Position</span>
                   </div>
@@ -420,9 +420,9 @@ export default function AggregateReports() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const styles = {
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',

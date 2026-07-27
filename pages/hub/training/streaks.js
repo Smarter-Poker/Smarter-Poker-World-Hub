@@ -156,13 +156,13 @@ function MilestoneIcon({ kind, size = 32 }) {
 // downstream consumers reading from the API (which still ships the
 // emoji) continue to function until the API migrates.
 const STREAK_MILESTONES = [
-  { days: 3,   diamonds: 25,    name: '3-Day Streak',         icon: '🔥',  iconKind: 'flame'  },
-  { days: 7,   diamonds: 75,    name: 'Week Warrior',         icon: '⚡',  iconKind: 'bolt'   },
-  { days: 14,  diamonds: 150,   name: 'Two Week Champion',    icon: '💪',  iconKind: 'muscle' },
-  { days: 30,  diamonds: 400,   name: 'Monthly Master',       icon: '🏆',  iconKind: 'trophy' },
-  { days: 60,  diamonds: 800,   name: 'Double Month Legend',  icon: '👑',  iconKind: 'crown'  },
-  { days: 100, diamonds: 2000,  name: 'Century Grinder',      icon: '🌟',  iconKind: 'star'   },
-  { days: 365, diamonds: 10000, name: 'Year of Dedication',   icon: '🎖️', iconKind: 'medal'  },
+  { days: 3, diamonds: 25, name: '3-Day Streak', icon: '▲', iconKind: 'flame'},
+  { days: 7, diamonds: 75, name: 'Week Warrior', icon: '', iconKind: 'bolt'},
+  { days: 14, diamonds: 150, name: 'Two Week Champion', icon: '', iconKind: 'muscle'},
+  { days: 30, diamonds: 400, name: 'Monthly Master', icon: '', iconKind: 'trophy'},
+  { days: 60, diamonds: 800, name: 'Double Month Legend', icon: '', iconKind: 'crown'},
+  { days: 100, diamonds: 2000, name: 'Century Grinder', icon: '', iconKind: 'star'},
+  { days: 365, diamonds: 10000, name: 'Year of Dedication', icon: '', iconKind: 'medal'},
 ];
 
 export default function StreaksPage() {
@@ -410,7 +410,7 @@ export default function StreaksPage() {
             transition={{ duration: MOTION.slow }}
           >
             <div style={styles.flameContainer}>
-              {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces 🔥 hero icon.
+              {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces ▲ hero icon.
                   Color drives the gradient; CSS keeps the pulse animation. */}
               <span style={{ ...styles.flame, color: '#FF6B35', display: 'inline-flex' }} aria-hidden>
                 <FlameIcon size={64} />
@@ -437,7 +437,7 @@ export default function StreaksPage() {
                   border: `1px solid ${multColor}30`,
                   marginTop: 12,
                 }}>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces 💎 fontSize:14 */}
+                  {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces fontSize:14 */}
                   <span style={{ display: 'inline-flex', color: multColor }} aria-hidden>
                     <DiamondIcon size={14} />
                   </span>
@@ -517,7 +517,7 @@ export default function StreaksPage() {
                   alignItems: 'flex-start',
                   gap: 8,
                 }}>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces 💡 inline emoji */}
+                  {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces inline emoji */}
                   <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)', flexShrink: 0, marginTop: 1 }} aria-hidden>
                     <LightbulbIcon size={14} />
                   </span>
@@ -540,7 +540,7 @@ export default function StreaksPage() {
                 </span>
                 <span style={styles.diamondReward}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces 💎 */}
+                    {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces */}
                     <span aria-hidden style={{ display: 'inline-flex' }}><DiamondIcon size={14} /></span>
                     {nextMilestone.diamonds}
                   </span>
@@ -597,7 +597,7 @@ export default function StreaksPage() {
                   aria-label={`${day.date}${day.trained ? ', trained' : ''}${day.isToday ? ', today' : ''}`}
                 >
                   <span style={styles.calendarDayNumber}>{day.dayOfMonth}</span>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG flame indicator replaces 🔥 */}
+                  {/* TRAIN-STREAKS-A11Y-1: SVG flame indicator replaces ▲ */}
                   {day.trained && (
                     <span style={styles.trainedIndicator} aria-hidden>
                       <FlameIcon size={10} />
@@ -670,7 +670,7 @@ export default function StreaksPage() {
                     </div>
                     {milestone.claimed ? (
                       <div style={styles.claimedBadge}>
-                        {/* TRAIN-STREAKS-A11Y-1: SVG check replaces ✅ */}
+                        {/* TRAIN-STREAKS-A11Y-1: SVG check replaces ✓ */}
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <CheckIcon size={12} />
                           Claimed

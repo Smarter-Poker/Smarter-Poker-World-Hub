@@ -222,7 +222,7 @@ export const PotDisplay: React.FC<PotDisplayProps> = ({
                 border: '1px solid rgba(255, 215, 0, 0.4)',
             }}
         >
-            <span style={{ fontSize: 16 }}>🏆</span>
+            <span style={{ fontSize: 16 }}>★</span>
             <span style={{
                 fontSize: 16,
                 fontWeight: 700,

@@ -1,6 +1,6 @@
 /**
  * API: Grade Range — Compare user-constructed range to GTO solution
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POST /api/training/grade-range
  *
  * Body:
@@ -25,17 +25,17 @@
  *     },
  *     stats: { totalGTOCombos, userCombos, overlapCombos }
  *   }
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
-// ── Phase 4 Engine: Range Grading with category breakdowns + heatmap ────
+// ●● Phase 4 Engine: Range Grading with category breakdowns + heatmap ●●●●
 import { gradeRange, generateHeatmapGrid, generateGradingSummary, HAND_CATEGORIES } from '../../../src/engines/RangeGradingEngine';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
           const allHands = getAllHands();
           const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
 
-          // ─── Classify each hand ────────────────────────────────────────
+          // ●●● Classify each hand ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           const correct = [];    // User included, GTO freq >= 0.5
           const missed = [];     // GTO freq >= 0.5, user didn't include
           const wrong = [];      // User included, GTO freq < 0.1 (definitely not in range)
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
               }
           });
 
-          // ── Engine enrichment: category breakdowns + heatmap ────────
+          // ●● Engine enrichment: category breakdowns + heatmap ●●●●●●●●
           let engineData = {};
           try {
               // Build player range object for engine (hand → action)

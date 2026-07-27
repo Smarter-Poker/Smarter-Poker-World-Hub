@@ -1,6 +1,6 @@
 /**
  * ACTION ACCURACY PANEL — Performance by Action Type (Fold/Call/Raise/Bet/Check)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 16: Radial gauge display of accuracy per action type,
  * highlighting which actions you over/under-use vs GTO.
  */

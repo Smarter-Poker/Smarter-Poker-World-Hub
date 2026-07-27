@@ -1,5 +1,5 @@
 /**
- * 🏆 FAMOUS FINALS — Historic Final Table Replayer
+ * FAMOUS FINALS — Historic Final Table Replayer
  * ═══════════════════════════════════════════════════════════════════════════
  * Recreates iconic WSOP/EPT/WPT final tables with exact chip stacks.
  * Play through each decision point and compare your choices vs solver output.
@@ -35,7 +35,7 @@ const FINAL_TABLES = [
     id: 'wsop-2023-me',
     event: '2023 WSOP Main Event',
     series: 'WSOP',
-    icon: '🏆',
+    icon: '',
     players: [
       { name: 'Daniel Weinman', chips: 178_100_000, position: 'BTN' },
       { name: 'Adam Walton', chips: 97_800_000, position: 'CO' },
@@ -98,7 +98,7 @@ const FINAL_TABLES = [
     id: 'wsop-2019-me',
     event: '2019 WSOP Main Event',
     series: 'WSOP',
-    icon: '🏆',
+    icon: '',
     players: [
       { name: 'Hossein Ensan', chips: 326_800_000, position: 'BTN' },
       { name: 'Dario Sammartino', chips: 68_200_000, position: 'BB' },
@@ -141,7 +141,7 @@ const FINAL_TABLES = [
     id: 'ept-monte-carlo-2024',
     event: '2024 EPT Monte Carlo Main',
     series: 'EPT',
-    icon: '🇲🇨',
+    icon: '',
     players: [
       { name: 'Jakub Oliva', chips: 12_400_000, position: 'BTN' },
       { name: 'Tobias Hall', chips: 8_900_000, position: 'CO' },
@@ -172,7 +172,7 @@ const FINAL_TABLES = [
     id: 'wpt-2024-champ',
     event: '2024 WPT World Championship',
     series: 'WPT',
-    icon: '🌍',
+    icon: '',
     players: [
       { name: 'Eliot Hudon', chips: 44_800_000, position: 'BTN' },
       { name: 'Thomas Mühlöcker', chips: 33_500_000, position: 'SB' },
@@ -216,7 +216,7 @@ const FINAL_TABLES = [
     id: 'shrb-2024',
     event: '2024 Super High Roller Bowl',
     series: 'SHRB',
-    icon: '💎',
+    icon: '',
     players: [
       { name: 'Isaac Haxton', chips: 8_400_000, position: 'CO' },
       { name: 'Justin Bonomo', chips: 5_600_000, position: 'BTN' },
@@ -793,7 +793,7 @@ export default function FamousFinalsPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 42, marginBottom: 8 }}>🏆</div>
+              <div style={{ fontSize: 42, marginBottom: 8 }}></div>
               <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>
                 {activeEvent.event}
               </div>
@@ -848,7 +848,7 @@ export default function FamousFinalsPage() {
                         color: r.correct ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                       }}
                     >
-                      {r.correct ? '✓ Correct' : '✗ Mistake'}
+                      {r.correct ? '✓ Correct': '✕ Mistake'}
                     </span>
                   </div>
                 ))}

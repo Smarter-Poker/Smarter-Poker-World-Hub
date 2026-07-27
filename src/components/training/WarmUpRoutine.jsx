@@ -6,23 +6,23 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const ROUTINE_STEPS = [
-  { step: 'Review Previous Session', time: '5 min', icon: '📖', color: '#3b82f6',
+  { step: 'Review Previous Session', time: '5 min', icon: '□', color: '#3b82f6',
     detail: 'Look at your last session\'s key hands. Remind yourself of mistakes you made and goals you set.',
     actions: ['Open last session notes', 'Review 3-5 key hands', 'Identify one leak to focus on today', 'Set a specific goal (e.g., "fold more to river raises")'],
     benefit: 'Primes your brain for pattern recognition. You\'re less likely to repeat yesterday\'s mistakes.' },
-  { step: 'Range Review', time: '5 min', icon: '📊', color: '#22c55e',
+  { step: 'Range Review', time: '5 min', icon: '■', color: '#22c55e',
     detail: 'Quiz yourself on opening ranges for each position. Use flashcards or a range trainer.',
     actions: ['Test UTG opening range', 'Test CO opening range', 'Test BTN opening range', 'Review 3-bet ranges vs each position'],
     benefit: 'Preflop decisions become automatic, freeing mental energy for tough postflop spots.' },
-  { step: 'Solver Spot Review', time: '5 min', icon: '🧠', color: '#f59e0b',
+  { step: 'Solver Spot Review', time: '5 min', icon: '◇', color: '#f59e0b',
     detail: 'Study one specific solver spot. Pick a common scenario you struggled with recently.',
     actions: ['Choose one spot (e.g., "c-bet OOP in 3-bet pots")', 'Run it through GTO Wizard', 'Note the solver\'s frequency and sizing', 'Practice applying it mentally'],
     benefit: 'Keeps your GTO knowledge fresh and builds up your solver database of known spots.' },
-  { step: 'Mental Game Check-In', time: '3 min', icon: '🧘', color: '#8b5cf6',
+  { step: 'Mental Game Check-In', time: '3 min', icon: '◇', color: '#8b5cf6',
     detail: 'Assess your mental state. Are you tired? Stressed? Tilted from something off the table?',
     actions: ['Rate your energy level 1-10', 'Rate your focus level 1-10', 'Rate your emotional state 1-10', 'If any score < 6, consider shorter session or skipping'],
     benefit: 'Prevents you from playing when you\'re not at your best. Saves buy-ins from tilt sessions.' },
-  { step: 'Set Session Parameters', time: '2 min', icon: '⚙️', color: '#ef4444',
+  { step: 'Set Session Parameters', time: '2 min', icon: '●', color: '#ef4444',
     detail: 'Define your session before you start: duration, stakes, number of tables, and stop-loss.',
     actions: ['Set session duration (e.g., 90 minutes)', 'Set stop-loss (e.g., -3 buy-ins)', 'Set number of tables', 'Commit to your plan in writing'],
     benefit: 'Having predefined rules prevents emotional decisions mid-session. You already decided when to quit.' },
@@ -35,7 +35,7 @@ export default function WarmUpRoutine() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔥 Pre-Session Warm-Up
+        Pre-Session Warm-Up
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>20-minute routine for peak poker performance.</p>
 
@@ -61,7 +61,7 @@ export default function WarmUpRoutine() {
           <div style={{ fontSize: 10, fontWeight: 700, color: s.color, marginBottom: 6 }}>CHECKLIST</div>
           {s.actions.map((a, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '3px 0', display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ color: s.color }}>☐</span> {a}
+              <span style={{ color: s.color }}>□</span> {a}
             </div>
           ))}
         </div>

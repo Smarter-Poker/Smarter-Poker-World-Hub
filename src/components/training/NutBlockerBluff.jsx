@@ -31,7 +31,7 @@ export default function NutBlockerBluff() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔒 Nut Blocker Bluffs
+        Nut Blocker Bluffs
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Use card removal to find the most profitable bluffs.</p>
 

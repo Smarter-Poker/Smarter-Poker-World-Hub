@@ -1,12 +1,12 @@
 /**
  * DAILY BONUS WIDGET
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Shows daily bonus status and claim button on training lobby
  * Features:
  * - Flying diamond animation to balance
  * - Sound effect on claim
  * - Counter animation (runs up like a timer)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -148,7 +148,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                                 }}
                                 style={styles.flyingDiamond}
                             >
-                                ◆
+
                             </motion.div>
                         ))}
                     </>

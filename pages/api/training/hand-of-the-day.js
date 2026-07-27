@@ -1,9 +1,9 @@
 /**
  * HAND OF THE DAY API (v2 — Rewired to training_question_cache)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET  - Returns today's curated daily challenge (random from training_question_cache)
  * POST - Records a user's daily challenge completion
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -12,7 +12,7 @@ import { withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUt
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
@@ -51,10 +51,10 @@ export default async function handler(req, res) {
         const today = getTodayCST(); // YYYY-MM-DD in America/Chicago
         const dailyId = `daily-${today}`;
 
-        // ═══════════════════════════════════════════════════════════════
+        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         // PULL FROM training_question_cache (same pipeline as arena)
         // Only select PIO and CHART engine questions (not SCENARIO/psychology)
-        // ═══════════════════════════════════════════════════════════════
+        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         const { count } = await getSupabase()
           .from('training_question_cache')
           .select('*', { count: 'exact', head: true })
@@ -93,9 +93,9 @@ export default async function handler(req, res) {
           });
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         // MAP question_data to the daily challenge display format
-        // ═══════════════════════════════════════════════════════════════
+        // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         const qd = cached.question_data;
         // 2026-07-19 AUDIT FIX: ~7% of cache rows carry a correctAnswer /
         // correctAnswerText contradicting their own solver `frequencies` —
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
       const bodySize = JSON.stringify(req.body || {}).length;
       if (bodySize > 10240)
         return res.status(413).json({ success: false, error: 'Request body too large' });
-      // ── Auth: verify JWT identity ──
+      // ●● Auth: verify JWT identity ●●
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
       const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);

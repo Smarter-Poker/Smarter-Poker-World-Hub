@@ -1,6 +1,6 @@
 /**
  * API: ICM Calculator — Tournament Chip-to-Dollar Equity
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POST /api/training/icm-calc
  *
  * Body: {
@@ -10,7 +10,7 @@
  * }
  *
  * Returns ICM equity for each player using Malmuth-Harville model.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -18,7 +18,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -29,7 +29,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ─── Malmuth-Harville ICM Model ──────────────────────────────────────────
+// ●●● Malmuth-Harville ICM Model ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Recursively calculates ICM equity using the Harville method.
@@ -114,9 +114,9 @@ function computeBubbleFactor(stacks, prizes) {
     return count > 0 ? Math.round((sumRatio / count) * 100) / 100 : 1.0;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default async function handler(req, res) {
   try {

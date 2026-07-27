@@ -1,6 +1,6 @@
 /**
  * DETERMINISTIC ENGINE AUDIT PATCHES — 2026-07-19 (v2 reader flip 2026-07-24)
- * ════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * WHY THIS FILE EXISTS: DeterministicGTOEngine.js is ~967KB, which exceeds
  * what the current agent push path can transit in one piece, so the phase-3
  * engine-audit fixes are applied here as runtime patches on the exported
@@ -35,13 +35,13 @@
  *    FORCED through question building (clean null when the hand has no
  *    credible data), true child preferred via suffix match, approximate
  *    boards flagged isApproximateBoard.
- * ════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { parseBoardFromHash } from '../utils/trainingApiUtils';
 import { v2ToAppMatrix } from '../utils/v2Matrix';
 
-// ── Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ────
+// ●● Hand-class normalization ("AhKs" / ["Ah","Ks"] → "AKs"/"AKo"/"AA") ●●●●
 export function toHandClass(h) {
     let cards = h;
     if (Array.isArray(cards)) cards = cards.join('');
@@ -161,7 +161,7 @@ export function applyDeterministicEnginePatches(engine) {
     const originalFetchSolverPool = engine.fetchSolverPool.bind(engine);
     const originalBuild = engine.buildQuestionFromScenario.bind(engine);
 
-    // ── PATCH 1+2: street-null guard + v2 preference + matrix sanitization ──
+    // ●● PATCH 1+2: street-null guard + v2 preference + matrix sanitization ●●
     engine.fetchSolverPool = async function patchedFetchSolverPool(
         gameConfig, level, limit = 25, targetStreet = null, routingParams = {}
     ) {
@@ -237,7 +237,7 @@ export function applyDeterministicEnginePatches(engine) {
         }
     };
 
-    // ── PATCH 3: sanitize + answer-class balance + forcedHand support ──
+    // ●● PATCH 3: sanitize + answer-class balance + forcedHand support ●●
     engine.buildQuestionFromScenario = function patchedBuild(
         scenario, gameConfig, level, questionIndex, forcedHand = null
     ) {
@@ -269,7 +269,7 @@ export function applyDeterministicEnginePatches(engine) {
         }
     };
 
-    // ── PATCH 4: multi-street with hand integrity + true-child preference ──
+    // ●● PATCH 4: multi-street with hand integrity + true-child preference ●●
     engine.queryNextStreet = async function patchedQueryNextStreet(
         { gameConfig, heroHand: rawHeroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition }
     ) {

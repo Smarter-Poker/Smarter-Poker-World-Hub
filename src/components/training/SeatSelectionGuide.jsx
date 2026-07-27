@@ -1,6 +1,6 @@
 /**
  * SeatSelectionGuide — Table Seat Selection Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Guide for choosing optimal seats based on player types and dynamics.
  */
 import React, { useState } from 'react';
@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 const SEATS = [
   {
     pos: 'Direct Left of Whale',
-    icon: '🎯',
+    icon: '◆',
     rating: 5,
     color: '#10b981',
     reason: 'You act AFTER the weak player. Isolate them in position with raises.',
@@ -16,7 +16,7 @@ const SEATS = [
   },
   {
     pos: 'Direct Left of Aggro',
-    icon: '⚡',
+    icon: '⌁',
     rating: 4,
     color: '#3b82f6',
     reason: 'Position on the aggressive player lets you trap with strong hands.',
@@ -24,7 +24,7 @@ const SEATS = [
   },
   {
     pos: 'Direct Right of Nit',
-    icon: '🛡️',
+    icon: '■',
     rating: 4,
     color: '#8b5cf6',
     reason: 'The nit folds too much — steal their blinds and attack their tight range.',
@@ -32,7 +32,7 @@ const SEATS = [
   },
   {
     pos: 'Direct Right of Whale',
-    icon: '⚠️',
+    icon: '▲',
     rating: 2,
     color: '#f59e0b',
     reason: 'Whale acts before you preflop BUT after you postflop from blinds. Awkward.',
@@ -40,7 +40,7 @@ const SEATS = [
   },
   {
     pos: 'Across from Aggro',
-    icon: '😐',
+    icon: '·',
     rating: 3,
     color: '#6b7280',
     reason: 'No positional advantage either way. Standard play required.',

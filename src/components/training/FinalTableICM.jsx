@@ -1,6 +1,6 @@
 /**
  * FinalTableICM — GTO Wizard-Style Final Table ICM Pressure Simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Simulate final table ICM scenarios with pay jumps, stack distributions,
  * bubble factor calculations, and optimal push/fold decisions.
  */

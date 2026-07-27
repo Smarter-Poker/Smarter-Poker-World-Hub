@@ -34,7 +34,7 @@ export default function PotOddsTrainer() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Pot Odds Trainer
+        Pot Odds Trainer
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Should you call? Practice the math that wins poker.</p>
 
@@ -71,19 +71,19 @@ export default function PotOddsTrainer() {
             <button onClick={() => setUserGuess(true)}
               style={{ padding: '10px 24px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'linear-gradient(135deg, #22c55e, #10b981)', color: '#fff', fontSize: 14 }}>
-              ✅ Call
+              ✓ Call
             </button>
             <button onClick={() => setUserGuess(false)}
               style={{ padding: '10px 24px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', fontSize: 14 }}>
-              ❌ Fold
+              ✕ Fold
             </button>
           </div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ textAlign: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: userGuess === analysis.profitable ? '#22c55e' : '#ef4444' }}>
-                {userGuess === analysis.profitable ? '✅ Correct!' : '❌ Wrong!'}
+                {userGuess === analysis.profitable ? '✓ Correct!' : '✕ Wrong!'}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: analysis.profitable ? '#22c55e' : '#ef4444' }}>
                 {analysis.profitable ? 'CALL — +EV' : 'FOLD — -EV'}

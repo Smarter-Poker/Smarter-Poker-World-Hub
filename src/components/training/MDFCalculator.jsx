@@ -1,6 +1,6 @@
 /**
  * MDFCalculator — Minimum Defense Frequency Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate how often you must call/raise to prevent villain from
  * profiting with any two cards as a bluff. Core GTO concept.
  */

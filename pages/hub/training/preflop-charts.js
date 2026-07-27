@@ -1,11 +1,11 @@
 /**
- * 📊 PREFLOP CHARTS — GTO Wizard-Style Preflop Range Browser
- * ═══════════════════════════════════════════════════════════════════════════
+ * PREFLOP CHARTS — GTO Wizard-Style Preflop Range Browser
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 17: Standalone study tool for browsing preflop ranges by position,
  * stack depth, and action scenario. Compare mode for side-by-side analysis.
  *
  * Route: /hub/training/preflop-charts
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-39 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -20,7 +20,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ── Phase 2 Engine: Difficulty modes for chart simplification ───────────
+// ●● Phase 2 Engine: Difficulty modes for chart simplification ●●●●●●●●●●●
 import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
 import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
@@ -37,14 +37,14 @@ function saveSession(payload) {
   }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const GAME_TYPES = [
-  { value: 'cash_6max', label: 'Cash 6-Max', icon: '💰' },
-  { value: 'mtt', label: 'MTT', icon: '🏆' },
-  { value: 'spins', label: 'Spins', icon: '♠️' },
+  { value: 'cash_6max', label: 'Cash 6-Max', icon: '●' },
+  { value: 'mtt', label: 'MTT', icon: '★' },
+  { value: 'spins', label: 'Spins', icon: '♠' },
 ];
 
 const SCENARIOS = [
@@ -73,9 +73,9 @@ const ACTION_COLORS = {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PreflopCharts() {
   const router = useRouter();
@@ -226,7 +226,7 @@ export default function PreflopCharts() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        {/* ─── Header ─────────────────────────────────────────────── */}
+        {/* ●●● Header ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
         <BottomSheet
           open={infoOpen}
           onClose={() => setInfoOpen(false)}
@@ -326,7 +326,7 @@ export default function PreflopCharts() {
             </span>
           </div>
 
-          {/* ─── Filters ─────────────────────────────────────────── */}
+          {/* ●●● Filters ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <div data-pills-row style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
             {GAME_TYPES.map((gt) => (
               <button
@@ -428,7 +428,7 @@ export default function PreflopCharts() {
           </div>
         </div>
 
-        {/* ─── Main Content ───────────────────────────────────────── */}
+        {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
         <div style={{ padding: '20px 24px' }}>
           {/* Position Selector + Compare Toggle */}
           <div
@@ -579,7 +579,7 @@ export default function PreflopCharts() {
             )}
           </AnimatePresence>
 
-          {/* ─── Grid(s) + Stats ────────────────────────────────── */}
+          {/* ●●● Grid(s) + Stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <div
             style={{
               display: 'flex',
@@ -728,7 +728,7 @@ export default function PreflopCharts() {
             )}
           </div>
 
-          {/* ─── Scenario Description ──────────────────────────── */}
+          {/* ●●● Scenario Description ●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <div
             style={{
               marginTop: 24,

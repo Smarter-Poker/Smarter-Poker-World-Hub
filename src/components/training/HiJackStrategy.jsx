@@ -6,16 +6,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const HJ_TOPICS = [
-  { title: 'Opening Range', icon: '📊', color: '#6366f1',
+  { title: 'Opening Range', icon: '■', color: '#6366f1',
     text: 'HJ opens ~22-26% of hands. Wider than UTG but tighter than CO. Include suited broadways, pairs, better suited connectors.',
     detail: '22+, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, ATo+, KJo+, QJo' },
-  { title: 'vs CO/BTN 3-Bet', icon: '🛡️', color: '#ef4444',
+  { title: 'vs CO/BTN 3-Bet', icon: '■', color: '#ef4444',
     text: 'CO and BTN will 3-bet you with wider ranges than they would UTG. Defend accordingly.',
     detail: '4-bet: QQ+, AKs | Call: TT-JJ, AQs, AJs, KQs, some suited connectors | Fold: weak broadways, low suited' },
-  { title: 'Iso-Raising Limpers', icon: '🎯', color: '#f59e0b',
+  { title: 'Iso-Raising Limpers', icon: '◆', color: '#f59e0b',
     text: 'When UTG or UTG+1 limps, iso-raise to 4-5x from HJ with a wide value range.',
     detail: 'Iso with: 77+, ATs+, KJs+, QJs — isolate the fish and play IP post-flop' },
-  { title: 'C-Betting from HJ', icon: '💰', color: '#22c55e',
+  { title: 'C-Betting from HJ', icon: '●', color: '#22c55e',
     text: 'When you open from HJ and get called, c-bet ~55-60% of flops. Your range is perceived as stronger than CO/BTN.',
     detail: 'Bet small (33%) on dry boards, larger (66%) on wet. Check back with marginal showdown value.' },
 ];
@@ -27,7 +27,7 @@ export default function HiJackStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 HiJack Strategy Guide
+        HiJack Strategy Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The HJ bridges early and late position — adapt accordingly.</p>
 

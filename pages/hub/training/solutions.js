@@ -1,6 +1,6 @@
 /**
- * 🔍 SOLUTIONS BROWSER — GTO Wizard-Style Solver Strategy Browser
- * ═══════════════════════════════════════════════════════════════════════════
+ * SOLUTIONS BROWSER — GTO Wizard-Style Solver Strategy Browser
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Browse pre-solved GTO solutions from the PIO solver database.
  * Phase 15 Features:
  *   - Game Tree Explorer with Node Breadcrumbs
@@ -9,7 +9,7 @@
  *   - Runout Heatmap (Hot/Cold turn card analysis)
  *   - Range vs Range Equity Matchup bar
  *   - Action/Classification color mode toggle
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-1 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -35,7 +35,7 @@ import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ── Phase 1 Engines: Board texture + hand strength for solution browsing ─
+// ●● Phase 1 Engines: Board texture + hand strength for solution browsing
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
 import { classifyMadeHand, classifyDraws } from '../../../src/engines/HandStrengthEngine';
 
@@ -49,16 +49,16 @@ const SolverTreeViewer = dynamic(
   { ssr: false }
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const GAME_TYPES = [
-  { value: 'hu_cash', label: 'Cash HU', icon: '💰', description: 'Heads-Up Cash Game' },
-  { value: 'postflop_complete', label: 'Cash 6-Max', icon: '🃏', description: '6-Max Postflop' },
-  { value: 'mtt_6max_icm', label: 'MTT ICM', icon: '🏆', description: 'MTT 6-Max ICM' },
-  { value: 'mtt_6max_chipev', label: 'MTT ChipEV', icon: '📊', description: 'MTT ChipEV' },
-  { value: 'turn_spin', label: 'Spins', icon: '🎯', description: 'Spin & Go' },
+  { value: 'hu_cash', label: 'Cash HU', icon: '●', description: 'Heads-Up Cash Game' },
+  { value: 'postflop_complete', label: 'Cash 6-Max', icon: '◇', description: '6-Max Postflop' },
+  { value: 'mtt_6max_icm', label: 'MTT ICM', icon: '★', description: 'MTT 6-Max ICM' },
+  { value: 'mtt_6max_chipev', label: 'MTT ChipEV', icon: '■', description: 'MTT ChipEV' },
+  { value: 'turn_spin', label: 'Spins', icon: '◆', description: 'Spin & Go' },
 ];
 
 const STACK_DEPTHS = {
@@ -86,9 +86,9 @@ const ACTION_COLORS = {
 
 // Card rendering uses shared Card.tsx custom PNG deck
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SPOT LIST ITEM
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark }) {
   return (
@@ -155,9 +155,9 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CLASSIFICATION SIDEBAR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function ClassificationSidebar({ groups, actions, lockedClassifications, onToggleLock }) {
   if (!groups || groups.length === 0) return null;
@@ -264,9 +264,9 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // NODE BREADCRUMB
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function NodeBreadcrumb({ treePath, onNavigateBack }) {
   if (!treePath || treePath.length === 0) return null;
@@ -327,9 +327,9 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function SolutionsBrowser() {
   // Wrap main component in an error boundary pattern since it's a top-level page

@@ -31,7 +31,7 @@ export default function BetFoldLineGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔄 Bet/Fold Line Guide
+        Bet/Fold Line Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Bet for value, but have the discipline to fold when raised.</p>
 

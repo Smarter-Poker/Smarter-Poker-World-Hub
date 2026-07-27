@@ -1,6 +1,6 @@
 /**
  * API: Preflop Ranges — Browse GTO Preflop Charts
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/preflop-ranges
  *
  * Query params:
@@ -12,7 +12,7 @@
  *
  * Returns:
  *   { success, range: { actions, gridData, stats, ... } }
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -20,7 +20,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── RFI Ranges ────────────────────────────────────────────────
+          // ●●● RFI Ranges ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           if (scenario === 'rfi') {
               const sd = parseInt(stackDepth, 10) || 100;
               const spotData = getRFIByDepth(sd, pos);
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── Vs 3-Bet (4-Bet / Call / Fold facing a 3bet) ─────────────
+          // ●●● Vs 3-Bet (4-Bet / Call / Fold facing a 3bet) ●●●●●●●●●●●●●
           else if (scenario === 'vs3bet' || scenario === '4bet') {
               // Look up FOUR_BET spot: e.g. UTG_vs_3bet, CO_vs_3bet, BTN_vs_3bet
               const spotKey = `${pos}_vs_3bet`;
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
               }
           }
 
-          // ─── BB Defense ────────────────────────────────────────────────
+          // ●●● BB Defense ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           else if (scenario === 'bb_defense') {
               // BB defense vs opener — uses vsPosition or falls back to vs_BTN
               const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
@@ -197,13 +197,13 @@ export default async function handler(req, res) {
               ]);
           }
 
-          // ─── 3-Bet Ranges (IP/OOP 3-bet vs opener) ────────────────────
+          // ●●● 3-Bet Ranges (IP/OOP 3-bet vs opener) ●●●●●●●●●●●●●●●●●●●●
           // Note: separate from vs3bet (which is the opener's response TO a 3bet)
           // This uses THREE_BET data: BTN_vs_UTG, SB_vs_CO, BB_vs_BTN, etc.
           // Accessed when frontend queries scenario=vs3bet with a specific vsPosition
           // or via the new expanded spot picker
 
-          // ─── Cold Call ─────────────────────────────────────────────────
+          // ●●● Cold Call ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           else if (scenario === 'cold_call') {
               // Cold call spots: CO_vs_UTG, BTN_vs_UTG, BTN_vs_CO, SB_vs_BTN
               const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
@@ -221,7 +221,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── Squeeze ───────────────────────────────────────────────────
+          // ●●● Squeeze ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           else if (scenario === 'squeeze') {
               // Find matching squeeze spot
               const sqzKey = Object.keys(SQUEEZE || {}).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE || {})[0];
@@ -239,7 +239,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── Push/Fold (Short Stack) ───────────────────────────────────
+          // ●●● Push/Fold (Short Stack) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           // 2026-07-19 AUDIT PHASE 2: memory_charts_gold now holds COMPUTED
           // Nash jam/fold equilibria (fictitious play over a Monte-Carlo
           // 169x169 equity matrix; 6-max chipEV, single-overcall model) for
@@ -308,7 +308,7 @@ export default async function handler(req, res) {
               }
           }
 
-          // ─── Compute stats ─────────────────────────────────────────────
+          // ●●● Compute stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           const freqMap = {};
           allHands.forEach(hand => {
               if (rangeData[hand]) {

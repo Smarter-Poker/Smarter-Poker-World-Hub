@@ -1,5 +1,5 @@
 /**
- * 🔥 TRAINING STREAK COMPONENT
+ * TRAINING STREAK COMPONENT
  * Shows current streak, milestones, and claimable rewards
  */
 
@@ -62,7 +62,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h3 style={styles.title}>🔥 Training Streak</h3>
+                <h3 style={styles.title}>Training Streak</h3>
             </div>
 
             {/* Current Streak Display */}
@@ -87,7 +87,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
             {/* Claimable Rewards */}
             {claimable.length > 0 && (
                 <div style={styles.claimableSection}>
-                    <div style={styles.claimableTitle}>🎁 Claim Your Rewards!</div>
+                    <div style={styles.claimableTitle}>Claim Your Rewards!</div>
                     {claimable.map(m => (
                         <motion.button
                             key={m.days}
@@ -99,7 +99,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                         >
                             <span>{m.name}</span>
                             <span style={styles.claimReward}>
-                                💎 {m.diamonds}
+                                ◆ {m.diamonds}
                             </span>
                         </motion.button>
                     ))}
@@ -125,7 +125,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                         />
                     </div>
                     <div style={styles.rewardPreview}>
-                        Reward: 💎 {nextMilestone.diamonds}
+                        Reward: ◆ {nextMilestone.diamonds}
                     </div>
                 </div>
             )}
@@ -145,7 +145,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                                 }}
                             >
                                 <div style={styles.mDays}>{m.days}d</div>
-                                <div style={styles.mReward}>💎 {m.diamonds}</div>
+                                <div style={styles.mReward}>◆ {m.diamonds}</div>
                                 {m.claimed && <span style={styles.claimed}>✓</span>}
                             </div>
                         ))}

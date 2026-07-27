@@ -1,6 +1,6 @@
 /**
  * TripleBarrelTrainer — Triple Barrel Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * When and how to fire three streets of aggression.
  */
 import React, { useState } from 'react';

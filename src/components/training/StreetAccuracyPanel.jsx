@@ -1,6 +1,6 @@
 /**
  * STREET ACCURACY PANEL — Performance by Street (Preflop/Flop/Turn/River)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 16: Shows horizontal bar chart of accuracy per street,
  * with classification breakdown and EV loss indicators.
  */
@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STREET_CONFIG = {
-    PREFLOP: { label: 'Preflop', color: '#8b5cf6', icon: '🃏', order: 0 },
+    PREFLOP: { label: 'Preflop', color: '#8b5cf6', icon: '◇', order: 0 },
     FLOP:    { label: 'Flop',    color: '#3b82f6', icon: '▣',  order: 1 },
     TURN:    { label: 'Turn',    color: '#f59e0b', icon: '◆',  order: 2 },
     RIVER:   { label: 'River',   color: '#ef4444', icon: '◉',  order: 3 },

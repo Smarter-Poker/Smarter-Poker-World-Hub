@@ -6,28 +6,28 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DONK_TYPES = [
-  { type: 'Small Donk (25-33%)', color: '#22c55e', icon: '🟢',
+  { type: 'Small Donk (25-33%)', color: '#22c55e', icon: '●',
     meaning: 'Usually a weak hand trying to "see where they\'re at" or a weak draw.',
     response: [
       { action: 'Raise 3x', hands: 'Strong hands (sets, two pair) — punish the small bet' },
       { action: 'Call', hands: 'Medium hands (top pair, decent draws) — keep their range wide' },
       { action: 'Fold', hands: 'Air with no equity — not worth continuing even at a good price' },
     ]},
-  { type: 'Medium Donk (50-66%)', color: '#f59e0b', icon: '🟡',
+  { type: 'Medium Donk (50-66%)', color: '#f59e0b', icon: '●',
     meaning: 'More polarized. Could be a strong hand trying to build the pot or a draw wanting to set their own price.',
     response: [
       { action: 'Raise 2.5x', hands: 'Nutted hands — they\'ve built the pot for you' },
       { action: 'Call', hands: 'Strong top pair+ — evaluate turn' },
       { action: 'Fold', hands: 'Weak draws and air — they\'re not giving you a good price' },
     ]},
-  { type: 'Large Donk (75-100%)', color: '#ef4444', icon: '🔴',
+  { type: 'Large Donk (75-100%)', color: '#ef4444', icon: '●',
     meaning: 'Very polarized. Either the nuts or a big draw. Recreational players often overbet with vulnerable strong hands.',
     response: [
       { action: 'Raise all-in', hands: 'If they\'re fish with strong hands, jam sets+ for max value' },
       { action: 'Call', hands: 'Top pair in position — re-evaluate turn, they may shut down' },
       { action: 'Fold', hands: 'Medium/weak hands — respect the sizing from most players' },
     ]},
-  { type: 'Min Donk', color: '#8b5cf6', icon: '🟣',
+  { type: 'Min Donk', color: '#8b5cf6', icon: '●',
     meaning: 'Almost always a weak player "blocking" to see cheap cards. This is a terrible play by them.',
     response: [
       { action: 'Raise 4-5x', hands: 'Almost anything — punish this sizing mercilessly' },
@@ -43,7 +43,7 @@ export default function FlopDonkDefense() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🛡️ Donk Bet Defense
+        ■ Donk Bet Defense
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>When they lead into you — don't panic, exploit their sizing.</p>
 

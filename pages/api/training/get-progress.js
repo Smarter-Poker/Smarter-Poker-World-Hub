@@ -1,6 +1,6 @@
 /**
  * API: Get User Training Progress
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Fetches user progress for all games or a specific game
  * 
  * GET /api/training/get-progress?userId=xxx&gameId=xxx (optional)
@@ -11,7 +11,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

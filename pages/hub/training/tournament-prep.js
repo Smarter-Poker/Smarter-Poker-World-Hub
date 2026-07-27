@@ -9,7 +9,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
-// BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow + 💡
+// BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
 // strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
 // — no JSX comments inside conditional expressions, no emoji chars in
 // legacy fallback strings. Same surface-specific a11y pattern as PR

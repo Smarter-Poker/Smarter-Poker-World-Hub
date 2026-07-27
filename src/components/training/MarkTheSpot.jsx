@@ -7,14 +7,14 @@ import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BOOKMARK_TAGS = [
-  { id: 'tough', label: 'Tough Spot', icon: '🤔', color: '#f59e0b' },
-  { id: 'bluff', label: 'Bluff Attempt', icon: '🎭', color: '#ef4444' },
-  { id: 'hero', label: 'Hero Call', icon: '🦸', color: '#8b5cf6' },
-  { id: 'mistake', label: 'Mistake', icon: '❌', color: '#dc2626' },
-  { id: 'greatplay', label: 'Great Play', icon: '✅', color: '#22c55e' },
-  { id: 'sizing', label: 'Sizing Question', icon: '📐', color: '#3b82f6' },
-  { id: 'range', label: 'Range Question', icon: '🎯', color: '#06b6d4' },
-  { id: 'exploit', label: 'Exploit Spot', icon: '🔍', color: '#f97316' },
+  { id: 'tough', label: 'Tough Spot', icon: '', color: '#f59e0b'},
+  { id: 'bluff', label: 'Bluff Attempt', icon: '', color: '#ef4444'},
+  { id: 'hero', label: 'Hero Call', icon: '', color: '#8b5cf6'},
+  { id: 'mistake', label: 'Mistake', icon: '✕', color: '#dc2626'},
+  { id: 'greatplay', label: 'Great Play', icon: '✓', color: '#22c55e'},
+  { id: 'sizing', label: 'Sizing Question', icon: '', color: '#3b82f6'},
+  { id: 'range', label: 'Range Question', icon: '', color: '#06b6d4'},
+  { id: 'exploit', label: 'Exploit Spot', icon: '', color: '#f97316'},
 ];
 
 const SAMPLE_BOOKMARKS = [
@@ -51,7 +51,7 @@ export default function MarkTheSpot() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📌 Mark The Spot
+         Mark The Spot
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 14 }}>Bookmark hands during play for later review with solver analysis.</p>
 
@@ -130,13 +130,13 @@ export default function MarkTheSpot() {
                     <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
                       <div style={{ fontSize: 11, color: '#3b82f6', fontWeight: 700, marginBottom: 4 }}>Action: {b.action}</div>
                       <div style={{ fontSize: 11, color: b.result.includes('Won') ? '#22c55e' : '#ef4444', marginBottom: 4 }}>Result: {b.result}</div>
-                      <div style={{ fontSize: 11, color: '#f59e0b', fontStyle: 'italic' }}>📝 {b.note}</div>
+                      <div style={{ fontSize: 11, color: '#f59e0b', fontStyle: 'italic'}}> {b.note}</div>
                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                         <button style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                          🔬 Analyze with Solver
+                           Analyze with Solver
                         </button>
                         <button style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                          🗑️ Remove
+                           Remove
                         </button>
                       </div>
                     </div>

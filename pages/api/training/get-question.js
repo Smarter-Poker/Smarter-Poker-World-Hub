@@ -185,7 +185,7 @@ export default async function handler(req, res) {
             );
           }
         } catch (detErr) {
-          console.warn('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
+          console.warn('[Training] ▲ Deterministic engine failed, falling back:', detErr.message);
         }
       }
 
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
               question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
             }
           } catch (pioError) {
-            console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
+            console.warn('[Training] ▲ PIO query failed:', pioError.message);
           }
         }
       }
@@ -241,7 +241,7 @@ export default async function handler(req, res) {
         gameType, // Return game type for debugging
       });
     } catch (error) {
-      console.warn('[Training] ❌ Get question error:', error);
+      console.warn('[Training] ✕ Get question error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   } catch (err) {
@@ -476,7 +476,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
 
     return question;
   } catch (error) {
-    console.warn('[Training] ❌ Error generating PIO question:', error);
+    console.warn('[Training] ✕ Error generating PIO question:', error);
     return null;
   }
 }

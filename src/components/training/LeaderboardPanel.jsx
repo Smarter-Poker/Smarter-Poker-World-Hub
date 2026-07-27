@@ -1,6 +1,6 @@
 /**
  * LEADERBOARD PANEL — Competitive Training Rankings
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 18: Shows daily/weekly/monthly/all-time leaderboards for GTO training.
  * Fetches from /api/training/leaderboard and highlights the current user.
  */
@@ -79,7 +79,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                     {entry.accuracy || 0}%
                 </div>
                 <div style={{ fontSize: 8, color: '#475569', fontWeight: 600 }}>
-                    💎 {entry.total_diamonds || entry.total_xp || 0}
+                    ◆ {entry.total_diamonds || entry.total_xp || 0}
                 </div>
             </div>
         </motion.div>
@@ -120,7 +120,7 @@ export default function LeaderboardPanel({ userId, gameId }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.title}>
-                    <span style={{ color: '#ffd700' }}>🏆</span> Leaderboard
+                    <span style={{ color: '#ffd700' }}>★</span> Leaderboard
                 </div>
             </div>
 

@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const THREE_HANDED = [
-  { concept: 'Opening Ranges Expand', icon: '📈', color: '#22c55e',
+  { concept: 'Opening Ranges Expand', icon: '▲', color: '#22c55e',
     detail: 'With only 2 opponents, your opening ranges widen by ~40% compared to full ring.',
     btnRange: 'Button: Open ~55-65%. Any pair, any suited, most broadways, connected hands.',
     sbRange: 'Small Blind: 3-bet or fold ~35-45%. Don\'t flat call from SB 3-handed.',
     bbRange: 'Big Blind: Defend ~55-65% vs button opens. Defend tighter vs SB opens.' },
-  { concept: 'Button is King', icon: '👑', color: '#3b82f6',
+  { concept: 'Button is King', icon: '★', color: '#3b82f6',
     detail: 'The button in 3-handed play is the most profitable seat by far. You act last vs both blinds.',
     btnRange: 'Open raise relentlessly. If both blinds are passive, open any two cards.',
     sbRange: 'When button folds, SB becomes the aggressor. Open ~60-70% against the BB.',
     bbRange: 'BB must defend wide vs SB opens since SB has position on them too.' },
-  { concept: 'Blind-on-Blind Wars', icon: '⚔️', color: '#ef4444',
+  { concept: 'Blind-on-Blind Wars', icon: '»', color: '#ef4444',
     detail: '3-handed means BTN folds a lot, creating frequent SB vs BB battles.',
     btnRange: 'N/A — you folded this hand.',
     sbRange: 'As SB: raise 60-70% or fold. Never limp. You have position postflop.',
     bbRange: 'As BB: 3-bet ~20-25% for value+bluffs. Flat ~30-40%. Fold ~35-40%.' },
-  { concept: 'ICM at 3-Handed Final Table', icon: '💰', color: '#f59e0b',
+  { concept: 'ICM at 3-Handed Final Table', icon: '●', color: '#f59e0b',
     detail: 'In tournaments, 3-handed is where ICM pressure peaks. Big pay jumps between 3rd and 1st.',
     btnRange: 'As chip leader: attack. As medium: be cautious. As short: shove or fold.',
     sbRange: 'ICM makes SB vs BB wars less aggressive. You can\'t risk busting before the short stack.',
     bbRange: 'Tighten BB defense if you\'re the medium stack. Let the big stack eliminate the short.' },
-  { concept: 'Adjusting to Opponents', icon: '🧠', color: '#8b5cf6',
+  { concept: 'Adjusting to Opponents', icon: '◇', color: '#8b5cf6',
     detail: 'With only 2 opponents, you see their actions every hand. Adjust rapidly.',
     btnRange: 'If both blinds are tight: steal 80%+. If one is aggressive: tighten vs them, steal from the other.',
     sbRange: 'If BB folds a lot: raise every SB. If BB 3-bets often: tighten up and 4-bet/fold.',
@@ -40,7 +40,7 @@ export default function ThreeHandedPlay() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔺 3-Handed Play
+        3-Handed Play
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Key adjustments for 3-way final table action.</p>
 

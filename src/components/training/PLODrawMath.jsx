@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DRAW_TYPES = [
-  { name: '13-Card Wrap', outs: 13, icon: '🌊', color: '#22c55e',
+  { name: '13-Card Wrap', outs: 13, icon: '·', color: '#22c55e',
     example: 'Hand: 9♠8♥ on board J♦T♣3♥ — Any Q, 9, 8, 7 makes a straight (13 outs)',
     equity: '~48% vs overpair, ~52% vs top pair. This is a coin flip or better!',
     play: 'Bet or raise aggressively. You\'re a slight favorite against most made hands.',
     math: 'Turn: 13/45 = 28.9% | River: 13/44 = 29.5% | Combined: ~48%' },
-  { name: '20-Card Monster', outs: 20, icon: '🔥', color: '#ef4444',
+  { name: '20-Card Monster', outs: 20, icon: '▲', color: '#ef4444',
     example: 'Hand: Q♥J♥9♠8♦ on board T♥7♥2♣ — Wrap (13) + Flush Draw (9) - Overlap = ~20 outs',
     equity: '~65% vs top set. You\'re a massive favorite with this monster draw.',
     play: 'Get all-in if possible. You want to put maximum money in with 65% equity.',
     math: 'Turn: 20/45 = 44.4% | River: 20/44 = 45.5% | Combined: ~65%' },
-  { name: 'Nut Flush Draw', outs: 9, icon: '♠️', color: '#3b82f6',
+  { name: 'Nut Flush Draw', outs: 9, icon: '♠', color: '#3b82f6',
     example: 'Hand: A♠K♠xx on board 7♠4♠2♥ — 9 spades make the nut flush',
     equity: '~35% vs top set. Decent but not amazing. Need backup equity.',
     play: 'Call a pot bet. Raise if you have additional straight outs or pair outs.',
     math: 'Turn: 9/45 = 20% | River: 9/44 = 20.5% | Combined: ~35%' },
-  { name: 'Gutshot + Flush', outs: 12, icon: '🎯', color: '#f59e0b',
+  { name: 'Gutshot + Flush', outs: 12, icon: '◆', color: '#f59e0b',
     example: 'Hand: A♥K♥J♦x on board Q♥8♥3♣ — Flush (9) + Gutshot (3 unique) = 12 outs',
     equity: '~43% vs top pair. A strong semi-bluffing hand with good equity.',
     play: 'Semi-bluff the flop and turn. If raised, you can call profitably.',
     math: 'Turn: 12/45 = 26.7% | River: 12/44 = 27.3% | Combined: ~43%' },
-  { name: 'Set (Boat Draw)', outs: 7, icon: '🏠', color: '#8b5cf6',
+  { name: 'Set (Boat Draw)', outs: 7, icon: '■', color: '#8b5cf6',
     example: 'Hand: 8♠8♥xx on board 8♣7♠6♠ — Set needs to fill up: 7 outs (1 eight + 3 sevens + 3 sixes)',
     equity: '~28% vs made straight. You need the board to pair to win.',
     play: 'In PLO, sets on wet boards must fill up. Call draws but don\'t go wild.',
@@ -40,7 +40,7 @@ export default function PLODrawMath() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📐 PLO Draw Mathematics
+        PLO Draw Mathematics
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Calculate outs, equity, and wraps in Omaha.</p>
 

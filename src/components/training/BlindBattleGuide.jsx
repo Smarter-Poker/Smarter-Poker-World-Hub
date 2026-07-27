@@ -1,6 +1,6 @@
 /**
  * BlindBattleGuide — SB vs BB Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Comprehensive blind vs blind strategy for both SB and BB perspectives.
  */
 import React, { useState } from 'react';

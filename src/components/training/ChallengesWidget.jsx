@@ -107,7 +107,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
                             <div style={styles.challengeProgress}>
                                 {challenge.progress}/{challenge.target_value}
                                 <span style={styles.challengeType}>
-                                    {challenge.challenge_type === 'weekly' ? '📅 Weekly' : '📆 Monthly'}
+                                    {challenge.challenge_type === 'weekly' ? 'Weekly' : 'Monthly'}
                                 </span>
                             </div>
                             <div style={styles.progressBar}>

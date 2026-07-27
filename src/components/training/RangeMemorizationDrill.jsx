@@ -235,7 +235,7 @@ function RangeMemorizationDrill() {
             border: `1px solid ${result.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
           }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: result.correct ? '#10b981' : '#ef4444' }}>
-              {result.correct ? '✓ Correct!' : '✗ Wrong!'}
+              {result.correct ? '✓ Correct!': '✕ Wrong!'}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
               {handDisplay} is <span style={{ fontWeight: 700, color: isInRange ? '#10b981' : '#ef4444' }}>{result.answer}</span>
@@ -268,7 +268,7 @@ function RangeMemorizationDrill() {
                   padding: '14px 32px', borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700,
                   cursor: 'pointer', background: '#ef4444', color: '#fff', flex: 1, maxWidth: 200,
                 }}
-              >✗ Not In Range</button>
+              >✕ Not In Range</button>
             </>
           )}
         </div>
@@ -285,7 +285,7 @@ function RangeMemorizationDrill() {
                   color: h.correct ? '#10b981' : '#ef4444',
                   border: `1px solid ${h.correct ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
                 }}>
-                  {h.hand} {h.correct ? '✓' : '✗'}
+                  {h.hand} {h.correct ? '✓': '✕'}
                 </div>
               ))}
             </div>

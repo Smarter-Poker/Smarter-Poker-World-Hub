@@ -1,6 +1,6 @@
 /**
  * LeakFinderQuiz — Identify Common Poker Leaks
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Quiz that presents common leak scenarios and asks the player
  * to identify what's wrong with the strategy shown.
  */

@@ -1,10 +1,10 @@
 /**
- * 🎮 PLAY MODE — GTO Wizard-Style Full Hand Simulation
- * ═══════════════════════════════════════════════════════════════════════════
+ * PLAY MODE — GTO Wizard-Style Full Hand Simulation
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Play complete poker hands from preflop to river against GTO AI villains.
  * Each decision point uses real PIO solver data for opponent responses.
  * After each hand, see full analysis with EV comparison.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-8 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -34,9 +34,9 @@ import ActionButton, { ActionButtonRow } from '../../../src/components/poker/Act
 // prefers-reduced-motion via the body.world-training override.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // Deck constants are now local to createDeck; card rendering uses shared Card.tsx
 const POSITIONS_6MAX = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -96,9 +96,9 @@ function FaceDownCard({ size = 40, delay = 0 }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SVG CIRCULAR TIMER COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
   const strokeWidth = Math.max(3, size * 0.08);
@@ -170,9 +170,9 @@ function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GAME STATE MACHINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function usePlayMode() {
   const [gameState, setGameState] = useState('setup'); // setup | playing | handComplete | sessionComplete
@@ -238,9 +238,9 @@ function usePlayMode() {
     setShowSpeedBonus(false);
   }, [config.stackDepth]);
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // SENSORY ENGINE (Timer, Haptics, Audio)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
   const [timeLeft, setTimeLeft] = useState(24);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -605,7 +605,7 @@ function usePlayMode() {
     setHandResults([]);
   }, []);
 
-  // 🔌 WIRING: Save session to Supabase + emit bus event when session completes
+  // WIRING: Save session to Supabase + emit bus event when session completes
   useEffect(() => {
     if (gameState !== 'sessionComplete' || handResults.length === 0) return;
 
@@ -784,9 +784,9 @@ function usePlayMode() {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SESSION SUMMARY
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function SessionSummary({ handResults, onPlayAgain, onExit }) {
   const [activeTab, setActiveTab] = useState('summary');
@@ -828,9 +828,9 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
       {/* Tab buttons */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, justifyContent: 'center' }}>
         {[
-          { key: 'summary', label: '📊 Summary' },
-          { key: 'replay', label: '🃏 Replay' },
-          { key: 'positions', label: '🪑 Positions' },
+          { key: 'summary', label: '■ Summary' },
+          { key: 'replay', label: '◇ Replay' },
+          { key: 'positions', label: '● Positions' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -906,7 +906,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
           </div>
 
           {/* EV Graph */}
-          <EVGraph handHistory={handResults} title="📈 EV by Street" />
+          <EVGraph handHistory={handResults} title="▲ EV by Street" />
 
           {/* Hand-by-hand summary */}
           <div style={{ marginBottom: 16, marginTop: 12 }}>
@@ -1001,7 +1001,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
             color: '#fff',
           }}
         >
-          🎮 Play Again
+          Play Again
         </motion.button>
         <button
           onClick={onExit}
@@ -1023,9 +1023,9 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PlayModePage() {
   // TRAIN-WIRE-FEEDBACK-HOOK-3 — wire useTrainingFeedback for showdown feedback
@@ -1121,7 +1121,7 @@ export default function PlayModePage() {
               animate={{ opacity: 1, y: 0 }}
               style={{ textAlign: 'center', paddingTop: 40 }}
             >
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🎮</div>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>●</div>
               <div
                 style={{
                   fontSize: 24,
@@ -1401,7 +1401,7 @@ export default function PlayModePage() {
                             fontFamily: "'Orbitron', monospace",
                           }}
                         >
-                          ⚡ +{game.speedBonus} DIAMONDS
+                          ⌁ +{game.speedBonus} DIAMONDS
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1679,10 +1679,10 @@ export default function PlayModePage() {
                 }}
               >
                 {game.showdownResult.heroWon
-                  ? '🎉'
+                  ? '★'
                   : game.showdownResult.result === 'fold'
-                    ? '🃏'
-                    : '😔'}
+                    ? '◇'
+                    : '·'}
               </div>
               <div
                 style={{

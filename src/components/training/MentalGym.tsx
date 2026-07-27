@@ -61,10 +61,10 @@ const DEFAULT_SCENARIOS: Record<string, {
         text: "You Just Lost 3 Buy-Ins To Coolers. Your Opponent Shows You 72o After Rivering A Boat. Your Blood Is Boiling.",
         context: "Session: -5 Buy-Ins | Time At Table: 4 Hours",
         choices: [
-            { id: 'TILT', label: 'Express Frustration', icon: '😤', description: 'Let Villain Know How You Feel', emotionalType: 'impulsive' },
-            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '🧘', description: 'Center Yourself, Stay Calm', emotionalType: 'rational' },
-            { id: 'RELOAD', label: 'Immediately Reload', icon: '💰', description: 'Get Back in Action Fast', emotionalType: 'aggressive' },
-            { id: 'LEAVE', label: 'Leave The Table', icon: '🚪', description: 'Walk Away for Now', emotionalType: 'passive' },
+            { id: 'TILT', label: 'Express Frustration', icon: '', description: 'Let Villain Know How You Feel', emotionalType: 'impulsive'},
+            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '', description: 'Center Yourself, Stay Calm', emotionalType: 'rational'},
+            { id: 'RELOAD', label: 'Immediately Reload', icon: '', description: 'Get Back in Action Fast', emotionalType: 'aggressive'},
+            { id: 'LEAVE', label: 'Leave The Table', icon: '', description: 'Walk Away for Now', emotionalType: 'passive'},
         ],
         correctId: 'BREATHE',
     },
@@ -72,10 +72,10 @@ const DEFAULT_SCENARIOS: Record<string, {
         text: "You're on the bubble of a $500 tournament. You have 12BB with AKo UTG. The money starts at 15th place - you're 16th.",
         context: "Bubble | 12BB | UTG | AKo",
         choices: [
-            { id: 'SHOVE', label: 'Shove All-In', icon: '🚀', description: 'Maximum Pressure', emotionalType: 'aggressive' },
-            { id: 'MINRAISE', label: 'Min-Raise', icon: '📈', description: 'Control the Pot', emotionalType: 'rational' },
-            { id: 'LIMP', label: 'Limp In', icon: '🐌', description: 'See a Cheap Flop', emotionalType: 'passive' },
-            { id: 'FOLD', label: 'Fold To Ladder', icon: '📉', description: 'Wait for a Better Spot', emotionalType: 'passive' },
+            { id: 'SHOVE', label: 'Shove All-In', icon: '', description: 'Maximum Pressure', emotionalType: 'aggressive'},
+            { id: 'MINRAISE', label: 'Min-Raise', icon: '', description: 'Control the Pot', emotionalType: 'rational'},
+            { id: 'LIMP', label: 'Limp In', icon: '', description: 'See a Cheap Flop', emotionalType: 'passive'},
+            { id: 'FOLD', label: 'Fold To Ladder', icon: '', description: 'Wait for a Better Spot', emotionalType: 'passive'},
         ],
         correctId: 'SHOVE',
     },
@@ -83,10 +83,10 @@ const DEFAULT_SCENARIOS: Record<string, {
         text: "You've turned a $200 session into $1,500. You're playing your A-game but it's 3 AM and you need to work tomorrow.",
         context: "Session: +$1,300 | Time: 3:00 AM | Work At 8 AM",
         choices: [
-            { id: 'GRIND', label: 'Keep Grinding', icon: '💎', description: 'Run it up While Hot', emotionalType: 'aggressive' },
+            { id: 'GRIND', label: 'Keep Grinding', icon: '', description: 'Run it up While Hot', emotionalType: 'aggressive'},
             { id: 'ONEHOUR', label: 'One More Hour', icon: '⏰', description: 'Set a Hard Stop', emotionalType: 'impulsive' },
-            { id: 'QUIT', label: 'Book The Win', icon: '✅', description: 'Lock in Profits', emotionalType: 'rational' },
-            { id: 'MOVING', label: 'Move Up Stakes', icon: '🃏', description: 'Shot at Higher Limits', emotionalType: 'impulsive' },
+            { id: 'QUIT', label: 'Book The Win', icon: '✓', description: 'Lock in Profits', emotionalType: 'rational'},
+            { id: 'MOVING', label: 'Move Up Stakes', icon: '', description: 'Shot at Higher Limits', emotionalType: 'impulsive'},
         ],
         correctId: 'QUIT',
     },
@@ -100,17 +100,17 @@ const getTriggerBadge = (scriptName: string): { label: string; color: string; ic
     switch (scriptName) {
         case 'bad_beats':
         case 'tilt_test':
-            return { label: 'TILT ALERT', color: '#ff4444', icon: '🔥' };
+            return { label: 'TILT ALERT', color: '#ff4444', icon: '▲'};
         case 'bubble_pressure':
         case 'fear_test':
-            return { label: 'FEAR TEST', color: '#ffaa00', icon: '😰' };
+            return { label: 'FEAR TEST', color: '#ffaa00', icon: ''};
         case 'winning_streaks':
         case 'greed_test':
-            return { label: 'GREED CHECK', color: '#00ff88', icon: '💰' };
+            return { label: 'GREED CHECK', color: '#00ff88', icon: ''};
         case 'patience':
             return { label: 'PATIENCE TEST', color: '#00d4ff', icon: '⏳' };
         default:
-            return { label: 'MENTAL GAME', color: '#aa66ff', icon: '🧠' };
+            return { label: 'MENTAL GAME', color: '#aa66ff', icon: ''};
     }
 };
 
@@ -305,7 +305,7 @@ const MentalGym: React.FC<MentalGymProps> = ({
                                 fontSize: 56,
                                 marginBottom: 16,
                             }}>
-                                {resultFeedback.isCorrect ? '✅' : '❌'}
+                                {resultFeedback.isCorrect ? '✓': '✕'}
                             </div>
                             <div style={{
                                 fontSize: 28,
@@ -320,7 +320,7 @@ const MentalGym: React.FC<MentalGymProps> = ({
                             </p>
                             {resultFeedback.emotionalLesson && (
                                 <div style={styles.lessonBox}>
-                                    <span style={{ marginRight: 8 }}>💡</span>
+                                    <span style={{ marginRight: 8 }}></span>
                                     {resultFeedback.emotionalLesson}
                                 </div>
                             )}

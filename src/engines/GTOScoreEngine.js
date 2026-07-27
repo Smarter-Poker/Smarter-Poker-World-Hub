@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO SCORE ENGINE — Session Scoring & Performance Tracking
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Real-time scoring during training sessions:
  *   - GTO Score (0-100%) = weighted accuracy across all moves
@@ -10,10 +10,10 @@
  *   - Color coding: green (>90%), yellow (70-90%), red (<70%)
  *   - Streak tracking within session
  *   - Session summary with detailed breakdown
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── Classification Thresholds ────────────────────────────────────────────
+// ●● Classification Thresholds ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const MOVE_CLASSIFICATIONS = {
     CORRECT: { key: 'correct', label: 'Correct', color: '#27ae60', evThreshold: 0.25 },
@@ -34,7 +34,7 @@ export function classifyMove(evLoss) {
     return MOVE_CLASSIFICATIONS.BLUNDER;
 }
 
-// ── GTO Score Color ──────────────────────────────────────────────────────
+// ●● GTO Score Color ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Get the color for a GTO score percentage.
@@ -66,9 +66,9 @@ export function getScoreGrade(score) {
     return 'F';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SESSION SCORER — Tracks scoring across a training session
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export class SessionScorer {
     constructor() {
@@ -262,7 +262,7 @@ export class SessionScorer {
     }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────
+// ●● Helpers ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Convert EV loss to a score (0-100).
@@ -278,7 +278,7 @@ function _evLossToScore(evLoss) {
     return 5;
 }
 
-// ── Diamond Rewards ──────────────────────────────────────────────────────
+// ●● Diamond Rewards ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate diamond rewards for a completed session.

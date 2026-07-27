@@ -1,11 +1,11 @@
 /**
  * CUSTOM QUIZ BUILDER — User-Generated GTO Scenarios
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Build custom multi-choice quizzes from GTO concepts.
  * Set scenarios, save, share, and challenge friends.
  *
  * Route: /hub/training/quiz-builder
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-43 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -20,9 +20,9 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // QUIZ TEMPLATES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const POSITION_OPTIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STREET_OPTIONS = ['Preflop', 'Flop', 'Turn', 'River'];
@@ -51,9 +51,9 @@ const DEFAULT_QUESTION = {
   explanation: '',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // QUESTION EDITOR COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function QuestionEditor({ question, index, onChange, onRemove }) {
   const update = (field, value) => {
@@ -308,9 +308,9 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function QuizBuilderPage() {
   const router = useRouter();

@@ -1,5 +1,5 @@
 /**
- * 🧠 JARVIS DASHBOARD COMPONENT
+ * JARVIS DASHBOARD COMPONENT
  * Shows personalized training insights, leak patterns, and progress
  */
 
@@ -34,7 +34,7 @@ export function JarvisDashboard({ userId, compact = false }) {
         return (
             <div style={styles.container}>
                 <div style={styles.loading}>
-                    🧠 Jarvis Analyzing...
+                    Jarvis Analyzing...
                 </div>
             </div>
         );
@@ -55,7 +55,7 @@ export function JarvisDashboard({ userId, compact = false }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h3 style={styles.title}>🧠 Jarvis Insights</h3>
+                <h3 style={styles.title}>Jarvis Insights</h3>
                 <span style={styles.subtitle}>Your Personal Training Analysis</span>
             </div>
 
@@ -70,7 +70,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                     <div style={styles.statLabel}>Accuracy</div>
                 </div>
                 <div style={styles.statBox}>
-                    <div style={styles.statValue}>{overview.currentStreak}🔥</div>
+                    <div style={styles.statValue}>{overview.currentStreak}▲</div>
                     <div style={styles.statLabel}>Streak</div>
                 </div>
                 <div style={styles.statBox}>
@@ -85,7 +85,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
             >
-                <div style={styles.adviceIcon}>🎯</div>
+                <div style={styles.adviceIcon}>◆</div>
                 <div style={styles.adviceContent}>
                     <div style={styles.adviceLabel}>Jarvis Recommendation</div>
                     <div style={styles.adviceText}>{jarvisAdvice}</div>
@@ -116,7 +116,7 @@ export function JarvisDashboard({ userId, compact = false }) {
             {/* Top Leaks */}
             {!compact && topLeaks?.length > 0 && (
                 <div style={styles.leaksSection}>
-                    <div style={styles.sectionTitle}>🔍 Focus Areas</div>
+                    <div style={styles.sectionTitle}>Focus Areas</div>
                     {topLeaks.slice(0, 3).map((leak, idx) => (
                         <div key={idx} style={styles.leakRow}>
                             <span style={styles.leakName}>{leak.leak}</span>
@@ -129,7 +129,7 @@ export function JarvisDashboard({ userId, compact = false }) {
             {/* Game Performance */}
             {!compact && gamePerformance?.length > 0 && (
                 <div style={styles.gamesSection}>
-                    <div style={styles.sectionTitle}>📊 Game Performance</div>
+                    <div style={styles.sectionTitle}>Game Performance</div>
                     {gamePerformance.slice(0, 5).map((game, idx) => (
                         <div key={idx} style={styles.gameRow}>
                             <div style={styles.gameName}>{game.gameName}</div>
@@ -147,7 +147,7 @@ export function JarvisDashboard({ userId, compact = false }) {
             {/* Weekly Progress */}
             {!compact && weeklyProgress && (
                 <div style={styles.weeklySection}>
-                    <div style={styles.sectionTitle}>📅 This Week</div>
+                    <div style={styles.sectionTitle}>This Week</div>
                     <div style={styles.weeklyGrid}>
                         <div style={styles.weeklyItem}>
                             <span style={styles.weeklyValue}>{weeklyProgress.sessions}</span>

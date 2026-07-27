@@ -1,6 +1,6 @@
 /**
  * API: Spot Drill — Random Postflop GTO Quiz Spot
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/spot-drill
  *
  * Query params:
@@ -12,7 +12,7 @@
  *   - Board cards, hero hand, position, street
  *   - Correct GTO action + frequency
  *   - 3-4 action options (correct + distractors)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -20,7 +20,7 @@ import { parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -31,7 +31,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ─── Helpers ──────────────────────────────────────────────────────────────
+// ●●● Helpers ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 
 
@@ -91,9 +91,9 @@ function generateOptions(correctAction, allActions) {
     return options;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default async function handler(req, res) {
   try {
@@ -114,13 +114,13 @@ export default async function handler(req, res) {
 
           const { format, position, stack } = req.query;
 
-          // ═══ 2026-07-19 AUDIT FIX (wave-1 live sweep): the old
+          // ●●● 2026-07-19 AUDIT FIX (wave-1 live sweep): the old
           // exact-count + random-OFFSET sampling scanned deep into a 2M-row
           // filtered set — statement timeouts made this endpoint 500 on ~90%
           // of requests. Replace with a uuid-pivot sample: ids are uuid v4
           // (uniform), so `id >= random-uuid ORDER BY id LIMIT 1` is a single
           // indexed probe. Wrap-around to the first row if the pivot lands
-          // past the last id. ═══
+          // past the last id. ●●●
           const randomUuid = require('crypto').randomUUID();
 
           const buildSpotQuery = (withPivot) => {

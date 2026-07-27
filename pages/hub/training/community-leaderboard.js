@@ -1,11 +1,11 @@
 /**
  * COMMUNITY LEADERBOARD — Global Training Rankings
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Global leaderboard with accuracy, sessions, streaks. Weekly and all-time.
  * Category-specific rankings with player profile previews.
  *
  * Route: /hub/training/community-leaderboard
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-7 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -22,14 +22,14 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 import useSWR, { useSWRConfig } from 'swr';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CATEGORIES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 
 // BUG FIX (TRAIN-COMMUNITY-A11Y-1): SVG icon components replacing the
 // community-leaderboard emojis. CATEGORIES gain iconKind discriminator;
-// CategoryIcon renders by kind. Medal podium emojis (🥇🥈🥉) → SVG
+// CategoryIcon renders by kind. Medal podium emojis (●●●) → SVG
 // MedalIcon with rank-tinted color. ← back arrow → SVG. Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327-#355.
 const ICON_PROPS = {
@@ -69,10 +69,10 @@ function CategoryIcon({ kind, size=14 }) {
 }
 
 const CATEGORIES = [
-  { id: 'overall', label: 'Overall', iconKind: 'trophy', icon: '🏆' },
-  { id: 'preflop', label: 'Preflop', iconKind: 'cards', icon: '🃏' },
-  { id: 'postflop', label: 'Postflop', iconKind: 'target', icon: '🎯' },
-  { id: 'streaks', label: 'Streaks', iconKind: 'flame', icon: '🔥' },
+  { id: 'overall', label: 'Overall', iconKind: 'trophy', icon: '★' },
+  { id: 'preflop', label: 'Preflop', iconKind: 'cards', icon: '◇' },
+  { id: 'postflop', label: 'Postflop', iconKind: 'target', icon: '◆' },
+  { id: 'streaks', label: 'Streaks', iconKind: 'flame', icon: '▲' },
 ];
 
 function getAvatarColor(str) {
@@ -82,9 +82,9 @@ function getAvatarColor(str) {
   return `hsl(${Math.abs(hash) % 360}, 55%, 50%)`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function CommunityLeaderboardPage() {
   const router = useRouter();
@@ -100,7 +100,7 @@ export default function CommunityLeaderboardPage() {
     if (u) setUser(u);
   }, []);
 
-  // 🔌 Bus listener: auto-refresh leaderboard when a training session completes
+  // Bus listener: auto-refresh leaderboard when a training session completes
   const { mutate } = useSWRConfig();
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
@@ -293,7 +293,7 @@ export default function CommunityLeaderboardPage() {
                       justifyContent: 'flex-end',
                     }}
                   >
-                    {/* TRAIN-COMMUNITY-A11Y-1: SVG medal replaces 🥈/🥇/🥉 */}
+                    {/* TRAIN-COMMUNITY-A11Y-1: SVG medal replaces ●/●/● */}
                     <div style={{ fontSize: 18, marginBottom: 4, display: 'inline-flex', justifyContent: 'center', color: medalColors[i] }} role="img" aria-label={medalLabels[i]}>
                       <MedalIcon size={18} />
                     </div>

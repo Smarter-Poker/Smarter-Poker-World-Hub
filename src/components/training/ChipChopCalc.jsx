@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DEAL_TYPES = [
-  { deal: 'Even Chop', icon: '🤝', color: '#22c55e',
+  { deal: 'Even Chop', icon: '●', color: '#22c55e',
     how: 'Split remaining prize pool equally among all players regardless of chip count.',
     when: 'Never optimal unless all stacks are nearly equal. Heavily favors short stacks.',
     example: '3 players left. Prizes: $5K/$3K/$2K. Even chop = $3,333 each. Chip leader gets robbed.',
     verdict: 'Almost always BAD for the chip leader. Only accept if you\'re the short stack.' },
-  { deal: 'Chip Chop', icon: '📊', color: '#3b82f6',
+  { deal: 'Chip Chop', icon: '■', color: '#3b82f6',
     how: 'Divide prize pool proportional to chip counts. Each player gets their share of total chips × total prizes.',
     when: 'Simple and fast. Better than even chop but still imperfect — doesn\'t account for ICM.',
     example: 'You have 50% of chips in play. Total remaining prizes = $10K. You get $5K.',
     verdict: 'Overvalues big stacks, undervalues small stacks. Use ICM chop instead.' },
-  { deal: 'ICM Chop', icon: '🧮', color: '#f59e0b',
+  { deal: 'ICM Chop', icon: '■', color: '#f59e0b',
     how: 'Use ICM calculations to determine each player\'s tournament equity based on stack size and payout structure.',
     when: 'The mathematically fairest deal. Accounts for the non-linear relationship between chips and money.',
     example: 'With 50% of chips, your ICM equity might be only 38% of remaining prizes (not 50%).',
     verdict: 'BEST method. Always request ICM-based calculations when making deals.' },
-  { deal: 'Chip Leader Premium', icon: '👑', color: '#8b5cf6',
+  { deal: 'Chip Leader Premium', icon: '★', color: '#8b5cf6',
     how: 'ICM chop but the chip leader gets extra money for their positional advantage and skill edge.',
     when: 'When the chip leader feels ICM undervalues their dominant position.',
     example: 'ICM says you should get $4,200. You negotiate $4,500 as chip leader premium.',
     verdict: 'Reasonable if you\'re clearly the best player. Hard to negotiate but worth asking.' },
-  { deal: 'Save + Play On', icon: '🏆', color: '#ef4444',
+  { deal: 'Save + Play On', icon: '★', color: '#ef4444',
     how: 'Lock up a guaranteed amount for everyone, then play for the remaining prize pool.',
     when: 'Best of both worlds — reduces risk while keeping the competitive element alive.',
     example: '$10K total. Lock up $2K each (3 players). Play for remaining $4K. Winner gets $2K + $4K = $6K.',
@@ -40,7 +40,7 @@ export default function ChipChopCalc() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💰 Chip Chop Calculator
+        Chip Chop Calculator
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Make smart deals at final tables.</p>
 

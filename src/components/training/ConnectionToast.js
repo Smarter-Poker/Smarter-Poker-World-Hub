@@ -1,6 +1,6 @@
 /**
- * 📡 CONNECTION STATUS TOAST — Offline/Reconnect Indicator
- * ═══════════════════════════════════════════════════════════════════════════
+ * CONNECTION STATUS TOAST — Offline/Reconnect Indicator
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Additive component that shows a toast when the user goes offline,
  * and a reassuring "Back online" toast when they reconnect.
  *
@@ -8,7 +8,7 @@
  *   <ConnectionToast />
  *
  * Zero visual impact when online. No state pollution.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useEffect, useRef } from 'react';

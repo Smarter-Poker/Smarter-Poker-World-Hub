@@ -179,7 +179,7 @@ export default function PositionStatsPanel({ handHistory }) {
                                 </span>
                             </div>
                             <div style={styles.extremeItem}>
-                                <span style={styles.extremeLabel}>⚠️ Work On</span>
+                                <span style={styles.extremeLabel}>▲ Work On</span>
                                 <span style={{ color: POSITION_COLORS[worst] || '#ef4444', fontWeight: 'bold' }}>
                                     {worst} ({worstAcc}%)
                                 </span>

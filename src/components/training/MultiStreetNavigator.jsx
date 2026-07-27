@@ -1,6 +1,6 @@
 /**
  * MULTI-STREET HAND NAVIGATOR — Connected Street-by-Street Walkthrough
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style multi-street navigator that shows how a complete hand
  * evolves from preflop through river. Key features:
@@ -13,7 +13,7 @@
  *
  * Unlike SolverComparisonReplay (which shows one decision at a time),
  * this shows the FULL hand structure and how decisions connect.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -23,7 +23,7 @@ import { classifyMadeHand, classifyDraws } from '../../engines/HandStrengthEngin
 import { analyzeBoard } from '../../engines/BoardTextureEngine';
 import { getPostflopStrategy } from '../../engines/PostflopStrategyEngine';
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const STREET_ORDER = ['preflop', 'flop', 'turn', 'river'];
 const STREET_META = {
@@ -36,7 +36,7 @@ const STREET_META = {
 const SuitSymbol = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SuitColor = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
 
-// ── Mini Card ───────────────────────────────────────────────────────────
+// ●● Mini Card ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const MiniCard = memo(({ card, isNew = false }) => {
     if (!card || card.length < 2) return null;
@@ -64,7 +64,7 @@ const MiniCard = memo(({ card, isNew = false }) => {
     );
 });
 
-// ── Frequency Bar ───────────────────────────────────────────────────────
+// ●● Frequency Bar ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
@@ -94,7 +94,7 @@ const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
     </div>
 ));
 
-// ── Street Node ─────────────────────────────────────────────────────────
+// ●● Street Node ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, heroCards, boardCards, potSize }) => {
     const meta = STREET_META[street] || STREET_META.flop;
@@ -257,7 +257,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
     );
 });
 
-// ── SPR Indicator ───────────────────────────────────────────────────────
+// ●● SPR Indicator ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SPRBadge = memo(({ potSize, effectiveStack = 100 }) => {
     if (!potSize) return null;
@@ -279,7 +279,7 @@ const SPRBadge = memo(({ potSize, effectiveStack = 100 }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function MultiStreetNavigator({ handHistory = [] }) {
     const [selectedHandIdx, setSelectedHandIdx] = useState(0);

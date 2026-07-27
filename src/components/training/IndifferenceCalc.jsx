@@ -6,23 +6,23 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const INDIFF_SPOTS = [
-  { bet: '33% Pot', mdf: '75%', bluffFreq: '25%', color: '#22c55e', icon: '🟢',
+  { bet: '33% Pot', mdf: '75%', bluffFreq: '25%', color: '#22c55e', icon: '●',
     explain: 'When you bet 1/3 pot, villain needs to defend 75% of their range to prevent you from auto-profiting.',
     implication: 'This means you can bluff 25% of the time. For every 3 value bets, include 1 bluff.',
     practical: 'Small bets are great for range-betting. You deny equity cheaply with your entire range.' },
-  { bet: '50% Pot', mdf: '67%', bluffFreq: '33%', color: '#3b82f6', icon: '🔵',
+  { bet: '50% Pot', mdf: '67%', bluffFreq: '33%', color: '#3b82f6', icon: '●',
     explain: 'Half-pot bets require villain to defend 67% of range. The most common bet sizing in poker.',
     implication: 'You can bluff 1 in 3 times. For every 2 value bets, include 1 bluff.',
     practical: 'Standard c-bet sizing. Good balance of fold equity and pot-building.' },
-  { bet: '75% Pot', mdf: '57%', bluffFreq: '43%', color: '#f59e0b', icon: '🟡',
+  { bet: '75% Pot', mdf: '57%', bluffFreq: '43%', color: '#f59e0b', icon: '●',
     explain: 'Three-quarter pot gives villain more reason to fold. They only need to defend 57% of range.',
     implication: 'Higher fold equity. Good for semi-bluffs where you want folds but have equity if called.',
     practical: 'Use on wet boards where you want to charge draws. Strong sizing for value+bluff combos.' },
-  { bet: '100% Pot', mdf: '50%', bluffFreq: '50%', color: '#ef4444', icon: '🔴',
+  { bet: '100% Pot', mdf: '50%', bluffFreq: '50%', color: '#ef4444', icon: '●',
     explain: 'Pot-sized bets force villain to fold half their range. Maximum pressure at standard sizing.',
     implication: 'You can be 50/50 value and bluffs. Very polarized — you have the nuts or nothing.',
     practical: 'River pot-sized bets should be 1:1 value-to-bluff. If you\'re not bluffing enough, you\'re leaving money on the table.' },
-  { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#8b5cf6', icon: '🟣',
+  { bet: '150% Pot (Overbet)', mdf: '40%', bluffFreq: '60%', color: '#8b5cf6', icon: '●',
     explain: 'Overbets force villain to fold 60% of range! Only the top of their range can call.',
     implication: 'You can have MORE bluffs than value hands. 3 bluffs for every 2 value bets.',
     practical: 'Overbets on the river are massively underused. If you have the nut advantage, overbet your entire range.' },
@@ -35,7 +35,7 @@ export default function IndifferenceCalc() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚖️ Indifference Calculator
+        ◇ Indifference Calculator
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How bet sizing determines optimal bluff frequency.</p>
 

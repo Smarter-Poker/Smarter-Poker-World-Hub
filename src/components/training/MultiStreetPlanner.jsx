@@ -1,6 +1,6 @@
 /**
  * MultiStreetPlanner — GTO Wizard-Style Multi-Street Betting Plan Visualizer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Plan and visualize bet sizing across flop → turn → river. Shows how
  * different flop sizings commit stacks on later streets.
  */

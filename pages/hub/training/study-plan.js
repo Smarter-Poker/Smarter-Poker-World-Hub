@@ -38,7 +38,7 @@ const FOCUS_AREAS = [
     positions: ['BB'],
     streets: ['preflop'],
     color: 'var(--sp-accent-blue)',
-    icon: '🛡️',
+    icon: '',
   },
   {
     id: 'btn-play',
@@ -46,7 +46,7 @@ const FOCUS_AREAS = [
     positions: ['BTN'],
     streets: ['preflop', 'flop'],
     color: 'var(--sp-accent-green)',
-    icon: '🎯',
+    icon: '',
   },
   {
     id: 'cbet-decisions',
@@ -54,7 +54,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['flop'],
     color: 'var(--sp-accent-orange)',
-    icon: '💥',
+    icon: '',
   },
   {
     id: 'turn-play',
@@ -62,7 +62,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['turn'],
     color: 'var(--sp-accent-purple)',
-    icon: '🔄',
+    icon: '',
   },
   {
     id: 'river-decisions',
@@ -70,7 +70,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['river'],
     color: 'var(--sp-accent-red)',
-    icon: '🏁',
+    icon: '',
   },
   {
     id: '3bet-pots',
@@ -78,7 +78,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['preflop', 'flop'],
     color: '#ec4899',
-    icon: '⚡',
+    icon: '',
   },
   {
     id: 'mtt-push-fold',
@@ -86,7 +86,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['preflop'],
     color: 'var(--sp-accent-amber)',
-    icon: '🏆',
+    icon: '',
   },
   {
     id: 'position-awareness',
@@ -94,7 +94,7 @@ const FOCUS_AREAS = [
     positions: ['CO', 'HJ', 'MP'],
     streets: ['preflop'],
     color: 'var(--sp-accent-cyan)',
-    icon: '🧭',
+    icon: '',
   },
   {
     id: 'sb-play',
@@ -102,7 +102,7 @@ const FOCUS_AREAS = [
     positions: ['SB'],
     streets: ['preflop', 'flop'],
     color: 'var(--sp-accent-purple)',
-    icon: '♠️',
+    icon: '♠',
   },
   {
     id: 'bluffing',
@@ -110,7 +110,7 @@ const FOCUS_AREAS = [
     positions: [],
     streets: ['turn', 'river'],
     color: '#f43f5e',
-    icon: '🃏',
+    icon: '',
   },
 ];
 
@@ -173,7 +173,7 @@ function generateStudyPlan(sessions) {
           id: 'challenge',
           name: 'Daily Challenge',
           color: 'var(--sp-accent-amber)',
-          icon: '⭐',
+          icon: '★',
           difficulty: 'hard',
           goal: 70,
           questionCount: 10,
@@ -295,7 +295,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedAreas }) {
                 fontSize: 14,
               }}
             >
-              ✅
+              ✓
             </div>
           ) : isToday ? (
             <motion.div

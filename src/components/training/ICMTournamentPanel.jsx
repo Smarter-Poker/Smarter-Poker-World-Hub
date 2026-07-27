@@ -1,6 +1,6 @@
 /**
  * ICM TOURNAMENT PANEL — ICM Calculator & Push/Fold Range Visualizer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style ICM calculator for tournament spots:
  *   - Interactive stack input for up to 9 players
@@ -11,7 +11,7 @@
  *   - Payout structure selector
  *
  * Uses ICMCalculator engine (#22) for all computations.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -24,7 +24,7 @@ import {
     PAYOUT_STRUCTURES,
 } from '../../engines/ICMCalculator';
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITION_COLORS = [
@@ -32,7 +32,7 @@ const POSITION_COLORS = [
     '#a855f7', '#06b6d4', '#f97316', '#ec4899', '#84cc16',
 ];
 
-// ── Stack Input Row ─────────────────────────────────────────────────────
+// ●● Stack Input Row ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) => (
     <div style={{
@@ -78,7 +78,7 @@ const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) =
     </div>
 ));
 
-// ── Push/Fold Range Grid ────────────────────────────────────────────────
+// ●● Push/Fold Range Grid ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const PushFoldGrid = memo(({ pushRange, callRange, mode = 'push' }) => {
     const range = mode === 'push' ? pushRange : callRange;
@@ -120,7 +120,7 @@ const PushFoldGrid = memo(({ pushRange, callRange, mode = 'push' }) => {
     );
 });
 
-// ── Pressure Gauge ──────────────────────────────────────────────────────
+// ●● Pressure Gauge ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const PressureGauge = memo(({ pressure, bubbleFactor, riskPremium }) => {
     const gaugeColor = pressure >= 0.7 ? '#ef4444' : pressure >= 0.4 ? '#f59e0b' : '#22c55e';
@@ -171,7 +171,7 @@ const PressureGauge = memo(({ pressure, bubbleFactor, riskPremium }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function ICMTournamentPanel() {
     const [playerCount, setPlayerCount] = useState(6);

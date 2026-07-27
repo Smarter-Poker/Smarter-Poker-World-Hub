@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * BOARD TEXTURE ENGINE — Board Classification & Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Classifies poker boards by texture for postflop scenario selection.
  * Used by the PostflopStrategyEngine to determine correct GTO strategy.
@@ -13,19 +13,19 @@
  *   - Height: high (broadway), medium, low
  *   - Wetness: composite score 0-10
  *   - Draw potential: flush draws, straight draws, combo draws
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { RANK_VALUES, parseCard } from './DeckEngine';
 
-// ── Texture Types ─────────────────────────────────────────────────────────
+// ●● Texture Types ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const FLUSH_TEXTURE = { MONOTONE: 'monotone', TWO_TONE: 'two-tone', RAINBOW: 'rainbow' };
 export const PAIR_TEXTURE = { TRIPS: 'trips', PAIRED: 'paired', UNPAIRED: 'unpaired' };
 export const HEIGHT = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' };
 export const CONNECTIVITY = { CONNECTED: 'connected', SEMI_CONNECTED: 'semi-connected', DISCONNECTED: 'disconnected' };
 
-// ── Board Texture Analysis ────────────────────────────────────────────────
+// ●● Board Texture Analysis ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Analyze flush texture of a board
@@ -202,7 +202,7 @@ export function calculateWetness(board) {
     };
 }
 
-// ── Complete Board Analysis ───────────────────────────────────────────────
+// ●● Complete Board Analysis ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Full board texture analysis — the main export

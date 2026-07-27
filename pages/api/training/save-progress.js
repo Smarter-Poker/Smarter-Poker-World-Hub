@@ -1,6 +1,6 @@
 /**
  * API: Save Training Progress
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Saves user progress after completing a level
  * 
  * POST /api/training/save-progress
@@ -27,7 +27,7 @@ import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { getMasteryGate } from '../../../src/guards/MasteryGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Missing required fields' });
           }
 
-          // ═══ MASTERY GATE: Server-side mastery verification ═══
+          // ●●● MASTERY GATE: Server-side mastery verification ●●●
           // Don't trust client `passed` — run MasteryGate.checkMastery() server-side
           const masteryGate = getMasteryGate();
           const masteryResult = masteryGate.checkMastery(

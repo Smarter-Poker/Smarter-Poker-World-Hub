@@ -211,7 +211,7 @@ const LevelCard: React.FC<{
                     </>
                 ) : (
                     <div style={styles.lockedSection}>
-                        <span style={styles.lockIcon}>🔒</span>
+                        <span style={styles.lockIcon}>■</span>
                         <span style={styles.lockText}>
                             Pass Level {level - 1} first
                         </span>
@@ -469,7 +469,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                             style={styles.spinner}
                         >
-                            🃏
+
                         </motion.div>
                         <p>Loading Levels...</p>
                     </div>
@@ -510,7 +510,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                                 transition={{ duration: 1, repeat: Infinity }}
                                 style={styles.loadingIcon}
                             >
-                                🎮
+
                             </motion.div>
                             <p>Starting Level {startingLevel}...</p>
                         </div>

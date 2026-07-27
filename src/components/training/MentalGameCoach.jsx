@@ -6,28 +6,28 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const MODULES = [
-  { title: 'Tilt Recognition', icon: '🌡️', color: '#ef4444',
+  { title: 'Tilt Recognition', icon: '○', color: '#ef4444',
     content: [
       { q: 'Am I playing to win or playing to get even?', flag: 'Revenge tilt — stop playing to recover losses' },
       { q: 'Am I calling lighter than usual?', flag: 'Frustration tilt — tightening up is the fix' },
       { q: 'Am I opening too wide because I\'m bored?', flag: 'Boredom tilt — take a break or switch stakes' },
       { q: 'Did a bad beat change my mood?', flag: 'Injustice tilt — remember: variance is math, not personal' },
     ]},
-  { title: 'Focus Protocol', icon: '🎯', color: '#3b82f6',
+  { title: 'Focus Protocol', icon: '◆', color: '#3b82f6',
     content: [
       { q: 'Pre-session: Set specific goals', flag: 'e.g., "Focus on 3-bet sizing" not "Win money"' },
       { q: 'Every 30 min: Check your mental state', flag: 'Rate focus 1-10. Below 6? Take a 5-min break.' },
       { q: 'After each big pot: Breathe', flag: '3 deep breaths. Win or lose, reset before the next hand.' },
       { q: 'Post-session: Review 5 hands', flag: 'Focus on decisions, not results. Process over outcome.' },
     ]},
-  { title: 'Bankroll Mindset', icon: '💰', color: '#22c55e',
+  { title: 'Bankroll Mindset', icon: '●', color: '#22c55e',
     content: [
       { q: 'Am I playing at the right stakes?', flag: 'You need 30+ buy-ins for cash, 100+ for MTTs' },
       { q: 'Does losing a buy-in change my play?', flag: 'If yes, you\'re playing too high. Move down.' },
       { q: 'Am I chasing losses by moving up?', flag: 'NEVER move up to recover. Move DOWN to rebuild.' },
       { q: 'Do I separate poker money from life money?', flag: 'Dedicated bankroll = better decisions at the table' },
     ]},
-  { title: 'Peak Performance', icon: '⚡', color: '#f59e0b',
+  { title: 'Peak Performance', icon: '⌁', color: '#f59e0b',
     content: [
       { q: 'Sleep: 7-8 hours before big sessions', flag: 'Tired brains make -EV decisions. Non-negotiable.' },
       { q: 'Exercise: Move your body daily', flag: 'Physical health → mental clarity → better poker' },
@@ -48,7 +48,7 @@ export default function MentalGameCoach() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🧠 Mental Game Coach
+        Mental Game Coach
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Your edge isn't just strategy — it's your mental game.</p>
 

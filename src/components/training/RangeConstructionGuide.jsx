@@ -1,6 +1,6 @@
 /**
  * RangeConstructionGuide — Step-by-Step Range Building Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Learn how to construct opening, defending, and 3-betting ranges
  * from scratch using GTO principles.
  */

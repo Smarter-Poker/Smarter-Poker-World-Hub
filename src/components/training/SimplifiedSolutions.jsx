@@ -7,9 +7,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SOLUTION_MODES = [
-  { mode: 'Full GTO', icon: '🎯', desc: 'All solver sizings at each node', sizings: 4 },
-  { mode: 'Simplified (2 sizes)', icon: '⚡', desc: 'Best 2 sizings per node', sizings: 2 },
-  { mode: 'Single Size', icon: '1️⃣', desc: 'One optimal size per node', sizings: 1 },
+  { mode: 'Full GTO', icon: '', desc: 'All solver sizings at each node', sizings: 4 },
+  { mode: 'Simplified (2 sizes)', icon: '', desc: 'Best 2 sizings per node', sizings: 2 },
+  { mode: 'Single Size', icon: '1', desc: 'One optimal size per node', sizings: 1 },
 ];
 
 const SPOTS = [
@@ -78,7 +78,7 @@ export default function SimplifiedSolutions() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚡ Simplified Solutions
+         Simplified Solutions
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Auto-simplify solver output to the best N sizings at each decision point.</p>
 

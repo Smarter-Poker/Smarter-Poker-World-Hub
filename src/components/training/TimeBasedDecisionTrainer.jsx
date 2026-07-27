@@ -161,7 +161,7 @@ function TimeBasedDecisionTrainer() {
               border: `1px solid ${selected === decision.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
             }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: selected === decision.correct ? '#10b981' : '#ef4444' }}>
-                {!selected ? '⏰ Timed Out!' : selected === decision.correct ? '✓ Correct!' : '✗ Wrong'}
+                {!selected ? '⏰ Timed Out!': selected === decision.correct ? '✓ Correct!': '✕ Wrong'}
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{decision.explanation}</div>
             </div>
@@ -184,7 +184,7 @@ function TimeBasedDecisionTrainer() {
                   padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
                   background: h.timedOut ? 'rgba(245,158,11,0.12)' : h.correct ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                   color: h.timedOut ? '#f59e0b' : h.correct ? '#10b981' : '#ef4444',
-                }}>{h.time}s {h.timedOut ? '⏰' : h.correct ? '✓' : '✗'}</span>
+                }}>{h.time}s {h.timedOut ? '⏰': h.correct ? '✓': '✕'}</span>
               ))}
             </div>
           </div>

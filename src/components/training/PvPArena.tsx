@@ -73,19 +73,19 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const TIER_ICONS: Record<string, string> = {
-    Iron: '⚔️',
-    Bronze: '🥉',
-    Silver: '🥈',
-    Gold: '🥇',
-    Platinum: '💎',
-    Diamond: '👑',
+    Iron: '●',
+    Bronze: '●',
+    Silver: '●',
+    Gold: '●',
+    Platinum: '◆',
+    Diamond: '★',
 };
 
 const FORMAT_ICONS: Record<string, string> = {
-    QUICK: '⚡',
-    STANDARD: '🎯',
-    HYPER: '🔥',
-    CHAMPIONSHIP: '🏆',
+    QUICK: '⌁',
+    STANDARD: '◆',
+    HYPER: '▲',
+    CHAMPIONSHIP: '★',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -115,7 +115,7 @@ export default function PvPArena({
 
     const tier = useMemo(() => getRankTier(rating), [rating]);
     const tierColor = TIER_COLORS[tier?.name] || '#6b7280';
-    const tierIcon = TIER_ICONS[tier?.name] || '⚔️';
+    const tierIcon = TIER_ICONS[tier?.name] || '●';
 
     // If launched with a pre-matched opponent, immediately start the match
     useEffect(() => {
@@ -282,7 +282,7 @@ function LobbyView({
                     </div>
                 </div>
                 <div style={styles.diamondBalance}>
-                    💎 {userDiamonds.toLocaleString()}
+                    ◆ {userDiamonds.toLocaleString()}
                 </div>
             </div>
 
@@ -308,7 +308,7 @@ function LobbyView({
                             }}
                         >
                             <div style={{ fontSize: '20px', marginBottom: '8px' }}>
-                                {FORMAT_ICONS[key] || '🎯'}
+                                {FORMAT_ICONS[key] || '◆'}
                             </div>
                             <div style={{
                                 fontSize: '13px',
@@ -326,7 +326,7 @@ function LobbyView({
                                 fontWeight: 600,
                                 color: '#ffd700',
                             }}>
-                                💎 {format.entryDiamonds}
+                                ◆ {format.entryDiamonds}
                             </div>
                             <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
                                 Prize: {format.prizeMultiplier}x
@@ -346,7 +346,7 @@ function LobbyView({
                     opacity: userDiamonds >= (MATCH_FORMATS[selectedFormat as keyof typeof MATCH_FORMATS]?.entryDiamonds || 0) ? 1 : 0.5,
                 }}
             >
-                ⚔️ Find Opponent
+                Find Opponent
             </motion.button>
         </motion.div>
     );
@@ -369,7 +369,7 @@ function MatchmakingView({ format, searchTime, rating, tierColor, onCancel }: an
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 style={styles.spinner}
             >
-                ⚔️
+                »
             </motion.div>
             <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '16px 0 8px' }}>
                 Finding Opponent...
@@ -505,9 +505,10 @@ function ResultView({ result, rating, tier, tierColor, tierIcon, onPlayAgain, on
                 style={{
                     fontSize: '48px',
                     marginBottom: '8px',
+                    color: isWinner ? '#22c55e' : '#ef4444',
                 }}
             >
-                {isWinner ? '🏆' : '💀'}
+                {isWinner ? '★' : '▼'}
             </motion.div>
             <h2 style={{
                 color: isWinner ? '#22c55e' : '#ef4444',
@@ -572,7 +573,7 @@ function ResultView({ result, rating, tier, tierColor, tierIcon, onPlayAgain, on
                     transition={{ delay: 0.3, type: 'spring' }}
                     style={styles.diamondReward}
                 >
-                    💎 +{result.diamondsWon} Diamonds
+                    ◆ +{result.diamondsWon} Diamonds
                 </motion.div>
             )}
 
@@ -584,7 +585,7 @@ function ResultView({ result, rating, tier, tierColor, tierIcon, onPlayAgain, on
                     onClick={onPlayAgain}
                     style={styles.playAgainBtn}
                 >
-                    ⚔️ Play Again
+                    Play Again
                 </motion.button>
                 {onExit && (
                     <button onClick={onExit} style={styles.exitResultBtn}>

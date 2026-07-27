@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks, react/display-name */
 /**
- * 🎮 UNIVERSAL TRAINING TABLE — FULL IMPLEMENTATION
+ * UNIVERSAL TRAINING TABLE — FULL IMPLEMENTATION
  * ═══════════════════════════════════════════════════════════════════════════
  * IMPLEMENTS:
  * - Phase 3: Cinematic Deal (500ms/800ms/1000ms timing)
@@ -86,7 +86,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        // 🛡️ BULLETPROOF: Use authUtils (safe getter) to avoid AbortError
+        // BULLETPROOF: Use authUtils (safe getter) to avoid AbortError
         import('../../lib/authUtils').then(({ getAuthUser }) => {
             const user = getAuthUser();
             setUserId(user?.id || null);
@@ -248,7 +248,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         } else {
             // Log mistake to Supabase with lawId for leak detection (per question)
             if (question.lawId) {
-                console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
+                console.log(`▲ LEAK DETECTED: ${question.lawId}`);
 
                 // Track leak in session state for Victory Screen
                 setDetectedLeaks(prev => {
@@ -436,7 +436,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
 
                     {/* Trophy/Result Icon */}
                     <div style={{ fontSize: 72, marginBottom: 12 }}>
-                        {passed ? '🏆' : '📚'}
+                        {passed ? '': ''}
                     </div>
 
                     {/* Title */}
@@ -481,7 +481,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                 alignItems: 'center',
                                 gap: 8
                             }}>
-                                ⚠️ {detectedLeaks.length} Leak{detectedLeaks.length > 1 ? 's' : ''} Detected
+                                ▲ {detectedLeaks.length} Leak{detectedLeaks.length > 1 ? 's': ''} Detected
                             </div>
                             <div style={{ color: '#fca5a5', fontSize: 14 }}>
                                 {detectedLeaks.slice(0, 3).map(leakId => {
@@ -518,7 +518,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                     boxShadow: '0 4px 20px rgba(74, 222, 128, 0.4)'
                                 }}
                             >
-                                🚀 NEXT LEVEL
+                                 NEXT LEVEL
                             </button>
                         ) : (
                             <button
@@ -534,7 +534,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                     cursor: 'pointer'
                                 }}
                             >
-                                {passed ? '🔄 REPLAY LEVEL' : '🔄 TRY AGAIN'}
+                                {passed ? 'REPLAY LEVEL': 'TRY AGAIN'}
                             </button>
                         )}
 
@@ -728,7 +728,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         alignItems: 'center',
                         gap: 12
                     }}>
-                        <span style={{ color: '#00d4ff' }}>⚡</span>
+                        <span style={{ color: '#00d4ff'}}></span>
                         {narrative}
                         <button
                             onClick={skipReplay}
@@ -839,7 +839,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                             fontSize: 48,
                             marginBottom: 16
                         }}>
-                            {isCorrect ? '✓' : '✗'}
+                            {isCorrect ? '✓': '✕'}
                         </div>
                         <div style={{
                             fontSize: 24,
@@ -854,7 +854,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                 color: '#fbbf24',
                                 marginBottom: 16
                             }}>
-                                +{diamondsEarned} 💎
+                                +{diamondsEarned}
                             </div>
                         )}
                         <div style={{

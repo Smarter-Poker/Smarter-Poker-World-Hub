@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PF_MISTAKES = [
-  { mistake: 'Open Limping', severity: 'Critical', color: '#ef4444', icon: '🚫',
+  { mistake: 'Open Limping', severity: 'Critical', color: '#ef4444', icon: '',
     cost: '~5 BB/100 over time',
     why: 'Limping gives up initiative. You can\'t win the pot preflop and you play guessing games postflop.',
     fix: 'Raise or fold. Every hand you\'d limp, either raise it (if good enough) or muck it.',
     exception: 'The ONLY acceptable limp is completing the SB in a limped pot with a speculative hand.' },
-  { mistake: 'Calling 3-Bets OOP', severity: 'High', color: '#f59e0b', icon: '⚠️',
+  { mistake: 'Calling 3-Bets OOP', severity: 'High', color: '#f59e0b', icon: '▲',
     cost: '~3 BB/100',
     why: 'Calling 3-bets out of position creates bloated pots where you have no informational advantage.',
     fix: '4-bet or fold. If your hand isn\'t strong enough to 4-bet, it\'s probably a fold vs a 3-bet.',
     exception: 'Calling with pocket pairs (set-mining) when the 3-bet is small and stacks are deep.' },
-  { mistake: 'Too Wide from EP', severity: 'High', color: '#f59e0b', icon: '📍',
+  { mistake: 'Too Wide from EP', severity: 'High', color: '#f59e0b', icon: '',
     cost: '~2 BB/100',
     why: 'Opening K9o from UTG means playing OOP vs 5 players. You\'ll face 3-bets and tough postflop spots.',
     fix: 'Use a tight UTG range: 77+, ATs+, KQs, AJo+. Add hands as you move closer to the button.',
     exception: 'In very soft games with passive players behind, you can open slightly wider from EP.' },
-  { mistake: 'Not 3-Betting Enough', severity: 'Medium', color: '#3b82f6', icon: '💤',
+  { mistake: 'Not 3-Betting Enough', severity: 'Medium', color: '#3b82f6', icon: '',
     cost: '~2 BB/100',
     why: 'Flatting every premium hand lets multiple players in. 3-betting isolates and builds pots with strong hands.',
     fix: '3-bet AA, KK, QQ, AKs always. Add light 3-bets (A5s, KQs) for balance, especially vs late position opens.',
     exception: 'Trapping with AA/KK by flatting is fine occasionally for balance, but not as a default.' },
-  { mistake: 'Ignoring Position', severity: 'Critical', color: '#ef4444', icon: '🗺️',
+  { mistake: 'Ignoring Position', severity: 'Critical', color: '#ef4444', icon: '',
     cost: '~4 BB/100',
     why: 'Playing the same range from every position is a massive leak. Position determines how wide you can play.',
     fix: 'UTG: ~15% of hands. CO: ~27%. BTN: ~40%. SB: ~35% (3-bet or fold). BB: defend ~40% vs opens.',
@@ -40,7 +40,7 @@ export default function PreFlopMistakes() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ❌ Common Preflop Mistakes
+        ✕ Common Preflop Mistakes
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Fix these leaks and instantly improve your winrate.</p>
 

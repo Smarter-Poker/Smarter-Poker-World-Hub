@@ -34,7 +34,7 @@ export default function TableSelectionGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Table Selection Guide
+         Table Selection Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The easiest way to increase your win rate — play at better tables.</p>
 
@@ -50,8 +50,8 @@ export default function TableSelectionGuide() {
               </span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: '#22c55e' }}>✅ {ind.good}</span>
-              <span style={{ fontSize: 11, color: '#ef4444' }}>❌ {ind.bad}</span>
+              <span style={{ fontSize: 11, color: '#22c55e'}}>✓ {ind.good}</span>
+              <span style={{ fontSize: 11, color: '#ef4444'}}>✕ {ind.bad}</span>
             </div>
             <div style={{ fontSize: 11, color: '#94a3b8' }}>{ind.desc}</div>
           </div>

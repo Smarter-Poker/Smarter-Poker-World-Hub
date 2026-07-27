@@ -1,12 +1,12 @@
 /**
  * RunoutHeatmap — GTO Wizard-Style Turn/River Runout Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * A 4-suit × 13-rank mini-grid showing how every possible runout card
  * impacts Hero's equity and EV. Color-coded:
  *   - Green: Good card for Hero (EV gain / equity improvement)
  *   - Red: Bad card for Hero (EV loss / equity drop)
  *   - Gray: Dead card (already on board or in hero's hand)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useMemo } from 'react';

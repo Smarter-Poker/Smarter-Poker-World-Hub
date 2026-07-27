@@ -544,9 +544,9 @@ function RangeGrid({ raise, call, onHover, hoveredHand }) {
 
 const POSITIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const SITUATIONS = [
-  { id: 'rfi', label: 'Open Raise (RFI)', icon: '🚀' },
-  { id: '3bet', label: '3-Bet Range', icon: '⚡' },
-  { id: 'call', label: 'Call / Defend', icon: '📞' },
+  { id: 'rfi', label: 'Open Raise (RFI)', icon: '▲' },
+  { id: '3bet', label: '3-Bet Range', icon: '⌁' },
+  { id: 'call', label: 'Call / Defend', icon: '●' },
 ];
 
 export default function RangeAdvisor() {

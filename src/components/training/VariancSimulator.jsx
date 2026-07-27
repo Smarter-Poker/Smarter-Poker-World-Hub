@@ -1,6 +1,6 @@
 /**
  * VarianceSimulator — GTO Wizard-Style Variance & Downswing Simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Monte Carlo simulation showing expected variance, downswings, and
  * probability distributions for given win rates and sample sizes.
  */

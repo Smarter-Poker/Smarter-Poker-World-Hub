@@ -1,6 +1,6 @@
 /**
  * CheckBehindStrategy — When to Check Back in Position
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Strategic guide for checking back IP to control pot, induce, or protect equity.
  */
 import React, { useState } from 'react';

@@ -31,7 +31,7 @@ export default function OppTendencyTracker() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔍 Opponent Tendency Tracker
+         Opponent Tendency Tracker
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Profile your opponents and find their leaks.</p>
 
@@ -75,11 +75,11 @@ export default function OppTendencyTracker() {
           ))}
         </div>
 
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12, fontStyle: 'italic' }}>📝 {player.notes}</div>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12, fontStyle: 'italic'}}> {player.notes}</div>
 
         {/* Exploitation tips */}
         <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 6 }}>✅ Exploit {player.type}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 6 }}>✓ Exploit {player.type}</div>
           {(TYPE_EXPLOITS[player.type] || []).map((tip, i) => (
             <div key={i} style={{ fontSize: 12, color: '#cbd5e1', padding: '2px 0', display: 'flex', gap: 6 }}>
               <span style={{ color: '#22c55e' }}>→</span> {tip}

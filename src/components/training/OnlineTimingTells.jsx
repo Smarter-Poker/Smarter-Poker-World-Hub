@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const TIMING_TELLS = [
-  { tell: 'Instant Check', icon: '⚡', color: '#ef4444',
+  { tell: 'Instant Check', icon: '⌁', color: '#ef4444',
     meaning: 'Used the auto-check/fold button. Almost always means a weak hand with no intention to play.',
     exploit: 'Bet into instant-checkers with any two cards. They\'ve given up.',
     reliability: 'Very high — auto-check/fold is the strongest online tell.',
     caveat: 'Some players auto-check trap with monsters. Rare, but be aware vs tricky regs.' },
-  { tell: 'Instant Call', icon: '📞', color: '#3b82f6',
+  { tell: 'Instant Call', icon: '●', color: '#3b82f6',
     meaning: 'Pre-selected the call button. Usually a draw or mediocre made hand. They don\'t want to raise.',
     exploit: 'Barrel again on the turn if their draw doesn\'t complete. They\'re chasing.',
     reliability: 'High — instant callers rarely have the nuts (they\'d raise) or total air (they\'d fold).',
     caveat: 'Some players instant-call with strong hands to disguise. Look for patterns over many hands.' },
-  { tell: 'Long Tank Then Bet', icon: '⏰', color: '#f59e0b',
+  { tell: 'Long Tank Then Bet', icon: '○', color: '#f59e0b',
     meaning: 'Genuinely thinking about their decision. Could go either way — but often leans toward bluffing.',
     exploit: 'Long tank → bet is slightly more likely to be a bluff. They\'re deciding whether to take the risk.',
     reliability: 'Medium — many players genuinely tank with strong hands too, deciding on sizing.',
     caveat: 'At higher stakes, tanking is more balanced. At micro/low stakes, it leans bluff.' },
-  { tell: 'Long Tank Then Check', icon: '🤔', color: '#22c55e',
+  { tell: 'Long Tank Then Check', icon: '·', color: '#22c55e',
     meaning: 'Thought about betting but decided not to. Usually a medium-strength hand or a missed draw.',
     exploit: 'Attack this weakness. They\'re unsure about their hand — put pressure on them.',
     reliability: 'Medium-high — the hesitation reveals they considered aggression but chickened out.',
     caveat: 'Could be a trap. Some players tank-check with the nuts to induce a bet.' },
-  { tell: 'Instant Raise', icon: '🚀', color: '#8b5cf6',
+  { tell: 'Instant Raise', icon: '▲', color: '#8b5cf6',
     meaning: 'Pre-selected raise or immediately clicked raise. Very strong hand — they knew they were raising.',
     exploit: 'Fold everything except the nuts. Instant raises are almost never bluffs at low/mid stakes.',
     reliability: 'Very high — the speed indicates confidence and a pre-planned action.',
@@ -40,7 +40,7 @@ export default function OnlineTimingTells() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⏱️ Online Timing Tells
+        ○ Online Timing Tells
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Speed of action reveals hand strength online.</p>
 

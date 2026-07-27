@@ -33,7 +33,7 @@ export default function StakesLadderGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🪜 Stakes Ladder Guide
+         Stakes Ladder Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know when you're ready to move up — and when to move down.</p>
 
@@ -63,7 +63,7 @@ export default function StakesLadderGuide() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{stake.expect}</p>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 6 }}>✅ Move Up When:</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 6 }}>✓ Move Up When:</div>
         {stake.moveUp.map((m, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', display: 'flex', gap: 6 }}>
             <span style={{ color: '#22c55e' }}>→</span> {m}
@@ -72,7 +72,7 @@ export default function StakesLadderGuide() {
       </motion.div>
 
       <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>⚠️ Move DOWN When</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>▲ Move DOWN When</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>Below 20 buy-ins, losing at the stake over 50k+ hands, or if losing affects your mental game.</div>
       </div>
     </div>

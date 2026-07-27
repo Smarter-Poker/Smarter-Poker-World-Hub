@@ -1,6 +1,6 @@
 /**
  * RiverDecisionMatrix — River Decision Framework
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Matrix showing optimal river decisions based on hand strength,
  * board texture, and villain tendencies.
  */
@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 const MATRIX = [
   {
     handStrength: 'Nuts / Near-Nuts',
-    icon: '💎',
+    icon: '◆',
     color: '#10b981',
     vsCheck: { action: 'Value Bet Large', sizing: '75-150% pot', note: 'Extract maximum. Villain cant have better — bet big.' },
     vsBet: { action: 'Raise for Value', sizing: '2.5-3x', note: 'Raise to extract max from villains value range and get called by worse.' },
@@ -17,7 +17,7 @@ const MATRIX = [
   },
   {
     handStrength: 'Strong Value',
-    icon: '🔵',
+    icon: '●',
     color: '#3b82f6',
     vsCheck: { action: 'Value Bet Medium', sizing: '50-75% pot', note: 'Good hand but not the nuts. Size for calls from worse, not to bloat pot vs better.' },
     vsBet: { action: 'Call', sizing: 'Flat', note: 'Too strong to fold, not strong enough to raise. Call and show down.' },
@@ -25,7 +25,7 @@ const MATRIX = [
   },
   {
     handStrength: 'Medium (Bluff Catcher)',
-    icon: '🟡',
+    icon: '●',
     color: '#f59e0b',
     vsCheck: { action: 'Check Back', sizing: 'Showdown', note: 'Not strong enough to value bet — worse hands fold, better hands call. Show down.' },
     vsBet: { action: 'Call (maybe)', sizing: 'MDF-based', note: 'Depends on sizing and villain. Call based on MDF, lean fold vs passive players.' },
@@ -33,7 +33,7 @@ const MATRIX = [
   },
   {
     handStrength: 'Weak Made Hand',
-    icon: '🟠',
+    icon: '●',
     color: '#f97316',
     vsCheck: { action: 'Check Back', sizing: 'Show down', note: 'Marginal showdown value. Betting gets called by better only. Check and pray.' },
     vsBet: { action: 'Fold', sizing: '—', note: 'Too weak to bluff-catch. Fold and save chips for better spots.' },
@@ -41,7 +41,7 @@ const MATRIX = [
   },
   {
     handStrength: 'Missed Draw / Air',
-    icon: '🔴',
+    icon: '●',
     color: '#ef4444',
     vsCheck: { action: 'Bluff (selective)', sizing: '67-100% pot', note: 'Zero showdown value = must bluff or give up. Choose the best bluffs with blockers.' },
     vsBet: { action: 'Fold', sizing: '—', note: 'Cannot call with nothing. Fold and move to next hand.' },

@@ -1,8 +1,8 @@
 /**
  * Training Leaderboard Page
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Global and friend leaderboards for training performance
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
@@ -25,13 +25,13 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ICON COMPONENTS — TRAIN-LEADERBOARD-A11Y-1
 // SVG replacements for the cleaned-emoji gaps in this file. Original file
-// had 🥇🥈🥉 medals + a 🏆 in the page title; they were stripped to empty
+// had ●●● medals + a ★ in the page title; they were stripped to empty
 // strings + the literal word 'Trophy' but never replaced. Lucide-style
 // SVGs with currentColor inheritance restore the visual + a11y semantics.
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function TrophyIcon({ size = 22, color = 'currentColor' }) {
   return (
@@ -97,7 +97,7 @@ export default function TrainingLeaderboard() {
       .catch(() => setFriendIds([]));
   }, [user]);
 
-  // 🔌 Bus listener: auto-refresh leaderboard when a training session completes
+  // Bus listener: auto-refresh leaderboard when a training session completes
   const { mutate } = useSWRConfig();
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
@@ -150,7 +150,7 @@ export default function TrainingLeaderboard() {
 
         <div style={styles.content}>
           {/* TRAIN-LEADERBOARD-A11Y-1: was 'Trophy Training Leaderboard' (a
-              cleaned-emoji artifact — original title was '🏆 Training
+              cleaned-emoji artifact — original title was '★ Training
               Leaderboard'). Restore the icon as proper SVG. */}
           <h1 style={{ ...styles.title, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
             <TrophyIcon size={24} color="#FFD700" />
@@ -270,9 +270,9 @@ export default function TrainingLeaderboard() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function LeaderboardEntry({
   rank,
@@ -292,7 +292,7 @@ function LeaderboardEntry({
   };
 
   // TRAIN-LEADERBOARD-A11Y-1: previously returned empty strings (emojis
-  // 🥇🥈🥉 were stripped but never replaced). Return a SVG MedalIcon for
+  // ●●● were stripped but never replaced). Return a SVG MedalIcon for
   // top-3 ranks; rank colour from getRankColor() flows via currentColor.
   const getRankIcon = () => {
     if (rank === 1) return <MedalIcon rank={1} size={26} color="#FFD700" />;
@@ -340,9 +340,9 @@ function LeaderboardEntry({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const styles = {
   container: {

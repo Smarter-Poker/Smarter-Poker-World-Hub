@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POSTFLOP SCENARIO GENERATOR — Builds L8-L10 Training Scenarios
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Generates postflop training scenarios with GTO-correct solutions:
  *   Level 8:  Flop decisions (c-bet, check-raise, float)
@@ -17,7 +17,7 @@
  *
  * Integrates with the existing SolverScenarioGenerator pipeline
  * so L8-10 work identically to L1-7 in the training UI.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { DeckEngine, RANK_VALUES, handToCards } from './DeckEngine';
@@ -41,7 +41,7 @@ import {
 } from './PostflopStrategyEngine';
 import { lookupCheckRaiseStrategy } from '../config/postflopSolverData';
 
-// ── Scenario Templates ───────────────────────────────────────────────────
+// ●● Scenario Templates ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Curated starting hands for scenario generation.
@@ -88,7 +88,7 @@ const POSITION_MATCHUPS = [
     { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true, posContext: 'OOP' },
 ];
 
-// ── Board Generation ─────────────────────────────────────────────────────
+// ●● Board Generation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a realistic board with specific texture characteristics.
@@ -129,9 +129,9 @@ function resolveHeroCards(handNotation, existingDeadCards = [], seed) {
     return valid[idx];
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LEVEL 8: FLOP DECISIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate Level 8 scenarios — Flop play.
@@ -249,7 +249,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
         const sizeDist = strategy.sizeDistribution;
 
         if (sizeDist && Object.keys(sizeDist || {}).length > 1) {
-            // ═══ MULTI-SIZING MODE (GTO Wizard-style) ═══
+            // ●●● MULTI-SIZING MODE (GTO Wizard-style) ●●●
             // Split the total bet frequency across multiple sizing options
             const sizeLabels = {
                 s33: { label: 'Bet 33% Pot', fraction: 0.33 },
@@ -323,7 +323,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
             return options;
         }
 
-        // ═══ SINGLE-SIZE FALLBACK (original behavior) ═══
+        // ●●● SINGLE-SIZE FALLBACK (original behavior) ●●●
         const betSize = strategy.sizing || BET_SIZES.MEDIUM;
         return [
             {
@@ -399,9 +399,9 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LEVEL 9: TURN DECISIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate Level 9 scenarios — Turn play.
@@ -474,9 +474,9 @@ export function generateLevel9() {
     return scenarios;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LEVEL 10: RIVER DECISIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate Level 10 scenarios — River play.
@@ -693,9 +693,9 @@ function buildRiverOptions(strategy, madeHand, prevAction) {
     return buildMultiSizeOptions(strategy, 'river');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MASTER GENERATOR — All postflop levels
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 let _cachedPostflopScenarios = null;
 

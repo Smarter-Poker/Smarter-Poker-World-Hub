@@ -1,13 +1,13 @@
 /**
  * PREFLOP RANGE CHARTS
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visual preflop opening/3-bet/4-bet charts:
  * - 13x13 interactive range grid
  * - Multiple chart types (RFI, vs 3-bet, 3-bet, 4-bet, cold call)
  * - Position-based charts
  * - Color-coded by action frequency
  * - Hand details on hover/click
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
@@ -80,7 +80,7 @@ function getFreqColor(freq, action) {
   return 'rgba(0,0,0,0.15)';
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function PreflopRangeCharts() {
   const [position, setPosition] = useState('BTN');
   const [chartType, setChartType] = useState('rfi');

@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const RANGE_CONCEPTS = [
-  { concept: 'Reading the 13x13 Grid', icon: '📊', color: '#3b82f6',
+  { concept: 'Reading the 13x13 Grid', icon: '■', color: '#3b82f6',
     detail: 'The range grid has 169 cells. Diagonal = pairs (AA to 22). Above diagonal = suited hands. Below = offsuit.',
     tip: 'Top-left is AA (strongest), bottom-right is 32o (weakest). Colors show action frequency.',
     practice: 'Open GTO Wizard and look at UTG opening range. Notice how tight the "green" area is.',
     key: 'Suited hands are always above their offsuit counterpart. AKs is top-right of AKo.' },
-  { concept: 'Color Coding Actions', icon: '🎨', color: '#22c55e',
+  { concept: 'Color Coding Actions', icon: '◇', color: '#22c55e',
     detail: 'Green = raise/bet. Red = fold. Blue = call. Yellow = mixed. The brighter the color, the higher the frequency.',
     tip: 'A cell that\'s half green/half blue means you should raise that hand 50% and call 50%.',
     practice: 'Look at BB defense vs BTN open. Notice how much blue (calling) there is.',
     key: 'Dark cells = always take that action. Light cells = sometimes. Mixed cells = both actions are close in EV.' },
-  { concept: 'Range Density', icon: '📈', color: '#f59e0b',
+  { concept: 'Range Density', icon: '▲', color: '#f59e0b',
     detail: 'A "tight" range looks like a small cluster in the top-left corner. A "wide" range fills most of the grid.',
     tip: 'UTG opens ~13% (tiny cluster). BTN opens ~40% (huge green area). BB defends ~40% (lots of blue).',
     practice: 'Compare UTG vs BTN opening ranges side by side. The difference is dramatic.',
     key: 'Count the filled cells to estimate range percentage. Each pair = 6 combos. Each suited = 4. Each offsuit = 12.' },
-  { concept: 'Board Filtering', icon: '🔍', color: '#ef4444',
+  { concept: 'Board Filtering', icon: '○', color: '#ef4444',
     detail: 'After the flop, ranges narrow. Hands that missed are removed. The grid gets sparser.',
     tip: 'On A♠K♦7♣: PFR still has lots of green (AK, AQ, AA, KK). Caller\'s grid is much thinner.',
     practice: 'Use GTO Wizard\'s range filter. See how villain\'s range changes on each street.',
     key: 'By the river, both ranges are very narrow. This is where hand-reading matters most.' },
-  { concept: 'Building Your Own Ranges', icon: '🏗️', color: '#8b5cf6',
+  { concept: 'Building Your Own Ranges', icon: '■', color: '#8b5cf6',
     detail: 'Start with GTO ranges, then adjust for your opponents. Add exploits as notes on each cell.',
     tip: 'Build ranges position by position: UTG first, then MP, CO, BTN, SB, BB.',
     practice: 'Print out a blank grid. Color in your opening range for each position. Memorize them.',
@@ -40,7 +40,7 @@ export default function RangeVisualization() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔲 Range Visualization
+        Range Visualization
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master the 13x13 range grid.</p>
 

@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const MTT_STAGES = [
-  { stage: 'Early Levels (100+ BB)', icon: '🌅', color: '#22c55e',
+  { stage: 'Early Levels (100+ BB)', icon: '○', color: '#22c55e',
     blinds: 'Levels 1-4 | Antes: None/Small',
     strategy: 'Play tight. Build a tight image. Speculate with small pairs and suited connectors deep-stacked.',
     avoid: 'Don\'t gamble for your tournament life early. The chips you win now are worth less than chips saved.',
     key: 'Patience. Let recreational players bust each other. Accumulate steadily, not recklessly.' },
-  { stage: 'Middle Levels (40-80 BB)', icon: '☀️', color: '#3b82f6',
+  { stage: 'Middle Levels (40-80 BB)', icon: '○', color: '#3b82f6',
     blinds: 'Levels 5-10 | Antes: Active',
     strategy: 'Open up. Steal blinds+antes. Start 3-betting wider. Accumulate chips for the push to the money.',
     avoid: 'Don\'t tighten up because "it\'s getting serious." Middle levels reward aggression.',
     key: 'Antes make stealing more profitable. Every pot has dead money. Attack passive tables.' },
-  { stage: 'Bubble (Near the Money)', icon: '🫧', color: '#f59e0b',
+  { stage: 'Bubble (Near the Money)', icon: '○', color: '#f59e0b',
     blinds: 'Varies | ICM: Maximum pressure',
     strategy: 'As big stack: ATTACK relentlessly. As medium/short: SURVIVE. Let others bust.',
     avoid: 'Don\'t risk your tournament with marginal hands as a medium stack. Survival = guaranteed payout.',
     key: 'ICM pressure is highest here. Big stacks should raise every hand. Short stacks need to shove or fold.' },
-  { stage: 'In the Money (20-40 BB)', icon: '💰', color: '#8b5cf6',
+  { stage: 'In the Money (20-40 BB)', icon: '●', color: '#8b5cf6',
     blinds: 'Levels 12+ | Pay jumps matter',
     strategy: 'After the bubble bursts, play for the win, not laddering. Re-accumulate aggressively.',
     avoid: 'Don\'t play scared money. Min-cashing is not the goal — you want a deep run.',
     key: 'The payout structure is top-heavy. 1st place is 20-30% of the total pool. Play to win.' },
-  { stage: 'Final Table (10 BB - Deep)', icon: '🏆', color: '#ef4444',
+  { stage: 'Final Table (10 BB - Deep)', icon: '★', color: '#ef4444',
     blinds: 'High | ICM: Critical at pay jumps',
     strategy: 'Stack-aware poker. Use ICM to determine aggression. Big stacks bully, shorts find spots.',
     avoid: 'Don\'t punt your stack in a marginal spot with pay jumps looming.',
@@ -40,7 +40,7 @@ export default function TournamentLifecycle() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🏟️ Tournament Lifecycle
+        ■ Tournament Lifecycle
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Adjust strategy through every MTT phase.</p>
 

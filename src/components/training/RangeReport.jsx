@@ -1,10 +1,10 @@
 /**
  * RangeReport — Aggregated Range Analysis Panel
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Donut chart showing Made Hands / Draws / Air distribution.
  * Per-category action breakdown. Board texture analysis.
  * Total combos and weighted average EV.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useMemo } from 'react';

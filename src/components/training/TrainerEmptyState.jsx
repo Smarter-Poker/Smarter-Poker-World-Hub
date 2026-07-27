@@ -1,6 +1,6 @@
 /**
  * TrainerEmptyState
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Shared empty-state primitive for trainer surfaces. Covers the three most
  * common cases:
  *   variant='no-data'     — "Complete some sessions first"

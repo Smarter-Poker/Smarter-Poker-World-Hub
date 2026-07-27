@@ -1,5 +1,5 @@
 /**
- * 🏅 TRAINING ACHIEVEMENTS COMPONENT
+ * TRAINING ACHIEVEMENTS COMPONENT
  * Shows unlocked and locked achievements with progress
  */
 
@@ -39,10 +39,10 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
 
     const categories = [
         { key: 'all', label: 'All' },
-        { key: 'accuracy', label: '🎯 Accuracy' },
-        { key: 'streak', label: '🔥 Streaks' },
-        { key: 'volume', label: '📚 Volume' },
-        { key: 'mastery', label: '🏆 Mastery' }
+        { key: 'accuracy', label: 'Accuracy' },
+        { key: 'streak', label: 'Streaks' },
+        { key: 'volume', label: 'Volume' },
+        { key: 'mastery', label: 'Mastery' }
     ];
 
     const filtered = selectedCategory === 'all'
@@ -55,7 +55,7 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <h3 style={styles.title}>🏅 Achievements</h3>
+                    <h3 style={styles.title}>Achievements</h3>
                     <span style={styles.progress}>
                         {stats.unlocked}/{stats.total} Unlocked
                     </span>
@@ -117,7 +117,7 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
                                     </div>
                                     <div style={styles.reward}>
                                         <span style={{ fontSize: 10, color: '#888' }}>Reward</span>
-                                        <span style={styles.diamonds}>💎 {ach.diamond_reward}</span>
+                                        <span style={styles.diamonds}>◆ {ach.diamond_reward}</span>
                                     </div>
                                 </motion.div>
                             );

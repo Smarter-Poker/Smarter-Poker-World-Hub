@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * LEAK DETECTOR — Auto-Identify Poker Leaks & Recommend Drills
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Aggregates stats from analyzed hand histories and training sessions:
  *   - Aggregate stats by position, street, action type
@@ -10,10 +10,10 @@
  *   - Auto-generate recommended drill configurations
  *
  * Works with HandAnalyzer output and SessionTracker history.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── GTO Benchmark Values ─────────────────────────────────────────────────
+// ●● GTO Benchmark Values ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // These are approximate GTO frequencies for 6-max cash, 100BB
 
 const GTO_BENCHMARKS = {
@@ -71,7 +71,7 @@ const GTO_BENCHMARKS = {
     },
 };
 
-// ── Leak Types ───────────────────────────────────────────────────────────
+// ●● Leak Types ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const LEAK_TYPES = {
     TOO_TIGHT_PREFLOP: 'too_tight_preflop',
@@ -89,9 +89,9 @@ export const LEAK_TYPES = {
     POSITION_LEAK: 'position_leak',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LEAK DETECTION
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Detect leaks from a session analysis report.
@@ -258,9 +258,9 @@ function _checkPositionLeaks(positionStats, leaks) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FREQUENCY ANALYSIS — Compare player frequencies to GTO
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Analyze player frequencies vs GTO benchmarks.
@@ -367,9 +367,9 @@ export function analyzeFrequencies(decisions) {
     return { frequencies, comparisons };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DRILL RECOMMENDATIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate recommended drills based on detected leaks.

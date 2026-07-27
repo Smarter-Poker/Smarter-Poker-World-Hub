@@ -1,18 +1,18 @@
 /**
  * BLUFF CATCHER ANALYZER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyze bluff-catching decisions on the river:
  * - Minimum defense frequency (MDF) calculations
  * - Villain's value-to-bluff ratio analysis
  * - Hand ranking within your range
  * - Call/fold threshold identification
  * - EV calculations for calling vs folding
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ BLUFF CATCHING SCENARIOS ═══
+// ●●● BLUFF CATCHING SCENARIOS ●●●
 const SCENARIOS = [
   {
     id: 'river_half_pot',
@@ -132,7 +132,7 @@ function getRecColor(rec) {
   return '#f59e0b';
 }
 
-// ═══ RANGE PIE ═══
+// ●●● RANGE PIE ●●●
 function RangePie({ valueCombos, bluffCombos }) {
   const total = valueCombos + bluffCombos;
   const vPct = (valueCombos / total) * 100;
@@ -165,7 +165,7 @@ function RangePie({ valueCombos, bluffCombos }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function BluffCatcherAnalyzer() {
   const [selectedScenario, setSelectedScenario] = useState(SCENARIOS[0]);
 

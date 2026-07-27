@@ -1,6 +1,6 @@
 /**
  * TournamentStagesGuide — MTT Stage Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * How to adjust strategy across different tournament stages.
  */
 import React, { useState } from 'react';

@@ -1,17 +1,17 @@
 /**
- * 🌳 SOLVER TREE VIEWER — Interactive Game Tree Visualization
- * ═══════════════════════════════════════════════════════════════════════════
+ * SOLVER TREE VIEWER — Interactive Game Tree Visualization
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * SVG-based interactive tree graph showing solver decision branches.
  * Nodes: decision (action), chance (card), terminal (showdown/fold).
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TREE DATA GENERATOR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const ACTION_STYLES = {
     raise: { color: '#ef4444', label: 'Raise', abbr: 'R' },
@@ -147,9 +147,9 @@ function generateVillainResponses(heroAction, street, heroFreq) {
     return responses;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TREE NODE COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeWidth = 80, levelHeight = 70 }) {
     if (!node) return null;
@@ -283,9 +283,9 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function SolverTreeViewer({ spotDetail, width = 600, height = 400 }) {
     const [expandedNodes, setExpandedNodes] = useState(new Set(['root']));

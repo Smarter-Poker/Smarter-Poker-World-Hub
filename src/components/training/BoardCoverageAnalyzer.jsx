@@ -1,6 +1,6 @@
 /**
  * BoardCoverageAnalyzer — Range Board Coverage Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyze how well a range covers different board textures.
  * Shows which boards favor which positions.
  */

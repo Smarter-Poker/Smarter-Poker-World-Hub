@@ -48,7 +48,7 @@ export default function PowerUpBar({
                             }
                         }}
                         disabled={isDisabled}
-                        title={`${pu.name}: ${pu.description} (${pu.cost} 💎)`}
+                        title={`${pu.name}: ${pu.description} (${pu.cost} ◆)`}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -82,7 +82,7 @@ export default function PowerUpBar({
                             {isUsed ? 'USED' : isActive ? 'ACTIVE' : pu.cost}
                         </span>
                         {!isUsed && !isActive && (
-                            <span style={{ fontSize: compact ? 8 : 9, opacity: 0.5 }}>💎</span>
+                            <span style={{ fontSize: compact ? 8 : 9, opacity: 0.5 }}>◆</span>
                         )}
                     </button>
                 );

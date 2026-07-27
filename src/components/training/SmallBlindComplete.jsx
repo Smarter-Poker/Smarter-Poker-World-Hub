@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SB_STRATEGIES = [
-  { title: 'SB vs Open (3B or Fold)', color: '#ef4444', icon: '🔥',
+  { title: 'SB vs Open (3B or Fold)', color: '#ef4444', icon: '▲',
     desc: 'Against a raise, the SB should mostly 3-bet or fold. Calling creates a bloated pot OOP.',
     ranges: [
       { label: '3-Bet Value', hands: 'QQ+, AKs, AKo', color: '#22c55e' },
@@ -14,14 +14,14 @@ const SB_STRATEGIES = [
       { label: 'Fold', hands: 'Everything else — don\'t flat OOP', color: '#ef4444' },
     ],
     tip: 'Flatting from SB is a major leak. You\'re OOP with a capped range. 3-bet or fold.' },
-  { title: 'SB Complete vs Limp', color: '#22c55e', icon: '👣',
+  { title: 'SB Complete vs Limp', color: '#22c55e', icon: '·',
     desc: 'When there are limpers, SB can complete for 0.5 BB getting great odds.',
     ranges: [
       { label: 'Complete', hands: 'Any suited hand, small pairs, connectors — amazing pot odds', color: '#22c55e' },
       { label: 'Raise to ISO', hands: 'JJ+, AQ+, KQs — isolate the limpers', color: '#f59e0b' },
     ],
     tip: 'You\'re getting 3:1+ odds. Complete wide. But raise premiums to thin the field.' },
-  { title: 'SB vs BB (heads up)', color: '#3b82f6', icon: '⚔️',
+  { title: 'SB vs BB (heads up)', color: '#3b82f6', icon: '»',
     desc: 'SB vs BB is a unique dynamic. Open to 2.5-3x with a wide range.',
     ranges: [
       { label: 'Open-Raise', hands: '~55-65% of hands — very wide', color: '#22c55e' },
@@ -38,7 +38,7 @@ export default function SmallBlindComplete() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎲 Small Blind Strategy
+        Small Blind Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The hardest position — minimize losses with the right approach.</p>
 
@@ -65,7 +65,7 @@ export default function SmallBlindComplete() {
         ))}
 
         <div style={{ marginTop: 8, background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>💡 Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Insight</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{strat.tip}</div>
         </div>
       </motion.div>

@@ -351,7 +351,7 @@ const GameArena: React.FC<GameArenaProps> = ({
 
                 {/* Diamond Display */}
                 <div style={styles.xpContainer}>
-                    <span style={styles.xpIcon}>💎</span>
+                    <span style={styles.xpIcon}>◆</span>
                     <span style={styles.xpValue}>{totalDiamonds}</span>
                     <AnimatePresence>
                         {recentDiamonds > 0 && (
@@ -387,7 +387,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                 {/* PIO Engine - Use GameSession */}
                 {engineType === 'PIO' && currentHand && (
                     <div style={styles.pioPlaceholder}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>◆</div>
                         <h2>PIO Engine</h2>
                         <p>Hand: {currentHand.heroHand || 'AhKs'}</p>
                         <p>Board: {currentHand.board || 'Qh Jd 7c'}</p>
@@ -495,13 +495,13 @@ const GameArena: React.FC<GameArenaProps> = ({
                             animate={{ scale: 1 }}
                             style={{ ...styles.failedModal }}
                         >
-                            <div style={{ fontSize: 64, marginBottom: 16 }}>💔</div>
+                            <div style={{ fontSize: 64, marginBottom: 16 }}>▼</div>
                             <h2 style={{ color: '#ff4444', margin: 0 }}>LEVEL FAILED</h2>
                             <p style={styles.modalText}>You Ran Out Of HP!</p>
                             <p>Accuracy: {handNumber > 0 ? Math.round((correctCount / handNumber) * 100) : 0}%</p>
                             <div style={styles.modalButtons}>
                                 <button onClick={handleRetry} style={styles.retryBtn}>
-                                    🔄 Try Again
+                                    Try Again
                                 </button>
                                 <button onClick={onExit} style={styles.exitBtn}>
                                     Exit
@@ -530,7 +530,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                             }}
                         >
                             <div style={{ fontSize: 64, marginBottom: 16 }}>
-                                {sessionStats.passed ? '🏆' : '📊'}
+                                {sessionStats.passed ? '★' : '■'}
                             </div>
                             <h2 style={{
                                 color: sessionStats.passed ? '#00ff88' : '#ffaa00',
@@ -563,7 +563,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                                 ) : (
                                     <>
                                         <button onClick={handleRetry} style={styles.retryBtn}>
-                                            🔄 Try Again
+                                            Try Again
                                         </button>
                                         <button onClick={onExit} style={styles.exitBtn}>
                                             Exit

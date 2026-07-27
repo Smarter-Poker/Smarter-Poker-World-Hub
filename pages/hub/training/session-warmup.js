@@ -1,11 +1,11 @@
 /**
  * SESSION WARMUP PROTOCOL — Pre-Session Readiness System
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive 6-step protocol with mental check, strategy focus,
  * bankroll stop-loss, warmup timer, and Supabase completion logging.
  *
  * Route: /hub/training/session-warmup
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-52 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -26,7 +26,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 
 // BUG FIX (TRAIN-WARMUP-A11Y-1): SVG icon components replacing the
-// pre-session readiness emoji set (🧠 🎯 📝 ♟️ 🛑 ⏱️ step icons, ✓
+// pre-session readiness emoji set (◇ ◆ · ● ▲ ○ step icons, ✓
 // completion checkmark, ← back). PROTOCOL_STEPS gains iconKind; legacy
 // emoji icon string preserved. Same surface-specific a11y pattern as PR
 // #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337.
@@ -68,7 +68,7 @@ const PROTOCOL_STEPS = [
     title: 'Mental State Check',
     desc: 'Are you rested, hydrated, and emotionally neutral? Rate your current readiness.',
     options: ['Locked In', 'Good Enough', 'Slightly Off', 'Tilted'],
-    icon: '🧠',
+    icon: '◇',
   },
   {
     id: 'focus',
@@ -76,7 +76,7 @@ const PROTOCOL_STEPS = [
     title: 'Distractions Cleared',
     desc: 'Is your phone away? Are other browser tabs closed? Have you set your environment for peak focus?',
     options: ['100% Cleared', 'Mostly Clear', 'Still Distracted'],
-    icon: '🎯',
+    icon: '◆',
   },
   {
     id: 'review',
@@ -85,7 +85,7 @@ const PROTOCOL_STEPS = [
     desc: 'Think about your last session. What was your biggest mistake? What would you do differently?',
     input: true,
     placeholder: 'My biggest mistake last session was...',
-    icon: '📝',
+    icon: '·',
   },
   {
     id: 'strategy',
@@ -94,7 +94,7 @@ const PROTOCOL_STEPS = [
     desc: 'What is the ONE leak you are actively working on today? Be specific.',
     input: true,
     placeholder: 'Today I am focusing on...',
-    icon: '♟️',
+    icon: '●',
   },
   {
     id: 'br',
@@ -104,7 +104,7 @@ const PROTOCOL_STEPS = [
     input: true,
     type: 'number',
     placeholder: 'Buy-ins (e.g., 3)',
-    icon: '🛑',
+    icon: '▲',
   },
   {
     id: 'timer',
@@ -112,7 +112,7 @@ const PROTOCOL_STEPS = [
     title: 'Session Duration',
     desc: 'Set your planned session length. Quality drops after 60 minutes for most players. Shorter focused sessions beat long unfocused grinds.',
     options: ['30 min', '45 min', '60 min', '90 min', '120 min'],
-    icon: '⏱️',
+    icon: '○',
   },
 ];
 
@@ -508,7 +508,7 @@ export default function SessionWarmupPage() {
               </motion.div>
             </AnimatePresence>
           ) : (
-            /* ═══ COMPLETION SCREEN ═══ */
+            /* ●●● COMPLETION SCREEN ●●● */
             <motion.div
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}

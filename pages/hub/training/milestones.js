@@ -30,7 +30,7 @@ const TIERS = {
 
 
 // BUG FIX (TRAIN-MILESTONES-A11Y-1): SVG icon components replacing the 25
-// emoji icons in MILESTONE_DEFS, plus emoji 🎁 (reward) and ✅ (rewarded
+// emoji icons in MILESTONE_DEFS, plus emoji (reward) and ✓ (rewarded
 // indicator) in the render path. Each milestone definition gains an
 // `iconKind` field consumed by MilestoneIcon. Legacy `icon` emoji string
 // preserved for any external consumer reading the data shape. Same surface-
@@ -112,7 +112,7 @@ const MILESTONE_DEFS = [
     name: 'First Steps',
     desc: 'Complete your first training session',
     iconKind: 'target',
-    icon: '🎯',
+    icon: '',
     getProgress: (s) => ({ c: s.totalSessions, t: 1 }),
   },
   {
@@ -121,7 +121,7 @@ const MILESTONE_DEFS = [
     name: 'Getting Serious',
     desc: 'Complete 10 training sessions',
     iconKind: 'trending-up',
-    icon: '📈',
+    icon: '',
     getProgress: (s) => ({ c: s.totalSessions, t: 10 }),
   },
   {
@@ -130,7 +130,7 @@ const MILESTONE_DEFS = [
     name: 'Dedicated Pro',
     desc: 'Complete 50 training sessions',
     iconKind: 'flame',
-    icon: '🔥',
+    icon: '▲',
     getProgress: (s) => ({ c: s.totalSessions, t: 50 }),
   },
   {
@@ -139,7 +139,7 @@ const MILESTONE_DEFS = [
     name: 'Centurion',
     desc: 'Complete 100 training sessions',
     iconKind: 'diamond',
-    icon: '💎',
+    icon: '',
     getProgress: (s) => ({ c: s.totalSessions, t: 100 }),
   },
   {
@@ -148,7 +148,7 @@ const MILESTONE_DEFS = [
     name: 'Library Scholar',
     desc: 'Complete 500 training sessions',
     iconKind: 'book',
-    icon: '📚',
+    icon: '',
     getProgress: (s) => ({ c: s.totalSessions, t: 500 }),
   },
 
@@ -159,7 +159,7 @@ const MILESTONE_DEFS = [
     name: 'Century Club',
     desc: 'Train on 100 hands',
     iconKind: 'percent',
-    icon: '💯',
+    icon: '',
     getProgress: (s) => ({ c: s.totalHands, t: 100 }),
   },
   {
@@ -168,7 +168,7 @@ const MILESTONE_DEFS = [
     name: 'Grinder',
     desc: 'Train on 500 hands',
     iconKind: 'bolt',
-    icon: '⚡',
+    icon: '',
     getProgress: (s) => ({ c: s.totalHands, t: 500 }),
   },
   {
@@ -177,7 +177,7 @@ const MILESTONE_DEFS = [
     name: 'Iron Will',
     desc: 'Train on 1,000 hands',
     iconKind: 'dumbbell',
-    icon: '🏋️',
+    icon: '',
     getProgress: (s) => ({ c: s.totalHands, t: 1000 }),
   },
   {
@@ -186,7 +186,7 @@ const MILESTONE_DEFS = [
     name: 'Volume Monster',
     desc: 'Train on 5,000 hands',
     iconKind: 'dragon',
-    icon: '🐉',
+    icon: '',
     getProgress: (s) => ({ c: s.totalHands, t: 5000 }),
   },
   {
@@ -195,7 +195,7 @@ const MILESTONE_DEFS = [
     name: 'GTO Zenith',
     desc: 'Train on 10,000 hands',
     iconKind: 'galaxy',
-    icon: '🌌',
+    icon: '',
     getProgress: (s) => ({ c: s.totalHands, t: 10000 }),
   },
 
@@ -206,7 +206,7 @@ const MILESTONE_DEFS = [
     name: 'Finding Range',
     desc: 'Achieve 60% overall accuracy',
     iconKind: 'scale',
-    icon: '⚖️',
+    icon: '',
     getProgress: (s) => ({ c: s.avgAccuracy, t: 60 }),
   },
   {
@@ -215,7 +215,7 @@ const MILESTONE_DEFS = [
     name: 'Above Average',
     desc: 'Achieve 70% overall accuracy',
     iconKind: 'chart-bar',
-    icon: '📊',
+    icon: '',
     getProgress: (s) => ({ c: s.avgAccuracy, t: 70 }),
   },
   {
@@ -224,7 +224,7 @@ const MILESTONE_DEFS = [
     name: 'Sharp Shooter',
     desc: 'Achieve 80% overall accuracy',
     iconKind: 'target',
-    icon: '🎯',
+    icon: '',
     getProgress: (s) => ({ c: s.avgAccuracy, t: 80 }),
   },
   {
@@ -233,7 +233,7 @@ const MILESTONE_DEFS = [
     name: 'GTO Machine',
     desc: 'Achieve 90% overall accuracy',
     iconKind: 'robot',
-    icon: '🤖',
+    icon: '',
     getProgress: (s) => ({ c: s.avgAccuracy, t: 90 }),
   },
   {
@@ -242,7 +242,7 @@ const MILESTONE_DEFS = [
     name: 'Solver Incarnate',
     desc: 'Achieve 95% overall accuracy',
     iconKind: 'crystal-ball',
-    icon: '🔮',
+    icon: '',
     getProgress: (s) => ({ c: s.avgAccuracy, t: 95 }),
   },
 
@@ -253,7 +253,7 @@ const MILESTONE_DEFS = [
     name: 'On a Roll',
     desc: '3 consecutive training days',
     iconKind: 'runner',
-    icon: '🏃',
+    icon: '',
     getProgress: (s) => ({ c: s.maxStreak, t: 3 }),
   },
   {
@@ -262,7 +262,7 @@ const MILESTONE_DEFS = [
     name: 'Week Warrior',
     desc: '7 consecutive training days',
     iconKind: 'calendar',
-    icon: '🗓️',
+    icon: '',
     getProgress: (s) => ({ c: s.maxStreak, t: 7 }),
   },
   {
@@ -271,7 +271,7 @@ const MILESTONE_DEFS = [
     name: 'Fortnight Focus',
     desc: '14 consecutive training days',
     iconKind: 'star',
-    icon: '⭐',
+    icon: '★',
     getProgress: (s) => ({ c: s.maxStreak, t: 14 }),
   },
   {
@@ -280,7 +280,7 @@ const MILESTONE_DEFS = [
     name: 'Monthly Legend',
     desc: '30 consecutive training days',
     iconKind: 'trophy',
-    icon: '🏆',
+    icon: '',
     getProgress: (s) => ({ c: s.maxStreak, t: 30 }),
   },
   {
@@ -289,7 +289,7 @@ const MILESTONE_DEFS = [
     name: 'Unstoppable Force',
     desc: '100 consecutive training days',
     iconKind: 'volcano',
-    icon: '🌋',
+    icon: '',
     getProgress: (s) => ({ c: s.maxStreak, t: 100 }),
   },
 
@@ -300,7 +300,7 @@ const MILESTONE_DEFS = [
     name: 'Explorer',
     desc: 'Train on 3 different game types',
     iconKind: 'search',
-    icon: '🔍',
+    icon: '',
     getProgress: (s) => ({ c: s.uniqueGames, t: 3 }),
   },
   {
@@ -309,7 +309,7 @@ const MILESTONE_DEFS = [
     name: 'Variety Pack',
     desc: 'Train on 5 different game types',
     iconKind: 'dice',
-    icon: '🎲',
+    icon: '◆',
     getProgress: (s) => ({ c: s.uniqueGames, t: 5 }),
   },
   {
@@ -318,7 +318,7 @@ const MILESTONE_DEFS = [
     name: 'Well Rounded',
     desc: 'Train on 10 different game types',
     iconKind: 'star-shine',
-    icon: '🌟',
+    icon: '',
     getProgress: (s) => ({ c: s.uniqueGames, t: 10 }),
   },
   {
@@ -327,7 +327,7 @@ const MILESTONE_DEFS = [
     name: 'Polymath',
     desc: 'Train on 15 different game types',
     iconKind: 'brain',
-    icon: '🧠',
+    icon: '',
     getProgress: (s) => ({ c: s.uniqueGames, t: 15 }),
   },
   {
@@ -336,7 +336,7 @@ const MILESTONE_DEFS = [
     name: 'Omniscient',
     desc: 'Train on 20 different game types',
     iconKind: 'eye',
-    icon: '👁️',
+    icon: '',
     getProgress: (s) => ({ c: s.uniqueGames, t: 20 }),
   },
 
@@ -347,7 +347,7 @@ const MILESTONE_DEFS = [
     name: 'Perfect Round',
     desc: 'Score 100% in a single session',
     iconKind: 'crown',
-    icon: '👑',
+    icon: '',
     getProgress: (s) => ({ c: s.hadPerfect ? 1 : 0, t: 1 }),
   },
 ];
@@ -659,7 +659,7 @@ export default function MilestonesPage() {
                       gap: 6,
                     }}
                   >
-                    {/* TRAIN-MILESTONES-A11Y-1: SVG gift replaces 🎁 */}
+                    {/* TRAIN-MILESTONES-A11Y-1: SVG gift replaces */}
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-hidden><GiftIcon size={14} /></span>
                       Reward:
@@ -738,7 +738,7 @@ export default function MilestonesPage() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', display: 'inline-flex', justifyContent: 'flex-end' }} aria-hidden>
-                          {/* TRAIN-MILESTONES-A11Y-1: SVG check replaces ✅ */}
+                          {/* TRAIN-MILESTONES-A11Y-1: SVG check replaces ✓ */}
                           <CheckIcon size={14} />
                         </div>
                         <div

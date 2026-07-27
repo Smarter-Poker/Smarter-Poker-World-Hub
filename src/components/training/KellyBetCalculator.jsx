@@ -1,6 +1,6 @@
 /**
  * KellyBetCalculator — Kelly Criterion Bankroll Management
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate optimal buy-in as a fraction of bankroll using Kelly criterion.
  * Shows full Kelly, half Kelly, and conservative recommendations.
  */

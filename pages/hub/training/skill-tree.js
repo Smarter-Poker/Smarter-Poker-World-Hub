@@ -27,7 +27,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BRANCH ICONS — TRAIN-SKILL-TREE-A11Y-1
-// SVG replacements for the previous emoji icons (🃏, 🎯, ⚡, 👑) per handoff
+// SVG replacements for the previous emoji icons (, , , ) per handoff
 // §4 'no-emoji-icons' anti-pattern. Stroke colour inherits via currentColor
 // so each branch's existing colour token still drives the visual.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -89,7 +89,7 @@ const SKILL_BRANCHES = [
     id: 'preflop',
     name: 'Preflop Foundations',
     color: 'var(--sp-accent-blue)',
-    icon: '🃏',
+    icon: '',
     nodes: [
       { id: 'open-raise', name: 'Open Raise', threshold: 60, xp: 100, gameId: 'cash-preflop' },
       {
@@ -122,7 +122,7 @@ const SKILL_BRANCHES = [
     id: 'postflop',
     name: 'Postflop Mastery',
     color: 'var(--sp-accent-green)',
-    icon: '🎯',
+    icon: '',
     nodes: [
       { id: 'cbet-basics', name: 'C-Bet Basics', threshold: 60, xp: 100, gameId: 'cash-cbet' },
       {
@@ -155,7 +155,7 @@ const SKILL_BRANCHES = [
     id: 'advanced',
     name: 'Advanced Theory',
     color: 'var(--sp-accent-purple)',
-    icon: '⚡',
+    icon: '',
     nodes: [
       {
         id: 'pot-geometry',
@@ -194,7 +194,7 @@ const SKILL_BRANCHES = [
     id: 'mastery',
     name: 'GTO Mastery',
     color: 'var(--sp-accent-amber)',
-    icon: '👑',
+    icon: '',
     nodes: [
       { id: 'icm-mastery', name: 'ICM Mastery', threshold: 70, xp: 300, gameId: 'mtt-icm' },
       {
@@ -316,7 +316,7 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
             fontSize: 14,
           }}
         >
-          {/* TRAIN-SKILL-TREE-A11Y-1: SVG status icon (was emoji 🔒/✅/🎯). */}
+          {/* TRAIN-SKILL-TREE-A11Y-1: SVG status icon (was emoji /✓/). */}
           {isLocked ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"

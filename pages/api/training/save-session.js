@@ -13,7 +13,7 @@ import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
           // 4. BUG-05 FIX: Award speed bonus diamonds to user's balance
           // SECURITY: Server-side cap — max legitimate speed bonus is ~50 diamonds
           const safeSpeedBonus = Math.max(0, Math.min(parseInt(speedBonusDiamonds, 10) || 0, 50));
-          // ═══ 2026-07-26 AUDIT FIX: record the training streak ═══
+          // ●●● 2026-07-26 AUDIT FIX: record the training streak ●●●
           // POST /api/training/streak was the only writer of training_streaks
           // and had no live caller (its callers are components with zero
           // importers, sending no auth header). The table had 0 rows, so

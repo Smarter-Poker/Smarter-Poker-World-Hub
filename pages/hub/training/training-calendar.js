@@ -1,11 +1,11 @@
 /**
  * TRAINING CALENDAR — Activity Heatmap
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GitHub-style contribution heatmap showing daily training activity.
  * Clickable days, streak counter, monthly stats.
  *
  * Route: /hub/training/training-calendar
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-61 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -52,7 +52,7 @@ const INTENSITY_COLORS = [
 
 
 // BUG FIX (TRAIN-CALENDAR-A11Y-1): SVG icon components replacing the
-// goal-met 🌟 indicator and the bare ← back arrow entity. Heatmap cells
+// goal-met ★ indicator and the bare ← back arrow entity. Heatmap cells
 // gain per-day aria-labels so screen readers announce date+hands when
 // focused/inspected. Same surface-specific a11y pattern as PR #320/
 // #322/#324/#327/#328/#329/#330/#331/#332/#333.
@@ -474,7 +474,7 @@ export default function TrainingCalendarPage() {
                   </div>
                   {todayHands >= 50 && (
                     <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces 🌟 */}
+                      {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces ★ */}
                       <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
                       Goal Met! +1 to Streak
                     </div>

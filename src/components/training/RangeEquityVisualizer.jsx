@@ -1,6 +1,6 @@
 /**
  * RANGE vs RANGE EQUITY VISUALIZER — GTO Wizard-Style Equity Matchup
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Interactive 13×13 grid showing how hero's range interacts with villain's
  * range on different boards. Key features:
@@ -12,7 +12,7 @@
  *
  * Uses HandStrengthEngine for equity calculations and BoardTextureEngine
  * for texture classification, entirely local — no API calls.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMadeHand, classifyDraws, evaluateHand } from '../../engines/HandStrengthEngine';
 import { analyzeBoard } from '../../engines/BoardTextureEngine';
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['h', 'd', 'c', 's'];
@@ -55,7 +55,7 @@ const DEFAULT_VILLAIN_RANGE = {
     '76s': 1, '75s': 0.3, '65s': 1, '54s': 0.8, '43s': 0.3, '32s': 0.2,
 };
 
-// ── Equity Calculator (simplified but fast) ─────────────────────────────
+// ●● Equity Calculator (simplified but fast) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function estimateHandEquity(heroHand, board, vilRange) {
     try {
@@ -88,7 +88,7 @@ function boardConflicts(heroCards, boardCards) {
     ));
 }
 
-// ── Equity Grid Cell ────────────────────────────────────────────────────
+// ●● Equity Grid Cell ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const EquityCell = memo(({ hand, equity, inHeroRange, inVilRange, isSelected, onClick }) => {
     const isPair = hand.length === 2;
@@ -149,7 +149,7 @@ const EquityCell = memo(({ hand, equity, inHeroRange, inVilRange, isSelected, on
     );
 });
 
-// ── Equity Distribution Chart ───────────────────────────────────────────
+// ●● Equity Distribution Chart ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const EquityDistribution = memo(({ equityData }) => {
     if (!equityData || equityData.length === 0) return null;
@@ -195,7 +195,7 @@ const EquityDistribution = memo(({ equityData }) => {
     );
 });
 
-// ── Board Texture Summary ───────────────────────────────────────────────
+// ●● Board Texture Summary ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const BoardTextureSummary = memo(({ board }) => {
     const texture = useMemo(() => {
@@ -229,7 +229,7 @@ const BoardTextureSummary = memo(({ board }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function RangeEquityVisualizer({ board: propBoard, heroRange: propHeroRange, vilRange: propVilRange }) {
     const [boardInput, setBoardInput] = useState(propBoard ? (Array.isArray(propBoard) ? propBoard.join(' ') : propBoard) : '');
@@ -551,7 +551,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
     );
 }
 
-// ── Compact variant for embedding ───────────────────────────────────────
+// ●● Compact variant for embedding ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export function RangeEquityMini({ board, heroRange, vilRange }) {
     const boardCards = useMemo(() => {

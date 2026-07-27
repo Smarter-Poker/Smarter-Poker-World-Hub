@@ -1,6 +1,6 @@
 /**
  * ContinuationBetGuide — Complete C-Bet Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Comprehensive guide covering c-bet strategy across all streets,
  * board textures, and positions. Interactive scenarios.
  */

@@ -1,6 +1,6 @@
 /**
  * BettingPatternAnalyzer — Common Villain Betting Pattern Explorer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Identify and exploit common betting patterns. Learn what different
  * bet sizes and lines typically represent.
  */
@@ -10,7 +10,7 @@ const PATTERNS = [
   {
     name: 'Min-Bet / Small Sizing',
     line: 'Villain bets 25-33% pot',
-    icon: '🔸',
+    icon: '·',
     color: '#f59e0b',
     meaning: 'Often indicates: blocking bet, thin value, or weak hand trying to control pot. Rarely a strong hand — strong hands want to build pot.',
     exploit: 'Raise frequently as a bluff. Villain is showing weakness. If they call your raise, they likely have a medium-strength hand — barrel turn.',
@@ -23,7 +23,7 @@ const PATTERNS = [
   {
     name: 'Overbet (>Pot)',
     line: 'Villain bets 125-200% pot',
-    icon: '💣',
+    icon: '▲',
     color: '#ef4444',
     meaning: 'Highly polarized — either the nuts or a bluff. Very few medium-strength hands take this line. Recreational players often overbet with the nuts.',
     exploit: 'Defend with your strongest hands and best bluff-catchers. Fold medium hands. Against recs, lean toward calling less (they overbet value). Against regs, call more (they overbet bluff).',
@@ -36,7 +36,7 @@ const PATTERNS = [
   {
     name: 'Check-Raise',
     line: 'Check → Raise after bet',
-    icon: '⚡',
+    icon: '⌁',
     color: '#8b5cf6',
     meaning: 'Very strong in most player pools. At low stakes, check-raise is almost always value-heavy (sets, two pair, strong draws). GTO players balance with bluffs.',
     exploit: 'Against most players, give credit and fold marginal hands. Only continue with top pair+ or strong draws. Against aggressive regs, call down wider.',
@@ -49,7 +49,7 @@ const PATTERNS = [
   {
     name: 'Bet-Check-Bet',
     line: 'Bets flop → Checks turn → Bets river',
-    icon: '🔄',
+    icon: '↻',
     color: '#3b82f6',
     meaning: 'Classic pot control or delayed value line. Checking turn suggests medium strength, then river bet could be thin value or a delayed bluff.',
     exploit: 'If villain bets river small, call wide — likely thin value. If villain bets river big, lean toward folding — likely gave up on turn and now value-betting or bluffing polarized.',
@@ -62,7 +62,7 @@ const PATTERNS = [
   {
     name: 'Triple Barrel',
     line: 'Bets all three streets',
-    icon: '🎯',
+    icon: '◆',
     color: '#10b981',
     meaning: 'Very strong or very weak. Triple barrels represent either value hands (overpairs+, sets) or committed bluffs (missed draws). Medium hands check at some point.',
     exploit: 'Pay attention to sizing patterns. If sizing increases each street = likely value. If sizing decreases = possibly running out of steam. Call with strong hands, fold weak.',
@@ -75,7 +75,7 @@ const PATTERNS = [
   {
     name: 'Limp-Raise (Preflop)',
     line: 'Limp → Raise after someone opens',
-    icon: '🪤',
+    icon: '◆',
     color: '#ec4899',
     meaning: 'Almost always AA or KK. This is one of the most reliable tells in poker. Recreational players limp-raise with premium pairs to trap.',
     exploit: 'Fold everything except QQ+ and AKs. If you have AA/KK, play for stacks. Dont try to outplay a limp-raiser — they have it.',

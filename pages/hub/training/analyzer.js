@@ -1,5 +1,5 @@
 /**
- * 🔍 HAND ANALYZER — GTO Wizard-Style Hand Review & Leak Detection
+ * HAND ANALYZER — GTO Wizard-Style Hand Review & Leak Detection
  * ═══════════════════════════════════════════════════════════════════════════
  * Upload hand histories from online poker sites and compare each decision
  * against GTO solver data. Identifies leaks and provides aggregate reports.
@@ -31,11 +31,11 @@ import Card from '../../../src/components/training/Card';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ACTION_MAP = {
-  fold: { label: 'Fold', color: 'var(--sp-fg-dim)', icon: '🃏' },
-  check: { label: 'Check', color: 'var(--sp-accent-blue)', icon: '✋' },
-  call: { label: 'Call', color: 'var(--sp-accent-green)', icon: '📞' },
-  bet: { label: 'Bet', color: 'var(--sp-accent-red)', icon: '💰' },
-  raise: { label: 'Raise', color: 'var(--sp-accent-amber)', icon: '🚀' },
+  fold: { label: 'Fold', color: 'var(--sp-fg-dim)', icon: ''},
+  check: { label: 'Check', color: 'var(--sp-accent-blue)', icon: ''},
+  call: { label: 'Call', color: 'var(--sp-accent-green)', icon: ''},
+  bet: { label: 'Bet', color: 'var(--sp-accent-red)', icon: ''},
+  raise: { label: 'Raise', color: 'var(--sp-accent-amber)', icon: ''},
 };
 
 const STREET_COLORS = {
@@ -739,7 +739,7 @@ export default function HandAnalyzer() {
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>📂</div>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}></div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
                     Drop a file, multiple files, or a folder
                   </div>
@@ -804,7 +804,7 @@ export default function HandAnalyzer() {
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
-                  🔍 Analyze Hands
+                   Analyze Hands
                 </motion.button>
               </div>
 
@@ -822,7 +822,7 @@ export default function HandAnalyzer() {
                     color: 'var(--sp-accent-red)',
                   }}
                 >
-                  ⚠️ No valid hands found. Make sure the text contains PokerStars-format hand
+                  ▲ No valid hands found. Make sure the text contains PokerStars-format hand
                   histories.
                 </motion.div>
               )}

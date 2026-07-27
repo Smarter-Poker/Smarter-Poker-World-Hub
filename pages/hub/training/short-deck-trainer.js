@@ -1,11 +1,11 @@
 /**
  * SHORT DECK TRAINER — 36-Card Dynamics & Equity Quiz
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Full trainer with hand-picking, board dealing, equity quiz mode,
  * Short Deck rule differences, and Supabase session persistence.
  *
  * Route: /hub/training/short-deck-trainer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-5 — adoption of --sp-* token contract from PR #470
@@ -391,7 +391,7 @@ export default function ShortDeckTrainerPage() {
                 Rule Shift: Flush BEATS Full House
               </div>
               <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
-                {showRules ? '▲ Hide' : '▼ Show All'}
+                {showRules ? '● Hide' : '● Show All'}
               </span>
             </div>
             <AnimatePresence>
@@ -427,7 +427,7 @@ export default function ShortDeckTrainerPage() {
           </motion.div>
 
           {mode === 'calc' ? (
-            /* ═══ EQUITY CALCULATOR MODE ═══ */
+            /* ●●● EQUITY CALCULATOR MODE ●●● */
             <>
               {/* Hero Cards */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
@@ -564,7 +564,7 @@ export default function ShortDeckTrainerPage() {
               </AnimatePresence>
             </>
           ) : (
-            /* ═══ QUIZ MODE ═══ */
+            /* ●●● QUIZ MODE ●●● */
             <div style={{ textAlign: 'center' }}>
               {/* TRAIN-WIRE-PROGRESS-STRIP-3 — shared ProgressStrip (quiz mode) */}
               {quizScore.total > 0 ? (

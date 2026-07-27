@@ -1,11 +1,11 @@
 /**
  * BLIND DEFENSE TRAINER — BB vs Open Drills
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized drills randomizing open sizing and position against the BB.
  * Evaluates Call vs 3Bet vs Fold decisions.
  *
  * Route: /hub/training/blind-defense
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-8 — adoption of --sp-* token contract from PR #470

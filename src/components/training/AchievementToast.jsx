@@ -1,8 +1,8 @@
 /**
  * ACHIEVEMENT TOAST
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Notification component for newly unlocked achievements
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -97,7 +97,7 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
                             disabled={sharing}
                             style={styles.shareBtn}
                         >
-                            {sharing ? '...' : '📢'}
+                            {sharing ? '...' : '●'}
                         </button>
                     )}
                     <button

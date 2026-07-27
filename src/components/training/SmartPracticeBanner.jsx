@@ -1,6 +1,6 @@
 /**
  * SMART PRACTICE BANNER — AI-Driven Training Recommendations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 17: Fetches cross-session analytics to recommend what to practice.
  * Shows primary recommendation + expandable alternatives.
  * One-click "Start Smart Practice" launches a targeted training session.
@@ -13,7 +13,7 @@ import useSmartPractice from '../../hooks/useSmartPractice';
 const TYPE_ICONS = {
     weak_position: '◎',
     weak_street: '▣',
-    mistake_pattern: '⚠️',
+    mistake_pattern: '▲',
     spaced_review: '↻',
     level_up: '↑',
     general: '►',
@@ -176,7 +176,7 @@ export default function SmartPracticeBanner({ gameId, onStartSmartPractice }) {
                     >
                         {showAlts ? 'Hide' : `${alternatives.length} more suggestion${alternatives.length > 1 ? 's' : ''}`}
                         <span style={{ transform: showAlts ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>
-                            ▼
+
                         </span>
                     </button>
 

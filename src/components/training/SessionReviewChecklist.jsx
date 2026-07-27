@@ -93,7 +93,7 @@ function SessionReviewChecklist() {
                       background: state === 1 ? '#10b981' : state === -1 ? '#ef4444' : 'rgba(255,255,255,0.1)',
                       fontSize: 12, fontWeight: 700, color: '#fff',
                     }}>
-                      {state === 1 ? '✓' : state === -1 ? '✗' : ''}
+                      {state === 1 ? '✓': state === -1 ? '✕': ''}
                     </div>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{item.text}</span>
                   </div>
@@ -117,7 +117,7 @@ function SessionReviewChecklist() {
              score >= 60 ? 'Good session overall. A few areas to improve.' :
              score >= 40 ? 'Mixed session. Focus on the red areas next time.' :
              score > 0 ? 'Tough session. Review each "no" and create a plan.' :
-             'Click items to rate: ✓ (yes), ✗ (no), blank (skip)'}
+             'Click items to rate: ✓ (yes), ✕ (no), blank (skip)'}
           </div>
         </div>
       </div>

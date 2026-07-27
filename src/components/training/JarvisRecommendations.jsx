@@ -1,8 +1,8 @@
 /**
  * JARVIS RECOMMENDATIONS WIDGET
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * AI-powered training game recommendations based on user's weak areas
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { useState, useEffect } from 'react';
@@ -38,7 +38,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
         return (
             <div style={styles.container}>
                 <div style={styles.loadingContainer}>
-                    <span style={styles.jarvisIcon}>◇</span>
+                    <span style={styles.jarvisIcon}>●</span>
                     <span style={styles.loadingText}>Jarvis Is Analyzing Your Game...</span>
                 </div>
             </div>
@@ -53,7 +53,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.headerLeft}>
-                    <span style={styles.jarvisIcon}>◇</span>
+                    <span style={styles.jarvisIcon}>●</span>
                     <span style={styles.title}>Jarvis Recommends</span>
                 </div>
             </div>

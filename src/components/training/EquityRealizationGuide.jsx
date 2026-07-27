@@ -1,6 +1,6 @@
 /**
  * EquityRealizationGuide — Understanding Equity Realization
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Shows how much of your raw equity you actually realize based on
  * position, hand type, and stack depth. Key GTO concept.
  */

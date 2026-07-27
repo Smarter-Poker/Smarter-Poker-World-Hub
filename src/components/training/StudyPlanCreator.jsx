@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STUDY_PLANS = [
-  { level: 'Beginner (NL2-NL10)', icon: '🌱', color: '#22c55e',
+  { level: 'Beginner (NL2-NL10)', icon: '◇', color: '#22c55e',
     weeklyHours: '5-8 hours',
     focus: ['Preflop ranges — memorize open/3-bet/defend charts', 'Position awareness — track win rate by position', 'Basic pot odds — call/fold decisions', 'C-bet fundamentals — when and how much to bet'],
     ratio: '60% play : 40% study',
     milestone: 'Profitable at NL10 over 50K hands' },
-  { level: 'Low Stakes (NL25-NL50)', icon: '📈', color: '#3b82f6',
+  { level: 'Low Stakes (NL25-NL50)', icon: '▲', color: '#3b82f6',
     weeklyHours: '8-12 hours',
     focus: ['Postflop hand reading — narrowing ranges street by street', 'Bet sizing theory — geometric sizing, pot geometry', 'Turn and river play — barreling and river decisions', 'Exploitative adjustments vs regular opponents'],
     ratio: '55% play : 45% study',
     milestone: 'Positive winrate at NL50 over 100K hands' },
-  { level: 'Mid Stakes (NL100-NL200)', icon: '🔥', color: '#f59e0b',
+  { level: 'Mid Stakes (NL100-NL200)', icon: '▲', color: '#f59e0b',
     weeklyHours: '10-15 hours',
     focus: ['GTO solver work — study key spots in PioSolver/GTO Wizard', 'Range construction — build balanced betting and checking ranges', 'Multi-street planning — plan all streets before acting', 'Database review — filter and analyze specific spot types'],
     ratio: '50% play : 50% study',
     milestone: 'Sustain positive winrate at NL200 over 200K hands' },
-  { level: 'High Stakes (NL500+)', icon: '💎', color: '#8b5cf6',
+  { level: 'High Stakes (NL500+)', icon: '◆', color: '#8b5cf6',
     weeklyHours: '12-20 hours',
     focus: ['Deep solver analysis — run custom sims for complex spots', 'Mixed strategy implementation — practice randomization', 'Advanced exploitation — dynamic opponent modeling', 'Mental game mastery — peak performance psychology'],
     ratio: '45% play : 55% study',
     milestone: 'Consistent winner at NL500+ with positive All-In EV' },
-  { level: 'Tournament Specialist', icon: '🏆', color: '#ef4444',
+  { level: 'Tournament Specialist', icon: '★', color: '#ef4444',
     weeklyHours: '10-15 hours',
     focus: ['ICM study — final table and bubble decisions', 'Push/fold mastery — short stack play optimization', 'Multi-table strategy — volume and attention management', 'Satellite and SNG theory — unique tournament formats'],
     ratio: '60% play : 40% study',
@@ -40,7 +40,7 @@ export default function StudyPlanCreator() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📚 Study Plan Creator
+        Study Plan Creator
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured study plans by skill level.</p>
 

@@ -1,6 +1,6 @@
 /**
  * LevelCompleteModal — Shows results after completing a training level
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * FUTURISTIC METAL UI - Phase 4 Update
  */
 

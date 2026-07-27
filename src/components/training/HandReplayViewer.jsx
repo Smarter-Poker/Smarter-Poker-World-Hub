@@ -1,5 +1,5 @@
 /**
- * 🃏 HAND REPLAY VIEWER — Full visual hand replay for post-session review
+ * HAND REPLAY VIEWER — Full visual hand replay for post-session review
  * Shows each hand as a card with board, hero cards, GTO frequencies, and classification
  */
 
@@ -143,7 +143,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                     {/* Phase 39+51: Classification filter buttons */}
                     {[
                         { key: 'all', label: 'All', color: '#94a3b8' },
-                        { key: 'mistakes', label: '✗', color: '#f87171' },
+                        { key: 'mistakes', label: '✕', color: '#f87171'},
                         { key: 'blunder', label: '!!', color: '#ef4444' },
                     ].map(f => {
                         const isActive = (f.key === 'all' && !filterMistakesOnly) || (f.key === 'mistakes' && filterMistakesOnly === true) || (f.key === 'blunder' && filterMistakesOnly === 'blunder');
@@ -379,7 +379,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                                         color: isOptimal ? '#22c55e' : isSelected ? config.color : '#94a3b8',
                                                         textAlign: 'right',
                                                     }}>
-                                                        {isOptimal && '✓ '}{isSelected && !isOptimal && '✗ '}{action}
+                                                        {isOptimal && '✓ '}{isSelected && !isOptimal && '✕ '}{action}
                                                     </div>
                                                     <div style={{
                                                         fontSize: 11, fontWeight: 700,

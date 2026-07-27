@@ -1,6 +1,6 @@
 /**
  * MultiWayPotStrategy — GTO Wizard-Style Multiway Pot Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Understand how strategy changes in multiway pots vs heads-up.
  * Interactive guide with adjustments for c-betting, ranges, and sizing.
  */
@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 const CONCEPTS = [
   {
     title: 'C-Bet Frequency Drops',
-    icon: '📉',
+    icon: '▼',
     headsUp: { value: '65-75%', desc: 'Can c-bet wide with range advantage and position.' },
     multiway: { value: '25-40%', desc: 'More players = someone likely connected. Only bet strong hands and best draws.' },
     adjustment: 'Cut c-bet frequency by 40-50%. Only bet with top pair+, strong draws, or nut advantage. Check-fold more air.',
@@ -17,7 +17,7 @@ const CONCEPTS = [
   },
   {
     title: 'Bluffing Frequency Drops',
-    icon: '🎭',
+    icon: '◇',
     headsUp: { value: '30-40%', desc: 'Balanced bluff frequency to remain unexploitable.' },
     multiway: { value: '10-15%', desc: 'Too many opponents to bluff through. Each player can wake up with a hand.' },
     adjustment: 'Reduce bluffs dramatically. Focus on semi-bluffs with strong draws. Pure bluffs are rarely profitable multiway.',
@@ -25,7 +25,7 @@ const CONCEPTS = [
   },
   {
     title: 'Hand Strength Requirements Rise',
-    icon: '💪',
+    icon: '▲',
     headsUp: { value: 'Top pair good', desc: 'Top pair with good kicker is often the best hand HU.' },
     multiway: { value: 'Two pair+', desc: 'Top pair is often just a bluff-catcher. Need stronger hands to value bet.' },
     adjustment: 'Raise your value betting threshold. Top pair is a check in many multiway spots. Two pair and sets become your main value hands.',
@@ -33,7 +33,7 @@ const CONCEPTS = [
   },
   {
     title: 'Implied Odds Improve',
-    icon: '💰',
+    icon: '●',
     headsUp: { value: 'Moderate', desc: 'One opponent to pay off your draws.' },
     multiway: { value: 'Excellent', desc: 'Multiple opponents = higher chance someone pays off your made hand.' },
     adjustment: 'Speculative hands (suited connectors, small pairs) gain value. Set mining and suited connector calling become more profitable.',
@@ -41,7 +41,7 @@ const CONCEPTS = [
   },
   {
     title: 'Position Value Increases',
-    icon: '🎯',
+    icon: '◆',
     headsUp: { value: 'Important', desc: 'Position matters but edge is manageable.' },
     multiway: { value: 'Critical', desc: 'Acting last after 3+ players gives massive information advantage.' },
     adjustment: 'Tighten up in early position even more. The BTN becomes incredibly powerful in multiway pots — you see everyone act first.',
@@ -49,7 +49,7 @@ const CONCEPTS = [
   },
   {
     title: 'Pot Odds Change',
-    icon: '📊',
+    icon: '■',
     headsUp: { value: '1 caller', desc: 'Standard pot odds calculation.' },
     multiway: { value: '2+ callers', desc: 'More money in pot = better odds for draws. But more opponents = less fold equity.' },
     adjustment: 'You get better direct odds but worse fold equity. Call more draws for direct odds. Bluff less because you cant fold everyone out.',

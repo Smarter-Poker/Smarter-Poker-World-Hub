@@ -51,7 +51,7 @@ export default function MistakeCluster({ progressData = [] }) {
     if (!clusters || clusters.length === 0) {
         return (
             <div style={styles.emptyContainer}>
-                <div style={styles.emptyIcon}>🛡️</div>
+                <div style={styles.emptyIcon}>■</div>
                 <h4 style={styles.emptyTitle}>NO CRITICAL LEAKS DETECTED</h4>
                 <p style={styles.emptyText}>Your accuracy is solid across the board. Keep crushing the drills to generate more data.</p>
             </div>

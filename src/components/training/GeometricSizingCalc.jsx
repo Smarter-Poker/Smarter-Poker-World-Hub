@@ -1,6 +1,6 @@
 /**
  * GeometricSizingCalc — Geometric Bet Sizing Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate the exact geometric bet size to go all-in by the river.
  * Shows optimal sizing per street given stack depth and pot.
  */

@@ -6,16 +6,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SECTIONS = [
-  { title: 'Opening Range', icon: '📊', color: '#3b82f6',
+  { title: 'Opening Range', icon: '■', color: '#3b82f6',
     content: 'CO should open ~28-32% of hands. This includes all pairs, suited broadways, suited connectors (54s+), offsuit broadways (KTo+, QJo), suited aces.',
     range: { open: '22+, A2s+, K2s+, Q6s+, J7s+, T7s+, 97s+, 87s, 76s, 65s, ATo+, KJo+, QJo' } },
-  { title: 'Facing 3-Bets', icon: '🛡️', color: '#ef4444',
+  { title: 'Facing 3-Bets', icon: '■', color: '#ef4444',
     content: 'When 3-bet from BTN/blinds, 4-bet with QQ+/AKs for value. Call with TT-JJ, AQs, suited connectors with position. Fold the bottom of your range.',
     range: { '4bet': 'QQ+, AKs', call: 'TT-JJ, AQs, AJs, KQs, 98s-JTs', fold: 'Weak Ax, low SCs, offsuit trash' } },
-  { title: 'vs BTN 3-Bet', icon: '🆚', color: '#f59e0b',
+  { title: 'vs BTN 3-Bet', icon: 'VS', color: '#f59e0b',
     content: 'BTN 3-bets wider than blinds. Defend more hands. Add some 4-bet bluffs (A5s, A4s). Call wider with hands that play well postflop.',
     range: { defend: 'All value hands + TT, 99, AQo, AJs, KQs, some SCs' } },
-  { title: 'Postflop IP', icon: '🎯', color: '#22c55e',
+  { title: 'Postflop IP', icon: '◆', color: '#22c55e',
     content: 'CO has position over UTG/HJ/blinds but not BTN. Play aggressively when heads-up. C-bet 55-65% of flops. Barrel turns with equity.',
     range: { cbet: '55-65% of flops, small sizing on dry, larger on wet' } },
 ];
@@ -27,7 +27,7 @@ export default function CutoffStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📍 Cutoff Strategy Guide
+        Cutoff Strategy Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The CO is the second-most profitable seat — master it.</p>
 

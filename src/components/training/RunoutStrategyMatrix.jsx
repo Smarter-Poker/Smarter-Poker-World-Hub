@@ -1,6 +1,6 @@
 /**
  * RunoutStrategyMatrix — GTO Wizard-Style Turn/River Strategy Shift Viewer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Shows how the GTO strategy changes for EVERY possible next card.
  * 4 rows (suits) × 13 cols (ranks), each cell colored by the dominant
  * action on that runout. Click any card to see full strategy breakdown.
@@ -8,7 +8,7 @@
  * This goes beyond equity shifts (RunoutHeatmap) — it shows the actual
  * bet/check/size decision changes per card, matching GTO Wizard's
  * "Runouts" analysis tab.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
@@ -53,9 +53,9 @@ const ACTION_LABELS = {
     fold: 'Fold',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STRATEGY COMPUTATION PER RUNOUT CARD
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function classifyRunoutType(flopBoard, newCard) {
     const boardRanks = flopBoard.map(c => c[0]);
@@ -190,9 +190,9 @@ function getRunoutStrategy(holeCards, flopBoard, runoutCard, position, street) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CARD CELL COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) => {
     const [hovered, setHovered] = useState(false);
@@ -297,9 +297,9 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
 });
 RunoutCell.displayName = 'RunoutCell';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DETAIL PANEL
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function RunoutDetail({ card, strategy, suitInfo, onClose }) {
     if (!card || !strategy) return null;
@@ -435,9 +435,9 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // AGGREGATED STATS BAR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function RunoutSummary({ strategies }) {
     const stats = useMemo(() => {
@@ -486,9 +486,9 @@ function RunoutSummary({ strategies }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function RunoutStrategyMatrix({
     holeCards = ['Ah', 'Kh'],

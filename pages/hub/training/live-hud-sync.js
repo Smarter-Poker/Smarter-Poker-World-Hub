@@ -1,10 +1,10 @@
 /**
  * LIVE HUD SYNC — Live Table Beacon Manager
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Premium setup screen simulating a physical cardroom HUD pairing with the Smarter Poker beacon.
  *
  * Route: /hub/training/live-hud-sync
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-28 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -203,7 +203,7 @@ export default function LiveHudSyncPage() {
                 transition: 'all 0.4s',
               }}
             >
-              <span style={{ fontSize: 24 }}>{connected ? '📶' : '📡'}</span>
+              <span style={{ fontSize: 24 }}>{connected ? '●' : '●'}</span>
             </div>
 
             {connected && (

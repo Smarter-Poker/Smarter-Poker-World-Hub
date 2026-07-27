@@ -64,7 +64,7 @@ function generateQuestion() {
     return {
       type,
       title: 'Pot Odds',
-      icon: '📐',
+      icon: '',
       color: 'var(--sp-accent-cyan)',
       question: `Villain bets **${bet} chips** into a **${pot} chip** pot. What are your pot odds (as a %)?`,
       hint: 'Pot Odds % = Bet ÷ (Pot + Bet) × 100',
@@ -84,7 +84,7 @@ function generateQuestion() {
     return {
       type,
       title: 'Min. Defense Frequency',
-      icon: '🛡️',
+      icon: '',
       color: 'var(--sp-accent-purple)',
       question: `Villain bets **${bet} chips** into a **${pot} chip** pot. What is your Minimum Defense Frequency (MDF)?`,
       hint: 'MDF % = Pot ÷ (Pot + Bet) × 100',
@@ -109,7 +109,7 @@ function generateQuestion() {
     return {
       type,
       title: 'EV of a Call',
-      icon: '⚡',
+      icon: '',
       color: 'var(--sp-accent-green)',
       question: `Pot: **${pot}**, Villain bets **${bet}**. You have **${equity}% equity**. What is the EV of calling (in chips)?`,
       hint: 'EV = (Equity × Total Pot Won) − ((1 − Equity) × Call Amount)',
@@ -119,10 +119,10 @@ function generateQuestion() {
         `EV = (${equity}% × ${pot + bet}) − (${100 - equity}% × ${bet})`,
         `EV = ${Math.round(eq * (pot + bet))} − ${Math.round((1 - eq) * bet)} = **${answer > 0 ? '+' : ''}${answer} chips**`,
         answer > 0
-          ? `✅ +EV call. You profit ~${answer} chips per call on average.`
+          ? `✓ +EV call. You profit ~${answer} chips per call on average.`
           : answer < 0
-            ? `❌ -EV call. You lose ~${Math.abs(answer)} chips per call on average.`
-            : `⚖️ Breakeven call.`,
+            ? `✕ -EV call. You lose ~${Math.abs(answer)} chips per call on average.`
+            : `Breakeven call.`,
       ],
       answer,
       unit: ' chips',
@@ -134,7 +134,7 @@ function generateQuestion() {
   return {
     type,
     title: 'Break-Even Equity',
-    icon: '⚖️',
+    icon: '',
     color: 'var(--sp-accent-orange)',
     question: `Villain bets **${bet}** into a **${pot} chip** pot. What is the minimum equity (%) you need to break even on a call?`,
     hint: 'Break-Even Equity % = Bet ÷ (Pot + Bet) × 100',
@@ -290,19 +290,19 @@ export default function EVTrainer() {
       bg: 'rgba(34, 197, 94, 0.15)',
       border: 'rgba(34, 197, 94, 0.5)',
       text: 'var(--sp-accent-green)',
-      label: '✅ EXACT!',
+      label: '✓ EXACT!',
     },
     close: {
       bg: 'rgba(251, 191, 36, 0.15)',
       border: 'rgba(251, 191, 36, 0.5)',
       text: 'var(--sp-accent-amber)',
-      label: `⚡ CLOSE! (±${TOLERANCE})`,
+      label: `CLOSE! (±${TOLERANCE})`,
     },
     wrong: {
       bg: 'rgba(239, 68, 68, 0.15)',
       border: 'rgba(239, 68, 68, 0.4)',
       text: 'var(--sp-accent-red)',
-      label: '❌ INCORRECT',
+      label: '✕ INCORRECT',
     },
   };
 
@@ -414,7 +414,7 @@ export default function EVTrainer() {
                 fontSize: 22,
               }}
             >
-              🧮
+              
             </div>
             <div>
               <h1
@@ -564,7 +564,7 @@ export default function EVTrainer() {
                       borderLeft: `3px solid ${question.color}60`,
                     }}
                   >
-                    💡 Formula: {question.hint}
+                     Formula: {question.hint}
                   </div>
                 </div>
 
@@ -665,7 +665,7 @@ export default function EVTrainer() {
                             fontFamily: "'Orbitron', monospace",
                           }}
                         >
-                          📚 Formula Breakdown
+                           Formula Breakdown
                         </div>
                         {question.formulas.map((line, i) => (
                           <div
@@ -733,7 +733,7 @@ export default function EVTrainer() {
             }}
           >
             <strong style={{ color: 'var(--sp-fg-dim)' }}>Tolerance Rule:</strong> Answers within ±
-            {TOLERANCE} (for %, or ±{TOLERANCE} chips for EV) count as close ✅. Exact answers build
+            {TOLERANCE} (for %, or ±{TOLERANCE} chips for EV) count as close ✓. Exact answers build
             maximum streaks. Press{' '}
             <kbd
               style={{ background: '#1e2d3d', padding: '1px 5px', borderRadius: 4, fontSize: 10 }}

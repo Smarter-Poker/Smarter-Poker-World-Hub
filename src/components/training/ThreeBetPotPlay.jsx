@@ -6,13 +6,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PERSPECTIVES = [
-  { role: '3-Bettor (Aggressor)', color: '#ef4444', icon: '🔥', scenarios: [
+  { role: '3-Bettor (Aggressor)', color: '#ef4444', icon: '▲', scenarios: [
     { spot: 'In Position, Single Raised Pot', cbet: '55-65%', sizing: '33-50%', key: 'C-bet most flops with small sizing. Your range is perceived as strong.' },
     { spot: 'Out of Position', cbet: '40-50%', sizing: '33-40%', key: 'Check more OOP. Your positional disadvantage means you can\'t barrel as freely.' },
     { spot: 'Multi-way 3BP', cbet: '30-40%', sizing: '50-66%', key: 'Tighten up significantly. Only c-bet with strong hands or great equity.' },
     { spot: 'Vs Short Stack', cbet: '70%+', sizing: 'All-in or 50%', key: 'SPR is low. Push equity advantage. Most flops are commit-or-fold.' },
   ]},
-  { role: 'Caller (Defender)', color: '#3b82f6', icon: '🛡️', scenarios: [
+  { role: 'Caller (Defender)', color: '#3b82f6', icon: '■', scenarios: [
     { spot: 'In Position vs C-bet', cbet: 'Call 50-60%', sizing: 'Raise 10-15%', key: 'Flat most hands that connected. Raise sets and strong draws for value/semi-bluff.' },
     { spot: 'OOP vs C-bet', cbet: 'Call 40-50%', sizing: 'X/R 8-12%', key: 'Defend tighter OOP. Check-raise with sets and combo draws.' },
     { spot: 'When 3-bettor checks', cbet: 'Probe 30-40%', sizing: '50-66%', key: 'They showed weakness. Probe with any piece of the board or good bluffs.' },
@@ -27,7 +27,7 @@ export default function ThreeBetPotPlay() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎲 3-Bet Pot Strategy
+        3-Bet Pot Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Navigate the biggest pots correctly — 3-bet pots are where the money is.</p>
 

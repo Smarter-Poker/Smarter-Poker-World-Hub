@@ -32,7 +32,7 @@ export default function DoubleBarrelGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Double Barrel Guide
+        Double Barrel Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master the turn continuation bet — when to fire and when to give up.</p>
 
@@ -70,7 +70,7 @@ export default function DoubleBarrelGuide() {
           ) : (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: scenario.verdict === 'BARREL' ? '#22c55e' : '#ef4444', marginBottom: 6 }}>
-                {scenario.verdict === 'BARREL' ? '🔥 BARREL' : '✋ CHECK'}
+                {scenario.verdict === 'BARREL' ? 'BARREL' : 'CHECK'}
               </div>
               <p style={{ color: '#cbd5e1', fontSize: 13 }}>{scenario.reason}</p>
             </motion.div>

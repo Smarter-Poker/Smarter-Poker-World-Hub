@@ -1,5 +1,5 @@
 /**
- * 🎯 MULTI-TABLE PRACTICE — Train on 2-4 Tables Simultaneously
+ * MULTI-TABLE PRACTICE — Train on 2-4 Tables Simultaneously
  * ═══════════════════════════════════════════════════════════════════════════
  * Render multiple independent GodModeArena instances in a grid layout.
  * Combined stats across all tables. GTO Wizard-style multi-tabling.
@@ -253,9 +253,9 @@ export default function MultiTablePage() {
                               : 'var(--sp-fg-dim)',
                       }}
                     >
-                      {saveStatus === 'saving' && '⏳ Saving session...'}
-                      {saveStatus === 'saved' && '✅ Saved to profile'}
-                      {saveStatus === 'error' && '⚠️ Save failed — results still shown'}
+                      {saveStatus === 'saving' && 'Saving session...'}
+                      {saveStatus === 'saved' && 'Saved to profile'}
+                      {saveStatus === 'error' && 'Save failed — results still shown'}
                     </div>
 
                     <div
@@ -394,7 +394,7 @@ export default function MultiTablePage() {
           <div
             style={{ padding: '60px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
           >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>◆</div>
             <h1
               style={{
                 fontSize: 24,
@@ -499,7 +499,7 @@ export default function MultiTablePage() {
                     Automatically deal next hand after answering
                   </div>
                 </div>
-                <div style={{ fontSize: 18 }}>{isAutoAdvance ? '⚡' : '🔄'}</div>
+                <div style={{ fontSize: 18 }}>{isAutoAdvance ? '⌁' : '↻'}</div>
               </div>
             </div>
 

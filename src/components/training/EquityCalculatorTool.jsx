@@ -1,13 +1,13 @@
 /**
  * EQUITY CALCULATOR TOOL
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive range vs range equity calculator:
  * - Input hands or ranges for up to 4 players
  * - Select board cards (flop/turn/river)
  * - Monte Carlo simulation with configurable iterations
  * - Real-time equity bars + win/tie/lose breakdown
  * - Dead cards exclusion, random hand generation
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -20,7 +20,7 @@ const RANK_VALUES = { A: 14, K: 13, Q: 12, J: 11, T: 10, '9': 9, '8': 8, '7': 7,
 
 const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b'];
 
-// ═══ PRESET RANGES ═══
+// ●●● PRESET RANGES ●●●
 const PRESETS = [
   { label: 'Custom', value: '' },
   { label: 'AA', value: 'AA' },
@@ -32,7 +32,7 @@ const PRESETS = [
   { label: 'Random', value: 'random' },
 ];
 
-// ═══ SIMPLE HAND EVALUATOR ═══
+// ●●● SIMPLE HAND EVALUATOR ●●●
 function evaluateHand(cards) {
   if (cards.length < 5) return { rank: 0, value: 0 };
   try {
@@ -80,7 +80,7 @@ function compareHands(h1, h2) {
   return h1.value - h2.value;
 }
 
-// ═══ MONTE CARLO SIMULATION ═══
+// ●●● MONTE CARLO SIMULATION ●●●
 function runEquitySim(playerHands, boardCards, iterations = 5000) {
   const results = playerHands.map(() => ({ wins: 0, ties: 0, total: 0 }));
   const deck = [];
@@ -137,7 +137,7 @@ function runEquitySim(playerHands, boardCards, iterations = 5000) {
   }));
 }
 
-// ═══ CARD PICKER ═══
+// ●●● CARD PICKER ●●●
 function CardPicker({ selected, onSelect, usedCards, label }) {
   const [open, setOpen] = useState(false);
 
@@ -192,7 +192,7 @@ function CardPicker({ selected, onSelect, usedCards, label }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function EquityCalculatorTool() {
   const [players, setPlayers] = useState([
     { hand: ['As', 'Kh'], label: 'Player 1' },
@@ -244,7 +244,7 @@ export default function EquityCalculatorTool() {
         Equity Calculator
       </h3>
 
-      {/* ═══ PLAYERS ═══ */}
+      {/* ●●● PLAYERS ●●● */}
       <div style={{ marginBottom: 16 }}>
         {players.map((player, idx) => (
           <div key={idx} style={{
@@ -303,7 +303,7 @@ export default function EquityCalculatorTool() {
         )}
       </div>
 
-      {/* ═══ BOARD ═══ */}
+      {/* ●●● BOARD ●●● */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
           Board
@@ -322,7 +322,7 @@ export default function EquityCalculatorTool() {
         </div>
       </div>
 
-      {/* ═══ CONTROLS ═══ */}
+      {/* ●●● CONTROLS ●●● */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
         <button onClick={calculate} disabled={running || players.filter(p => p.hand.length === 2).length < 2} style={{
           padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -343,7 +343,7 @@ export default function EquityCalculatorTool() {
         </div>
       </div>
 
-      {/* ═══ DETAILED RESULTS ═══ */}
+      {/* ●●● DETAILED RESULTS ●●● */}
       {results && (
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>

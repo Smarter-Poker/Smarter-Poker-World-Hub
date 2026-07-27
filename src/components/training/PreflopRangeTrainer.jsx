@@ -736,7 +736,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             }}
                         >
                             {action.label}
-                            {showFeedback && isSelected && <span style={{ fontSize: 10, marginLeft: 4 }}>{CLASSIFICATION_CONFIG[feedbackResult.classification]?.icon === 'check' ? '✓' : '✗'}</span>}
+                            {showFeedback && isSelected && <span style={{ fontSize: 10, marginLeft: 4 }}>{CLASSIFICATION_CONFIG[feedbackResult.classification]?.icon === 'check'? '✓': '✕'}</span>}
                         </motion.button>
                     );
                 })}

@@ -357,7 +357,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                             fontSize: 72,
                             marginBottom: 12,
                         }}>
-                            {passed ? '🏆' : '💪'}
+                            {passed ? '': ''}
                         </div>
                         <h1 style={{
                             ...styles.title,
@@ -419,7 +419,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                 whileHover={{ scale: 1.1, background: 'rgba(255, 255, 255, 0.08)' }}
                                 style={styles.statBox}
                             >
-                                <span style={styles.statIcon}>❤️</span>
+                                <span style={styles.statIcon}></span>
                                 <span style={styles.statValue}>{stats.finalHealth}</span>
                                 <span style={styles.statLabel}>HP Left</span>
                             </motion.div>
@@ -427,7 +427,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                 whileHover={{ scale: 1.1, background: 'rgba(255, 215, 0, 0.15)' }}
                                 style={styles.statBox}
                             >
-                                <span style={styles.statIcon}>⭐</span>
+                                <span style={styles.statIcon}>★</span>
                                 <motion.span
                                     style={styles.statValue}
                                     animate={{ scale: [1, 1.2, 1] }}
@@ -442,7 +442,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     whileHover={{ scale: 1.1, background: 'rgba(255, 100, 50, 0.15)' }}
                                     style={styles.statBox}
                                 >
-                                    <span style={styles.statIcon}>🔥</span>
+                                    <span style={styles.statIcon}>▲</span>
                                     <span style={styles.statValue}>{stats.bestStreak}</span>
                                     <span style={styles.statLabel}>Best Streak</span>
                                 </motion.div>
@@ -450,7 +450,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                         </motion.div>
                     )}
 
-                    {/* 🧠 JARVIS AI COACHING */}
+                    {/* JARVIS AI COACHING */}
                     {(phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -474,7 +474,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                 textTransform: 'uppercase',
                                 letterSpacing: 1
                             }}>
-                                🧠 Jarvis Coach
+                                 Jarvis Coach
                                 {isLoadingCoaching && (
                                     <motion.span
                                         animate={{ rotate: 360 }}
@@ -526,7 +526,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                         {aiCoaching.areasToImprove?.length > 0 && (
                                             <div style={{ flex: 1, minWidth: 140 }}>
                                                 <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
-                                                    ⚡ FOCUS AREAS
+                                                     FOCUS AREAS
                                                 </div>
                                                 {aiCoaching.areasToImprove.slice(0, 2).map((a, i) => (
                                                     <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
@@ -546,7 +546,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                             border: '1px solid rgba(255, 215, 0, 0.3)'
                                         }}>
                                             <div style={{ fontSize: 10, fontWeight: 700, color: '#ffd700', marginBottom: 4 }}>
-                                                💡 RECOMMENDED NEXT
+                                                 RECOMMENDED NEXT
                                             </div>
                                             <p style={{ fontSize: 12, color: '#fff', margin: 0, fontWeight: 500 }}>
                                                 {aiCoaching.recommendedDrill.name}
@@ -590,7 +590,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                             animate={{ opacity: 1, y: 0 }}
                             style={styles.blundersSection}
                         >
-                            <h3 style={styles.blundersTitle}>📝 Review Your Mistakes</h3>
+                            <h3 style={styles.blundersTitle}> Review Your Mistakes</h3>
                             <div style={styles.blundersList}>
                                 {topBlunders.map((blunder, idx) => (
                                     <motion.div
@@ -652,7 +652,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     onClick={onRetry}
                                     style={styles.retryBtn}
                                 >
-                                    🔄 Try Again
+                                     Try Again
                                 </motion.button>
                             )}
                             <motion.button

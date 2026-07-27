@@ -144,7 +144,7 @@ function MistakeCard({ mistake, onPractice }) {
               fontSize: 14,
             }}
           >
-            ❌
+            ✕
           </div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>

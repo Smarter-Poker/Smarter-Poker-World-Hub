@@ -1,13 +1,13 @@
 /**
  * SIZING TRAINER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Practice correct bet sizing decisions:
  * - Scenario-based: given hand + board + action, choose correct size
  * - 5 sizing options: 1/3, 1/2, 2/3, pot, overbet
  * - Explains WHY each sizing is optimal (polarity, protection, etc.)
  * - Tracks accuracy per sizing type
  * - Progressive difficulty
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -20,7 +20,7 @@ const SIZINGS = [
   { id: 'overbet', label: '150%+', fraction: 1.50, color: '#ef4444' },
 ];
 
-// ═══ SCENARIO DATABASE ═══
+// ●●● SCENARIO DATABASE ●●●
 const SCENARIOS = [
   {
     hand: 'A\u2660 A\u2665',
@@ -156,7 +156,7 @@ const SCENARIOS = [
   },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function SizingTrainer() {
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [selectedSizing, setSelectedSizing] = useState(null);
@@ -206,7 +206,7 @@ export default function SizingTrainer() {
         </div>
       </div>
 
-      {/* ═══ SCENARIO CARD ═══ */}
+      {/* ●●● SCENARIO CARD ●●● */}
       <div style={{
         background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 16, marginBottom: 16,
         border: '1px solid rgba(255,255,255,0.06)',
@@ -247,7 +247,7 @@ export default function SizingTrainer() {
           You decide to bet. What sizing do you choose?
         </div>
 
-        {/* ═══ SIZING OPTIONS ═══ */}
+        {/* ●●● SIZING OPTIONS ●●● */}
         <div style={{ display: 'flex', gap: 8 }}>
           {SIZINGS.map(s => {
             const betAmount = (scenario.pot * s.fraction).toFixed(1);
@@ -290,7 +290,7 @@ export default function SizingTrainer() {
         </div>
       </div>
 
-      {/* ═══ EXPLANATION ═══ */}
+      {/* ●●● EXPLANATION ●●● */}
       {selectedSizing !== null && (
         <div style={{
           background: selectedSizing === scenario.correctSizing
@@ -339,7 +339,7 @@ export default function SizingTrainer() {
         </div>
       )}
 
-      {/* ═══ STATS BY SIZING TYPE ═══ */}
+      {/* ●●● STATS BY SIZING TYPE ●●● */}
       {score.total >= 3 && (
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>

@@ -6,19 +6,19 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 const SIZING_TIERS = [
-  { size: '25-33%', label: 'Small', color: '#22c55e', emoji: '🟢',
+  { size: '25-33%', label: 'Small', color: '#22c55e', emoji: '',
     when: 'When you have range advantage on dry boards. Want calls from many hands.',
     hands: 'Top pair on dry flops, overpairs on low boards, when entire range bets',
     avoid: 'When draws are present — you\'re giving too good a price' },
-  { size: '50-66%', label: 'Medium', color: '#3b82f6', emoji: '🔵',
+  { size: '50-66%', label: 'Medium', color: '#3b82f6', emoji: '',
     when: 'Standard bet sizing. Good balance of value extraction and protection.',
     hands: 'Strong top pair, overpairs on somewhat wet boards, two pair',
     avoid: 'When villain\'s range is very inelastic (they call or fold regardless of size)' },
-  { size: '75-100%', label: 'Large', color: '#f59e0b', emoji: '🟡',
+  { size: '75-100%', label: 'Large', color: '#f59e0b', emoji: '',
     when: 'Polarized spots. You have a very strong hand or are bluffing.',
     hands: 'Sets, straights, flushes on wet boards. Also your bluffs.',
     avoid: 'With medium-strength hands — you only get called by better' },
-  { size: '120-200%', label: 'Overbet', color: '#ef4444', emoji: '🔴',
+  { size: '120-200%', label: 'Overbet', color: '#ef4444', emoji: '',
     when: 'When you have significant nut advantage. Villain can\'t have the nuts.',
     hands: 'Nut flushes, full houses on river. Boards where villain\'s range is capped.',
     avoid: 'When villain can have a wide strong range. Only works when they\'re capped.' },
@@ -39,7 +39,7 @@ export default function ValueBetSizingGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💎 Value Bet Sizing Guide
+         Value Bet Sizing Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Size your value bets to extract maximum chips.</p>
 
@@ -74,9 +74,9 @@ export default function ValueBetSizingGuide() {
       <motion.div key={selectedTier} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ display: 'grid', gap: 8 }}>
         {[
-          { label: '✅ When to Use', text: tier.when, color: '#22c55e' },
-          { label: '🃏 Best Hands', text: tier.hands, color: '#3b82f6' },
-          { label: '❌ Avoid When', text: tier.avoid, color: '#ef4444' },
+          { label: '✓ When to Use', text: tier.when, color: '#22c55e'},
+          { label: 'Best Hands', text: tier.hands, color: '#3b82f6'},
+          { label: '✕ Avoid When', text: tier.avoid, color: '#ef4444'},
         ].map((item, i) => (
           <div key={i} style={{ background: `${item.color}08`, borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '8px 12px' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.label}</div>

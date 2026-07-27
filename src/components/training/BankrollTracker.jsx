@@ -1,18 +1,18 @@
 /**
  * BANKROLL TRACKER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Bankroll management and session tracking:
  * - Session log with buy-in, cash-out, profit/loss
  * - Running bankroll chart (SVG line graph)
  * - Risk of Ruin calculator
  * - Stake level recommendations
  * - Win rate and hourly rate stats
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ SAMPLE SESSION DATA ═══
+// ●●● SAMPLE SESSION DATA ●●●
 const INITIAL_SESSIONS = [
   { id: 1, date: '2025-12-01', stakes: '1/2 NL', buyIn: 200, cashOut: 385, hours: 4.5, notes: 'Good session, ran well' },
   { id: 2, date: '2025-12-03', stakes: '1/2 NL', buyIn: 200, cashOut: 120, hours: 3.0, notes: 'Cooler AK vs AA' },
@@ -26,7 +26,7 @@ const INITIAL_SESSIONS = [
   { id: 10, date: '2025-12-20', stakes: '2/5 NL', buyIn: 500, cashOut: 350, hours: 4.5, notes: 'Tough table, grinded' },
 ];
 
-// ═══ STAKES LEVELS ═══
+// ●●● STAKES LEVELS ●●●
 const STAKES = [
   { label: '0.25/0.50', buyIn: 50, minBR: 2000 },
   { label: '0.50/1', buyIn: 100, minBR: 4000 },
@@ -36,7 +36,7 @@ const STAKES = [
   { label: '10/20', buyIn: 2000, minBR: 80000 },
 ];
 
-// ═══ SVG LINE CHART ═══
+// ●●● SVG LINE CHART ●●●
 function BankrollChart({ sessions, startingBR }) {
   const W = 560, H = 140, PAD = 30;
   const points = [];
@@ -93,7 +93,7 @@ function BankrollChart({ sessions, startingBR }) {
   );
 }
 
-// ═══ RISK OF RUIN CALCULATOR ═══
+// ●●● RISK OF RUIN CALCULATOR ●●●
 function RiskOfRuin({ sessions, bankroll }) {
   const profits = sessions.map(s => s.cashOut - s.buyIn);
   const avgProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
@@ -129,7 +129,7 @@ function RiskOfRuin({ sessions, bankroll }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function BankrollTracker() {
   const [sessions, setSessions] = useState(INITIAL_SESSIONS);
   const [startingBR, setStartingBR] = useState(5000);

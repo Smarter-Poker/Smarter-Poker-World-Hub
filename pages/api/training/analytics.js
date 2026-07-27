@@ -1,6 +1,6 @@
 /**
  * API: Training Analytics — Cross-Session Performance Intelligence
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 16: Aggregates training_answers + training_sessions across ALL sessions
  * to produce trend data, breakdowns by position/street/action, and mistake patterns.
  *
@@ -26,7 +26,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -38,7 +38,7 @@ function getSupabase() {
     return _supabase;
 }
 
-// ── Classification weights for scoring ──────────────────────────
+// ●● Classification weights for scoring ●●●●●●●●●●●●●●●●●●●●●●●●●●
 const CLASSIFICATION_WEIGHTS = {
     best: 1.0,
     correct: 0.8,
@@ -47,7 +47,7 @@ const CLASSIFICATION_WEIGHTS = {
     blunder: 0.0,
 };
 
-// ── Aggregate answers into buckets ──────────────────────────────
+// ●● Aggregate answers into buckets ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function aggregateByField(answers, field) {
     const buckets = {};
     answers.forEach(a => {
@@ -71,7 +71,7 @@ function aggregateByField(answers, field) {
     return buckets;
 }
 
-// ── Build session score trend ───────────────────────────────────
+// ●● Build session score trend ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildScoreTrend(sessions) {
     return sessions
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -87,7 +87,7 @@ function buildScoreTrend(sessions) {
         }));
 }
 
-// ── Build classification trend (per-session) ────────────────────
+// ●● Build classification trend (per-session) ●●●●●●●●●●●●●●●●●●●●
 function buildClassificationTrend(sessions) {
     return sessions
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -104,7 +104,7 @@ function buildClassificationTrend(sessions) {
         });
 }
 
-// ── Extract mistake patterns from answers ───────────────────────
+// ●● Extract mistake patterns from answers ●●●●●●●●●●●●●●●●●●●●●●●
 function extractMistakePatterns(answers) {
     const patterns = {};
     answers.forEach(a => {
@@ -137,7 +137,7 @@ function extractMistakePatterns(answers) {
         .slice(0, 20); // Top 20 patterns
 }
 
-// ── Compute milestones ──────────────────────────────────────────
+// ●● Compute milestones ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function computeMilestones(sessions, answers) {
     const totalSessions = sessions.length;
     const totalHands = answers.length;
@@ -188,7 +188,7 @@ function computeMilestones(sessions, answers) {
     };
 }
 
-// ── Action accuracy from answer_id patterns ─────────────────────
+// ●● Action accuracy from answer_id patterns ●●●●●●●●●●●●●●●●●●●●●
 function buildActionAccuracy(answers) {
     const actions = {};
     answers.forEach(a => {
@@ -246,7 +246,7 @@ export default async function handler(req, res) {
         const sinceDate = new Date(Date.now() - days * 86400000).toISOString();
 
         try {
-            // ─── Fetch sessions ────────────────────────────────────────
+            // ●●● Fetch sessions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
             let sessQuery = getSupabase()
                 .from('training_sessions')
                 .select('id, game_id, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, classification_counts, created_at')
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
             }
             const safeSessions = sessions || [];
 
-            // ─── Fetch individual answers ──────────────────────────────
+            // ●●● Fetch individual answers ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
             let ansQuery = getSupabase()
                 .from('training_answers')
                 .select('question_id, answer_id, is_correct, level, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at')
@@ -280,7 +280,7 @@ export default async function handler(req, res) {
             }
             const safeAnswers = answers || [];
 
-            // ─── Build response based on type ──────────────────────────
+            // ●●● Build response based on type ●●●●●●●●●●●●●●●●●●●●●●●●●●
             const result = { success: true, days, gameId: rawGameId || 'ALL' };
 
             if (type === 'trends' || type === 'full') {

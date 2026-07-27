@@ -1,6 +1,6 @@
 /**
  * ImpliedOddsCalculator — Calculate Implied & Reverse Implied Odds
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate how much you need to win on future streets to justify a call.
  * Covers both implied odds and reverse implied odds.
  */

@@ -1,6 +1,6 @@
 /**
  * API: Equity Calculator — Monte Carlo Hand vs Hand Equity
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POST /api/training/equity
  *
  * Body:
@@ -20,7 +20,7 @@
  *     ],
  *     totalIterations: 5000
  *   }
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -28,7 +28,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -39,7 +39,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ─── Card parsing (inline to avoid CJS/ESM import issues) ──────────────────
+// ●●● Card parsing (inline to avoid CJS/ESM import issues) ●●●●●●●●●●●●●●●●●●
 const RANK_CHARS = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7, 'T': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12 };
 const SUIT_CHARS = { 'c': 0, 'd': 1, 'h': 2, 's': 3 };
 const RANK_DISPLAY = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
@@ -57,7 +57,7 @@ function cardIntToStr(c) {
     return RANK_DISPLAY[Math.floor(c / 4)] + SUIT_DISPLAY[c % 4];
 }
 
-// ─── Inline Monte Carlo evaluator (to avoid CJS require path issues) ────────
+// ●●● Inline Monte Carlo evaluator (to avoid CJS require path issues) ●●●●●●●●
 const CATEGORY_WEIGHT = 1e10;
 
 function getRank(card) { return Math.floor(card / 4); }
@@ -175,9 +175,9 @@ function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default async function handler(req, res) {
   try {

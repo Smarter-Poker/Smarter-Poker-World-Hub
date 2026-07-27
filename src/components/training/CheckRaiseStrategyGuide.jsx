@@ -1,6 +1,6 @@
 /**
  * CheckRaiseStrategyGuide — When & How to Check-Raise
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive guide for check-raise strategy across streets.
  * Covers value check-raises, bluff check-raises, and sizing.
  */

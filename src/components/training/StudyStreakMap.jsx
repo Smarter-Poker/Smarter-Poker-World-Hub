@@ -227,7 +227,7 @@ const styles = {
 };
 
 /**
- * ═══ PHASE 21: Self-fetching wrapper ═══
+ * ●●● PHASE 21: Self-fetching wrapper ●●●
  * Fetches all sessions for a user and renders the streak map.
  * Use this in contexts where session data isn't available as a prop.
  */

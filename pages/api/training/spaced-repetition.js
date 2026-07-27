@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * PHASE 14: Spaced Repetition API
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * POST /api/training/spaced-repetition — Save mistake signatures for future review
  * GET  /api/training/spaced-repetition — Retrieve due review spots
@@ -11,7 +11,7 @@
  * - Correct reviews double the interval
  * - Failed reviews reset to interval = 1
  * - Priority: higher EV loss mistakes surface first
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -19,7 +19,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -44,9 +44,9 @@ export default async function handler(req, res) {
 
       const userId = user.id;
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       // POST: Save mistake spots for spaced repetition review
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       if (req.method === 'POST') {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
 
@@ -105,9 +105,9 @@ export default async function handler(req, res) {
           return res.status(200).json({ success: true, saved: rows.length });
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       // GET: Retrieve spots due for review
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       if (req.method === 'GET') {
           if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -141,9 +141,9 @@ export default async function handler(req, res) {
           });
       }
 
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       // PATCH: Update review result (correct/wrong on review)
-      // ═══════════════════════════════════════════════════════════════════
+      // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
       if (req.method === 'PATCH') {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
 

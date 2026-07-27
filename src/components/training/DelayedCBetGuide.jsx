@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DELAYED_SPOTS = [
-  { flop: 'T♥ 9♥ 6♣', turn: '2♠', hand: 'AA', verdict: 'DELAYED C-BET ✅',
+  { flop: 'T♥ 9♥ 6♣', turn: '2♠', hand: 'AA', verdict: 'DELAYED C-BET ✓',
     reason: 'Checked flop on wet board for pot control. Brick turn = safe to bet now. Villain\'s draws missed.',
     sizing: '66-75% pot', color: '#22c55e' },
-  { flop: 'K♠ 7♦ 2♣', turn: 'Q♥', hand: 'AJ', verdict: 'DELAYED C-BET ✅',
+  { flop: 'K♠ 7♦ 2♣', turn: 'Q♥', hand: 'AJ', verdict: 'DELAYED C-BET ✓',
     reason: 'Checked back flop with AJ (no pair). Queen on turn gives you a straight draw + two overs. Semi-bluff now.',
     sizing: '55-66% pot', color: '#22c55e' },
-  { flop: 'A♣ 8♦ 3♠', turn: 'K♥', hand: 'QQ', verdict: 'CHECK AGAIN ❌',
+  { flop: 'A♣ 8♦ 3♠', turn: 'K♥', hand: 'QQ', verdict: 'CHECK AGAIN ✕',
     reason: 'Two overcards on board now. Your QQ is struggling. Checking flop was right, and nothing improved for you on turn.',
     sizing: 'N/A', color: '#ef4444' },
-  { flop: 'J♣ T♠ 4♦', turn: '2♣', hand: 'AK', verdict: 'DELAYED C-BET ✅',
+  { flop: 'J♣ T♠ 4♦', turn: '2♣', hand: 'AK', verdict: 'DELAYED C-BET ✓',
     reason: 'Checked flop with AK on coordinated board. Brick turn = villain\'s floating range is weak. Stab now.',
     sizing: '50-60% pot', color: '#22c55e' },
-  { flop: 'Q♠ 8♠ 5♦', turn: 'A♠', hand: 'KK', verdict: 'CHECK ❌',
+  { flop: 'Q♠ 8♠ 5♦', turn: 'A♠', hand: 'KK', verdict: 'CHECK ✕',
     reason: 'Flush completing and an ace. Two bad cards for KK. Checking is the disciplined play.',
     sizing: 'N/A', color: '#ef4444' },
 ];
@@ -38,7 +38,7 @@ export default function DelayedCBetGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⏱️ Delayed C-Bet Guide
+        ⏱ Delayed C-Bet Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Check flop, attack turn — the sneaky delayed continuation bet.</p>
 

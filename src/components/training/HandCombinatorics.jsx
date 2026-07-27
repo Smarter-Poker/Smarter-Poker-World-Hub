@@ -6,17 +6,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const COMBO_LESSONS = [
-  { topic: 'Pocket Pair Combos', icon: '🎴', color: '#ef4444',
+  { topic: 'Pocket Pair Combos', icon: '◇', color: '#ef4444',
     combos: '6 combos per pair (e.g., AA = A♠A♥, A♠A♦, A♠A♣, A♥A♦, A♥A♣, A♦A♣)',
     onBoard: 'If one card is on board, only 3 combos remain. Two cards = 1 combo.',
     why: 'Pairs are rarer than you think. Only 6 combos of AA vs 16 combos of AK.',
     exercise: 'Board: A♠K♥7♦. How many combos of KK? Answer: 3 (K can\'t be K♥ since it\'s on board).' },
-  { topic: 'Unpaired Hand Combos', icon: '🃏', color: '#3b82f6',
+  { topic: 'Unpaired Hand Combos', icon: '◇', color: '#3b82f6',
     combos: '16 combos total: 4 suited (AKs) + 12 offsuit (AKo).',
     onBoard: 'Each board card removes combos. AK with A on board = 4×3 = 12 combos (not 16).',
     why: 'Unpaired hands are 2.7x more common than pairs. This matters for range construction.',
     exercise: 'Board: A♠K♥7♦. How many combos of AK? Answer: 3×3 = 9 (one A and one K are out).' },
-  { topic: 'Set Combos on Board', icon: '🎯', color: '#22c55e',
+  { topic: 'Set Combos on Board', icon: '◆', color: '#22c55e',
     combos: 'For any board card, there are exactly 3 combos of sets (e.g., board has 7♦ → 7♠7♥, 7♠7♣, 7♥7♣).',
     onBoard: 'Across a 3-card flop, there are 9 possible set combos (3 per card).',
     why: 'Sets are rare! Only 3 combos each. Don\'t overweight them in villain\'s range.',
@@ -26,7 +26,7 @@ const COMBO_LESSONS = [
     onBoard: 'Suited combos matter for flush draws. On a two-heart board, only hearts-hearts combos make flush draws.',
     why: 'When counting flush draw combos, each suited combo has only 1 relevant suit.',
     exercise: 'How many combos of A♥x♥ (nut flush draw)? Answer: 12 combos (A♥ paired with each non-heart).' },
-  { topic: 'Blocker Math', icon: '🚫', color: '#8b5cf6',
+  { topic: 'Blocker Math', icon: '✕', color: '#8b5cf6',
     combos: 'Holding a card removes combos. Holding A♠ removes 3 combos of AA, 4 combos of AK, etc.',
     onBoard: 'Blockers are most powerful on the river when ranges are narrow.',
     why: 'If you hold the A♠ on a 3-spade board, villain has ZERO combos of the nut flush.',
@@ -40,7 +40,7 @@ export default function HandCombinatorics() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔢 Hand Combinatorics
+        Hand Combinatorics
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Count combos like a pro. The math behind ranges.</p>
 

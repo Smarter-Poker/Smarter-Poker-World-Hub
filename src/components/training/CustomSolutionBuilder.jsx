@@ -9,10 +9,10 @@ import { motion } from 'framer-motion';
 const POSITIONS = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STACK_DEPTHS = [20, 30, 40, 50, 75, 100, 150, 200];
 const GAME_TYPES = [
-  { id: 'cash', label: 'Cash Game', icon: '💰' },
-  { id: 'mtt', label: 'MTT', icon: '🏆' },
-  { id: 'spin', label: 'Spin & Go', icon: '🌀' },
-  { id: 'husng', label: 'HU SNG', icon: '🥊' },
+  { id: 'cash', label: 'Cash Game', icon: '●' },
+  { id: 'mtt', label: 'MTT', icon: '★' },
+  { id: 'spin', label: 'Spin & Go', icon: '↻' },
+  { id: 'husng', label: 'HU SNG', icon: '»' },
 ];
 const BET_SIZES = ['25%', '33%', '50%', '66%', '75%', '100%', '125%', '150%', '200%'];
 const RAISE_SIZES = ['2x', '2.5x', '3x', '3.5x', '4x', '5x', 'All-in'];
@@ -40,7 +40,7 @@ export default function CustomSolutionBuilder() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔧 Custom Solution Builder
+        Custom Solution Builder
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Configure custom solver parameters and generate solutions on-the-fly.</p>
 
@@ -149,7 +149,7 @@ export default function CustomSolutionBuilder() {
           style={{ flex: 1, padding: '10px 20px', borderRadius: 10, border: 'none', cursor: solving ? 'wait' : 'pointer',
             background: solving ? 'rgba(245,158,11,0.3)' : 'linear-gradient(135deg, #f59e0b, #ef4444)',
             fontSize: 14, fontWeight: 800, color: '#fff' }}>
-          {solving ? '⏳ Solving...' : '🚀 Build Solution'}
+          {solving ? '○ Solving...' : '▲ Build Solution'}
         </button>
       </div>
 

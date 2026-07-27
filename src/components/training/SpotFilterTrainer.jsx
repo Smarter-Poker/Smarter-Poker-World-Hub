@@ -271,7 +271,7 @@ export default function SpotFilterTrainer() {
                     }}>
                       {choice}
                       {showResult && isCorrect && ' ✓'}
-                      {showResult && isSelected && !isCorrect && ' ✗'}
+                      {showResult && isSelected && !isCorrect && '✕'}
                     </button>
                   );
                 })}
@@ -310,7 +310,7 @@ export default function SpotFilterTrainer() {
                       width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: a.correct ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
                       color: a.correct ? '#22c55e' : '#ef4444', fontSize: 10, fontWeight: 800,
-                    }}>{a.correct ? '✓' : '✗'}</div>
+                    }}>{a.correct ? '✓': '✕'}</div>
                     <span style={{ color: '#f1f5f9', fontSize: 11, fontWeight: 600 }}>{sc.hand}</span>
                     <span style={{ color: '#64748b', fontSize: 10 }}>{sc.position} • {sc.street} • {sc.board}</span>
                     <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 10 }}>

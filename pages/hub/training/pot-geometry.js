@@ -24,9 +24,9 @@ import QuizAnswer, { QuizAnswerStack } from '../../../src/components/poker/QuizA
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-FX-4b — adoption: feedback hook for pot-geometry.fresh.js
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SPR ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function calcSPR(effectiveStack, potSize) {
   if (!potSize || potSize <= 0) return 0;
@@ -38,34 +38,34 @@ function getSPRCategory(spr) {
     return {
       label: 'Micro SPR',
       color: 'var(--sp-accent-red)',
-      icon: '🔥',
+      icon: '▲',
       desc: 'All-in situations. Any pair/draw = auto-commit. Pot odds dictate decisions entirely.',
     };
   if (spr <= 4)
     return {
       label: 'Low SPR',
       color: 'var(--sp-accent-orange)',
-      icon: '⚡',
+      icon: '⌁',
       desc: 'Set-mining unfavorable. Top pair is a strong commitment hand. Raise/fold dynamics dominate.',
     };
   if (spr <= 8)
     return {
       label: 'Medium SPR',
       color: 'var(--sp-accent-amber)',
-      icon: '⚖️',
+      icon: '◇',
       desc: 'Optimal SPR for most flop play. Top pair = strong, two pair = near commitment. Sets fully +EV.',
     };
   if (spr <= 15)
     return {
       label: 'High SPR',
       color: 'var(--sp-accent-green)',
-      icon: '🎯',
+      icon: '◆',
       desc: 'Deep play. Sets = nut hands. Top pair = marginal at best. Implied odds make draws valuable.',
     };
   return {
     label: 'Very Deep',
     color: 'var(--sp-accent-cyan)',
-    icon: '🌊',
+    icon: '·',
     desc: 'Extremely deep stacks. Only nutted hands and high-equity draws have clear commitment lines.',
   };
 }
@@ -149,9 +149,9 @@ function getOptimalBets(spr, potSize) {
   return bets;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DRILL ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DRILL_SCENARIOS = [
   {
@@ -255,9 +255,9 @@ function generateDrill() {
   return { ...s, spr, cat, options };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PotGeometry() {
   const router = useRouter();
@@ -448,8 +448,8 @@ export default function PotGeometry() {
           {/* Mode Tabs */}
           <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
             {[
-              { id: 'calc', label: '📐 Calculator' },
-              { id: 'drill', label: '🎯 SPR Drills' },
+              { id: 'calc', label: '■ Calculator' },
+              { id: 'drill', label: '◆ SPR Drills' },
             ].map((m) => (
               <button
                 key={m.id}

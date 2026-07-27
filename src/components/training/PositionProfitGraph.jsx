@@ -1,6 +1,6 @@
 /**
  * PositionProfitGraph — GTO Wizard-Style Position-by-Position P&L Tracker
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visualize profit/loss breakdown by position with bar chart, trend lines,
  * and detailed stats per seat.
  */

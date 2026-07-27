@@ -1,6 +1,6 @@
 /**
  * POSTFLOP SOLUTIONS BROWSER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style postflop strategy browser:
  * - Select board texture (flop), turn, river cards
  * - Browse by position matchup (e.g., BTN vs BB SRP)
@@ -8,7 +8,7 @@
  * - 13x13 grid showing bet/check/raise frequencies
  * - Bet sizing breakdown (1/3, 1/2, 2/3, overbet)
  * - Aggregate stats: bet%, check%, raise% across full range
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -18,7 +18,7 @@ const SUITS = ['s','h','d','c'];
 const SUIT_SYMBOLS = { s: '\u2660', h: '\u2665', d: '\u2666', c: '\u2663' };
 const SUIT_COLORS = { s: '#94a3b8', h: '#ef4444', d: '#3b82f6', c: '#22c55e' };
 
-// ═══ PRESET FLOPS ═══
+// ●●● PRESET FLOPS ●●●
 const PRESET_FLOPS = [
   { cards: ['As','Kh','7d'], label: 'AK7r', texture: 'Dry High' },
   { cards: ['Qh','Jh','3d'], label: 'QJ3tt', texture: 'Two-tone Broadway' },
@@ -34,7 +34,7 @@ const PRESET_FLOPS = [
   { cards: ['6c','6d','3h'], label: '663', texture: 'Paired Low' },
 ];
 
-// ═══ POSITION MATCHUPS ═══
+// ●●● POSITION MATCHUPS ●●●
 const MATCHUPS = [
   { id: 'btn_bb_srp', label: 'BTN vs BB (SRP)', hero: 'BTN', villain: 'BB', pot: 'SRP' },
   { id: 'co_bb_srp', label: 'CO vs BB (SRP)', hero: 'CO', villain: 'BB', pot: 'SRP' },
@@ -46,7 +46,7 @@ const MATCHUPS = [
 
 const BET_SIZINGS = ['1/3 pot', '1/2 pot', '2/3 pot', 'Pot', 'Overbet'];
 
-// ═══ STRATEGY GENERATOR ═══
+// ●●● STRATEGY GENERATOR ●●●
 function generatePostflopStrategy(flop, matchup, street) {
   const grid = {};
   const flopRanks = flop.map(c => RANKS.indexOf(c[0]));
@@ -152,7 +152,7 @@ const getCellColor = (d) => {
   return 'rgba(30,41,59,0.5)';
 };
 
-// ═══ CARD DISPLAY ═══
+// ●●● CARD DISPLAY ●●●
 function CardChip({ card, onClick, selected }) {
   const rank = card[0], suit = card[1];
   return (
@@ -168,7 +168,7 @@ function CardChip({ card, onClick, selected }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function PostflopSolutionsBrowser() {
   const [selectedFlop, setSelectedFlop] = useState(PRESET_FLOPS[0]);
   const [matchup, setMatchup] = useState(MATCHUPS[0]);
@@ -209,7 +209,7 @@ export default function PostflopSolutionsBrowser() {
         Postflop Solutions Browser
       </h3>
 
-      {/* ═══ FLOP SELECTOR ═══ */}
+      {/* ●●● FLOP SELECTOR ●●● */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
           Board
@@ -237,7 +237,7 @@ export default function PostflopSolutionsBrowser() {
         <span style={{ color: '#64748b', fontSize: 11 }}>{selectedFlop.texture}</span>
       </div>
 
-      {/* ═══ MATCHUP + CONTROLS ═══ */}
+      {/* ●●● MATCHUP + CONTROLS ●●● */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Spot</div>
@@ -271,7 +271,7 @@ export default function PostflopSolutionsBrowser() {
       </div>
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        {/* ═══ 13x13 GRID ═══ */}
+        {/* ●●● 13x13 GRID ●●● */}
         <div style={{ flex: '1 1 400px' }}>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
@@ -328,7 +328,7 @@ export default function PostflopSolutionsBrowser() {
           </div>
         </div>
 
-        {/* ═══ DETAIL PANEL ═══ */}
+        {/* ●●● DETAIL PANEL ●●● */}
         <div style={{ flex: '0 0 220px' }}>
           {/* Aggregate Stats */}
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12, marginBottom: 12 }}>

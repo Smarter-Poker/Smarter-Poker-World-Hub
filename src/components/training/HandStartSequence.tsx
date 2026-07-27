@@ -1,5 +1,5 @@
 /**
- * 🎬 HAND START SEQUENCE - Integrated Choreography Wrapper
+ * HAND START SEQUENCE - Integrated Choreography Wrapper
  * 
  * Wraps the Director component with premium opening animations.
  * Executes the full choreography before handing control to the game.
@@ -16,9 +16,9 @@ import {
 } from './OpeningChoreography';
 import { SEAT_LAYOUTS, type TableSize } from '../../lib/SeatLayouts';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface Player {
     seat: number;
@@ -42,9 +42,9 @@ interface HandStartSequenceProps {
     children: React.ReactNode;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const COLORS = {
     orange: '#f59e0b',
@@ -53,9 +53,9 @@ const COLORS = {
     darkBg: '#0a0a1a'
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export function HandStartSequence({
     players,

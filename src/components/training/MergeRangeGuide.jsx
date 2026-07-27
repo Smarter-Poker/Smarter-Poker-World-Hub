@@ -6,17 +6,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const RANGE_TYPES = [
-  { type: 'Polarized', icon: '⚡', color: '#ef4444',
+  { type: 'Polarized', icon: '⌁', color: '#ef4444',
     desc: 'Your betting range contains only very strong hands (value) and bluffs. No medium-strength hands.',
     when: ['Flop c-bets on wet boards', 'River bets (most common spot)', 'Large bet sizes (75%+ pot)', '3-bet pots'],
     example: 'River: You bet 75% pot with sets+ and missed draws. Your medium pairs check behind for showdown.',
     visual: { value: 30, bluff: 20, medium: 0 } },
-  { type: 'Merged', icon: '🔄', color: '#3b82f6',
+  { type: 'Merged', icon: '↻', color: '#3b82f6',
     desc: 'Your betting range includes strong AND medium-strength hands. Few or no bluffs.',
     when: ['Dry board flops (K72r, A52r)', 'Small bet sizes (25-33% pot)', 'Against calling stations', 'When villain doesn\'t fold often'],
     example: 'Flop K72r: You bet 33% with all Kx, all pairs, even A-high. Your whole range bets.',
     visual: { value: 35, bluff: 5, medium: 40 } },
-  { type: 'Linear', icon: '📈', color: '#22c55e',
+  { type: 'Linear', icon: '▲', color: '#22c55e',
     desc: 'Betting your best hands and calling/checking your worst. Pure value-based ordering.',
     when: ['Pre-flop opening ranges', 'Calling 3-bets', 'Multi-way pots', 'When you want to simplify'],
     example: 'Pre-flop: Open your top 25% of hands. 3-bet your top 5%. Fold the rest.',
@@ -30,7 +30,7 @@ export default function MergeRangeGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎭 Range Types Guide
+        Range Types Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Polarized vs Merged vs Linear — the three betting paradigms.</p>
 
@@ -78,7 +78,7 @@ export default function MergeRangeGuide() {
         ))}
 
         <div style={{ marginTop: 8, background: `${rangeType.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${rangeType.color}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: rangeType.color }}>💡 Example</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: rangeType.color }}>Example</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{rangeType.example}</div>
         </div>
       </motion.div>

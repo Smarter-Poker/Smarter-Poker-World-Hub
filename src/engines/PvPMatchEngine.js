@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * PVP MATCH ENGINE — Competitive Poker Training Matches
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Heads-up hyper-turbo competitive format (like GTO Wizard's PokerArena):
  *   - Heads-up format with diamond entry + prizes
@@ -10,13 +10,13 @@
  *   - TrueSkill-style rating system
  *   - Diamond entry fees + prize pools
  *   - Seasonal rankings and leaderboards
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { HandStateMachine, HAND_STATES } from './HandStateMachine';
 import { SessionScorer, calculateSessionDiamonds } from './GTOScoreEngine';
 
-// ── Match Configuration ──────────────────────────────────────────────────
+// ●● Match Configuration ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const MATCH_FORMATS = {
     QUICK: {
@@ -54,7 +54,7 @@ export const MATCH_FORMATS = {
     },
 };
 
-// ── Match States ─────────────────────────────────────────────────────────
+// ●● Match States ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const MATCH_STATES = {
     WAITING: 'waiting',      // Waiting for opponent
@@ -65,9 +65,9 @@ export const MATCH_STATES = {
     CANCELLED: 'cancelled',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MATCH ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export class PvPMatch {
     /**
@@ -258,9 +258,9 @@ export class PvPMatch {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TRUESKILL-STYLE RATING SYSTEM
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DEFAULT_RATING = 1500;
 const K_FACTOR = 32;
@@ -288,15 +288,15 @@ export function calculateRatingChange(winnerRating, loserRating) {
  * Get the rank tier for a rating.
  */
 export function getRankTier(rating) {
-    if (rating >= 2200) return { name: 'Diamond', icon: '💎', color: '#00bcd4' };
-    if (rating >= 2000) return { name: 'Platinum', icon: '⚪', color: '#9e9e9e' };
-    if (rating >= 1800) return { name: 'Gold', icon: '🥇', color: '#ffd700' };
-    if (rating >= 1600) return { name: 'Silver', icon: '🥈', color: '#c0c0c0' };
-    if (rating >= 1400) return { name: 'Bronze', icon: '🥉', color: '#cd7f32' };
-    return { name: 'Iron', icon: '⚙️', color: '#8d6e63' };
+    if (rating >= 2200) return { name: 'Diamond', icon: '◆', color: '#00bcd4' };
+    if (rating >= 2000) return { name: 'Platinum', icon: '○', color: '#9e9e9e' };
+    if (rating >= 1800) return { name: 'Gold', icon: '●', color: '#ffd700' };
+    if (rating >= 1600) return { name: 'Silver', icon: '●', color: '#c0c0c0' };
+    if (rating >= 1400) return { name: 'Bronze', icon: '●', color: '#cd7f32' };
+    return { name: 'Iron', icon: '●', color: '#8d6e63' };
 }
 
-// ── Supabase Schema ──────────────────────────────────────────────────────
+// ●● Supabase Schema ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const PVP_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS pvp_matches (

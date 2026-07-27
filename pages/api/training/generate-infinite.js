@@ -1,6 +1,6 @@
 /**
- * 🚫 ENDPOINT REMOVED — Operation Grok-Sweep (2026-05)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ENDPOINT REMOVED — Operation Grok-Sweep (2026-05)
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * This endpoint's original docblock literally said:
  *   "Generates completely unique poker scenarios using Grok... NEVER repeats"
  * That is the exact behavior the platform's "no AI hallucinations for math"
@@ -11,7 +11,7 @@
  * /api/training/get-question instead.
  *
  * Returns 410 Gone for any client still pointed at this URL.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 export default function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');

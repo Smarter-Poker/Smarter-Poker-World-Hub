@@ -1,6 +1,6 @@
 /**
  * MultiTableTracker — GTO Wizard-Style Multi-Table Session Dashboard
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Track performance across multiple simultaneous tables. Aggregate stats,
  * per-table breakdowns, and cross-table analysis.
  */

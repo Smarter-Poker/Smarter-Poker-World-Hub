@@ -1,6 +1,6 @@
 /**
  * HandCombinatoricsGuide — Counting Hand Combinations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive guide for counting hand combos in opponent ranges.
  * Essential GTO skill for hand reading and range analysis.
  */

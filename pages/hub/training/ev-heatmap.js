@@ -1,11 +1,11 @@
 /**
  * EV HEATMAP — Decision Profitability Map
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Grid visualization: position × street
  * Color-coded cells (green = +EV, red = -EV) with game type filtering.
  *
  * Route: /hub/training/ev-heatmap
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-12 — hex sweep batch 5: literals routed to --sp-* tokens

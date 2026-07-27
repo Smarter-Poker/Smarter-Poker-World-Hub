@@ -1,5 +1,5 @@
 /**
- * 🎮 GAME PHASE CONTROLLER - The Flow/Timing Engine
+ * GAME PHASE CONTROLLER - The Flow/Timing Engine
  * 
  * State machine controlling the entire training session flow:
  * 
@@ -16,9 +16,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { SolverResult } from './FeedbackCard';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export type GamePhase =
     | 'INITIALIZING'     // Loading game data
@@ -79,9 +79,9 @@ interface PhaseControllerConfig {
     playSound?: (soundKey: string) => void;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DEFAULT VALUES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DEFAULT_SESSION_STATS: SessionStats = {
     totalHands: 0,
@@ -103,9 +103,9 @@ const DEFAULT_CONFIG: PhaseControllerConfig = {
     diamondMultiplier: 1.0
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN HOOK
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export function useGamePhaseController(config: Partial<PhaseControllerConfig> = {}) {
     const fullConfig = { ...DEFAULT_CONFIG, ...config };
@@ -127,9 +127,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     const shotClockRef = useRef<NodeJS.Timeout | null>(null);
     const handStartTimeRef = useRef<number>(Date.now());
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // SHOT CLOCK MANAGEMENT
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const startShotClock = useCallback(() => {
         try {
@@ -181,9 +181,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, []);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // PHASE A: START GAME / DEAL
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const startGame = useCallback(() => {
         try {
@@ -216,9 +216,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, [fullConfig, startShotClock]);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // PHASE A: HANDLE USER ACTION
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const handleUserAction = useCallback((
         userAction: string,
@@ -328,9 +328,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, [state.handIndex, fullConfig, stopShotClock]);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // VIEW RANGE (Heatmap Toggle)
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const toggleHeatmap = useCallback(() => {
         try {
@@ -359,9 +359,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, []);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // PHASE B: NEXT HAND TRANSITION
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const nextHand = useCallback(() => {
         try {
@@ -447,9 +447,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, [state.handIndex, state.sessionStats, fullConfig, startShotClock]);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // PHASE C: REVIEW MODE
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     const enterReviewMode = useCallback((handIndex: number) => {
         try {
@@ -507,9 +507,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         }
     }, [fullConfig]);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // KEYBOARD SHORTCUTS
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -545,9 +545,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         };
     }, []);
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // RETURN API
-    // ─────────────────────────────────────────────────────────────────────
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     return {
         // State
@@ -572,9 +572,9 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // PHASE INDICATOR COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface PhaseIndicatorProps {
     phase: GamePhase;
@@ -657,9 +657,9 @@ export function PhaseIndicator({
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SESSION REPORT MODAL
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface SessionReportProps {
     stats: SessionStats;
@@ -706,7 +706,7 @@ export function SessionReport({
                         : 'linear-gradient(135deg, rgba(245,158,11,0.2), transparent)'
                 }}>
                     <div style={{ fontSize: '64px', marginBottom: '16px' }}>
-                        {passed ? '🏆' : '📊'}
+                        {passed ? '★' : '■'}
                     </div>
                     <h2 style={{
                         fontSize: '28px',
@@ -819,7 +819,7 @@ export function SessionReport({
                             cursor: 'pointer'
                         }}
                     >
-                        {passed ? '🎮 Next Level' : '🔄 Try Again'}
+                        {passed ? '● Next Level' : '↻ Try Again'}
                     </button>
                 </div>
             </div>

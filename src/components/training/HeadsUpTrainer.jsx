@@ -1,6 +1,6 @@
 /**
  * HeadsUpTrainer — GTO Wizard-Style Heads-Up Specific Training
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized heads-up training covering SB vs BB dynamics, wide range
  * construction, aggression strategies, and HU-specific GTO adjustments.
  */

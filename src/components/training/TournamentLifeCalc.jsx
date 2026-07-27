@@ -1,6 +1,6 @@
 /**
  * TournamentLifeCalc — GTO Wizard-Style Tournament Life & Survival Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate survival odds, expected finish position, ROI projections,
  * and optimal risk-taking based on stack/field/payout structure.
  */

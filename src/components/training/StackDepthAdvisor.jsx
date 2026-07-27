@@ -1,18 +1,18 @@
 /**
  * STACK DEPTH ADVISOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Strategy adjustments based on effective stack depth:
  * - SPR (Stack-to-Pot Ratio) calculations
  * - Commitment thresholds
  * - Preflop and postflop adjustments per depth
  * - Interactive stack slider
  * - Position-specific recommendations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ STACK DEPTH PROFILES ═══
+// ●●● STACK DEPTH PROFILES ●●●
 const DEPTH_PROFILES = [
   {
     id: 'ultra_short',
@@ -111,7 +111,7 @@ function getProfileForBB(bb) {
   return DEPTH_PROFILES.find(p => bb >= p.range[0] && bb < p.range[1]) || DEPTH_PROFILES[DEPTH_PROFILES.length - 1];
 }
 
-// ═══ SPR GAUGE ═══
+// ●●● SPR GAUGE ●●●
 function SPRGauge({ spr, color }) {
   return (
     <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
@@ -127,7 +127,7 @@ function SPRGauge({ spr, color }) {
   );
 }
 
-// ═══ POSITION RANGE DISPLAY ═══
+// ●●● POSITION RANGE DISPLAY ●●●
 function PositionRanges({ ranges, color }) {
   const positions = ['utg', 'mp', 'co', 'btn', 'sb'];
   const labels = { utg: 'UTG', mp: 'MP', co: 'CO', btn: 'BTN', sb: 'SB' };
@@ -151,7 +151,7 @@ function PositionRanges({ ranges, color }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function StackDepthAdvisor() {
   const [bbSlider, setBbSlider] = useState(50);
   const [selectedProfile, setSelectedProfile] = useState(null);

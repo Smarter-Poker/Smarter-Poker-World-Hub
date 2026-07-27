@@ -1,8 +1,8 @@
 /**
  * Training Progress Page
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Displays user's training progress, stats, and achievements
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
@@ -26,12 +26,12 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-5b — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ICON COMPONENTS — TRAIN-PROGRESS-A11Y-1
 // SVG replacements for the emoji icons used in StatCard + section titles.
 // Stroke colour inherits via currentColor so the parent's colour token
 // drives the visual. Handoff §4 'no-emoji-icons' anti-pattern.
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function StatIcon({ kind, size = 18, color = 'currentColor' }) {
   const common = {
@@ -338,7 +338,7 @@ export default function TrainingProgress() {
           {/* Category Breakdown */}
           <section style={styles.section}>
             <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was 📚) */}
+              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was □) */}
               <StatIcon kind="category" size={20} color="currentColor" />
               Category Breakdown
             </h2>
@@ -377,7 +377,7 @@ export default function TrainingProgress() {
           {/* Recent Activity */}
           <section style={styles.section}>
             <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was 📅) */}
+              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was ·) */}
               <StatIcon kind="activity" size={20} color="currentColor" />
               Recent Activity
             </h2>
@@ -404,9 +404,9 @@ export default function TrainingProgress() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // TRAIN-PROGRESS-A11Y-1: iconKind takes precedence; legacy icon accepted for back-compat.
 function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
@@ -472,9 +472,9 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const styles = {
   container: {

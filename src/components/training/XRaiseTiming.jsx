@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STREETS = [
-  { name: 'Flop', icon: '🃏', color: '#3b82f6', scenarios: [
+  { name: 'Flop', icon: '◇', color: '#3b82f6', scenarios: [
     { hand: 'Set on wet board', action: 'CHECK-RAISE', sizing: '3-3.5x', reason: 'Build pot + charge draws. Wet boards mean villain c-bets wide.' },
     { hand: 'Flush draw + pair', action: 'CHECK-RAISE', sizing: '3x', reason: 'Semi-bluff with massive equity. Puts max pressure with fold equity + draw equity.' },
     { hand: 'Top pair top kicker', action: 'CHECK-CALL', sizing: 'N/A', reason: 'Too strong to fold, not strong enough to raise for value. Trap and re-evaluate.' },
     { hand: 'Gutshot only', action: 'CHECK-FOLD', sizing: 'N/A', reason: 'Only 4 outs, no fold equity implied. Save chips for better spots.' },
   ]},
-  { name: 'Turn', icon: '🔄', color: '#f59e0b', scenarios: [
+  { name: 'Turn', icon: '↻', color: '#f59e0b', scenarios: [
     { hand: 'Made straight on turn', action: 'CHECK-RAISE', sizing: '2.5-3x', reason: 'Delayed check-raise on turn looks super strong. Extract max from overpairs and draws.' },
     { hand: 'Flush completed', action: 'DONK BET or X/R', sizing: '66-75%', reason: 'Either lead or check-raise. Don\'t risk a check-check with the nuts.' },
     { hand: 'Turned two pair', action: 'CHECK-RAISE', sizing: '2.5x', reason: 'Strong but vulnerable. Raise to deny redraws and build pot vs villain\'s barrel range.' },
     { hand: 'Missed draw', action: 'CHECK-FOLD', sizing: 'N/A', reason: 'Draw bricked. Unless you have good bluff equity, let it go. Save for river bluff if needed.' },
   ]},
-  { name: 'River', icon: '🏁', color: '#ef4444', scenarios: [
+  { name: 'River', icon: '★', color: '#ef4444', scenarios: [
     { hand: 'Full house', action: 'CHECK-RAISE', sizing: '2.5-3x', reason: 'Let them bluff or value bet. Then raise for max value. River check-raise = massive pot.' },
     { hand: 'Missed draw (bluff)', action: 'CHECK-RAISE', sizing: 'Overbet', reason: 'Turn your busted draw into a bluff. Check-raise overbet tells a convincing story.' },
     { hand: 'Second nut flush', action: 'CHECK-CALL', sizing: 'N/A', reason: 'Strong but not nutted. Check-call to keep in villain\'s bluffs. Don\'t raise into the nuts.' },
@@ -33,7 +33,7 @@ export default function XRaiseTiming() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚡ Check-Raise Timing
+        Check-Raise Timing
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know exactly when to spring the trap on every street.</p>
 

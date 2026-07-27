@@ -31,7 +31,7 @@ export default function RiverOverbetGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💣 River Overbet Guide
+        River Overbet Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Overbetting the river = maximum pressure. Use wisely.</p>
 
@@ -55,7 +55,7 @@ export default function RiverOverbetGuide() {
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>{spot.scenario}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{spot.reason}</p>
         <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${spot.color}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>🔑 Key</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Key</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.key}</div>
         </div>
       </motion.div>

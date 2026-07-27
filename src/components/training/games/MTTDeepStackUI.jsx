@@ -245,7 +245,7 @@ export default function MTTDeepStackUI({
                             ...styles.explanationTitle,
                             color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
                         }}>
-                            {feedbackResult === 'correct' ? '✓ Correct!' : '✗ Incorrect'}
+                            {feedbackResult === 'correct'? '✓ Correct!': '✕ Incorrect'}
                         </div>
                         <div style={styles.explanationText}>{explanation}</div>
                     </div>

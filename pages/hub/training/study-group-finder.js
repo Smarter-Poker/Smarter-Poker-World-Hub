@@ -1,12 +1,12 @@
 /**
  * STUDY GROUP FINDER — Social Matchmaking
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Find Discord/Hub study partners filtered by stakes, timezone, format,
  * and study tool preference. Features group browsing, join requests,
  * creation form, and member compatibility scoring.
  *
  * Route: /hub/training/study-group-finder
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-56 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -35,7 +35,7 @@ const MOCK_GROUPS = [
     schedule: 'Mon/Wed 7PM',
     level: 'Advanced',
     avatarKind: 'shark',
-    avatar: '🦈',
+    avatar: '▲',
   },
   {
     id: 2,
@@ -50,7 +50,7 @@ const MOCK_GROUPS = [
     schedule: 'Tue/Thu 8PM',
     level: 'Advanced',
     avatarKind: 'trophy',
-    avatar: '🏆',
+    avatar: '★',
   },
   {
     id: 3,
@@ -64,7 +64,7 @@ const MOCK_GROUPS = [
     focus: 'Hand history review',
     schedule: 'Sat 2PM',
     level: 'Intermediate',
-    avatar: '🃏',
+    avatar: '◇',
   },
   {
     id: 4,
@@ -78,7 +78,7 @@ const MOCK_GROUPS = [
     focus: 'Equity realization',
     schedule: 'Daily 6PM',
     level: 'Any',
-    avatar: '🃏',
+    avatar: '◇',
   },
   {
     id: 5,
@@ -93,7 +93,7 @@ const MOCK_GROUPS = [
     schedule: 'Mon/Fri 8PM',
     level: 'Beginner',
     avatarKind: 'book',
-    avatar: '📚',
+    avatar: '□',
   },
   {
     id: 6,
@@ -108,7 +108,7 @@ const MOCK_GROUPS = [
     schedule: 'Wed/Sun 4PM',
     level: 'Intermediate',
     avatarKind: 'bolt',
-    avatar: '⚡',
+    avatar: '⌁',
   },
   {
     id: 7,
@@ -123,7 +123,7 @@ const MOCK_GROUPS = [
     schedule: 'Sat 12PM',
     level: 'Any',
     avatarKind: 'target',
-    avatar: '🎯',
+    avatar: '◆',
   },
   {
     id: 8,
@@ -138,7 +138,7 @@ const MOCK_GROUPS = [
     schedule: 'Tue/Thu 9PM',
     level: 'Advanced',
     avatarKind: 'swords',
-    avatar: '⚔️',
+    avatar: '»',
   },
 ];
 
@@ -146,7 +146,7 @@ const FORMATS = ['All', 'Cash', 'Tournament', 'Live Cash', 'PLO', 'Spins'];
 const LEVELS = ['Any', 'Beginner', 'Intermediate', 'Advanced'];
 
 // BUG FIX (TRAIN-STUDYFINDER-A11Y-1): SVG icons replacing the study-group
-// avatar emoji set (🦈 🏆 📚 ⚡ 🎯 ⚔️) plus ✓ applied indicator and ← back.
+// avatar emoji set (▲ ★ □ ⌁ ◆ ») plus ✓ applied indicator and ← back.
 // Groups gain avatarKind discriminator; AvatarIcon renders by kind. Legacy
 // `avatar` emoji string preserved. Same surface-specific a11y pattern as
 // PR #320/#322/#324/#327-#357.

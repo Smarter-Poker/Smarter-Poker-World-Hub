@@ -1,6 +1,6 @@
 /**
  * PreFlopSimulator — GTO Wizard-Style Full Preflop Action Tree Simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Simulate complete preflop action sequences: open → 3-bet → 4-bet → 5-bet.
  * Shows decision trees, sizing recommendations, and range adjustments.
  */

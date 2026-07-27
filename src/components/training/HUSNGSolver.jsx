@@ -7,27 +7,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STACK_DEPTHS = [
-  { bb: 25, label: '25bb', phase: 'Early', color: '#22c55e', icon: '🟢',
+  { bb: 25, label: '25bb', phase: 'Early', color: '#22c55e', icon: '●',
     strategy: 'Play poker. Open normally. Don\'t shove yet.',
     openRange: '~45% from SB, ~35% from BB defense',
     notes: 'Full post-flop game applies. Position is king. Standard 2-2.5x opens.',
     pushRange: 'Never push at this depth unless you have AA/KK and villain 3-bets' },
-  { bb: 15, label: '15bb', phase: 'Mid', color: '#3b82f6', icon: '🔵',
+  { bb: 15, label: '15bb', phase: 'Mid', color: '#3b82f6', icon: '●',
     strategy: 'Mix open-shoves with standard opens. Some hands are too strong to open-fold.',
     openRange: '~55% from SB, ~40% from BB defense',
     notes: 'Start incorporating open-shoves with hands like A2-A9, KT+, suited connectors.',
     pushRange: 'Shove any pocket pair, A2+, K8+, Q9+, JTs from SB' },
-  { bb: 10, label: '10bb', phase: 'Push/Fold', color: '#f59e0b', icon: '🟡',
+  { bb: 10, label: '10bb', phase: 'Push/Fold', color: '#f59e0b', icon: '●',
     strategy: 'Primarily push or fold. Open-raising is rarely correct at 10bb.',
     openRange: 'N/A — push or fold',
     notes: 'The Nash push/fold zone. Every hand is either a shove or a fold from SB.',
     pushRange: 'Shove any pair, any Ace, K2s+, K5o+, Q7s+, Q9o+, J8s+, JTo, T8s+, 98s, 87s' },
-  { bb: 7, label: '7bb', phase: 'Desperation', color: '#ef4444', icon: '🔴',
+  { bb: 7, label: '7bb', phase: 'Desperation', color: '#ef4444', icon: '●',
     strategy: 'Shove extremely wide. You\'re almost dead — fight for every blind.',
     openRange: 'N/A — pure push/fold',
     notes: 'At 7bb, you must shove ~65-70% from SB. Any two cards with an Ace or King.',
     pushRange: 'Shove 70%+ of hands from SB: any Ace, any King, any Queen, any suited, any connected' },
-  { bb: 4, label: '4bb', phase: 'All-In Preflop', color: '#dc2626', icon: '⚫',
+  { bb: 4, label: '4bb', phase: 'All-In Preflop', color: '#dc2626', icon: '●',
     strategy: 'Shove literally everything from SB. Call very wide from BB.',
     openRange: 'N/A — ATC shove',
     notes: 'At 4bb, both players should be shoving 80%+ and calling 60%+ of shoves.',
@@ -61,7 +61,7 @@ export default function HUSNGSolver() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚔️ HU SNG Solver
+        » HU SNG Solver
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Nash equilibrium push/fold charts for Heads-Up Sit & Go tournaments.</p>
 

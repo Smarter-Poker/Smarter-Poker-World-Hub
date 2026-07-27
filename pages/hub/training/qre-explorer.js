@@ -1,11 +1,11 @@
 /**
- * 🧠 QRE POPULATION TENDENCIES — Quantal Response Equilibrium Explorer
- * ═══════════════════════════════════════════════════════════════════════════
+ * QRE POPULATION TENDENCIES — Quantal Response Equilibrium Explorer
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Models how real humans play vs GTO. Shows population-adjusted frequencies
  * with QRE noise parameter (λ). Lower λ = more random, higher λ = GTO-like.
  *
  * Route: /hub/training/qre-explorer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-41 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -23,9 +23,9 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 // prefers-reduced-motion via the body.world-training override.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // QRE ENGINE — Quantal Response Equilibrium Adjustment
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Quantal Response Equilibrium (QRE) models bounded rationality.
@@ -78,14 +78,14 @@ const GTO_ACTIONS = {
 };
 
 const SPOT_LABELS = {
-  'UTG-preflop': { label: 'UTG Open', street: 'Preflop', icon: '🎯' },
-  'CO-preflop': { label: 'CO Open', street: 'Preflop', icon: '🎯' },
-  'BTN-preflop': { label: 'BTN Open', street: 'Preflop', icon: '🎲' },
-  'SB-preflop': { label: 'SB Open', street: 'Preflop', icon: '🔀' },
-  'BB-vs3bet': { label: 'BB vs 3-Bet', street: 'Preflop', icon: '🚀' },
-  'IP-cbet-flop': { label: 'IP C-Bet', street: 'Flop', icon: '💰' },
-  'OOP-check-raise': { label: 'OOP Check-Raise', street: 'Flop', icon: '⚡' },
-  'river-bluff': { label: 'River Bluff', street: 'River', icon: '🃏' },
+  'UTG-preflop': { label: 'UTG Open', street: 'Preflop', icon: '◆' },
+  'CO-preflop': { label: 'CO Open', street: 'Preflop', icon: '◆' },
+  'BTN-preflop': { label: 'BTN Open', street: 'Preflop', icon: '◆' },
+  'SB-preflop': { label: 'SB Open', street: 'Preflop', icon: '⇄' },
+  'BB-vs3bet': { label: 'BB vs 3-Bet', street: 'Preflop', icon: '▲' },
+  'IP-cbet-flop': { label: 'IP C-Bet', street: 'Flop', icon: '●' },
+  'OOP-check-raise': { label: 'OOP Check-Raise', street: 'Flop', icon: '⌁' },
+  'river-bluff': { label: 'River Bluff', street: 'River', icon: '◇' },
 };
 
 const POOL_PRESETS = [
@@ -113,9 +113,9 @@ function computeQRE(actions, lambda) {
   }));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function QREExplorerPage() {
   const router = useRouter();
@@ -532,8 +532,8 @@ export default function QREExplorerPage() {
                 marginTop: 8,
               }}
             >
-              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>■ GTO (Nash)</span>
-              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>■ QRE (Population)</span>
+              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>GTO (Nash)</span>
+              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>QRE (Population)</span>
             </div>
           </div>
 

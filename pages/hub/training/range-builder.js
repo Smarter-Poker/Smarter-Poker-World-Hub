@@ -1,5 +1,5 @@
 /**
- * 🏗️ RANGE BUILDER — Interactive GTO Range Construction + Grading Tool
+ * RANGE BUILDER — Interactive GTO Range Construction + Grading Tool
  * ═══════════════════════════════════════════════════════════════════════════
  * Phase 18: Users construct their own preflop range for a given spot by
  * toggling hands on/off, then submit for grading vs solver solution.
@@ -164,7 +164,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
           }}
         >
           {diffResult === 'correct' && 'Correct ✓'}
-          {diffResult === 'wrong' && 'Wrong ✗ (Not in GTO range)'}
+          {diffResult === 'wrong'&& 'Wrong ✕ (Not in GTO range)'}
           {diffResult === 'missed' && 'Missed (GTO includes this)'}
           {diffResult === 'partial' && 'Partial (Mixed frequency)'}
         </div>

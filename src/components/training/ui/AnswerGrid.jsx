@@ -89,7 +89,7 @@ function AnswerGrid({
                                 <span style={{ ...styles.indicator, color: SMARTERPOKER_DARK.success }}>✓</span>
                             )}
                             {showFeedback && state === 'incorrect' && (
-                                <span style={{ ...styles.indicator, color: SMARTERPOKER_DARK.danger }}>✗</span>
+                                <span style={{ ...styles.indicator, color: SMARTERPOKER_DARK.danger }}>✕</span>
                             )}
                         </motion.button>
                     );

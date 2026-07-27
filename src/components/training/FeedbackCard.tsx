@@ -1,5 +1,5 @@
 /**
- * 📊 FEEDBACK CARD - The Resolution Layer
+ * FEEDBACK CARD - The Resolution Layer
  * 
  * Displays GTO analysis after each decision with clear hierarchy:
  * 1. Translator's Explanation (The Verdict)
@@ -321,7 +321,7 @@ export function FeedbackCard({
                                 fontSize: '24px'
                             }}
                         >
-                            {severity === 'correct' ? '✓' : severity === 'critical' ? '✗' : '⚠'}
+                            {severity === 'correct'? '✓': severity === 'critical'? '✕': '▲'}
                         </motion.div>
                         <div>
                             <div style={{
@@ -359,7 +359,7 @@ export function FeedbackCard({
                                 animation: 'pulse 2s infinite'
                             }}
                         >
-                            🚨 CRITICAL MISTAKE
+                             CRITICAL MISTAKE
                         </motion.div>
                     )}
 
@@ -392,7 +392,7 @@ export function FeedbackCard({
                     {engineExplanation?.shortExplanation || result.explanation}
                 </motion.p>
 
-                {/* 🧠 ENGINE-POWERED DEEP DIVE (No AI) */}
+                {/* ENGINE-POWERED DEEP DIVE (No AI) */}
                 {question && engineExplanation && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -421,7 +421,7 @@ export function FeedbackCard({
                             }}
                         >
                             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                🧠 Jarvis Deep Dive Analysis
+                                 Jarvis Deep Dive Analysis
                             </span>
                             <span style={{
                                 transform: showDeepDive ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -453,7 +453,7 @@ export function FeedbackCard({
                                             {engineExplanation.deepDive.rangeConsiderations && (
                                                 <div>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
-                                                        📊 Range Analysis
+                                                         Range Analysis
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
                                                         {engineExplanation.deepDive.rangeConsiderations}
@@ -463,7 +463,7 @@ export function FeedbackCard({
                                             {engineExplanation.deepDive.equityAnalysis && (
                                                 <div>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
-                                                        📈 Equity vs Range
+                                                         Equity vs Range
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
                                                         {engineExplanation.deepDive.equityAnalysis}
@@ -473,7 +473,7 @@ export function FeedbackCard({
                                             {engineExplanation.deepDive.boardTexture && (
                                                 <div>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
-                                                        🃏 Board Texture
+                                                         Board Texture
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
                                                         {engineExplanation.deepDive.boardTexture}
@@ -493,7 +493,7 @@ export function FeedbackCard({
                                             border: '1px solid rgba(255, 215, 0, 0.3)'
                                         }}>
                                             <div style={{ fontSize: '10px', fontWeight: 700, color: COLORS.gtoGold, marginBottom: '6px', textTransform: 'uppercase' }}>
-                                                💡 Key Takeaway
+                                                 Key Takeaway
                                             </div>
                                             <p style={{ fontSize: '14px', color: COLORS.textPrimary, margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
                                                 {engineExplanation.keyTakeaway}
@@ -509,7 +509,7 @@ export function FeedbackCard({
                                             margin: '12px 0 0 0',
                                             fontStyle: 'italic'
                                         }}>
-                                            📚 {engineExplanation.similarSpots}
+                                             {engineExplanation.similarSpots}
                                         </p>
                                     )}
                                 </motion.div>
@@ -542,7 +542,7 @@ export function FeedbackCard({
                         alignItems: 'center',
                         gap: '8px'
                     }}>
-                        <span>⭐</span>
+                        <span>★</span>
                         GTO OPTIMAL PLAY
                     </div>
 
@@ -644,7 +644,7 @@ export function FeedbackCard({
                             transition: 'all 0.2s ease'
                         }}
                     >
-                        📚 Study This Spot
+                         Study This Spot
                     </motion.button>
                 )}
                 <motion.button
@@ -906,10 +906,10 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
 
 function getActionIcon(action: string): string {
     switch (action) {
-        case 'Fold': return '🚫';
+        case 'Fold': return '';
         case 'Check': return '✓';
-        case 'Call': return '📞';
-        case 'Raise': return '📈';
+        case 'Call': return '';
+        case 'Raise': return '';
         case 'All-In': return '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>';
         default: return '?';
     }

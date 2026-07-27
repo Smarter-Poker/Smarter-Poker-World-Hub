@@ -40,7 +40,7 @@ export default function SemiBluffTrainer() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ec4899, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🃏 Semi-Bluff Trainer
+         Semi-Bluff Trainer
       </h3>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>Should you semi-bluff or give up?</p>
@@ -63,17 +63,17 @@ export default function SemiBluffTrainer() {
             <button onClick={() => handleGuess('SEMI-BLUFF')}
               style={{ padding: '10px 20px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'linear-gradient(135deg, #ec4899, #ef4444)', color: '#fff', fontSize: 13 }}>
-              🔥 Semi-Bluff
+              ▲ Semi-Bluff
             </button>
             <button onClick={() => handleGuess('CHECK')}
               style={{ padding: '10px 20px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13 }}>
-              ✋ Check
+               Check
             </button>
             <button onClick={() => handleGuess('GIVE UP')}
               style={{ padding: '10px 20px', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer',
                 background: 'rgba(255,255,255,0.06)', color: '#64748b', fontSize: 13 }}>
-              🏳️ Give Up
+               Give Up
             </button>
           </div>
         ) : (

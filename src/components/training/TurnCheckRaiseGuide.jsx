@@ -27,7 +27,7 @@ export default function TurnCheckRaiseGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚡ Turn Check-Raise Guide
+        Turn Check-Raise Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The turn check-raise is the most feared move in poker.</p>
 

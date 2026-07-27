@@ -1,18 +1,18 @@
 /**
  * TABLE DYNAMICS PANEL
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Real-time table dynamics analysis:
  * - Table aggression meter
  * - Stack distribution visualization
  * - Position advantage indicator
  * - Table type classification
  * - Dynamic strategy adjustments
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ TABLE PRESETS ═══
+// ●●● TABLE PRESETS ●●●
 const TABLE_PRESETS = [
   {
     id: 'tough', label: 'Tough Table',
@@ -49,20 +49,20 @@ const TABLE_PRESETS = [
   },
 ];
 
-// ═══ TABLE TYPE CLASSIFICATION ═══
+// ●●● TABLE TYPE CLASSIFICATION ●●●
 function classifyTable(players) {
   const avgVpip = players.reduce((a, p) => a + p.vpip, 0) / players.length;
   const avgPfr = players.reduce((a, p) => a + p.pfr, 0) / players.length;
   const avgAf = players.reduce((a, p) => a + p.af, 0) / players.length;
 
-  if (avgVpip > 35) return { type: 'Loose-Passive', color: '#22c55e', desc: 'Very soft — value bet relentlessly, tighten bluffs', icon: '💰' };
-  if (avgVpip > 30 && avgAf > 2.5) return { type: 'Loose-Aggressive', color: '#f59e0b', desc: 'Wild table — tighten up, trap with premium hands', icon: '🔥' };
-  if (avgVpip < 22 && avgAf > 2.5) return { type: 'Tight-Aggressive', color: '#ef4444', desc: 'Reg-heavy — look for seat change or adjust dynamics', icon: '⚔️' };
-  if (avgVpip < 22) return { type: 'Tight-Passive', color: '#3b82f6', desc: 'Steal aggressively, bluff more, they overfold', icon: '🧊' };
-  return { type: 'Mixed', color: '#a855f7', desc: 'Adjust per-player, target the weakest links', icon: '🎯' };
+  if (avgVpip > 35) return { type: 'Loose-Passive', color: '#22c55e', desc: 'Very soft — value bet relentlessly, tighten bluffs', icon: '●' };
+  if (avgVpip > 30 && avgAf > 2.5) return { type: 'Loose-Aggressive', color: '#f59e0b', desc: 'Wild table — tighten up, trap with premium hands', icon: '▲' };
+  if (avgVpip < 22 && avgAf > 2.5) return { type: 'Tight-Aggressive', color: '#ef4444', desc: 'Reg-heavy — look for seat change or adjust dynamics', icon: '»' };
+  if (avgVpip < 22) return { type: 'Tight-Passive', color: '#3b82f6', desc: 'Steal aggressively, bluff more, they overfold', icon: '◇' };
+  return { type: 'Mixed', color: '#a855f7', desc: 'Adjust per-player, target the weakest links', icon: '◆' };
 }
 
-// ═══ AGGRESSION METER ═══
+// ●●● AGGRESSION METER ●●●
 function AggressionMeter({ value, label }) {
   const color = value > 3.0 ? '#ef4444' : value > 2.0 ? '#f59e0b' : value > 1.0 ? '#22c55e' : '#3b82f6';
   const pct = Math.min(100, (value / 5) * 100);
@@ -79,7 +79,7 @@ function AggressionMeter({ value, label }) {
   );
 }
 
-// ═══ STACK DISTRIBUTION ═══
+// ●●● STACK DISTRIBUTION ●●●
 function StackDistribution({ players }) {
   const maxStack = Math.max(...players.map(p => p.stack));
   return (
@@ -110,7 +110,7 @@ function StackDistribution({ players }) {
   );
 }
 
-// ═══ DYNAMIC ADJUSTMENTS ═══
+// ●●● DYNAMIC ADJUSTMENTS ●●●
 function DynamicAdjustments({ players, tableType }) {
   const adjustments = [];
   const fish = players.filter(p => p.vpip > 35 && p.name !== 'Hero');
@@ -156,7 +156,7 @@ function DynamicAdjustments({ players, tableType }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function TableDynamicsPanel() {
   const [selectedTable, setSelectedTable] = useState(0);
   const [isPoppedOut, setIsPoppedOut] = useState(false);

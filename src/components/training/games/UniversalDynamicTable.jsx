@@ -1348,10 +1348,10 @@ function UniversalDynamicTable({
 
     // H2: Memoize mode bar tabs to prevent re-creates on every render
     const MODE_TABS = useMemo(() => [
-        { id: 'trainer', icon: '🎯', label: 'Trainer' },
-        { id: 'range', icon: '📊', label: 'Range' },
-        { id: 'strategy', icon: '📈', label: 'Strategy' },
-        { id: 'settings', icon: '⚙️', label: 'Settings' },
+        { id: 'trainer', icon: '', label: 'Trainer'},
+        { id: 'range', icon: '', label: 'Range'},
+        { id: 'strategy', icon: '', label: 'Strategy'},
+        { id: 'settings', icon: '', label: 'Settings'},
     ], []);
 
     // H6: Auto-reset to trainer mode when a new question loads
@@ -2403,7 +2403,7 @@ function UniversalDynamicTable({
                         const streakColor = isPositive
                             ? (absStreak >= 5 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)')
                             : 'var(--sp-accent-red)';
-                        const streakIcon = isPositive ? '🔥' : '💀';
+                        const streakIcon = isPositive ? '▲': '▼';
                         return absStreak >= 2 ? (
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: 2,
@@ -3238,7 +3238,7 @@ function UniversalDynamicTable({
                             background: 'linear-gradient(90deg, rgba(34,211,238,0.08), rgba(14,165,233,0.04))',
                             borderRadius: 8, border: '1px solid rgba(34,211,238,0.15)',
                         }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💡 Hint</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}> Hint</div>
                             <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.4 }}>{hints[0]}</div>
                         </div>
                     );
@@ -3278,7 +3278,7 @@ function UniversalDynamicTable({
                             zIndex: 10,
                         }}
                     >
-                        <span style={{ fontSize: 16 }}>🎲</span>
+                        <span style={{ fontSize: 16 }}>◆</span>
                         <span style={{
                             fontSize: 20, fontWeight: 900,
                             color: 'var(--sp-accent-purple)', fontFamily: "'Orbitron', monospace",
@@ -3305,7 +3305,7 @@ function UniversalDynamicTable({
                             border: '1px solid rgba(168,85,247,0.3)',
                             padding: '2px 10px', borderRadius: 8,
                         }}>
-                            🎲 {rngRoll}
+                            ◆ {rngRoll}
                         </span>
                         {/* Fix 16: ranges come from the shared rngRanges memo */}
                         {rngRanges.map(r => {
@@ -3347,7 +3347,7 @@ function UniversalDynamicTable({
                 />
                 {/* BUG FIX (TRAIN-LAYOUT-QUIT-1): Quit button used to be absolutely
                     positioned at top:-40, left:0 relative to the action bar. The Hint
-                    ribbon ('💡 Hint: On dry boards, c-bet small...') sits in flow
+                    ribbon ('Hint: On dry boards, c-bet small...') sits in flow
                     immediately above the action bar at roughly the same vertical
                     location, so Quit visibly overlapped the hint text on the live
                     table (screenshot 2 in the May 8 training-overhaul handoff).
@@ -3606,14 +3606,14 @@ function UniversalDynamicTable({
                         >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <button onClick={() => setStudyMode(!studyMode)} style={styles.settingsBtn}>
-                                    {studyMode ? '📖 Study Mode: ON' : '📖 Study Mode: OFF'}
+                                    {studyMode ? 'Study Mode: ON': 'Study Mode: OFF'}
                                 </button>
                                 <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
-                                    {rngMode ? '🎲 RNG Mode: ON' : '🎲 RNG Mode: OFF'}
+                                    {rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF'}
                                 </button>
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
-                                        🚪 Quit Session
+                                         Quit Session
                                     </button>
                                 )}
                             </div>
@@ -3696,7 +3696,7 @@ function UniversalDynamicTable({
                                         color: isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : 'var(--sp-fg-muted)',
                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}>
-                                        {isCorrect && '✓ '}{isSelected && !isCorrect && '✗ '}{text}
+                                        {isCorrect && '✓ '}{isSelected && !isCorrect && '✕ '}{text}
                                     </div>
                                     <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                                         <motion.div
@@ -3755,7 +3755,7 @@ function UniversalDynamicTable({
                                 fontSize: 11, fontWeight: 600,
                                 color: feedbackResult === 'correct' ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                             }}>
-                                {feedbackResult === 'correct' ? '✓' : '✗'} You: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                {feedbackResult === 'correct'? '✓': '✕'} You: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
                             </span>
                             {selectedAnswer !== correctAnswer && (
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>
@@ -4319,7 +4319,7 @@ function UniversalDynamicTable({
                                                                         background: isSelected && !isOptimal ? 'rgba(239,68,68,0.06)' : isOptimal ? 'rgba(34,197,94,0.06)' : 'transparent',
                                                                     }}>
                                                                         <span style={{ width: 10, fontSize: 8, color: isOptimal ? 'var(--sp-accent-green)' : isSelected ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)' }}>
-                                                                            {isOptimal ? '✓' : isSelected ? '✗' : '·'}
+                                                                            {isOptimal ? '✓': isSelected ? '✕': '·'}
                                                                         </span>
                                                                         <span style={{ flex: 1, fontSize: 9, color: isOptimal ? 'var(--sp-accent-green)' : isSelected ? 'var(--sp-accent-red)' : 'var(--sp-fg-muted)' }}>
                                                                             {optText}

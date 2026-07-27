@@ -6,21 +6,21 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SRP_SPOTS = [
-  { title: 'IP as PFR', icon: '🎯', color: '#22c55e',
+  { title: 'IP as PFR', icon: '◆', color: '#22c55e',
     situations: [
       { board: 'Dry (K72r)', cbet: '70-80%', size: '25-33%', note: 'Range bet small. You have massive range advantage.' },
       { board: 'Wet (JT8ss)', cbet: '40-50%', size: '55-75%', note: 'Selective + larger. Need to charge draws.' },
       { board: 'Paired (QQ4)', cbet: '75-85%', size: '25-33%', note: 'Paired = your advantage. Bet small, bet often.' },
       { board: 'Ace-high (A95)', cbet: '65-75%', size: '33%', note: 'A-high favors PFR. Small c-bet prints money.' },
     ]},
-  { title: 'OOP as PFR', icon: '🛡️', color: '#3b82f6',
+  { title: 'OOP as PFR', icon: '■', color: '#3b82f6',
     situations: [
       { board: 'Dry (K83r)', cbet: '50-60%', size: '33-50%', note: 'Still bet often on dry boards but slightly less than IP.' },
       { board: 'Wet (T9x)', cbet: '30-40%', size: '66-75%', note: 'Check more OOP on wet boards. Caller has advantage.' },
       { board: 'Low (762)', cbet: '35-45%', size: '50%', note: 'Low boards connect with caller\'s range. Check with air more.' },
       { board: 'Monotone (K♠8♠3♠)', cbet: '25-35%', size: '33%', note: 'Very dangerous. Only bet with flush draws or strong hands.' },
     ]},
-  { title: 'IP as Caller', icon: '👁️', color: '#f59e0b',
+  { title: 'IP as Caller', icon: '○', color: '#f59e0b',
     situations: [
       { board: 'Vs C-bet', cbet: 'Call 55-65%', size: 'Raise 10%', note: 'Call with any piece. Raise sets, two pair, strong draws.' },
       { board: 'Vs Check', cbet: 'Bet 45-55%', size: '55-66%', note: 'When PFR checks, stab with a wide range.' },
@@ -36,7 +36,7 @@ export default function SingleRaisedPotGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📋 Single Raised Pot Guide
+        Single Raised Pot Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>SRPs are 70%+ of all pots. Master these and you master poker.</p>
 

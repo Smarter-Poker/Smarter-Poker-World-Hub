@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * HAND STATE MACHINE — Complete Poker Hand Lifecycle
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Manages the complete state of a poker hand from deal to showdown:
  *   - States: PREFLOP → FLOP → TURN → RIVER → SHOWDOWN → COMPLETE
@@ -10,13 +10,13 @@
  *   - Supports heads-up and multiway (up to 6 players)
  *
  * Used by FullHandTrainer to run complete training hands.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { DeckEngine } from './DeckEngine';
 import { evaluateHand } from './HandStrengthEngine';
 
-// ── Hand States ──────────────────────────────────────────────────────────
+// ●● Hand States ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const HAND_STATES = {
     WAITING: 'waiting',
@@ -28,12 +28,12 @@ export const HAND_STATES = {
     COMPLETE: 'complete',
 };
 
-// ── Position Names (6-max) ───────────────────────────────────────────────
+// ●● Position Names (6-max) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const POSITIONS_6MAX = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 export const POSITIONS_HU = ['BTN', 'BB'];
 
-// ── Player Object ────────────────────────────────────────────────────────
+// ●● Player Object ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function createPlayer(position, stackBB, isHero = false) {
     return {
@@ -50,9 +50,9 @@ function createPlayer(position, stackBB, isHero = false) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND STATE MACHINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export class HandStateMachine {
     /**
@@ -123,7 +123,7 @@ export class HandStateMachine {
         return active[this.actionIndex % active.length];
     }
 
-    // ── Start Hand ───────────────────────────────────────────────────────
+    // ●● Start Hand ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     /**
      * Start a new hand. Posts blinds, deals cards, sets up preflop action.
@@ -222,7 +222,7 @@ export class HandStateMachine {
         if (this.actionIndex < 0) this.actionIndex = 0;
     }
 
-    // ── Actions ──────────────────────────────────────────────────────────
+    // ●● Actions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     /**
      * Process a player action.
@@ -517,7 +517,7 @@ export class HandStateMachine {
         };
     }
 
-    // ── Valid Actions ─────────────────────────────────────────────────────
+    // ●● Valid Actions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     /**
      * Get the valid actions for the current player.
@@ -566,7 +566,7 @@ export class HandStateMachine {
         };
     }
 
-    // ── State Snapshot ────────────────────────────────────────────────────
+    // ●● State Snapshot ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
     /**
      * Get a complete snapshot of the current hand state.

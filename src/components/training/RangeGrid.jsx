@@ -1,6 +1,6 @@
 /**
  * RangeGrid — GTO Wizard-Style 13×13 Hand Range Grid
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Displays a 13×13 hand matrix colored by action frequencies.
  * Each cell represents a hand (AA, AKs, AKo, etc.)
  * Colors indicate the optimal action:
@@ -11,7 +11,7 @@
  *   - Yellow = Mixed strategy
  * Cell opacity/saturation indicates frequency strength.
  * Click a cell to see the full mixed-strategy breakdown.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-SHARED-4 — adoption of --sp-* token contract in shared component
@@ -22,10 +22,10 @@ import { countBlockedCombos } from './BlockerScorePanel';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GTO WIZARD-STYLE COLOR SYSTEM
 // Each bet size gets a DISTINCT color — not all red. This matches GTOW exactly.
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const BET_SIZE_COLORS = {
     // Small bets (16-33%) — Green spectrum
     'b16': 'var(--sp-accent-green)', 'b20': 'var(--sp-accent-green)', 'b25': 'var(--sp-accent-emerald)', 'b33': 'var(--sp-accent-emerald)',
@@ -515,15 +515,15 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false, heldCardsForBlockers = null }) {
     const [selectedHand, setSelectedHand] = useState(null);
     const [actionFilter, setActionFilter] = useState(null); // null = show all, 'b33' = highlight that action
 
-    // ═══ RANGE PERCENTAGE CALCULATOR ═══
+    // ●●● RANGE PERCENTAGE CALCULATOR ●●●
     // BUG FIX (TRAIN-RANGE-PCT-1): the old formula assumed gridData[hand][action]
     // was already a 0–100 percent. Upstream callers (UniversalDynamicTable et al.)
     // sometimes pass freqs in a different unit (raw fractions 0–1, basis points

@@ -1,18 +1,18 @@
 /**
  * NODE LOCK EDITOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style node locking — modify solver strategy at specific nodes:
  * - Visual game tree with clickable nodes
  * - Lock any node to a specific action/frequency
  * - See how downstream strategy changes
  * - Compare locked vs unlocked solver outputs
  * - Useful for studying exploitative adjustments
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 
-// ═══ SAMPLE GAME TREE ═══
+// ●●● SAMPLE GAME TREE ●●●
 const DEFAULT_TREE = {
   id: 'root',
   street: 'Preflop',
@@ -61,7 +61,7 @@ const DEFAULT_TREE = {
   ],
 };
 
-// ═══ TREE NODE COMPONENT ═══
+// ●●● TREE NODE COMPONENT ●●●
 function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, onUpdateFreq }) {
   if (!node) return null;
   const isSelected = selectedNode === node.id;
@@ -85,7 +85,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
       >
         {/* Lock indicator */}
         {isLocked && (
-          <span style={{ color: '#f59e0b', fontSize: 10 }}>🔒</span>
+          <span style={{ color: '#f59e0b', fontSize: 10 }}>■</span>
         )}
 
         {/* Player badge */}
@@ -137,7 +137,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function NodeLockEditor() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [locks, setLocks] = useState({});
@@ -197,7 +197,7 @@ export default function NodeLockEditor() {
       </div>
 
       <div style={{ display: 'flex', gap: 16 }}>
-        {/* ═══ GAME TREE ═══ */}
+        {/* ●●● GAME TREE ●●● */}
         <div style={{ flex: '1 1 400px', maxHeight: 500, overflowY: 'auto' }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>
             Game Tree — BTN vs BB SRP (K♠ 8♦ 3♣)
@@ -206,7 +206,7 @@ export default function NodeLockEditor() {
             locks={locks} onToggleLock={toggleLock} onUpdateFreq={updateLockedFreq} />
         </div>
 
-        {/* ═══ NODE DETAIL PANEL ═══ */}
+        {/* ●●● NODE DETAIL PANEL ●●● */}
         <div style={{ flex: '0 0 240px' }}>
           {selected ? (
             <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>

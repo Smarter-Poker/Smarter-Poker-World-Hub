@@ -1,18 +1,18 @@
 /**
  * HAND STRENGTH DISTRIBUTION
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visualize hand strength distributions across ranges:
  * - Equity buckets showing range composition
  * - Nut advantage analysis
  * - Vulnerability assessment
  * - Category breakdown (nuts, strong, medium, weak, air)
  * - Board-specific distribution shifts
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState } from 'react';
 
-// ═══ SCENARIO PRESETS ═══
+// ●●● SCENARIO PRESETS ●●●
 const SCENARIOS = [
   {
     id: 'btn_vs_bb_Kh8d3c',
@@ -166,7 +166,7 @@ const SCENARIOS = [
   },
 ];
 
-// ═══ DISTRIBUTION BAR ═══
+// ●●● DISTRIBUTION BAR ●●●
 function DistributionBars({ distribution, label, side }) {
   const maxPct = Math.max(...distribution.map(d => d.pct));
   return (
@@ -191,7 +191,7 @@ function DistributionBars({ distribution, label, side }) {
   );
 }
 
-// ═══ NUT ADVANTAGE DISPLAY ═══
+// ●●● NUT ADVANTAGE DISPLAY ●●●
 function NutAdvantageBar({ heroNuts, villainNuts, heroLabel, villainLabel }) {
   const total = heroNuts + villainNuts;
   return (
@@ -208,7 +208,7 @@ function NutAdvantageBar({ heroNuts, villainNuts, heroLabel, villainLabel }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function HandStrengthDistribution() {
   const [selectedScenario, setSelectedScenario] = useState(SCENARIOS[0]);
   const [viewMode, setViewMode] = useState('sidebyside'); // sidebyside | overlay

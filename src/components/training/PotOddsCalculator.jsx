@@ -1,18 +1,18 @@
 /**
  * POT ODDS CALCULATOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate pot odds, implied odds, and required equity:
  * - Interactive pot/bet size inputs
  * - Pot odds percentage calculation
  * - Implied odds with future street projections
  * - Common draw outs and equity
  * - Break-even analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ COMMON DRAWS ═══
+// ●●● COMMON DRAWS ●●●
 const DRAWS = [
   { name: 'Flush Draw', outs: 9, flop: 35, turn: 19.6, desc: '9 suited cards remaining' },
   { name: 'Open-Ended Straight', outs: 8, flop: 31.5, turn: 17.4, desc: '8 cards to complete' },
@@ -26,7 +26,7 @@ const DRAWS = [
   { name: 'Runner-Runner Flush', outs: 0, flop: 4.2, turn: 0, desc: 'Backdoor flush' },
 ];
 
-// ═══ PRESET SCENARIOS ═══
+// ●●● PRESET SCENARIOS ●●●
 const PRESETS = [
   { name: 'Half Pot Bet', pot: 100, bet: 50, label: '½ pot' },
   { name: '2/3 Pot Bet', pot: 100, bet: 67, label: '⅔ pot' },
@@ -36,7 +36,7 @@ const PRESETS = [
   { name: 'Min-Bet', pot: 100, bet: 25, label: '¼ pot' },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function PotOddsCalculator() {
   const [potSize, setPotSize] = useState(100);
   const [betSize, setBetSize] = useState(50);

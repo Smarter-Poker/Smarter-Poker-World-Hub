@@ -144,7 +144,7 @@ function PositionAwarenessQuiz() {
               }}>
                 {String.fromCharCode(65 + i)}. {opt}
                 {selected !== null && isCorrect && ' ✓'}
-                {selected !== null && isSelected && !isCorrect && ' ✗'}
+                {selected !== null && isSelected && !isCorrect && '✕'}
               </button>
             );
           })}

@@ -1,18 +1,18 @@
 /**
- * 🎮 GAME CONFIGURATION DATABASE
- * ═══════════════════════════════════════════════════════════════════════════
+ * GAME CONFIGURATION DATABASE
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Comprehensive mapping of all 100 training games with:
  * - Player count (2-9 players)
  * - Game format (Heads-Up, 3-Max, 6-Max, 9-Max)
  * - Stack depths
  * - Special rules
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 export const GAME_CONFIGS = {
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // MTT GAMES (25) - Tournament Format
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'mtt-001': { players: 9, format: '9-Max Tournament', stackDepth: '10-15BB', gameType: 'tournament', engine: 'CHART' }, // Push/fold
     'mtt-002': { players: 9, format: '9-Max Tournament', stackDepth: '15-30BB', gameType: 'tournament', engine: 'PIO' }, // ICM math
     'mtt-003': { players: 9, format: '9-Max Tournament', stackDepth: '20-40BB', gameType: 'tournament', engine: 'PIO' }, // Bubble
@@ -39,9 +39,9 @@ export const GAME_CONFIGS = {
     'mtt-024': { players: 9, format: '9-Max Tournament', stackDepth: '25-50BB', gameType: 'tournament', engine: 'PIO' }, // Triple barrel
     'mtt-025': { players: 9, format: '9-Max Tournament', stackDepth: '10-100BB', gameType: 'tournament', engine: 'PIO' }, // Full simulation
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // CASH GAMES (25) - Ring Game Format
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'cash-001': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // RFI ranges
     'cash-002': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // C-bet sizing
     'cash-003': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Defense
@@ -68,9 +68,9 @@ export const GAME_CONFIGS = {
     'cash-024': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Pot control
     'cash-025': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Full session
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // SPINS (10) - Hyper-Turbo SNG Format
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'spins-001': { players: 3, format: '3-Max Spin & Go', stackDepth: '25BB', gameType: 'sng', engine: 'PIO' }, // 3-max early
     'spins-002': { players: 3, format: '3-Max Spin & Go', stackDepth: '25BB', gameType: 'sng', engine: 'PIO' }, // Jackpot
     'spins-003': { players: 3, format: '3-Max Spin & Go', stackDepth: '25BB', gameType: 'sng', engine: 'PIO' }, // Button limp
@@ -82,9 +82,9 @@ export const GAME_CONFIGS = {
     'spins-009': { players: 3, format: '3-Max Spin & Go', stackDepth: '25BB', gameType: 'sng', engine: 'PIO' }, // Chip lead
     'spins-010': { players: 3, format: '3-Max Spin & Go', stackDepth: '10-25BB', gameType: 'sng', engine: 'PIO' }, // Full simulation
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // PSYCHOLOGY (20) - Mental Game (SCENARIO ENGINE)
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'psy-001': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'SCENARIO' }, // Tilt control
     'psy-002': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'SCENARIO' }, // Timing
     'psy-003': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'SCENARIO' }, // Cooler cage
@@ -106,9 +106,9 @@ export const GAME_CONFIGS = {
     'psy-019': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'SCENARIO' }, // Autopilot escape
     'psy-020': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'SCENARIO' }, // Mind master
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // ADVANCED (20) - Theory (PIO ENGINE)
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'adv-001': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Solver mimicry
     'adv-002': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Blocker logic
     'adv-003': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Node locking
@@ -130,9 +130,9 @@ export const GAME_CONFIGS = {
     'adv-019': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // Solver scripts
     'adv-020': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // GTO apex
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     // SPECIAL GAMES (Additional games in TRAINING_LIBRARY)
-    // ═══════════════════════════════════════════════════════════════════════
+    // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     'tournament-prep': { players: 9, format: '9-Max Tournament', stackDepth: '40BB', gameType: 'tournament', engine: 'PIO' }, // ICM Structure Planner
     'final-table-sim': { players: 9, format: 'Final Table (9-Max)', stackDepth: '60BB', gameType: 'tournament', engine: 'PIO' }, // ICM $Equity Analysis
     'quiz-gauntlet': { players: 6, format: '6-Max Cash', stackDepth: '100BB', gameType: 'cash', engine: 'PIO' }, // High-speed GTO blitz

@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const FIELD_SIZES = [
-  { size: 'Heads-Up (2 players)', icon: '👤', color: '#22c55e',
+  { size: 'Heads-Up (2 players)', icon: '●', color: '#22c55e',
     variance: 'Low — smallest field means most consistent results.',
     roi: 'Skilled players can achieve 3-5% ROI.',
     strategy: 'Pure poker skill. No ICM. Aggression and hand-reading are everything.',
     edge: 'Highest edge per game. But rake is proportionally higher.' },
-  { size: 'SNG (6-10 players)', icon: '🎮', color: '#3b82f6',
+  { size: 'SNG (6-10 players)', icon: '●', color: '#3b82f6',
     variance: 'Low-Medium — small fields mean faster convergence to true ROI.',
     roi: 'Good players achieve 5-10% ROI in 6-max, 3-8% in 9-max.',
     strategy: 'Early game: tight. Bubble: ICM-aware. Push/fold charts essential for short stacks.',
     edge: 'Great for consistent grinders. Lower variance than MTTs but lower upside too.' },
-  { size: 'Small MTT (50-200 players)', icon: '🏟️', color: '#f59e0b',
+  { size: 'Small MTT (50-200 players)', icon: '■', color: '#f59e0b',
     variance: 'Medium — need 200+ tournament sample for meaningful results.',
     roi: 'Strong players: 15-30% ROI.',
     strategy: 'Standard MTT approach. Early accumulation, bubble ICM, final table aggression.',
     edge: 'Sweet spot: enough runners for good prizes, small enough that skill matters quickly.' },
-  { size: 'Large MTT (500-5,000)', icon: '🌍', color: '#8b5cf6',
+  { size: 'Large MTT (500-5,000)', icon: '○', color: '#8b5cf6',
     variance: 'High — massive fields mean long stretches without cashing.',
     roi: 'Elite players: 30-80% ROI. But you need a 1,000+ sample to verify.',
     strategy: 'Early: chip accumulation is key. You need a big stack to navigate deep. ICM matters late.',
     edge: 'Higher upside (bigger prizes) but much more variance. Need strong bankroll management.' },
-  { size: 'Massive MTT (10,000+)', icon: '🌐', color: '#ef4444',
+  { size: 'Massive MTT (10,000+)', icon: '○', color: '#ef4444',
     variance: 'Extreme — even great players have huge downswings.',
     roi: 'Best players: 50-100%+ ROI. But swings are brutal.',
     strategy: 'Play for first. Min-cashes are irrelevant in massive fields. Accumulate or bust early.',
@@ -40,7 +40,7 @@ export default function FieldSizeStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📐 Field Size Strategy
+        Field Size Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How field size changes variance, ROI, and approach.</p>
 

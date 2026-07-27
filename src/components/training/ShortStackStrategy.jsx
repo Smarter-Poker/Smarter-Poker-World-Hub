@@ -1,6 +1,6 @@
 /**
  * ShortStackStrategy — Short Stack Push/Fold & Strategy Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Push/fold charts and strategy for short-stacked tournament play.
  * Interactive charts showing shove ranges by stack size and position.
  */

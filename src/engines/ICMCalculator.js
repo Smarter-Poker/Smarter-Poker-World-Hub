@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * ICM CALCULATOR — Independent Chip Model for Tournament Spots
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Calculates ICM equity and ICM-adjusted decision making:
  *   - Stack-to-equity conversion using Malmuth-Harville model
@@ -12,10 +12,10 @@
  *   - cEV vs $EV comparison
  *
  * Engine #22 — Pure local computation, no API calls.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── Malmuth-Harville ICM Model ──────────────────────────────────────────
+// ●● Malmuth-Harville ICM Model ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate ICM equity for each player given stack sizes and payout structure.
@@ -107,7 +107,7 @@ function calculatePlaceProbabilities(stacks, remaining, payouts, equities, targe
     }
 }
 
-// ── ICM Pressure ────────────────────────────────────────────────────────
+// ●● ICM Pressure ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate ICM pressure factor — how much ICM affects decisions.
@@ -178,7 +178,7 @@ export function calculateICMPressure(heroStack, allStacks, payouts, playersLeft)
     return { pressure, riskPremium, bubbleFactor, description, onBubble, nearBubble };
 }
 
-// ── Push/Fold Ranges with ICM ───────────────────────────────────────────
+// ●● Push/Fold Ranges with ICM ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Standard push/fold hand values (approximate Nash equilibrium).
@@ -282,7 +282,7 @@ export function getICMCallRange(stackBB, villainStackBB, icmPressure = 0) {
     };
 }
 
-// ── cEV vs $EV Comparison ───────────────────────────────────────────────
+// ●● cEV vs $EV Comparison ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Compare chip EV vs dollar EV for a given decision.
@@ -325,7 +325,7 @@ export function compareCEVvsDollarEV(currentStacks, payouts, heroIdx, potChips, 
     };
 }
 
-// ── Standard Payout Structures ──────────────────────────────────────────
+// ●● Standard Payout Structures ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const PAYOUT_STRUCTURES = {
     winner_take_all: (buyIn, players) => [buyIn * players],

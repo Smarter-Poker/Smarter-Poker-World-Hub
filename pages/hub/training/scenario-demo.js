@@ -1,11 +1,11 @@
 /**
  * TRAINING SCENARIO DEMO — Interactive GTO Tutorial
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Guided walkthrough of the GTO training system with interactive examples,
  * step-by-step instructions, and a mini-quiz to validate understanding.
  *
  * Route: /hub/training/scenario-demo
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-10 — adoption of --sp-* token contract from PR #470
@@ -39,42 +39,42 @@ const TUTORIAL_STEPS = [
     title: 'Welcome to GTO Training',
     body: "This tutorial will teach you how the Smarter.Poker training system works. You'll learn how to read GTO frequencies, understand solver recommendations, and answer training questions like a pro.",
     highlight: 'duration',
-    icon: '🎓',
+    icon: '★',
   },
   {
     title: 'Reading the Board',
     body: 'Every training question shows you a poker scenario: the board cards, your hero hand, pot size, and street. Pay attention to board texture — is it wet (many draws possible) or dry (few draws)?',
     example: { board: ['K♠', '7♦', '2♣'], hero: ['A♠', 'K♦'], pot: '8.5 BB', street: 'Flop' },
-    icon: '🃏',
+    icon: '◇',
   },
   {
     title: 'Understanding GTO Frequencies',
     body: "After answering, you'll see the GTO-optimal action frequencies. A 70% Check / 30% Bet split means the solver checks 70% of the time with this exact hand in this exact spot.",
     example: { freqs: { Check: 70, 'Bet 33%': 25, 'Bet 75%': 5 } },
-    icon: '📊',
+    icon: '■',
   },
   {
     title: 'Mixed Strategy Decisions',
     body: 'When frequencies are close (like 55% Raise / 45% Call), the solver is nearly indifferent. Both plays are acceptable. Focus on the clearly dominant actions (80%+) first.',
     example: { freqs: { Raise: 55, Call: 45 } },
-    icon: '🔀',
+    icon: '⇄',
   },
   {
     title: 'Position Matters',
     body: 'Your position relative to the button changes everything. IP (In Position) you can bet more aggressively. OOP (Out of Position) you need to check-raise or check more often for protection.',
     example: { positions: ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'] },
-    icon: '🪑',
+    icon: '●',
   },
   {
     title: 'EV and Accuracy',
     body: "Your GTO Score measures how often you choose the solver-preferred action. An 80%+ score means you're playing near-optimal poker. Below 60% means significant leaks to work on.",
     example: { scores: { Elite: '90%+', Strong: '75-89%', Average: '60-74%', Weak: '<60%' } },
-    icon: '📈',
+    icon: '▲',
   },
   {
     title: 'Practice Quiz',
     body: "Let's test your understanding with a quick 5-question quiz about GTO concepts.",
-    icon: '🎯',
+    icon: '◆',
     isQuiz: true,
   },
 ];
@@ -601,7 +601,7 @@ export default function ScenarioDemoPage() {
               animate={{ opacity: 1, scale: 1 }}
               style={{ textAlign: 'center' }}
             >
-              <div style={{ fontSize: 60, marginBottom: 16 }}>🎓</div>
+              <div style={{ fontSize: 60, marginBottom: 16 }}>★</div>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
                 Tutorial Complete!
               </div>

@@ -1,6 +1,6 @@
 /**
  * CROSS-SESSION ANALYTICS DASHBOARD — Persistent Improvement Tracking
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style analytics that tracks improvement over time:
  *   - Session-over-session GTO Score trending (7-day, 30-day, all-time)
@@ -12,14 +12,14 @@
  *
  * Data flows from SessionTracker → localStorage persistence → this dashboard.
  * All analytics computed client-side from local session history.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { detectLeaks } from '../../engines/LeakDetector';
 
-// ── Time Range Selector ─────────────────────────────────────────────────
+// ●● Time Range Selector ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const TIME_RANGES = [
     { id: '7d', label: '7 Days', days: 7 },
@@ -28,7 +28,7 @@ const TIME_RANGES = [
     { id: 'all', label: 'All Time', days: 99999 },
 ];
 
-// ── Simulated Session History ───────────────────────────────────────────
+// ●● Simulated Session History ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // In production, this comes from SessionTracker via localStorage/Supabase.
 // We generate realistic sample data so the component renders meaningfully
 // even before the user has many sessions.
@@ -79,7 +79,7 @@ function generateSampleSessions(realSessions = []) {
     );
 }
 
-// ── SVG Mini Line Chart ─────────────────────────────────────────────────
+// ●● SVG Mini Line Chart ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 'value' }) => {
     const svgW = 300, svgH = height;
@@ -133,7 +133,7 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
     );
 });
 
-// ── Position Heatmap ────────────────────────────────────────────────────
+// ●● Position Heatmap ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const PositionHeatmap = memo(({ sessions }) => {
     const posData = useMemo(() => {
@@ -187,7 +187,7 @@ const PositionHeatmap = memo(({ sessions }) => {
     );
 });
 
-// ── Spot Type Accuracy ──────────────────────────────────────────────────
+// ●● Spot Type Accuracy ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SpotTypeBreakdown = memo(({ sessions }) => {
     const spotData = useMemo(() => {
@@ -246,7 +246,7 @@ const SpotTypeBreakdown = memo(({ sessions }) => {
     );
 });
 
-// ── Leak Timeline ───────────────────────────────────────────────────────
+// ●● Leak Timeline ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const LeakTimeline = memo(({ sessions }) => {
     const leaks = useMemo(() => {
@@ -313,7 +313,7 @@ const LeakTimeline = memo(({ sessions }) => {
     );
 });
 
-// ── Milestone Badges ────────────────────────────────────────────────────
+// ●● Milestone Badges ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const MilestoneBadges = memo(({ sessions }) => {
     const milestones = useMemo(() => {
@@ -325,24 +325,24 @@ const MilestoneBadges = memo(({ sessions }) => {
             ? sessions.reduce((s, sess) => s + (sess.gtoScore || 0), 0) / sessions.length : 0;
 
         // Session count milestones
-        if (totalSessions >= 1) earned.push({ icon: '🎯', label: 'First Session', color: '#3b82f6' });
-        if (totalSessions >= 10) earned.push({ icon: '🔥', label: '10 Sessions', color: '#f59e0b' });
-        if (totalSessions >= 25) earned.push({ icon: '💎', label: '25 Sessions', color: '#a855f7' });
-        if (totalSessions >= 50) earned.push({ icon: '👑', label: '50 Sessions', color: '#22d3ee' });
+        if (totalSessions >= 1) earned.push({ icon: '◆', label: 'First Session', color: '#3b82f6' });
+        if (totalSessions >= 10) earned.push({ icon: '▲', label: '10 Sessions', color: '#f59e0b' });
+        if (totalSessions >= 25) earned.push({ icon: '◆', label: '25 Sessions', color: '#a855f7' });
+        if (totalSessions >= 50) earned.push({ icon: '★', label: '50 Sessions', color: '#22d3ee' });
 
         // Score milestones
-        if (bestScore >= 70) earned.push({ icon: '⭐', label: 'Score 70+', color: '#22c55e' });
-        if (bestScore >= 80) earned.push({ icon: '🌟', label: 'Score 80+', color: '#f59e0b' });
-        if (bestScore >= 90) earned.push({ icon: '💫', label: 'Score 90+', color: '#ef4444' });
+        if (bestScore >= 70) earned.push({ icon: '★', label: 'Score 70+', color: '#22c55e' });
+        if (bestScore >= 80) earned.push({ icon: '★', label: 'Score 80+', color: '#f59e0b' });
+        if (bestScore >= 90) earned.push({ icon: '▲', label: 'Score 90+', color: '#ef4444' });
 
         // Hand count milestones
-        if (totalHands >= 100) earned.push({ icon: '🃏', label: '100 Hands', color: '#818cf8' });
-        if (totalHands >= 500) earned.push({ icon: '🎰', label: '500 Hands', color: '#22c55e' });
-        if (totalHands >= 1000) earned.push({ icon: '🏆', label: '1K Hands', color: '#f59e0b' });
+        if (totalHands >= 100) earned.push({ icon: '◇', label: '100 Hands', color: '#818cf8' });
+        if (totalHands >= 500) earned.push({ icon: '●', label: '500 Hands', color: '#22c55e' });
+        if (totalHands >= 1000) earned.push({ icon: '★', label: '1K Hands', color: '#f59e0b' });
 
         // Average score milestones
-        if (avgScore >= 65 && totalSessions >= 5) earned.push({ icon: '📈', label: 'Consistent B+', color: '#3b82f6' });
-        if (avgScore >= 75 && totalSessions >= 10) earned.push({ icon: '🎓', label: 'Master Student', color: '#a855f7' });
+        if (avgScore >= 65 && totalSessions >= 5) earned.push({ icon: '▲', label: 'Consistent B+', color: '#3b82f6' });
+        if (avgScore >= 75 && totalSessions >= 10) earned.push({ icon: '★', label: 'Master Student', color: '#a855f7' });
 
         return earned;
     }, [sessions]);
@@ -372,7 +372,7 @@ const MilestoneBadges = memo(({ sessions }) => {
     );
 });
 
-// ── Study Volume Chart ──────────────────────────────────────────────────
+// ●● Study Volume Chart ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StudyVolumeChart = memo(({ sessions, timeRange }) => {
     const weeklyData = useMemo(() => {
@@ -423,7 +423,7 @@ const StudyVolumeChart = memo(({ sessions, timeRange }) => {
     );
 });
 
-// ── Dashboard Section Wrapper ───────────────────────────────────────────
+// ●● Dashboard Section Wrapper ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DashSection = memo(({ title, icon, children, color = '#94a3b8' }) => (
     <div style={{
@@ -444,7 +444,7 @@ const DashSection = memo(({ title, icon, children, color = '#94a3b8' }) => (
     </div>
 ));
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function CrossSessionAnalytics({ sessionHistory = [] }) {
     const [timeRange, setTimeRange] = useState(TIME_RANGES[1]); // 30d default
@@ -568,7 +568,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
             {/* Dashboard body */}
             <div style={{ padding: 12 }}>
                 {/* GTO Score Trend */}
-                <DashSection title="GTO Score Trend" icon="📈" color="#22c55e">
+                <DashSection title="GTO Score Trend" icon="▲" color="#22c55e">
                     <MiniTrendChart
                         data={filteredSessions.map(s => ({ value: s.gtoScore || 0 }))}
                         color="#22c55e"
@@ -577,7 +577,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                 </DashSection>
 
                 {/* EV Loss Trend */}
-                <DashSection title="EV Loss / Hand" icon="📉" color="#ef4444">
+                <DashSection title="EV Loss / Hand" icon="▼" color="#ef4444">
                     <MiniTrendChart
                         data={filteredSessions.map(s => ({ value: s.evLossAvg || 0 }))}
                         color="#ef4444"
@@ -586,27 +586,27 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                 </DashSection>
 
                 {/* Position Heatmap */}
-                <DashSection title="Position Accuracy" icon="🎯" color="#3b82f6">
+                <DashSection title="Position Accuracy" icon="◆" color="#3b82f6">
                     <PositionHeatmap sessions={filteredSessions} />
                 </DashSection>
 
                 {/* Spot Type Breakdown */}
-                <DashSection title="Spot Accuracy" icon="🎰" color="#a855f7">
+                <DashSection title="Spot Accuracy" icon="●" color="#a855f7">
                     <SpotTypeBreakdown sessions={filteredSessions} />
                 </DashSection>
 
                 {/* Study Volume */}
-                <DashSection title="Study Volume" icon="📚" color="#818cf8">
+                <DashSection title="Study Volume" icon="□" color="#818cf8">
                     <StudyVolumeChart sessions={filteredSessions} timeRange={timeRange} />
                 </DashSection>
 
                 {/* Leak Timeline */}
-                <DashSection title="Leak Detection" icon="🔍" color="#f59e0b">
+                <DashSection title="Leak Detection" icon="○" color="#f59e0b">
                     <LeakTimeline sessions={filteredSessions} />
                 </DashSection>
 
                 {/* Milestones */}
-                <DashSection title="Milestones" icon="🏆" color="#f59e0b">
+                <DashSection title="Milestones" icon="★" color="#f59e0b">
                     <MilestoneBadges sessions={filteredSessions} />
                 </DashSection>
             </div>

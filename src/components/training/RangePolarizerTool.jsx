@@ -6,22 +6,22 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STREET_RANGES = [
-  { street: 'Pre-Flop', icon: '🃏', ranges: [
+  { street: 'Pre-Flop', icon: '◇', ranges: [
     { action: 'Open Raise (BTN)', value: 25, medium: 20, bluff: 0, check: 55 },
     { action: '3-Bet (vs CO)', value: 5, medium: 3, bluff: 4, check: 88 },
     { action: 'Call 3-Bet (IP)', value: 0, medium: 10, bluff: 0, check: 90 },
   ]},
-  { street: 'Flop', icon: '🎴', ranges: [
+  { street: 'Flop', icon: '◇', ranges: [
     { action: 'C-Bet (dry board)', value: 20, medium: 30, bluff: 20, check: 30 },
     { action: 'C-Bet (wet board)', value: 15, medium: 10, bluff: 20, check: 55 },
     { action: 'Check-Raise (OOP)', value: 5, medium: 0, bluff: 7, check: 88 },
   ]},
-  { street: 'Turn', icon: '🔄', ranges: [
+  { street: 'Turn', icon: '↻', ranges: [
     { action: 'Barrel (after c-bet)', value: 20, medium: 10, bluff: 15, check: 55 },
     { action: 'Probe (vs missed c-bet)', value: 10, medium: 15, bluff: 15, check: 60 },
     { action: 'Check-Raise', value: 8, medium: 0, bluff: 4, check: 88 },
   ]},
-  { street: 'River', icon: '🏁', ranges: [
+  { street: 'River', icon: '★', ranges: [
     { action: 'Value Bet (pot)', value: 25, medium: 0, bluff: 12, check: 63 },
     { action: 'Value Bet (1/3)', value: 30, medium: 15, bluff: 5, check: 50 },
     { action: 'Overbet (1.5x)', value: 20, medium: 0, bluff: 10, check: 70 },
@@ -35,7 +35,7 @@ export default function RangePolarizerTool() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📊 Range Polarizer
+        Range Polarizer
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Visualize how your range splits between value, bluffs, and medium.</p>
 
@@ -71,10 +71,10 @@ export default function RangePolarizerTool() {
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)' }} />
             </div>
             <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#64748b' }}>
-              <span><span style={{ color: '#22c55e' }}>■</span> Value {r.value}%</span>
-              <span><span style={{ color: '#f59e0b' }}>■</span> Medium {r.medium}%</span>
-              <span><span style={{ color: '#ef4444' }}>■</span> Bluff {r.bluff}%</span>
-              <span><span style={{ color: '#475569' }}>■</span> Check {r.check}%</span>
+              <span><span style={{ color: '#22c55e' }}>●</span> Value {r.value}%</span>
+              <span><span style={{ color: '#f59e0b' }}>●</span> Medium {r.medium}%</span>
+              <span><span style={{ color: '#ef4444' }}>●</span> Bluff {r.bluff}%</span>
+              <span><span style={{ color: '#475569' }}>●</span> Check {r.check}%</span>
             </div>
           </div>
         ))}

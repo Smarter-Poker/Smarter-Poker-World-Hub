@@ -326,7 +326,7 @@ export default function HandLabV2() {
                         border: `1px solid ${i === 0 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.03)'}`,
                       }}
                     >
-                      {i === 0 && <span style={{ fontSize: 12, marginRight: 8 }}>⭐</span>}
+                      {i === 0 && <span style={{ fontSize: 12, marginRight: 8 }}>★</span>}
                       <div
                         style={{
                           flex: 1,

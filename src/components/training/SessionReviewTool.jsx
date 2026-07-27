@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const REVIEW_STEPS = [
-  { step: '1. Biggest Pots Review', icon: '💰', color: '#22c55e',
+  { step: '1. Biggest Pots Review', icon: '', color: '#22c55e',
     what: 'Pull up your 5-10 biggest pots (won and lost). These have the highest EV impact.',
     questions: 'Did I play correctly? Was this a cooler or did I make a mistake? Would I play it the same again?',
     tool: 'Use your tracker\'s hand replayer. Sort by pot size. Focus on decision quality, not results.',
     time: '10-15 minutes' },
-  { step: '2. Leak Identification', icon: '🔍', color: '#ef4444',
+  { step: '2. Leak Identification', icon: '', color: '#ef4444',
     what: 'Look at your stats vs population averages. Identify outliers in your frequencies.',
     questions: 'Am I c-betting too much? Folding to 3-bets too often? Missing value on rivers?',
     tool: 'Check: VPIP, PFR, 3-Bet%, Fold to 3-Bet, C-Bet%, WTSD, W$SD, AF.',
     time: '5-10 minutes' },
-  { step: '3. Tough Spots Analysis', icon: '🧩', color: '#3b82f6',
+  { step: '3. Tough Spots Analysis', icon: '', color: '#3b82f6',
     what: 'Review 3-5 hands where you felt uncertain. These are your biggest learning opportunities.',
     questions: 'What was my thought process? Was there a better line? What range did villain likely have?',
     tool: 'Use a solver (GTO Wizard, PioSolver) to check your close decisions.',
     time: '15-20 minutes' },
-  { step: '4. Emotional Assessment', icon: '🧘', color: '#f59e0b',
+  { step: '4. Emotional Assessment', icon: '', color: '#f59e0b',
     what: 'Evaluate your mental state during the session. Were there tilt moments?',
     questions: 'Did I play differently after bad beats? Was I making revenge calls? Did I lose focus?',
     tool: 'Keep a simple emotional journal. Rate your tilt level 1-10 for each session.',
     time: '5 minutes' },
-  { step: '5. Action Items', icon: '✅', color: '#8b5cf6',
+  { step: '5. Action Items', icon: '✓', color: '#8b5cf6',
     what: 'Create 1-3 specific, actionable improvement goals based on your review.',
     questions: 'What\'s the ONE thing I can improve next session? Is it a preflop range issue or postflop?',
     tool: 'Write down your focus areas. Review them before your next session.',
@@ -40,7 +40,7 @@ export default function SessionReviewTool() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📋 Session Review Tool
+         Session Review Tool
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Structured post-session review for maximum improvement.</p>
 

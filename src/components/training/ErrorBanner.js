@@ -1,6 +1,6 @@
 /**
  * ERROR BANNER — Shared Training Hub Error State
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Replaces copy-pasted error UI across training pages.
  * Shows error message with optional retry button.
  *

@@ -1,9 +1,9 @@
 /**
- * ⚔️ PvP PLAY MODE — Head-to-Head GTO Practice Lobby
- * ═══════════════════════════════════════════════════════════════════════════
+ * » PvP PLAY MODE — Head-to-Head GTO Practice Lobby
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Lobby UI for matchmaking. Real-time game state via Supabase Realtime.
  * Post-game GTO analysis for both players.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-13 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -21,28 +21,28 @@ import { PvPMatch, MATCH_FORMATS, calculateRatingChange, getRankTier } from '../
 // Lazy-load PvPArena to avoid SSR issues with heavy component
 const PvPArena = dynamic(() => import('../../../src/components/training/PvPArena'), { ssr: false });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HORSE AI MATCHMAKING CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const MATCHMAKING_TIMEOUT_MS = 7000; // 7 seconds before horse AI fallback
 const HORSE_ENTRANCE_DELAY_MS = 1200; // Dramatic pause before horse appears
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GAME FORMATS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const FORMATS = {
-  rapid: { name: 'Rapid', icon: '⚡', timer: 30, hands: 10, desc: '30s per decision, 10 hands' },
+  rapid: { name: 'Rapid', icon: '⌁', timer: 30, hands: 10, desc: '30s per decision, 10 hands' },
   standard: {
     name: 'Standard',
-    icon: '🕐',
+    icon: '○',
     timer: 60,
     hands: 20,
     desc: '60s per decision, 20 hands',
   },
   marathon: {
     name: 'Marathon',
-    icon: '🏃',
+    icon: '▲',
     timer: 90,
     hands: 50,
     desc: '90s per decision, 50 hands',
@@ -50,14 +50,14 @@ const FORMATS = {
 };
 
 const STAKE_LEVELS = [
-  { name: 'Free Play', icon: '🆓', entry: 0, prize: 'Bragging Rights' },
-  { name: 'Low Stakes', icon: '💎', entry: 10, prize: '25 Diamonds' },
-  { name: 'High Roller', icon: '👑', entry: 50, prize: '150 Diamonds' },
+  { name: 'Free Play', icon: 'FREE', entry: 0, prize: 'Bragging Rights' },
+  { name: 'Low Stakes', icon: '◆', entry: 10, prize: '25 Diamonds' },
+  { name: 'High Roller', icon: '★', entry: 50, prize: '150 Diamonds' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LOBBY PLAYER CARD
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function PlayerCard({ player, isReady, isSelf }) {
   return (
@@ -90,7 +90,7 @@ function PlayerCard({ player, isReady, isSelf }) {
               fontSize: 32,
             }}
           >
-            {isSelf ? '🎮' : '⚔️'}
+            {isSelf ? '●' : '»'}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
             {player.name || 'Player'}
@@ -142,9 +142,9 @@ function PlayerCard({ player, isReady, isSelf }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // SEASON LEADERBOARD
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const LEADERBOARD_DATA = [
   { rank: 1, name: 'GTO_Master', rating: 1847, wins: 142, losses: 38, streak: 12 },
@@ -236,9 +236,9 @@ function SeasonLeaderboard() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // PERSONAL STATS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function PersonalStats() {
   const [stats, setStats] = React.useState({ wins: 0, losses: 0, bestStreak: 0 });
@@ -342,9 +342,9 @@ function PersonalStats() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RECENT MATCHES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function RecentMatches() {
   const matches = [
@@ -423,9 +423,9 @@ function RecentMatches() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PvPLobbyPage() {
   const router = useRouter();
@@ -458,9 +458,9 @@ export default function PvPLobbyPage() {
     setOnlineCount(237 + Math.floor(Math.random() * 50));
   }, []);
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // MATCHMAKING: 7-second timeout → Horse AI fallback
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   const handleFindMatch = useCallback(() => {
     setIsSearching(true);
     setMatchFound(false);
@@ -591,7 +591,7 @@ export default function PvPLobbyPage() {
     };
   }, []);
 
-  // ═══ If in arena mode, render PvPArena full-screen ═══
+  // ●●● If in arena mode, render PvPArena full-screen ●●●
   if (inArena) {
     return (
       <PvPArena
@@ -683,7 +683,7 @@ export default function PvPLobbyPage() {
             /* LOBBY — Format & Stake Selection */
             <>
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>⚔️</div>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>»</div>
                 <div
                   style={{
                     fontSize: 20,
@@ -791,7 +791,7 @@ export default function PvPLobbyPage() {
                         {s.name}
                       </div>
                       <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
-                        {s.entry > 0 ? `Entry: ${s.entry}💎` : 'Free'}
+                        {s.entry > 0 ? `Entry: ${s.entry}◆` : 'Free'}
                       </div>
                     </motion.button>
                   ))}

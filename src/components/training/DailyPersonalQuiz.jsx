@@ -7,11 +7,11 @@ import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
 const QUIZ_CATEGORIES = [
-  { id: 'preflop', label: 'Preflop Ranges', icon: '🃏', color: '#3b82f6' },
-  { id: 'cbet', label: 'C-Bet Strategy', icon: '💰', color: '#22c55e' },
-  { id: 'barrel', label: 'Multi-Street Barrels', icon: '🔥', color: '#ef4444' },
-  { id: 'bluffcatch', label: 'Bluff Catching', icon: '🎣', color: '#f59e0b' },
-  { id: 'sizing', label: 'Bet Sizing', icon: '📐', color: '#8b5cf6' },
+  { id: 'preflop', label: 'Preflop Ranges', icon: '◇', color: '#3b82f6' },
+  { id: 'cbet', label: 'C-Bet Strategy', icon: '●', color: '#22c55e' },
+  { id: 'barrel', label: 'Multi-Street Barrels', icon: '▲', color: '#ef4444' },
+  { id: 'bluffcatch', label: 'Bluff Catching', icon: '◇', color: '#f59e0b' },
+  { id: 'sizing', label: 'Bet Sizing', icon: '■', color: '#8b5cf6' },
 ];
 
 const DAILY_QUESTIONS = [
@@ -89,7 +89,7 @@ export default function DailyPersonalQuiz() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📝 Daily Strategy Quiz
+        Daily Strategy Quiz
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>Personalized daily challenges targeting your weak spots.</p>
 
@@ -98,7 +98,7 @@ export default function DailyPersonalQuiz() {
         {[
           { label: 'Score', value: `${score}/${answered}`, color: '#22c55e' },
           { label: 'Accuracy', value: answered > 0 ? `${Math.round(score/answered*100)}%` : '—', color: '#3b82f6' },
-          { label: 'Streak', value: `${streak}🔥`, color: '#f59e0b' },
+          { label: 'Streak', value: `${streak}▲`, color: '#f59e0b' },
           { label: 'Question', value: `${qIdx + 1}/${DAILY_QUESTIONS.length}`, color: '#8b5cf6' },
         ].map((s, i) => (
           <div key={i} style={{ flex: 1, background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>

@@ -139,7 +139,7 @@ function BoardTextureQuiz() {
                   padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', background: '#f43f5e', color: '#fff',
                 }}>Check →</button>
                 <div style={{ marginTop: 8, fontSize: 14, fontWeight: 700, color: selectedTexture === board.texture ? '#10b981' : '#ef4444' }}>
-                  {selectedTexture === board.texture ? '✓ Correct!' : `✗ It's ${board.texture}`}
+                  {selectedTexture === board.texture ? '✓ Correct!': `✕ It's ${board.texture}`}
                 </div>
               </div>
             )}

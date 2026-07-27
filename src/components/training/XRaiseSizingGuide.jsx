@@ -1,6 +1,6 @@
 /**
  * XRaiseSizingGuide — Check-Raise Sizing Guide by Board Texture
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Learn optimal check-raise sizing based on board texture, SPR,
  * and hand type (value vs bluff).
  */

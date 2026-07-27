@@ -11,7 +11,7 @@ import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { getLevel } from '../../../src/config/LevelRegistry';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       const userId = user.id; // From JWT, not query param
 
       try {
-          // ═══ 2026-07-19 AUDIT FIX (wave-1 regression sweep) ═══
+          // ●●● 2026-07-19 AUDIT FIX (wave-1 regression sweep) ●●●
           // This endpoint read `god_mode_user_session` — a table NOTHING writes
           // anymore — and never returned the `levels` map LevelSelector expects
           // (`progressData.levels`), so every game permanently showed

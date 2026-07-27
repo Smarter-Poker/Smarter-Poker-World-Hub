@@ -1,10 +1,10 @@
 /**
  * ICM SIMULATOR — Final Table Math
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Independent Chip Model equity calculator. Maps chips to real $.
  *
  * Route: /hub/training/icm-simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-25 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -449,7 +449,7 @@ export default function IcmSimulatorPage() {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
-                  <div style={{ fontSize: 48, marginBottom: 16 }}>🧮</div>
+                  <div style={{ fontSize: 48, marginBottom: 16 }}>■</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>Run Solver</div>
                   <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill in stacks and payouts.</div>
                 </div>

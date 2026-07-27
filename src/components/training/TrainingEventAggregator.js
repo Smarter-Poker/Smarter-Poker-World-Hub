@@ -3,9 +3,9 @@ import { eventBus, EventType } from '../../engine/EventBus';
 import { toast } from '../../stores/toastStore';
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GLOBAL TRAINING EVENT AGGREGATOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Mounts at the root app level to listen for training completions across the Hub.
  * Dispatches a toast notification so users see their live progress anywhere.
  */
@@ -40,7 +40,7 @@ export default function TrainingEventAggregator() {
                 }
 
                 // Dispatch native info toast
-                toast.info(`🎯 ${toolName} — ${performanceStr}`, 4000);
+                toast.info(`◆ ${toolName} — ${performanceStr}`, 4000);
             } catch (err) {
                 console.warn('[TrainingEventAggregator] Failed to parse and toast event:', err);
             }

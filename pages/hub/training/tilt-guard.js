@@ -32,7 +32,7 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // BUG FIX (TRAIN-TILTGUARD-A11Y-1): SVG icons replacing the tilt-guard
 // emoji set. MENTAL_TIPS + WARMUP_GAMES gain iconKind discriminator;
 // TipIcon/WarmupIcon switch by kind. Standalone CheckSquareIcon for the
-// ✅ "exercise complete" indicator, MeditateIcon for the 🧘 breathing
+// ✓ "exercise complete"indicator, MeditateIcon for the breathing
 // CTA. Same surface-specific a11y pattern as PR #320/#322/#324/#327-#341.
 const ICON_PROPS = {
   fill: 'none',
@@ -82,42 +82,42 @@ const MENTAL_TIPS = [
     title: 'Box Breathing',
     desc: 'Inhale 4s → Hold 4s → Exhale 4s → Hold 4s. Repeat 4 cycles.',
     iconKind: 'meditate',
-    icon: '🧘',
+    icon: '',
     color: 'var(--sp-accent-blue)',
   },
   {
     title: 'Process Over Results',
     desc: 'Focus on making GTO-correct decisions, not outcomes. Variance is temporary.',
     iconKind: 'target',
-    icon: '🎯',
+    icon: '',
     color: 'var(--sp-accent-green)',
   },
   {
     title: 'Take a Walk',
     desc: 'Physical movement resets your nervous system. Even 5 minutes helps.',
     iconKind: 'walk',
-    icon: '🚶',
+    icon: '',
     color: 'var(--sp-accent-orange)',
   },
   {
     title: 'Reframe the Mistake',
     desc: 'Every mistake reveals a pattern to fix. More data = faster improvement.',
     iconKind: 'lightbulb',
-    icon: '💡',
+    icon: '',
     color: 'var(--sp-accent-purple)',
   },
   {
     title: 'Drink Water',
     desc: 'Dehydration impairs decision-making by up to 12%. Stay hydrated.',
     iconKind: 'water',
-    icon: '💧',
+    icon: '',
     color: 'var(--sp-accent-cyan)',
   },
   {
     title: 'Set a Stop-Loss',
     desc: 'Decide in advance: if accuracy drops below 60%, stop for 30 minutes.',
     iconKind: 'stop',
-    icon: '🛑',
+    icon: '',
     color: 'var(--sp-accent-red)',
   },
 ];
@@ -128,16 +128,16 @@ const WARMUP_GAMES = [
     name: 'Easy Preflop Warmup',
     desc: 'Low-stress opening decisions',
     iconKind: 'cards',
-    icon: '🃏',
+    icon: '',
   },
   {
     id: 'easy-math',
     name: 'Pot Odds Refresher',
     desc: 'Simple math to rebuild confidence',
     iconKind: 'abacus',
-    icon: '🧮',
+    icon: '',
   },
-  { id: 'easy-position', name: 'Position Review', desc: 'Fundamental seat awareness', iconKind: 'compass', icon: '🧭' },
+  { id: 'easy-position', name: 'Position Review', desc: 'Fundamental seat awareness', iconKind: 'compass', icon: ''},
 ];
 
 function analyzeTiltRisk(sessions) {
@@ -244,7 +244,7 @@ function BreathingExercise({ onClose }) {
           border: '1px solid rgba(34,197,94,0.15)',
         }}
       >
-        {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✅ */}
+        {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✓ */}
         <div style={{ display: 'inline-flex', marginBottom: 12, color: 'var(--sp-accent-green)' }} aria-hidden>
           <CheckSquareIcon size={40} />
         </div>
@@ -562,7 +562,7 @@ export default function TiltGuardPage() {
                   gap: 8,
                 }}
               >
-                {/* TRAIN-TILTGUARD-A11Y-1: SVG meditate replaces 🧘 */}
+                {/* TRAIN-TILTGUARD-A11Y-1: SVG meditate replaces */}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <MeditateIcon size={18} />
                   Start Breathing Exercise

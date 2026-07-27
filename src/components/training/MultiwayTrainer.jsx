@@ -1,6 +1,6 @@
 /**
  * MULTIWAY TRAINER — 3+ Player Postflop Scenario Practice
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style multiway pot trainer:
  *   - Configure 2-6 player pots
@@ -10,7 +10,7 @@
  *   - Practice scenarios in multiway contexts
  *
  * Uses MultiwayPotEngine (#23) for all decisions.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, memo } from 'react';
@@ -20,7 +20,7 @@ import { getMultiwayStrategy } from '../../engines/MultiwayPotEngine';
 const SuitSymbol = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SuitColor = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
 
-// ── Sample Scenarios ────────────────────────────────────────────────────
+// ●● Sample Scenarios ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SCENARIOS = [
     { label: 'AK on A72r', hero: ['Ah', 'Kd'], board: ['As', '7c', '2d'], street: 'flop', position: 'IP', isPFR: true },
@@ -33,7 +33,7 @@ const SCENARIOS = [
     { label: 'KJs on KT5tt', hero: ['Kc', 'Jc'], board: ['Kh', 'Th', '5d'], street: 'flop', position: 'IP', isPFR: true },
 ];
 
-// ── Strategy Comparison Card ────────────────────────────────────────────
+// ●● Strategy Comparison Card ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
     if (!strategy) return null;
@@ -111,7 +111,7 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function MultiwayTrainer() {
     const [selectedScenario, setSelectedScenario] = useState(0);

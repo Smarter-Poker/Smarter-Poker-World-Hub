@@ -7,27 +7,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const BOUNTY_SCENARIOS = [
-  { name: 'Small Bounty (0.1x)', ratio: 0.1, icon: '🟢', color: '#22c55e',
+  { name: 'Small Bounty (0.1x)', ratio: 0.1, icon: '●', color: '#22c55e',
     adjust: 'Minimal adjustment. Play close to standard MTT strategy. The bounty adds ~5% to your calling range.',
     calling: '+3-5% wider calling range. Call with hands like A9o, KTo, 55 that you\'d normally fold.',
     shoving: 'Shove range barely changes. Maybe add lowest suited Aces (A2s-A5s).',
     example: 'You have 25bb, villain covers. Bounty = 2.5bb. Standard play with slight widening.' },
-  { name: 'Medium Bounty (0.3x)', ratio: 0.3, icon: '🟡', color: '#f59e0b',
+  { name: 'Medium Bounty (0.3x)', ratio: 0.3, icon: '●', color: '#f59e0b',
     adjust: 'Significant adjustment. Bounty is worth 30% of your stack. Call 10-15% wider than standard.',
     calling: '+10-15% wider. Call with suited connectors (54s+), any Ace, suited Kings, pocket pairs.',
     shoving: 'Shove range widens ~10%. Include hands like K5s, Q8s, J9o from late position.',
     example: 'You have 20bb, villain covers. Bounty = 6bb. This is almost 1/3 of your stack — fight for it.' },
-  { name: 'Large Bounty (0.5x)', ratio: 0.5, icon: '🟠', color: '#ef4444',
+  { name: 'Large Bounty (0.5x)', ratio: 0.5, icon: '●', color: '#ef4444',
     adjust: 'Major adjustment. The bounty is worth half your stack. Your calling range expands massively.',
     calling: '+20-25% wider. Call with almost any two suited, any broadway, any pair, suited one-gappers.',
     shoving: 'Shove with virtually any hand from BTN/SB when covering the bounty. ATC shoves are close.',
     example: 'You have 15bb, villain covers. Bounty = 7.5bb. This changes the math completely — call very wide.' },
-  { name: 'Mega Bounty (1x+)', ratio: 1.0, icon: '🔴', color: '#dc2626',
+  { name: 'Mega Bounty (1x+)', ratio: 1.0, icon: '●', color: '#dc2626',
     adjust: 'Extreme adjustment. The bounty equals or exceeds your stack. Almost any hand is a profitable call.',
     calling: 'Call with any two cards. The bounty alone justifies the call regardless of hand strength.',
     shoving: 'Shove any two cards if you\'re getting the bounty. The math is overwhelming.',
     example: 'You have 12bb, villain has 2bb with 15bb bounty. Call with literally anything — you can\'t lose money.' },
-  { name: 'Covered (No Bounty)', ratio: 0, icon: '⚪', color: '#64748b',
+  { name: 'Covered (No Bounty)', ratio: 0, icon: '○', color: '#64748b',
     adjust: 'When you don\'t cover the villain, there\'s no bounty incentive. Play standard ICM-adjusted strategy.',
     calling: 'Standard ranges. No bounty adjustment. Focus on chip EV and ICM considerations.',
     shoving: 'Standard shove ranges. ICM applies normally when you\'re the shorter stack.',
@@ -49,7 +49,7 @@ export default function PKOSolverGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💥 PKO / Bounty Solver
+        PKO / Bounty Solver
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Bounty-adjusted strategy for Progressive Knockout tournaments.</p>
 

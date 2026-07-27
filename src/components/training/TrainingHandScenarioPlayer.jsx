@@ -129,7 +129,7 @@ export default function TrainingHandScenarioPlayer({
         return (
             <div style={styles.container}>
                 <div style={styles.errorPanel}>
-                    <div style={styles.errorIcon}>⚠️</div>
+                    <div style={styles.errorIcon}>▲</div>
                     <div style={styles.errorTitle}>Scenario Error</div>
                     <div style={styles.errorMessage}>{error || 'Invalid scenario data'}</div>
                     {debugMode && (
@@ -206,7 +206,7 @@ export default function TrainingHandScenarioPlayer({
                             borderColor: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
                         }}>
                             <div style={styles.feedbackIcon}>
-                                {feedbackResult === 'correct' ? '✓' : '✗'}
+                                {feedbackResult === 'correct'? '✓': '✕'}
                             </div>
                             <div style={{
                                 ...styles.feedbackTitle,

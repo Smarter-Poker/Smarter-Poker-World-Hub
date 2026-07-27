@@ -6,31 +6,31 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PROBE_SPOTS = [
-  { spot: 'IP After Both Check Flop', board: 'K♠8♦3♣ → 2♥', color: '#22c55e', icon: '🎯',
+  { spot: 'IP After Both Check Flop', board: 'K♠8♦3♣ → 2♥', color: '#22c55e', icon: '◆',
     freq: '55-65%',
     why: 'Both players showed weakness on flop. The turn check gives you a chance to steal with any two cards.',
     sizing: '50% pot — standard probe. Don\'t need to go big when both ranges are weak.',
     bestHands: 'Any pair, any draw, any Kx. Even complete air works since villain\'s range is capped.',
     avoid: 'Don\'t probe into sticky opponents who check-call flop and turn with any pair.' },
-  { spot: 'OOP After PFR Checks Back', board: 'A♠J♦7♣ → 4♠', color: '#3b82f6', icon: '💧',
+  { spot: 'OOP After PFR Checks Back', board: 'A♠J♦7♣ → 4♠', color: '#3b82f6', icon: '·',
     freq: '35-45%',
     why: 'PFR checked back the flop, capping their range. They likely have mid-pairs or draws, not strong aces.',
     sizing: '66% pot — go bigger OOP since you need fold equity. Small bets don\'t accomplish enough.',
     bestHands: 'Ax for value, flush draws turned into semi-bluffs, complete air with blockers.',
     avoid: 'Don\'t lead into PFRs who only check back nutted hands for deception.' },
-  { spot: 'Scare Card Turn Probe', board: 'Q♥9♦6♣ → A♠', color: '#f59e0b', icon: '⚡',
+  { spot: 'Scare Card Turn Probe', board: 'Q♥9♦6♣ → A♠', color: '#f59e0b', icon: '⌁',
     freq: '45-55%',
     why: 'The ace is a great scare card to probe. If PFR checked flop, they likely don\'t have an ace.',
     sizing: '50-66% pot — represent the ace. Your bet tells a believable story.',
     bestHands: 'Any ace (obviously), but also total air. The ace gives you a great bluffing card.',
     avoid: 'Don\'t overbluff. If villain check-called flop, they might have called with Ax.' },
-  { spot: 'Flush Draw Completing Turn', board: 'T♥7♥3♦ → 2♥', color: '#8b5cf6', icon: '🌊',
+  { spot: 'Flush Draw Completing Turn', board: 'T♥7♥3♦ → 2♥', color: '#8b5cf6', icon: '·',
     freq: '40-50%',
     why: 'Third heart arrives. If you have any heart, you can represent the flush. PFR fears this card.',
     sizing: '75% pot — go big to represent the flush. Small bets are suspicious on flush-completing turns.',
     bestHands: 'Made flushes for value. A♥x as a blocker bluff. Any single heart as a semi-bluff.',
     avoid: 'Don\'t bluff without a heart blocker. Villain will call with their own flush draws.' },
-  { spot: 'Paired Board Turn Probe', board: 'J♠8♦4♣ → 4♠', color: '#ef4444', icon: '👯',
+  { spot: 'Paired Board Turn Probe', board: 'J♠8♦4♣ → 4♠', color: '#ef4444', icon: '●',
     freq: '50-60%',
     why: 'Board pairs are great bluff cards. Very few combos have a 4. You can represent trips easily.',
     sizing: '50% pot — medium sizing since trips would want calls. Overbetting looks like a bluff.',
@@ -45,7 +45,7 @@ export default function TurnProbeGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Turn Probe Bet Guide
+        Turn Probe Bet Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Exploit weakness when the flop goes check-check.</p>
 

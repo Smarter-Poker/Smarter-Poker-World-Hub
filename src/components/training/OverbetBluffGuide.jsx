@@ -28,7 +28,7 @@ export default function OverbetBluffGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #dc2626)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💣 Overbet Bluff Guide
+         Overbet Bluff Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Maximum pressure bluffs — when the board tells your story.</p>
 
@@ -77,7 +77,7 @@ export default function OverbetBluffGuide() {
               </div>
             </div>
             <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
-              ✅ +EV Bluff ({spot.foldEq}% fold &gt; {spot.neededFoldEq}% needed)
+              ✓ +EV Bluff ({spot.foldEq}% fold &gt; {spot.neededFoldEq}% needed)
             </div>
           </motion.div>
         )}

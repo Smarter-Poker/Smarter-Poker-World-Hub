@@ -1,11 +1,11 @@
 /**
  * FOCUS TIMER — Pomodoro Training
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * 25-minute focus blocks with break timers, session logging,
  * and Supabase persistence.
  *
  * Route: /hub/training/focus-timer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-16 — hex sweep batch 5: literals routed to --sp-* tokens

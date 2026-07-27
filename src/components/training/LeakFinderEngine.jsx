@@ -1,18 +1,18 @@
 /**
  * LEAK FINDER ENGINE
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Automated leak detection and analysis:
  * - Scans play patterns for common leaks
  * - Severity ranking with EV cost
  * - Specific hand examples per leak
  * - Recommended fixes with drill links
  * - Progress tracking on leak resolution
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ LEAK CATEGORIES ═══
+// ●●● LEAK CATEGORIES ●●●
 const LEAK_CATEGORIES = [
   { id: 'preflop', label: 'Preflop', color: '#3b82f6' },
   { id: 'postflop', label: 'Postflop', color: '#22c55e' },
@@ -22,7 +22,7 @@ const LEAK_CATEGORIES = [
   { id: 'mental', label: 'Mental Game', color: '#ec4899' },
 ];
 
-// ═══ DETECTED LEAKS ═══
+// ●●● DETECTED LEAKS ●●●
 const DETECTED_LEAKS = [
   {
     id: 1, category: 'preflop', severity: 'critical',
@@ -102,7 +102,7 @@ function getSeverityConfig(severity) {
   return { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', label: 'MINOR', border: 'rgba(59,130,246,0.2)' };
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function LeakFinderEngine() {
   const [filterCategory, setFilterCategory] = useState(null);
   const [expandedLeak, setExpandedLeak] = useState(null);

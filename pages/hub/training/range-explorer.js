@@ -1,10 +1,10 @@
 /**
  * RANGE EXPLORER — 13x13 Interactive Matrix
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Full 13x13 starting hand grid with exact action frequencies by position.
  *
  * Route: /hub/training/range-explorer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-48 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -440,7 +440,7 @@ export default function RangeExplorerPage() {
                     height: '100%',
                   }}
                 >
-                  <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>👆</div>
+                  <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>↑</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
                     Select any hand
                   </div>

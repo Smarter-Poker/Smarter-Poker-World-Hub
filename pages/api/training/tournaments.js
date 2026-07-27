@@ -1,8 +1,8 @@
 /**
- * 🏆 TRAINING TOURNAMENTS API
- * ═══════════════════════════════════════════════════════════════════════════
+ * TRAINING TOURNAMENTS API
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Competitive timed training challenges vs other players
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -10,7 +10,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
       const supabase = getSupabase();
 
-      // ── Auth: verify JWT identity (tournament registration and diamond rewards require identity) ──
+      // ●● Auth: verify JWT identity (tournament registration and diamond rewards require identity) ●●
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
       const { data: authData, error: authErr } = await supabase.auth["getUser"](token);

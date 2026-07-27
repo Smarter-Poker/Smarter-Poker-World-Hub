@@ -7,12 +7,12 @@
 import React, { useState, useCallback } from 'react';
 
 const DEFAULT_GOALS = [
-  { id: 'hands', label: 'Hands Played', target: 500, current: 0, unit: 'hands', icon: '🃏', color: '#3b82f6' },
-  { id: 'study', label: 'Study Time', target: 60, current: 0, unit: 'min', icon: '📚', color: '#8b5cf6' },
-  { id: 'drills', label: 'Drills Completed', target: 20, current: 0, unit: 'drills', icon: '🎯', color: '#10b981' },
-  { id: 'accuracy', label: 'GTO Accuracy', target: 75, current: 0, unit: '%', icon: '✅', color: '#f59e0b' },
-  { id: 'reviews', label: 'Hand Reviews', target: 10, current: 0, unit: 'hands', icon: '🔍', color: '#ec4899' },
-  { id: 'evloss', label: 'Max EV Loss', target: 5, current: 0, unit: 'bb/100', icon: '📉', color: '#ef4444', inverted: true },
+  { id: 'hands', label: 'Hands Played', target: 500, current: 0, unit: 'hands', icon: '', color: '#3b82f6'},
+  { id: 'study', label: 'Study Time', target: 60, current: 0, unit: 'min', icon: '', color: '#8b5cf6'},
+  { id: 'drills', label: 'Drills Completed', target: 20, current: 0, unit: 'drills', icon: '', color: '#10b981'},
+  { id: 'accuracy', label: 'GTO Accuracy', target: 75, current: 0, unit: '%', icon: '✓', color: '#f59e0b'},
+  { id: 'reviews', label: 'Hand Reviews', target: 10, current: 0, unit: 'hands', icon: '', color: '#ec4899'},
+  { id: 'evloss', label: 'Max EV Loss', target: 5, current: 0, unit: 'bb/100', icon: '', color: '#ef4444', inverted: true },
 ];
 
 const PRESETS = [
@@ -206,7 +206,7 @@ function SessionGoalTracker() {
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{s.duration}</span>
-                  {s.streak && <span style={{ fontSize: 11, color: '#f59e0b' }}>🔥</span>}
+                  {s.streak && <span style={{ fontSize: 11, color: '#f59e0b'}}>▲</span>}
                 </div>
               </div>
             ))}

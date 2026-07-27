@@ -1,5 +1,5 @@
 /**
- * 🎬 THE DIRECTOR - Visual Replay Engine
+ * THE DIRECTOR - Visual Replay Engine
  * 
  * Consumes scenarios from The Architect and replays them visually.
  * Handles intro loading, action replay, decision handling, and feedback.
@@ -56,29 +56,29 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
     const queueGenerationRef = useRef<number | null>(null);
 
-    // 🔊 AUDIO & HAPTICS
+    // AUDIO & HAPTICS
     const audio = useGameAudio();
 
-    // 📦 ASSET PRELOADER
+    // ASSET PRELOADER
     const assets = useAssetPreloader();
 
-    // 🌐 NETWORK GUARD
+    // NETWORK GUARD
     const network = useNetworkGuard();
 
-    // 🔥 PROGRESSION SYSTEM
+    // ▲ PROGRESSION SYSTEM
     const progression = useProgression();
     const [lastReward, setLastReward] = useState<RewardBreakdown | null>(null);
     const [showLeakBadge, setShowLeakBadge] = useState(false);
     const [currentLeak, setCurrentLeak] = useState<Leak | null>(null);
 
     /**
-     * 🎬 Initialize: Show intro and generate first scenario
+     * Initialize: Show intro and generate first scenario
      */
     useEffect(() => {
         const firstScenario = ScenarioGenerator.create(config);
 
         if (!ScenarioGenerator.validate(firstScenario)) {
-            console.warn('❌ First scenario failed validation!');
+            console.warn('✕ First scenario failed validation!');
         }
 
         setCurrentScenario(firstScenario);
@@ -107,7 +107,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     }, []);
 
     /**
-     * 📦 Generate 10 scenarios for the queue
+     * Generate 10 scenarios for the queue
      */
     const generateScenarioQueue = useCallback(() => {
         const queue: Scenario[] = [];
@@ -123,11 +123,11 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         }
 
         setScenarioQueue(queue);
-        console.log('✅ Generated 10 scenarios in background queue');
+        console.log('✓ Generated 10 scenarios in background queue');
     }, [config]);
 
     /**
-     * ▶️ Start replaying the action log
+     * ▶ Start replaying the action log
      */
     const startReplay = useCallback(() => {
         if (!currentScenario) return;
@@ -142,12 +142,12 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 if (nextIndex >= currentScenario.actionLog.length) {
                     clearInterval(replayInterval);
                     setPhase('AWAITING_DECISION');
-                    // 🔔 Play turn alert when it's hero's turn
+                    // Play turn alert when it's hero's turn
                     audio.playTurnAlert();
                     return prev;
                 }
 
-                // 🃏 Play appropriate sound for each action
+                // Play appropriate sound for each action
                 const action = currentScenario.actionLog[nextIndex];
                 if (action) {
                     audio.playAction(action.type);
@@ -161,7 +161,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     }, [currentScenario]);
 
     /**
-     * 🎯 HANDLE USER DECISION
+     * HANDLE USER DECISION
      */
     const handleDecision = useCallback((action: 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN') => {
         if (!currentScenario || buttonsDisabled) return;
@@ -205,17 +205,17 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         // 4. TRIGGER SEQUENCE
         if (correct) {
             setTotalCorrect(prev => prev + 1);
-            audio.playSuccess(); // 🔊 Success chime + haptic
+            audio.playSuccess(); // Success chime + haptic
             startWinSequence(reward);
         } else {
-            audio.playError(); // 🔊 Error thud + haptic
+            audio.playError(); // Error thud + haptic
             startLossSequence();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentScenario, buttonsDisabled, audio, progression]);
 
     /**
-     * 🏆 WIN SEQUENCE - Player got it right!
+     * WIN SEQUENCE - Player got it right!
      */
     const startWinSequence = useCallback((reward: RewardBreakdown) => {
         setPhase('SHOWING_RESULT');
@@ -244,7 +244,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     }, [onScenarioComplete]);
 
     /**
-     * 💔 LOSS SEQUENCE - Player got it wrong
+     * LOSS SEQUENCE - Player got it wrong
      */
     const startLossSequence = useCallback(() => {
         setPhase('SHOWING_RESULT');
@@ -282,7 +282,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     }, [onScenarioComplete, progression]);
 
     /**
-     * ⏭️ NEXT HAND - Zero latency transition
+     * ⏭ NEXT HAND - Zero latency transition
      */
     const handleNextHand = useCallback(() => {
         // Reset all state
@@ -323,12 +323,12 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
         // Start replay
         setPhase('REPLAYING');
-        audio.playCardDeal(); // 🃏 Deal sound for new hand
+        audio.playCardDeal(); // Deal sound for new hand
         setTimeout(() => startReplay(), 100);
     }, [scenarioQueue, config, startReplay, audio]);
 
     /**
-     * 🎨 Get current visual state
+     * Get current visual state
      */
     const getCurrentState = useCallback(() => {
         if (!currentScenario) return null;
@@ -426,7 +426,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             : `Loading assets... ${assets.loadedCount}/${assets.totalCount}`}
                     </div>
 
-                    {/* 📊 PROGRESS BAR */}
+                    {/* PROGRESS BAR */}
                     <div style={{
                         width: '200px',
                         height: '4px',
@@ -449,7 +449,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                         />
                     </div>
 
-                    {/* 🔓 START GAME BUTTON - Only enabled when ready */}
+                    {/* START GAME BUTTON - Only enabled when ready */}
                     <motion.button
                         onClick={() => {
                             if (!canStart) return;
@@ -475,7 +475,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             opacity: canStart ? 1 : 0.6
                         }}
                     >
-                        {canStart ? '🎮 START GAME' : '⏳ Loading...'}
+                        {canStart ? 'START GAME': '⏳ Loading...'}
                     </motion.button>
 
                     {/* Failed Assets Warning (subtle) */}
@@ -486,7 +486,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             marginTop: '12px',
                             opacity: 0.7
                         }}>
-                            ⚠️ {assets.failedAssets.length} assets using fallbacks
+                            ▲ {assets.failedAssets.length} assets using fallbacks
                         </div>
                     )}
                 </motion.div>
@@ -513,7 +513,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 overflow: 'hidden'
             }}
         >
-            {/* 📴 OFFLINE BADGE */}
+            {/* OFFLINE BADGE */}
             <OfflineBadge isVisible={network.isOfflineMode} />
 
             {/* ═══ HEADER ═══ */}
@@ -536,7 +536,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     <div style={{ color: '#00d4ff', fontWeight: 700 }}>
                         {getTableFormatName((currentScenario?.tableSize || 9) as TableSize)} • {currentScenario.config.bigBlind}BB
                     </div>
-                    {/* 🔥 STREAK FIRE ICON */}
+                    {/* ▲ STREAK FIRE ICON */}
                     {progression.isStreakOnFire() && (
                         <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
@@ -553,7 +553,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                 color: '#fff'
                             }}
                         >
-                            🔥 {progression.state.streak.currentStreak} Day Streak!
+                            ▲ {progression.state.streak.currentStreak} Day Streak!
                         </motion.div>
                     )}
                 </div>
@@ -577,7 +577,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                         {totalCorrect}/{totalQuestions} Correct
                     </div>
 
-                    {/* 🔇 MUTE BUTTON */}
+                    {/* MUTE BUTTON */}
                     <button
                         onClick={() => audio.toggleMute()}
                         style={{
@@ -589,7 +589,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             fontSize: '16px'
                         }}
                     >
-                        {audio.isMuted ? '🔇' : '🔊'}
+                        {audio.isMuted ? '': ''}
                     </button>
                 </div>
             </div>
@@ -663,8 +663,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             textAlign: 'center'
                         }}
                     >
-                        <div>{isCorrect ? '✓ CORRECT!' : '✗ MISTAKE'}</div>
-                        {/* 💰 REWARD BREAKDOWN */}
+                        <div>{isCorrect ? '✓ CORRECT!': '✕ MISTAKE'}</div>
+                        {/* REWARD BREAKDOWN */}
                         {isCorrect && lastReward && (
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
@@ -684,7 +684,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 )}
             </AnimatePresence>
 
-            {/* 🕳️ LEAK DETECTION BADGE */}
+            {/* LEAK DETECTION BADGE */}
             <AnimatePresence>
                 {showLeakBadge && currentLeak && (
                     <motion.div
@@ -713,7 +713,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             fontWeight: 700,
                             fontSize: '14px'
                         }}>
-                            {currentLeak.severity === 'critical' ? '🚨' : '⚠️'} LEAK DETECTED
+                            {currentLeak.severity === 'critical'? '': '▲'} LEAK DETECTED
                         </div>
                         <div style={{ fontSize: '12px', lineHeight: 1.4 }}>
                             {currentLeak.message}
@@ -876,7 +876,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             }}
                         >
                             <span style={{ color: '#00d4ff', fontWeight: 700 }}>
-                                📊 GTO Analysis
+                                 GTO Analysis
                             </span>
                             <span style={{ color: '#666' }}>
                                 {gtoCardExpanded ? '▼' : '▶'}

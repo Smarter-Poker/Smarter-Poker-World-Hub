@@ -330,7 +330,7 @@ function _flattenActions(hand) {
 const GRADE_TIERS = {
   BEST: {
     label: 'Best',
-    icon: '✦',
+    icon: '◆',
     color: 'var(--sp-accent-green)',
     bg: 'rgba(34,197,94,0.1)',
     border: 'rgba(34,197,94,0.3)',
@@ -351,14 +351,14 @@ const GRADE_TIERS = {
   },
   MISTAKE: {
     label: 'Mistake',
-    icon: '✗',
+    icon: '✕',
     color: 'var(--sp-accent-orange)',
     bg: 'rgba(249,115,22,0.1)',
     border: 'rgba(249,115,22,0.3)',
   },
   BLUNDER: {
     label: 'Blunder',
-    icon: '✗✗',
+    icon: '✕✕',
     color: 'var(--sp-accent-red)',
     bg: 'rgba(239,68,68,0.1)',
     border: 'rgba(239,68,68,0.3)',
@@ -756,7 +756,7 @@ function LeakReport({ hands }) {
           alignItems: 'center',
         }}
       >
-        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)' }}>📊 GTO Leak Report</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)'}}> GTO Leak Report</div>
         <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} hands analyzed</div>
       </div>
 
@@ -947,7 +947,7 @@ function LeakReport({ hands }) {
       {worstStreet?.[1]?.count > 0 && (
         <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <div style={{ fontSize: 11, color: 'var(--sp-accent-amber)', fontWeight: 700, marginBottom: 4 }}>
-            💡 Primary Leak
+             Primary Leak
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
             Your biggest leak is on the{' '}
@@ -1196,10 +1196,10 @@ function AnalyzedHandRow({ hand, index }) {
                     {tip.type === 'good'
                       ? '✓'
                       : tip.type === 'warning'
-                        ? '⚠'
+                        ? '▲'
                         : tip.type === 'tip'
-                          ? '💡'
-                          : 'ℹ'}
+                          ? ''
+                          : ''}
                   </span>
                   <span>{tip.text}</span>
                 </div>

@@ -108,7 +108,7 @@ export default function AnimatedAccuracyBar({
                             color: isNewPB ? '#FFD700' : 'rgba(255,255,255,0.3)',
                             fontWeight: 600,
                         }}>
-                            {isNewPB ? '🏆 NEW PB!' : `PB: ${personalBest}%`}
+                            {isNewPB ? '★ NEW PB!' : `PB: ${personalBest}%`}
                         </span>
                     )}
                 </div>

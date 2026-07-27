@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * MULTIWAY POT ENGINE — 3+ Player Postflop Scenario Support
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Extends the 2-player solver framework to handle multiway pots:
  *   - Range advantage shifts with 3+ players (narrower ranges dominate)
@@ -12,13 +12,13 @@
  *   - Bluff frequency reduction (more callers = less bluffing)
  *
  * Engine #23 — calibrated to solver outputs for 3-way and 4-way pots.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { classifyMadeHand, classifyDraws } from './HandStrengthEngine';
 import { analyzeBoard } from './BoardTextureEngine';
 
-// ── Multiway Adjustments ────────────────────────────────────────────────
+// ●● Multiway Adjustments ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Multiway c-bet frequency multiplier.
@@ -72,7 +72,7 @@ const MULTIWAY_SIZING_ADJUSTMENT = {
     6: { valueMult: 1.50, bluffMult: 0.50, preferredSize: '100%' },
 };
 
-// ── Hand Strength Requirements ──────────────────────────────────────────
+// ●● Hand Strength Requirements ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Minimum hand class for various actions in multiway pots.
@@ -94,7 +94,7 @@ const MULTIWAY_MIN_VALUE = {
     6: ['nuts_plus'],
 };
 
-// ── Core Functions ──────────────────────────────────────────────────────
+// ●● Core Functions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Get multiway-adjusted strategy for a postflop decision.

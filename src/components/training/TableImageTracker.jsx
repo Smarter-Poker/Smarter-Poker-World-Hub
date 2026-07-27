@@ -1,6 +1,6 @@
 /**
  * TableImageTracker — Your Table Image & Metagame Guide
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Understand and manipulate your perceived image at the table.
  */
 import React, { useState } from 'react';
@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 const IMAGES = [
   {
     name: 'Tight-Aggressive (TAG)',
-    icon: '🦅',
+    icon: '▲',
     color: '#10b981',
     perception: 'Opponents think you only play strong hands and bet aggressively.',
     exploits: [
@@ -20,7 +20,7 @@ const IMAGES = [
   },
   {
     name: 'Loose-Aggressive (LAG)',
-    icon: '🔥',
+    icon: '▲',
     color: '#ef4444',
     perception: 'Opponents think you\'re a maniac who plays too many hands aggressively.',
     exploits: [
@@ -32,7 +32,7 @@ const IMAGES = [
   },
   {
     name: 'Tight-Passive (Nit)',
-    icon: '🐢',
+    icon: '·',
     color: '#3b82f6',
     perception: 'Opponents think you only play premiums and never bluff.',
     exploits: [
@@ -44,7 +44,7 @@ const IMAGES = [
   },
   {
     name: 'Loose-Passive (Fish)',
-    icon: '🐟',
+    icon: '▲',
     color: '#f59e0b',
     perception: 'Opponents think you call too much and don\'t raise enough.',
     exploits: [

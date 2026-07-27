@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const LEAKS = [
-  { leak: 'Not Folding to River Raises', level: 'Micro/Low', color: '#ef4444', icon: '🔴',
+  { leak: 'Not Folding to River Raises', level: 'Micro/Low', color: '#ef4444', icon: '●',
     stat: 'WTSD > 28%',
     impact: 'Calling river raises with bluff-catchers vs players who never bluff the river. Massive leak.',
     diagnostic: 'Check your "Fold to River Raise" stat. If it\'s below 50%, you\'re calling way too much.',
     plug: 'At low stakes, river raises are almost always value. Fold one-pair hands unless you have a read.' },
-  { leak: 'Over-Bluffing Rivers', level: 'Mid Stakes', color: '#f59e0b', icon: '🟡',
+  { leak: 'Over-Bluffing Rivers', level: 'Mid Stakes', color: '#f59e0b', icon: '●',
     stat: 'River Bet % > 45%',
     impact: 'Bluffing too frequently on the river, especially into calling stations who won\'t fold.',
     diagnostic: 'If your river bet win% is below 50%, you\'re probably bluffing too much.',
     plug: 'Use the 2:1 rule: for every 2 value bets, have 1 bluff. Adjust vs calling stations (fewer bluffs).' },
-  { leak: 'C-Betting Too Much Multi-Way', level: 'All Levels', color: '#3b82f6', icon: '🔵',
+  { leak: 'C-Betting Too Much Multi-Way', level: 'All Levels', color: '#3b82f6', icon: '●',
     stat: 'MW C-Bet > 40%',
     impact: 'C-betting 65% into 3+ players. Someone always has something. You\'re burning money.',
     diagnostic: 'Filter for multi-way pots and check your c-bet frequency. Should be 25-35%.',
     plug: 'Only c-bet multi-way with: top pair+, strong draws, or on very dry boards where you have range advantage.' },
-  { leak: 'Playing Too Many Tables', level: 'Online', color: '#8b5cf6', icon: '🟣',
+  { leak: 'Playing Too Many Tables', level: 'Online', color: '#8b5cf6', icon: '●',
     stat: 'Win Rate Drops > 2BB/100',
     impact: 'More tables = more autopilot. You miss exploitative adjustments and play ABC only.',
     diagnostic: 'Track your BB/100 at different table counts. If it drops significantly, cut tables.',
     plug: 'Play the max tables where your winrate stays within 1 BB/100 of your peak. Quality > quantity.' },
-  { leak: 'Ignoring Bet Sizing Tells', level: 'Live/Low Online', color: '#22c55e', icon: '🟢',
+  { leak: 'Ignoring Bet Sizing Tells', level: 'Live/Low Online', color: '#22c55e', icon: '●',
     stat: 'Not using reads',
     impact: 'Most low-stakes players have massive sizing tells. Min-bets = weak, overbets = polarized.',
     diagnostic: 'Start noting villain bet sizes. Do they always min-bet draws? Overbet the nuts?',
@@ -40,7 +40,7 @@ export default function CommonLeaksGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔧 Common Leaks Guide
+        Common Leaks Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Find your leaks, plug them, profit.</p>
 

@@ -568,7 +568,7 @@ export default function HandComparison() {
                   cursor: 'pointer',
                 }}
               >
-                🗑 Clear All
+                Clear All
               </button>
             )}
           </div>
@@ -588,7 +588,7 @@ export default function HandComparison() {
                 justifyContent: 'center',
               }}
             >
-              ⚔️
+              »
             </div>
             <div>
               <h1
@@ -762,9 +762,9 @@ export default function HandComparison() {
             }}
           >
             {isRunning
-              ? '⚡ CALCULATING...'
+              ? 'CALCULATING...'
               : canRun
-                ? '⚔️ RUN COMPARISON (3,000 sims)'
+                ? 'RUN COMPARISON (3,000 sims)'
                 : 'SELECT HANDS + MIN 3 BOARD CARDS TO BEGIN'}
           </button>
 
@@ -796,7 +796,7 @@ export default function HandComparison() {
                     color: leader === 'A' ? 'var(--sp-accent-green)' : leader === 'B' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                   }}
                 >
-                  {leader === 'TIE' ? '⚖️ EQUAL EQUITY' : `⚔️ HAND ${leader} IS AHEAD`}
+                  {leader === 'TIE' ? 'EQUAL EQUITY' : `HAND ${leader} IS AHEAD`}
                 </div>
 
                 {/* Equity bars */}
@@ -941,7 +941,7 @@ export default function HandComparison() {
                     fontFamily: "'Orbitron', monospace",
                   }}
                 >
-                  🔄 RE-RUN (new random run-outs)
+                  RE-RUN (new random run-outs)
                 </button>
 
                 <div

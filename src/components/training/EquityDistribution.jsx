@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const EQUITY_BOARDS = [
-  { board: 'A♠K♦7♣ (Dry, High)', type: 'Static', color: '#22c55e', icon: '🏜️',
+  { board: 'A♠K♦7♣ (Dry, High)', type: 'Static', color: '#22c55e', icon: '·',
     distribution: 'PFR has polar equity: many hands with 70%+ (AK, AQ) and many with <30% (small pairs).',
     strategy: 'Range bet small (33%). Your equity advantage is large and consistent across your range.',
     imbalance: 'Caller\'s range is squeezed in the middle — many hands with 30-50% equity.',
     sizing: 'Small sizing works because your range is so far ahead on average.' },
-  { board: 'J♥T♥8♣ (Wet, Connected)', type: 'Dynamic', color: '#ef4444', icon: '🌊',
+  { board: 'J♥T♥8♣ (Wet, Connected)', type: 'Dynamic', color: '#ef4444', icon: '·',
     distribution: 'Equity is distributed evenly. Both players have straights, sets, draws, and pair+draw combos.',
     strategy: 'Use multiple sizings. Big bets with nutted hands and draws, checks with middling hands.',
     imbalance: 'Caller actually has MORE sets here (JJ, TT, 88 they flatted preflop).',
     sizing: 'Need larger sizings to deny equity. 66-75% pot is appropriate.' },
-  { board: 'Q♠Q♦4♣ (Paired)', type: 'Static', color: '#3b82f6', icon: '👯',
+  { board: 'Q♠Q♦4♣ (Paired)', type: 'Static', color: '#3b82f6', icon: '●',
     distribution: 'PFR has most Qx combos (AQ, KQ, QJs). Caller rarely has a queen.',
     strategy: 'High-frequency small bets. Villain almost never has trips, so they fold a lot.',
     imbalance: 'Massive range advantage for PFR. Caller must fold most of their range.',
     sizing: '25-33% pot. Range bet the whole board — your Qx crushes and your air gets folds.' },
-  { board: '6♠5♦4♣ (Low, Connected)', type: 'Dynamic', color: '#f59e0b', icon: '🔗',
+  { board: '6♠5♦4♣ (Low, Connected)', type: 'Dynamic', color: '#f59e0b', icon: '·',
     distribution: 'Caller has MORE equity here! Low connected boards favor the BB/caller\'s range.',
     strategy: 'PFR should check frequently. Caller has 67s, 78s, 54s, sets of low pairs.',
     imbalance: 'PFR\'s overpairs (AA-TT) have equity but are vulnerable. BB has the range advantage.',
     sizing: 'When PFR does bet, go large (66%+) to protect overpairs and deny equity.' },
-  { board: 'K♠9♥3♦ (Rainbow, Mid)', type: 'Static', color: '#8b5cf6', icon: '🌈',
+  { board: 'K♠9♥3♦ (Rainbow, Mid)', type: 'Static', color: '#8b5cf6', icon: '◇',
     distribution: 'PFR has clear range advantage (all Kx). Caller has some Kx but mostly mid-pairs.',
     strategy: 'Standard c-bet frequency (55-65%). Value bet Kx, bluff with overcards and backdoors.',
     imbalance: 'Caller has 99, 33 for sets. PFR has KK, K9s rarely. Respect check-raises.',
@@ -40,7 +40,7 @@ export default function EquityDistribution() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📈 Equity Distribution
+        Equity Distribution
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>How equity spreads across your range by board type.</p>
 

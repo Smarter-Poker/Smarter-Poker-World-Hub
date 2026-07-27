@@ -1,9 +1,9 @@
 /**
- * 🔀 MULTIWAY PREFLOP — 3+ Player Preflop Range Viewer
- * ═══════════════════════════════════════════════════════════════════════════
+ * MULTIWAY PREFLOP — 3+ Player Preflop Range Viewer
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * View preflop ranges for common multiway scenarios (3-way, 4-way).
  * BTN open / SB 3-bet / BB cold-call decision trees.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-MOBILE-ADOPT-14 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
@@ -20,9 +20,9 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MULTIWAY RANGES DATA — Pre-computed for common spots
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -188,9 +188,9 @@ function isInRange(hand, rangeStr) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RANGE GRID COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function RangeGrid({ rangeStr, color, label }) {
   const grid = useMemo(() => {
@@ -262,9 +262,9 @@ function RangeGrid({ rangeStr, color, label }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function MultiwayPreflopPage() {
   // TRAIN-WIRE-FEEDBACK-HOOK-2 — wire useTrainingFeedback

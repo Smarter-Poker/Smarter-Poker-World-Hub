@@ -236,7 +236,7 @@ export default function PositionMasteryTracker() {
             <div>
               <div style={{ color: '#ef4444', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Weaknesses</div>
               {data.weaknesses.map((w, i) => (
-                <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>✗ {w}</div>
+                <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>✕ {w}</div>
               ))}
             </div>
           </div>

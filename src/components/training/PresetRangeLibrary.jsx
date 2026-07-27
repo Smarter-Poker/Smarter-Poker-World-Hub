@@ -1,6 +1,6 @@
 /**
  * PresetRangeLibrary — GTO Wizard-Style Saved Range Library
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Browse, search, and study curated GTO ranges organized by game type,
  * position, and action. Each range shows the 13x13 grid with frequencies.
  */

@@ -1,11 +1,11 @@
 /**
- * 🎰 RAKE-AWARE SOLUTIONS — Custom Rake Strategy Viewer
- * ═══════════════════════════════════════════════════════════════════════════
+ * RAKE-AWARE SOLUTIONS — Custom Rake Strategy Viewer
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Study how rake changes optimal strategy. Select a rake structure and
  * see how opening ranges, 3-bet frequencies, and postflop aggression shift.
  *
  * Route: /hub/training/rake-solutions
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-45 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -21,9 +21,9 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RAKE STRUCTURE PRESETS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RAKE_PRESETS = [
   {
@@ -81,15 +81,15 @@ const BASELINE_FREQS = {
 
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STATS = [
-  { key: 'rfi', label: 'RFI %', desc: 'Raise First In', icon: '🎯' },
-  { key: 'fold3bet', label: 'Fold to 3-Bet', desc: 'Fold vs 3-Bet %', icon: '📉' },
-  { key: 'threeBet', label: '3-Bet %', desc: '3-Bet Frequency', icon: '🚀' },
-  { key: 'cbet', label: 'C-Bet %', desc: 'Continuation Bet', icon: '💰' },
+  { key: 'rfi', label: 'RFI %', desc: 'Raise First In', icon: '◆' },
+  { key: 'fold3bet', label: 'Fold to 3-Bet', desc: 'Fold vs 3-Bet %', icon: '▼' },
+  { key: 'threeBet', label: '3-Bet %', desc: '3-Bet Frequency', icon: '▲' },
+  { key: 'cbet', label: 'C-Bet %', desc: 'Continuation Bet', icon: '●' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RAKE ADJUSTMENT ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function adjustForRake(baseline, rakePct, rakeCap) {
   // Higher rake → tighter play, less multiway, more fold to 3-bets
@@ -102,9 +102,9 @@ function adjustForRake(baseline, rakePct, rakeCap) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // VISUAL COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function FreqBar({ value, maxVal = 80, color, label }) {
   const width = Math.min(100, (value / maxVal) * 100);
@@ -136,9 +136,9 @@ function FreqBar({ value, maxVal = 80, color, label }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function RakeSolutionsPage() {
   const router = useRouter();

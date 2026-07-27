@@ -12,7 +12,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, clampPagination, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       const { limit: boundedLimit } = clampPagination(rawLimit, 1);
 
       try {
-          // ═══ PHASE 15: Session detail mode — return full hand_history for replay ═══
+          // ●●● PHASE 15: Session detail mode — return full hand_history for replay ●●●
           if (sessionId) {
               const { data: session, error: detailErr } = await getSupabase()
                   .from('training_sessions')

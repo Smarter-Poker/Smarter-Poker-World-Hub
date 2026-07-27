@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PATTERNS = [
-  { pattern: 'Bet-Bet-Bet (Triple Barrel)', icon: '🔥', color: '#ef4444',
+  { pattern: 'Bet-Bet-Bet (Triple Barrel)', icon: '▲', color: '#ef4444',
     meaning: 'Very polarized. Either the nuts or a bluff. Almost never medium strength.',
     vsStrong: 'If they triple barrel, they want a call (value) or a fold (bluff). Decide based on blocker.',
     frequency: 'Only ~15-25% of hands warrant a triple barrel. If villain does it often, they\'re overbluffing.',
     adjust: 'Call more with bluff-catchers vs aggressive players. Fold more vs tight/passive players.' },
-  { pattern: 'Bet-Check-Bet (Sandwich)', icon: '🥪', color: '#f59e0b',
+  { pattern: 'Bet-Check-Bet (Sandwich)', icon: '●', color: '#f59e0b',
     meaning: 'Bet flop, checked turn for pot control or deception, then bet river. Often thin value or delayed bluff.',
     vsStrong: 'Turn check caps their range somewhat. River bet is either thin value or a bluff with a missed draw.',
     frequency: 'Common line with overpairs on wet boards. Check turn for safety, value bet river when draw misses.',
     adjust: 'This line is harder to read. Weight toward thin value. Call with medium pairs.' },
-  { pattern: 'Check-Bet-Bet (Slow Play Line)', icon: '🐢', color: '#22c55e',
+  { pattern: 'Check-Bet-Bet (Slow Play Line)', icon: '·', color: '#22c55e',
     meaning: 'Checked flop (trapping or drawing), then bet turn and river. Often indicates a strong hand that slowplayed.',
     vsStrong: 'They let you catch up on the flop, then started extracting value. Respect this line.',
     frequency: 'Classic trap line. Sets, two pair, and straights love this sequence.',
     adjust: 'Be cautious when facing check-bet-bet. This line is much more weighted toward value than bluffs.' },
-  { pattern: 'Bet-Bet-Check (Give Up)', icon: '🏳️', color: '#3b82f6',
+  { pattern: 'Bet-Bet-Check (Give Up)', icon: '□', color: '#3b82f6',
     meaning: 'Barreled flop and turn but gave up on the river. Usually a missed draw or a hand that lost confidence.',
     vsStrong: 'River check = they don\'t think they can get value or they gave up bluffing. Thin value bet the river.',
     frequency: 'Very common with missed flush/straight draws. They bluffed two streets and gave up.',
     adjust: 'Value bet thin on the river when villain checks after double-barreling. They\'re usually weak here.' },
-  { pattern: 'Check-Check-Overbet (Bomb)', icon: '💣', color: '#8b5cf6',
+  { pattern: 'Check-Check-Overbet (Bomb)', icon: '▲', color: '#8b5cf6',
     meaning: 'Passive on early streets, then a massive river overbet. Very polarized — monster or nothing.',
     vsStrong: 'This is the ultimate polar line. They either have the nuts or complete air. Use MDF to decide.',
     frequency: 'Rare but impactful. At low stakes, this is almost always the nuts. Fold one pair.',
@@ -40,7 +40,7 @@ export default function BettingPatternRead() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📖 Betting Pattern Reader
+        Betting Pattern Reader
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Decode hand strength from multi-street betting lines.</p>
 

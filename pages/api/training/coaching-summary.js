@@ -1,6 +1,6 @@
 /**
- * 💬 DETERMINISTIC POST-LEVEL COACHING (Operation Grok-Sweep — 2026-05)
- * ═══════════════════════════════════════════════════════════════════════════
+ * DETERMINISTIC POST-LEVEL COACHING (Operation Grok-Sweep — 2026-05)
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Generates personalized post-level coaching feedback using REAL session
  * metrics the client already computed (accuracy, EV loss, classification
  * breakdown, position stats, weak spots, cross-session context). NO LLM.
@@ -12,7 +12,7 @@
  * The new implementation is pure template synthesis. Output shape preserved
  * exactly so the frontend (pages/hub/training/session-dashboard.js) renders
  * the same UI. Every claim in the prose is grounded in the input metrics.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -31,7 +31,7 @@ function getSupabaseAdmin() {
     return _supabaseAdmin;
 }
 
-// ── Quotes (rotated deterministically by accuracy bucket) ────────────────────
+// ●● Quotes (rotated deterministically by accuracy bucket) ●●●●●●●●●●●●●●●●●●●●
 const QUOTES_HIGH = [
     '"The best players are always learning." — Daniel Negreanu',
     '"Discipline is rememberings what you want." — common poker adage',
@@ -58,7 +58,7 @@ function pickQuote(accuracy, level) {
     return QUOTES_LOW[seed % QUOTES_LOW.length];
 }
 
-// ── Grade + headline ─────────────────────────────────────────────────────────
+// ●● Grade + headline ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function computeGrade(accuracy) {
     if (accuracy >= 90) return 'A';
     if (accuracy >= 80) return 'B';
@@ -86,7 +86,7 @@ function buildHeadline({ accuracy, classificationCounts, gtowScore, streak }) {
     return 'Treat this as the data — patterns below are the fastest path forward.';
 }
 
-// ── Strengths / areas to improve ─────────────────────────────────────────────
+// ●● Strengths / areas to improve ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildStrengths({ accuracy, classificationCounts, positionStats, streak, gtowScore }) {
     const out = [];
     const cc = classificationCounts || {};
@@ -172,7 +172,7 @@ function buildAreasToImprove({ accuracy, classificationCounts, weakSpots, positi
     return out.slice(0, 2);
 }
 
-// ── Detailed feedback (paragraph) ────────────────────────────────────────────
+// ●● Detailed feedback (paragraph) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildDetailedFeedback({
     accuracy, gtowScore, totalEVLoss, classificationCounts,
     weakSpots, mistakes, level, crossSessionContext,
@@ -233,7 +233,7 @@ function buildDetailedFeedback({
     return sentences.join(' ');
 }
 
-// ── Recommended drill ────────────────────────────────────────────────────────
+// ●● Recommended drill ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildRecommendedDrill({ weakSpots, positionStats, accuracy, level }) {
     if (Array.isArray(weakSpots) && weakSpots.length > 0) {
         const ws = weakSpots[0];
@@ -279,7 +279,7 @@ function buildWeakSpotDrill(weakSpots) {
     return parts.length > 0 ? `Focus practice: ${parts.join(' ')}.` : '';
 }
 
-// ── Coaching builder ─────────────────────────────────────────────────────────
+// ●● Coaching builder ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function buildCoaching(input) {
     const accuracy = Number(input.accuracy) || 0;
     const grade = computeGrade(accuracy);
@@ -305,7 +305,7 @@ function buildCoaching(input) {
     };
 }
 
-// ── Handler ──────────────────────────────────────────────────────────────────
+// ●● Handler ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 export default async function handler(req, res) {
     try {
         withTiming(res);

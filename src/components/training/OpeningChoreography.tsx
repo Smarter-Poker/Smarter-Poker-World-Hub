@@ -1,5 +1,5 @@
 /**
- * 🎬 OPENING CHOREOGRAPHY - Premium Hand Start Sequence
+ * OPENING CHOREOGRAPHY - Premium Hand Start Sequence
  * 
  * Hearthstone/PokerStars quality animation system.
  * Executes a timed script every time a new hand loads.
@@ -14,9 +14,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export type ChoreographyPhase =
     | 'idle'
@@ -41,9 +41,9 @@ export interface SoundEffects {
     actionStart?: HTMLAudioElement;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ANIMATION VARIANTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // Card dealing animation - flies from center with easeOutBack
 export const cardDealVariants: Variants = {
@@ -143,9 +143,9 @@ export const activeRingVariants: Variants = {
     }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CHOREOGRAPHY HOOK
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface UseChoreographyOptions {
     dealerSeat: number;
@@ -219,7 +219,7 @@ export function useOpeningChoreography({
         clearTimeouts();
         const startTime = Date.now();
 
-        // ═══ T = 0.0s: SETUP ═══
+        // ●●● T = 0.0s: SETUP ●●●
         setState(prev => ({
             ...prev,
             phase: 'setup',
@@ -231,7 +231,7 @@ export function useOpeningChoreography({
         playSound('shuffle');
         onPhaseComplete?.('setup');
 
-        // ═══ T = 0.5s: DEALING ═══
+        // ●●● T = 0.5s: DEALING ●●●
         const dealTimeout = setTimeout(() => {
             setState(prev => ({ ...prev, phase: 'dealing', timestamp: 500 }));
             playSound('cardWhip');
@@ -250,7 +250,7 @@ export function useOpeningChoreography({
         }, 500);
         timeoutsRef.current.push(dealTimeout);
 
-        // ═══ T = 1.0s: BLINDS ═══
+        // ●●● T = 1.0s: BLINDS ●●●
         const blindsTimeout = setTimeout(() => {
             setState(prev => ({
                 ...prev,
@@ -263,7 +263,7 @@ export function useOpeningChoreography({
         }, 1000);
         timeoutsRef.current.push(blindsTimeout);
 
-        // ═══ T = 1.5s: ACTION ═══
+        // ●●● T = 1.5s: ACTION ●●●
         const actionTimeout = setTimeout(() => {
             // Find first active player (not hero, not dealer)
             const firstActive = playerSeats.find(seat => seat !== heroSeat);
@@ -303,9 +303,9 @@ export function useOpeningChoreography({
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ANIMATED CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface AnimatedCardProps {
     cardCode: string;
@@ -365,7 +365,7 @@ export function AnimatedCard({
                         fontWeight: 700,
                         color: isFaceDown ? '#333' : getCardColor(cardCode)
                     }}>
-                        {isFaceDown ? '🂠' : formatCardDisplay(cardCode)}
+                        {isFaceDown ? '◇' : formatCardDisplay(cardCode)}
                     </div>
                 </motion.div>
             )}
@@ -373,9 +373,9 @@ export function AnimatedCard({
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ANIMATED CHIP COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface AnimatedChipProps {
     amount: number;
@@ -424,9 +424,9 @@ export function AnimatedChip({
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DEALER BUTTON COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface AnimatedDealerButtonProps {
     targetX: number;
@@ -476,9 +476,9 @@ export function AnimatedDealerButton({
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ACTIVE PLAYER RING
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 interface ActivePlayerRingProps {
     isActive: boolean;
@@ -506,9 +506,9 @@ export function ActivePlayerRing({ isActive, size = 80 }: ActivePlayerRingProps)
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HELPERS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function getCardColor(cardCode: string): string {
     if (!cardCode || cardCode.length < 2) return '#000';

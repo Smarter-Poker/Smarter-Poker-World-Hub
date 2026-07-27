@@ -698,7 +698,7 @@ export default function VillainRange() {
                 justifyContent: 'center',
               }}
             >
-              🕵️
+              
             </div>
             <div>
               <h1
@@ -820,16 +820,16 @@ export default function VillainRange() {
           {/* TABS */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button style={tabStyle(activeTab === 'range')} onClick={() => setActiveTab('range')}>
-              📊 Range Grid
+               Range Grid
             </button>
             <button style={tabStyle(activeTab === 'quiz')} onClick={() => setActiveTab('quiz')}>
-              🎯 Quiz Mode {quizStats.total > 0 ? `(${quizStats.correct}/${quizStats.total})` : ''}
+               Quiz Mode {quizStats.total > 0 ? `(${quizStats.correct}/${quizStats.total})`: ''}
             </button>
             <button
               style={tabStyle(activeTab === 'profiles')}
               onClick={() => setActiveTab('profiles')}
             >
-              👤 Profiles ({savedProfiles.length})
+               Profiles ({savedProfiles.length})
             </button>
           </div>
 
@@ -1022,10 +1022,10 @@ export default function VillainRange() {
                           }}
                         >
                           {opt === 'hits'
-                            ? '🎯 HITS HARD (40%+)'
+                            ? 'HITS HARD (40%+)'
                             : opt === 'draw'
-                              ? '💧 PARTIAL (20-40%)'
-                              : '❌ MISSES (<20%)'}
+                              ? 'PARTIAL (20-40%)'
+                              : '✕ MISSES (<20%)'}
                         </button>
                       ))}
                     </div>
@@ -1047,8 +1047,8 @@ export default function VillainRange() {
                         }}
                       >
                         {quizResult === 'correct'
-                          ? '✅ CORRECT!'
-                          : `❌ WRONG — Correct answer: ${quizCorrectAnswer?.toUpperCase()}`}
+                          ? '✓ CORRECT!'
+                          : `✕ WRONG — Correct answer: ${quizCorrectAnswer?.toUpperCase()}`}
                       </div>
                       <button
                         onClick={nextQuizBoard}

@@ -21,8 +21,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // BUG FIX (TRAIN-COACH-A11Y-1): SVG icon components replacing the
 // coach-mode emoji set across LESSONS data (positions / three-bet /
-// 🧮 preflop-math / 🎯 cbet / 🔄 turn / 🏁 river), results screen
-// (🏆 / 👍 / 💪 based on score), completion ✅, and ← back arrow. Card-
+// preflop-math / cbet / turn / river), results screen
+// (/ / based on score), completion ✓, and ← back arrow. Card-
 // suit glyphs (♠♣♥♦) in quiz options remain (semantic). Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327-#343.
 const ICON_PROPS = {
@@ -70,7 +70,7 @@ const LESSONS = [
     id: 'preflop-basics',
     name: 'Preflop Basics',
     iconKind: 'crown',
-    icon: '🃏',
+    icon: '',
     color: 'var(--sp-accent-blue)',
     desc: 'Open ranges, positions, and sizing fundamentals',
     concepts: [
@@ -107,7 +107,7 @@ const LESSONS = [
     id: 'three-bet',
     name: '3-Bet Strategy',
     iconKind: 'bolt',
-    icon: '⚡',
+    icon: '',
     color: 'var(--sp-accent-purple)',
     desc: 'When and how to re-raise preflop',
     concepts: [
@@ -153,7 +153,7 @@ const LESSONS = [
     id: 'cbet-basics',
     name: 'C-Bet Fundamentals',
     iconKind: 'target',
-    icon: '🎯',
+    icon: '',
     color: 'var(--sp-accent-green)',
     desc: 'When to continuation bet and sizing selection',
     concepts: [
@@ -203,7 +203,7 @@ const LESSONS = [
     id: 'pot-odds',
     name: 'Pot Odds & MDF',
     iconKind: 'abacus',
-    icon: '🧮',
+    icon: '',
     color: 'var(--sp-accent-amber)',
     desc: 'The math behind calling and defense decisions',
     concepts: [
@@ -235,7 +235,7 @@ const LESSONS = [
     id: 'turn-play',
     name: 'Turn Strategy',
     iconKind: 'rotate',
-    icon: '🔄',
+    icon: '',
     color: 'var(--sp-accent-cyan)',
     desc: 'Second barrel decisions and range evolution',
     concepts: [
@@ -280,7 +280,7 @@ const LESSONS = [
     id: 'river-play',
     name: 'River Mastery',
     iconKind: 'flag',
-    icon: '🏁',
+    icon: '',
     color: 'var(--sp-accent-red)',
     desc: 'Final street value bets, bluffs, and river decisions',
     concepts: [
@@ -590,7 +590,7 @@ export default function CoachModePage() {
                 style={{ textAlign: 'center', padding: '20px 0' }}
               >
                 <div style={{ fontSize: 48, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: score >= 4 ? 'var(--sp-accent-amber)' : score >= 3 ? 'var(--sp-accent-green)' : 'var(--sp-accent-purple)' }} aria-hidden>
-                  {/* TRAIN-COACH-A11Y-1: SVG ScoreIcon replaces 🏆/👍/💪 */}
+                  {/* TRAIN-COACH-A11Y-1: SVG ScoreIcon replaces // */}
                   <ScoreIcon score={score} total={activeLesson.quiz.length} size={48} />
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
@@ -738,7 +738,7 @@ export default function CoachModePage() {
                   {lesson.concepts.length} concepts · {lesson.quiz.length} quiz questions
                 </div>
               </div>
-              {/* TRAIN-COACH-A11Y-1: SVG check replaces ✅ */}
+              {/* TRAIN-COACH-A11Y-1: SVG check replaces ✓ */}
               {completed.has(lesson.id) && <div style={{ fontSize: 16, display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-label="Completed" role="img"><CheckIcon size={16} /></div>}
             </motion.button>
           ))}

@@ -1,6 +1,6 @@
 /**
  * PositionProfitTracker — Track Profit by Position
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive position profit tracking tool. Shows expected win rates
  * by position and helps identify positional leaks.
  */

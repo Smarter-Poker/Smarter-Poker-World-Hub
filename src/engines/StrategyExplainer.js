@@ -1,20 +1,20 @@
 /**
  * StrategyExplainer — GTO Wizard-Style "WHY" Engine
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Generates human-readable explanations of WHY the solver takes each action
  * for a specific hand on a specific board. Goes beyond "bet 60%" to explain
  * the strategic reasoning: range advantage, nut advantage, board texture
  * interaction, equity denial, protection, value extraction, bluffing, etc.
  *
  * Used by FeedbackCard to show explanation after each training hand.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { classifyHandClass, classifyBoardTexture } from './PostflopStrategyEngine';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND CLASS PROPERTIES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const HAND_CLASS_META = {
     nuts_plus: {
@@ -145,9 +145,9 @@ const HAND_CLASS_META = {
     },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // BOARD TEXTURE REASONING
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const TEXTURE_REASONING = {
     dry_rainbow_high: {
@@ -207,9 +207,9 @@ const TEXTURE_REASONING = {
     },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // EXPLANATION GENERATOR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a human-readable explanation of WHY the solver takes a specific action.
@@ -276,7 +276,7 @@ export function explainStrategy(params) {
         const keyFactors = [];
         let strategicConcept = '';
 
-        // ─── WHY BET? ────────────────────────────────────────────
+        // ●●● WHY BET? ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (isBetting) {
             if (handMeta.canValue && handMeta.strength === 'monster') {
                 sentences.push(`You have ${handMeta.description} — a premium hand that should bet for value.`);
@@ -327,7 +327,7 @@ export function explainStrategy(params) {
             }
         }
 
-        // ─── WHY CHECK? ──────────────────────────────────────────
+        // ●●● WHY CHECK? ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (isChecking) {
             if (handMeta.strength === 'monster') {
                 sentences.push(`With ${handMeta.description}, checking traps villain into betting (pot control and trapping).`);
@@ -361,7 +361,7 @@ export function explainStrategy(params) {
             }
         }
 
-        // ─── WHY CALL? ───────────────────────────────────────────
+        // ●●● WHY CALL? ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (isCalling) {
             if (handMeta.strength === 'strong' || handMeta.strength === 'monster') {
                 sentences.push(`With ${handMeta.description}, calling keeps villain's bluffs in and avoids bloating the pot where a raise might fold out worse hands.`);
@@ -380,7 +380,7 @@ export function explainStrategy(params) {
             }
         }
 
-        // ─── WHY FOLD? ───────────────────────────────────────────
+        // ●●● WHY FOLD? ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (isFolding) {
             sentences.push(`With ${handMeta.description}, folding is correct because you don't have the equity to continue against villain's betting range.`);
             keyFactors.push('Insufficient equity to continue');
@@ -392,7 +392,7 @@ export function explainStrategy(params) {
             }
         }
 
-        // ─── MIXED STRATEGY NOTE ─────────────────────────────────
+        // ●●● MIXED STRATEGY NOTE ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (betFrequency && betFrequency > 5 && betFrequency < 95 && frequencies) {
             const actions = Object.entries(frequencies || {})
                 .filter(([_, f]) => f > 3)
@@ -403,7 +403,7 @@ export function explainStrategy(params) {
             }
         }
 
-        // ─── 3-BET POT ADJUSTMENT ───────────────────────────────
+        // ●●● 3-BET POT ADJUSTMENT ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (is3BetPot) {
             sentences.push('In a 3-bet pot, ranges are tighter and SPR is lower. This compresses decisions and increases the value of position.');
             keyFactors.push('3-bet pot dynamics');

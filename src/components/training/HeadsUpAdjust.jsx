@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const HU_ADJUSTMENTS = [
-  { area: 'Preflop Ranges', icon: '🎴', color: '#22c55e',
+  { area: 'Preflop Ranges', icon: '◇', color: '#22c55e',
     adjust: 'Open nearly every hand from the button (80-100%). Defend BB very wide (~70%). 3-bet BB ~25%.',
     why: 'With only one opponent, hand values increase dramatically. Even K2o has value on the button.',
     mistake: 'Playing too tight. If you fold more than 30% from the button HU, you\'re bleeding chips.',
     tip: 'Any ace, any king, any pair, any suited, any connected = auto-open on the button.' },
-  { area: 'Aggression Frequency', icon: '🔥', color: '#ef4444',
+  { area: 'Aggression Frequency', icon: '▲', color: '#ef4444',
     adjust: 'C-bet 65-75% of flops. Double barrel 55-65% of turns. Aggression is king heads-up.',
     why: 'Your opponent misses the flop ~65% of the time. Aggression takes down pots by default.',
     mistake: 'Checking too much. If you check more than 40% of flops IP, you\'re way too passive.',
     tip: 'When in doubt, bet. HU rewards aggression more than any other format.' },
-  { area: 'Positional Advantage', icon: '👑', color: '#3b82f6',
+  { area: 'Positional Advantage', icon: '★', color: '#3b82f6',
     adjust: 'IP (button/SB) should play extremely aggressively. OOP (BB) should check-raise more often.',
     why: 'Position is EVERYTHING heads-up. The button acts last on every street and controls the pot.',
     mistake: 'Not utilizing position enough. IP should be printing money in HU — it\'s a massive advantage.',
     tip: 'Track your win rate IP vs OOP. If you\'re not winning significantly more IP, you\'re too passive.' },
-  { area: 'Bluffing & Value', icon: '🎭', color: '#f59e0b',
+  { area: 'Bluffing & Value', icon: '◇', color: '#f59e0b',
     adjust: 'Bluff more. Value bet thinner. Second pair is often a value bet HU. Ace-high can check down.',
     why: 'Ranges are wide, so hands that are mediocre in 6-max become strong HU.',
     mistake: 'Not bluffing enough. Your opponent folds a lot HU because their range is so wide.',
     tip: 'If you never get caught bluffing HU, you\'re not bluffing enough.' },
-  { area: 'Adaptation Speed', icon: '🧠', color: '#8b5cf6',
+  { area: 'Adaptation Speed', icon: '◇', color: '#8b5cf6',
     adjust: 'Adjust every 10-20 hands. If villain folds to 3-bets, 3-bet more. If they call, bluff less.',
     why: 'HU gives you maximum information per hand. You see every showdown. Adapt constantly.',
     mistake: 'Playing the same strategy regardless of opponent. HU is about constant adjustment.',
@@ -40,7 +40,7 @@ export default function HeadsUpAdjust() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🤺 Heads-Up Adjustments
+        Heads-Up Adjustments
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Dominate 1v1 situations with these adjustments.</p>
 

@@ -214,7 +214,7 @@ const HealthBar: React.FC<{
     return (
         <div className="health-bar-container">
             <div className="health-bar-label">
-                <span>❤️ HP</span>
+                <span> HP</span>
                 <span>{health}/{maxHealth}</span>
             </div>
             <div className="health-bar-track">
@@ -288,7 +288,7 @@ const BetSlider: React.FC<{
                     animate={showSnap ? { scale: [1, 1.2, 1] } : {}}
                 >
                     {displayValue}% pot
-                    {showSnap && <span className="snap-icon">🧲</span>}
+                    {showSnap && <span className="snap-icon"></span>}
                 </motion.span>
             </div>
 
@@ -379,7 +379,7 @@ const PokerTable: React.FC<{
             <div className="player-area villain">
                 <div className="position-badge">{hand.villainPosition}</div>
                 <div className="cards">
-                    {showVillainCards ? formatCards(hand.villainCards) : '🂠 🂠'}
+                    {showVillainCards ? formatCards(hand.villainCards) : ''}
                 </div>
                 <div className="stack">{hand.villainStack} BB</div>
             </div>
@@ -436,7 +436,7 @@ const ResultOverlay: React.FC<{
                 animate={isCorrect ? { rotate: [0, 10, -10, 0] } : { x: [0, -10, 10, -10, 10, 0] }}
                 transition={{ duration: 0.5 }}
             >
-                {isCorrect ? '✅' : '❌'}
+                {isCorrect ? '✓': '✕'}
             </motion.div>
 
             <h2 className="result-title">
@@ -459,9 +459,9 @@ const ResultOverlay: React.FC<{
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
                 >
-                    <span className="sparkle">✨</span>
+                    <span className="sparkle"></span>
                     +5 Diamonds
-                    <span className="sparkle">✨</span>
+                    <span className="sparkle"></span>
                 </motion.div>
             )}
         </motion.div>
@@ -534,7 +534,7 @@ const GameSession: React.FC<GameSessionProps> = ({
     } | null>(null);
     const [scenarioPhase, setScenarioPhase] = useState<'READING' | 'DECIDING' | 'SHOWING_RESULT'>('DECIDING');
 
-    // 📊 Jarvis Training Data - Track all answers for analysis
+    // Jarvis Training Data - Track all answers for analysis
     const [sessionAnswers, setSessionAnswers] = useState<Array<{
         questionId: string;
         userAnswer: string;
@@ -1127,7 +1127,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         >
-                            🃏
+                            
                         </motion.div>
                         <p>Dealing Hand...</p>
                     </div>
@@ -1221,9 +1221,9 @@ const GameSession: React.FC<GameSessionProps> = ({
                         scenarioText={(currentHand as any).scenarioText || 'You just lost 3 buy-ins. How do you respond?'}
                         situationContext={(currentHand as any).situationContext}
                         choices={(currentHand as any).choices || [
-                            { id: 'TILT', label: 'Express Frustration', icon: '😤', emotionalType: 'impulsive' },
-                            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '🧘', emotionalType: 'rational' },
-                            { id: 'LEAVE', label: 'Leave The Table', icon: '🚪', emotionalType: 'passive' },
+                            { id: 'TILT', label: 'Express Frustration', icon: '', emotionalType: 'impulsive'},
+                            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '', emotionalType: 'rational'},
+                            { id: 'LEAVE', label: 'Leave The Table', icon: '', emotionalType: 'passive'},
                         ]}
                         correctChoiceId={(currentHand as any).correctChoice || 'BREATHE'}
                         timeLimit={(currentHand as any).timeLimit || 15}

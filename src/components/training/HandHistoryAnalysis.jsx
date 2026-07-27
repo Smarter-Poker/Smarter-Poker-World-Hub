@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const ANALYSIS_STEPS = [
-  { step: '1. Filter for Big Pots', icon: '🔍', color: '#ef4444',
+  { step: '1. Filter for Big Pots', icon: '○', color: '#ef4444',
     detail: 'Start your review by filtering for the biggest pots you played. These are where the most money was won or lost.',
     howto: 'Sort by pot size descending. Review your top 10 biggest winning and losing pots from the session.',
     why: 'Big pots have the biggest impact on your win rate. A single mistake in a big pot can erase hours of good play.',
     tool: 'Use your tracking software (PT4, HM3, Hand2Note) to filter by pot size > 50bb.' },
-  { step: '2. Check Your Preflop Ranges', icon: '📋', color: '#22c55e',
+  { step: '2. Check Your Preflop Ranges', icon: '□', color: '#22c55e',
     detail: 'Compare your actual preflop opens/calls/3-bets to GTO charts. Look for systematic deviations.',
     howto: 'Filter by position and action (open, 3-bet, cold call). Compare your frequencies to solver recommendations.',
     why: 'Preflop leaks compound over every hand. Opening 5% too wide from UTG affects hundreds of hands per session.',
     tool: 'Use Equilab or Flopzilla to compare your actual ranges vs recommended ranges by position.' },
-  { step: '3. Review Street-by-Street', icon: '🎯', color: '#3b82f6',
+  { step: '3. Review Street-by-Street', icon: '◆', color: '#3b82f6',
     detail: 'For each key hand, walk through every street. At each decision point, ask: "What\'s my plan for the whole hand?"',
     howto: 'Pause at each action. Consider your range, opponent\'s range, board texture, and stack depth. What does a solver do here?',
     why: 'Many mistakes happen because players don\'t plan ahead. A flop bet without a turn/river plan is often a mistake.',
     tool: 'Run key spots through GTO Wizard or PioSOLVER. Compare your play to the solver\'s recommendation.' },
-  { step: '4. Identify Patterns', icon: '📊', color: '#f59e0b',
+  { step: '4. Identify Patterns', icon: '■', color: '#f59e0b',
     detail: 'After reviewing 20+ hands, look for repeating mistakes. Do you always overplay top pair? Always give up on the turn?',
     howto: 'Categorize mistakes: sizing errors, range errors, timing errors, tilt-related errors. Track which category is most common.',
     why: 'Fixing one systematic leak (like always calling river bets) can improve your win rate by 2-3bb/100 instantly.',
     tool: 'Create a spreadsheet of mistakes by category. Review it weekly to track improvement.' },
-  { step: '5. Study Sessions, Not Hands', icon: '📈', color: '#8b5cf6',
+  { step: '5. Study Sessions, Not Hands', icon: '▲', color: '#8b5cf6',
     detail: 'Don\'t just review individual hands — look at your session as a whole. How did your play change over time? Did you tilt?',
     howto: 'Plot your session graph. Look for slope changes. Did your play deteriorate after a bad beat? After hour 3?',
     why: 'Session-level analysis reveals mental game leaks that hand-level analysis misses. Maybe you always tilt after losing a flip.',
@@ -40,7 +40,7 @@ export default function HandHistoryAnalysis() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📖 Hand History Analysis
+        Hand History Analysis
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The ultimate guide to reviewing your own play.</p>
 

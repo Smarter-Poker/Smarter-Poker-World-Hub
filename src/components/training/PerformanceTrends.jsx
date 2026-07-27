@@ -1,6 +1,6 @@
 /**
  * PERFORMANCE TRENDS — Cross-Session SVG Line Charts
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 16: Fetches analytics API data and renders:
  *   - GTOW Score trend (line chart with gradient fill)
  *   - EV Loss per hand trend
@@ -12,10 +12,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { getSessionToken } from '../../lib/authUtils';
 
-// ═══ Phase GTO-CLONE: LeakDetector + HandAnalyzer engines ═══
+// ●●● Phase GTO-CLONE: LeakDetector + HandAnalyzer engines ●●●
 import { detectLeaks, analyzeFrequencies, generateDrillRecommendations } from '../../engines/LeakDetector';
 
-// ── SVG Line Chart ──────────────────────────────────────────────
+// ●● SVG Line Chart ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function LineChart({
     data = [],
     valueKey = 'value',
@@ -141,7 +141,7 @@ function LineChart({
     );
 }
 
-// ── Stacked Area Chart for Classification Trend ─────────────────
+// ●● Stacked Area Chart for Classification Trend ●●●●●●●●●●●●●●●●●
 function ClassificationTrendChart({ data = [], height = 70 }) {
     const svgWidth = 280;
 
@@ -202,7 +202,7 @@ function ClassificationTrendChart({ data = [], height = 70 }) {
     );
 }
 
-// ── Milestone Badge ─────────────────────────────────────────────
+// ●● Milestone Badge ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function MilestoneBadge({ label, value, subValue, color = '#e2e8f0', icon }) {
     return (
         <div style={{
@@ -221,7 +221,7 @@ function MilestoneBadge({ label, value, subValue, color = '#e2e8f0', icon }) {
     );
 }
 
-// ── Trend Arrow ─────────────────────────────────────────────────
+// ●● Trend Arrow ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function TrendIndicator({ trending, delta }) {
     if (!trending || trending === 'flat') return null;
     const isUp = trending === 'up';
@@ -237,9 +237,9 @@ function TrendIndicator({ trending, delta }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PerformanceTrends({ gameId, userId, days = 30, compact = false }) {
     const [analytics, setAnalytics] = useState(null);
@@ -438,7 +438,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                 </motion.div>
             )}
 
-            {/* ═══ Phase GTO-CLONE: Leak Detection via LeakDetector Engine ═══ */}
+            {/* ●●● Phase GTO-CLONE: Leak Detection via LeakDetector Engine ●●● */}
             {!compact && analytics?.sessionHistory && (
                 <LeakDetectionPanel sessionHistory={analytics.sessionHistory} />
             )}
@@ -446,7 +446,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
     );
 }
 
-// ═══ Phase GTO-CLONE: Leak Detection Panel using LeakDetector engine ═══
+// ●●● Phase GTO-CLONE: Leak Detection Panel using LeakDetector engine ●●●
 function LeakDetectionPanel({ sessionHistory }) {
     const leaks = useMemo(() => {
         if (!sessionHistory || sessionHistory.length < 3) return null;
@@ -484,7 +484,7 @@ function LeakDetectionPanel({ sessionHistory }) {
             }}
         >
             <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                🔍 Leak Detection
+                Leak Detection
                 <span style={{ fontSize: 9, fontWeight: 400, color: '#94a3b8' }}>
                     {leaks.length} leak{leaks.length !== 1 ? 's' : ''} identified
                 </span>
@@ -507,14 +507,14 @@ function LeakDetectionPanel({ sessionHistory }) {
             ))}
             {drills.length > 0 && (
                 <div style={{ marginTop: 8, fontSize: 10, color: '#64748b' }}>
-                    💡 Recommended: {drills.slice(0, 2).map(d => d.name || d.description).join(', ')}
+                    Recommended: {drills.slice(0, 2).map(d => d.name || d.description).join(', ')}
                 </div>
             )}
         </motion.div>
     );
 }
 
-// ═══ Hook: useTrainingAnalytics ═════════════════════════════════
+// ●●● Hook: useTrainingAnalytics ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // Reusable hook for components that need analytics data
 export function useTrainingAnalytics(gameId, days = 30) {
     const [analytics, setAnalytics] = useState(null);

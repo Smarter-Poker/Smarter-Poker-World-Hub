@@ -1,6 +1,6 @@
 /**
- * 🚫 ENDPOINT REMOVED — Operation Grok-Sweep Phase 46 (2026-05)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ENDPOINT REMOVED — Operation Grok-Sweep Phase 46 (2026-05)
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * This was an admin "quick test" generator for mtt-007. It used the same
  * generateQuestionWithGrok path as generate-batch-questions.js (now also
  * tombstoned), producing hallucinated grok-3-mini output with a schema
@@ -11,7 +11,7 @@
  * back via /api/training/get-question.
  *
  * Returns 410 Gone for any client still pointed at this URL.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 export default function handler(req, res) {

@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * AI COACH ENGINE — Geeves/Jarvis Coaching Integration
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Smarter.poker's secret weapon — AI-powered coaching that explains
  * GTO concepts in plain English:
@@ -13,13 +13,13 @@
  *
  * This engine generates coaching prompts and explanations locally.
  * For full AI-powered coaching, integrate with Geeves/Jarvis API.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { MADE_HANDS } from './HandStrengthEngine';
 import { MOVE_CLASSIFICATIONS } from './GTOScoreEngine';
 
-// ── Coaching Tones ───────────────────────────────────────────────────────
+// ●● Coaching Tones ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const COACH_PERSONALITY = {
     GEEVES: {
@@ -40,9 +40,9 @@ export const COACH_PERSONALITY = {
     },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // POST-HAND EXPLANATIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a natural language explanation for a decision.
@@ -188,9 +188,9 @@ function _explainMistake(decision, concepts) {
     return `GTO prefers ${gtoAction} in this spot. ${decision.gtoReason || ''}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STUDY PLAN GENERATION
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a personalized study plan based on leak detection.
@@ -279,9 +279,9 @@ export function generateStudyPlan(leaks, playerProfile = {}) {
     return { plan, summary };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LIVE COACHING — In-session hints and nudges
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a real-time coaching hint during a training hand.
@@ -366,7 +366,7 @@ export function getLiveHint(context) {
     };
 }
 
-// ── Concept Library ──────────────────────────────────────────────────────
+// ●● Concept Library ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const POKER_CONCEPTS = {
     board_texture: { name: 'Board Texture', description: 'Understanding how the community cards interact with ranges' },

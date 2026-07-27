@@ -39,9 +39,9 @@ const RAKE_PRESETS = {
 };
 
 const FORMAT_OPTIONS = [
-  { id: 'cash', label: 'Cash Game', icon: '💰' },
-  { id: 'mtt', label: 'MTT', icon: '🏆' },
-  { id: 'sng', label: 'Sit & Go', icon: '🎯' },
+  { id: 'cash', label: 'Cash Game', icon: ''},
+  { id: 'mtt', label: 'MTT', icon: ''},
+  { id: 'sng', label: 'Sit & Go', icon: ''},
 ];
 
 const ANTE_OPTIONS = ['None', '10% Ante', '12.5% Ante', 'BB Ante (1BB)', 'Straddle (2BB)'];
@@ -379,7 +379,7 @@ function RangeGridVisual({ rangeStr, actions }) {
         </div>
         {hoveredCell && (
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
-            {hoveredCell.hand} {hoveredCell.inRange ? '✓ In Range' : '✗ Fold'}
+            {hoveredCell.hand} {hoveredCell.inRange ? '✓ In Range': '✕ Fold'}
           </div>
         )}
       </div>
@@ -655,7 +655,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
               marginBottom: 8,
             }}
           >
-            🎲 Runout Strategy Shift
+            ◆ Runout Strategy Shift
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
             {['A', 'K', 'Q', 'J', 'T', '8', '5', '2'].map((rank) => {

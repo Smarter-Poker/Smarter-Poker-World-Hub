@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * ACTION TREE ENGINE — Decision Tree Navigation & Sizing
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Builds the valid action set at any decision node and maps user actions
  * to the closest solver node:
@@ -12,12 +12,12 @@
  *
  * Works with HandStateMachine for state tracking and
  * PostflopStrategyEngine for GTO strategy at each node.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { getPostflopStrategy, BET_SIZES, ACTIONS } from './PostflopStrategyEngine';
 
-// ── Standard Bet Sizings ─────────────────────────────────────────────────
+// ●● Standard Bet Sizings ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Standard solver bet sizing nodes.
@@ -35,7 +35,7 @@ export const STANDARD_SIZINGS = {
     ALL_IN: { label: 'All-In', fraction: Infinity, category: 'allin' },
 };
 
-// ── Action Node ──────────────────────────────────────────────────────────
+// ●● Action Node ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * An action node in the decision tree.
@@ -206,9 +206,9 @@ export class ActionNode {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ACTION MAPPING — Map user actions to solver nodes
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Map a user's chosen action to the closest solver action.
@@ -334,9 +334,9 @@ export function scoreAction(playerAction, gtoStrategy, potSize) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ACTION TREE BUILDER — Build full decision tree for a hand
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Build an ActionNode from HandStateMachine state.

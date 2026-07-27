@@ -1,6 +1,6 @@
 /**
  * DefenseFrequencyCalc — GTO Wizard-Style MDF & Defense Frequency Calculator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate minimum defense frequencies, alpha values, and optimal
  * defend/fold ratios for any bet sizing. Interactive with visual breakdowns.
  */

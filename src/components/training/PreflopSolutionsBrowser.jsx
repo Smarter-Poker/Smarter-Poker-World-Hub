@@ -1,18 +1,18 @@
 /**
  * PREFLOP SOLUTIONS BROWSER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style preflop chart browser:
  * - Browse by position (UTG → BB) and action (Open, vs 3-Bet, 4-Bet, etc.)
  * - Stack depth selector (100bb, 60bb, 40bb, 25bb, 15bb, 10bb)
  * - Full 13x13 range grid with solver frequencies
  * - Color-coded by action (raise = red, call = green, fold = blue)
  * - Combo counts, range %, and action breakdown stats
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
 
-// ═══ POSITION & ACTION DEFINITIONS ═══
+// ●●● POSITION & ACTION DEFINITIONS ●●●
 const POSITIONS = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STACK_DEPTHS = [100, 60, 40, 25, 15, 10];
 
@@ -28,7 +28,7 @@ const SCENARIOS = {
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// ═══ SOLVER-APPROXIMATE PREFLOP DATA ═══
+// ●●● SOLVER-APPROXIMATE PREFLOP DATA ●●●
 // Frequencies: [raise%, call%, fold%] — sourced from GTO approximations
 const generateRFIRange = (position, stackBB) => {
   const ranges = {};
@@ -168,7 +168,7 @@ const getScenarioRange = (scenario, position, stackBB) => {
   } catch { return generateRFIRange(position, stackBB); }
 };
 
-// ═══ HAND LABEL HELPERS ═══
+// ●●● HAND LABEL HELPERS ●●●
 const getHandLabel = (r, c) => {
   if (r === c) return `${RANKS[r]}${RANKS[c]}`;
   if (c > r) return `${RANKS[r]}${RANKS[c]}s`;
@@ -181,7 +181,7 @@ const getCombos = (r, c) => {
   return 12; // offsuit
 };
 
-// ═══ COLOR HELPERS ═══
+// ●●● COLOR HELPERS ●●●
 const getActionColor = (raise, call) => {
   if (raise > 70) return 'rgba(239, 68, 68, 0.85)';
   if (raise > 40) return 'rgba(239, 68, 68, 0.55)';
@@ -192,7 +192,7 @@ const getActionColor = (raise, call) => {
   return 'rgba(30, 41, 59, 0.6)';
 };
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function PreflopSolutionsBrowser() {
   const [scenario, setScenario] = useState('RFI');
   const [position, setPosition] = useState('CO');
@@ -235,7 +235,7 @@ export default function PreflopSolutionsBrowser() {
         Preflop Solutions Browser
       </h3>
 
-      {/* ═══ SCENARIO SELECTOR ═══ */}
+      {/* ●●● SCENARIO SELECTOR ●●● */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {Object.entries(SCENARIOS || {}).map(([id, s]) => (
           <button key={id} onClick={() => setScenario(id)} style={{
@@ -249,7 +249,7 @@ export default function PreflopSolutionsBrowser() {
         ))}
       </div>
 
-      {/* ═══ POSITION & STACK SELECTORS ═══ */}
+      {/* ●●● POSITION & STACK SELECTORS ●●● */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Position</div>
@@ -282,7 +282,7 @@ export default function PreflopSolutionsBrowser() {
       </div>
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        {/* ═══ 13x13 RANGE GRID ═══ */}
+        {/* ●●● 13x13 RANGE GRID ●●● */}
         <div style={{ flex: '1 1 400px' }}>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
@@ -330,7 +330,7 @@ export default function PreflopSolutionsBrowser() {
             })}
           </div>
 
-          {/* ═══ LEGEND ═══ */}
+          {/* ●●● LEGEND ●●● */}
           <div style={{ display: 'flex', gap: 16, marginTop: 8, justifyContent: 'center' }}>
             {[
               { color: 'rgba(239, 68, 68, 0.85)', label: 'Raise/Bet' },
@@ -345,7 +345,7 @@ export default function PreflopSolutionsBrowser() {
           </div>
         </div>
 
-        {/* ═══ STATS PANEL ═══ */}
+        {/* ●●● STATS PANEL ●●● */}
         <div style={{ flex: '0 0 220px' }}>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
             <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>

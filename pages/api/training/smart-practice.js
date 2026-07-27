@@ -1,6 +1,6 @@
 /**
  * API: Smart Practice — AI-Driven Training Recommendations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 17: Queries the analytics data to determine what the user should
  * practice next, then returns a pre-configured training plan.
  *
@@ -25,7 +25,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -37,14 +37,14 @@ function getSupabase() {
     return _supabase;
 }
 
-// ── Position and street config ──────────────────────────────────
+// ●● Position and street config ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const POSITIONS = ['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB'];
 const STREETS = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
 
 function buildRecommendations(sessions, answers, spacedRepDue) {
     const recommendations = [];
 
-    // ─── 1. Check for spaced repetition due spots ───────────────
+    // ●●● 1. Check for spaced repetition due spots ●●●●●●●●●●●●●●●
     if (spacedRepDue > 0) {
         recommendations.push({
             type: 'spaced_review',
@@ -58,7 +58,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         });
     }
 
-    // ─── 2. Analyze position accuracy ───────────────────────────
+    // ●●● 2. Analyze position accuracy ●●●●●●●●●●●●●●●●●●●●●●●●●●●
     const posStats = {};
     answers.forEach(a => {
         const pos = (a.hero_position || 'UNK').toUpperCase();
@@ -100,7 +100,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         }
     }
 
-    // ─── 3. Analyze street accuracy ─────────────────────────────
+    // ●●● 3. Analyze street accuracy ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
     const streetStats = {};
     answers.forEach(a => {
         const st = (a.street || 'unknown').toUpperCase();
@@ -138,7 +138,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         }
     }
 
-    // ─── 4. Analyze mistake patterns (spot type clusters) ───────
+    // ●●● 4. Analyze mistake patterns (spot type clusters) ●●●●●●●
     const spotPatterns = {};
     answers.forEach(a => {
         if (a.classification === 'best' || a.classification === 'correct') return;
@@ -173,7 +173,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         });
     }
 
-    // ─── 5. Level progression recommendation ────────────────────
+    // ●●● 5. Level progression recommendation ●●●●●●●●●●●●●●●●●●●●
     if (sessions.length >= 3) {
         const recent3 = sessions.slice(0, 3);
         const avgScore = Math.round(recent3.reduce((s, x) => s + (x.gtow_score || x.accuracy || 0), 0) / 3);
@@ -195,7 +195,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         }
     }
 
-    // ─── 6. If no strong recommendations, suggest general practice ─
+    // ●●● 6. If no strong recommendations, suggest general practice
     if (recommendations.length === 0) {
         recommendations.push({
             type: 'general',

@@ -120,7 +120,7 @@ function RiverPolarizationGuide() {
           {quizAnswer && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: quizAnswer === QUIZ[quizIdx].a ? '#10b981' : '#ef4444', marginBottom: 4 }}>
-                {quizAnswer === QUIZ[quizIdx].a ? '✓ Correct!' : `✗ Answer: ${QUIZ[quizIdx].a}`}
+                {quizAnswer === QUIZ[quizIdx].a ? '✓ Correct!': `✕ Answer: ${QUIZ[quizIdx].a}`}
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>{QUIZ[quizIdx].reason}</div>
               <button onClick={() => { setQuizIdx((quizIdx + 1) % QUIZ.length); setQuizAnswer(null); }} style={{ padding: '4px 12px', borderRadius: 4, border: 'none', fontSize: 10, cursor: 'pointer', background: '#d946ef', color: '#fff', fontWeight: 600 }}>Next →</button>

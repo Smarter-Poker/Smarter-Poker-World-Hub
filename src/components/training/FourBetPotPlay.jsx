@@ -27,7 +27,7 @@ export default function FourBetPotPlay() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #8b5cf6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💥 4-Bet Pot Strategy
+        4-Bet Pot Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>The biggest pre-flop pots. Low SPR = simplified decisions.</p>
 

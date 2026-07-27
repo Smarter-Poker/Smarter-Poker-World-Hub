@@ -1,11 +1,11 @@
 /**
  * GTO NEWS FEED — Strategy Tips & Articles
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Curated GTO tips and strategy content with category filters,
  * bookmarks, read tracking, article search, and daily tip rotation.
  *
  * Route: /hub/training/gto-news
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-18 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -190,7 +190,7 @@ const ARTICLES = [
 
 const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Mental'];
 
-// ── Live feed ───────────────────────────────────────────────────────────────
+// ●● Live feed ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // /api/news/articles filters on poker_news.category. The category values used
 // across the news hub are: tournament | news | strategy | industry. 'strategy'
 // is the closest real category to this page's subject, so that is what we ask
@@ -256,8 +256,8 @@ function toCardArticle(row) {
 const SAMPLE_ITEMS = ARTICLES.map((a) => ({ ...a, source: null, isSample: true }));
 
 // BUG FIX (TRAIN-NEWS-A11Y-1): SVG icon components replacing the GTO news
-// emoji set (🃏 Preflop / 🎯 Postflop / 🧮 Math / 🧠 Mental category icons,
-// 💡 tip banner, ⭐/☆ bookmark toggle, ✓ read indicator, ← back). Same
+// emoji set (◇ Preflop / ◆ Postflop / ■ Math / ◇ Mental category icons,
+// tip banner, ★/☆ bookmark toggle, ✓ read indicator, ← back). Same
 // surface-specific a11y pattern as PR #320/#322/#324/#327/#328/#329/#330/
 // #331/#332/#333/#334/#335/#336/#337/#338.
 const ICON_PROPS = {

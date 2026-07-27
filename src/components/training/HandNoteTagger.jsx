@@ -1,30 +1,30 @@
 /**
  * HAND NOTE TAGGER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tag, annotate, and organize reviewed hands:
  * - Color-coded tags (leak, exploitable, standard, interesting, review)
  * - Free-text notes per hand
  * - Filter and search by tags
  * - Export tagged collection
  * - Star/favorite system
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ TAG DEFINITIONS ═══
+// ●●● TAG DEFINITIONS ●●●
 const TAGS = [
-  { id: 'leak', label: 'Leak', color: '#ef4444', icon: '🔴' },
-  { id: 'exploit', label: 'Exploitable', color: '#f59e0b', icon: '🟡' },
-  { id: 'standard', label: 'Standard', color: '#22c55e', icon: '🟢' },
-  { id: 'interesting', label: 'Interesting', color: '#3b82f6', icon: '🔵' },
-  { id: 'review', label: 'Review Later', color: '#a855f7', icon: '🟣' },
-  { id: 'bluff', label: 'Bluff Spot', color: '#ec4899', icon: '💎' },
-  { id: 'value', label: 'Value Spot', color: '#14b8a6', icon: '💰' },
-  { id: 'tilt', label: 'Tilt Play', color: '#f97316', icon: '😤' },
+  { id: 'leak', label: 'Leak', color: '#ef4444', icon: '●' },
+  { id: 'exploit', label: 'Exploitable', color: '#f59e0b', icon: '●' },
+  { id: 'standard', label: 'Standard', color: '#22c55e', icon: '●' },
+  { id: 'interesting', label: 'Interesting', color: '#3b82f6', icon: '●' },
+  { id: 'review', label: 'Review Later', color: '#a855f7', icon: '●' },
+  { id: 'bluff', label: 'Bluff Spot', color: '#ec4899', icon: '◆' },
+  { id: 'value', label: 'Value Spot', color: '#14b8a6', icon: '●' },
+  { id: 'tilt', label: 'Tilt Play', color: '#f97316', icon: '▲' },
 ];
 
-// ═══ SAMPLE HANDS ═══
+// ●●● SAMPLE HANDS ●●●
 const INITIAL_HANDS = [
   { id: 1, hand: 'A♠K♥', board: 'K♠ 8♦ 3♣ J♥ 2♠', position: 'BTN', action: 'Bet → Call → Check', result: '+12.5bb', tags: ['standard', 'value'], starred: false, note: 'Standard top pair value line. Could have bet bigger on river.', evLoss: 0.2 },
   { id: 2, hand: 'Q♥J♥', board: 'T♠ 9♠ 2♣ 8♦', position: 'CO', action: 'Raise → Bet → Bet', result: '+28.3bb', tags: ['interesting'], starred: true, note: 'Hit the straight on turn. Villain had flush draw.', evLoss: 0.0 },
@@ -36,7 +36,7 @@ const INITIAL_HANDS = [
   { id: 8, hand: '5♥5♣', board: '5♠ K♦ 8♣ K♠ 2♥', position: 'SB', action: 'Call → Check → Bet → Bet', result: '+52.0bb', tags: ['value', 'interesting'], starred: true, note: 'Full house! Slow played flop, villain had Kx and paid off.', evLoss: 1.0 },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function HandNoteTagger() {
   const [hands, setHands] = useState(INITIAL_HANDS);
   const [filterTag, setFilterTag] = useState(null);

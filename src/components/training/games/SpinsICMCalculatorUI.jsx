@@ -1,6 +1,6 @@
 /**
  * SPINS ICM CALCULATOR UI — Game-Specific Training Component
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized UI for spins-003 (Button Limp) and spins-007 (50/50 Survival)
  * 
  * Features:
@@ -8,7 +8,7 @@
  * - Stack depth visualizer
  * - Prize pool distribution
  * - Survival indicator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

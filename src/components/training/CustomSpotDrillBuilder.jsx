@@ -1,13 +1,13 @@
 /**
  * CUSTOM SPOT DRILL BUILDER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style custom drill creator:
  * - Select position, street, stack depth, board texture
  * - Choose scenario type (SRP, 3-bet pot, 4-bet pot, squeeze pot)
  * - Configure IP/OOP, # of players, bet sizing
  * - Save custom drills for repeated practice
  * - Quick-launch prebuilt drill templates
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback } from 'react';
@@ -25,7 +25,7 @@ const STACK_RANGES = [
   { label: 'Push/Fold (<15bb)', min: 5, max: 15 },
 ];
 
-// ═══ PREBUILT DRILL TEMPLATES ═══
+// ●●● PREBUILT DRILL TEMPLATES ●●●
 const DRILL_TEMPLATES = [
   {
     name: 'C-Bet or Check (IP)',
@@ -131,7 +131,7 @@ export default function CustomSpotDrillBuilder() {
     transition: 'all 0.15s',
   });
 
-  // ═══ ACTIVE DRILL VIEW ═══
+  // ●●● ACTIVE DRILL VIEW ●●●
   if (activeDrill) {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -202,7 +202,7 @@ export default function CustomSpotDrillBuilder() {
       </div>
 
       {mode === 'templates' ? (
-        /* ═══ TEMPLATE MODE ═══ */
+        /* ●●● TEMPLATE MODE ●●● */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
           {DRILL_TEMPLATES.map((tmpl, i) => (
             <div key={i} style={{
@@ -261,7 +261,7 @@ export default function CustomSpotDrillBuilder() {
           ))}
         </div>
       ) : (
-        /* ═══ CUSTOM BUILDER MODE ═══ */
+        /* ●●● CUSTOM BUILDER MODE ●●● */
         <div>
           {/* Hero Position */}
           <div style={sectionStyle}>

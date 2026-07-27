@@ -1,6 +1,6 @@
 /**
- * 🎯 MULTI-STREET HAND MANAGER
- * ═══════════════════════════════════════════════════════════════════════════
+ * MULTI-STREET HAND MANAGER
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Manages the state of a single multi-street poker hand.
  * Chains flop → turn → river decisions with dynamic board dealing,
  * running pot calculation, and per-street GTO feedback.
@@ -10,7 +10,7 @@
  *   hand.recordAction('b33'); // hero bets 33%
  *   const turnQ = await hand.advanceStreet(deterministicEngine, gameConfig);
  *   if (!turnQ) { // hand complete, no turn data }
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 const STREET_ORDER = ['flop', 'turn', 'river'];
@@ -263,7 +263,7 @@ export class MultiStreetHand {
         };
     }
 
-    // ═══ PRIVATE UTILS ═══
+    // ●●● PRIVATE UTILS ●●●
 
     _parseBoardCards(boardStr) {
         if (Array.isArray(boardStr)) return boardStr;

@@ -1,10 +1,10 @@
 /**
  * GAME BADGE — Custom Game Indicators with Status
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * - Unique icons per game type
  * - Play status indicators (NEW, IN PROGRESS, COMPLETED, MASTERED)
  * - User ranking display
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { motion } from 'framer-motion';
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 // Play status definitions
 export const PLAY_STATUS = {
     NEW: { id: 'new', label: 'NEW', color: '#00D4FF', glow: 'rgba(0, 212, 255, 0.5)' },
-    LOCKED: { id: 'locked', label: '🔒', color: '#666', glow: 'none' },
+    LOCKED: { id: 'locked', label: '■', color: '#666', glow: 'none' },
     IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.5)' },
     COMPLETED: { id: 'completed', label: '✓', color: '#4CAF50', glow: 'rgba(76, 175, 80, 0.5)' },
     MASTERED: { id: 'mastered', label: '', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.6)' },

@@ -84,7 +84,7 @@ export default function LifetimeStatsCard({
 
             {/* Stats grid */}
             <div style={styles.grid}>
-                <StatBox icon="🃏" label="Hands" value={totalHands.toLocaleString()} delay={0.1} />
+                <StatBox icon="◇" label="Hands" value={totalHands.toLocaleString()} delay={0.1} />
                 <StatBox icon="◎" label="Games" value={gamesCompleted} delay={0.15} />
                 <StatBox icon="" label="EV Loss" value={`-${totalEVLoss.toFixed(1)}`} color="#ef4444" delay={0.2} />
                 <StatBox
@@ -95,7 +95,7 @@ export default function LifetimeStatsCard({
                     delay={0.25}
                 />
                 <StatBox icon="" label="Best Streak" value={longestStreak} color="#f97316" delay={0.3} />
-                <StatBox icon="⚠️" label="Mistakes" value={totalMistakes} color="#fbbf24" delay={0.35} />
+                <StatBox icon="▲" label="Mistakes" value={totalMistakes} color="#fbbf24" delay={0.35} />
             </div>
 
             {/* Pot-Type Breakdown */}

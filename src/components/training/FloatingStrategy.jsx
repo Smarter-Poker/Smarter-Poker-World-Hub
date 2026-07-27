@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const FLOAT_SPOTS = [
-  { board: 'K♠ 8♦ 3♣', villain: 'CO c-bets 50%', you: 'BTN with Q♠J♠', action: 'FLOAT ✅',
+  { board: 'K♠ 8♦ 3♣', villain: 'CO c-bets 50%', you: 'BTN with Q♠J♠', action: 'FLOAT ✓',
     plan: 'Call flop. If checked to on turn, bet 66%. If villain bets again, fold unless you improve.',
     why: 'Dry board, villain c-bets wide. You have 2 overcards + backdoor flush. Take it away on turn.' },
-  { board: 'T♥ 9♥ 6♣', villain: 'HJ c-bets 66%', you: 'CO with A♣K♣', action: 'FOLD ❌',
+  { board: 'T♥ 9♥ 6♣', villain: 'HJ c-bets 66%', you: 'CO with A♣K♣', action: 'FOLD ✕',
     plan: 'Too wet to float. Villain likely has equity. Your AK has minimal backdoor potential here.',
     why: 'Coordinated board = villain c-bets with real equity. Floating into strength is burning money.' },
-  { board: 'A♠ 5♦ 2♣', villain: 'UTG c-bets 33%', you: 'BTN with 8♠7♠', action: 'FLOAT ✅',
+  { board: 'A♠ 5♦ 2♣', villain: 'UTG c-bets 33%', you: 'BTN with 8♠7♠', action: 'FLOAT ✓',
     plan: 'Call the small c-bet. Bet turn if villain checks (they will 60%+ of the time).',
     why: 'UTG c-bets small on A-high = range bet. They\'ll check turn with most non-Ax hands. Free pot.' },
-  { board: 'J♣ T♠ 4♦', villain: 'BTN c-bets 75%', you: 'BB with A♥5♥', action: 'FOLD ❌',
+  { board: 'J♣ T♠ 4♦', villain: 'BTN c-bets 75%', you: 'BB with A♥5♥', action: 'FOLD ✕',
     plan: 'OOP with no draw, no plan. Don\'t float out of position without a clear plan.',
     why: 'Floating OOP is a major leak. You need position to execute the float play.' },
-  { board: 'Q♦ 7♣ 2♠', villain: 'CO c-bets 50%', you: 'BTN with T♠9♠', action: 'FLOAT ✅',
+  { board: 'Q♦ 7♣ 2♠', villain: 'CO c-bets 50%', you: 'BTN with T♠9♠', action: 'FLOAT ✓',
     plan: 'Call. Bet 60% on any turn that\'s a scare card (K, A, 8, J). Check back safe turns.',
     why: 'Dry Q-high board, villain c-bets wide. Your backdoors + position = profitable float.' },
 ];
@@ -40,7 +40,7 @@ export default function FloatingStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🌊 Floating Strategy
+        Floating Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Call in position to steal the pot on later streets.</p>
 
@@ -79,7 +79,7 @@ export default function FloatingStrategy() {
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', marginBottom: 8,
-              color: spot.action.includes('✅') ? '#22c55e' : '#ef4444' }}>{spot.action}</div>
+              color: spot.action.includes('✓') ? '#22c55e' : '#ef4444' }}>{spot.action}</div>
             <div style={{ background: 'rgba(6,182,212,0.08)', borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: '3px solid #06b6d4' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4' }}>Game Plan</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.plan}</div>

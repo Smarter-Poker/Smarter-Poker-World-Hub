@@ -137,7 +137,7 @@ function BlockerAnalysis() {
             <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 8 }}>Doesn't Block</div>
             {scenario.blockerEffect.unblocks.map((b, i) => (
               <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 4, paddingLeft: 10, position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 0, color: '#ef4444' }}>✗</span>{b}
+                <span style={{ position: 'absolute', left: 0, color: '#ef4444'}}>✕</span>{b}
               </div>
             ))}
           </div>

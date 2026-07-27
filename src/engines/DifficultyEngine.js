@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * DIFFICULTY ENGINE — Training Difficulty Modes
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Three difficulty modes matching GTO Wizard's approach:
  *
@@ -18,10 +18,10 @@
  *   - Hand filtering (premium only, close decisions, remove trivial folds)
  *   - Timer settings per difficulty
  *   - Scoring adjustments per difficulty
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── Difficulty Modes ─────────────────────────────────────────────────────
+// ●● Difficulty Modes ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const DIFFICULTY = {
     SIMPLE: 'simple',
@@ -62,7 +62,7 @@ export const DIFFICULTY_CONFIG = {
     },
 };
 
-// ── Simplify Actions ─────────────────────────────────────────────────────
+// ●● Simplify Actions ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Simplify a full action set to match the selected difficulty.
@@ -184,7 +184,7 @@ function _simplifyToGrouped(fullActions) {
     return simplified;
 }
 
-// ── Hand Filtering ───────────────────────────────────────────────────────
+// ●● Hand Filtering ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Filter scenarios based on difficulty and user preferences.
@@ -242,7 +242,7 @@ function isPremiumHand(hand) {
     return premiums.has(hand);
 }
 
-// ── Scoring Adjustments ──────────────────────────────────────────────────
+// ●● Scoring Adjustments ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate the score for a player's action considering difficulty.
@@ -283,7 +283,7 @@ export function calculateDifficultyScore(baseScore, difficulty, context = {}) {
     return { score, diamonds, classification };
 }
 
-// ── Default Export ────────────────────────────────────────────────────────
+// ●● Default Export ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default {
     DIFFICULTY,

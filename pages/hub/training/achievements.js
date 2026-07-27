@@ -1,8 +1,8 @@
 /**
  * Training Achievements Page
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * View all achievements and progress
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-1 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -48,7 +48,7 @@ const ICON_PROPS = {
 function CategoryIcon({ kind, size = 14 }) {
   const props = { ...ICON_PROPS, width: size, height: size };
   if (kind === 'accuracy') {
-    // target rings (replaces 🎯)
+    // target rings (replaces ◆)
     return (
       <svg {...props}>
         <circle cx="12" cy="12" r="10" />
@@ -58,7 +58,7 @@ function CategoryIcon({ kind, size = 14 }) {
     );
   }
   if (kind === 'streak') {
-    // flame (replaces 🔥)
+    // flame (replaces ▲)
     return (
       <svg {...props}>
         <path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.5-.5-2.5-2-3.5l-2 2c-.5-.5-1-1-1-2 0-1 1.5-2 1.5-2s-3 1-4 3.5C5 14 6 17 8.5 19c1.5 1.5 4 2 5.5 1.5C17 19.5 19 17 19 13c0-3-1-5-2.5-7C15 4 12 2 12 2s1 4-1 7c-.7 1-1.5 1.5-2.5 2.5z" />
@@ -66,7 +66,7 @@ function CategoryIcon({ kind, size = 14 }) {
     );
   }
   if (kind === 'volume') {
-    // book (replaces 📚)
+    // book (replaces □)
     return (
       <svg {...props}>
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -75,7 +75,7 @@ function CategoryIcon({ kind, size = 14 }) {
     );
   }
   if (kind === 'mastery') {
-    // crown (replaces 👑)
+    // crown (replaces ★)
     return (
       <svg {...props}>
         <path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z" />
@@ -87,7 +87,7 @@ function CategoryIcon({ kind, size = 14 }) {
 }
 
 function MedalIcon({ size = 22 }) {
-  // header medal (replaces 🏅)
+  // header medal (replaces ★)
   const props = { ...ICON_PROPS, width: size, height: size };
   return (
     <svg {...props}>
@@ -99,7 +99,7 @@ function MedalIcon({ size = 22 }) {
 }
 
 function TrophyIcon({ size = 32 }) {
-  // ach card fallback icon (replaces 🏆)
+  // ach card fallback icon (replaces ★)
   const props = { ...ICON_PROPS, width: size, height: size };
   return (
     <svg {...props}>
@@ -180,7 +180,7 @@ export default function TrainingAchievements() {
 
         <div style={styles.content}>
           {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
-              the prior bare '🏅 Training Achievements' string. Icon has
+              the prior bare '★ Training Achievements' string. Icon has
               aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
           <h1 style={styles.title}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>

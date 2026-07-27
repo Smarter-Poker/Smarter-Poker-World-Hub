@@ -1,11 +1,11 @@
 /**
  * MENTAL GAME JOURNAL — Tilt & Trigger Tracking
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tracks sleep quality, caffeine, states, and tilt triggers.
  * Now fully backed by Supabase training_sessions to retain historical data.
  *
  * Route: /hub/training/mental-journal
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-29 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -60,10 +60,10 @@ function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4
 
 
 const STATES = [
-  { id: 'zone', label: 'In The Zone', color: 'var(--sp-accent-green)', iconKind: 'bolt', icon: '⚡' },
-  { id: 'bored', label: 'Bored / Autopilot', color: 'var(--sp-fg-muted)', iconKind: 'sleep', icon: '😴' },
-  { id: 'frust', label: 'Frustrated', color: 'var(--sp-accent-amber)', iconKind: 'angry', icon: '😤' },
-  { id: 'tilt', label: 'Monkey Tilt', color: 'var(--sp-accent-red)', iconKind: 'monkey', icon: '🦍' },
+  { id: 'zone', label: 'In The Zone', color: 'var(--sp-accent-green)', iconKind: 'bolt', icon: '⌁' },
+  { id: 'bored', label: 'Bored / Autopilot', color: 'var(--sp-fg-muted)', iconKind: 'sleep', icon: '·' },
+  { id: 'frust', label: 'Frustrated', color: 'var(--sp-accent-amber)', iconKind: 'angry', icon: '▲' },
+  { id: 'tilt', label: 'Monkey Tilt', color: 'var(--sp-accent-red)', iconKind: 'monkey', icon: '●' },
 ];
 
 const TRIGGERS = [
@@ -577,11 +577,11 @@ export default function MentalJournalPage() {
                         }}
                       >
                         <div>
-                          {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ☁️ */}
+                          {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ○ */}
                           <span style={{ color: 'var(--sp-accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MoonIcon size={12} /> Sleep:</span> {e.sleep}h
                         </div>
                         <div>
-                          {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ☕ */}
+                          {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ● */}
                           <span style={{ color: 'var(--sp-accent-amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} cups
                         </div>
                       </div>

@@ -126,7 +126,7 @@ function DrawOddsCalculator() {
           border: `1px solid ${calc.profitable ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
         }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: calc.profitable ? '#10b981' : '#ef4444' }}>
-            {calc.profitable ? '✓ PROFITABLE CALL' : '✗ UNPROFITABLE (need implied odds)'}
+            {calc.profitable ? '✓ PROFITABLE CALL': '✕ UNPROFITABLE (need implied odds)'}
           </div>
           {!calc.profitable && (
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>

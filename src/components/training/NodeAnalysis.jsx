@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const NODE_TYPES = [
-  { node: 'Bet/Check Decision (IP)', icon: '🔀', color: '#22c55e',
+  { node: 'Bet/Check Decision (IP)', icon: '⇄', color: '#22c55e',
     what: 'After villain checks to you in position. You decide: bet or check back.',
     factors: 'Hand strength, board texture, villain\'s checking range strength, stack depth.',
     betWhen: 'Strong hands (value), draw-heavy boards (protection), weak hands with no showdown (bluffs).',
     checkWhen: 'Medium hands that play well as check-backs (pot control), strong hands on dry boards (trapping).' },
-  { node: 'Check/Raise/Call (OOP vs Bet)', icon: '🛡️', color: '#ef4444',
+  { node: 'Check/Raise/Call (OOP vs Bet)', icon: '■', color: '#ef4444',
     what: 'Villain bet and you\'re OOP. Three options: fold, call, or check-raise.',
     factors: 'Bet sizing, your hand equity, your range composition, board texture.',
     betWhen: 'Check-raise with: sets+, strong draws (semi-bluff), occasional bluffs for balance.',
     checkWhen: 'Call with: medium pairs, good draws getting right price. Fold with: no equity, no blockers.' },
-  { node: 'Sizing Selection', icon: '📏', color: '#3b82f6',
+  { node: 'Sizing Selection', icon: '■', color: '#3b82f6',
     what: 'You\'ve decided to bet. Now choose: small (33%), medium (50-66%), or large (75%+).',
     factors: 'Range polarity, nut advantage, SPR, board texture, villain\'s likely defense strategy.',
     betWhen: 'Small: range advantage, dry board. Medium: standard value/bluffs. Large: polar range, wet board.',
     checkWhen: 'Overbet (100%+): massive nut advantage, river with strong blockers.' },
-  { node: 'Facing a Raise', icon: '⚡', color: '#f59e0b',
+  { node: 'Facing a Raise', icon: '⌁', color: '#f59e0b',
     what: 'You bet and villain raised. Fold, call, or re-raise (3-bet)?',
     factors: 'Villain\'s raising range (VALUE-heavy at most stakes), pot odds, your hand strength, stack depth.',
     betWhen: '3-bet with: nut hands only (sets+, top 2 pair). Call with: strong draws, top pair sometimes.',
     checkWhen: 'Fold: one pair on wet boards, weak draws, air. At low stakes, respect raises.' },
-  { node: 'River Decision After Check-Check', icon: '🤔', color: '#8b5cf6',
+  { node: 'River Decision After Check-Check', icon: '·', color: '#8b5cf6',
     what: 'Both players checked turn. River arrives. Bet or check?',
     factors: 'Both ranges are capped (weak). River card impact. Who has more bluffs?',
     betWhen: 'Bet if: you improved on river, you have fold equity, villain\'s range is capped.',
@@ -40,7 +40,7 @@ export default function NodeAnalysis() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🌳 Node Analysis
+        Node Analysis
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master every decision point in the game tree.</p>
 

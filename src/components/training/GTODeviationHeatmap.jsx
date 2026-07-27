@@ -2,8 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * 📊 GTO Deviation Heatmap
- * ═══════════════════════════════════════════════════════════════════════════
+ * GTO Deviation Heatmap
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visualizes the delta between a user's actual statistic and the GTO mathematical baseline.
  * Renders a horizontal split-bar highlighting under-performance (blue) or over-performance (red),
  * with perfect GTO alignment sitting near the center (green).

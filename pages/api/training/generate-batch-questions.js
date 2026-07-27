@@ -1,6 +1,6 @@
 /**
- * 🚫 ENDPOINT REMOVED — Operation Grok-Sweep Phase 46 (2026-05)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ENDPOINT REMOVED — Operation Grok-Sweep Phase 46 (2026-05)
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * This endpoint previously generated training questions via grok-3-mini
  * and inserted them into training_question_cache. Phase 46 audit
  * confirmed it produced HALLUCINATED rows that bypassed the solver-
@@ -19,7 +19,7 @@
  * the canonical pattern.
  *
  * Returns 410 Gone for any client still pointed at this URL.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 export default function handler(req, res) {

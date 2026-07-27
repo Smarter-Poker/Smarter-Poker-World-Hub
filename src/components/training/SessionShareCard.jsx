@@ -1,9 +1,9 @@
 /**
  * SESSION SHARE CARD — Shareable Results Image Generator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Phase 19: Generates a beautiful, shareable results card that users can
  * download or share on social media. Uses SVG → Canvas → PNG pipeline.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useRef, useCallback, useState } from 'react';

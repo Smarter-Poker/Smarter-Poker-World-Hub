@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const HAND_TIERS = [
-  { tier: 'Tier 1 — Premium', color: '#22c55e', icon: '🏆',
+  { tier: 'Tier 1 — Premium', color: '#22c55e', icon: '',
     hands: ['AAKKds', 'AAJTds', 'AAQQ', 'AAJJ', 'KKQQds', 'KKJTds'],
     traits: 'Double-suited aces with broadway connectors. High pairs with connectivity. These are raise/3-bet in any position.',
     vpip: '~5% of all PLO hands. Open-raise from any position. 3-bet vs opens. 4-bet vs 3-bets.',
     ev: 'Expected to be profitable in almost any scenario. Can play for stacks preflop.' },
-  { tier: 'Tier 2 — Strong', color: '#3b82f6', icon: '💪',
+  { tier: 'Tier 2 — Strong', color: '#3b82f6', icon: '',
     hands: ['KKQJ', 'QQJT', 'JT98ds', 'T987ds', 'AKQJr', 'AAxxss'],
     traits: 'Connected rundowns, suited aces with any kicker, high pairs with some connectivity.',
     vpip: '~10% of hands. Open from MP+. Call 3-bets in position. Sometimes 3-bet for value.',
     ev: 'Profitable when played in position. Can get into trouble multiway with bare pairs.' },
-  { tier: 'Tier 3 — Playable', color: '#f59e0b', icon: '✅',
+  { tier: 'Tier 3 — Playable', color: '#f59e0b', icon: '✓',
     hands: ['9876ds', '8765ds', 'AKxx', 'KQJx', 'QJT9r', 'AQJ8ss'],
     traits: 'Medium rundowns, suited aces, partial connectivity. Need good flops to continue.',
     vpip: '~15% of hands. Open from CO/BTN. Call opens IP. Fold to 3-bets without strong suits.',
     ev: 'Marginal profitability. Highly position-dependent. Best in single-raised pots IP.' },
-  { tier: 'Tier 4 — Speculative', color: '#8b5cf6', icon: '🎲',
+  { tier: 'Tier 4 — Speculative', color: '#8b5cf6', icon: '◆',
     hands: ['7654ds', '5432ds', 'A♠xx♠x', 'KK72r', 'QQJT'],
     traits: 'Low rundowns, single-suited aces, danglers (disconnected cards), bare pairs.',
     vpip: '~5% additional. Only from BTN/SB with good odds. Fold to raises.',
     ev: 'Slightly negative EV in most spots. Only playable in soft games or great positions.' },
-  { tier: 'Tier 5 — Trash', color: '#ef4444', icon: '🗑️',
+  { tier: 'Tier 5 — Trash', color: '#ef4444', icon: '',
     hands: ['K♠7♥3♦2♣', 'Q♠8♥4♦2♣', 'J♠5♥3♦2♣', 'Any 3-gap hand', 'Rainbow disconnected'],
     traits: 'No connectivity, no suits, no pairs, random cards. These are auto-folds.',
     vpip: '~65% of all PLO hands are trash. Fold them.',
@@ -40,7 +40,7 @@ export default function PLOHandSelection() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎴 PLO Hand Selection
+         PLO Hand Selection
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Know which starting hands to play in Pot Limit Omaha.</p>
 

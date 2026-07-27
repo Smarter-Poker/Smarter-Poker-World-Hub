@@ -23,11 +23,11 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-3a — adoption: shared empty-state primitive
 
 const MOOD_OPTIONS = [
-  { id: 'focused', emoji: '🎯', label: 'Focused' },
-  { id: 'confident', emoji: '💪', label: 'Confident' },
-  { id: 'neutral', emoji: '😐', label: 'Neutral' },
-  { id: 'frustrated', emoji: '😤', label: 'Frustrated' },
-  { id: 'tilted', emoji: '🔥', label: 'Tilted' },
+  { id: 'focused', emoji: '', label: 'Focused'},
+  { id: 'confident', emoji: '', label: 'Confident'},
+  { id: 'neutral', emoji: '', label: 'Neutral'},
+  { id: 'frustrated', emoji: '', label: 'Frustrated'},
+  { id: 'tilted', emoji: '▲', label: 'Tilted'},
 ];
 
 function formatDate(ts) {
@@ -301,8 +301,8 @@ export default function SessionNotesPage() {
           }}
         >
           {[
-            { id: 'write', label: '✏️ Write' },
-            { id: 'browse', label: `📖 Browse (${notes.length})` },
+            { id: 'write', label: 'Write'},
+            { id: 'browse', label: `Browse (${notes.length})`},
           ].map((t) => (
             <motion.button
               key={t.id}
@@ -753,7 +753,7 @@ export default function SessionNotesPage() {
                             opacity: note.pinned ? 1 : 0.3,
                           }}
                         >
-                          📌
+                          
                         </button>
                         <motion.button
                           whileTap={{ scale: 0.9 }}

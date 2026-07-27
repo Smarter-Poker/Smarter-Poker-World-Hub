@@ -1,6 +1,6 @@
 /**
  * API: Browse Solutions — Query solver data for the Solutions Browser
- * ════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/browse-solutions
  * 
  * Query params:
@@ -24,7 +24,7 @@ import { parseBoardFromHash, extractPositionFromHash, getAllHands, sanitizeParam
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { v2ToAppMatrix } from '../../../src/utils/v2Matrix';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

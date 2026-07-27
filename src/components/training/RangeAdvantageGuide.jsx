@@ -46,7 +46,7 @@ export default function RangeAdvantageGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎯 Range Advantage Guide
+         Range Advantage Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand who has range advantage vs nut advantage on every flop.</p>
 
@@ -81,7 +81,7 @@ export default function RangeAdvantageGuide() {
               </div>
               <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8, textAlign: 'left' }}>{board.explain}</p>
               <div style={{ background: 'rgba(34,197,94,0.1)', borderRadius: 8, padding: 10, textAlign: 'left' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 2 }}>✅ Optimal Strategy</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 2 }}>✓ Optimal Strategy</div>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>{board.strategy}</div>
               </div>
             </motion.div>

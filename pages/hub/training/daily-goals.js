@@ -1,11 +1,11 @@
 /**
  * DAILY GOALS — Micro-Challenge System
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Auto-generated daily challenges (volume, accuracy, streaks, diversity)
  * with streak tracking, motivational badges, and Supabase persistence.
  *
  * Route: /hub/training/daily-goals
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-9 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -90,7 +90,7 @@ function generateGoals(sessionsParams) {
       current: todayHands,
       type: 'count',
       color: 'var(--sp-accent-blue)',
-      icon: '🎯',
+      icon: '◆',
     },
     {
       id: 'acc',
@@ -100,7 +100,7 @@ function generateGoals(sessionsParams) {
       current: todayHands >= 10 ? Math.round((todayCorrect / todayHands) * 100) : 0,
       type: 'percent',
       color: 'var(--sp-accent-green)',
-      icon: '📈',
+      icon: '▲',
     },
     {
       id: 'sesh',
@@ -110,7 +110,7 @@ function generateGoals(sessionsParams) {
       current: todaySessions.length,
       type: 'count',
       color: 'var(--sp-accent-amber)',
-      icon: '⚡',
+      icon: '⌁',
     },
     {
       id: 'div',
@@ -120,7 +120,7 @@ function generateGoals(sessionsParams) {
       current: uniqueGames.size,
       type: 'count',
       color: 'var(--sp-accent-purple)',
-      icon: '🎮',
+      icon: '●',
     },
     {
       id: 'peak',
@@ -130,7 +130,7 @@ function generateGoals(sessionsParams) {
       current: bestAccuracy,
       type: 'percent',
       color: 'var(--sp-accent-red)',
-      icon: '🔥',
+      icon: '▲',
     },
   ];
 
@@ -368,7 +368,7 @@ export default function DailyGoalsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG crown/target replaces 👑/🎯 */}
+                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG crown/target replaces ★/◆ */}
                   <div style={{ fontSize: 48, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: data.completeCount === data.totalGoals ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)' }} aria-hidden>
                     {data.completeCount === data.totalGoals ? <CrownIcon size={48} /> : <TargetIcon size={48} />}
                   </div>
@@ -410,7 +410,7 @@ export default function DailyGoalsPage() {
                     justifyContent: 'center',
                   }}
                 >
-                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG flame replaces 🔥 */}
+                  {/* TRAIN-DAILY-GOALS-A11Y-1: SVG flame replaces ▲ */}
                   <div style={{ fontSize: 24, color: streakDays > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', display: 'inline-flex' }} aria-hidden>
                     <FlameIcon size={24} />
                   </div>

@@ -1,6 +1,6 @@
 /**
- * 🎯 SMART PRACTICE ENGINE — Adaptive Weakness Targeting
- * ═══════════════════════════════════════════════════════════════════════════
+ * SMART PRACTICE ENGINE — Adaptive Weakness Targeting
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyzes user's training session history to identify weaknesses and
  * generate targeted drill configurations. GTO Wizard's "Smart Practice"
  * feature — automatically drills you on your weakest areas.
@@ -10,7 +10,7 @@
  * 2. Street (most EV loss on flop/turn/river)
  * 3. Action Type (over-folding, under-bluffing, etc.)
  * 4. Hand Class (low accuracy with suited connectors, pocket pairs, etc.)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 const POSITION_ORDER = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -146,7 +146,7 @@ export function getSmartPracticeConfig(weakSpotProfile) {
     const w = weakSpotProfile.topWeakness;
 
     const config = {
-        label: `🎯 Smart: ${w.label}`,
+        label: `◆ Smart: ${w.label}`,
         isSmartPractice: true,
         weakness: w,
     };

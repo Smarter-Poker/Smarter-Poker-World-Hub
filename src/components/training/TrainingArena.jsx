@@ -225,7 +225,7 @@ export default function TrainingArena({
     if (error) {
         return (
             <div style={styles.errorContainer}>
-                <div style={styles.errorIcon}>⚠️</div>
+                <div style={styles.errorIcon}>▲</div>
                 <h2 style={styles.errorTitle}>Cannot Start Training</h2>
                 <p style={styles.errorText}>{error}</p>
                 <button onClick={onExit} style={styles.exitButton}>
@@ -488,7 +488,7 @@ export default function TrainingArena({
                                 : 'linear-gradient(135deg, #EF4444, #DC2626)',
                         }}>
                             <span style={styles.resultIcon}>
-                                {resultData?.isCorrect ? '✓' : '✗'}
+                                {resultData?.isCorrect ? '✓': '✕'}
                             </span>
                             <span style={styles.resultText}>
                                 {resultData?.isCorrect ? 'CORRECT!' : 'INCORRECT'}

@@ -1,6 +1,6 @@
 /**
  * API: Runout Report — Turn/River EV Impact Analysis
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/runout-report
  *
  * Query params:
@@ -11,7 +11,7 @@
  * Returns:
  *   { success, runouts: [{ card, ev_delta, eq_shift, has_data }] }
  *   Covers all 52 cards — 49 non-dead (3 on flop, or 4 on turn).
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -19,7 +19,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { parseBoardFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

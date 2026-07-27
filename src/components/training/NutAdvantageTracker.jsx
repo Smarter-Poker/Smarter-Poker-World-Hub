@@ -1,6 +1,6 @@
 /**
  * NutAdvantageTracker — Understand Nut Advantage
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive tool showing which player has the nut advantage on
  * different board textures. Fundamental to GTO strategy.
  */

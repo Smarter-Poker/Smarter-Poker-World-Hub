@@ -1,6 +1,6 @@
 /**
  * API: Tree Navigate — Game Tree Traversal for the Solutions Browser
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/tree-navigate
  *
  * Query params:
@@ -12,7 +12,7 @@
  * Returns:
  *   { success, childSpot: { id, scenarioHash, board, gridData, actions, handEVs, handCount }, siblings }
  *   siblings: list of other available runout cards that have solver data
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -20,7 +20,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, parseBoardFromHash, extractPositionFromHash, sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
           // Sanitize query params used in Supabase queries
           const safeHash = sanitizeParam(scenarioHash, 200);
 
-          // ─── STRATEGY 1: Exact hash extension ──────────────────────────
+          // ●●● STRATEGY 1: Exact hash extension ●●●●●●●●●●●●●●●●●●●●●●●●●●
           // If nextCard is provided, append it to the current board in the hash
           // to find the child node for the next street.
           if (nextCard) {
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
               });
           }
 
-          // ─── STRATEGY 2: List available children ────────────────────────
+          // ●●● STRATEGY 2: List available children ●●●●●●●●●●●●●●●●●●●●●●●●
           // Without nextCard, find all possible child nodes (next street extensions).
           // This powers the Card Selector Modal by showing which cards have data.
           const currentBoard = parseBoardFromHash(safeHash);

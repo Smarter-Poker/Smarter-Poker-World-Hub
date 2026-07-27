@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const BUYIN_TOPICS = [
-  { title: 'Maximum Buy-In (100bb)', icon: '💰', color: '#22c55e',
+  { title: 'Maximum Buy-In (100bb)', icon: '●', color: '#22c55e',
     detail: 'Always buy in for the maximum allowed. More chips = more decisions = more edge for skilled players.',
     why: 'Deep stacks let you play more hands profitably, realize implied odds, and apply maximum pressure on opponents.',
     when: 'Default choice for any game where you have an edge. If you\'re a winning player, buy in full every time.',
     math: 'At NL100 (100bb = $100): You maximize your edge per hand. Expected value scales with stack depth for skilled players.' },
-  { title: 'Short Stack Strategy (20-40bb)', icon: '📏', color: '#ef4444',
+  { title: 'Short Stack Strategy (20-40bb)', icon: '■', color: '#ef4444',
     detail: 'Some players intentionally buy in short to simplify decisions. With 20-40bb, most hands become push/fold or 1-street plays.',
     why: 'Reduces post-flop complexity. Good for players weak at post-flop play or learning fundamentals.',
     when: 'When you\'re a beginner, playing above your skill level, or multi-tabling and want simpler decisions.',
     math: 'At 20bb, all-in preflop or on the flop is standard. SPR ≈ 2 after a 3x open, meaning 1 bet commits you.' },
-  { title: 'Top-Off Strategy', icon: '🔄', color: '#3b82f6',
+  { title: 'Top-Off Strategy', icon: '↻', color: '#3b82f6',
     detail: 'Always top off to maximum when your stack drops below 100bb. Never sit with 60-80bb — it\'s the worst of both worlds.',
     why: 'With 70bb you\'re too deep for short-stack play but too shallow for deep-stack maneuvers. It\'s an awkward, -EV stack size.',
     when: 'After every hand where you lose chips. Most sites let you add chips between hands. Do it automatically.',
     math: 'If you lose a 30bb pot and drop to 70bb, immediately top up to 100bb. The difference in EV is significant.' },
-  { title: 'Deep Stack Games (200bb+)', icon: '🏔️', color: '#8b5cf6',
+  { title: 'Deep Stack Games (200bb+)', icon: '▲', color: '#8b5cf6',
     detail: 'Some games allow 200bb+ buy-ins. These are extremely skill-intensive — the best players in the world thrive in deep games.',
     why: 'At 200bb, you can play every hand type: set-mining, floating, multi-street bluffs, thin value bets. Maximum skill expression.',
     when: 'Only if you\'re a strong post-flop player with deep-stack experience. Weak players get crushed at 200bb.',
     math: 'SPR after a 3x open at 200bb ≈ 12. You can comfortably bet 3 streets and still have fold equity on the river.' },
-  { title: 'Table Stakes & Risk', icon: '⚠️', color: '#f59e0b',
+  { title: 'Table Stakes & Risk', icon: '▲', color: '#f59e0b',
     detail: 'Never have more than 5% of your bankroll on any single table. If you\'re playing NL100, you need at least $2,000.',
     why: 'Variance in poker is extreme. Even winning players can lose 10+ buy-ins in a row. Bankroll management prevents going broke.',
     when: 'Always. This is non-negotiable. If you can\'t afford 20 buy-ins, move down in stakes.',
@@ -40,7 +40,7 @@ export default function CashGameBuyIn() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        💵 Cash Game Buy-In Strategy
+        Cash Game Buy-In Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Optimize your stack size for maximum profit.</p>
 

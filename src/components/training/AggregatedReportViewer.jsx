@@ -1,6 +1,6 @@
 /**
  * AGGREGATED REPORT VIEWER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style aggregate strategy reports:
  * - Overall strategy frequencies across board textures
  * - Position-based performance breakdown
@@ -8,12 +8,12 @@
  * - Spot accuracy heatmap
  * - Biggest leaks summary
  * - Comparison to GTO baseline
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ SAMPLE AGGREGATE DATA ═══
+// ●●● SAMPLE AGGREGATE DATA ●●●
 function generateAggregateData() {
   const positions = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   const streets = ['Preflop', 'Flop', 'Turn', 'River'];
@@ -72,7 +72,7 @@ function generateAggregateData() {
   return { positionData, streetData, spotData, textureData, leaks };
 }
 
-// ═══ SVG BAR CHART ═══
+// ●●● SVG BAR CHART ●●●
 function BarChart({ data, keyField, valueField, color, height = 120 }) {
   const max = Math.max(...data.map(d => d[valueField]), 1);
   const barWidth = Math.floor(280 / data.length) - 4;
@@ -101,7 +101,7 @@ function BarChart({ data, keyField, valueField, color, height = 120 }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function AggregatedReportViewer() {
   const [tab, setTab] = useState('overview');
   const data = useMemo(() => generateAggregateData(), []);
@@ -141,7 +141,7 @@ export default function AggregatedReportViewer() {
         </div>
       </div>
 
-      {/* ═══ OVERVIEW TAB ═══ */}
+      {/* ●●● OVERVIEW TAB ●●● */}
       {tab === 'overview' && (
         <div>
           {/* Summary Cards */}
@@ -196,7 +196,7 @@ export default function AggregatedReportViewer() {
         </div>
       )}
 
-      {/* ═══ POSITION TAB ═══ */}
+      {/* ●●● POSITION TAB ●●● */}
       {tab === 'position' && (
         <div>
           {data.positionData.map(p => (
@@ -225,7 +225,7 @@ export default function AggregatedReportViewer() {
         </div>
       )}
 
-      {/* ═══ STREETS TAB ═══ */}
+      {/* ●●● STREETS TAB ●●● */}
       {tab === 'streets' && (
         <div>
           {data.streetData.map(s => (
@@ -261,7 +261,7 @@ export default function AggregatedReportViewer() {
         </div>
       )}
 
-      {/* ═══ SPOTS TAB ═══ */}
+      {/* ●●● SPOTS TAB ●●● */}
       {tab === 'spots' && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
@@ -298,7 +298,7 @@ export default function AggregatedReportViewer() {
         </div>
       )}
 
-      {/* ═══ LEAKS TAB ═══ */}
+      {/* ●●● LEAKS TAB ●●● */}
       {tab === 'leaks' && (
         <div>
           {data.leaks.map((leak, i) => (

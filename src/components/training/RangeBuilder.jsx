@@ -1,6 +1,6 @@
 /**
  * RANGE BUILDER / EDITOR — Custom Range Construction vs Solver Ranges
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style interactive range builder:
  *   - Click cells in 13x13 grid to build a custom range
@@ -11,17 +11,17 @@
  *   - Preset ranges (open raise by position, 3-bet, defend)
  *
  * Pure client-side tool — no API calls.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// ── Preset Ranges (solver-approximate) ──────────────────────────────────
+// ●● Preset Ranges (solver-approximate) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANGE_PRESETS = {
     'UTG Open': {
@@ -77,7 +77,7 @@ const RANGE_PRESETS = {
     'Empty': {},
 };
 
-// ── Grid Cell ───────────────────────────────────────────────────────────
+// ●● Grid Cell ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RangeCell = memo(({ hand, weight, solverWeight, isSelected, isDragging, onMouseDown, onMouseEnter }) => {
     const isPair = hand.length === 2;
@@ -142,7 +142,7 @@ const RangeCell = memo(({ hand, weight, solverWeight, isSelected, isDragging, on
     );
 });
 
-// ── Range Stats ─────────────────────────────────────────────────────────
+// ●● Range Stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RangeStats = memo(({ range, solverRange }) => {
     const stats = useMemo(() => {
@@ -212,7 +212,7 @@ const RangeStats = memo(({ range, solverRange }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function RangeBuilder({ solverRange: propSolverRange, onRangeChange }) {
     const [range, setRange] = useState({});

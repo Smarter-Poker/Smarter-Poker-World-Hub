@@ -1,11 +1,11 @@
 /**
  * BANKROLL IMPACT COACH — GTO Leaks × Dollar Impact
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Bridges training performance to bankroll — shows estimated dollar impact
  * of GTO leaks at your current stakes.
  *
  * Route: /hub/training/bankroll-coach
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-4 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -22,9 +22,9 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-6b — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STAKES PRESETS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const STAKES = [
   { id: '1-2', label: '$1/$2', bb: 2 },
@@ -37,9 +37,9 @@ const STAKES = [
 
 const HANDS_PER_HOUR = 30;
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // LEAK CALCULATION ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function calculateLeakImpact(sessions, bbSize) {
   if (!sessions || sessions.length === 0) return null;
@@ -107,12 +107,12 @@ function calculateLeakImpact(sessions, bbSize) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // BUG FIX (TRAIN-BANKROLL-A11Y-1): SVG icon components replacing the
-// bankroll-coach emojis (💰 empty-state, ← back). Stakes selector +
+// bankroll-coach emojis (● empty-state, ← back). Stakes selector +
 // CTA buttons gain type+aria-label. Same surface-specific a11y pattern
 // as PR #320/#322/#324/#327-#340.
 const ICON_PROPS = {

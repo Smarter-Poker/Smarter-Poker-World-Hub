@@ -1,13 +1,13 @@
 /**
  * RANGE VS RANGE EXPLORER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Deep range matchup analysis tool:
  * - Select hero & villain ranges from presets or custom
  * - Board selector with runout simulation
  * - Equity distribution histogram
  * - Hand class breakdown (sets, two pair, overpair, etc.)
  * - Domination analysis and blocker effects
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
@@ -15,7 +15,7 @@ import React, { useState, useMemo } from 'react';
 const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 const SUITS = ['♠','♥','♦','♣'];
 
-// ═══ PRESET RANGES ═══
+// ●●● PRESET RANGES ●●●
 const RANGE_PRESETS = {
   'UTG Open': { label: 'UTG Open (15%)', pct: 15, topPairs: 6, broadways: true, suitedMin: 7 },
   'CO Open': { label: 'CO Open (27%)', pct: 27, topPairs: 8, broadways: true, suitedMin: 5 },
@@ -27,7 +27,7 @@ const RANGE_PRESETS = {
   'Top 10%': { label: 'Top 10%', pct: 10, topPairs: 5, broadways: false, suitedMin: 8 },
 };
 
-// ═══ BOARD PRESETS ═══
+// ●●● BOARD PRESETS ●●●
 const BOARD_PRESETS = [
   { label: 'A♠ K♥ 7♦', cards: ['As','Kh','7d'] },
   { label: 'Q♣ J♠ 3♥', cards: ['Qc','Js','3h'] },
@@ -37,7 +37,7 @@ const BOARD_PRESETS = [
   { label: 'A♠ 8♦ 3♣', cards: ['As','8d','3c'] },
 ];
 
-// ═══ HAND STRENGTH CATEGORIES ═══
+// ●●● HAND STRENGTH CATEGORIES ●●●
 const HAND_CLASSES = [
   { name: 'Straight Flush+', color: '#a855f7', minStrength: 95 },
   { name: 'Quads', color: '#ec4899', minStrength: 90 },
@@ -54,7 +54,7 @@ const HAND_CLASSES = [
   { name: 'Air', color: '#64748b', minStrength: 0 },
 ];
 
-// ═══ GENERATE RANGE GRID ═══
+// ●●● GENERATE RANGE GRID ●●●
 function generateRangeGrid(presetKey) {
   const preset = RANGE_PRESETS[presetKey];
   if (!preset) return Array(13).fill(null).map(() => Array(13).fill(0));
@@ -85,7 +85,7 @@ function generateRangeGrid(presetKey) {
   return grid;
 }
 
-// ═══ SIMULATE EQUITY ═══
+// ●●● SIMULATE EQUITY ●●●
 function simulateEquity(heroPreset, villainPreset, board) {
   const heroGrid = generateRangeGrid(heroPreset);
   const villainGrid = generateRangeGrid(villainPreset);
@@ -132,7 +132,7 @@ function simulateEquity(heroPreset, villainPreset, board) {
   return { heroGrid, villainGrid, heroClasses, villainClasses, heroEquity, distribution };
 }
 
-// ═══ MINI RANGE GRID ═══
+// ●●● MINI RANGE GRID ●●●
 function MiniRangeGrid({ grid, label }) {
   return (
     <div>
@@ -163,7 +163,7 @@ function MiniRangeGrid({ grid, label }) {
   );
 }
 
-// ═══ EQUITY BAR ═══
+// ●●● EQUITY BAR ●●●
 function EquityBar({ hero, villain }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -179,7 +179,7 @@ function EquityBar({ hero, villain }) {
   );
 }
 
-// ═══ HAND CLASS BREAKDOWN ═══
+// ●●● HAND CLASS BREAKDOWN ●●●
 function HandClassBreakdown({ classes, label, color }) {
   const maxPct = Math.max(...classes.map(c => c.pct));
   return (
@@ -202,7 +202,7 @@ function HandClassBreakdown({ classes, label, color }) {
   );
 }
 
-// ═══ DISTRIBUTION CHART ═══
+// ●●● DISTRIBUTION CHART ●●●
 function DistributionChart({ distribution }) {
   const maxVal = Math.max(...distribution.flatMap(d => [d.hero, d.villain]));
   return (
@@ -239,7 +239,7 @@ function DistributionChart({ distribution }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function RangeVsRangeExplorer() {
   const [heroRange, setHeroRange] = useState('BTN Open');
   const [villainRange, setVillainRange] = useState('BB Defend');

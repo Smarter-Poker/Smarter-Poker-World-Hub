@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * DECK ENGINE — Deterministic Card Dealing for Training Games
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Features:
  *   - Full 52-card deck with suit support
@@ -13,10 +13,10 @@
  * Card Format: "As" = Ace of spades, "Th" = Ten of hearts, "2c" = Two of clubs
  * Ranks: A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, 2
  * Suits: s (spades), h (hearts), d (diamonds), c (clubs)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── Constants ─────────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 export const SUITS = ['s', 'h', 'd', 'c'];
@@ -32,7 +32,7 @@ for (const rank of RANKS) {
     }
 }
 
-// ── Seeded PRNG (Mulberry32) ──────────────────────────────────────────────
+// ●● Seeded PRNG (Mulberry32) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function mulberry32(seed) {
     return function () {
@@ -43,7 +43,7 @@ function mulberry32(seed) {
     };
 }
 
-// ── Card Utilities ────────────────────────────────────────────────────────
+// ●● Card Utilities ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /** Parse a card string into { rank, suit, value } */
 export function parseCard(card) {
@@ -96,7 +96,7 @@ export function cardDisplay(card) {
     return parsed ? parsed.display : card;
 }
 
-// ── Deck Engine Class ─────────────────────────────────────────────────────
+// ●● Deck Engine Class ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export class DeckEngine {
     /**

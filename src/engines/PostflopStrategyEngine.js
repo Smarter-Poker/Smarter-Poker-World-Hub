@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POSTFLOP STRATEGY ENGINE — GTO Postflop Decision Framework
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Generates solver-approximate GTO decisions for postflop play:
  *   - C-bet frequencies by board texture (IP/OOP)
@@ -15,7 +15,7 @@
  * using heuristic models calibrated to PioSolver outputs.
  *
  * Used by PostflopScenarioGenerator to build L8-L10 training scenarios.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY, HEIGHT } from './BoardTextureEngine';
@@ -36,7 +36,7 @@ import {
     calculateGeometricSizing,
 } from '../config/postflopSolverData';
 
-// ── Bet Sizing Constants ─────────────────────────────────────────────────
+// ●● Bet Sizing Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const BET_SIZES = {
     SMALL: { label: '33% pot', fraction: 0.33 },
@@ -46,14 +46,14 @@ export const BET_SIZES = {
     OVERBET: { label: '150% pot', fraction: 1.5 },
 };
 
-// ── Position Context ─────────────────────────────────────────────────────
+// ●● Position Context ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const POSITION_CONTEXT = {
     IP: 'in_position',     // Acting last (has positional advantage)
     OOP: 'out_of_position', // Acting first
 };
 
-// ── Action Types ─────────────────────────────────────────────────────────
+// ●● Action Types ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const ACTIONS = {
     CHECK: 'check',
@@ -63,9 +63,9 @@ export const ACTIONS = {
     FOLD: 'fold',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // C-BET STRATEGY — Flop continuation betting
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * GTO C-bet frequency tables by board texture.
@@ -203,9 +203,9 @@ export function getCbetStrategy(board, posContext, holeCards) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CHECK-RAISE STRATEGY — Facing a c-bet
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Check-raise frequencies by board type (defender's perspective, OOP).
@@ -298,9 +298,9 @@ export function getCheckRaiseStrategy(board, holeCards, betSizeFraction = 0.33) 
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // TURN BARREL STRATEGY — Continuation after flop c-bet
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Determine turn strategy after c-betting the flop.
@@ -426,9 +426,9 @@ function analyzeTurnRunout(flopAnalysis, turnAnalysis, turnCard) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RIVER STRATEGY — Value/Bluff ratio & river decisions
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Determine river strategy.
@@ -544,9 +544,9 @@ export function getRiverStrategy(holeCards, board, posContext, prevAction) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FACING A BET — Call/Raise/Fold decisions
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Determine the correct action when facing a bet on any street.
@@ -631,9 +631,9 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // COMPLETE POSTFLOP DECISION — Master strategy for any postflop node
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Get the full GTO strategy at a postflop decision node.
@@ -730,9 +730,9 @@ export function getPostflopStrategy(params) {
     return { error: `Unknown street: ${street}` };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // BET SIZING CALCULATOR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate actual bet amount from pot size and sizing fraction.
@@ -767,9 +767,9 @@ export function getValidBetSizes(potSize, effectiveStack) {
         .filter(s => s.amount >= 1 && s.amount <= effectiveStack);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ENHANCED SOLVER-DATA LOOKUP — Uses granular postflopSolverData tables
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Classify a hand into one of the solver data hand classes.
@@ -1119,7 +1119,7 @@ export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize,
     }
 }
 
-// ── Default export ───────────────────────────────────────────────────────
+// ●● Default export ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default {
     getPostflopStrategy,

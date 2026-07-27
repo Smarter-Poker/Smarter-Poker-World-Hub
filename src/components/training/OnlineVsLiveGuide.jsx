@@ -6,23 +6,23 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DIFFERENCES = [
-  { topic: 'Speed & Volume', icon: '⚡', color: '#3b82f6',
+  { topic: 'Speed & Volume', icon: '⌁', color: '#3b82f6',
     online: 'Play 500-1000+ hands/hour multi-tabling. Decisions must be fast. Reads come from HUD stats and patterns.',
     live: 'Play 25-30 hands/hour at one table. Lots of downtime. Reads come from physical tells and verbal cues.',
     adjust: 'Online: Use HUD stats, note-taking software, and preflop charts. Live: Pay attention to every hand, take mental notes.' },
-  { topic: 'Player Skill Level', icon: '📈', color: '#22c55e',
+  { topic: 'Player Skill Level', icon: '▲', color: '#22c55e',
     online: 'Tougher player pool at equivalent stakes. NL50 online plays like NL200+ live. Regs study hard.',
     live: 'Softer player pool. Recreational players dominate live low-stakes. More calling stations and weaker play.',
     adjust: 'Online: Play tighter, more balanced. Live: Widen value ranges, reduce bluffs, exploit weak players aggressively.' },
-  { topic: 'Bet Sizing', icon: '💰', color: '#f59e0b',
+  { topic: 'Bet Sizing', icon: '●', color: '#f59e0b',
     online: 'Standard sizing: 2.5x open, 3x 3-bet, 33-75% pot c-bets. Players respect sizing and fold correctly.',
     live: 'Oversized opens work (3-5x). Players call with wide ranges regardless of sizing. Bigger = more value.',
     adjust: 'Live: Open bigger (3-4x + 1x per limper). Bet bigger for value (75-100% pot). Bluff less, value bet more.' },
-  { topic: 'Table Dynamics', icon: '🎭', color: '#ef4444',
+  { topic: 'Table Dynamics', icon: '◇', color: '#ef4444',
     online: 'Anonymous or semi-anonymous. Players rotate constantly. Little meta-game unless playing regulars.',
     live: 'Social, table-talk matters. Image is built over hours. Players tilt visibly. Angle-shooting exists.',
     adjust: 'Live: Cultivate a friendly, loose image. Players will call you lighter if they like you. Use table talk for reads.' },
-  { topic: 'Rake & Costs', icon: '🏦', color: '#8b5cf6',
+  { topic: 'Rake & Costs', icon: '■', color: '#8b5cf6',
     online: 'Lower rake (2.5-5%), plus rakeback/VIP programs. Software, HUD subscriptions as costs.',
     live: 'Higher rake (5-10%) plus tips, travel, food. But softer games often compensate for higher costs.',
     adjust: 'Calculate your effective rake. If live rake + tips = 8bb/100, you need a higher win rate to be profitable.' },
@@ -35,7 +35,7 @@ export default function OnlineVsLiveGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🌐 Online vs Live Poker
+        Online vs Live Poker
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Key differences and adjustments between formats.</p>
 

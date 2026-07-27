@@ -1,10 +1,10 @@
 /**
  * GTO FLASHCARDS — Spaced Repetition Review
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Swipeable card deck with GTO concepts. SM-2 Spaced Repetition logic.
  *
  * Route: /hub/training/flashcards
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-ADOPT-6 — adoption of --sp-* token contract from PR #470

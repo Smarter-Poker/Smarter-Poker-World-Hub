@@ -1,6 +1,6 @@
 /**
  * TOURNAMENT TRAINER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * MTT-specific training scenarios:
  * - Bubble play with ICM pressure
  * - Final table dynamics (pay jumps, short stacks, chip leader play)
@@ -8,12 +8,12 @@
  * - Blind vs blind battles at various stack depths
  * - Re-entry/late-reg spot decisions
  * - Scenario generator with configurable tournament stage
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 
-// ═══ TOURNAMENT STAGES ═══
+// ●●● TOURNAMENT STAGES ●●●
 const STAGES = [
   { id: 'early', label: 'Early Game', blinds: '25/50', avgStack: '150bb', desc: 'Deep stacks, speculative hands gain value', color: '#22c55e' },
   { id: 'middle', label: 'Middle Stage', blinds: '200/400', avgStack: '40bb', desc: 'Antes kick in, stealing blinds becomes key', color: '#3b82f6' },
@@ -23,7 +23,7 @@ const STAGES = [
   { id: 'heads_up', label: 'Heads Up', blinds: '5000/10000', avgStack: '30bb', desc: 'Winner takes all — ICM gone, pure chip EV', color: '#ec4899' },
 ];
 
-// ═══ SCENARIO DATA ═══
+// ●●● SCENARIO DATA ●●●
 const SCENARIOS = {
   bubble: [
     {
@@ -164,7 +164,7 @@ const SCENARIOS = {
   ],
 };
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function TournamentTrainer() {
   const [stage, setStage] = useState('bubble');
   const [scenarioIdx, setScenarioIdx] = useState(0);
@@ -217,7 +217,7 @@ export default function TournamentTrainer() {
         </div>
       </div>
 
-      {/* ═══ STAGE SELECTOR ═══ */}
+      {/* ●●● STAGE SELECTOR ●●● */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {STAGES.map(s => (
           <button key={s.id} onClick={() => changeStage(s.id)} style={{
@@ -249,7 +249,7 @@ export default function TournamentTrainer() {
         ) : null;
       })()}
 
-      {/* ═══ SCENARIO CARD ═══ */}
+      {/* ●●● SCENARIO CARD ●●● */}
       <div style={{ ...sectionStyle, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>{scenario.title}</div>
@@ -308,7 +308,7 @@ export default function TournamentTrainer() {
           {scenario.situation}
         </div>
 
-        {/* ═══ OPTIONS ═══ */}
+        {/* ●●● OPTIONS ●●● */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {scenario.options.map((opt, i) => {
             const isSelected = selectedOption === i;
@@ -376,7 +376,7 @@ export default function TournamentTrainer() {
         )}
       </div>
 
-      {/* ═══ PAYOUTS (if available) ═══ */}
+      {/* ●●● PAYOUTS (if available) ●●● */}
       {scenario.payouts && (
         <div style={sectionStyle}>
           <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>

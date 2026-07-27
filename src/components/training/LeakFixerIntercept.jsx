@@ -1,10 +1,10 @@
 /**
- * 🚨 LEAK FIXER INTERCEPT — Law 1 Implementation
- * ═══════════════════════════════════════════════════════════════════════════
+ * LEAK FIXER INTERCEPT — Law 1 Implementation
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Force-routes players to fix detected weaknesses through targeted drills.
  * Shows remediation prompt when high-confidence leaks (≥75%) are detected.
  * Awards 2.5x XP multiplier for successfully passing remediation drills.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { useState, useEffect } from 'react';
@@ -89,7 +89,7 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
                     style={styles.card}
                 >
                     {/* Warning Icon */}
-                    <div style={styles.warningIcon}>⚠️</div>
+                    <div style={styles.warningIcon}>▲</div>
 
                     {/* Title */}
                     <h2 style={styles.title}>LEAK DETECTED</h2>

@@ -1,10 +1,10 @@
 /**
- * 🎯 TRAINING CHALLENGES API - ENHANCED
- * ═══════════════════════════════════════════════════════════════════════════
+ * TRAINING CHALLENGES API - ENHANCED
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Weekly and monthly rotating challenges with full progress tracking
  * Supports: sessions, perfect_rounds, category_sessions, accuracy_avg, 
  *           streak_days, unique_categories
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -13,7 +13,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
       const supabase = getSupabase();
       const periods = getPeriodKeys();
 
-      // ── Auth: verify JWT identity ──
+      // ●● Auth: verify JWT identity ●●
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
       const { data: authData, error: authErr } = await supabase.auth['getUser'](token);

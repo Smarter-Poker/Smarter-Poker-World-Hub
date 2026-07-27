@@ -1,6 +1,6 @@
 /**
  * BetSizingOptimizer — Optimal Bet Sizing Tool
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive tool for finding optimal bet sizes based on hand strength,
  * board texture, and opponent tendencies.
  */

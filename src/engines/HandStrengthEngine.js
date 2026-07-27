@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * HAND STRENGTH ENGINE — Poker Hand Evaluation & Classification
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Evaluates poker hands for:
  *   - 5-card hand ranking (high card through royal flush)
@@ -10,12 +10,12 @@
  *   - Relative hand strength (0.0 = worst, 1.0 = nuts)
  *
  * Used by PostflopStrategyEngine to determine correct actions.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { RANK_VALUES } from './DeckEngine';
 
-// ── Hand Rank Constants ───────────────────────────────────────────────────
+// ●● Hand Rank Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const HAND_RANKS = {
     HIGH_CARD: 0,
@@ -43,7 +43,7 @@ export const HAND_RANK_NAMES = {
     9: 'Royal Flush',
 };
 
-// ── Made Hand Categories ──────────────────────────────────────────────────
+// ●● Made Hand Categories ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const MADE_HANDS = {
     NOTHING: 'nothing',
@@ -63,7 +63,7 @@ export const MADE_HANDS = {
     STRAIGHT_FLUSH: 'straight_flush',
 };
 
-// ── Draw Categories ───────────────────────────────────────────────────────
+// ●● Draw Categories ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export const DRAWS = {
     NONE: 'none',
@@ -76,7 +76,7 @@ export const DRAWS = {
     WRAP: 'wrap', // multiple straight outs (PLO-style, rare in holdem)
 };
 
-// ── Core Evaluation ───────────────────────────────────────────────────────
+// ●● Core Evaluation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Evaluate the best 5-card hand from hole cards + board
@@ -168,7 +168,7 @@ function compareHandResults(a, b) {
     return 0;
 }
 
-// ── Made Hand Classification ──────────────────────────────────────────────
+// ●● Made Hand Classification ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Classify the made hand relative to the board
@@ -239,7 +239,7 @@ export function classifyMadeHand(holeCards, board) {
     return { category: MADE_HANDS.NOTHING, description: 'High Card', strength: 0.10 };
 }
 
-// ── Draw Classification ───────────────────────────────────────────────────
+// ●● Draw Classification ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Classify draws available to hero
@@ -338,7 +338,7 @@ function estimateDrawEquity(outs, boardCards) {
     return 0;
 }
 
-// ── Utility ───────────────────────────────────────────────────────────────
+// ●● Utility ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /** Get all k-element combinations from array */
 function getCombinations(arr, k) {

@@ -1,10 +1,10 @@
 /**
  * GAME UI ROUTER — Routes to Game-Specific UIs
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * UPDATED: GTO Wizard-style training with GTOW scoring
  * All poker games use UniversalDynamicTable with action buttons + frequency bars
  * Psychology/Scenario games still use specialized UIs
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

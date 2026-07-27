@@ -34,7 +34,7 @@ const SESSION_HANDS = [
 function getResultConfig(result) {
   if (result === 'correct') return { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', label: '✓ Correct' };
   if (result === 'inaccuracy') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: '~ Inaccuracy' };
-  return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: '✗ Mistake' };
+  return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: '✕ Mistake'};
 }
 
 // ═══ CUMULATIVE EV GRAPH ═══

@@ -1,12 +1,12 @@
 /**
  * GOD MODE ARENA — GTO Wizard-Style Training UI
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Full-immersion training with:
  * - GTO Wizard-style action buttons + 5-tier feedback
  * - GTOW Score tracking + EV Loss metrics
  * - Post-session review with hand history
  * - 20 questions per level, 12 levels total (Foundations → Boss Mode)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,29 +19,29 @@ import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
-// ═══ PHASE 16: Performance Analytics Components ═══
+// ●●● PHASE 16: Performance Analytics Components ●●●
 import PerformanceTrends from './PerformanceTrends';
 import StreetAccuracyPanel from './StreetAccuracyPanel';
 import ActionAccuracyPanel from './ActionAccuracyPanel';
 import MistakePatternPanel from './MistakePatternPanel';
 import { useTrainingAnalytics } from './PerformanceTrends';
-// ═══ PHASE 17: Smart Practice + AI Coaching ═══
+// ●●● PHASE 17: Smart Practice + AI Coaching ●●●
 import SmartPracticeBanner from './SmartPracticeBanner';
 import { getSessionToken } from '../../lib/authUtils';
-// ═══ PHASE 18: Leaderboard ═══
+// ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
-// ═══ PHASE 19: Share Card + Achievement Toasts ═══
+// ●●● PHASE 19: Share Card + Achievement Toasts ●●●
 import SessionShareCard from './SessionShareCard';
 import AchievementToast from './AchievementToast';
 import { checkAllAchievements } from './utils/achievementChecker';
-// ═══ PHASE 20: EV Graph + GTO Deviation Heatmap ═══
+// ●●● PHASE 20: EV Graph + GTO Deviation Heatmap ●●●
 import EVGraph from './EVGraph';
 import EVLossTracker from './EVLossTracker';
 import GTODeviationHeatmap from './GTODeviationHeatmap';
-// ═══ PHASE 21: Study Streak Map + Ghost Replay ═══
+// ●●● PHASE 21: Study Streak Map + Ghost Replay ●●●
 import { StudyStreakMapAuto } from './StudyStreakMap';
 import GhostReplayEngine from './GhostReplayEngine';
-// ═══ PHASE 356: Solver Tree Viewer ═══
+// ●●● PHASE 356: Solver Tree Viewer ●●●
 import SolverTreeViewer from './SolverTreeViewer';
 import PostflopRangeViewer from './PostflopRangeViewer';
 import RunoutStrategyMatrix from './RunoutStrategyMatrix';
@@ -53,341 +53,341 @@ import MultiStreetNavigator from './MultiStreetNavigator';
 import ICMTournamentPanel from './ICMTournamentPanel';
 import BoardExplorer from './BoardExplorer';
 import RangeBuilder from './RangeBuilder';
-// ═══ PHASE 5: Multiway, Opponent Profiler, 3-Bet Trainer ═══
+// ●●● PHASE 5: Multiway, Opponent Profiler, 3-Bet Trainer ●●●
 import MultiwayTrainer from './MultiwayTrainer';
 import OpponentProfiler from './OpponentProfiler';
 import ThreeBetTrainer from './ThreeBetTrainer';
-// ═══ PHASE 6: Solutions Browser, Custom Drills, HH Import, Tournament ═══
+// ●●● PHASE 6: Solutions Browser, Custom Drills, HH Import, Tournament ●●●
 import PreflopSolutionsBrowser from './PreflopSolutionsBrowser';
 import CustomSpotDrillBuilder from './CustomSpotDrillBuilder';
 import HandHistoryImporter from './HandHistoryImporter';
 import TournamentTrainer from './TournamentTrainer';
-// ═══ PHASE 7: Postflop Solutions, Sizing, Study Plan, Reports ═══
+// ●●● PHASE 7: Postflop Solutions, Sizing, Study Plan, Reports ●●●
 import PostflopSolutionsBrowser from './PostflopSolutionsBrowser';
 import SizingTrainer from './SizingTrainer';
 import StudyPlanCurriculum from './StudyPlanCurriculum';
 import AggregatedReportViewer from './AggregatedReportViewer';
-// ═══ PHASE 8: Equity Calculator, Node Lock, Quiz, Strategy Comparison ═══
+// ●●● PHASE 8: Equity Calculator, Node Lock, Quiz, Strategy Comparison ●●●
 import EquityCalculatorTool from './EquityCalculatorTool';
 import NodeLockEditor from './NodeLockEditor';
 import QuizModeEngine from './QuizModeEngine';
 import StrategyComparison from './StrategyComparison';
-// ═══ PHASE 9: Range vs Range, EV Tree, Bankroll, Spot Filter ═══
+// ●●● PHASE 9: Range vs Range, EV Tree, Bankroll, Spot Filter ●●●
 import RangeVsRangeExplorer from './RangeVsRangeExplorer';
 import EVTreeVisualizer from './EVTreeVisualizer';
 import BankrollTracker from './BankrollTracker';
 import SpotFilterTrainer from './SpotFilterTrainer';
-// ═══ PHASE 10: HUD, Hand Notes, Leak Finder, Table Dynamics ═══
+// ●●● PHASE 10: HUD, Hand Notes, Leak Finder, Table Dynamics ●●●
 import PopupHUDOverlay from './PopupHUDOverlay';
 import HandNoteTagger from './HandNoteTagger';
 import LeakFinderEngine from './LeakFinderEngine';
 import TableDynamicsPanel from './TableDynamicsPanel';
-// ═══ PHASE 11: Runout Sim, Position Mastery, Mixed Strategy, Session Replay ═══
+// ●●● PHASE 11: Runout Sim, Position Mastery, Mixed Strategy, Session Replay ●●●
 import RunoutSimulator from './RunoutSimulator';
 import PositionMasteryTracker from './PositionMasteryTracker';
 import MixedStrategyTrainer from './MixedStrategyTrainer';
 import SessionReplayTimeline from './SessionReplayTimeline';
-// ═══ PHASE 12: Flop Textures, Preflop Charts, Hand Strength, Frequency Exploiter ═══
+// ●●● PHASE 12: Flop Textures, Preflop Charts, Hand Strength, Frequency Exploiter ●●●
 import FlopTextureAnalyzer from './FlopTextureAnalyzer';
 import PreflopRangeCharts from './PreflopRangeCharts';
 import HandStrengthDistribution from './HandStrengthDistribution';
 import FrequencyExploiter from './FrequencyExploiter';
-// ═══ PHASE 13: Chip EV, Flop Categories, Pot Odds, Stack Depth ═══
+// ●●● PHASE 13: Chip EV, Flop Categories, Pot Odds, Stack Depth ●●●
 import ChipEVCalculator from './ChipEVCalculator';
 import FlopCategoryBrowser from './FlopCategoryBrowser';
 import PotOddsCalculator from './PotOddsCalculator';
 import StackDepthAdvisor from './StackDepthAdvisor';
-// ═══ PHASE 14: Bluff Catcher, Tilt Tracker, Odds Oracle, Win Rate Projector ═══
+// ●●● PHASE 14: Bluff Catcher, Tilt Tracker, Odds Oracle, Win Rate Projector ●●●
 import BluffCatcherAnalyzer from './BluffCatcherAnalyzer';
 import TiltTrackerPanel from './TiltTrackerPanel';
 import OddsOracleWidget from './OddsOracleWidget';
 import WinRateProjector from './WinRateProjector';
-// ═══ PHASE 15: Position Heatmap, Session Goals, Range Memorization, Multi-Table ═══
+// ●●● PHASE 15: Position Heatmap, Session Goals, Range Memorization, Multi-Table ●●●
 import PositionFrequencyHeatmap from './PositionFrequencyHeatmap';
 import SessionGoalTracker from './SessionGoalTracker';
 import RangeMemorizationDrill from './RangeMemorizationDrill';
 import MultiTableTracker from './MultiTableTracker';
-// ═══ PHASE 16: C-Bet Trainer, Variance Sim, Check-Raise, Hand Ranking Quiz ═══
+// ●●● PHASE 16: C-Bet Trainer, Variance Sim, Check-Raise, Hand Ranking Quiz ●●●
 import ContinuationBetTrainer from './ContinuationBetTrainer';
 import VarianceSimulator from './VariancSimulator';
 import CheckRaiseTrainer from './CheckRaiseTrainer';
 import HandRankingQuiz from './HandRankingQuiz';
-// ═══ PHASE 17: Range Library, Board Texture Quiz, Position Profit, Final Table ICM ═══
+// ●●● PHASE 17: Range Library, Board Texture Quiz, Position Profit, Final Table ICM ●●●
 import PresetRangeLibrary from './PresetRangeLibrary';
 import BoardTextureQuiz from './BoardTextureQuiz';
 import PositionProfitGraph from './PositionProfitGraph';
 import FinalTableICM from './FinalTableICM';
-// ═══ PHASE 18: Overbet, Heads-Up, Timed Decisions, Squeeze ═══
+// ●●● PHASE 18: Overbet, Heads-Up, Timed Decisions, Squeeze ●●●
 import OverBetTrainer from './OverBetTrainer';
 import HeadsUpTrainer from './HeadsUpTrainer';
 import TimeBasedDecisionTrainer from './TimeBasedDecisionTrainer';
 import SqueezeTrainer from './SqueezeTrainer';
-// ═══ PHASE 19: Float Play, Blockers, Tournament Life, Polarization ═══
+// ●●● PHASE 19: Float Play, Blockers, Tournament Life, Polarization ●●●
 import FloatPlayTrainer from './FloatPlayTrainer';
 import BlockerAnalysis from './BlockerAnalysis';
 import TournamentLifeCalc from './TournamentLifeCalc';
 import PolarizationTrainer from './PolarizationTrainer';
-// ═══ PHASE 20: Thin Value, Multi-Street Planner, Defense Freq, Preflop Sim ═══
+// ●●● PHASE 20: Thin Value, Multi-Street Planner, Defense Freq, Preflop Sim ●●●
 import ThinValueTrainer from './ThinValueTrainer';
 import MultiStreetPlanner from './MultiStreetPlanner';
 import DefenseFrequencyCalc from './DefenseFrequencyCalc';
 import PreFlopSimulator from './PreFlopSimulator';
-// ═══ PHASE 21: SPR Calc, Blind Defense, Draw Odds, Fold Equity ═══
+// ●●● PHASE 21: SPR Calc, Blind Defense, Draw Odds, Fold Equity ●●●
 import StackToRatioCalc from './StackToRatioCalc';
 import BlindDefenseTrainer from './BlindDefenseTrainer';
 import DrawOddsCalculator from './DrawOddsCalculator';
 import FoldEquityCalc from './FoldEquityCalc';
-// ═══ PHASE 22: Donk Bet, Multiway Strategy, River Probe, Position Quiz ═══
+// ●●● PHASE 22: Donk Bet, Multiway Strategy, River Probe, Position Quiz ●●●
 import DonkBetTrainer from './DonkBetTrainer';
 import MultiWayPotStrategy from './MultiWayPotStrategy';
 import RiverProbeTrainer from './RiverProbeTrainer';
 import PositionAwarenessQuiz from './PositionAwarenessQuiz';
-// ═══ PHASE 23: Stack-Off Ranges, Betting Patterns, Turn Barrel, Short Stack ═══
+// ●●● PHASE 23: Stack-Off Ranges, Betting Patterns, Turn Barrel, Short Stack ●●●
 import StackOffRangeCalc from './StackOffRangeCalc';
 import BettingPatternAnalyzer from './BettingPatternAnalyzer';
 import TurnBarrelTrainer from './TurnBarrelTrainer';
 import ShortStackStrategy from './ShortStackStrategy';
-// ═══ PHASE 24: Range Construction, Capped Range, Bubble Factor, Hand Reading ═══
+// ●●● PHASE 24: Range Construction, Capped Range, Bubble Factor, Hand Reading ●●●
 import RangeConstructionGuide from './RangeConstructionGuide';
 import CappedRangeExploiter from './CappedRangeExploiter';
 import BubbleFactorCalc from './BubbleFactorCalc';
 import HandReadingTrainer from './HandReadingTrainer';
-// ═══ PHASE 25: Geometric Sizing, Mass Data, River Matrix, Pay Jumps ═══
+// ●●● PHASE 25: Geometric Sizing, Mass Data, River Matrix, Pay Jumps ●●●
 import GeometricSizingCalc from './GeometricSizingCalc';
 import MassDataAnalysis from './MassDataAnalysis';
 import RiverDecisionMatrix from './RiverDecisionMatrix';
 import TournamentPayJumpCalc from './TournamentPayJumpCalc';
-// ═══ PHASE 26: X-Raise Sizing, C-Bet Matrix, Turn Impact, Bluff Ratio ═══
+// ●●● PHASE 26: X-Raise Sizing, C-Bet Matrix, Turn Impact, Bluff Ratio ●●●
 import XRaiseSizingGuide from './XRaiseSizingGuide';
 import FlopCBetMatrix from './FlopCBetMatrix';
 import TurnCardImpactAnalyzer from './TurnCardImpactAnalyzer';
 import BluffToValueRatio from './BluffToValueRatio';
-// ═══ PHASE 27: Slow Play, Kelly Criterion, Preflop Equity, GTO Glossary ═══
+// ●●● PHASE 27: Slow Play, Kelly Criterion, Preflop Equity, GTO Glossary ●●●
 import SlowPlayDecisionTrainer from './SlowPlayDecisionTrainer';
 import KellyBetCalculator from './KellyBetCalculator';
 import PreFlopAllInEquity from './PreFlopAllInEquity';
 import GTOGlossary from './GTOGlossary';
-// ═══ PHASE 28: Pot Geometry, Exploitative, River Bluff Catcher, Stack Depth ═══
+// ●●● PHASE 28: Pot Geometry, Exploitative, River Bluff Catcher, Stack Depth ●●●
 import PotGeometryVisualizer from './PotGeometryVisualizer';
 import ExploitativeAdjustments from './ExploitativeAdjustments';
 import RiverBluffCatcherTrainer from './RiverBluffCatcherTrainer';
 import StackDepthStrategyGuide from './StackDepthStrategyGuide';
-// ═══ PHASE 29: Check-Raise, Overbet, Multi-Street Planning, RvR Sim ═══
+// ●●● PHASE 29: Check-Raise, Overbet, Multi-Street Planning, RvR Sim ●●●
 import CheckRaiseStrategyGuide from './CheckRaiseStrategyGuide';
 import OverbetStrategyTrainer from './OverbetStrategyTrainer';
 import MultiStreetPlanningGuide from './MultiStreetPlanningGuide';
 import RangeVsRangeSim from './RangeVsRangeSim';
-// ═══ PHASE 30: Board Coverage, FT ICM, Leak Finder, Heads-Up ═══
+// ●●● PHASE 30: Board Coverage, FT ICM, Leak Finder, Heads-Up ●●●
 import BoardCoverageAnalyzer from './BoardCoverageAnalyzer';
 import FinalTableICMGuide from './FinalTableICMGuide';
 import LeakFinderQuiz from './LeakFinderQuiz';
 import HeadsUpStrategyGuide from './HeadsUpStrategyGuide';
-// ═══ PHASE 31: 3-Bet Defense, Tilt Recovery, Equity Realization, Combinatorics ═══
+// ●●● PHASE 31: 3-Bet Defense, Tilt Recovery, Equity Realization, Combinatorics ●●●
 import ThreeBetDefenseMatrix from './ThreeBetDefenseMatrix';
 import TiltRecoverySystem from './TiltRecoverySystem';
 import EquityRealizationGuide from './EquityRealizationGuide';
 import HandCombinatoricsGuide from './HandCombinatoricsGuide';
-// ═══ PHASE 32: Squeeze Play, Session Review, Implied Odds, Position Profit ═══
+// ●●● PHASE 32: Squeeze Play, Session Review, Implied Odds, Position Profit ●●●
 import SqueezPlayGuide from './SqueezPlayGuide';
 import SessionReviewChecklist from './SessionReviewChecklist';
 import ImpliedOddsCalculator from './ImpliedOddsCalculator';
 import PositionProfitTracker from './PositionProfitTracker';
-// ═══ PHASE 33: C-Bet Guide, Nut Advantage, PF Open Chart, MDF Calc ═══
+// ●●● PHASE 33: C-Bet Guide, Nut Advantage, PF Open Chart, MDF Calc ●●●
 import ContinuationBetGuide from './ContinuationBetGuide';
 import NutAdvantageTracker from './NutAdvantageTracker';
 import PreFlopOpenChart from './PreFlopOpenChart';
 import MDFCalculator from './MDFCalculator';
-// ═══ PHASE 34: 4-Bet Strategy, River Polarization, MTT Stages, Bet Sizing ═══
+// ●●● PHASE 34: 4-Bet Strategy, River Polarization, MTT Stages, Bet Sizing ●●●
 import FourBetStrategyGuide from './FourBetStrategyGuide';
 import RiverPolarizationGuide from './RiverPolarizationGuide';
 import TournamentStagesGuide from './TournamentStagesGuide';
 import BetSizingOptimizer from './BetSizingOptimizer';
-// ═══ PHASE 35: Hand Rankings, Range Balancing, Postflop Quiz ═══
+// ●●● PHASE 35: Hand Rankings, Range Balancing, Postflop Quiz ●●●
 import HandRankingsReference from './HandRankingsReference';
 import RangeBalancingDrill from './RangeBalancingDrill';
 import PostflopPlanningQuiz from './PostflopPlanningQuiz';
-// ═══ PHASE 36: Seat Selection, Triple Barrel, Pot Control, EP Guide ═══
+// ●●● PHASE 36: Seat Selection, Triple Barrel, Pot Control, EP Guide ●●●
 import SeatSelectionGuide from './SeatSelectionGuide';
 import TripleBarrelTrainer from './TripleBarrelTrainer';
 import PotControlStrategy from './PotControlStrategy';
 import EarlyPositionGuide from './EarlyPositionGuide';
-// ═══ PHASE 37: Check Behind, Blind Battle, River Sizing, Table Image ═══
+// ●●● PHASE 37: Check Behind, Blind Battle, River Sizing, Table Image ●●●
 import CheckBehindStrategy from './CheckBehindStrategy';
 import BlindBattleGuide from './BlindBattleGuide';
 import RiverSizingGuide from './RiverSizingGuide';
 import TableImageTracker from './TableImageTracker';
-// ═══ PHASE 38: Double Barrel, Pot Committed, Range Advantage, Fish Exploit ═══
+// ●●● PHASE 38: Double Barrel, Pot Committed, Range Advantage, Fish Exploit ●●●
 import DoubleBarrelGuide from './DoubleBarrelGuide';
 import PotCommittedCalc from './PotCommittedCalc';
 import RangeAdvantageGuide from './RangeAdvantageGuide';
 import FishExploitationGuide from './FishExploitationGuide';
-// ═══ PHASE 39: Small Ball, Trap Play, Board Pairing, Effective Stacks ═══
+// ●●● PHASE 39: Small Ball, Trap Play, Board Pairing, Effective Stacks ●●●
 import SmallBallStrategy from './SmallBallStrategy';
 import TrapPlayGuide from './TrapPlayGuide';
 import BoardPairingStrategy from './BoardPairingStrategy';
 import StackEffectiveCalc from './StackEffectiveCalc';
-// ═══ PHASE 40: Semi-Bluff, Value Sizing, Opp Tendencies, Mental Game ═══
+// ●●● PHASE 40: Semi-Bluff, Value Sizing, Opp Tendencies, Mental Game ●●●
 import SemiBluffTrainer from './SemiBluffTrainer';
 import ValueBetSizingGuide from './ValueBetSizingGuide';
 import OppTendencyTracker from './OppTendencyTracker';
 import MentalGameCoach from './MentalGameCoach';
-// ═══ PHASE 41: Limp Strategy, Resteal, Cutoff, Button ═══
+// ●●● PHASE 41: Limp Strategy, Resteal, Cutoff, Button ●●●
 import PreFlopLimpStrategy from './PreFlopLimpStrategy';
 import RestealGuide from './RestealGuide';
 import CutoffStrategy from './CutoffStrategy';
 import ButtonPlayGuide from './ButtonPlayGuide';
-// ═══ PHASE 42: UTG, HiJack, Small Blind, Big Blind ═══
+// ●●● PHASE 42: UTG, HiJack, Small Blind, Big Blind ●●●
 import UTGRangeGuide from './UTGRangeGuide';
 import HiJackStrategy from './HiJackStrategy';
 import SmallBlindComplete from './SmallBlindComplete';
 import BigBlindDefense from './BigBlindDefense';
-// ═══ PHASE 43: Floating, Probe Bluff, X-Raise Timing, Delayed C-Bet ═══
+// ●●● PHASE 43: Floating, Probe Bluff, X-Raise Timing, Delayed C-Bet ●●●
 import FloatingStrategy from './FloatingStrategy';
 import ProbeBluffGuide from './ProbeBluffGuide';
 import XRaiseTiming from './XRaiseTiming';
 import DelayedCBetGuide from './DelayedCBetGuide';
-// ═══ PHASE 44: Multi-Table, Bankroll, Table Selection, Stakes Ladder ═══
+// ●●● PHASE 44: Multi-Table, Bankroll, Table Selection, Stakes Ladder ●●●
 import MultiTableStrategy from './MultiTableStrategy';
 import BankrollManagement from './BankrollManagement';
 import TableSelectionGuide from './TableSelectionGuide';
 import StakesLadderGuide from './StakesLadderGuide';
-// ═══ PHASE 45: 3BP Play, 4BP Play, SRP Guide, Squeeze Pots ═══
+// ●●● PHASE 45: 3BP Play, 4BP Play, SRP Guide, Squeeze Pots ●●●
 import ThreeBetPotPlay from './ThreeBetPotPlay';
 import FourBetPotPlay from './FourBetPotPlay';
 import SingleRaisedPotGuide from './SingleRaisedPotGuide';
 import SqueezePotPlay from './SqueezePotPlay';
-// ═══ PHASE 46: Turn X/R, River Overbet, Donk Defense, Range Types ═══
+// ●●● PHASE 46: Turn X/R, River Overbet, Donk Defense, Range Types ●●●
 import TurnCheckRaiseGuide from './TurnCheckRaiseGuide';
 import RiverOverbetGuide from './RiverOverbetGuide';
 import FlopDonkDefense from './FlopDonkDefense';
 import MergeRangeGuide from './MergeRangeGuide';
-// ═══ PHASE 47: Frequencies, Node Lock, Polarizer, Equity Buckets ═══
+// ●●● PHASE 47: Frequencies, Node Lock, Polarizer, Equity Buckets ●●●
 import BalancingFrequencies from './BalancingFrequencies';
 import NodeLockingGuide from './NodeLockingGuide';
 import RangePolarizerTool from './RangePolarizerTool';
 import EquityBucketGuide from './EquityBucketGuide';
 
-// ═══ PHASE 48: Overbet Bluffs, Value-Own, Check-Call, Bet-Fold ═══
+// ●●● PHASE 48: Overbet Bluffs, Value-Own, Check-Call, Bet-Fold ●●●
 import OverbetBluffGuide from './OverbetBluffGuide';
 import RiverValueOwnedGuide from './RiverValueOwnedGuide';
 import CheckCallStrategy from './CheckCallStrategy';
 import BetFoldLineGuide from './BetFoldLineGuide';
 
-// ═══ PHASE 49: Pot Odds, Draws, Nut Blockers, Capped Ranges ═══
+// ●●● PHASE 49: Pot Odds, Draws, Nut Blockers, Capped Ranges ●●●
 import PotOddsTrainer from './PotOddsTrainer';
 import DrawPlayingGuide from './DrawPlayingGuide';
 import NutBlockerBluff from './NutBlockerBluff';
 import CappedRangeDetector from './CappedRangeDetector';
 
-// ═══ PHASE 50: Multi-Way, Iso-Raise, Late Reg, Ante Steal ═══
+// ●●● PHASE 50: Multi-Way, Iso-Raise, Late Reg, Ante Steal ●●●
 import MultiWayCheckGuide from './MultiWayCheckGuide';
 import IsoRaiseStrategy from './IsoRaiseStrategy';
 import LateRegStrategy from './LateRegStrategy';
 import AnteStealGuide from './AnteStealGuide';
 
-// ═══ PHASE 51: Turn Texture, River Impact, Run It Twice, All-In EV ═══
+// ●●● PHASE 51: Turn Texture, River Impact, Run It Twice, All-In EV ●●●
 import TurnTextureGuide from './TurnTextureGuide';
 import RiverCardImpact from './RiverCardImpact';
 import RunItTwiceCalc from './RunItTwiceCalc';
 import AllInEVDashboard from './AllInEVDashboard';
 
-// ═══ PHASE 52: Postflop Aggression, PF Mistakes, Leaks, Win Condition ═══
+// ●●● PHASE 52: Postflop Aggression, PF Mistakes, Leaks, Win Condition ●●●
 import PostFlopAggression from './PostFlopAggression';
 import PreFlopMistakes from './PreFlopMistakes';
 import CommonLeaksGuide from './CommonLeaksGuide';
 import WinConditionPlanner from './WinConditionPlanner';
 
-// ═══ PHASE 53: Flop X/R, Turn Probe, River Bluff Catch, Position ═══
+// ●●● PHASE 53: Flop X/R, Turn Probe, River Bluff Catch, Position ●●●
 import FlopCheckRaise from './FlopCheckRaise';
 import TurnProbeGuide from './TurnProbeGuide';
 import RiverBluffCatcher from './RiverBluffCatcher';
 import PositionalAwareness from './PositionalAwareness';
 
-// ═══ PHASE 54: Stack:Blind, Push/Fold, Chip Chop, ICM Deals ═══
+// ●●● PHASE 54: Stack:Blind, Push/Fold, Chip Chop, ICM Deals ●●●
 import StackToBlindRatio from './StackToBlindRatio';
 import PushFoldChart from './PushFoldChart';
 import ChipChopCalc from './ChipChopCalc';
 import ICMDealMaker from './ICMDealMaker';
 
-// ═══ PHASE 55: Mixed Strategy, Freq Bench, Indifference, GTO vs Exploit ═══
+// ●●● PHASE 55: Mixed Strategy, Freq Bench, Indifference, GTO vs Exploit ●●●
 import MixedStrategyGuide from './MixedStrategyGuide';
 import FreqBenchmarks from './FreqBenchmarks';
 import IndifferenceCalc from './IndifferenceCalc';
 import GTOvsExploit from './GTOvsExploit';
 
-// ═══ PHASE 56: Combinatorics, Range vs Range, EQ Distribution, EV Calc ═══
+// ●●● PHASE 56: Combinatorics, Range vs Range, EQ Distribution, EV Calc ●●●
 import HandCombinatorics from './HandCombinatorics';
 import RangeVsRange from './RangeVsRange';
 import EquityDistribution from './EquityDistribution';
 import EVCalculatorGuide from './EVCalculatorGuide';
 
-// ═══ PHASE 57: Session Review, Leak Analyzer, Study Plan, Progress ═══
+// ●●● PHASE 57: Session Review, Leak Analyzer, Study Plan, Progress ●●●
 import SessionReviewTool from './SessionReviewTool';
 import LeakAnalyzer from './LeakAnalyzer';
 import StudyPlanCreator from './StudyPlanCreator';
 import ProgressDashboard from './ProgressDashboard';
 
-// ═══ PHASE 58: Multi-Street Plan, Stack-Off Ranges, Thin Value, Reverse Implied ═══
+// ●●● PHASE 58: Multi-Street Plan, Stack-Off Ranges, Thin Value, Reverse Implied ●●●
 import MultiStreetPlan from './MultiStreetPlan';
 import StackOffRanges from './StackOffRanges';
 import ThinValueGuide from './ThinValueGuide';
 import ReverseImpliedOdds from './ReverseImpliedOdds';
 
-// ═══ PHASE 59: Board Coverage, Node Analysis, Solver Simplify, Range Viz ═══
+// ●●● PHASE 59: Board Coverage, Node Analysis, Solver Simplify, Range Viz ●●●
 import BoardCoverageMap from './BoardCoverageMap';
 import NodeAnalysis from './NodeAnalysis';
 import SolverSimplify from './SolverSimplify';
 import RangeVisualization from './RangeVisualization';
 
-// ═══ PHASE 60: Live Tells, Online Timing, Betting Patterns, Player Typing ═══
+// ●●● PHASE 60: Live Tells, Online Timing, Betting Patterns, Player Typing ●●●
 import LivePokerTells from './LivePokerTells';
 import OnlineTimingTells from './OnlineTimingTells';
 import BettingPatternRead from './BettingPatternRead';
 import PlayerTyping from './PlayerTyping';
 
-// ═══ PHASE 61: Tournament Lifecycle, Chip Utility, Payout Structure, Field Size ═══
+// ●●● PHASE 61: Tournament Lifecycle, Chip Utility, Payout Structure, Field Size ●●●
 import TournamentLifecycle from './TournamentLifecycle';
 import ChipUtility from './ChipUtility';
 import PayoutStructure from './PayoutStructure';
 import FieldSizeStrategy from './FieldSizeStrategy';
 
-// ═══ PHASE 62: Heads-Up Adjust, 3-Handed, Short-Handed, Full Ring ═══
+// ●●● PHASE 62: Heads-Up Adjust, 3-Handed, Short-Handed, Full Ring ●●●
 import HeadsUpAdjust from './HeadsUpAdjust';
 import ThreeHandedPlay from './ThreeHandedPlay';
 import ShortHandedGuide from './ShortHandedGuide';
 import FullRingStrategy from './FullRingStrategy';
 
-// ═══ PHASE 63: Micro Stakes, Mid Stakes, High Stakes, Nosebleed ═══
+// ●●● PHASE 63: Micro Stakes, Mid Stakes, High Stakes, Nosebleed ●●●
 import MicroStakesGuide from './MicroStakesGuide';
 import MidStakesGuide from './MidStakesGuide';
 import HighStakesGuide from './HighStakesGuide';
 import NosebleedGuide from './NosebleedGuide';
 
-// ═══ PHASE 64: PLO Basics, PLO Hands, PLO Postflop, PLO Draw Math ═══
+// ●●● PHASE 64: PLO Basics, PLO Hands, PLO Postflop, PLO Draw Math ●●●
 import PLOBasicsGuide from './PLOBasicsGuide';
 import PLOHandSelection from './PLOHandSelection';
 import PLOPostflopGuide from './PLOPostflopGuide';
 import PLODrawMath from './PLODrawMath';
 
-// ═══ PHASE 65: Spin & Go, Sit & Go, MTT Final Table, MTT Early Stage ═══
+// ●●● PHASE 65: Spin & Go, Sit & Go, MTT Final Table, MTT Early Stage ●●●
 import SpinAndGoStrategy from './SpinAndGoStrategy';
 import SitAndGoGuide from './SitAndGoGuide';
 import MTTFinalTableGuide from './MTTFinalTableGuide';
 import MTTEarlyStageGuide from './MTTEarlyStageGuide';
 
-// ═══ PHASE 66: Cash Buy-In, Cash vs MTT, Online vs Live, Zoom ═══
+// ●●● PHASE 66: Cash Buy-In, Cash vs MTT, Online vs Live, Zoom ●●●
 import CashGameBuyIn from './CashGameBuyIn';
 import CashVsTournament from './CashVsTournament';
 import OnlineVsLiveGuide from './OnlineVsLiveGuide';
 import ZoomPokerGuide from './ZoomPokerGuide';
 
-// ═══ PHASE 67: Poker Math, Psychology, Hand History, Warm-Up ═══
+// ●●● PHASE 67: Poker Math, Psychology, Hand History, Warm-Up ●●●
 import PokerMathEssentials from './PokerMathEssentials';
 import PokerPsychology from './PokerPsychology';
 import HandHistoryAnalysis from './HandHistoryAnalysis';
 import WarmUpRoutine from './WarmUpRoutine';
 
-// ═══ GAP CLOSERS: GTO Wizard Feature Parity ═══
+// ●●● GAP CLOSERS: GTO Wizard Feature Parity ●●●
 import GTOReportsDashboard from './GTOReportsDashboard';
 import EVComparisonTool from './EVComparisonTool';
 import SimplifiedSolutions from './SimplifiedSolutions';
@@ -398,7 +398,7 @@ import ActionFilterAnalyzer from './ActionFilterAnalyzer';
 import PKOSolverGuide from './PKOSolverGuide';
 import MultiwaySolver from './MultiwaySolver';
 import DeepStackSolutions from './DeepStackSolutions';
-// ═══ CRITICAL GAP CLOSERS BATCH 2: Horse AI + Training Tools ═══
+// ●●● CRITICAL GAP CLOSERS BATCH 2: Horse AI + Training Tools ●●●
 import HandMatrixViewer from './HandMatrixViewer';
 import AdaptiveAIOpponent from './AdaptiveAIOpponent';
 import DailyPersonalQuiz from './DailyPersonalQuiz';
@@ -407,7 +407,7 @@ import StraddleAnteSolver from './StraddleAnteSolver';
 import HUSNGSolver from './HUSNGSolver';
 import SessionCoachingEngine from './SessionCoachingEngine';
 import StrategyNodeInspector from './StrategyNodeInspector';
-// ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
+// ●●● Phase 3 Engines: Real-time scoring + diamond rewards ●●●
 import { calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
@@ -604,9 +604,9 @@ function getEngineType(gameId) {
   return cfg?.engine || 'PIO';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND HISTORY ENTRY — Single row in the post-session review
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function HandHistoryRow({ entry, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -683,7 +683,7 @@ function HandHistoryRow({ entry, index }) {
         >
           {entry.evLoss > 0 ? `-${entry.evLoss.toFixed(2)}` : '0.00'} BB
         </div>
-        <span style={{ color: '#64748b', fontSize: 10 }}>{expanded ? '▲' : '▼'}</span>
+        <span style={{ color: '#64748b', fontSize: 10 }}>{expanded ? '●' : '●'}</span>
       </div>
 
       {/* F3: Expanded Hand Replay Detail */}
@@ -808,9 +808,9 @@ function HandHistoryRow({ entry, index }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // F14: ACCURACY BY POSITION — Horizontal bar chart per seat
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function AccuracyByPositionChart({ handHistory }) {
   if (!handHistory || handHistory.length < 3) return null;
@@ -892,9 +892,9 @@ function AccuracyByPositionChart({ handHistory }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // WEAKNESS HEATMAP — Position x Street accuracy grid
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function WeaknessHeatmap({ handHistory }) {
   if (!handHistory || handHistory.length < 5) return null;
@@ -1013,9 +1013,9 @@ function WeaknessHeatmap({ handHistory }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ACCURACY OVER TIME — Rolling accuracy line chart across session
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function AccuracyOverTimeChart({ handHistory }) {
   if (!handHistory || handHistory.length < 3) return null;
@@ -1088,9 +1088,9 @@ function AccuracyOverTimeChart({ handHistory }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // F15: CLASSIFICATION DONUT CHART — SVG donut of move distribution
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function ClassificationDonut({ handHistory, gtowScore }) {
   const segments = useMemo(() => {
@@ -1207,9 +1207,9 @@ function ClassificationDonut({ handHistory, gtowScore }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // F4: EV LOSS GRAPH — Cumulative EV loss sparkline
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function EVLossGraph({ handHistory }) {
   // Build cumulative EV loss data points
@@ -1294,8 +1294,8 @@ function EVLossGraph({ handHistory }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ═══ COLLAPSIBLE ANALYSIS SECTION — Groups analysis panels into expandable categories ═══
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●●● COLLAPSIBLE ANALYSIS SECTION — Groups analysis panels into expandable categories ●●●
 // Phase 357: Memoized to prevent re-renders when switching review tabs
 const AnalysisSection = memo(function AnalysisSection({
   title,
@@ -1344,7 +1344,7 @@ const AnalysisSection = memo(function AnalysisSection({
             transition: 'transform 0.2s',
           }}
         >
-          ▼
+
         </span>
       </button>
       {open && (
@@ -1364,9 +1364,9 @@ const AnalysisSection = memo(function AnalysisSection({
   );
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CARD PATH HELPER — Same custom card images used in UniversalDynamicTable
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function getCardImagePath(card) {
   if (!card || card.length < 2) return '/cards/back.png';
   const rankChar = card[0].toLowerCase();
@@ -1376,9 +1376,9 @@ function getCardImagePath(card) {
   return `/cards/${suitMap[suit] || 'hearts'}_${rank}.png`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND HISTORY IMPORT MODAL — Paste hand history to train from your own hands
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function HandHistoryImportModal({
   importState,
@@ -1664,9 +1664,9 @@ function HandHistoryImportModal({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FLASHCARD MODE — GTO concept flip-cards with spaced repetition feel
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, onExit }) {
   const { cards, currentIndex, flipped, score } = flashcardState;
@@ -1762,7 +1762,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
         }}
       >
         <div style={{ fontSize: 48, marginBottom: 16 }}>
-          {pct >= 80 ? '🏆' : pct >= 50 ? '📚' : '💪'}
+          {pct >= 80 ? '★' : pct >= 50 ? '□' : '▲'}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 8 }}>
           Deck Complete!
@@ -1988,7 +1988,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
       {/* Score bar */}
       <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
         <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {score.knew}</div>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>📖 {score.learning}</div>
+        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>□ {score.learning}</div>
       </div>
 
       {/* Back */}
@@ -2010,9 +2010,9 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DRILL MODE — Rapid-fire yes/no GTO decisions with countdown timer
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DrillMode({
   drillState,
@@ -2116,7 +2116,7 @@ function DrillMode({
         }}
       >
         <div style={{ fontSize: 48, marginBottom: 12 }}>
-          {accuracy >= 80 ? '🔥' : accuracy >= 60 ? '⚡' : '💪'}
+          {accuracy >= 80 ? '▲' : accuracy >= 60 ? '⌁' : '▲'}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 4 }}>
           Drill Complete!
@@ -2248,7 +2248,7 @@ function DrillMode({
       <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Q {answered + 1}/20</div>
         <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {correct}</div>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>🔥 {streak}</div>
+        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>▲ {streak}</div>
       </div>
 
       {/* Timer bar */}
@@ -2424,7 +2424,7 @@ function DrillMode({
 }
 
 // F7: DRILL FILTERS — Pre-session position/street filter modal
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DrillFilters({
   show,
@@ -2695,9 +2695,9 @@ function DrillFilters({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // F13: DAILY CHALLENGE BANNER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
   const achieved = gtowScore >= targetScore;
@@ -2748,9 +2748,9 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // GTOW timebank: 7 / 15 / 25s. 'standard' was 60s -- four times the
 // reference product's longest tier. 'quick' is the new middle tier; the old
@@ -2772,9 +2772,9 @@ function GodModeArenaInner({
   // splash asking for the same three things a second time.
   initialConfig = null,
 }) {
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // SPECIALIZED TRAINERS (Phase 14) -> Safely moved to exported wrapper
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
   const engineType = getEngineType(gameId);
 
@@ -2816,7 +2816,7 @@ function GodModeArenaInner({
     requiredCorrect,
     passThreshold,
     totalLevels,
-    // ═══ MASTERY GATE ═══
+    // ●●● MASTERY GATE ●●●
     masteryToken,
     masteryStatus,
     showFeedback,
@@ -2859,9 +2859,9 @@ function GodModeArenaInner({
     retryLevel,
     retrainMistakes,
     resetGame,
-    // ═══ PHASE 15: Weak-spot targeting ═══
+    // ●●● PHASE 15: Weak-spot targeting ●●●
     getWeakSpots,
-    // ═══ PHASE 251-260: Enhanced training intelligence ═══
+    // ●●● PHASE 251-260: Enhanced training intelligence ●●●
     structuredExplanation,
     generateLeakReport,
     getSessionGrade,
@@ -2869,7 +2869,7 @@ function GodModeArenaInner({
     prescribeDrills,
     getFrequencyMasteryScore,
     generateSessionReport,
-    // ═══ PHASE 261-280: Deep coaching + analytics ═══
+    // ●●● PHASE 261-280: Deep coaching + analytics ●●●
     getTeachingPrinciple,
     getPositionReminder,
     getTextureStrategyGuide,
@@ -2890,7 +2890,7 @@ function GodModeArenaInner({
     getMixedFrequencyDrillData,
     getHandCategoryBreakdown,
     getSessionComparison,
-    // ═══ PHASE 281-290: Advanced analytics + coaching ═══
+    // ●●● PHASE 281-290: Advanced analytics + coaching ●●●
     getRunningActionFrequencies,
     getMistakeClusters,
     getBoardCoverageAnalysis,
@@ -2898,7 +2898,7 @@ function GodModeArenaInner({
     getEVLossHeatmap,
     getPositionLeaderboard,
     generateCoachingSummary,
-    // ═══ PHASE 291-300: Advanced training intelligence II ═══
+    // ●●● PHASE 291-300: Advanced training intelligence II ●●●
     getStreakAnalysis,
     getTimePressureAnalysis,
     getRangeConstructionDrill,
@@ -2909,7 +2909,7 @@ function GodModeArenaInner({
     getHandReadingDrill,
     getVarianceSimulator,
     getPerformanceTrendAnalysis,
-    // ═══ PHASE 301-310: Advanced training intelligence III ═══
+    // ●●● PHASE 301-310: Advanced training intelligence III ●●●
     getOptimalLineNarration,
     getStreetTransitionAnalysis,
     getDefenseFrequencyCheck,
@@ -2920,7 +2920,7 @@ function GodModeArenaInner({
     getAdaptiveDrillRecommendation,
     getCriticalHandHighlights,
     getComprehensiveSessionReport,
-    // ═══ PHASE 311-320: Training edge features ═══
+    // ●●● PHASE 311-320: Training edge features ●●●
     getNodeTypeBreakdown,
     getStreetSpecificLeaks,
     getOverbetAnalysis,
@@ -2930,14 +2930,14 @@ function GodModeArenaInner({
     getFrequencyConvergenceTracker,
     getSmartSessionLength,
     getTrainingPlan,
-    // ═══ PHASE 321-330: Polish & competitive edge ═══
+    // ●●● PHASE 321-330: Polish & competitive edge ●●●
     getAggressionProfile,
     getTightLooseProfile,
     getBluffSpotAnalysis,
     getValueBetAnalysis,
     getWeaknessHeatmap,
     getGTOComplianceScore,
-    // ═══ PHASE 331-340: Ultimate training intelligence ═══
+    // ●●● PHASE 331-340: Ultimate training intelligence ●●●
     getRangeBalanceScore,
     getCheckBackAnalysis,
     getDonkBetAnalysis,
@@ -2948,7 +2948,7 @@ function GodModeArenaInner({
     getRiverDecisionQuality,
     getPreFlopLeaks,
     getSessionProgressionChart,
-    // ═══ PHASE 341-350: Mastery & deep analysis ═══
+    // ●●● PHASE 341-350: Mastery & deep analysis ●●●
     getEquityRealizationAnalysis,
     getPotControlAnalysis,
     getBoardTextureQuiz,
@@ -2960,30 +2960,30 @@ function GodModeArenaInner({
     getUltimatePlayerRating,
     getNextSessionPrep,
     getSessionSummaryCard,
-    // ═══ Previously unused methods now wired ═══
+    // ●●● Previously unused methods now wired ●●●
     getDifficultyProgression,
     getHandStrengthDistribution,
     getWinRateByHandCategory,
     getActionTimeline,
     getPreDecisionPreview,
-    // ═══ Flashcard & Drill mode methods ═══
+    // ●●● Flashcard & Drill mode methods ●●●
     generateFlashcards,
     generateQuickFireQuestion,
-    // ═══ Phase 355-356: Hand History Import + Game Tree ═══
+    // ●●● Phase 355-356: Hand History Import + Game Tree ●●●
     importHandToTrainingQuestion,
     buildDetailedGameTree,
   } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
-  // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
+  // ●●● PHASE 15: Spaced Repetition (cross-session review) ●●●
   const { dueCount: reviewDueCount, getReviewSession, markReviewed } = useSpacedRepetition(gameId);
 
-  // ═══ PHASE 16: Cross-session analytics ═══
+  // ●●● PHASE 16: Cross-session analytics ●●●
   const { analytics: crossSessionAnalytics, loading: analyticsLoading } = useTrainingAnalytics(
     gameId,
     30
   );
 
-  // ═══ PHASE 17: AI Coaching Debrief ═══
+  // ●●● PHASE 17: AI Coaching Debrief ●●●
   const [aiCoaching, setAiCoaching] = useState(null);
   const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
   const coachingFetchedRef = useRef(false);
@@ -3074,7 +3074,7 @@ function GodModeArenaInner({
               correctAnswer: h.correctAnswer || '?',
             })) || [];
 
-        // ═══ Phase GTO-CLONE: Engine-only coaching (no AI API) ═══
+        // ●●● Phase GTO-CLONE: Engine-only coaching (no AI API) ●●●
         const cc = {};
         handHistory?.forEach((h) => {
           if (h.classification) cc[h.classification] = (cc[h.classification] || 0) + 1;
@@ -3146,10 +3146,10 @@ function GodModeArenaInner({
   const [drillFilters, setDrillFilters] = useState(null);
   const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
 
-  // ═══ TRAINING MODE: Standard / Flashcard / Drill ═══
+  // ●●● TRAINING MODE: Standard / Flashcard / Drill ●●●
   const [trainingMode, setTrainingMode] = useState(initialConfig?.mode || 'standard'); // 'standard' | 'flashcard' | 'drill' | 'import'
 
-  // ═══ HAND HISTORY IMPORT STATE ═══
+  // ●●● HAND HISTORY IMPORT STATE ●●●
   const [importState, setImportState] = useState({
     showModal: false,
     rawText: '',
@@ -3180,7 +3180,7 @@ function GodModeArenaInner({
   });
   const drillTimerRef = useRef(null);
   const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
-  // ═══ PHASE 19: Share Card + Achievements ═══
+  // ●●● PHASE 19: Share Card + Achievements ●●●
   const [showShareCard, setShowShareCard] = useState(false);
   const [showGhostReplay, setShowGhostReplay] = useState(false);
   const [sessionAchievements, setSessionAchievements] = useState([]);
@@ -3221,7 +3221,7 @@ function GodModeArenaInner({
     setSessionAchievements([]);
   }, [currentLevel]);
 
-  // ═══ QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ═══
+  // ●●● QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ●●●
   const [difficulty, setDifficulty] = useState(() => {
     if (initialConfig?.difficulty) return initialConfig.difficulty;
     if (typeof window !== 'undefined') return localStorage.getItem('gma_difficulty') || 'standard';
@@ -3231,7 +3231,7 @@ function GodModeArenaInner({
     if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty);
   }, [difficulty]);
 
-  // ═══ QW-2: TIMER MODE (relaxed/standard/blitz) ═══
+  // ●●● QW-2: TIMER MODE (relaxed/standard/blitz) ●●●
   const [timerMode, setTimerMode] = useState(() => {
     if (initialConfig?.timer) return initialConfig.timer;
     if (typeof window !== 'undefined') return localStorage.getItem('gma_timer') || 'standard';
@@ -3273,7 +3273,7 @@ function GodModeArenaInner({
     return () => clearInterval(timerIntervalRef.current);
   }, [timerMode, trainerConfig, currentQuestion, showFeedback, gameComplete, submitAnswer]);
 
-  // ═══ AUTO-ADVANCE FOR MULTI-TABLE BLITZ ═══
+  // ●●● AUTO-ADVANCE FOR MULTI-TABLE BLITZ ●●●
   useEffect(() => {
     if (autoAdvance && showFeedback && !gameComplete) {
       const timerId = setTimeout(() => {
@@ -3288,7 +3288,7 @@ function GodModeArenaInner({
     if (showFeedback && timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   }, [showFeedback]);
 
-  // ═══ Phase 21: Game Phase State Machine ═══
+  // ●●● Phase 21: Game Phase State Machine ●●●
   // Skip the splash entirely when the caller already gathered the config.
   const [gamePhase, setGamePhase] = useState(initialConfig ? 'playing' : 'splash'); // 'splash' | 'playing' | 'review'
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -3296,10 +3296,10 @@ function GodModeArenaInner({
   const [gameTreeData, setGameTreeData] = useState(null);
   const [adaptiveToast, setAdaptiveToast] = useState(null);
 
-  // ═══ Phase 2: Speed Bonus Aggregation ═══
+  // ●●● Phase 2: Speed Bonus Aggregation ●●●
   const [speedBonusDiamonds, setSpeedBonusDiamonds] = useState(0);
 
-  // ═══ Phase 2: Adaptive Difficulty Level (1-10) ═══
+  // ●●● Phase 2: Adaptive Difficulty Level (1-10) ●●●
   // Phase 50: Enhanced adaptive difficulty using GTOW metrics
   const computedDifficultyLevel = useMemo(() => {
     if (!handHistory || handHistory.length < 3) return currentLevel || 1;
@@ -3346,7 +3346,7 @@ function GodModeArenaInner({
     return Math.max(1, base - 2); // Drowning → drop fast
   }, [handHistory, currentLevel, gtowCurrentStreak, mistakePatterns]);
 
-  // ═══ Phase 2: Wrap submitAnswer to capture speed data ═══
+  // ●●● Phase 2: Wrap submitAnswer to capture speed data ●●●
   const handleSubmitAnswer = useCallback(
     (answerId, meta) => {
       // Track speed bonus diamonds using utility
@@ -3359,7 +3359,7 @@ function GodModeArenaInner({
     [submitAnswer]
   );
 
-  // ═══ PHASE 18: Splash stays until user clicks Start (no auto-transition) ═══
+  // ●●● PHASE 18: Splash stays until user clicks Start (no auto-transition) ●●●
   const [splashReady, setSplashReady] = useState(false);
   useEffect(() => {
     if (gamePhase === 'splash' && currentQuestion && !loading) {
@@ -3461,7 +3461,7 @@ function GodModeArenaInner({
         // BUG FIX (2026-05-08, MAX-RIGOR audit): Include `gameName` + `accuracy`
         // + canonical questionsAnswered/questionsCorrect aliases so
         // TrainingEventAggregator and other listeners can render meaningful
-        // toasts ("🎯 MTT Push-Fold — 88% Accuracy") instead of falling
+        // toasts ("◆ MTT Push-Fold — 88% Accuracy") instead of falling
         // through to the generic "Session Completed" branch every time.
         const _accuracy =
           totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
@@ -3592,7 +3592,7 @@ function GodModeArenaInner({
     }, 350);
   }, [nextQuestion, isTransitioning, importState.importedQuestion]);
 
-  // ═══ GLOBAL KEYBOARD LISTENER & SCROLL LOCK ═══
+  // ●●● GLOBAL KEYBOARD LISTENER & SCROLL LOCK ●●●
   useEffect(() => {
     // 2026-07-26 (roadmap #47 hardening): the previous version captured
     // document.body.style.overflow at MOUNT and restored that value on unmount.
@@ -3615,7 +3615,7 @@ function GodModeArenaInner({
     };
   }, []);
 
-  // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
+  // ●●● QW-2 / T2-2: KEYBOARD SHORTCUTS ●●●
   useEffect(() => {
     const handler = (e) => {
       if (gamePhase !== 'playing') return;
@@ -3658,7 +3658,7 @@ function GodModeArenaInner({
   // UI-2: Manual advance — no auto-timer. User clicks "Next Hand →" button
   // nextQuestion is passed down as onNextHand to UniversalDynamicTable
 
-  // ═══ QW-1: Filter options by difficulty ═══
+  // ●●● QW-1: Filter options by difficulty ●●●
   const filteredOptions = useMemo(() => {
     if (!currentQuestion?.options) return [];
     const opts = currentQuestion.options;
@@ -3678,7 +3678,7 @@ function GodModeArenaInner({
     return { ...currentQuestion, options: filteredOptions };
   }, [currentQuestion, filteredOptions]);
 
-  // ═══ IMPORTED-HAND LOCAL GRADING ═══
+  // ●●● IMPORTED-HAND LOCAL GRADING ●●●
   // When an imported hand is being displayed, grade against IT (not the hook's
   // currentQuestion) and drive feedback from local state.
   const iqActive = !!importState.importedQuestion;
@@ -3706,9 +3706,9 @@ function GodModeArenaInner({
     : gtoFrequencies;
   const fxEvLoss = iqActive ? 0 : evLoss;
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   if (error && !gameComplete && !currentQuestion) {
     const isAuthError = error.toLowerCase().includes('auth') || error.toLowerCase().includes('401');
     return (
@@ -3824,9 +3824,9 @@ function GodModeArenaInner({
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // POST-SESSION REVIEW SCREEN — GTO Wizard-style completion
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
   if (gameComplete) {
     const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
@@ -3851,7 +3851,7 @@ function GodModeArenaInner({
             style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }}
           />
         )}
-        {/* ═══ PHASE 19: Achievement Toasts ═══ */}
+        {/* ●●● PHASE 19: Achievement Toasts ●●● */}
         <AchievementToast
           achievements={sessionAchievements}
           onDismiss={() => setSessionAchievements([])}
@@ -4361,10 +4361,10 @@ function GodModeArenaInner({
             ))}
           </div>
 
-          {/* ═══ TAB: OVERVIEW ═══ */}
+          {/* ●●● TAB: OVERVIEW ●●● */}
           {reviewTab === 'overview' && (
             <>
-              {/* ═══ ENDGAME REPORT — Beautiful session recap ═══ */}
+              {/* ●●● ENDGAME REPORT — Beautiful session recap ●●● */}
               {(() => {
                 try {
                   const eg = getEndgameReport();
@@ -4480,7 +4480,7 @@ function GodModeArenaInner({
                 }
               })()}
 
-              {/* ═══ Session Summary Card (getSessionSummaryCard) ═══ */}
+              {/* ●●● Session Summary Card (getSessionSummaryCard) ●●● */}
               {(() => {
                 try {
                   const ssc = getSessionSummaryCard();
@@ -4548,7 +4548,7 @@ function GodModeArenaInner({
                 }
               })()}
 
-              {/* ═══ Comprehensive Report — Next Session Prep ═══ */}
+              {/* ●●● Comprehensive Report — Next Session Prep ●●● */}
               {(() => {
                 try {
                   const csr = getComprehensiveSessionReport();
@@ -4602,7 +4602,7 @@ function GodModeArenaInner({
                 }
               })()}
 
-              {/* ═══ Phase 54: Session Performance Summary ═══ */}
+              {/* ●●● Phase 54: Session Performance Summary ●●● */}
               <div
                 style={{
                   marginBottom: 16,
@@ -5057,7 +5057,7 @@ function GodModeArenaInner({
                 )}
               </div>
 
-              {/* ═══ PHASE 17: Smart Practice Recommendation ═══ */}
+              {/* ●●● PHASE 17: Smart Practice Recommendation ●●● */}
               <SmartPracticeBanner
                 gameId={gameId}
                 onStartSmartPractice={(config) => {
@@ -5071,7 +5071,7 @@ function GodModeArenaInner({
                 }}
               />
 
-              {/* ═══ PHASE 17: AI Coaching Debrief ═══ */}
+              {/* ●●● PHASE 17: AI Coaching Debrief ●●● */}
               {(isLoadingCoaching || aiCoaching) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -5098,7 +5098,7 @@ function GodModeArenaInner({
                       gap: 6,
                     }}
                   >
-                    <span style={{ fontSize: 14 }}>🧠</span> AI Coach Debrief
+                    <span style={{ fontSize: 14 }}>◇</span> AI Coach Debrief
                   </div>
 
                   {isLoadingCoaching && !aiCoaching && (
@@ -5474,7 +5474,7 @@ function GodModeArenaInner({
                   </motion.button>
                 )}
 
-                {/* ═══ PHASE 15+18: Spaced Repetition Review Button ═══ */}
+                {/* ●●● PHASE 15+18: Spaced Repetition Review Button ●●● */}
                 {reviewDueCount > 0 && (
                   <motion.button
                     whileHover={{ scale: 1.03 }}
@@ -5684,7 +5684,7 @@ function GodModeArenaInner({
                 </motion.div>
               )}
 
-              {/* ═══ PHASE 19: Share Results (image card + feed) ═══ */}
+              {/* ●●● PHASE 19: Share Results (image card + feed) ●●● */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -5764,7 +5764,7 @@ function GodModeArenaInner({
                 </motion.button>
               </div>
 
-              {/* ═══ PHASE 21: Ghost Replay — Review hands with GTO overlay ═══ */}
+              {/* ●●● PHASE 21: Ghost Replay — Review hands with GTO overlay ●●● */}
               {handHistory.length > 0 && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -5789,13 +5789,13 @@ function GodModeArenaInner({
                     gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>👻</span> Ghost Replay — Review with GTO Line
+                  <span style={{ fontSize: 14 }}>●</span> Ghost Replay — Review with GTO Line
                 </motion.button>
               )}
             </>
           )}
 
-          {/* ═══ TAB: HANDS ═══ */}
+          {/* ●●● TAB: HANDS ●●● */}
           {reviewTab === 'hands' && (
             <>
               <div id="hand-replay-section">
@@ -5815,7 +5815,7 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ═══ TAB: SOLVER COMPARISON ═══ */}
+          {/* ●●● TAB: SOLVER COMPARISON ●●● */}
           {reviewTab === 'solver' && (
             <>
               <div style={{ marginBottom: 16 }}>
@@ -5840,22 +5840,22 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ═══ TAB: ANALYSIS ═══ */}
+          {/* ●●● TAB: ANALYSIS ●●● */}
           {reviewTab === 'analysis' && (
             <>
-              {/* ═══ FREQUENCY ADHERENCE TRACKER ═══ */}
+              {/* ●●● FREQUENCY ADHERENCE TRACKER ●●● */}
               <div style={{ marginBottom: 16 }}>
                 <FrequencyTrainer handHistory={handHistory} />
               </div>
 
-              {/* ═══════════════════════════════════════════════════════════════
+              {/* ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
                             GROUPED ANALYSIS — Collapsible sections for organized insights
-                            ═══════════════════════════════════════════════════════════════ */}
+                            ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
 
-              {/* ══ SECTION 1: PLAYER RATING & OVERVIEW ══ */}
+              {/* ●● SECTION 1: PLAYER RATING & OVERVIEW ●● */}
               <AnalysisSection
                 title="Player Rating & Overview"
-                icon="🏆"
+                icon="★"
                 color="#f59e0b"
                 defaultOpen={true}
               >
@@ -6223,8 +6223,8 @@ function GodModeArenaInner({
                 })()}
               </AnalysisSection>
 
-              {/* ══ SECTION 2: LEAK DETECTION ══ */}
-              <AnalysisSection title="Leak Detection" icon="🔍" color="#ef4444" defaultOpen={true}>
+              {/* ●● SECTION 2: LEAK DETECTION ●● */}
+              <AnalysisSection title="Leak Detection" icon="○" color="#ef4444" defaultOpen={true}>
                 {/* PHASE 254: Leak Report */}
                 {(() => {
                   try {
@@ -6338,7 +6338,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 258: Recommended Drills ═══ */}
+                {/* ●●● PHASE 258: Recommended Drills ●●● */}
                 {(() => {
                   try {
                     const drills = prescribeDrills();
@@ -6403,7 +6403,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 257: Improvement Velocity ═══ */}
+                {/* ●●● PHASE 257: Improvement Velocity ●●● */}
                 {(() => {
                   try {
                     const velocity = getImprovementVelocity();
@@ -6446,7 +6446,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 267-269: Frequency Correction + Tilt + Pacing ═══ */}
+                {/* ●●● PHASE 267-269: Frequency Correction + Tilt + Pacing ●●● */}
                 {(() => {
                   try {
                     const freqCorr = getFrequencyCorrectionPrompt();
@@ -6572,7 +6572,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 275: Concept Mastery Report ═══ */}
+                {/* ●●● PHASE 275: Concept Mastery Report ●●● */}
                 {(() => {
                   try {
                     const mastery = getConceptMasteryReport();
@@ -6631,7 +6631,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 279: Hand Category Breakdown ═══ */}
+                {/* ●●● PHASE 279: Hand Category Breakdown ●●● */}
                 {(() => {
                   try {
                     const breakdown = getHandCategoryBreakdown();
@@ -6704,7 +6704,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 280: Session Comparison ═══ */}
+                {/* ●●● PHASE 280: Session Comparison ●●● */}
                 {(() => {
                   try {
                     const comparison = getSessionComparison();
@@ -6770,14 +6770,14 @@ function GodModeArenaInner({
                 })()}
               </AnalysisSection>
 
-              {/* ══ SECTION 3: SESSION ANALYTICS ══ */}
+              {/* ●● SECTION 3: SESSION ANALYTICS ●● */}
               <AnalysisSection
                 title="Session Analytics"
-                icon="📊"
+                icon="■"
                 color="#06b6d4"
                 defaultOpen={false}
               >
-                {/* ═══ PHASE 290: AI Coaching Summary ═══ */}
+                {/* ●●● PHASE 290: AI Coaching Summary ●●● */}
                 {(() => {
                   try {
                     const coaching = generateCoachingSummary();
@@ -6840,7 +6840,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 283: Mistake Clusters ═══ */}
+                {/* ●●● PHASE 283: Mistake Clusters ●●● */}
                 {(() => {
                   try {
                     const clusters = getMistakeClusters();
@@ -6904,7 +6904,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 285: Bluff-to-Value Ratio ═══ */}
+                {/* ●●● PHASE 285: Bluff-to-Value Ratio ●●● */}
                 {(() => {
                   try {
                     const bvr = getBluffToValueRatio();
@@ -6955,7 +6955,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 282: Running Action Frequencies ═══ */}
+                {/* ●●● PHASE 282: Running Action Frequencies ●●● */}
                 {(() => {
                   try {
                     const freqs = getRunningActionFrequencies();
@@ -7042,7 +7042,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 289: Position Leaderboard ═══ */}
+                {/* ●●● PHASE 289: Position Leaderboard ●●● */}
                 {(() => {
                   try {
                     const posLB = getPositionLeaderboard();
@@ -7119,7 +7119,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 291: Streak Analysis ═══ */}
+                {/* ●●● PHASE 291: Streak Analysis ●●● */}
                 {(() => {
                   try {
                     const sa = getStreakAnalysis();
@@ -7226,7 +7226,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 292: Session Stamina ═══ */}
+                {/* ●●● PHASE 292: Session Stamina ●●● */}
                 {(() => {
                   try {
                     const tp = getTimePressureAnalysis();
@@ -7336,7 +7336,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 294: Exploitative Adjustments ═══ */}
+                {/* ●●● PHASE 294: Exploitative Adjustments ●●● */}
                 {(() => {
                   try {
                     const ea = getExploitativeAdjustments();
@@ -7425,7 +7425,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 296: Multi Game Type Stats ═══ */}
+                {/* ●●● PHASE 296: Multi Game Type Stats ●●● */}
                 {(() => {
                   try {
                     const mgs = getMultiGameTypeStats();
@@ -7501,7 +7501,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 297: Bet Sizing Analysis ═══ */}
+                {/* ●●● PHASE 297: Bet Sizing Analysis ●●● */}
                 {(() => {
                   try {
                     const bsa = getBettingSizeAnalysis();
@@ -7573,7 +7573,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 300: Performance Trend ═══ */}
+                {/* ●●● PHASE 300: Performance Trend ●●● */}
                 {(() => {
                   try {
                     const pt = getPerformanceTrendAnalysis();
@@ -7700,14 +7700,14 @@ function GodModeArenaInner({
                 })()}
               </AnalysisSection>
 
-              {/* ══ SECTION 4: STRATEGY & PATTERNS ══ */}
+              {/* ●● SECTION 4: STRATEGY & PATTERNS ●● */}
               <AnalysisSection
                 title="Strategy & Patterns"
-                icon="♟️"
+                icon="●"
                 color="#a78bfa"
                 defaultOpen={false}
               >
-                {/* ═══ PHASE 302: Street Transition Analysis ═══ */}
+                {/* ●●● PHASE 302: Street Transition Analysis ●●● */}
                 {(() => {
                   try {
                     const sta = getStreetTransitionAnalysis();
@@ -7776,7 +7776,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 303: Defense Frequency ═══ */}
+                {/* ●●● PHASE 303: Defense Frequency ●●● */}
                 {(() => {
                   try {
                     const df = getDefenseFrequencyCheck();
@@ -7861,7 +7861,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 304: Polarization Index ═══ */}
+                {/* ●●● PHASE 304: Polarization Index ●●● */}
                 {(() => {
                   try {
                     const pi = getPolarizationIndex();
@@ -7942,7 +7942,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 305: Mistake Recovery ═══ */}
+                {/* ●●● PHASE 305: Mistake Recovery ●●● */}
                 {(() => {
                   try {
                     const mr = getMistakeRecoveryRate();
@@ -8038,7 +8038,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 307: Session Milestones ═══ */}
+                {/* ●●● PHASE 307: Session Milestones ●●● */}
                 {(() => {
                   try {
                     const milestones = getSessionMilestones();
@@ -8093,7 +8093,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 308: Drill Recommendation ═══ */}
+                {/* ●●● PHASE 308: Drill Recommendation ●●● */}
                 {(() => {
                   try {
                     const dr = getAdaptiveDrillRecommendation();
@@ -8155,7 +8155,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 309: Critical Hand Highlights ═══ */}
+                {/* ●●● PHASE 309: Critical Hand Highlights ●●● */}
                 {(() => {
                   try {
                     const ch = getCriticalHandHighlights();
@@ -8220,7 +8220,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 311: Node Type Breakdown ═══ */}
+                {/* ●●● PHASE 311: Node Type Breakdown ●●● */}
                 {(() => {
                   try {
                     const ntb = getNodeTypeBreakdown();
@@ -8285,7 +8285,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 313: Street-Specific Leaks ═══ */}
+                {/* ●●● PHASE 313: Street-Specific Leaks ●●● */}
                 {(() => {
                   try {
                     const ssl = getStreetSpecificLeaks();
@@ -8332,7 +8332,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 315: Check-Raise + Phase 316: C-Bet ═══ */}
+                {/* ●●● PHASE 315: Check-Raise + Phase 316: C-Bet ●●● */}
                 {(() => {
                   try {
                     const cr = getCheckRaiseAnalysis();
@@ -8409,7 +8409,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 317: Position Pair Analysis ═══ */}
+                {/* ●●● PHASE 317: Position Pair Analysis ●●● */}
                 {(() => {
                   try {
                     const ppa = getPositionPairAnalysis();
@@ -8483,7 +8483,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 318: Frequency Convergence ═══ */}
+                {/* ●●● PHASE 318: Frequency Convergence ●●● */}
                 {(() => {
                   try {
                     const fc = getFrequencyConvergenceTracker();
@@ -8573,7 +8573,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 319: Smart Session Length ═══ */}
+                {/* ●●● PHASE 319: Smart Session Length ●●● */}
                 {(() => {
                   try {
                     const ssl = getSmartSessionLength();
@@ -8649,7 +8649,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 320: Training Plan ═══ */}
+                {/* ●●● PHASE 320: Training Plan ●●● */}
                 {(() => {
                   try {
                     const tp = getTrainingPlan();
@@ -8712,14 +8712,14 @@ function GodModeArenaInner({
                 })()}
               </AnalysisSection>
 
-              {/* ══ SECTION 5: DEEP STATS & BALANCE ══ */}
+              {/* ●● SECTION 5: DEEP STATS & BALANCE ●● */}
               <AnalysisSection
                 title="Deep Stats & Balance"
-                icon="⚖️"
+                icon="◇"
                 color="#38bdf8"
                 defaultOpen={false}
               >
-                {/* ═══ PHASE 341: Equity Realization ═══ */}
+                {/* ●●● PHASE 341: Equity Realization ●●● */}
                 {(() => {
                   try {
                     const er = getEquityRealizationAnalysis();
@@ -8794,7 +8794,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 345: Mixed Strategy Accuracy ═══ */}
+                {/* ●●● PHASE 345: Mixed Strategy Accuracy ●●● */}
                 {(() => {
                   try {
                     const ms = getMixedStrategyAccuracy();
@@ -8881,7 +8881,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 349: Next Session Prep ═══ */}
+                {/* ●●● PHASE 349: Next Session Prep ●●● */}
                 {(() => {
                   try {
                     const nsp = getNextSessionPrep();
@@ -8960,7 +8960,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 324: Tight/Loose vs Solver ═══ */}
+                {/* ●●● PHASE 324: Tight/Loose vs Solver ●●● */}
                 {(() => {
                   try {
                     const tl = getTightLooseProfile();
@@ -9037,7 +9037,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 325+326: Bluff & Value Analysis ═══ */}
+                {/* ●●● PHASE 325+326: Bluff & Value Analysis ●●● */}
                 {(() => {
                   try {
                     const bs = getBluffSpotAnalysis();
@@ -9110,7 +9110,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 329: Weakness Heatmap ═══ */}
+                {/* ●●● PHASE 329: Weakness Heatmap ●●● */}
                 {(() => {
                   try {
                     const wh = getWeaknessHeatmap();
@@ -9190,7 +9190,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 331: Range Balance Score ═══ */}
+                {/* ●●● PHASE 331: Range Balance Score ●●● */}
                 {(() => {
                   try {
                     const rb = getRangeBalanceScore();
@@ -9274,7 +9274,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 338: River Decision Quality ═══ */}
+                {/* ●●● PHASE 338: River Decision Quality ●●● */}
                 {(() => {
                   try {
                     const rdq = getRiverDecisionQuality();
@@ -9349,7 +9349,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ PHASE 339: Preflop Leaks ═══ */}
+                {/* ●●● PHASE 339: Preflop Leaks ●●● */}
                 {(() => {
                   try {
                     const pfl = getPreFlopLeaks();
@@ -9412,7 +9412,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Pot Control Analysis ═══ */}
+                {/* ●●● NEW: Pot Control Analysis ●●● */}
                 {(() => {
                   try {
                     const pc = getPotControlAnalysis();
@@ -9485,7 +9485,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Check-Back Analysis ═══ */}
+                {/* ●●● NEW: Check-Back Analysis ●●● */}
                 {(() => {
                   try {
                     const cb = getCheckBackAnalysis();
@@ -9558,7 +9558,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Showdown Analysis ═══ */}
+                {/* ●●● NEW: Showdown Analysis ●●● */}
                 {(() => {
                   try {
                     const sd = getShowdownAnalysis();
@@ -9631,7 +9631,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Thin Value + Protection Bets ═══ */}
+                {/* ●●● NEW: Thin Value + Protection Bets ●●● */}
                 {(() => {
                   try {
                     const tv = getThinValueFrequency();
@@ -9706,7 +9706,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Overbet Analysis ═══ */}
+                {/* ●●● NEW: Overbet Analysis ●●● */}
                 {(() => {
                   try {
                     const ob = getOverbetAnalysis();
@@ -9779,7 +9779,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Hand Strength Distribution ═══ */}
+                {/* ●●● NEW: Hand Strength Distribution ●●● */}
                 {(() => {
                   try {
                     const hsd = getHandStrengthDistribution();
@@ -9860,7 +9860,7 @@ function GodModeArenaInner({
                   }
                 })()}
 
-                {/* ═══ NEW: Donk Bet + Multiway ═══ */}
+                {/* ●●● NEW: Donk Bet + Multiway ●●● */}
                 {(() => {
                   try {
                     const db = getDonkBetAnalysis();
@@ -9936,12 +9936,12 @@ function GodModeArenaInner({
                 })()}
               </AnalysisSection>
 
-              {/* ══ SECTION 6: DATA & HISTORY ══ */}
-              <AnalysisSection title="Data & History" icon="📈" color="#22d3ee" defaultOpen={false}>
-                {/* ═══ PHASE 20: EV by Street visualization ═══ */}
+              {/* ●● SECTION 6: DATA & HISTORY ●● */}
+              <AnalysisSection title="Data & History" icon="▲" color="#22d3ee" defaultOpen={false}>
+                {/* ●●● PHASE 20: EV by Street visualization ●●● */}
                 <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
-                {/* ═══ PHASE 20: GTO Deviation Analysis ═══ */}
+                {/* ●●● PHASE 20: GTO Deviation Analysis ●●● */}
                 {(() => {
                   // Compute user's actual action frequencies vs solver's GTO frequencies
                   if (!handHistory || handHistory.length < 3) return null;
@@ -10022,10 +10022,10 @@ function GodModeArenaInner({
                   gamesCompleted={1}
                 />
 
-                {/* ═══ PHASE 21: Study Streak Map — Training consistency ═══ */}
+                {/* ●●● PHASE 21: Study Streak Map — Training consistency ●●● */}
                 {userId && <StudyStreakMapAuto userId={userId} gameId={gameId} />}
 
-                {/* ═══ PHASE 16: Cross-Session Analytics ═══ */}
+                {/* ●●● PHASE 16: Cross-Session Analytics ●●● */}
                 <PerformanceTrends gameId={gameId} userId={userId} days={30} compact={false} />
 
                 {crossSessionAnalytics?.streetAccuracy && (
@@ -10043,13 +10043,13 @@ function GodModeArenaInner({
                 {/* SESSION HISTORY -- Past sessions */}
                 <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
 
-                {/* ═══ PHASE 18: Leaderboard ═══ */}
+                {/* ●●● PHASE 18: Leaderboard ●●● */}
                 <LeaderboardPanel userId={userId} gameId={gameId} />
               </AnalysisSection>
             </>
           )}
 
-          {/* ═══ GAME TREE TAB ═══ */}
+          {/* ●●● GAME TREE TAB ●●● */}
           {reviewTab === 'gametree' && (
             <>
               <div
@@ -10062,7 +10062,7 @@ function GodModeArenaInner({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 18 }}>🌳</span>
+                  <span style={{ fontSize: 18 }}>◇</span>
                   <h3
                     style={{
                       color: '#00d4ff',
@@ -10179,7 +10179,7 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ═══ TAB: RANGES — Postflop Range Viewer ═══ */}
+          {/* ●●● TAB: RANGES — Postflop Range Viewer ●●● */}
           {reviewTab === 'ranges' && (
             <>
               <div
@@ -10218,7 +10218,7 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ═══ TAB: ANALYTICS — Cross-Session Dashboard ═══ */}
+          {/* ●●● TAB: ANALYTICS — Cross-Session Dashboard ●●● */}
           {reviewTab === 'analytics' && (
             <>
               <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
@@ -10229,658 +10229,658 @@ function GodModeArenaInner({
             </>
           )}
 
-          {/* ═══ TAB: RANGE BUILDER ═══ */}
+          {/* ●●● TAB: RANGE BUILDER ●●● */}
           {reviewTab === 'builder' && (
             <>
               <RangeBuilder />
             </>
           )}
 
-          {/* ═══ TAB: BOARD EXPLORER ═══ */}
+          {/* ●●● TAB: BOARD EXPLORER ●●● */}
           {reviewTab === 'boards' && (
             <>
               <BoardExplorer />
             </>
           )}
 
-          {/* ═══ TAB: ICM CALCULATOR ═══ */}
+          {/* ●●● TAB: ICM CALCULATOR ●●● */}
           {reviewTab === 'icm' && (
             <>
               <ICMTournamentPanel />
             </>
           )}
 
-          {/* ═══ TAB: MULTIWAY TRAINER ═══ */}
+          {/* ●●● TAB: MULTIWAY TRAINER ●●● */}
           {reviewTab === 'multiway' && (
             <>
               <MultiwayTrainer />
             </>
           )}
 
-          {/* ═══ TAB: OPPONENT PROFILER ═══ */}
+          {/* ●●● TAB: OPPONENT PROFILER ●●● */}
           {reviewTab === 'opponents' && (
             <>
               <OpponentProfiler />
             </>
           )}
 
-          {/* ═══ TAB: 3-BET TRAINER ═══ */}
+          {/* ●●● TAB: 3-BET TRAINER ●●● */}
           {reviewTab === '3bet' && (
             <>
               <ThreeBetTrainer />
             </>
           )}
 
-          {/* ═══ TAB: PREFLOP SOLUTIONS BROWSER ═══ */}
+          {/* ●●● TAB: PREFLOP SOLUTIONS BROWSER ●●● */}
           {reviewTab === 'solutions' && (
             <>
               <PreflopSolutionsBrowser />
             </>
           )}
 
-          {/* ═══ TAB: CUSTOM SPOT DRILL BUILDER ═══ */}
+          {/* ●●● TAB: CUSTOM SPOT DRILL BUILDER ●●● */}
           {reviewTab === 'drills' && (
             <>
               <CustomSpotDrillBuilder />
             </>
           )}
 
-          {/* ═══ TAB: HAND HISTORY IMPORTER ═══ */}
+          {/* ●●● TAB: HAND HISTORY IMPORTER ●●● */}
           {reviewTab === 'import' && (
             <>
               <HandHistoryImporter />
             </>
           )}
 
-          {/* ═══ TAB: TOURNAMENT TRAINER ═══ */}
+          {/* ●●● TAB: TOURNAMENT TRAINER ●●● */}
           {reviewTab === 'tournament' && (
             <>
               <TournamentTrainer />
             </>
           )}
 
-          {/* ═══ TAB: POSTFLOP SOLUTIONS BROWSER ═══ */}
+          {/* ●●● TAB: POSTFLOP SOLUTIONS BROWSER ●●● */}
           {reviewTab === 'postflop' && (
             <>
               <PostflopSolutionsBrowser />
             </>
           )}
 
-          {/* ═══ TAB: SIZING TRAINER ═══ */}
+          {/* ●●● TAB: SIZING TRAINER ●●● */}
           {reviewTab === 'sizing' && (
             <>
               <SizingTrainer />
             </>
           )}
 
-          {/* ═══ TAB: STUDY PLAN CURRICULUM ═══ */}
+          {/* ●●● TAB: STUDY PLAN CURRICULUM ●●● */}
           {reviewTab === 'curriculum' && (
             <>
               <StudyPlanCurriculum />
             </>
           )}
 
-          {/* ═══ TAB: AGGREGATED REPORTS ═══ */}
+          {/* ●●● TAB: AGGREGATED REPORTS ●●● */}
           {reviewTab === 'reports' && (
             <>
               <AggregatedReportViewer />
             </>
           )}
 
-          {/* ═══ TAB: EQUITY CALCULATOR ═══ */}
+          {/* ●●● TAB: EQUITY CALCULATOR ●●● */}
           {reviewTab === 'equity' && (
             <>
               <EquityCalculatorTool />
             </>
           )}
 
-          {/* ═══ TAB: NODE LOCK EDITOR ═══ */}
+          {/* ●●● TAB: NODE LOCK EDITOR ●●● */}
           {reviewTab === 'nodelock' && (
             <>
               <NodeLockEditor />
             </>
           )}
 
-          {/* ═══ TAB: QUIZ MODE ═══ */}
+          {/* ●●● TAB: QUIZ MODE ●●● */}
           {reviewTab === 'quiz' && (
             <>
               <QuizModeEngine />
             </>
           )}
 
-          {/* ═══ TAB: STRATEGY COMPARISON ═══ */}
+          {/* ●●● TAB: STRATEGY COMPARISON ●●● */}
           {reviewTab === 'compare' && (
             <>
               <StrategyComparison />
             </>
           )}
 
-          {/* ═══ TAB: RANGE VS RANGE EXPLORER ═══ */}
+          {/* ●●● TAB: RANGE VS RANGE EXPLORER ●●● */}
           {reviewTab === 'rvr' && (
             <>
               <RangeVsRangeExplorer />
             </>
           )}
 
-          {/* ═══ TAB: EV TREE VISUALIZER ═══ */}
+          {/* ●●● TAB: EV TREE VISUALIZER ●●● */}
           {reviewTab === 'evtree' && (
             <>
               <EVTreeVisualizer />
             </>
           )}
 
-          {/* ═══ TAB: BANKROLL TRACKER ═══ */}
+          {/* ●●● TAB: BANKROLL TRACKER ●●● */}
           {reviewTab === 'bankroll' && (
             <>
               <BankrollTracker />
             </>
           )}
 
-          {/* ═══ TAB: SPOT FILTER TRAINER ═══ */}
+          {/* ●●● TAB: SPOT FILTER TRAINER ●●● */}
           {reviewTab === 'spotfilter' && (
             <>
               <SpotFilterTrainer />
             </>
           )}
 
-          {/* ═══ TAB: POPUP HUD OVERLAY ═══ */}
+          {/* ●●● TAB: POPUP HUD OVERLAY ●●● */}
           {reviewTab === 'hud' && (
             <>
               <PopupHUDOverlay />
             </>
           )}
 
-          {/* ═══ TAB: HAND NOTE TAGGER ═══ */}
+          {/* ●●● TAB: HAND NOTE TAGGER ●●● */}
           {reviewTab === 'notes' && (
             <>
               <HandNoteTagger />
             </>
           )}
 
-          {/* ═══ TAB: LEAK FINDER ENGINE ═══ */}
+          {/* ●●● TAB: LEAK FINDER ENGINE ●●● */}
           {reviewTab === 'leaks' && (
             <>
               <LeakFinderEngine />
             </>
           )}
 
-          {/* ═══ TAB: TABLE DYNAMICS PANEL ═══ */}
+          {/* ●●● TAB: TABLE DYNAMICS PANEL ●●● */}
           {reviewTab === 'dynamics' && (
             <>
               <TableDynamicsPanel />
             </>
           )}
 
-          {/* ═══ TAB: RUNOUT SIMULATOR ═══ */}
+          {/* ●●● TAB: RUNOUT SIMULATOR ●●● */}
           {reviewTab === 'runouts' && (
             <>
               <RunoutSimulator />
             </>
           )}
 
-          {/* ═══ TAB: POSITION MASTERY TRACKER ═══ */}
+          {/* ●●● TAB: POSITION MASTERY TRACKER ●●● */}
           {reviewTab === 'mastery' && (
             <>
               <PositionMasteryTracker />
             </>
           )}
 
-          {/* ═══ TAB: MIXED STRATEGY TRAINER ═══ */}
+          {/* ●●● TAB: MIXED STRATEGY TRAINER ●●● */}
           {reviewTab === 'mixed' && (
             <>
               <MixedStrategyTrainer />
             </>
           )}
 
-          {/* ═══ TAB: SESSION REPLAY TIMELINE ═══ */}
+          {/* ●●● TAB: SESSION REPLAY TIMELINE ●●● */}
           {reviewTab === 'replay' && (
             <>
               <SessionReplayTimeline />
             </>
           )}
 
-          {/* ═══ TAB: FLOP TEXTURE ANALYZER ═══ */}
+          {/* ●●● TAB: FLOP TEXTURE ANALYZER ●●● */}
           {reviewTab === 'textures' && (
             <>
               <FlopTextureAnalyzer />
             </>
           )}
 
-          {/* ═══ TAB: PREFLOP RANGE CHARTS ═══ */}
+          {/* ●●● TAB: PREFLOP RANGE CHARTS ●●● */}
           {reviewTab === 'charts' && (
             <>
               <PreflopRangeCharts />
             </>
           )}
 
-          {/* ═══ TAB: HAND STRENGTH DISTRIBUTION ═══ */}
+          {/* ●●● TAB: HAND STRENGTH DISTRIBUTION ●●● */}
           {reviewTab === 'strength' && (
             <>
               <HandStrengthDistribution />
             </>
           )}
 
-          {/* ═══ TAB: FREQUENCY EXPLOITER ═══ */}
+          {/* ●●● TAB: FREQUENCY EXPLOITER ●●● */}
           {reviewTab === 'exploits' && (
             <>
               <FrequencyExploiter />
             </>
           )}
 
-          {/* ═══ TAB: CHIP EV CALCULATOR ═══ */}
+          {/* ●●● TAB: CHIP EV CALCULATOR ●●● */}
           {reviewTab === 'chipev' && (
             <>
               <ChipEVCalculator />
             </>
           )}
 
-          {/* ═══ TAB: FLOP CATEGORY BROWSER ═══ */}
+          {/* ●●● TAB: FLOP CATEGORY BROWSER ●●● */}
           {reviewTab === 'flopcat' && (
             <>
               <FlopCategoryBrowser />
             </>
           )}
 
-          {/* ═══ TAB: POT ODDS CALCULATOR ═══ */}
+          {/* ●●● TAB: POT ODDS CALCULATOR ●●● */}
           {reviewTab === 'potodds' && (
             <>
               <PotOddsCalculator />
             </>
           )}
 
-          {/* ═══ TAB: STACK DEPTH ADVISOR ═══ */}
+          {/* ●●● TAB: STACK DEPTH ADVISOR ●●● */}
           {reviewTab === 'stacks' && (
             <>
               <StackDepthAdvisor />
             </>
           )}
 
-          {/* ═══ TAB: BLUFF CATCHER ANALYZER ═══ */}
+          {/* ●●● TAB: BLUFF CATCHER ANALYZER ●●● */}
           {reviewTab === 'bluffcat' && (
             <>
               <BluffCatcherAnalyzer />
             </>
           )}
 
-          {/* ═══ TAB: TILT TRACKER ═══ */}
+          {/* ●●● TAB: TILT TRACKER ●●● */}
           {reviewTab === 'tilt' && (
             <>
               <TiltTrackerPanel />
             </>
           )}
 
-          {/* ═══ TAB: ODDS ORACLE ═══ */}
+          {/* ●●● TAB: ODDS ORACLE ●●● */}
           {reviewTab === 'oracle' && (
             <>
               <OddsOracleWidget />
             </>
           )}
 
-          {/* ═══ TAB: WIN RATE PROJECTOR ═══ */}
+          {/* ●●● TAB: WIN RATE PROJECTOR ●●● */}
           {reviewTab === 'winrate' && (
             <>
               <WinRateProjector />
             </>
           )}
 
-          {/* ═══ TAB: POSITION FREQUENCY HEATMAP ═══ */}
+          {/* ●●● TAB: POSITION FREQUENCY HEATMAP ●●● */}
           {reviewTab === 'posheat' && (
             <>
               <PositionFrequencyHeatmap />
             </>
           )}
 
-          {/* ═══ TAB: SESSION GOAL TRACKER ═══ */}
+          {/* ●●● TAB: SESSION GOAL TRACKER ●●● */}
           {reviewTab === 'goals' && (
             <>
               <SessionGoalTracker />
             </>
           )}
 
-          {/* ═══ TAB: RANGE MEMORIZATION DRILL ═══ */}
+          {/* ●●● TAB: RANGE MEMORIZATION DRILL ●●● */}
           {reviewTab === 'rangemem' && (
             <>
               <RangeMemorizationDrill />
             </>
           )}
 
-          {/* ═══ TAB: MULTI-TABLE TRACKER ═══ */}
+          {/* ●●● TAB: MULTI-TABLE TRACKER ●●● */}
           {reviewTab === 'multitable' && (
             <>
               <MultiTableTracker />
             </>
           )}
 
-          {/* ═══ TAB: CONTINUATION BET TRAINER ═══ */}
+          {/* ●●● TAB: CONTINUATION BET TRAINER ●●● */}
           {reviewTab === 'cbet' && (
             <>
               <ContinuationBetTrainer />
             </>
           )}
 
-          {/* ═══ TAB: VARIANCE SIMULATOR ═══ */}
+          {/* ●●● TAB: VARIANCE SIMULATOR ●●● */}
           {reviewTab === 'variance' && (
             <>
               <VarianceSimulator />
             </>
           )}
 
-          {/* ═══ TAB: CHECK-RAISE TRAINER ═══ */}
+          {/* ●●● TAB: CHECK-RAISE TRAINER ●●● */}
           {reviewTab === 'xraise' && (
             <>
               <CheckRaiseTrainer />
             </>
           )}
 
-          {/* ═══ TAB: HAND RANKING QUIZ ═══ */}
+          {/* ●●● TAB: HAND RANKING QUIZ ●●● */}
           {reviewTab === 'handquiz' && (
             <>
               <HandRankingQuiz />
             </>
           )}
 
-          {/* ═══ TAB: PRESET RANGE LIBRARY ═══ */}
+          {/* ●●● TAB: PRESET RANGE LIBRARY ●●● */}
           {reviewTab === 'rangelib' && (
             <>
               <PresetRangeLibrary />
             </>
           )}
 
-          {/* ═══ TAB: BOARD TEXTURE QUIZ ═══ */}
+          {/* ●●● TAB: BOARD TEXTURE QUIZ ●●● */}
           {reviewTab === 'boardquiz' && (
             <>
               <BoardTextureQuiz />
             </>
           )}
 
-          {/* ═══ TAB: POSITION PROFIT GRAPH ═══ */}
+          {/* ●●● TAB: POSITION PROFIT GRAPH ●●● */}
           {reviewTab === 'posprofit' && (
             <>
               <PositionProfitGraph />
             </>
           )}
 
-          {/* ═══ TAB: FINAL TABLE ICM ═══ */}
+          {/* ●●● TAB: FINAL TABLE ICM ●●● */}
           {reviewTab === 'fticm' && (
             <>
               <FinalTableICM />
             </>
           )}
 
-          {/* ═══ TAB: OVERBET TRAINER ═══ */}
+          {/* ●●● TAB: OVERBET TRAINER ●●● */}
           {reviewTab === 'overbet' && (
             <>
               <OverBetTrainer />
             </>
           )}
 
-          {/* ═══ TAB: HEADS-UP TRAINER ═══ */}
+          {/* ●●● TAB: HEADS-UP TRAINER ●●● */}
           {reviewTab === 'headsup' && (
             <>
               <HeadsUpTrainer />
             </>
           )}
 
-          {/* ═══ TAB: TIMED DECISION TRAINER ═══ */}
+          {/* ●●● TAB: TIMED DECISION TRAINER ●●● */}
           {reviewTab === 'timed' && (
             <>
               <TimeBasedDecisionTrainer />
             </>
           )}
 
-          {/* ═══ TAB: SQUEEZE TRAINER ═══ */}
+          {/* ●●● TAB: SQUEEZE TRAINER ●●● */}
           {reviewTab === 'squeeze' && (
             <>
               <SqueezeTrainer />
             </>
           )}
 
-          {/* ═══ TAB: FLOAT PLAY TRAINER ═══ */}
+          {/* ●●● TAB: FLOAT PLAY TRAINER ●●● */}
           {reviewTab === 'float' && (
             <>
               <FloatPlayTrainer />
             </>
           )}
 
-          {/* ═══ TAB: BLOCKER ANALYSIS ═══ */}
+          {/* ●●● TAB: BLOCKER ANALYSIS ●●● */}
           {reviewTab === 'blockers' && (
             <>
               <BlockerAnalysis />
             </>
           )}
 
-          {/* ═══ TAB: TOURNAMENT LIFE CALCULATOR ═══ */}
+          {/* ●●● TAB: TOURNAMENT LIFE CALCULATOR ●●● */}
           {reviewTab === 'tlife' && (
             <>
               <TournamentLifeCalc />
             </>
           )}
 
-          {/* ═══ TAB: POLARIZATION TRAINER ═══ */}
+          {/* ●●● TAB: POLARIZATION TRAINER ●●● */}
           {reviewTab === 'polar' && (
             <>
               <PolarizationTrainer />
             </>
           )}
 
-          {/* ═══ TAB: THIN VALUE TRAINER ═══ */}
+          {/* ●●● TAB: THIN VALUE TRAINER ●●● */}
           {reviewTab === 'thinval' && (
             <>
               <ThinValueTrainer />
             </>
           )}
 
-          {/* ═══ TAB: MULTI-STREET PLANNER ═══ */}
+          {/* ●●● TAB: MULTI-STREET PLANNER ●●● */}
           {reviewTab === 'streets' && (
             <>
               <MultiStreetPlanner />
             </>
           )}
 
-          {/* ═══ TAB: DEFENSE FREQUENCY CALCULATOR ═══ */}
+          {/* ●●● TAB: DEFENSE FREQUENCY CALCULATOR ●●● */}
           {reviewTab === 'defense' && (
             <>
               <DefenseFrequencyCalc />
             </>
           )}
 
-          {/* ═══ TAB: PREFLOP SIMULATOR ═══ */}
+          {/* ●●● TAB: PREFLOP SIMULATOR ●●● */}
           {reviewTab === 'preflopsim' && (
             <>
               <PreFlopSimulator />
             </>
           )}
 
-          {/* ═══ TAB: STACK-TO-POT RATIO CALCULATOR ═══ */}
+          {/* ●●● TAB: STACK-TO-POT RATIO CALCULATOR ●●● */}
           {reviewTab === 'spr' && (
             <>
               <StackToRatioCalc />
             </>
           )}
 
-          {/* ═══ TAB: BLIND DEFENSE TRAINER ═══ */}
+          {/* ●●● TAB: BLIND DEFENSE TRAINER ●●● */}
           {reviewTab === 'blinddef' && (
             <>
               <BlindDefenseTrainer />
             </>
           )}
 
-          {/* ═══ TAB: DRAW ODDS CALCULATOR ═══ */}
+          {/* ●●● TAB: DRAW ODDS CALCULATOR ●●● */}
           {reviewTab === 'drawodds' && (
             <>
               <DrawOddsCalculator />
             </>
           )}
 
-          {/* ═══ TAB: FOLD EQUITY CALCULATOR ═══ */}
+          {/* ●●● TAB: FOLD EQUITY CALCULATOR ●●● */}
           {reviewTab === 'foldeq' && (
             <>
               <FoldEquityCalc />
             </>
           )}
 
-          {/* ═══ TAB: DONK BET TRAINER ═══ */}
+          {/* ●●● TAB: DONK BET TRAINER ●●● */}
           {reviewTab === 'donk' && (
             <>
               <DonkBetTrainer />
             </>
           )}
 
-          {/* ═══ TAB: MULTIWAY POT STRATEGY ═══ */}
+          {/* ●●● TAB: MULTIWAY POT STRATEGY ●●● */}
           {reviewTab === 'mwstrat' && (
             <>
               <MultiWayPotStrategy />
             </>
           )}
 
-          {/* ═══ TAB: RIVER PROBE TRAINER ═══ */}
+          {/* ●●● TAB: RIVER PROBE TRAINER ●●● */}
           {reviewTab === 'probe' && (
             <>
               <RiverProbeTrainer />
             </>
           )}
 
-          {/* ═══ TAB: POSITION AWARENESS QUIZ ═══ */}
+          {/* ●●● TAB: POSITION AWARENESS QUIZ ●●● */}
           {reviewTab === 'posquiz' && (
             <>
               <PositionAwarenessQuiz />
             </>
           )}
 
-          {/* ═══ TAB: STACK-OFF RANGE CALCULATOR ═══ */}
+          {/* ●●● TAB: STACK-OFF RANGE CALCULATOR ●●● */}
           {reviewTab === 'stackoff' && (
             <>
               <StackOffRangeCalc />
             </>
           )}
 
-          {/* ═══ TAB: BETTING PATTERN ANALYZER ═══ */}
+          {/* ●●● TAB: BETTING PATTERN ANALYZER ●●● */}
           {reviewTab === 'betpat' && (
             <>
               <BettingPatternAnalyzer />
             </>
           )}
 
-          {/* ═══ TAB: TURN BARREL TRAINER ═══ */}
+          {/* ●●● TAB: TURN BARREL TRAINER ●●● */}
           {reviewTab === 'turnbarrel' && (
             <>
               <TurnBarrelTrainer />
             </>
           )}
 
-          {/* ═══ TAB: SHORT STACK STRATEGY ═══ */}
+          {/* ●●● TAB: SHORT STACK STRATEGY ●●● */}
           {reviewTab === 'shortstack' && (
             <>
               <ShortStackStrategy />
             </>
           )}
 
-          {/* ═══ TAB: RANGE CONSTRUCTION GUIDE ═══ */}
+          {/* ●●● TAB: RANGE CONSTRUCTION GUIDE ●●● */}
           {reviewTab === 'rangebuild' && (
             <>
               <RangeConstructionGuide />
             </>
           )}
 
-          {/* ═══ TAB: CAPPED RANGE EXPLOITER ═══ */}
+          {/* ●●● TAB: CAPPED RANGE EXPLOITER ●●● */}
           {reviewTab === 'capped' && (
             <>
               <CappedRangeExploiter />
             </>
           )}
 
-          {/* ═══ TAB: BUBBLE FACTOR CALCULATOR ═══ */}
+          {/* ●●● TAB: BUBBLE FACTOR CALCULATOR ●●● */}
           {reviewTab === 'bubble' && (
             <>
               <BubbleFactorCalc />
             </>
           )}
 
-          {/* ═══ TAB: HAND READING TRAINER ═══ */}
+          {/* ●●● TAB: HAND READING TRAINER ●●● */}
           {reviewTab === 'handread' && (
             <>
               <HandReadingTrainer />
             </>
           )}
 
-          {/* ═══ TAB: GEOMETRIC SIZING CALCULATOR ═══ */}
+          {/* ●●● TAB: GEOMETRIC SIZING CALCULATOR ●●● */}
           {reviewTab === 'geosizing' && (
             <>
               <GeometricSizingCalc />
             </>
           )}
 
-          {/* ═══ TAB: MASS DATA ANALYSIS ═══ */}
+          {/* ●●● TAB: MASS DATA ANALYSIS ●●● */}
           {reviewTab === 'massdata' && (
             <>
               <MassDataAnalysis />
             </>
           )}
 
-          {/* ═══ TAB: RIVER DECISION MATRIX ═══ */}
+          {/* ●●● TAB: RIVER DECISION MATRIX ●●● */}
           {reviewTab === 'rivermatrix' && (
             <>
               <RiverDecisionMatrix />
             </>
           )}
 
-          {/* ═══ TAB: TOURNAMENT PAY JUMP CALCULATOR ═══ */}
+          {/* ●●● TAB: TOURNAMENT PAY JUMP CALCULATOR ●●● */}
           {reviewTab === 'payjump' && (
             <>
               <TournamentPayJumpCalc />
             </>
           )}
 
-          {/* ═══ TAB: CHECK-RAISE SIZING GUIDE ═══ */}
+          {/* ●●● TAB: CHECK-RAISE SIZING GUIDE ●●● */}
           {reviewTab === 'xrsize' && (
             <>
               <XRaiseSizingGuide />
             </>
           )}
 
-          {/* ═══ TAB: FLOP C-BET MATRIX ═══ */}
+          {/* ●●● TAB: FLOP C-BET MATRIX ●●● */}
           {reviewTab === 'cbetmatrix' && (
             <>
               <FlopCBetMatrix />
             </>
           )}
 
-          {/* ═══ TAB: TURN CARD IMPACT ANALYZER ═══ */}
+          {/* ●●● TAB: TURN CARD IMPACT ANALYZER ●●● */}
           {reviewTab === 'turnimpact' && (
             <>
               <TurnCardImpactAnalyzer />
             </>
           )}
 
-          {/* ═══ TAB: BLUFF-TO-VALUE RATIO ═══ */}
+          {/* ●●● TAB: BLUFF-TO-VALUE RATIO ●●● */}
           {reviewTab === 'bvr' && (
             <>
               <BluffToValueRatio />
             </>
           )}
 
-          {/* ═══ TAB: SLOW PLAY DECISION TRAINER ═══ */}
+          {/* ●●● TAB: SLOW PLAY DECISION TRAINER ●●● */}
           {reviewTab === 'slowplay' && (
             <>
               <SlowPlayDecisionTrainer />
             </>
           )}
 
-          {/* ═══ TAB: KELLY BET CALCULATOR ═══ */}
+          {/* ●●● TAB: KELLY BET CALCULATOR ●●● */}
           {reviewTab === 'kelly' && (
             <>
               <KellyBetCalculator />
             </>
           )}
 
-          {/* ═══ TAB: PREFLOP ALL-IN EQUITY ═══ */}
+          {/* ●●● TAB: PREFLOP ALL-IN EQUITY ●●● */}
           {reviewTab === 'pfequity' && (
             <>
               <PreFlopAllInEquity />
             </>
           )}
 
-          {/* ═══ TAB: GTO GLOSSARY ═══ */}
+          {/* ●●● TAB: GTO GLOSSARY ●●● */}
           {reviewTab === 'glossary' && (
             <>
               <GTOGlossary />
@@ -12092,7 +12092,7 @@ function GodModeArenaInner({
             />
           </AnimatePresence>
 
-          {/* ═══ PHASE 21: Ghost Replay Modal ═══ */}
+          {/* ●●● PHASE 21: Ghost Replay Modal ●●● */}
           {showGhostReplay && (
             <GhostReplayEngine
               sessionName={gameName}
@@ -12101,7 +12101,7 @@ function GodModeArenaInner({
             />
           )}
 
-          {/* ═══ PHASE 19: Share Card Modal ═══ */}
+          {/* ●●● PHASE 19: Share Card Modal ●●● */}
           {showShareCard && (
             <SessionShareCard
               gameName={gameName}
@@ -12121,9 +12121,9 @@ function GodModeArenaInner({
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // IN-GAME UI — Full screen with GTO Wizard-style GameUIRouter
-  // ═══════════════════════════════════════════════════════════════════════
+  // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
   const hasFullScreenUI = FULL_SCREEN_UI_GAMES.includes(gameId);
 
@@ -12139,7 +12139,7 @@ function GodModeArenaInner({
         />
 
         <AnimatePresence mode="wait">
-          {/* ═══ PHASE 18: ENHANCED PRE-SESSION LOBBY ═══ */}
+          {/* ●●● PHASE 18: ENHANCED PRE-SESSION LOBBY ●●● */}
           {gamePhase === 'splash' && (
             <motion.div
               key="splash"
@@ -12470,28 +12470,28 @@ function GodModeArenaInner({
                         key: 'standard',
                         label: 'Standard',
                         desc: 'Full GTO',
-                        icon: '🎯',
+                        icon: '◆',
                         color: '#00d4ff',
                       },
                       {
                         key: 'flashcard',
                         label: 'Flashcards',
                         desc: 'Concepts',
-                        icon: '🃏',
+                        icon: '◇',
                         color: '#00d4ff',
                       },
                       {
                         key: 'drill',
                         label: 'Speed Drill',
                         desc: '20 Qs',
-                        icon: '⚡',
+                        icon: '⌁',
                         color: '#f59e0b',
                       },
                       {
                         key: 'import',
                         label: 'Import HH',
                         desc: 'Your Hands',
-                        icon: '📋',
+                        icon: '□',
                         color: '#10b981',
                       },
                     ].map((m) => (
@@ -12577,9 +12577,9 @@ function GodModeArenaInner({
                     {!splashReady
                       ? 'Loading Solver Data...'
                       : trainingMode === 'flashcard'
-                        ? 'Start Flashcards 🃏'
+                        ? 'Start Flashcards'
                         : trainingMode === 'drill'
-                          ? 'Start Speed Drill ⚡'
+                          ? 'Start Speed Drill'
                           : 'Start Training →'}
                   </motion.button>
                 </motion.div>
@@ -12608,7 +12608,7 @@ function GodModeArenaInner({
             </motion.div>
           )}
 
-          {/* ═══ FLASHCARD MODE ═══ */}
+          {/* ●●● FLASHCARD MODE ●●● */}
           {gamePhase === 'flashcard' && (
             <motion.div
               key="flashcard"
@@ -12630,7 +12630,7 @@ function GodModeArenaInner({
             </motion.div>
           )}
 
-          {/* ═══ DRILL MODE ═══ */}
+          {/* ●●● DRILL MODE ●●● */}
           {gamePhase === 'drill' && (
             <motion.div
               key="drill"
@@ -12656,7 +12656,7 @@ function GodModeArenaInner({
             </motion.div>
           )}
 
-          {/* ═══ HAND HISTORY IMPORT MODAL ═══ */}
+          {/* ●●● HAND HISTORY IMPORT MODAL ●●● */}
           {importState.showModal && (
             <HandHistoryImportModal
               importState={importState}
@@ -12674,7 +12674,7 @@ function GodModeArenaInner({
             />
           )}
 
-          {/* ═══ GAMEPLAY ═══ */}
+          {/* ●●● GAMEPLAY ●●● */}
           {gamePhase === 'playing' && (
             <motion.div
               key="playing"
@@ -12686,7 +12686,7 @@ function GodModeArenaInner({
             >
               {error ? (
                 <div style={styles.errorState}>
-                  <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
+                  <p style={{ color: '#ef4444', fontSize: 18 }}>▲ {error}</p>
                   <button onClick={() => window.location.reload()} style={styles.retryButton}>
                     Retry
                   </button>
@@ -12868,9 +12868,9 @@ function GodModeArenaInner({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const styles = {
   fullScreenContainer: {
@@ -12884,7 +12884,7 @@ const styles = {
     position: 'relative',
   },
 
-  // ── PHASE 21: SPLASH SCREEN STYLES
+  // ●● PHASE 21: SPLASH SCREEN STYLES
   splashScreen: {
     position: 'absolute',
     inset: 0,
@@ -13001,7 +13001,7 @@ const styles = {
 
   footerStat: { fontSize: 13 },
 
-  // ── POST-SESSION REVIEW STYLES
+  // ●● POST-SESSION REVIEW STYLES
   reviewContainer: {
     width: '100%',
     height: '100vh',

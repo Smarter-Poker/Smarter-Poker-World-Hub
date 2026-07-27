@@ -1,18 +1,18 @@
 /**
  * STUDY PLAN CURRICULUM
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Guided learning path with skill progression:
  * - 6 skill levels from Beginner to Elite
  * - Each level has modules with specific topics
  * - Track completion %, time invested, quiz scores
  * - Recommended next steps based on performance
  * - Unlock system — complete prerequisites to advance
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 
-// ═══ CURRICULUM DATA ═══
+// ●●● CURRICULUM DATA ●●●
 const CURRICULUM = [
   {
     level: 1,
@@ -94,7 +94,7 @@ const CURRICULUM = [
   },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function StudyPlanCurriculum() {
   const [progress, setProgress] = useState({});
   const [expandedLevel, setExpandedLevel] = useState(1);
@@ -181,7 +181,7 @@ export default function StudyPlanCurriculum() {
         </div>
       )}
 
-      {/* ═══ LEVEL CARDS ═══ */}
+      {/* ●●● LEVEL CARDS ●●● */}
       {CURRICULUM.map(level => {
         const lp = getLevelProgress(level.level);
         const isExpanded = expandedLevel === level.level;

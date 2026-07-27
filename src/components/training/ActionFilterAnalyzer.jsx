@@ -51,7 +51,7 @@ export default function ActionFilterAnalyzer() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #3b82f6, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔍 Action Filter Analyzer
+        Action Filter Analyzer
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 14 }}>Filter your hands by any criteria. Find your biggest leaks instantly.</p>
 

@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * SESSION TRACKER — Training Session Persistence
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Saves training sessions and individual moves to Supabase:
  *   - Session metadata: game, level, score, EV loss, duration
@@ -15,10 +15,10 @@
  *       diamonds_earned, completed_at
  *   training_moves: id, session_id, hand_number, street, hero_cards,
  *       board, action_taken, gto_action, ev_loss_bb, classification
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// ── Session Data Structures ──────────────────────────────────────────────
+// ●● Session Data Structures ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Create a serializable session record for persistence.
@@ -81,7 +81,7 @@ export function createMoveRecords(sessionId, moves) {
     }));
 }
 
-// ── Supabase Integration ─────────────────────────────────────────────────
+// ●● Supabase Integration ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Save a completed session to Supabase.
@@ -188,7 +188,7 @@ export async function loadSessionMoves(supabase, sessionId) {
     }
 }
 
-// ── Performance Trends ───────────────────────────────────────────────────
+// ●● Performance Trends ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate performance trends from session history.
@@ -311,7 +311,7 @@ export function identifyLeaks(sessions) {
     return leaks;
 }
 
-// ── Local Storage Fallback ───────────────────────────────────────────────
+// ●● Local Storage Fallback ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const LOCAL_KEY = 'smarter_poker_sessions';
 
@@ -338,7 +338,7 @@ function _loadFromLocalStorage(userId) {
     }
 }
 
-// ── Supabase Schema SQL ──────────────────────────────────────────────────
+// ●● Supabase Schema SQL ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * SQL to create the required Supabase tables.

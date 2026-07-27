@@ -1,9 +1,9 @@
 /**
- * 📊 GTO REPORTS — GTO Wizard-Style Performance Report
- * ═══════════════════════════════════════════════════════════════════════════
+ * GTO REPORTS — GTO Wizard-Style Performance Report
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Aggregate view of user's training performance vs GTO baselines.
  * Color-coded deviation matrix, classification breakdown, and trends.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-9 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -19,7 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ── Phase 3+5 Engines: Session trends + leak detection for reports ──────
+// ●● Phase 3+5 Engines: Session trends + leak detection for reports ●●●●●●
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -29,9 +29,9 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // TRAIN-WIRE-EMPTY-1b — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CLASSIFICATION CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const CLASS_CONFIG = {
   best: { label: 'Best', color: 'var(--sp-accent-green)', bg: 'rgba(34, 197, 94, 0.15)' },
@@ -41,9 +41,9 @@ const CLASS_CONFIG = {
   blunder: { label: 'Blunder', color: 'var(--sp-accent-red)', bg: 'rgba(239, 68, 68, 0.15)' },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // DEVIATION CELL
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function DeviationCell({ value, deviation }) {
   // Color: green = close to GTO, yellow = moderate, red = far
@@ -94,9 +94,9 @@ function DeviationCell({ value, deviation }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CLASSIFICATION BAR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function ClassificationBar({ classifications, total }) {
   if (!classifications || total === 0) return null;
@@ -177,9 +177,9 @@ function ClassificationBar({ classifications, total }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // BUG FIX (TRAIN-REPORTS-A11Y-1): SVG back arrow + button hardening for
 // the GTO reports surface. The rendered UI is already emoji-free
@@ -271,7 +271,7 @@ export default function GTOReports() {
     if (userId) fetchReport();
   }, [fetchReport, userId]);
 
-  // 🔌 Bus listener: auto-refresh when Play Mode (or any trainer) completes a session
+  // Bus listener: auto-refresh when Play Mode (or any trainer) completes a session
   useEffect(() => {
     const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
       if (userId) fetchReport();
@@ -651,7 +651,7 @@ export default function GTOReports() {
                   ))}
                 </div>
 
-                {/* ♠️ GTO Scorecard: VPIP / PFR / 3Bet deviations */}
+                {/* ♠ GTO Scorecard: VPIP / PFR / 3Bet deviations */}
                 {report.scorecardStats && report.scorecardStats.totalAnalyzed > 0 && (
                   <div
                     style={{
@@ -701,7 +701,7 @@ export default function GTOReports() {
                   </div>
                 )}
 
-                {/* 🔥 Weakest Spots Heatmap */}
+                {/* ▲ Weakest Spots Heatmap */}
                 {report.positionReport &&
                   (() => {
                     const sorted = positionOrder

@@ -1,17 +1,17 @@
 /**
- * 🔮 SOLVER API — GTO Solver Query Foundation
- * ═══════════════════════════════════════════════════════════════════════════
+ * SOLVER API — GTO Solver Query Foundation
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * API endpoint accepting custom spot definitions. Checks pre-computed
  * solutions DB first (instant), queues unknown spots for remote solving.
  * Rate limited: 10 requests/minute per user.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -23,7 +23,7 @@ function getSupabase() {
     return _supabase;
 }
 
-// ── Rate limiter (in-memory, per-instance) ──────────────────────
+// ●● Rate limiter (in-memory, per-instance) ●●●●●●●●●●●●●●●●●●●●●●
 const rateLimitMap = new Map();
 const RATE_LIMIT = 10;        // requests
 const RATE_WINDOW = 60_000;   // 1 minute
@@ -53,7 +53,7 @@ function checkRateLimit(userId) {
     return entry.count <= RATE_LIMIT;
 }
 
-// ── Auth helper ─────────────────────────────────────────────────
+// ●● Auth helper ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 async function getUserFromToken(req) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return null;
@@ -73,7 +73,7 @@ async function getUserFromToken(req) {
     }
 }
 
-// ── Scenario hash generator ─────────────────────────────────────
+// ●● Scenario hash generator ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameType, street }) {
     const parts = [
         gameType || 'cash',
@@ -94,9 +94,9 @@ function hashScenario({ board, heroPosition, villainPosition, stackDepth, gameTy
     return `spot_${Math.abs(hash).toString(36)}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // API HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default async function handler(req, res) {
   try {
@@ -234,9 +234,9 @@ export default async function handler(req, res) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // BASELINE STRATEGY GENERATOR
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Generate a reasonable GTO baseline strategy based on position + board texture.

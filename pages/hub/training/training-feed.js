@@ -1,11 +1,11 @@
 /**
  * TRAINING ACTIVITY FEED — Social Training Updates
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Social feed showing what friends are training. See achievements,
  * session completions, and streak milestones from your network.
  *
  * Route: /hub/training/training-feed
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-62 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -21,9 +21,9 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FEED EVENT TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // BUG FIX (TRAIN-FEED-A11Y-1): EVENT_TYPES gains an iconKind discriminator
 // so the rendered icon comes from a typed SVG component (EventIcon) instead
@@ -31,11 +31,11 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // consumer reading the data shape. Same surface-specific a11y pattern as
 // PR #320/#322/#324/#327/#328/#329/#330/#331.
 const EVENT_TYPES = {
-  session:     { icon: '🎯', iconKind: 'target',  color: 'var(--sp-accent-blue)', label: 'Training' },
-  streak:      { icon: '🔥', iconKind: 'flame',   color: 'var(--sp-accent-orange)', label: 'Streak' },
-  achievement: { icon: '🏆', iconKind: 'trophy',  color: 'var(--sp-accent-amber)', label: 'Badge' },
-  mastery:     { icon: '⭐', iconKind: 'star',    color: 'var(--sp-accent-purple)', label: 'Mastery' },
-  leaderboard: { icon: '📊', iconKind: 'chart',   color: 'var(--sp-accent-green)', label: 'Rank Up' },
+  session:     { icon: '◆', iconKind: 'target',  color: 'var(--sp-accent-blue)', label: 'Training' },
+  streak:      { icon: '▲', iconKind: 'flame',   color: 'var(--sp-accent-orange)', label: 'Streak' },
+  achievement: { icon: '★', iconKind: 'trophy',  color: 'var(--sp-accent-amber)', label: 'Badge' },
+  mastery:     { icon: '★', iconKind: 'star',    color: 'var(--sp-accent-purple)', label: 'Mastery' },
+  leaderboard: { icon: '■', iconKind: 'chart',   color: 'var(--sp-accent-green)', label: 'Rank Up' },
 };
 
 const ICON_PROPS = {
@@ -68,9 +68,9 @@ function EventIcon({ kind, size=10 }) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FEED ENGINE (real user data + simulated community activity)
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // Simple seed-based pseudo-random to avoid Math.random() flicker on re-renders
 function seededRandom(seed) {
@@ -177,9 +177,9 @@ function formatTimeAgo(timestamp) {
   return `${days}d ago`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FEED ITEM COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function FeedItem({ item, onChallenge }) {
   const eventType = EVENT_TYPES[item.type] || EVENT_TYPES.session;
@@ -269,7 +269,7 @@ function FeedItem({ item, onChallenge }) {
           color: '#fff',
         }}
       >
-        {/* TRAIN-FEED-A11Y-1: SVG user replaces 👤 */}
+        {/* TRAIN-FEED-A11Y-1: SVG user replaces ● */}
         {item.isYou ? <span aria-hidden style={{ display: 'inline-flex' }}><UserSvg size={18} /></span> : item.user.charAt(0)}
       </div>
 
@@ -344,9 +344,9 @@ function FeedItem({ item, onChallenge }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function TrainingFeedPage() {
   const router = useRouter();

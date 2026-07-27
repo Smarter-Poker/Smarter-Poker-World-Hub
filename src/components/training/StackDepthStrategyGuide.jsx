@@ -1,6 +1,6 @@
 /**
  * StackDepthStrategyGuide — Strategy by Stack Depth
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * How poker strategy changes at different effective stack depths.
  * Covers short, medium, deep, and ultra-deep stack play.
  */

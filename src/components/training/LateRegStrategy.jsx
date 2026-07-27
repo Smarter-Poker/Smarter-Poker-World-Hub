@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const LATE_REG_FACTORS = [
-  { factor: 'Field Size Matters', icon: '👥', color: '#3b82f6',
+  { factor: 'Field Size Matters', icon: '', color: '#3b82f6',
     pro: 'Bigger fields = more value in late-regging. The fish who bust early can re-enter.',
     con: 'Very small fields — every chip matters from the start. Don\'t miss early levels.' },
-  { factor: 'Structure Quality', icon: '📐', color: '#22c55e',
+  { factor: 'Structure Quality', icon: '', color: '#22c55e',
     pro: 'Deep structures (200BB+): Late reg is fine. You still have plenty of play.',
     con: 'Turbo/hyper structures: Every blind level matters. Late reg means starting short.' },
-  { factor: 'Starting Stack vs Avg', icon: '📊', color: '#f59e0b',
+  { factor: 'Starting Stack vs Avg', icon: '', color: '#f59e0b',
     pro: 'If starting stack > 40BB, you can still play poker and have room to maneuver.',
     con: 'If starting stack < 20BB, you\'re in push/fold. Only late reg if the prize pool justifies it.' },
-  { factor: 'Overlay Opportunities', icon: '💰', color: '#ef4444',
+  { factor: 'Overlay Opportunities', icon: '', color: '#ef4444',
     pro: 'Late reg when there\'s a guaranteed prize pool not yet met — you\'re getting extra value.',
     con: 'If the tournament is already above guarantee, there\'s less mathematical incentive.' },
-  { factor: 'Your Edge', icon: '🧠', color: '#8b5cf6',
+  { factor: 'Your Edge', icon: '', color: '#8b5cf6',
     pro: 'If you\'re significantly better than the field, playing more hands = more edge realized.',
     con: 'If the field is tough, late reg with a short stack removes your postflop edge.' },
 ];
@@ -53,11 +53,11 @@ export default function LateRegStrategy() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Late Reg ✅</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e'}}>Late Reg ✓</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{factor.pro}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Register Early ❌</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444'}}>Register Early ✕</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{factor.con}</div>
           </div>
         </div>

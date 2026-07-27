@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SPIN_PHASES = [
-  { phase: 'Early Game (25-50bb)', icon: '🟢', color: '#22c55e',
+  { phase: 'Early Game (25-50bb)', icon: '●', color: '#22c55e',
     detail: 'Play tight-aggressive. The blinds are small relative to stacks, so there\'s no rush. Build a chip lead through solid play.',
     opens: 'BTN: Open 50-60% of hands (2-2.5x). SB: Open 40-50% (2.5x). BB: Defend 40-50% vs BTN, tighter vs SB.',
     strategy: 'Avoid big pots without big hands. No need to gamble early. Let opponents make mistakes.',
     tip: 'At 50bb deep in a Spin, you can still play "real poker." Don\'t panic into push/fold yet.' },
-  { phase: 'Mid Game (15-25bb)', icon: '🟡', color: '#f59e0b',
+  { phase: 'Mid Game (15-25bb)', icon: '●', color: '#f59e0b',
     detail: 'The transition zone. Start widening your opening ranges and apply pressure on shorter stacks.',
     opens: 'BTN: Open 60-70% (2-2.2x). SB: Open 50-60% (2.2x). BB: Defend wider, start shoving over opens with 18bb.',
     strategy: 'Pick up blind steals aggressively. 3-bet shove with pairs 66+, ATs+, KQs from any position.',
     tip: 'The player with the chip lead should be the most aggressive. Use your stack as a weapon.' },
-  { phase: 'Late Game (10-15bb)', icon: '🟠', color: '#ef4444',
+  { phase: 'Late Game (10-15bb)', icon: '●', color: '#ef4444',
     detail: 'Push/fold territory. Use ICM-aware shove/fold charts. Every decision is all-in or fold.',
     opens: 'BTN: Shove 50-60% of hands. SB: Shove 40-50%. BB: Call shoves with top 30-40% vs BTN, wider vs SB.',
     strategy: 'Pure push/fold. No limping, no min-raising. Maximize fold equity before the blinds eat you.',
     tip: 'At 12bb in a Spin, you\'re shoving any Ace, any pair, most Kings, and suited connectors 56s+.' },
-  { phase: 'Heads-Up Phase', icon: '🔴', color: '#8b5cf6',
+  { phase: 'Heads-Up Phase', icon: '●', color: '#8b5cf6',
     detail: 'Once one player busts, it\'s heads-up with varying stack depths. Adjust based on stack sizes and payout multiplier.',
     opens: 'SB: Open 80%+ (2x). BB: 3-bet 25-30%, call 40-50%. At <15bb: pure push/fold.',
     strategy: 'Aggression wins HU. Raise relentlessly from the button. Only slow down with extremely short stacks.',
     tip: 'In high multiplier Spins, ICM barely matters HU (prize is flat). Play for chip EV, not ICM.' },
-  { phase: 'Multiplier Adjustments', icon: '💰', color: '#3b82f6',
+  { phase: 'Multiplier Adjustments', icon: '●', color: '#3b82f6',
     detail: 'Higher multipliers = tighter play. In a 1000x Spin, survival matters more than chip accumulation.',
     opens: 'At 2x: Play normally, ChipEV ≈ $EV. At 10x+: Tighten 10-15%. At 100x+: Nit it up, fold equity > pot equity.',
     strategy: 'The higher the multiplier, the more ICM impacts decisions. A min-cash in a 1000x is worth more than 1st in a 2x.',
@@ -40,7 +40,7 @@ export default function SpinAndGoStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🌀 Spin & Go Strategy
+        Spin & Go Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Master hyper-turbo 3-max tournaments.</p>
 

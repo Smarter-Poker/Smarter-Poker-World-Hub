@@ -1,9 +1,9 @@
 /**
- * 🎬 GAME LANE — Exact Mockup Match
- * ═══════════════════════════════════════════════════════════════════════════
+ * GAME LANE — Exact Mockup Match
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Horizontal scrolling lane matching reference design
  * With ">>" prefix on titles and "BELOW 70%!" urgency badge
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { useRef, useState, useEffect } from 'react';

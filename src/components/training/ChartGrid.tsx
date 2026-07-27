@@ -223,9 +223,9 @@ const ChartGrid: React.FC<ChartGridProps> = ({
 
             {/* Chart Type Label */}
             <div style={styles.chartLabel}>
-                {chartType === 'push_fold' && '📊 Push/Fold Chart'}
-                {chartType === '3bet_defend' && '🎯 3-Bet Defense'}
-                {chartType === 'bb_defense' && '🛡️ BB Defense'}
+                {chartType === 'push_fold'&& 'Push/Fold Chart'}
+                {chartType === '3bet_defend'&& '3-Bet Defense'}
+                {chartType === 'bb_defense'&& 'BB Defense'}
             </div>
 
             {/* Grid */}
@@ -273,7 +273,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
                                 >
                                     {hand}
                                     {result === 'correct' && <span style={styles.checkMark}>✓</span>}
-                                    {result === 'wrong' && <span style={styles.xMark}>✗</span>}
+                                    {result === 'wrong'&& <span style={styles.xMark}>✕</span>}
                                 </motion.div>
                             );
                         })}
@@ -344,7 +344,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
                                 fontSize: 48,
                                 marginBottom: 16,
                             }}>
-                                {resultFeedback.isCorrect ? '✅' : '❌'}
+                                {resultFeedback.isCorrect ? '✓': '✕'}
                             </div>
                             <div style={{
                                 fontSize: 24,

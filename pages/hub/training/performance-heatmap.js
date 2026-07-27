@@ -1,11 +1,11 @@
 /**
  * PERFORMANCE HEATMAP — Position × Street Accuracy Grid
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visual 6-position × 3-street grid showing accuracy and EV data.
  * Click any cell to see top mistakes and launch targeted practice.
  *
  * Route: /hub/training/performance-heatmap
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-11 — hex sweep batch 4: literals routed to --sp-* tokens
@@ -21,9 +21,9 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // GRID DEFINITIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
@@ -46,9 +46,9 @@ function getTextColor(accuracy) {
   return 'var(--sp-accent-red)';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CELL DETAIL DRAWER
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 function CellDetail({ cell, onClose, onPractice }) {
   if (!cell) return null;
@@ -263,9 +263,9 @@ function CellDetail({ cell, onClose, onPractice }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function PerformanceHeatmapPage() {
   const router = useRouter();
@@ -364,7 +364,7 @@ export default function PerformanceHeatmapPage() {
     });
   }
 
-  // ── IMPROVED: Comprehensive game-to-position mapping ──────────────────
+  // ●● IMPROVED: Comprehensive game-to-position mapping ●●●●●●●●●●●●●●●●●●
   // Maps game IDs to the positions they primarily train
   function derivePositions(gameId) {
     const id = (gameId || '').toLowerCase();
@@ -412,7 +412,7 @@ export default function PerformanceHeatmapPage() {
     return POSITIONS;
   }
 
-  // ── IMPROVED: Comprehensive game-to-street mapping ──────────────────
+  // ●● IMPROVED: Comprehensive game-to-street mapping ●●●●●●●●●●●●●●●●●●
   function deriveStreets(gameId) {
     const id = (gameId || '').toLowerCase();
 
@@ -448,7 +448,7 @@ export default function PerformanceHeatmapPage() {
     return STREETS;
   }
 
-  // ── IMPROVED: Context-aware mistake pattern generation ──────────────
+  // ●● IMPROVED: Context-aware mistake pattern generation ●●●●●●●●●●●●●●
   // Generates position-and-street-specific coaching rather than fabricated data
   function generateMistakePatterns(key, cell) {
     if (cell.mistakes === 0) return [];

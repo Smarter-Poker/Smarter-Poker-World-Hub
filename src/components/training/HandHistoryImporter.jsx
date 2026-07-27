@@ -1,6 +1,6 @@
 /**
  * HAND HISTORY IMPORTER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Import hand histories from major poker sites and review with solver:
  * - Paste or upload hand history text
  * - Auto-detect site format (PokerStars, GGPoker, WPN, iPoker, 888)
@@ -8,12 +8,12 @@
  * - Display parsed hands in review-ready format
  * - Tag each decision point with solver recommendation
  * - Highlight mistakes with EV loss estimates
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 
-// ═══ SITE DETECTION PATTERNS ═══
+// ●●● SITE DETECTION PATTERNS ●●●
 const SITE_PATTERNS = [
   { id: 'pokerstars', name: 'PokerStars', pattern: /PokerStars|Hand #\d+:/i },
   { id: 'ggpoker', name: 'GGPoker', pattern: /GGPoker|Poker Hand #/i },
@@ -24,7 +24,7 @@ const SITE_PATTERNS = [
   { id: 'generic', name: 'Generic', pattern: /.*/ },
 ];
 
-// ═══ HAND PARSER ═══
+// ●●● HAND PARSER ●●●
 function parseHandHistory(text) {
   try {
     const hands = [];
@@ -160,7 +160,7 @@ function extractWinner(text) {
   return null;
 }
 
-// ═══ SOLVER ANALYSIS STUB ═══
+// ●●● SOLVER ANALYSIS STUB ●●●
 function analyzeHand(hand) {
   try {
     if (!hand.heroCards || !hand.actions.length) return null;
@@ -194,7 +194,7 @@ function analyzeHand(hand) {
   }
 }
 
-// ═══ CARD DISPLAY HELPER ═══
+// ●●● CARD DISPLAY HELPER ●●●
 function CardDisplay({ cards }) {
   if (!cards) return null;
   const cardList = typeof cards === 'string' ? cards.split(/\s+/) : cards;
@@ -220,7 +220,7 @@ function CardDisplay({ cards }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function HandHistoryImporter() {
   const [inputText, setInputText] = useState('');
   const [parsedHands, setParsedHands] = useState([]);
@@ -282,7 +282,7 @@ export default function HandHistoryImporter() {
       </h3>
 
       {parsedHands.length === 0 ? (
-        /* ═══ INPUT MODE ═══ */
+        /* ●●● INPUT MODE ●●● */
         <div>
           <div style={sectionStyle}>
             <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
@@ -327,7 +327,7 @@ export default function HandHistoryImporter() {
           </div>
         </div>
       ) : (
-        /* ═══ RESULTS MODE ═══ */
+        /* ●●● RESULTS MODE ●●● */
         <div>
           {/* Summary Bar */}
           <div style={{ ...sectionStyle, display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>

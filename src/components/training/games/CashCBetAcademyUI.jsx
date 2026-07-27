@@ -1,6 +1,6 @@
 /**
  * CASH C-BET ACADEMY UI — Game-Specific Training Component
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized UI for cash-002: C-Bet Academy
  * 
  * Features:
@@ -8,7 +8,7 @@
  * - Bet sizing calculator
  * - Range advantage meter
  * - Frequency display
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

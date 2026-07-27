@@ -53,7 +53,7 @@ export default function StrategyNodeInspector() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔬 Strategy Node Inspector
+        Strategy Node Inspector
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Inspect any decision node with exact solver frequencies, EV, and hand ranges.</p>
 

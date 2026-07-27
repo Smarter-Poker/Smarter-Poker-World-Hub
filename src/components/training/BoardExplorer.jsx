@@ -1,6 +1,6 @@
 /**
  * BOARD EXPLORER — Strategy Changes Across Different Board Textures
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style board explorer showing how solver strategy changes
  * for the same hand across different board textures:
@@ -11,7 +11,7 @@
  *   - Highlights where your hand plays very differently
  *
  * Uses PostflopStrategyEngine + BoardTextureEngine + solver data matrices.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, memo } from 'react';
@@ -25,7 +25,7 @@ import {
     BOARD_TEXTURES,
 } from '../../config/postflopSolverData';
 
-// ── Sample Boards for Each Texture ──────────────────────────────────────
+// ●● Sample Boards for Each Texture ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const TEXTURE_BOARDS = [
     { texture: 'Dry High', board: ['As', 'Kd', '7c'], category: 'dry' },
@@ -45,7 +45,7 @@ const TEXTURE_BOARDS = [
 const SuitSymbol = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SuitColor = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
 
-// ── Quick Hand Presets ──────────────────────────────────────────────────
+// ●● Quick Hand Presets ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const HAND_PRESETS = [
     { hand: ['Ah', 'Kd'], label: 'AKo' },
@@ -60,7 +60,7 @@ const HAND_PRESETS = [
     { hand: ['5d', '4d'], label: '54s' },
 ];
 
-// ── Mini Card Display ───────────────────────────────────────────────────
+// ●● Mini Card Display ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const MiniCard = memo(({ card }) => {
     if (!card || card.length < 2) return null;
@@ -77,7 +77,7 @@ const MiniCard = memo(({ card }) => {
     );
 });
 
-// ── Board Texture Row ───────────────────────────────────────────────────
+// ●● Board Texture Row ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onClick }) => {
     // Get strategy for this board
@@ -199,7 +199,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function BoardExplorer() {
     const [heroCards, setHeroCards] = useState(['Ah', 'Kd']);

@@ -1,13 +1,13 @@
 /**
  * QUIZ MODE ENGINE
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Timed quiz mode with competitive scoring:
  * - 3 difficulty levels: Quick (30s), Standard (60s), Expert (no timer)
  * - Mixed question types: action, sizing, range, EV estimation
  * - Streak bonuses, speed bonuses, perfect round bonuses
  * - Session summary with accuracy breakdown
  * - Leaderboard-ready score output
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -18,7 +18,7 @@ const DIFFICULTIES = [
   { id: 'expert', label: 'Expert', timer: 0, questions: 20, color: '#ef4444' },
 ];
 
-// ═══ QUESTION BANK ═══
+// ●●● QUESTION BANK ●●●
 const QUESTION_BANK = [
   // Action questions
   { type: 'action', q: 'You have A♠K♠ on BTN. UTG opens 2.5x. What do you do?', options: ['Fold', 'Call', '3-Bet to 8x', '3-Bet to 10x'], correct: 2, explanation: 'AKs is a premium 3-bet hand from the BTN vs UTG open.' },
@@ -48,7 +48,7 @@ const QUESTION_BANK = [
   { type: 'concept', q: 'What does "polarized" mean in poker strategy?', options: ['Playing only premium hands', 'Betting with only strong hands and bluffs, not medium strength', 'Always raising or folding', 'Playing from the blinds'], correct: 1, explanation: 'A polarized range contains strong value hands and bluffs, with medium-strength hands checking.' },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function QuizModeEngine() {
   const [phase, setPhase] = useState('setup'); // setup | playing | results
   const [difficulty, setDifficulty] = useState(DIFFICULTIES[1]);
@@ -144,7 +144,7 @@ export default function QuizModeEngine() {
   const totalScore = answers.reduce((s, a) => s + a.points, 0);
   const correctCount = answers.filter(a => a.correct).length;
 
-  // ═══ SETUP PHASE ═══
+  // ●●● SETUP PHASE ●●●
   if (phase === 'setup') {
     return (
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -181,7 +181,7 @@ export default function QuizModeEngine() {
     );
   }
 
-  // ═══ RESULTS PHASE ═══
+  // ●●● RESULTS PHASE ●●●
   if (phase === 'results') {
     const accuracy = questions.length > 0 ? Math.round(correctCount / questions.length * 100) : 0;
     const typeBreakdown = {};
@@ -242,7 +242,7 @@ export default function QuizModeEngine() {
     );
   }
 
-  // ═══ PLAYING PHASE ═══
+  // ●●● PLAYING PHASE ●●●
   const q = questions[currentQ];
   if (!q) return null;
 
@@ -255,7 +255,7 @@ export default function QuizModeEngine() {
           <span style={{ color: '#64748b', fontSize: 11 }}>Score: {totalScore}</span>
           {streak > 1 && (
             <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
-              🔥 {streak} streak
+              ▲ {streak} streak
             </span>
           )}
         </div>

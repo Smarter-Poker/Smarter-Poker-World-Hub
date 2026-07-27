@@ -35,7 +35,7 @@ export default function CappedRangeDetector() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #22c55e, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📊 Capped Range Detector
+         Capped Range Detector
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Spot when villain's range has a ceiling — then crush them.</p>
 
@@ -57,7 +57,7 @@ export default function CappedRangeDetector() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <div style={{ background: `${spot.capped ? '#22c55e' : '#ef4444'}15`, borderRadius: 8, padding: '6px 16px' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: spot.capped ? '#22c55e' : '#ef4444' }}>
-              {spot.capped ? '✅ CAPPED' : '❌ UNCAPPED'}
+              {spot.capped ? '✓ CAPPED': '✕ UNCAPPED'}
             </div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '6px 16px' }}>

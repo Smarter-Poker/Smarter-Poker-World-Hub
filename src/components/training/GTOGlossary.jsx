@@ -1,6 +1,6 @@
 /**
  * GTOGlossary — Interactive GTO Poker Terminology Reference
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Searchable glossary of GTO and poker strategy terminology.
  * Categorized, with examples and related concepts.
  */

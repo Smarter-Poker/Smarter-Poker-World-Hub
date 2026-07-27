@@ -1,5 +1,5 @@
 /**
- * 📜 SESSION HISTORY LIST — Past Training Sessions
+ * SESSION HISTORY LIST — Past Training Sessions
  * Fetches and displays recent sessions with GTOW score, hand count, and EV loss
  */
 

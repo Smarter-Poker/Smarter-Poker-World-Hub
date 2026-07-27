@@ -1,18 +1,18 @@
 /**
  * FLOP CATEGORY BROWSER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Browse GTO solutions organized by flop category:
  * - Categorized by texture (monotone, two-tone, rainbow, paired)
  * - Ranked, connected, and high-card groupings
  * - Strategy summary per category
  * - C-bet frequency and sizing data
  * - Quick-browse with drill-down detail
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ FLOP CATEGORIES ═══
+// ●●● FLOP CATEGORIES ●●●
 const CATEGORIES = [
   {
     id: 'high_dry_rainbow',
@@ -176,7 +176,7 @@ function getAdvantageColor(a) {
   return '#64748b';
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function FlopCategoryBrowser() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterGroup, setFilterGroup] = useState(null);

@@ -1,6 +1,6 @@
 /**
  * PreFlopOpenChart — Preflop Opening Ranges by Position
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visual chart showing recommended opening ranges from each position.
  * Interactive 13x13 grid with color-coded actions.
  */

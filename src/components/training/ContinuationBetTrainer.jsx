@@ -151,7 +151,7 @@ function ContinuationBetTrainer() {
               border: `1px solid ${userDecision === bestAction ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
             }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: userDecision === bestAction ? '#10b981' : '#ef4444' }}>
-                {userDecision === bestAction ? '✓ Correct!' : '✗ Incorrect'}
+                {userDecision === bestAction ? '✓ Correct!': '✕ Incorrect'}
               </span>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginLeft: 12 }}>
                 Optimal: <span style={{ fontWeight: 700, color: '#f97316' }}>{bestAction === 'bet33' ? 'Bet 33%' : bestAction === 'bet67' ? 'Bet 67%' : 'Check'}</span> ({scenario.cbetBreakdown[bestAction]}% frequency)

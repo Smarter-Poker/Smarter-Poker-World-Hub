@@ -1,6 +1,6 @@
 /**
  * BlindDefenseTrainer — GTO Wizard-Style Blind Defense Strategy Trainer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Train proper BB and SB defense frequencies vs opens from each position.
  * Shows which hands to 3-bet, call, or fold from the blinds.
  */

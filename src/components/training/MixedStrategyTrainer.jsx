@@ -1,17 +1,17 @@
 /**
  * MIXED STRATEGY TRAINER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Practice executing mixed strategies at correct frequencies:
  * - Scenario with GTO mixed action (e.g., bet 60% / check 40%)
  * - RNG-assisted frequency practice
  * - Track actual vs target frequency over many hands
  * - Drift detection when you deviate from GTO mix
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback } from 'react';
 
-// ═══ MIXED STRATEGY SCENARIOS ═══
+// ●●● MIXED STRATEGY SCENARIOS ●●●
 const SCENARIOS = [
   {
     id: 1, hand: 'A♠Q♥', board: 'K♠ 8♦ 3♣', position: 'BTN vs BB', street: 'Flop', pot: 6.5,
@@ -64,7 +64,7 @@ const SCENARIOS = [
   },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function MixedStrategyTrainer() {
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [history, setHistory] = useState([]);

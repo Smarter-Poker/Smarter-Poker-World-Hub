@@ -70,7 +70,7 @@ export async function saveSession(sessionData) {
     if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
   });
 
-  // ═══ 2026-07-19 AUDIT FIX (E2E defect D1 — CRITICAL) ═══
+  // ●●● 2026-07-19 AUDIT FIX (E2E defect D1 — CRITICAL) ●●●
   // Each handHistory entry carried the FULL question object including
   // rawFrequencies (a per-action x 169-hand solver matrix) and
   // evData.handEVs (another 169-hand map). 100 such entries blew past the

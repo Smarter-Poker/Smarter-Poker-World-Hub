@@ -6,23 +6,23 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const COMPARISONS = [
-  { topic: 'Chip Value', icon: '🪙', color: '#22c55e',
+  { topic: 'Chip Value', icon: '●', color: '#22c55e',
     cash: 'Every chip has a fixed dollar value. 100bb = $100 at NL100. You can cash out any time.',
     mtt: 'Chip value is non-linear. Your 50,000 chips in a tournament aren\'t worth 50,000x the buy-in. ICM determines real value.',
     impact: 'In cash, every +EV decision is correct. In MTTs, +ChipEV decisions can be -$EV due to ICM pressure.' },
-  { topic: 'Risk & Variance', icon: '📊', color: '#ef4444',
+  { topic: 'Risk & Variance', icon: '■', color: '#ef4444',
     cash: 'Lower variance. You can quit any time, top off your stack, and control session length. Consistent grind.',
     mtt: 'Higher variance. You can go months without a big score. The ROI comes in huge, infrequent spikes.',
     impact: 'Cash needs 20-30 buy-in bankroll. MTTs need 100-200 buy-ins due to extreme variance.' },
-  { topic: 'Stack Depths', icon: '📏', color: '#3b82f6',
+  { topic: 'Stack Depths', icon: '■', color: '#3b82f6',
     cash: 'Fixed at 100bb (or whatever you buy in for). Stack depth is consistent every hand.',
     mtt: 'Constantly changing. You might be 200bb deep one hand and 15bb the next. You must adjust continuously.',
     impact: 'Cash rewards deep-stack mastery. MTTs reward adaptability across all stack depths.' },
-  { topic: 'Player Pool', icon: '👥', color: '#f59e0b',
+  { topic: 'Player Pool', icon: '●', color: '#f59e0b',
     cash: 'Same opponents over many sessions. Players adapt to each other. Meta-game and reads matter.',
     mtt: 'Constantly changing table draws. You play against thousands of unique players. Less meta-game.',
     impact: 'Cash rewards exploitation of known opponents. MTTs reward solid, balanced default strategies.' },
-  { topic: 'Income & Lifestyle', icon: '🏠', color: '#8b5cf6',
+  { topic: 'Income & Lifestyle', icon: '■', color: '#8b5cf6',
     cash: 'Steady income stream. Easier to budget and plan. You know your hourly rate after ~50k hands.',
     mtt: 'Feast or famine. You might earn $0 for weeks, then score $50k in one night. Hard to budget.',
     impact: 'Cash is better for financial stability. MTTs are better for "swinging for the fences" and big life-changing scores.' },
@@ -35,7 +35,7 @@ export default function CashVsTournament() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚔️ Cash Games vs Tournaments
+        » Cash Games vs Tournaments
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Understand the key differences between formats.</p>
 

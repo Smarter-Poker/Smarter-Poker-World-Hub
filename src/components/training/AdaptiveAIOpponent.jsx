@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const ARENA_HORSES = [
   { name: 'Marcus Chen', alias: 'VegasGrinder85', location: 'Las Vegas, NV', stakes: '2/5 NLH',
     specialty: 'cash_games', style: 'TAG', skillTier: 'crusher', voice: 'analytical',
-    icon: '🦈', color: '#ef4444',
+    icon: '●', color: '#ef4444',
     vpip: 19, pfr: 16, threeBet: 7.5, cbet: 75, af: 3.2,
     bio: 'Full-time Bellagio grinder. Started in underground LA games in 2008. Tight ranges, relentless aggression postflop.',
     strengths: ['Range reads', 'Thin value bets', 'Disciplined folds'],
@@ -23,7 +23,7 @@ const ARENA_HORSES = [
     chatLines: ['interesting line', 'std', 'close spot', 'wp'] },
   { name: 'Sarah Mitchell', alias: 'TexasQueen92', location: 'Austin, TX', stakes: '$200-$500 MTTs',
     specialty: 'tournaments', style: 'LAG', skillTier: 'reg', voice: 'enthusiastic',
-    icon: '🔥', color: '#f59e0b',
+    icon: '●', color: '#f59e0b',
     vpip: 31, pfr: 26, threeBet: 11, cbet: 78, af: 3.8,
     bio: 'Former accountant, 12 WSOP Circuit cashes. Pressure machine — 3-bets relentlessly, barrels turns.',
     strengths: ['3-bet bluffing', 'Turn barrels', 'ICM pressure'],
@@ -31,7 +31,7 @@ const ARENA_HORSES = [
     chatLines: ['nice hand!', 'well played', 'gg wp', 'fun table'] },
   { name: 'Derek Williams', alias: 'LANitOwl', location: 'Los Angeles, CA', stakes: '5/10+ PLO',
     specialty: 'high_stakes', style: 'LAG', skillTier: 'crusher', voice: 'experienced',
-    icon: '🌙', color: '#8b5cf6',
+    icon: '●', color: '#8b5cf6',
     vpip: 34, pfr: 28, threeBet: 12, cbet: 72, af: 4.1,
     bio: '15-year Commerce Casino veteran. Mixed game specialist who reads souls. Deep stack wizard.',
     strengths: ['Multi-street planning', 'Exploitative adjustments', 'Deep stack play'],
@@ -39,7 +39,7 @@ const ARENA_HORSES = [
     chatLines: ['lol', 'really?', 'ok buddy', 'sure'] },
   { name: 'Jennifer Park', alias: 'SeattleSolver', location: 'Seattle, WA', stakes: 'Online NL200',
     specialty: 'gto', style: 'TAG', skillTier: 'crusher', voice: 'technical',
-    icon: '💻', color: '#3b82f6',
+    icon: '●', color: '#3b82f6',
     vpip: 17, pfr: 14, threeBet: 8, cbet: 82, af: 3.5,
     bio: 'Software engineer + GTO nerd. Runs PioSolver sims before every session. Near-robotic frequencies.',
     strengths: ['Solver-perfect sizing', 'Balanced ranges', 'Never tilts'],
@@ -47,7 +47,7 @@ const ARENA_HORSES = [
     chatLines: ['gg', 'nh', 'ty'] },
   { name: 'Michael Torres', alias: 'MiamiMike305', location: 'Miami, FL', stakes: '1/3 to 5/10',
     specialty: 'live_reads', style: 'calling_station', skillTier: 'grinder', voice: 'street_smart',
-    icon: '🌴', color: '#22c55e',
+    icon: '●', color: '#22c55e',
     vpip: 42, pfr: 12, threeBet: 3.5, cbet: 48, af: 0.9,
     bio: 'Cuban-American from Hialeah home games. Calls everything. Never believes your bluffs. Lives for showdowns.',
     strengths: ['Live reads', 'Never folds draws', 'Catches every bluff'],
@@ -55,15 +55,15 @@ const ARENA_HORSES = [
     chatLines: ['unlucky', 'variance', 'tough spot', 'it\'ll come back'] },
   { name: 'Brandon Hayes', alias: 'Sandstorm', location: 'Phoenix, AZ', stakes: 'NL100-NL500',
     specialty: 'online', style: 'maniac', skillTier: 'reg', voice: 'casual',
-    icon: '🔥', color: '#dc2626',
+    icon: '●', color: '#dc2626',
     vpip: 52, pfr: 42, threeBet: 16, cbet: 88, af: 5.5,
     bio: 'Grinded from $10 deposits to mid-stakes. Pure aggression incarnate. Bets everything, always.',
     strengths: ['Constant pressure', 'Wide 3-bet range', 'Bluff-heavy lines'],
     exploit: 'Over-bluffs massively. Call wider, slow-play big hands, let him hang himself.',
-    chatLines: ['lol', 'nice call 🙄', 'sure', 'ok'] },
+    chatLines: ['lol', 'nice call', 'sure', 'ok'] },
   { name: 'Amanda Foster', alias: 'DenverDove', location: 'Denver, CO', stakes: '1/2 NLH',
     specialty: 'recreational', style: 'nit', skillTier: 'recreational', voice: 'friendly',
-    icon: '🐢', color: '#64748b',
+    icon: '●', color: '#64748b',
     vpip: 11, pfr: 9, threeBet: 4, cbet: 80, af: 2.0,
     bio: 'Weekend warrior. Only plays pocket pairs and AK. When she bets, she has the goods. Patient to a fault.',
     strengths: ['Patient play', 'Strong value range', 'Never pays off bad hands'],
@@ -152,7 +152,7 @@ export default function AdaptiveAIOpponent() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🐴 Train vs Club Arena Horses
+        Train vs Club Arena Horses
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>Practice against the same 300+ AI horses that play 24/7 in the Club Arena.</p>
       <p style={{ color: '#64748b', fontSize: 10, marginBottom: 14 }}>Each horse has a unique HorsePokerBrain with GTO solver integration, personality, and play style.</p>
@@ -189,7 +189,7 @@ export default function AdaptiveAIOpponent() {
           <span style={{ padding: '2px 8px', borderRadius: 4, background: `${tier.color}15`, fontSize: 10, fontWeight: 700, color: tier.color }}>
             {'★'.repeat(tier.stars)}{'☆'.repeat(5 - tier.stars)} {tier.label}
           </span>
-          <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.08)', fontSize: 9, color: '#f59e0b' }}>🎙️ {horse.voice}</span>
+          <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.08)', fontSize: 9, color: '#f59e0b' }}>{horse.voice}</span>
           <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', fontSize: 9, color: '#64748b' }}>{horse.specialty.replace('_', ' ')}</span>
         </div>
         <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>{horse.bio}</p>
@@ -198,7 +198,7 @@ export default function AdaptiveAIOpponent() {
             <span key={i} style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,0.08)', fontSize: 9, color: '#22c55e', fontWeight: 600 }}>✓ {s}</span>
           ))}
         </div>
-        <div style={{ fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.06)', padding: '4px 8px', borderRadius: 4 }}>⚠️ Exploit: {horse.exploit}</div>
+        <div style={{ fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.06)', padding: '4px 8px', borderRadius: 4 }}>Exploit: {horse.exploit}</div>
       </motion.div>
 
       {/* Poker HUD */}
@@ -259,7 +259,7 @@ export default function AdaptiveAIOpponent() {
               <span style={{ color: hand[1].includes('♥') || hand[1].includes('♦') ? '#ef4444' : '#e2e8f0' }}>{hand[1]}</span>
             </div>
             <div style={{ fontSize: 10, color: '#64748b', marginBottom: 10 }}>
-              🐴 @{horse.alias} ({style.short} / {tier.label}) opens 2.5x from BTN. Action on you (BB):
+              @{horse.alias} ({style.short} / {tier.label}) opens 2.5x from BTN. Action on you (BB):
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
               <button onClick={() => makeAction('fold')} style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Fold</button>
@@ -270,14 +270,14 @@ export default function AdaptiveAIOpponent() {
         )}
         {result && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div style={{ fontSize: 24, marginBottom: 4 }}>{result.won ? '✅' : '❌'}</div>
+            <div style={{ fontSize: 24, marginBottom: 4 }}>{result.won ? '✓' : '✕'}</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: result.won ? '#22c55e' : '#ef4444' }}>
               {result.won ? 'Won' : 'Lost'} {Math.abs(parseFloat(result.ev))} bb
             </div>
             <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>Action: {result.action.toUpperCase()}</div>
             {result.chat && (
               <div style={{ fontSize: 11, color: horse.color, fontStyle: 'italic', marginBottom: 8 }}>
-                💬 @{horse.alias}: "{result.chat}"
+                @{horse.alias}: "{result.chat}"
               </div>
             )}
             <button onClick={startHand}
@@ -311,8 +311,8 @@ export default function AdaptiveAIOpponent() {
                   <span style={{ color: '#22c55e' }}>GTO: <strong>{l.gto}%</strong></span>
                   <span style={{ color: '#64748b' }}>Dev: <strong>{Math.abs(l.freq - l.gto)}%</strong></span>
                 </div>
-                <div style={{ fontSize: 10, color: '#f59e0b' }}>🐴 Horse exploit: {l.exploit}</div>
-                <div style={{ fontSize: 10, color: '#22c55e' }}>💡 Fix: {l.fix}</div>
+                <div style={{ fontSize: 10, color: '#f59e0b' }}>Horse exploit: {l.exploit}</div>
+                <div style={{ fontSize: 10, color: '#22c55e' }}>Fix: {l.fix}</div>
               </div>
             ))}
           </motion.div>

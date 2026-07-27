@@ -1,7 +1,7 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * EV CALCULATOR — Per-Move Expected Value Computation
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Calculates the expected value (in BB) of each action at a decision node:
  *   - EV of check/bet/call/raise/fold for a given hand on a given board
@@ -10,13 +10,13 @@
  *   - Mixed strategy EV (weighted by GTO frequencies)
  *
  * EV is always expressed in big blinds (BB).
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { classifyMadeHand, classifyDraws } from './HandStrengthEngine';
 import { getPostflopStrategy, getCbetStrategy, BET_SIZES } from './PostflopStrategyEngine';
 
-// ── EV Estimation Models ─────────────────────────────────────────────────
+// ●● EV Estimation Models ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Estimate the EV of each possible action at a postflop decision node.
@@ -165,7 +165,7 @@ function _estimateFoldEquity(madeHand, street, betAmount, potSize) {
     return Math.max(0.10, Math.min(0.80, baseFold * sizeMultiplier + strengthAdjust));
 }
 
-// ── EV Loss Calculation ──────────────────────────────────────────────────
+// ●● EV Loss Calculation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate EV loss for a specific player action vs the GTO optimal action.
@@ -198,7 +198,7 @@ export function calculateEVLoss(params, playerAction) {
     };
 }
 
-// ── Mixed Strategy EV ────────────────────────────────────────────────────
+// ●● Mixed Strategy EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate the EV of a mixed strategy (playing multiple actions at GTO frequencies).
@@ -226,7 +226,7 @@ export function calculateMixedStrategyEV(actionEVs) {
     };
 }
 
-// ── Preflop EV ───────────────────────────────────────────────────────────
+// ●● Preflop EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Simple preflop EV estimate for raise/call/fold decisions.

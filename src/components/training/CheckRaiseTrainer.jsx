@@ -131,7 +131,7 @@ function CheckRaiseTrainer() {
             border: `1px solid ${userGuess === freqBucket(spot.xrFreq) ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
           }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: userGuess === freqBucket(spot.xrFreq) ? '#10b981' : '#ef4444' }}>
-              {userGuess === freqBucket(spot.xrFreq) ? '✓ Correct!' : `✗ Wrong — Answer: ${freqBucket(spot.xrFreq)}`}
+              {userGuess === freqBucket(spot.xrFreq) ? '✓ Correct!': `✕ Wrong — Answer: ${freqBucket(spot.xrFreq)}`}
             </span>
             <span style={{ marginLeft: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>X/R frequency: {spot.xrFreq}%</span>
           </div>

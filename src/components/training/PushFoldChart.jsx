@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const PUSHFOLD_RANGES = [
-  { stack: '15 BB — Button', color: '#22c55e', icon: '👑',
+  { stack: '15 BB — Button', color: '#22c55e', icon: '★',
     shoveRange: 'Any pair, A2s+, K5s+, Q8s+, J8s+, T8s+, 98s, A2o+, K9o+, QTo+, JTo',
     percentage: '~42%',
     reasoning: 'On the button with 15 BB, you only have SB and BB to get through. Wide shoving is very +EV.',
     keyHands: 'Shove K5s (61% vs calling range), shove Q8s (57%), fold 72o (28%)' },
-  { stack: '15 BB — Cutoff', color: '#3b82f6', icon: '🔪',
+  { stack: '15 BB — Cutoff', color: '#3b82f6', icon: '✕',
     shoveRange: 'Any pair, A2s+, K8s+, Q9s+, JTs, A3o+, KTo+, QJo',
     percentage: '~30%',
     reasoning: 'One more player behind than BTN. Tighten up slightly but still shove aggressively.',
     keyHands: 'Shove 55 (59% vs calling range), shove A5s (58%), fold J7s (44%)' },
-  { stack: '10 BB — Button', color: '#f59e0b', icon: '⚡',
+  { stack: '10 BB — Button', color: '#f59e0b', icon: '⌁',
     shoveRange: 'Any pair, A2s+, K2s+, Q4s+, J7s+, T7s+, 97s+, 87s, 76s, A2o+, K5o+, Q8o+, J9o+, T9o',
     percentage: '~55%',
     reasoning: 'At 10 BB, you MUST shove wide from BTN. Fold equity alone makes most hands profitable.',
     keyHands: 'Shove K2s (56% fold equity alone), shove 76s (52%), even T7s is +EV' },
-  { stack: '10 BB — UTG', color: '#ef4444', icon: '🎯',
+  { stack: '10 BB — UTG', color: '#ef4444', icon: '◆',
     shoveRange: '55+, A7s+, KTs+, QJs, ATo+, KQo',
     percentage: '~15%',
     reasoning: 'UTG with 10 BB is the tightest shove spot. 5+ players can wake up with a hand.',
     keyHands: 'Shove 66 (54%), shove ATs (60%), fold K9s (too many players behind)' },
-  { stack: '5 BB — Any Position', color: '#8b5cf6', icon: '💀',
+  { stack: '5 BB — Any Position', color: '#8b5cf6', icon: '▼',
     shoveRange: 'BTN: Any two. CO: ~70%. MP: ~45%. UTG: ~30%.',
     percentage: 'Varies by position',
     reasoning: 'At 5 BB, every orbit costs you ~30% of your stack. You cannot afford to wait.',
@@ -40,7 +40,7 @@ export default function PushFoldChart() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📋 Push/Fold Charts
+        Push/Fold Charts
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Mathematically optimal shove ranges by spot.</p>
 

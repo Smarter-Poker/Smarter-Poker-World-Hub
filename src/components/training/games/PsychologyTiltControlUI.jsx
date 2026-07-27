@@ -1,6 +1,6 @@
 /**
  * PSYCHOLOGY TILT CONTROL UI — Game-Specific Training Component
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Specialized UI for psy-003: Tilt Control
  * 
  * Features:
@@ -8,7 +8,7 @@
  * - Emotional state indicator
  * - Tilt level meter
  * - Recovery action suggestions
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

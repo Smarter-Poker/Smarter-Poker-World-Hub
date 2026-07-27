@@ -149,7 +149,7 @@ function SqueezeTrainer() {
             border: `1px solid ${guess === getCorrectBracket(spot.squeezeFreq) ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
           }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: guess === getCorrectBracket(spot.squeezeFreq) ? '#10b981' : '#ef4444' }}>
-              {guess === getCorrectBracket(spot.squeezeFreq) ? '✓ Correct!' : `✗ Answer: ${spot.squeezeFreq}%`}
+              {guess === getCorrectBracket(spot.squeezeFreq) ? '✓ Correct!': `✕ Answer: ${spot.squeezeFreq}%`}
             </span>
           </div>
         )}

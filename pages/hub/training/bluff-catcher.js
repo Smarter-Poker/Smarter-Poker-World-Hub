@@ -187,7 +187,7 @@ export default function BluffCatcherTrainer() {
             </div>
             <div style={styles.statBox}>
               <div style={styles.statLabel}>STREAK</div>
-              <div style={{ ...styles.statValue, color: 'var(--sp-accent-orange)' }}>🔥 {streak}</div>
+              <div style={{ ...styles.statValue, color: 'var(--sp-accent-orange)' }}>▲ {streak}</div>
             </div>
           </div>
         </div>

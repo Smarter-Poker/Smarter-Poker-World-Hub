@@ -30,7 +30,7 @@ export default function RestealGuide() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🔄 Re-Steal Guide
+        Re-Steal Guide
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Light 3-bets to punish wide openers and steal dead money.</p>
 
@@ -73,7 +73,7 @@ export default function RestealGuide() {
       </motion.div>
 
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>🎯 Resteal Checklist</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>Resteal Checklist</div>
         {['Opener is in late position (CO/BTN)', 'You have fold equity (they\'ll fold 50%+)', 'Your hand has blockers (Ax, Kx)', 'Stack size supports the play', 'Table image allows it (you haven\'t 3-bet recently)'].map((r, i) => (
           <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '3px 0', display: 'flex', gap: 6 }}>
             <span style={{ color: '#ef4444' }}>✓</span> {r}

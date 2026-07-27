@@ -1,5 +1,5 @@
 /**
- * 🏆 TRAINING LEADERBOARD COMPONENT
+ * TRAINING LEADERBOARD COMPONENT
  * Shows daily/weekly/all-time rankings
  */
 
@@ -43,17 +43,12 @@ export function TrainingLeaderboard({ userId, compact = false }) {
         return { background: 'rgba(255,255,255,0.1)', color: '#fff' };
     };
 
-    const getRankEmoji = (rank) => {
-        if (rank === 1) return '🥇';
-        if (rank === 2) return '🥈';
-        if (rank === 3) return '🥉';
-        return `#${rank}`;
-    };
+    const getRankEmoji = (rank) => `#${rank}`;
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h3 style={styles.title}>🏆 Leaderboard</h3>
+                <h3 style={styles.title}>Leaderboard</h3>
                 {!compact && (
                     <div style={styles.periodTabs}>
                         {PERIODS.map(p => (

@@ -1,12 +1,12 @@
 /**
  * API: Bookmark Solutions — Save/Retrieve/Delete Favorite Spots
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * POST /api/training/bookmark-solution
  *   body: { spotId, scenarioHash, action: 'save' | 'delete' }
  *
  * GET /api/training/bookmark-solution
  *   Returns all bookmarks for the authenticated user.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -14,7 +14,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
-        // ─── GET: Retrieve user's bookmarks ──────────────────────────
+        // ●●● GET: Retrieve user's bookmarks ●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (req.method === 'GET') {
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
             const { data: bookmarks, error } = await getSupabase()
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, bookmarks: bookmarks || [] });
         }
 
-        // ─── POST: Save or delete a bookmark ─────────────────────────
+        // ●●● POST: Save or delete a bookmark ●●●●●●●●●●●●●●●●●●●●●●●●●
         if (req.method === 'POST') {
             // Body size guard — only accepts spotId, scenarioHash, action, notes
             const bodySize = JSON.stringify(req.body || {}).length;

@@ -1,6 +1,6 @@
 /**
  * HeadsUpStrategyGuide — Heads-Up Play Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Complete guide to heads-up poker strategy including range adjustments,
  * positional play, and common spots.
  */

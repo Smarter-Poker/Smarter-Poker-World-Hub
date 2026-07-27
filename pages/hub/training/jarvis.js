@@ -1,8 +1,8 @@
 /**
  * Jarvis Dashboard Page
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * AI-powered training insights and personalized recommendations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
@@ -22,9 +22,9 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JARVIS-A11Y-1): SVG icon components replacing the Jarvis
-// dashboard emoji set across hero (🧠), section headings (📊 💡 🔍 🎮 💰
-// 📈), StatCard icons (🎮 🎯 🔥 🏅 📈 ⏱️ 🟢🟡🔴 trend indicators), and
-// venue annotations (🏆 best / ⚠️ worst). Same surface-specific a11y
+// dashboard emoji set across hero (◇), section headings (■  ○ ●
+// ▲), StatCard icons (● ◆ ▲ ★ ▲ ○ ●●● trend indicators), and
+// venue annotations (★ best / ▲ worst). Same surface-specific a11y
 // pattern as PR #320/#322/#324/#327-#352.
 const ICON_PROPS = {
   fill: 'none',
@@ -51,7 +51,7 @@ function TrophyIcon({ size=14 })      { return <_Svg size={size}><path d="M6 9H4
 function AlertIcon({ size=14 })       { return <_Svg size={size}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></_Svg>; }
 function ClockIcon({ size=18 })       { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
 function TrendDot({ kind, size=14 }) {
-  // green / red / yellow filled circle (replaces 🟢🔴🟡)
+  // green / red / yellow filled circle (replaces ●●●)
   const color = kind === 'green' ? 'var(--sp-accent-green)' : kind === 'red' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
@@ -146,7 +146,7 @@ export default function JarvisDashboard() {
         <div style={styles.content}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
           <div style={styles.header}>
-            {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces 🧠 hero */}
+            {/* TRAIN-JARVIS-A11Y-1: SVG brain replaces ◇ hero */}
             <div style={{ ...styles.jarvisIcon, color: 'var(--sp-accent-purple)', display: 'inline-flex', justifyContent: 'center' }} aria-hidden>
               <BrainIcon size={48} />
             </div>
@@ -187,25 +187,25 @@ export default function JarvisDashboard() {
                   <StatCard
                     label="Total Sessions"
                     value={insights?.overview?.totalSessions || 0}
-                    icon="🎮"
+                    icon="●"
                     iconKind="gamepad"
                   />
                   <StatCard
                     label="Accuracy"
                     value={`${insights?.overview?.overallAccuracy || 0}%`}
-                    icon="🎯"
+                    icon="◆"
                     iconKind="target"
                   />
                   <StatCard
                     label="Current Streak"
                     value={insights?.overview?.currentStreak || 0}
-                    icon="🔥"
+                    icon="▲"
                     iconKind="flame"
                   />
                   <StatCard
                     label="Achievements"
                     value={insights?.overview?.achievementsUnlocked || 0}
-                    icon="🏅"
+                    icon="★"
                     iconKind="medal"
                   />
                 </div>
@@ -284,16 +284,16 @@ export default function JarvisDashboard() {
                     <StatCard
                       label="Monthly P/L"
                       value={`${insights.bankroll.monthlyPL >= 0 ? '+' : ''}$${Math.abs(insights.bankroll.monthlyPL).toLocaleString()}`}
-                      icon="📈"
+                      icon="▲"
                     iconKind="trending"
                     />
                     <StatCard
                       label="Hourly Rate"
                       value={`$${insights.bankroll.hourlyRate}/hr`}
-                      icon="⏱️"
+                      icon="○"
                     iconKind="clock"
                     />
-                    <StatCard label="Win Rate" value={`${insights.bankroll.winRate}%`} icon="🎯"
+                    <StatCard label="Win Rate" value={`${insights.bankroll.winRate}%`} icon="◆"
                     iconKind="target" />
                     <StatCard
                       label="Trend"
@@ -319,7 +319,7 @@ export default function JarvisDashboard() {
                           }}
                         >
                           <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {/* TRAIN-JARVIS-A11Y-1: SVG trophy replaces 🏆 */}
+                            {/* TRAIN-JARVIS-A11Y-1: SVG trophy replaces ★ */}
                             <TrophyIcon size={12} /> Best Venue
                           </div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
@@ -341,7 +341,7 @@ export default function JarvisDashboard() {
                           }}
                         >
                           <div style={{ fontSize: 11, color: 'var(--sp-accent-red)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {/* TRAIN-JARVIS-A11Y-1: SVG alert replaces ⚠️ */}
+                            {/* TRAIN-JARVIS-A11Y-1: SVG alert replaces ▲ */}
                             <AlertIcon size={12} /> Worst Venue
                           </div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>

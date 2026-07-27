@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const SIMPLIFY_RULES = [
-  { rule: 'Replace Mixed Strategies with Pure Actions', icon: '✂️', color: '#22c55e',
+  { rule: 'Replace Mixed Strategies with Pure Actions', icon: '', color: '#22c55e',
     solver: 'Solver bets AK 62% and checks 38% on A♠7♦2♣.',
     simplified: 'Always bet AK on this board. Always check AQ. Split your range by hand, not by randomizer.',
     evLoss: '<0.5 BB/100 — almost zero EV lost from this simplification.',
     howTo: 'Take your range and split it: strong hands → always bet. Medium → always check. Air → always bet (bluff).' },
-  { rule: 'Use 2-3 Bet Sizes Max', icon: '📏', color: '#3b82f6',
+  { rule: 'Use 2-3 Bet Sizes Max', icon: '', color: '#3b82f6',
     solver: 'Solver uses 33%, 50%, 75%, 100%, 150% sizing across different boards.',
     simplified: 'Pick 2 sizes: 33% (range bet) and 75% (polar bet). Use one or the other per board.',
     evLoss: '<1 BB/100 — minimal EV loss. Simplicity > perfection in real-time.',
     howTo: 'Dry boards → 33% range bet. Wet boards → 75% with polar range. River → pot-sized when polarized.' },
-  { rule: 'Categorize Boards into 3 Types', icon: '📦', color: '#f59e0b',
+  { rule: 'Categorize Boards into 3 Types', icon: '', color: '#f59e0b',
     solver: 'Solver has unique strategy for each of 1,755 possible flops.',
     simplified: 'Group boards: (1) Dry/High = range bet. (2) Wet/Connected = check more. (3) Low = check most.',
     evLoss: '<2 BB/100 — significant simplification with minimal cost.',
     howTo: 'Before each flop, ask: Is this board dry, wet, or low? Then apply the matching template.' },
-  { rule: 'IP vs OOP Templates', icon: '🗺️', color: '#8b5cf6',
+  { rule: 'IP vs OOP Templates', icon: '', color: '#8b5cf6',
     solver: 'Solver has different strategies for every position combination.',
     simplified: 'IP: bet more often, use smaller sizes. OOP: bet less, use bigger sizes when you do bet.',
     evLoss: '<1.5 BB/100 — position-based templates cover 90% of spots.',
     howTo: 'IP after check: stab 55-65%. OOP as PFR: c-bet 35-50%. OOP as caller: mostly check.' },
-  { rule: 'River = Value or Bluff (Nothing Else)', icon: '🎯', color: '#ef4444',
+  { rule: 'River = Value or Bluff (Nothing Else)', icon: '', color: '#ef4444',
     solver: 'Solver has complex mixed strategies even on the river.',
     simplified: 'On the river: either bet for value (you want a call) or bet as a bluff (you want a fold). Never "bet for information."',
     evLoss: '<0.5 BB/100 — river polarization is very close to optimal.',
@@ -40,7 +40,7 @@ export default function SolverSimplify() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #3b82f6, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🧩 Solver Simplifier
+         Solver Simplifier
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Turn solver complexity into real-world strategy.</p>
 

@@ -1,27 +1,27 @@
 /**
  * TILT TRACKER PANEL
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Monitor and manage tilt during sessions:
  * - Real-time tilt meter with severity levels
  * - Tilt trigger identification and tracking
  * - Cool-down timer and breathing exercises
  * - Session emotion log
  * - Tilt pattern analysis over time
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useCallback } from 'react';
 
-// ═══ TILT TRIGGERS ═══
+// ●●● TILT TRIGGERS ●●●
 const TRIGGERS = [
-  { id: 'bad_beat', label: 'Bad Beat', icon: '💔', weight: 25 },
-  { id: 'cooler', label: 'Cooler', icon: '🧊', weight: 15 },
-  { id: 'suckout', label: 'Suckout', icon: '🎰', weight: 30 },
-  { id: 'missed_value', label: 'Missed Value', icon: '💸', weight: 10 },
-  { id: 'bad_bluff', label: 'Bad Bluff Caught', icon: '🎭', weight: 20 },
-  { id: 'timing', label: 'Bad Timing Tell', icon: '⏱️', weight: 8 },
-  { id: 'opponent_luck', label: 'Opponent Running Hot', icon: '🔥', weight: 18 },
-  { id: 'fatigue', label: 'Fatigue', icon: '😴', weight: 12 },
+  { id: 'bad_beat', label: 'Bad Beat', icon: '▼', weight: 25 },
+  { id: 'cooler', label: 'Cooler', icon: '◇', weight: 15 },
+  { id: 'suckout', label: 'Suckout', icon: '●', weight: 30 },
+  { id: 'missed_value', label: 'Missed Value', icon: '●', weight: 10 },
+  { id: 'bad_bluff', label: 'Bad Bluff Caught', icon: '◇', weight: 20 },
+  { id: 'timing', label: 'Bad Timing Tell', icon: '○', weight: 8 },
+  { id: 'opponent_luck', label: 'Opponent Running Hot', icon: '▲', weight: 18 },
+  { id: 'fatigue', label: 'Fatigue', icon: '·', weight: 12 },
 ];
 
 const TILT_LEVELS = [
@@ -47,7 +47,7 @@ function getTiltLevel(score) {
   return TILT_LEVELS.find(l => score >= l.range[0] && score < l.range[1]) || TILT_LEVELS[TILT_LEVELS.length - 1];
 }
 
-// ═══ TILT METER ═══
+// ●●● TILT METER ●●●
 function TiltMeter({ score }) {
   const level = getTiltLevel(score);
   return (
@@ -77,7 +77,7 @@ function TiltMeter({ score }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function TiltTrackerPanel() {
   const [tiltScore, setTiltScore] = useState(12);
   const [activeTriggers, setActiveTriggers] = useState([]);
@@ -173,7 +173,7 @@ export default function TiltTrackerPanel() {
             border: tiltScore > 30 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(59,130,246,0.2)',
             color: tiltScore > 30 ? '#22c55e' : '#3b82f6', fontSize: 12, fontWeight: 700,
           }}>
-            {tiltScore > 50 ? '🚨 COOL DOWN NOW (-15)' : tiltScore > 30 ? '🧘 Take a Breather (-15)' : '😌 Reset & Refocus (-15)'}
+            {tiltScore > 50 ? '▲ COOL DOWN NOW (-15)' : tiltScore > 30 ? '◇ Take a Breather (-15)' : '· Reset & Refocus (-15)'}
           </button>
 
           {showCoolDown && (

@@ -1,11 +1,11 @@
 /**
  * RISK ANALYZER — Variance & Ruin Simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Monte Carlo simulator mapping winrate & standard deviation to Risk of Ruin %.
  * Runs 1,000 distinct paths of 10,000 hands to calculate actual bust rates.
  *
  * Route: /hub/training/risk-analyzer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-50 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -446,7 +446,7 @@ export default function RiskAnalyzerPage() {
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 50, marginBottom: 20 }}>📉</div>
+                    <div style={{ fontSize: 50, marginBottom: 20 }}>▼</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
                       Simulate Variance
                     </div>

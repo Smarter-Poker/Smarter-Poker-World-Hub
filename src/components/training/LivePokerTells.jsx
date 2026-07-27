@@ -6,27 +6,27 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const TELLS = [
-  { tell: 'Chip Handling After Looking at Cards', icon: '🎰', color: '#22c55e',
+  { tell: 'Chip Handling After Looking at Cards', icon: '●', color: '#22c55e',
     reliable: 'Medium-High',
     strong: 'Immediately touches/plays with chips after seeing hole cards → usually a strong hand. Ready to bet.',
     weak: 'Looks at cards, then carefully places them down, no chip movement → weak/marginal hand.',
     counter: 'Good players fake-touch chips with weak hands. Weight this tell heavily for recreational players only.' },
-  { tell: 'Speech / Verbal Patterns', icon: '🗣️', color: '#ef4444',
+  { tell: 'Speech / Verbal Patterns', icon: '·', color: '#ef4444',
     reliable: 'Medium',
     strong: '"Are you sure you want to call?" or trash talk → usually strong. Trying to provoke a call.',
     weak: 'Quiet, concentrated, minimal talk → could be either. Sudden silence after talking = usually strong.',
     counter: 'Hollywood is real at live tables. Some players talk MORE with big hands, some talk LESS. Build a baseline.' },
-  { tell: 'Bet Sizing & Motion', icon: '💰', color: '#3b82f6',
+  { tell: 'Bet Sizing & Motion', icon: '●', color: '#3b82f6',
     reliable: 'High',
     strong: 'Confident, smooth bet motion with exact chips → practiced/prepared = usually strong.',
     weak: 'Hesitant bet, counting chips slowly, pushing in uncertainty → often weak or bluffing.',
     counter: 'This is one of the most reliable tells. The WAY someone bets matters more than the amount.' },
-  { tell: 'Eye Contact & Gaze', icon: '👀', color: '#f59e0b',
+  { tell: 'Eye Contact & Gaze', icon: '○', color: '#f59e0b',
     reliable: 'Medium',
     strong: 'Staring you down while waiting for your decision → usually bluffing (trying to intimidate).',
     weak: 'Looking away, avoiding eye contact, looking at phone → usually strong (doesn\'t want attention).',
     counter: 'This tell is reversed from what you\'d expect. Strength = avoidance. Weakness = confrontation.' },
-  { tell: 'Posture & Body Language', icon: '🧘', color: '#8b5cf6',
+  { tell: 'Posture & Body Language', icon: '◇', color: '#8b5cf6',
     reliable: 'Medium-High',
     strong: 'Leaning back, relaxed, still body → usually strong hand. Comfortable and confident.',
     weak: 'Leaning forward, rigid, touching face/neck → usually uncomfortable = bluffing or marginal.',
@@ -40,7 +40,7 @@ export default function LivePokerTells() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        👁️ Live Poker Tells
+        ○ Live Poker Tells
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Read physical behavior at the live table.</p>
 

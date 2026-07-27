@@ -1,6 +1,6 @@
 /**
  * 3-BET / 4-BET / SQUEEZE TRAINER — Advanced Preflop Scenarios
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * GTO Wizard-style advanced preflop trainer covering:
  *   - 3-bet ranges by position vs each opener
@@ -11,18 +11,18 @@
  *   - Positional frequency charts
  *
  * Uses solverRanges.js data for accurate GTO frequencies.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 
-// ── Constants ───────────────────────────────────────────────────────────
+// ●● Constants ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
-// ── 3-Bet Ranges by Position vs Opener ──────────────────────────────────
+// ●● 3-Bet Ranges by Position vs Opener ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const THREE_BET_RANGES = {
     'vs_UTG': {
@@ -55,7 +55,7 @@ const THREE_BET_RANGES = {
     },
 };
 
-// ── 4-Bet Ranges ────────────────────────────────────────────────────────
+// ●● 4-Bet Ranges ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const FOUR_BET_RANGES = {
     'vs_3bet_IP': {
@@ -72,7 +72,7 @@ const FOUR_BET_RANGES = {
     },
 };
 
-// ── Squeeze Ranges ──────────────────────────────────────────────────────
+// ●● Squeeze Ranges ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SQUEEZE_RANGES = {
     'btn_squeeze': {
@@ -95,7 +95,7 @@ const SQUEEZE_RANGES = {
     },
 };
 
-// ── Range Grid ──────────────────────────────────────────────────────────
+// ●● Range Grid ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RangeGrid = memo(({ range, color = '#22c55e' }) => (
     <div style={{
@@ -132,7 +132,7 @@ const RangeGrid = memo(({ range, color = '#22c55e' }) => (
     </div>
 ));
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function ThreeBetTrainer() {
     const [mode, setMode] = useState('3bet'); // '3bet' | '4bet' | 'squeeze'

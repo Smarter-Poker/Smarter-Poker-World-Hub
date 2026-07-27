@@ -1,13 +1,13 @@
 /**
  * Scene Seat — Professional Layout
- * ═══════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Clean player seats with:
  * - Small circular avatar (40px)
  * - Position label (BTN, SB, BB, UTG, MP, CO)
  * - Stack display
  * - Action tag above
  * - Hero cards BELOW hero seat (largest)
- * ═══════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';

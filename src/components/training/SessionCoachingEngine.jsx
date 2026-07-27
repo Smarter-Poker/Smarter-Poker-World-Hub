@@ -7,29 +7,29 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const COACHING_MODES = [
-  { id: 'realtime', label: 'Real-Time', icon: '⚡', color: '#ef4444', desc: 'Tips after every decision' },
-  { id: 'post', label: 'Post-Hand', icon: '📋', color: '#3b82f6', desc: 'Analysis after each hand' },
-  { id: 'session', label: 'Session Review', icon: '📊', color: '#8b5cf6', desc: 'End-of-session summary' },
+  { id: 'realtime', label: 'Real-Time', icon: '', color: '#ef4444', desc: 'Tips after every decision'},
+  { id: 'post', label: 'Post-Hand', icon: '', color: '#3b82f6', desc: 'Analysis after each hand'},
+  { id: 'session', label: 'Session Review', icon: '', color: '#8b5cf6', desc: 'End-of-session summary'},
 ];
 
 const RECENT_TIPS = [
-  { type: 'warning', icon: '⚠️', priority: 'high', street: 'Flop',
+  { type: 'warning', icon: '▲', priority: 'high', street: 'Flop',
     message: 'You check-folded Q♠T♠ on J♥9♦4♣. You have an open-ended straight draw with 8 outs.',
     advice: 'Call or check-raise with OESD. You need to defend flop with draws to avoid being exploited.',
     evImpact: '-2.3bb', hand: 'Q♠T♠' },
-  { type: 'good', icon: '✅', priority: 'low', street: 'River',
+  { type: 'good', icon: '✓', priority: 'low', street: 'River',
     message: 'Great thin value bet with A♥K♦ on K♣8♥3♠2♦7♣. Bet 40% pot and got called by K♠J♥.',
     advice: 'Perfect sizing for thin value. Smaller bet gets called by worse hands more often.',
     evImpact: '+1.8bb', hand: 'A♥K♦' },
-  { type: 'mistake', icon: '❌', priority: 'critical', street: 'Turn',
+  { type: 'mistake', icon: '✕', priority: 'critical', street: 'Turn',
     message: 'You called a pot-sized turn bet with 8♦7♦ on A♣K♥5♠2♦. No draw, no pair, no equity.',
     advice: 'This is a pure fold. You have zero equity against any value range. Don\'t call "to see" — fold immediately.',
     evImpact: '-8.5bb', hand: '8♦7♦' },
-  { type: 'tip', icon: '💡', priority: 'medium', street: 'Preflop',
+  { type: 'tip', icon: '', priority: 'medium', street: 'Preflop',
     message: 'You\'ve been opening 2x from BTN for the last 15 hands. Opponents may start 3-betting light.',
     advice: 'Mix in some 2.5x and 3x opens to keep opponents guessing. Vary your sizing with range.',
     evImpact: '0', hand: 'General' },
-  { type: 'pattern', icon: '📈', priority: 'medium', street: 'Multi',
+  { type: 'pattern', icon: '', priority: 'medium', street: 'Multi',
     message: 'Pattern detected: You\'re c-betting 88% of flops. GTO frequency is ~55-65% depending on position.',
     advice: 'Check back more medium-strength hands. Your c-bet range is too wide and unbalanced.',
     evImpact: '-1.2bb/hand', hand: 'Pattern' },
@@ -70,7 +70,7 @@ export default function SessionCoachingEngine() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #22c55e, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎓 Session Coach
+         Session Coach
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 14 }}>Real-time coaching engine analyzing every decision. Learn while you play.</p>
 
@@ -134,7 +134,7 @@ export default function SessionCoachingEngine() {
                 color: tip.evImpact.startsWith('-') ? '#ef4444' : tip.evImpact === '0' ? '#64748b' : '#22c55e' }}>{tip.evImpact}</span>
             </div>
             <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{tip.message}</div>
-            <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>💡 {tip.advice}</div>
+            <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}> {tip.advice}</div>
           </motion.div>
         ))}
       </div>

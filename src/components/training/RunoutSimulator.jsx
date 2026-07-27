@@ -1,13 +1,13 @@
 /**
  * RUNOUT SIMULATOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style runout analysis:
  * - See how strategy changes on every possible turn/river card
  * - Card-by-card frequency heatmap
  * - Best/worst runout cards for your range
  * - EV shift per card
  * - Board texture classification per runout
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
@@ -20,7 +20,7 @@ const SUITS = [
   { s: '♣', color: '#22c55e' },
 ];
 
-// ═══ FLOP PRESETS ═══
+// ●●● FLOP PRESETS ●●●
 const FLOP_PRESETS = [
   { label: 'A♠ K♥ 7♦', cards: ['A♠','K♥','7♦'], texture: 'Dry Broadway' },
   { label: 'Q♣ J♠ T♥', cards: ['Q♣','J♠','T♥'], texture: 'Connected' },
@@ -30,7 +30,7 @@ const FLOP_PRESETS = [
   { label: '9♥ 8♥ 6♦', cards: ['9♥','8♥','6♦'], texture: 'Wet Connected' },
 ];
 
-// ═══ GENERATE RUNOUT DATA ═══
+// ●●● GENERATE RUNOUT DATA ●●●
 function generateRunoutData(flop) {
   const cards = [];
   const flopRanks = flop.cards.map(c => c[0]);
@@ -116,7 +116,7 @@ function getHeatColor(betFreq) {
   return 'rgba(59,130,246,0.5)';
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function RunoutSimulator() {
   const [selectedFlop, setSelectedFlop] = useState(0);
   const [selectedCard, setSelectedCard] = useState(null);

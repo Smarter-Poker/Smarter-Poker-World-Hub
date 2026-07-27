@@ -1,21 +1,21 @@
 /**
  * STRATEGY COMPARISON
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style side-by-side strategy comparison:
  * - Compare IP vs OOP strategies on same board
  * - Compare SRP vs 3-Bet pot strategies
  * - Compare different positions (BTN vs CO, etc.)
  * - Visual diff highlighting frequency differences
  * - EV comparison across scenarios
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ RANKS & SUITS ═══
+// ●●● RANKS & SUITS ●●●
 const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 
-// ═══ COMPARISON PRESETS ═══
+// ●●● COMPARISON PRESETS ●●●
 const COMPARISON_PRESETS = [
   { id: 'ip_vs_oop', label: 'IP vs OOP', desc: 'BTN c-bet strategy vs BB facing c-bet', leftLabel: 'BTN (IP)', rightLabel: 'BB (OOP)' },
   { id: 'srp_vs_3bp', label: 'SRP vs 3-Bet Pot', desc: 'How strategy shifts in 3-bet pots', leftLabel: 'SRP', rightLabel: '3-Bet Pot' },
@@ -25,7 +25,7 @@ const COMPARISON_PRESETS = [
   { id: 'hu_vs_mw', label: 'Heads-Up vs Multiway', desc: 'How multiway changes ranges', leftLabel: 'Heads-Up', rightLabel: '3-Way' },
 ];
 
-// ═══ GENERATE STRATEGY GRID ═══
+// ●●● GENERATE STRATEGY GRID ●●●
 function generateStrategy(preset, side) {
   const grid = [];
   for (let r = 0; r < 13; r++) {
@@ -103,7 +103,7 @@ function generateStrategy(preset, side) {
   return grid;
 }
 
-// ═══ CELL COLOR ═══
+// ●●● CELL COLOR ●●●
 function getCellColor(cell, mode) {
   if (mode === 'bet') {
     const v = cell.bet + cell.raise;
@@ -123,7 +123,7 @@ function getDiffColor(diff) {
   return 'rgba(34,197,94,0.15)';
 }
 
-// ═══ MINI GRID COMPONENT ═══
+// ●●● MINI GRID COMPONENT ●●●
 function StrategyGrid({ grid, label, mode, otherGrid, showLabels }) {
   const [hovered, setHovered] = useState(null);
 
@@ -195,7 +195,7 @@ function StrategyGrid({ grid, label, mode, otherGrid, showLabels }) {
   );
 }
 
-// ═══ DIFF SUMMARY ═══
+// ●●● DIFF SUMMARY ●●●
 function DiffSummary({ leftGrid, rightGrid }) {
   let totalDiff = 0, maxDiff = 0, maxHand = '', bigDiffs = 0;
   const diffs = [];
@@ -269,7 +269,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function StrategyComparison() {
   const [selectedPreset, setSelectedPreset] = useState('ip_vs_oop');
   const [viewMode, setViewMode] = useState('side'); // side | diff | overlay

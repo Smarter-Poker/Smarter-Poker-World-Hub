@@ -66,7 +66,7 @@ export default function EVComparisonTool() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        ⚖️ EV Comparison Tool
+        ◇ EV Comparison Tool
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Compare EV of every action at any decision node. See regret for suboptimal choices.</p>
 

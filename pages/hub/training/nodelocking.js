@@ -1,5 +1,5 @@
 /**
- * 🔒 NODELOCKING TOOL — Exploitative Strategy Builder
+ * NODELOCKING TOOL — Exploitative Strategy Builder
  * ═══════════════════════════════════════════════════════════════════════════
  * Lock villain strategies at decision nodes to compute optimal counter-strategies.
  * Pre-built profiles: Nit, TAG, LAG, Calling Station, Maniac.
@@ -28,7 +28,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 const VILLAIN_PROFILES = {
   gto: {
     name: 'GTO Baseline',
-    icon: '🎯',
+    icon: '',
     color: 'var(--sp-accent-green)',
     desc: 'Balanced, unexploitable strategy',
     tendencies: {
@@ -43,7 +43,7 @@ const VILLAIN_PROFILES = {
   },
   nit: {
     name: 'Nit',
-    icon: '🐢',
+    icon: '',
     color: 'var(--sp-fg-muted)',
     desc: 'Very tight, only plays premium hands. Folds too much.',
     tendencies: {
@@ -58,7 +58,7 @@ const VILLAIN_PROFILES = {
   },
   tag: {
     name: 'TAG',
-    icon: '🦅',
+    icon: '',
     color: 'var(--sp-accent-blue)',
     desc: 'Tight-Aggressive. Solid but predictable ranges.',
     tendencies: {
@@ -73,7 +73,7 @@ const VILLAIN_PROFILES = {
   },
   lag: {
     name: 'LAG',
-    icon: '🔥',
+    icon: '▲',
     color: 'var(--sp-accent-amber)',
     desc: 'Loose-Aggressive. Wide ranges, lots of aggression.',
     tendencies: {
@@ -88,7 +88,7 @@ const VILLAIN_PROFILES = {
   },
   callingStation: {
     name: 'Calling Station',
-    icon: '📞',
+    icon: '',
     color: 'var(--sp-accent-purple)',
     desc: 'Calls too much, rarely raises or folds. Passive player.',
     tendencies: {
@@ -103,7 +103,7 @@ const VILLAIN_PROFILES = {
   },
   maniac: {
     name: 'Maniac',
-    icon: '💥',
+    icon: '',
     color: 'var(--sp-accent-red)',
     desc: 'Ultra-aggressive. Bets and raises with everything.',
     tendencies: {
@@ -257,7 +257,7 @@ function DecisionNode({ action, freq, isLocked, isVillain, depth = 0 }) {
           fontSize: 8,
         }}
       >
-        {isLocked ? '🔒' : ''}
+        {isLocked ? '': ''}
       </div>
       <div
         style={{
@@ -710,7 +710,7 @@ export default function NodelockingPage() {
                 color: showMyProfiles ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
               }}
             >
-              📁 My Profiles ({savedProfiles.length})
+               My Profiles ({savedProfiles.length})
             </button>
             {customTendencies && (
               <button
@@ -726,7 +726,7 @@ export default function NodelockingPage() {
                   color: '#fff',
                 }}
               >
-                💾 Save Custom Profile
+                 Save Custom Profile
               </button>
             )}
             {profileSaveStatus === 'saved' && (
@@ -887,7 +887,7 @@ export default function NodelockingPage() {
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}>
-              🏛️ Locked Tendencies{' '}
+               Locked Tendencies{''}
               <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 400 }}>
                 (drag sliders to customize)
               </span>
@@ -1058,13 +1058,13 @@ export default function NodelockingPage() {
                 boxShadow: '0 4px 20px rgba(239,68,68,0.2)',
               }}
             >
-              💾{' '}
+              {''}
               {saveStatus === 'saving'
                 ? 'Saving...'
                 : saveStatus === 'saved'
-                  ? '✅ Saved!'
+                  ? '✓ Saved!'
                   : saveStatus === 'error'
-                    ? '❌ Save Failed'
+                    ? '✕ Save Failed'
                     : 'Save Analysis to Database'}
             </motion.button>
             {saveStatus === 'saved' && (

@@ -104,7 +104,7 @@ function OverbetStrategyTrainer() {
           <div>
             <div style={{ padding: 10, borderRadius: 8, marginBottom: 10, textAlign: 'center', background: choice === spot.correct ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${choice === spot.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: choice === spot.correct ? '#10b981' : '#ef4444' }}>
-                {choice === spot.correct ? '✓ Correct!' : `✗ Optimal: ${spot.correct === 'overbet' ? 'OVERBET' : 'Normal sizing'}`}
+                {choice === spot.correct ? '✓ Correct!': `✕ Optimal: ${spot.correct === 'overbet'? 'OVERBET': 'Normal sizing'}`}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>

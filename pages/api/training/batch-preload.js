@@ -1,9 +1,9 @@
 /**
- * 🎰 BATCH QUESTION PRE-LOADER — API Endpoint
- * ═══════════════════════════════════════════════════════════════════════════
+ * BATCH QUESTION PRE-LOADER — API Endpoint
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Fetches 25 questions for a game level at once
  * Returns array of questions for instant client-side serving
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -18,7 +18,7 @@ import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Deterministic hash for seeded fallback data (avoids Math.random in data gen) ──
+// ●● Deterministic hash for seeded fallback data (avoids Math.random in data gen) ●●
 function hashSeed(str) {
     let h = 0;
     for (let i = 0; i < (str || '').length; i++) {
@@ -27,7 +27,7 @@ function hashSeed(str) {
     return Math.abs(h);
 }
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -57,10 +57,10 @@ export default async function handler(req, res) {
 
       const {
           gameId: rawGameId, level = '1', count = '25',
-          // ═══ PHASE 15: Weak-spot targeting params ═══
+          // ●●● PHASE 15: Weak-spot targeting params ●●●
           targetPositions: rawTargetPositions,  // Comma-separated: "BB,SB"
           targetStreet: rawTargetStreet,         // "flop", "turn", "river"
-          // ═══ PHASE 19: Difficulty selector ═══
+          // ●●● PHASE 19: Difficulty selector ●●●
           difficulty: rawDifficulty,             // "beginner", "standard", "expert"
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
           const questionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
           const gameLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
 
-          // ═══ PHASE 15: Parse targeting params ═══
+          // ●●● PHASE 15: Parse targeting params ●●●
           const targetPositions = rawTargetPositions
               ? rawTargetPositions.split(',').map(p => p.trim().toUpperCase()).filter(p => ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB', 'HJ', 'UTG+1', 'MP+1'].includes(p))
               : null;
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           const targetStreet = rawTargetStreet && validStreets.includes(rawTargetStreet.toLowerCase())
               ? rawTargetStreet.toLowerCase()
               : null;
-          // ═══ PHASE 19: Difficulty mapping ═══
+          // ●●● PHASE 19: Difficulty mapping ●●●
           const validDifficulties = ['beginner', 'standard', 'expert'];
           const difficulty = rawDifficulty && validDifficulties.includes(rawDifficulty.toLowerCase())
               ? rawDifficulty.toLowerCase()
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
           // shuffle meant Postgres returned the same first-N rows every call —
           // users looped the identical 15 questions per level forever. Over-
           // fetch the pool, then shuffle, then slice.
-          // ═══ SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ═══
+          // ●●● SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ●●●
           let seenIds = new Set();
           try {
               const { data: seen } = await getSupabase()
@@ -118,10 +118,10 @@ export default async function handler(req, res) {
               // Don't return 500 — fall through to solver engine
           }
 
-          // ═══════════════════════════════════════════════════════════════════
+          // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
           // generate LIVE questions from DeterministicGTOEngine (187k+ records)
-          // ═══════════════════════════════════════════════════════════════════
+          // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           // Filter out already-seen questions, but never drop below the
           // requested count — repeats beat 404s.
           const rows = (questions || []).slice(0, questionCount * 3);
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
               const pioConfig = pioQueryService.getGameConfig(gameId);
               const gameCfg = getGameCfg(gameId);
 
-              // ═══ SOLVER SCENARIO MAP: Route game to correct solver levels/spots ═══
+              // ●●● SOLVER SCENARIO MAP: Route game to correct solver levels/spots ●●●
               const scenarioConfig = getGameScenarioConfig(gameId);
 
               if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
@@ -156,12 +156,12 @@ export default async function handler(req, res) {
                           level: gameLevel,
                           count: needed,
                           gameConfig: pioConfig,
-                          // ═══ PHASE 15: Pass targeting hints ═══
+                          // ●●● PHASE 15: Pass targeting hints ●●●
                           targetPositions: targetPositions || (scenarioConfig?.positions) || undefined,
                           targetStreet: targetStreet || undefined,
-                          // ═══ PHASE 19: Difficulty filter ═══
+                          // ●●● PHASE 19: Difficulty filter ●●●
                           difficulty: difficulty || 'standard',
-                          // ═══ SOLVER SCENARIO MAP: Inject solver routing ═══
+                          // ●●● SOLVER SCENARIO MAP: Inject solver routing ●●●
                           scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
                           spotTypes: scenarioConfig?.spotTypes || undefined,
                           stackDepths: scenarioConfig?.stackDepths || undefined,
@@ -171,7 +171,7 @@ export default async function handler(req, res) {
                           console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
                       }
                   } catch (solverErr) {
-                      console.warn('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
+                      console.warn('[BatchPreload] ▲ Solver engine failed:', solverErr.message);
                   }
               } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
                   // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
                           console.debug(`[BatchPreload] Engine generated ${batch.length} scenario questions for ${gameId}`);
                       }
                   } catch (scenarioErr) {
-                      console.warn('[BatchPreload] ⚠️ Scenario engine failed:', scenarioErr.message);
+                      console.warn('[BatchPreload] ▲ Scenario engine failed:', scenarioErr.message);
                   }
               }
           }
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
           const allQuestions = [...cachedQuestions, ...solverQuestions];
 
           if (allQuestions.length === 0) {
-              // ═══ Engine-only — no AI fallback. Return 404 if no solver data exists. ═══
+              // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
               console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} — engines returned empty.`);
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
@@ -217,7 +217,7 @@ export default async function handler(req, res) {
               [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
 
-          // ═══ 2026-07-19 ENGINE AUDIT FIX — ANSWER-CLASS BALANCE ═══
+          // ●●● 2026-07-19 ENGINE AUDIT FIX — ANSWER-CLASS BALANCE ●●●
           // Live sampling showed 73% of served questions graded "Check" as
           // correct — a user who always checks passes levels. When the pool
           // allows it, interleave passive-answer and aggressive-answer
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
               batch = shuffled.slice(0, questionCount);
           }
 
-          // ═══ ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ═══
+          // ●●● ENRICH ALL CACHED QUESTIONS WITH FULL GTO WIZARD DATA ●●●
           const enrichedBatch = batch.map(q => {
               const qData = q.question_data;
               if (!qData) return null; // Skip null entries
@@ -294,7 +294,7 @@ export default async function handler(req, res) {
                   }
               }
 
-              // 2.5 ═══ OPTIONS NORMALIZATION (GTO WIZARD STYLE) ═══
+              // 2.5 ●●● OPTIONS NORMALIZATION (GTO WIZARD STYLE) ●●●
               // Normalize options to object format but do NOT blindly pad.
               // Trust solver data — DeterministicGTOEngine already provides
               // context-appropriate actions. Only normalize format here.
@@ -419,7 +419,7 @@ export default async function handler(req, res) {
                       scenario.street = qData.boardCards?.length === 3 ? 'flop'
                           : qData.boardCards?.length === 4 ? 'turn' : 'river';
                   }
-                  // ═══ SANITIZE: Clamp pot/stacks to prevent absurd values ═══
+                  // ●●● SANITIZE: Clamp pot/stacks to prevent absurd values ●●●
                   // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
                   scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);
                   scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 500);

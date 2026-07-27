@@ -1,6 +1,6 @@
 /**
  * EarlyPositionGuide — Early Position (UTG/UTG+1) Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Comprehensive guide for playing from early position in 6-max and 9-max.
  */
 import React, { useState } from 'react';

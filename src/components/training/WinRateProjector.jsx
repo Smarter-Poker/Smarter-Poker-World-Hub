@@ -1,18 +1,18 @@
 /**
  * WIN RATE PROJECTOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Project long-term win rates and earnings:
  * - Win rate input with confidence intervals
  * - Hourly/monthly/yearly earnings projection
  * - Variance and standard deviation
  * - Required sample size for significance
  * - Stake recommendation based on bankroll
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ STAKE LEVELS ═══
+// ●●● STAKE LEVELS ●●●
 const STAKES = [
   { label: '$0.25/0.50', bbSize: 0.50, name: 'NL50' },
   { label: '$0.50/1.00', bbSize: 1.00, name: 'NL100' },
@@ -23,7 +23,7 @@ const STAKES = [
   { label: '$25/50', bbSize: 50.00, name: 'NL5000' },
 ];
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function WinRateProjector() {
   const [winRate, setWinRate] = useState(5.0);
   const [stdDev, setStdDev] = useState(80);

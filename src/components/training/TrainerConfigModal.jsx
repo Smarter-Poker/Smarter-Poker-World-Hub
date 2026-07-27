@@ -1,6 +1,6 @@
 /**
  * TRAINER CONFIG MODAL — GTO Wizard-Style Training Setup
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Lets users configure their training session before starting:
  * - Game Type: Cash / MTT / Spins
  * - Position: BTN / SB / BB / CO / HJ / UTG / MP
@@ -8,7 +8,7 @@
  * - Street Focus: Flop / Turn / River / All
  *
  * The config gets passed to DeterministicGTOEngine to filter solver data.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -51,10 +51,10 @@ const STACK_DEPTHS = {
 };
 
 const STREETS = [
-    { id: 'all', label: 'All Streets', icon: '🃏', desc: 'Random street each hand' },
-    { id: 'flop', label: 'Flop', icon: '🟢', desc: '3 community cards' },
-    { id: 'turn', label: 'Turn', icon: '🟡', desc: '4 community cards' },
-    { id: 'river', label: 'River', icon: '🔴', desc: '5 community cards' },
+    { id: 'all', label: 'All Streets', icon: '◇', desc: 'Random street each hand' },
+    { id: 'flop', label: 'Flop', icon: '●', desc: '3 community cards' },
+    { id: 'turn', label: 'Turn', icon: '●', desc: '4 community cards' },
+    { id: 'river', label: 'River', icon: '●', desc: '5 community cards' },
 ];
 
 // GTO Wizard Difficulty Modes
@@ -496,7 +496,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                 {stackDepth} BB
                             </span>
                             <span style={styles.summaryBadge}>
-                                {street === 'all' ? '🃏 All' : STREETS.find(s => s.id === street)?.icon + ' ' + street.charAt(0).toUpperCase() + street.slice(1)}
+                                {street === 'all' ? '◇ All' : STREETS.find(s => s.id === street)?.icon + ' ' + street.charAt(0).toUpperCase() + street.slice(1)}
                             </span>
                             <span style={styles.summaryBadge}>
                                 {questionsCount} hands
@@ -517,9 +517,9 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // STYLES
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 const styles = {
     overlay: {
         position: 'fixed',

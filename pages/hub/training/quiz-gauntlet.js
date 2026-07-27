@@ -41,7 +41,7 @@ function genPotOdds() {
   const answer = Math.round((bet / (pot + 2 * bet)) * 100);
   return {
     topic: 'Pot Odds',
-    icon: '📐',
+    icon: '',
     color: 'var(--sp-accent-cyan)',
     answer,
     unit: '%',
@@ -57,7 +57,7 @@ function genMDF() {
   const answer = Math.round((pot / (pot + bet)) * 100);
   return {
     topic: 'MDF',
-    icon: '🛡️',
+    icon: '',
     color: 'var(--sp-accent-purple)',
     answer,
     unit: '%',
@@ -74,7 +74,7 @@ function genEV() {
   const answer = Math.round((eq / 100) * (pot + bet) - ((100 - eq) / 100) * bet);
   return {
     topic: 'EV of Call',
-    icon: '⚡',
+    icon: '',
     color: 'var(--sp-accent-green)',
     answer,
     unit: ' chips',
@@ -90,7 +90,7 @@ function genBreakEven() {
   const answer = Math.round((bet / (pot + 2 * bet)) * 100);
   return {
     topic: 'Break-Even',
-    icon: '⚖️',
+    icon: '',
     color: 'var(--sp-accent-orange)',
     answer,
     unit: '%',
@@ -311,7 +311,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                 fontSize: 22,
               }}
             >
-              ⚡
+              
             </div>
             <div>
               <h1
@@ -371,10 +371,10 @@ export default function QuizGauntlet({ onExit } = {}) {
                     }}
                   >
                     {[
-                      { i: '📐', t: 'Pot Odds' },
-                      { i: '🛡️', t: 'MDF' },
-                      { i: '⚡', t: 'EV of Call' },
-                      { i: '⚖️', t: 'Break-Even' },
+                      { i: '', t: 'Pot Odds'},
+                      { i: '', t: 'MDF'},
+                      { i: '', t: 'EV of Call'},
+                      { i: '', t: 'Break-Even'},
                     ].map((item) => (
                       <div
                         key={item.t}
@@ -406,7 +406,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                       ...C.orb,
                     }}
                   >
-                    START GAUNTLET ⚡
+                    START GAUNTLET
                   </button>
                 </div>
               </motion.div>
@@ -553,7 +553,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                       borderLeft: `3px solid ${q.color}60`,
                     }}
                   >
-                    💡 {q.hint}
+                     {q.hint}
                   </div>
                 </div>
 
@@ -719,7 +719,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                         Q{i + 1} · {h.topic}
                       </span>
                       <span style={{ color: h.isCorrect ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)', fontWeight: 800 }}>
-                        {h.isCorrect ? `✅ +${h.score}pt` : '❌ 0pt'}
+                        {h.isCorrect ? `✓ +${h.score}pt`: '✕ 0pt'}
                       </span>
                     </div>
                   ))}
@@ -741,7 +741,7 @@ export default function QuizGauntlet({ onExit } = {}) {
                       ...C.orb,
                     }}
                   >
-                    PLAY AGAIN ⚡
+                    PLAY AGAIN
                   </button>
                   <button
                     onClick={() => (onExit ? onExit() : router.push('/hub/training'))}

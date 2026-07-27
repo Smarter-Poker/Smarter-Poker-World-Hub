@@ -129,7 +129,7 @@ function OverBetTrainer() {
               border: `1px solid ${quizGuess === spot.sizing ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
             }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: quizGuess === spot.sizing ? '#10b981' : '#ef4444' }}>
-                {quizGuess === spot.sizing ? '✓ Correct!' : `✗ Optimal: ${spot.sizing}`}
+                {quizGuess === spot.sizing ? '✓ Correct!': `✕ Optimal: ${spot.sizing}`}
               </span>
               <span style={{ marginLeft: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>EV: {spot.evGain}</span>
             </div>

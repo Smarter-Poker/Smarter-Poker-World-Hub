@@ -1,6 +1,6 @@
 /**
  * SessionSetupModal — TRAIN-SETUP-MODAL-1
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Greenfield component originally tracked in issue #288. Mounts between a
  * game-tile click on /hub/training and the actual GodModeArena render.
@@ -32,7 +32,7 @@
  *   - All option pills are real <button> elements with aria-pressed.
  *
  * Author: shipped 2026-05-10 (issue #288 closed).
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';

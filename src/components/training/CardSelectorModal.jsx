@@ -1,10 +1,10 @@
 /**
- * 🃏 CardSelectorModal — GTO Wizard-Style Runout Card Picker
- * ═══════════════════════════════════════════════════════════════════════════
+ * CardSelectorModal — GTO Wizard-Style Runout Card Picker
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Modal overlay showing a 4×13 card grid (suits × ranks).
  * Dead cards (on board / hero hand) are grayed out and unclickable.
  * Used for navigating to the next street in the Game Tree Explorer.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useMemo } from 'react';

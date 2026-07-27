@@ -1,6 +1,6 @@
 /**
  * PolarizationTrainer — GTO Wizard-Style Range Polarization Trainer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Understand and practice polarized vs merged vs linear betting strategies.
  * Visual range breakdowns showing value, bluff, and check portions.
  */

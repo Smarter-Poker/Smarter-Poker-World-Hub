@@ -1,6 +1,6 @@
 /**
  * StackOffRangeCalc — Stack-Off Range Calculator by SPR
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Calculate which hands to stack off with at different SPR levels.
  * Shows commitment thresholds and hand categories.
  */

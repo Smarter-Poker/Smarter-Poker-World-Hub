@@ -1,6 +1,6 @@
 /**
  * RangeVsRangeSim — Range vs Range Equity Simulator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Compare equity of common range vs range matchups.
  * Shows how ranges interact on different board textures.
  */

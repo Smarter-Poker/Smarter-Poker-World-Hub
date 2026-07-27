@@ -133,7 +133,7 @@ function ThinValueTrainer() {
               border: `1px solid ${userChoice === spot.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
             }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: userChoice === spot.correct ? '#10b981' : '#ef4444' }}>
-                {userChoice === spot.correct ? '✓ Correct!' : `✗ Optimal: ${spot.action}`}
+                {userChoice === spot.correct ? '✓ Correct!': `✕ Optimal: ${spot.action}`}
               </div>
             </div>
 

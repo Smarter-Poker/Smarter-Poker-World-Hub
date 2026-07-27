@@ -1,6 +1,6 @@
 /**
  * PotGeometryVisualizer — Pot Growth Across Streets
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visualize how pot size grows geometrically across flop/turn/river.
  * Shows how bet sizing compounds and relates to stack commitment.
  */

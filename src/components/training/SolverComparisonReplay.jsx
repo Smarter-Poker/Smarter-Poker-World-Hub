@@ -1,6 +1,6 @@
 /**
  * SOLVER COMPARISON REPLAY — GTO Wizard-Style Hand Review with Solver Overlay
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Replays any hand from session history with a split-view showing:
  *   - What you did at each decision point vs what the solver recommends
@@ -11,7 +11,7 @@
  *
  * Modeled after GTO Wizard's "Review" mode — the single most important
  * post-session learning tool in competitive poker training.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo, useCallback, useEffect, memo } from 'react';
@@ -21,7 +21,7 @@ import { classifyMadeHand, classifyDraws } from '../../engines/HandStrengthEngin
 import { analyzeBoard } from '../../engines/BoardTextureEngine';
 import { explainStrategy, explainStrategyBrief } from '../../engines/StrategyExplainer';
 
-// ── Card Component ──────────────────────────────────────────────────────
+// ●● Card Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const SuitSymbol = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SuitColor = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
@@ -68,7 +68,7 @@ const PokerCard = memo(({ card, size = 'md', faceDown = false, isNew = false }) 
     );
 });
 
-// ── EV Bar ──────────────────────────────────────────────────────────────
+// ●● EV Bar ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }) => {
     const maxAbsEV = Math.max(Math.abs(bestEV), 2);
@@ -145,7 +145,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
     );
 });
 
-// ── Street Label ────────────────────────────────────────────────────────
+// ●● Street Label ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const StreetColors = {
     preflop: { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: 'rgba(167,139,250,0.25)' },
@@ -154,7 +154,7 @@ const StreetColors = {
     river: { bg: 'rgba(248,113,113,0.12)', color: '#f87171', border: 'rgba(248,113,113,0.25)' },
 };
 
-// ── Decision Node ───────────────────────────────────────────────────────
+// ●● Decision Node ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
     const handData = hand?.handData || hand || {};
@@ -406,7 +406,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
     );
 });
 
-// ── Main Component ──────────────────────────────────────────────────────
+// ●● Main Component ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function SolverComparisonReplay({ handHistory = [] }) {
     const [currentHandIndex, setCurrentHandIndex] = useState(0);
@@ -470,7 +470,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
             border: '1px solid rgba(100,116,139,0.15)',
             overflow: 'hidden',
         }}>
-            {/* ═══ Header ═══ */}
+            {/* ●●● Header ●●● */}
             <div style={{
                 padding: '12px 16px',
                 borderBottom: '1px solid rgba(100,116,139,0.12)',
@@ -512,7 +512,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                 </div>
             </div>
 
-            {/* ═══ Cumulative EV Timeline ═══ */}
+            {/* ●●● Cumulative EV Timeline ●●● */}
             <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(100,116,139,0.08)' }}>
                 <svg viewBox="0 0 400 40" style={{ width: '100%', height: 40, display: 'block' }}>
                     {/* Background */}
@@ -551,7 +551,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                 </svg>
             </div>
 
-            {/* ═══ Mistakes Filter ═══ */}
+            {/* ●●● Mistakes Filter ●●● */}
             <div style={{
                 padding: '6px 16px',
                 borderBottom: '1px solid rgba(100,116,139,0.08)',
@@ -585,10 +585,10 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                 </button>
             </div>
 
-            {/* ═══ Content ═══ */}
+            {/* ●●● Content ●●● */}
             <div style={{ padding: 16 }}>
                 {viewMode === 'walkthrough' ? (
-                    /* ──── WALKTHROUGH MODE ──── */
+                    /* ●●●● WALKTHROUGH MODE ●●●● */
                     <>
                         {/* Navigation */}
                         <div style={{
@@ -672,7 +672,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                         </AnimatePresence>
                     </>
                 ) : (
-                    /* ──── OVERVIEW MODE ──── */
+                    /* ●●●● OVERVIEW MODE ●●●● */
                     <div style={{ maxHeight: 500, overflowY: 'auto' }}>
                         {filteredHands.map((hand, i) => (
                             <DecisionNode

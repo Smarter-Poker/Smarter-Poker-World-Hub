@@ -6,19 +6,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const LIMP_SCENARIOS = [
-  { title: 'SB Complete', verdict: 'OFTEN ✅', color: '#22c55e',
+  { title: 'SB Complete', verdict: 'OFTEN ✓', color: '#22c55e',
     hands: ['Suited connectors (54s-98s)', 'Small pairs (22-66)', 'Suited Ax (A2s-A5s)', 'Suited broadways'],
     reason: 'Closing the action for 0.5 BB. Getting 3:1 odds. Complete wide and play post-flop.',
     tip: 'Complete ~60-70% of hands from SB in a limped pot. You get amazing odds.' },
-  { title: 'BB vs Limp', verdict: 'CHECK ✅', color: '#3b82f6',
+  { title: 'BB vs Limp', verdict: 'CHECK ✓', color: '#3b82f6',
     hands: ['Literally anything you\'re dealt', 'Check and see a free flop', 'Raise strong hands to ISO'],
     reason: 'Free flop from the BB. Only raise to isolate limpers with premium hands.',
     tip: 'Raise to 4-5x + 1x per limper with AA-TT, AQ+. Check everything else.' },
-  { title: 'Overlimp IP', verdict: 'SOMETIMES ✅', color: '#f59e0b',
+  { title: 'Overlimp IP', verdict: 'SOMETIMES ✓', color: '#f59e0b',
     hands: ['Small pairs (22-77) for set-mining', 'Suited connectors IP', 'Suited aces'],
     reason: 'When 2+ limpers, overlimping IP gives great implied odds. You invest 1 BB to win 5+.',
     tip: 'Only overlimp in position. OOP overlimping is a leak.' },
-  { title: 'Open Limp', verdict: 'ALMOST NEVER ❌', color: '#ef4444',
+  { title: 'Open Limp', verdict: 'ALMOST NEVER ✕', color: '#ef4444',
     hands: ['Maybe from SB in very passive games', 'Tournament with antes (limp-shove)', 'Never in cash games as a default'],
     reason: 'Open-limping is weak. You lose initiative and let blinds see cheap flops against you.',
     tip: 'If your hand is good enough to play, it\'s good enough to raise. Period.' },
@@ -31,7 +31,7 @@ export default function PreFlopLimpStrategy() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        👣 Pre-Flop Limp Strategy
+         Pre-Flop Limp Strategy
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Limping isn't always bad — know when it's profitable.</p>
 
@@ -58,7 +58,7 @@ export default function PreFlopLimpStrategy() {
         ))}
 
         <div style={{ marginTop: 12, background: `${scenario.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${scenario.color}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: scenario.color }}>💡 Pro Tip</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: scenario.color }}> Pro Tip</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.tip}</div>
         </div>
       </motion.div>

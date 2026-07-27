@@ -1,18 +1,18 @@
 /**
  * EV TREE VISUALIZER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style EV decision tree:
  * - Visual tree showing all decision points
  * - EV values at each node with color coding
  * - Optimal vs suboptimal path highlighting
  * - Collapsible branches
  * - Strategy frequencies at each node
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ PRESET SCENARIOS ═══
+// ●●● PRESET SCENARIOS ●●●
 const SCENARIOS = [
   {
     id: 'btn_cbet',
@@ -143,7 +143,7 @@ const SCENARIOS = [
   },
 ];
 
-// ═══ EV COLOR ═══
+// ●●● EV COLOR ●●●
 function getEVColor(ev) {
   if (ev > 2) return '#22c55e';
   if (ev > 0.5) return '#34d399';
@@ -153,7 +153,7 @@ function getEVColor(ev) {
   return '#ef4444';
 }
 
-// ═══ ACTION COLOR ═══
+// ●●● ACTION COLOR ●●●
 function getActionColor(action) {
   if (action.includes('Bet') || action.includes('Raise') || action.includes('3-Bet') || action.includes('All-In') || action.includes('Overbet')) return '#ef4444';
   if (action.includes('Call')) return '#22c55e';
@@ -162,7 +162,7 @@ function getActionColor(action) {
   return '#f59e0b';
 }
 
-// ═══ TREE NODE COMPONENT ═══
+// ●●● TREE NODE COMPONENT ●●●
 function TreeNodeView({ node, depth, expanded, toggleExpand }) {
   const [isHovered, setIsHovered] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
@@ -185,7 +185,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
         {/* Expand icon */}
         {hasChildren ? (
           <span style={{ color: '#64748b', fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
-            {isExpanded ? '▼' : '▶'}
+            {isExpanded ? '●' : '▶'}
           </span>
         ) : (
           <span style={{ width: 12, flexShrink: 0 }} />
@@ -250,7 +250,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
   );
 }
 
-// ═══ NODE STATS ═══
+// ●●● NODE STATS ●●●
 function NodeStats({ tree }) {
   // Count nodes
   let totalNodes = 0, betNodes = 0, checkNodes = 0, foldNodes = 0;
@@ -287,7 +287,7 @@ function NodeStats({ tree }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function EVTreeVisualizer() {
   const [selectedScenario, setSelectedScenario] = useState(0);
   const [expanded, setExpanded] = useState({});

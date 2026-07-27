@@ -1,5 +1,5 @@
 /**
- * 🎬 ZERO-LATENCY INTRO MODAL
+ * ZERO-LATENCY INTRO MODAL
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Masked loading architecture:
@@ -32,7 +32,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
                 const levelData = generateLevel(1);
                 setLevel1Data(levelData);
                 setIsGenerating(false);
-                console.debug('✅ [MASKED LOADING] Level 1 ready!', levelData);
+                console.debug('✓ [MASKED LOADING] Level 1 ready!', levelData);
 
                 // Notify parent that level is ready
                 if (onLevelReady) {
@@ -75,7 +75,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
     const handleStart = () => {
         // User clicked "Start" - Level 1 should already be generated!
         if (!level1Data) {
-            console.warn('⚠️ Level 1 not ready yet! This should never happen.');
+            console.warn('▲ Level 1 not ready yet! This should never happen.');
             // Fallback: generate now (defeats the purpose but prevents crash)
             const levelData = generateLevel(1);
             if (onLevelReady) {

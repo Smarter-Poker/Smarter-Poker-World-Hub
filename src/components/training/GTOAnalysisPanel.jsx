@@ -1,6 +1,6 @@
 /**
  * GTO Analysis Panel
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Displays comprehensive GTO analysis with:
  * - Dynamic action header (FOLD/CALL/RAISE/3-BET/4-BET/ALL-IN)
  * - Explanation section

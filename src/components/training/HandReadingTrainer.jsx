@@ -1,6 +1,6 @@
 /**
  * HandReadingTrainer — Street-by-Street Range Narrowing Trainer
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Practice hand reading by narrowing villain's range street by street
  * based on their actions. Interactive multi-street exercise.
  */

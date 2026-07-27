@@ -1,5 +1,5 @@
 /**
- * 📊 GTO REPORTS — Frequency Deviation Scorecard
+ * GTO REPORTS — Frequency Deviation Scorecard
  * ═══════════════════════════════════════════════════════════════════════════
  * Compares user training frequencies (VPIP, PFR, 3-bet%, C-bet, fold-to-3bet)
  * against GTO baselines. Color-coded deviation heatmap + composite GTO Score.
@@ -48,14 +48,14 @@ const GTO_BASELINES = {
 };
 
 const STAT_LABELS = {
-  vpip: { label: 'VPIP', desc: 'Voluntarily Put $ In Pot', icon: '💰' },
-  pfr: { label: 'PFR', desc: 'Pre-Flop Raise %', icon: '🚀' },
-  threeBet: { label: '3-Bet', desc: '3-Bet Frequency', icon: '🔥' },
-  foldTo3Bet: { label: 'Fold to 3-Bet', desc: 'Fold vs 3-Bet', icon: '🏳️' },
-  cBet: { label: 'C-Bet', desc: 'Continuation Bet %', icon: '🎯' },
-  foldToCBet: { label: 'Fold to C-Bet', desc: 'Fold vs C-Bet', icon: '📉' },
-  wtsd: { label: 'WTSD', desc: 'Went to Showdown %', icon: '🃏' },
-  wwsf: { label: 'W$WSF', desc: 'Won $ When Saw Flop', icon: '💎' },
+  vpip: { label: 'VPIP', desc: 'Voluntarily Put $ In Pot', icon: ''},
+  pfr: { label: 'PFR', desc: 'Pre-Flop Raise %', icon: ''},
+  threeBet: { label: '3-Bet', desc: '3-Bet Frequency', icon: '▲'},
+  foldTo3Bet: { label: 'Fold to 3-Bet', desc: 'Fold vs 3-Bet', icon: ''},
+  cBet: { label: 'C-Bet', desc: 'Continuation Bet %', icon: ''},
+  foldToCBet: { label: 'Fold to C-Bet', desc: 'Fold vs C-Bet', icon: ''},
+  wtsd: { label: 'WTSD', desc: 'Went to Showdown %', icon: ''},
+  wwsf: { label: 'W$WSF', desc: 'Won $ When Saw Flop', icon: ''},
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ function calculateGTOProximity(userStats, baselines) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
-  const meta = STAT_LABELS[statKey] || { label: statKey, desc: '', icon: '📊' };
+  const meta = STAT_LABELS[statKey] || { label: statKey, desc: '', icon: ''};
   // HARDENED: safe numeric values for toFixed
   const safeUser = Number.isFinite(userVal) ? userVal : 0;
   const safeGTO = Number.isFinite(gtoVal) ? gtoVal : 0;
@@ -805,7 +805,7 @@ export default function GTOReportsPage() {
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 10, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
-                  🎯 Recommended Drills
+                   Recommended Drills
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
                   {(() => {
@@ -816,26 +816,26 @@ export default function GTOReportsPage() {
                       .slice(0, 3);
 
                     const DRILL_PAGES = {
-                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-trainer', icon: '🎯' },
-                      pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: '🚀' },
-                      threeBet: { name: '3-Bet Scenarios', desc: 'Practice 3-bet and squeeze spots', href: '/hub/training/blind-defense', icon: '🔥' },
-                      foldTo3Bet: { name: '3-Bet Defense', desc: 'Learn when to call, 4-bet, or fold', href: '/hub/training/blind-defense', icon: '🛡️' },
-                      cBet: { name: 'C-Bet Practice', desc: 'Optimize continuation betting', href: '/hub/training/play-mode', icon: '💰' },
-                      foldToCBet: { name: 'Facing C-Bets', desc: 'Defend correctly vs c-bets', href: '/hub/training/bluff-catcher', icon: '📞' },
-                      wtsd: { name: 'Showdown Decisions', desc: 'Hero call vs value bet spots', href: '/hub/training/bluff-catcher', icon: '🃏' },
-                      wwsf: { name: 'Postflop Play', desc: 'Full hand simulation practice', href: '/hub/training/play-mode', icon: '🎮' },
+                      vpip: { name: 'Range Construction', desc: 'Practice opening ranges by position', href: '/hub/training/range-trainer', icon: ''},
+                      pfr: { name: 'Preflop Aggression', desc: 'Master raise-first strategy', href: '/hub/training/play-mode', icon: ''},
+                      threeBet: { name: '3-Bet Scenarios', desc: 'Practice 3-bet and squeeze spots', href: '/hub/training/blind-defense', icon: '▲'},
+                      foldTo3Bet: { name: '3-Bet Defense', desc: 'Learn when to call, 4-bet, or fold', href: '/hub/training/blind-defense', icon: ''},
+                      cBet: { name: 'C-Bet Practice', desc: 'Optimize continuation betting', href: '/hub/training/play-mode', icon: ''},
+                      foldToCBet: { name: 'Facing C-Bets', desc: 'Defend correctly vs c-bets', href: '/hub/training/bluff-catcher', icon: ''},
+                      wtsd: { name: 'Showdown Decisions', desc: 'Hero call vs value bet spots', href: '/hub/training/bluff-catcher', icon: ''},
+                      wwsf: { name: 'Postflop Play', desc: 'Full hand simulation practice', href: '/hub/training/play-mode', icon: ''},
                     };
 
                     if (weakStats.length === 0) {
                       return (
                         <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', padding: 8 }}>
-                          ✅ Your stats are close to GTO! Keep training to maintain your edge.
+                          ✓ Your stats are close to GTO! Keep training to maintain your edge.
                         </div>
                       );
                     }
 
                     return weakStats.map((stat) => {
-                      const page = DRILL_PAGES[stat.key] || { name: 'General Training', href: '/hub/training', icon: '🎯', desc: 'Improve your overall game' };
+                      const page = DRILL_PAGES[stat.key] || { name: 'General Training', href: '/hub/training', icon: '', desc: 'Improve your overall game'};
                       return (
                         <button
                           key={stat.key}

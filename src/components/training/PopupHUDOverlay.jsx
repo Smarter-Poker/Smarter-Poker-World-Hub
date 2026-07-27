@@ -1,28 +1,28 @@
 /**
  * POPUP HUD OVERLAY
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GTO Wizard-style HUD stats overlay:
  * - Real-time player stats popup on hover
  * - VPIP, PFR, 3-Bet, Fold to 3-Bet, C-Bet, WTSD, W$SD
  * - Color-coded stat ranges (tight/loose/passive/aggressive)
  * - Positional stats breakdown
  * - Player type classification
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ PLAYER ARCHETYPES ═══
+// ●●● PLAYER ARCHETYPES ●●●
 const ARCHETYPES = {
-  nit: { label: 'Nit', color: '#3b82f6', icon: '🧊', desc: 'Extremely tight, only plays premium hands' },
-  tag: { label: 'TAG', color: '#22c55e', icon: '🎯', desc: 'Tight-Aggressive — solid winning player' },
-  lag: { label: 'LAG', color: '#f59e0b', icon: '🔥', desc: 'Loose-Aggressive — wide range, lots of pressure' },
-  whale: { label: 'Whale', color: '#ef4444', icon: '🐳', desc: 'Loose-Passive — calls too much, easy to value bet' },
-  maniac: { label: 'Maniac', color: '#a855f7', icon: '💥', desc: 'Hyper-aggressive, bets and raises everything' },
-  rock: { label: 'Rock', color: '#64748b', icon: '🪨', desc: 'Very tight and passive, predictable' },
+  nit: { label: 'Nit', color: '#3b82f6', icon: '◇', desc: 'Extremely tight, only plays premium hands' },
+  tag: { label: 'TAG', color: '#22c55e', icon: '◆', desc: 'Tight-Aggressive — solid winning player' },
+  lag: { label: 'LAG', color: '#f59e0b', icon: '▲', desc: 'Loose-Aggressive — wide range, lots of pressure' },
+  whale: { label: 'Whale', color: '#ef4444', icon: '●', desc: 'Loose-Passive — calls too much, easy to value bet' },
+  maniac: { label: 'Maniac', color: '#a855f7', icon: '▲', desc: 'Hyper-aggressive, bets and raises everything' },
+  rock: { label: 'Rock', color: '#64748b', icon: '●', desc: 'Very tight and passive, predictable' },
 };
 
-// ═══ SAMPLE PLAYERS ═══
+// ●●● SAMPLE PLAYERS ●●●
 const SAMPLE_PLAYERS = [
   {
     name: 'Hero', seat: 1, stack: 102.5, position: 'BTN',
@@ -74,7 +74,7 @@ function getStatColor(stat, value) {
   return '#94a3b8';
 }
 
-// ═══ STAT CELL ═══
+// ●●● STAT CELL ●●●
 function StatCell({ label, value, stat, suffix }) {
   return (
     <div style={{ textAlign: 'center' }}>
@@ -86,7 +86,7 @@ function StatCell({ label, value, stat, suffix }) {
   );
 }
 
-// ═══ PLAYER CARD ═══
+// ●●● PLAYER CARD ●●●
 function PlayerCard({ player, isExpanded, onToggle }) {
   const archetype = classifyPlayer(player.stats);
   const arch = ARCHETYPES[archetype];
@@ -187,7 +187,7 @@ function PlayerCard({ player, isExpanded, onToggle }) {
   );
 }
 
-// ═══ TABLE VIEW ═══
+// ●●● TABLE VIEW ●●●
 function TableView({ players, expandedPlayer, setExpandedPlayer }) {
   const positions = [
     { angle: 270, label: 'BTN' },
@@ -244,7 +244,7 @@ function TableView({ players, expandedPlayer, setExpandedPlayer }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function PopupHUDOverlay() {
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [view, setView] = useState('table'); // table | list

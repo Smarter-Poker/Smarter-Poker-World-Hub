@@ -1,6 +1,6 @@
 /**
  * PotControlStrategy — When and How to Control Pot Size
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Interactive guide for pot control decisions with medium-strength hands.
  */
 import React, { useState } from 'react';

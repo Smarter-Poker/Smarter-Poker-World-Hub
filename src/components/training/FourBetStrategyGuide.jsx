@@ -1,6 +1,6 @@
 /**
  * FourBetStrategyGuide — 4-Bet Pot Strategy
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Guide for 4-bet pots: when to 4-bet, sizing, and postflop play.
  */
 import React, { useState } from 'react';

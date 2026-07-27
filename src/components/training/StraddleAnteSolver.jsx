@@ -7,35 +7,35 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STRUCTURES = [
-  { name: 'Standard (No Ante)', ante: 0, straddle: false, blinds: '1/2', icon: '📏', color: '#22c55e',
+  { name: 'Standard (No Ante)', ante: 0, straddle: false, blinds: '1/2', icon: '■', color: '#22c55e',
     adjustments: [
       { spot: 'Preflop Opens', change: 'Baseline. Standard 2.5-3x opens. No adjustments needed.' },
       { spot: 'Steal Ranges', change: 'Standard steal frequencies. CO/BTN open their normal ranges.' },
       { spot: 'Pot Odds', change: 'Standard pot odds. 1.5bb dead money in the pot from blinds.' },
     ],
     impact: 'Baseline — all other formats compared against this.' },
-  { name: 'Button Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '🔥', color: '#f59e0b',
+  { name: 'Button Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '▲', color: '#f59e0b',
     adjustments: [
       { spot: 'Open Sizing', change: '3x straddle = 12 from EP. Smaller opens (2.5x) work from late position.' },
       { spot: 'Position Value', change: 'BTN straddler acts last preflop but first postflop. Mixed blessing — play tighter from straddle.' },
       { spot: '3-Bet Ranges', change: 'Widen 3-bet range vs straddle opens — there\'s more dead money. 3-bet to 3-3.5x the open.' },
     ],
     impact: '+2bb dead money. Increases action and open ranges by ~5%. Play tighter from straddle position.' },
-  { name: 'UTG Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '⚡', color: '#ef4444',
+  { name: 'UTG Straddle ($4)', ante: 0, straddle: true, blinds: '1/2/4', icon: '⌁', color: '#ef4444',
     adjustments: [
       { spot: 'Open Sizing', change: '2.5-3x straddle from all positions. UTG straddler has worst position postflop.' },
       { spot: 'UTG Straddle Defense', change: 'Play very tight from straddle position. You\'re OOP with a forced bet — fold 70%+ of hands.' },
       { spot: 'Stealing', change: 'BTN and CO can steal wider — UTG straddle folds most hands. Attack relentlessly.' },
     ],
     impact: '+2bb dead money but from worst position. UTG straddle is -EV for the straddler — exploit it.' },
-  { name: 'Big Blind Ante (1bb)', ante: 1, straddle: false, blinds: '1/2 + 1bb ante', icon: '💰', color: '#3b82f6',
+  { name: 'Big Blind Ante (1bb)', ante: 1, straddle: false, blinds: '1/2 + 1bb ante', icon: '●', color: '#3b82f6',
     adjustments: [
       { spot: 'Open Ranges', change: 'Open 8-10% wider from all positions. The extra ante adds ~0.5bb per player to the pot.' },
       { spot: 'Short Stack Play', change: 'Shove wider. The antes increase your pot equity. At 10bb, shove 60%+ from BTN.' },
       { spot: 'BB Defense', change: 'BB pays the ante + blind. Defend wider since you\'re already invested 3bb. Call with almost any two.' },
     ],
     impact: '+6bb dead money (6-handed). Dramatically increases open ranges and short-stack shove ranges.' },
-  { name: 'Bomb Pot ($10 each)', ante: 10, straddle: false, blinds: 'Bomb', icon: '💣', color: '#dc2626',
+  { name: 'Bomb Pot ($10 each)', ante: 10, straddle: false, blinds: 'Bomb', icon: '▲', color: '#dc2626',
     adjustments: [
       { spot: 'Preflop', change: 'No preflop action — everyone puts in a fixed amount and sees the flop. Ranges are 100% of hands.' },
       { spot: 'Flop Strategy', change: 'Bet very tight. Everyone has a random hand — only bet strong made hands and huge draws.' },
@@ -59,7 +59,7 @@ export default function StraddleAnteSolver() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🎰 Straddle & Ante Solver
+        Straddle & Ante Solver
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Strategy solutions for live poker straddles, antes, and bomb pots.</p>
 

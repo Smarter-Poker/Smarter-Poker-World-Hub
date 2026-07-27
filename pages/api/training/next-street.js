@@ -22,7 +22,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
               }
           }
 
-          // ═══ PHASE 21: Texture-weighted card selection ═══
+          // ●●● PHASE 21: Texture-weighted card selection ●●●
           // Weight cards that create more educational board textures:
           // - Flush-completing cards (3rd of suit on turn, 4th never forced)
           // - Straight-completing cards

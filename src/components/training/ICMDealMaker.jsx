@@ -6,31 +6,31 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const DEAL_SCENARIOS = [
-  { scenario: '3 Players — You\'re Chip Leader', icon: '👑', color: '#22c55e',
+  { scenario: '3 Players — You\'re Chip Leader', icon: '★', color: '#22c55e',
     stacks: 'You: 500K | P2: 300K | P3: 200K',
     prizes: '1st: $5,000 | 2nd: $3,000 | 3rd: $2,000',
     icmEquity: 'You: $3,920 | P2: $3,450 | P3: $2,630',
     chipChop: 'You: $5,000 | P2: $3,000 | P3: $2,000',
     advice: 'ICM gives you less than chip chop. Push for chip chop or chip leader premium. Don\'t accept ICM flat.' },
-  { scenario: '3 Players — You\'re Short Stack', icon: '😰', color: '#ef4444',
+  { scenario: '3 Players — You\'re Short Stack', icon: '▼', color: '#ef4444',
     stacks: 'P1: 500K | P2: 300K | You: 200K',
     prizes: '1st: $5,000 | 2nd: $3,000 | 3rd: $2,000',
     icmEquity: 'P1: $3,920 | P2: $3,450 | You: $2,630',
     chipChop: 'P1: $5,000 | P2: $3,000 | You: $2,000',
     advice: 'ICM gives you $630 MORE than chip chop. Push hard for ICM deal — it heavily favors short stacks.' },
-  { scenario: '4 Players — Pay Bubble', icon: '💰', color: '#f59e0b',
+  { scenario: '4 Players — Pay Bubble', icon: '●', color: '#f59e0b',
     stacks: 'P1: 400K | P2: 300K | P3: 200K | You: 100K',
     prizes: '1st: $8K | 2nd: $5K | 3rd: $3K | 4th: $0',
     icmEquity: 'P1: $5,280 | P2: $4,510 | P3: $3,560 | You: $2,650',
     chipChop: 'P1: $6,400 | P2: $4,800 | P3: $3,200 | You: $1,600',
     advice: 'On the bubble, ICM gives you $1,050 MORE than chip chop. You have huge incentive to deal NOW.' },
-  { scenario: 'Heads-Up for the Title', icon: '🏆', color: '#3b82f6',
+  { scenario: 'Heads-Up for the Title', icon: '★', color: '#3b82f6',
     stacks: 'You: 600K | Villain: 400K',
     prizes: '1st: $10,000 | 2nd: $6,000',
     icmEquity: 'You: $8,400 | Villain: $7,600',
     chipChop: 'You: $8,400 | Villain: $7,600',
     advice: 'HU ICM = chip chop! Consider saving $7K each and playing for the remaining $2K for excitement.' },
-  { scenario: 'Even Stacks 3-Way', icon: '⚖️', color: '#8b5cf6',
+  { scenario: 'Even Stacks 3-Way', icon: '◇', color: '#8b5cf6',
     stacks: 'All three: 333K each',
     prizes: '1st: $5,000 | 2nd: $3,000 | 3rd: $2,000',
     icmEquity: 'All: $3,333 each',
@@ -45,7 +45,7 @@ export default function ICMDealMaker() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        🤝 ICM Deal Maker
+        ICM Deal Maker
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>Negotiate final table deals with ICM equity.</p>
 

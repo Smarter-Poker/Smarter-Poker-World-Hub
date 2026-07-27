@@ -1,6 +1,6 @@
 /**
  * PositionFrequencyHeatmap — GTO Wizard-Style Position Action Frequency Heatmap
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Visual heatmap showing action frequencies across positions and scenarios.
  * Color-coded cells for raise/call/fold/3bet frequencies per position.
  */

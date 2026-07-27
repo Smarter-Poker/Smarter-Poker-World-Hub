@@ -1,6 +1,6 @@
 /**
  * API: GTO Reports — Aggregate user training stats vs GTO baselines
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * GET /api/training/gto-reports
  * 
  * Query params:
@@ -15,7 +15,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
               }
           });
 
-          // ♠️ Scorecard Stat Calculation (VPIP, PFR, 3Bet)
+          // ♠ Scorecard Stat Calculation (VPIP, PFR, 3Bet)
           let totalPreflopHands = 0;
           let vpipCount = 0;
           let pfrCount = 0;

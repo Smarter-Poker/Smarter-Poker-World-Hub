@@ -86,7 +86,7 @@ export default function GTOReportsDashboard() {
   return (
     <div style={{ padding: 20, color: '#e2e8f0' }}>
       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        📊 GTO Reports — Your Play vs Optimal
+        GTO Reports — Your Play vs Optimal
       </h3>
       <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Color-coded frequency analysis showing where you deviate from GTO.</p>
 
@@ -172,10 +172,10 @@ export default function GTOReportsDashboard() {
           })}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-          <span style={{ fontSize: 9, color: '#22c55e' }}>● Optimal (±2%)</span>
-          <span style={{ fontSize: 9, color: '#f59e0b' }}>● Slight (±5%)</span>
-          <span style={{ fontSize: 9, color: '#ef4444' }}>● Significant (±10%)</span>
-          <span style={{ fontSize: 9, color: '#dc2626' }}>● Critical (&gt;10%)</span>
+          <span style={{ fontSize: 9, color: '#22c55e' }}>Optimal (±2%)</span>
+          <span style={{ fontSize: 9, color: '#f59e0b' }}>Slight (±5%)</span>
+          <span style={{ fontSize: 9, color: '#ef4444' }}>Significant (±10%)</span>
+          <span style={{ fontSize: 9, color: '#dc2626' }}>Critical (&gt;10%)</span>
         </div>
       </div>
     </div>

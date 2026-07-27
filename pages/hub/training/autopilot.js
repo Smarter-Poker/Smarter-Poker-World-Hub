@@ -1,11 +1,11 @@
 /**
  * WEAK SPOT AUTOPILOT — Zero-Decision Training Mode
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * One-click "train my weakest spots" — automatically queues drills
  * targeting your worst performance areas. Zero setup required.
  *
  * Route: /hub/training/autopilot
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-3 — hex sweep batch 5: literals routed to --sp-* tokens
@@ -43,14 +43,14 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
   ),
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // WEAK SPOT DETECTION ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 
 // BUG FIX (TRAIN-AUTOPILOT-A11Y-1): SVG icon components replacing the
-// autopilot surface emoji set across SPOT_DEFINITIONS (🛡 🎯 💥 🔄 🏁 ⚡
-// ♠ 🏆), 🧠 detection banner, 🎉 completion celebration, 📊 empty state.
+// autopilot surface emoji set across SPOT_DEFINITIONS (■ ◆ ▲ ↻ ★
+// ♠ ★), ◇ detection banner, ★ completion celebration, ■ empty state.
 // Same surface-specific a11y pattern as PR #320/#322/#324/#327-#345.
 const ICON_PROPS = {
   fill: 'none',
@@ -97,7 +97,7 @@ const SPOT_DEFINITIONS = [
     street: 'preflop',
     color: 'var(--sp-accent-blue)',
     iconKind: 'shield',
-    icon: '🛡️',
+    icon: '■',
     gameId: 'cash-bb-defense',
   },
   {
@@ -107,7 +107,7 @@ const SPOT_DEFINITIONS = [
     street: 'preflop',
     color: 'var(--sp-accent-green)',
     iconKind: 'target',
-    icon: '🎯',
+    icon: '◆',
     gameId: 'cash-btn-opens',
   },
   {
@@ -117,7 +117,7 @@ const SPOT_DEFINITIONS = [
     street: 'flop',
     color: 'var(--sp-accent-orange)',
     iconKind: 'explosion',
-    icon: '💥',
+    icon: '▲',
     gameId: 'cash-cbet',
   },
   {
@@ -127,7 +127,7 @@ const SPOT_DEFINITIONS = [
     street: 'turn',
     color: 'var(--sp-accent-purple)',
     iconKind: 'rotate',
-    icon: '🔄',
+    icon: '↻',
     gameId: 'cash-turn-play',
   },
   {
@@ -137,7 +137,7 @@ const SPOT_DEFINITIONS = [
     street: 'river',
     color: 'var(--sp-accent-red)',
     iconKind: 'flag',
-    icon: '🏁',
+    icon: '★',
     gameId: 'cash-river-bluffs',
   },
   {
@@ -147,7 +147,7 @@ const SPOT_DEFINITIONS = [
     street: 'any',
     color: '#ec4899',
     iconKind: 'bolt',
-    icon: '⚡',
+    icon: '⌁',
     gameId: 'cash-threeBet-spots',
   },
   {
@@ -157,7 +157,7 @@ const SPOT_DEFINITIONS = [
     street: 'preflop',
     color: 'var(--sp-accent-purple)',
     iconKind: 'spade',
-    icon: '♠️',
+    icon: '♠',
     gameId: 'cash-sb',
   },
   {
@@ -167,7 +167,7 @@ const SPOT_DEFINITIONS = [
     street: 'preflop',
     color: 'var(--sp-accent-amber)',
     iconKind: 'trophy',
-    icon: '🏆',
+    icon: '★',
     gameId: 'mtt-push-fold',
   },
 ];
@@ -237,9 +237,9 @@ function analyzeWeakSpots(sessions) {
   return ranked.slice(0, 3);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════════════════
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function AutopilotPage() {
   const router = useRouter();
@@ -595,7 +595,7 @@ export default function AutopilotPage() {
                   style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-purple)' }}
                   aria-hidden
                 >
-                  {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces 🧠 */}
+                  {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces ◇ */}
                   <BrainIcon size={40} />
                 </motion.div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 6 }}>

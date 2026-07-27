@@ -44,7 +44,7 @@ const GodModeArena = dynamic(() => import('../../../../src/components/training/G
     ),
 });
 
-// ═══ DEBUG ERROR BOUNDARY — captures exact crash message ═══
+// ●●● DEBUG ERROR BOUNDARY — captures exact crash message ●●●
 class ArenaErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -68,7 +68,7 @@ class ArenaErrorBoundary extends React.Component {
                     color: '#94a3b8', fontFamily: "'Inter', sans-serif", padding: 24,
                 }}>
                     <div style={{ maxWidth: 600, textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>▲</div>
                         <h2 style={{ color: '#ef4444', fontSize: 22, marginBottom: 12 }}>Arena Crash Detected</h2>
                         <div style={{
                             background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',

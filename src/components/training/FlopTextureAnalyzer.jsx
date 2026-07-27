@@ -1,18 +1,18 @@
 /**
  * FLOP TEXTURE ANALYZER
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Analyze flop textures and their strategic implications:
  * - Categorize flops by texture (dry, wet, monotone, paired, etc.)
  * - Show c-bet frequencies by texture type
  * - Equity distribution shifts on different textures
  * - Board interaction with common ranges
  * - Texture-specific strategy recommendations
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React, { useState, useMemo } from 'react';
 
-// ═══ FLOP TEXTURE DATABASE ═══
+// ●●● FLOP TEXTURE DATABASE ●●●
 const TEXTURES = [
   {
     id: 'dry_rainbow',
@@ -135,7 +135,7 @@ function getTextureColor(val) {
   return '#22c55e';
 }
 
-// ═══ TEXTURE METER ═══
+// ●●● TEXTURE METER ●●●
 function TextureMeter({ label, value, max = 100 }) {
   return (
     <div style={{ marginBottom: 6 }}>
@@ -150,7 +150,7 @@ function TextureMeter({ label, value, max = 100 }) {
   );
 }
 
-// ═══ RANGE HIT CHART ═══
+// ●●● RANGE HIT CHART ●●●
 function RangeHitChart({ hits }) {
   const categories = [
     { key: 'toppair', label: 'Top Pair+', color: '#22c55e' },
@@ -172,7 +172,7 @@ function RangeHitChart({ hits }) {
   );
 }
 
-// ═══ CBET COMPARISON ═══
+// ●●● CBET COMPARISON ●●●
 function CbetComparison({ texture }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -208,7 +208,7 @@ function CbetComparison({ texture }) {
   );
 }
 
-// ═══ MAIN COMPONENT ═══
+// ●●● MAIN COMPONENT ●●●
 export default function FlopTextureAnalyzer() {
   const [selectedTexture, setSelectedTexture] = useState(TEXTURES[0]);
   const [viewMode, setViewMode] = useState('detail'); // detail | compare
