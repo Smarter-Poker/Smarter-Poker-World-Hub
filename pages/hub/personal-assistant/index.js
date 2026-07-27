@@ -167,8 +167,9 @@ export default function PersonalAssistantPage() {
           <Image 
             src="/images/jarvis-combined.png" 
             alt="Virtual Sandbox and Leak Finder" 
-            width={1200} 
-            height={1500} 
+            width={1122} 
+            height={1402} 
+            quality={100}
             style={S.frameImage} 
             priority
           />
@@ -340,7 +341,7 @@ const S = {
     // Mathematical constraint: never exceed the structural proportion of the viewport height. 
     // This flawlessly pins the div container to the exact pixel footprint of the image.
     width: '100%',
-    maxWidth: 'min(961px, calc((100vh - 100px) * (961 / 1024)))',
+    maxWidth: 'min(1122px, calc((100vh - 100px) * (1122 / 1402)))',
     userSelect: 'none',
   },
   frameImage: {
