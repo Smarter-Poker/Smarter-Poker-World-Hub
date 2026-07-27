@@ -12255,7 +12255,7 @@ function GodModeArenaInner({
                             fontSize: 18,
                             fontWeight: 800,
                             color: '#00d4ff',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.last5Avg ||
@@ -12272,8 +12272,8 @@ function GodModeArenaInner({
                           style={{
                             fontSize: 18,
                             fontWeight: 800,
-                            color: '#a78bfa',
-                            fontFamily: "'Orbitron', monospace",
+                            color: '#00d4ff',
+                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.totalSessions || 0}
@@ -12288,7 +12288,7 @@ function GodModeArenaInner({
                             fontSize: 18,
                             fontWeight: 800,
                             color: '#22c55e',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.totalHands || 0}
@@ -12354,7 +12354,7 @@ function GodModeArenaInner({
                     <div style={{ display: 'flex', gap: 6 }}>
                       {[
                         { key: 'beginner', label: 'Beginner', color: '#22c55e' },
-                        { key: 'standard', label: 'Standard', color: '#3b82f6' },
+                        { key: 'standard', label: 'Standard', color: '#00d4ff' },
                         { key: 'expert', label: 'Expert', color: '#ef4444' },
                       ].map((d) => (
                         <button
@@ -12458,14 +12458,14 @@ function GodModeArenaInner({
                         label: 'Standard',
                         desc: 'Full GTO',
                         icon: '🎯',
-                        color: '#3b82f6',
+                        color: '#00d4ff',
                       },
                       {
                         key: 'flashcard',
                         label: 'Flashcards',
                         desc: 'Concepts',
                         icon: '🃏',
-                        color: '#a78bfa',
+                        color: '#00d4ff',
                       },
                       {
                         key: 'drill',
@@ -12522,7 +12522,7 @@ function GodModeArenaInner({
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>
                         {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due for Review
                       </div>
                       <div style={{ fontSize: 9, color: '#64748b' }}>
@@ -12550,7 +12550,7 @@ function GodModeArenaInner({
                       borderRadius: 12,
                       border: 'none',
                       background: splashReady
-                        ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+                        ? 'linear-gradient(135deg, #00d4ff, #0891b2)'
                         : 'rgba(100,116,139,0.2)',
                       color: splashReady ? '#fff' : '#64748b',
                       fontSize: 16,
