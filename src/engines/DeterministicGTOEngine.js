@@ -1899,6 +1899,20 @@ export class DeterministicGTOEngine {
      * Build a contextual action description based on solver data.
      * Phase 29: Richer descriptions with bet sizing context and action line awareness.
      */
+    /**
+     * Postflop acting order: the player closest to the button acts LAST.
+     * SB acts first, BTN acts last. Hero is "in position" when hero acts after
+     * villain, which is the only situation in which villain can already have
+     * checked when hero is asked to decide.
+     */
+    heroActsFirstPostflop(heroPosition, villainPosition) {
+        const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN'];
+        const h = ORDER.indexOf(String(heroPosition || '').toUpperCase());
+        const v = ORDER.indexOf(String(villainPosition || '').toUpperCase());
+        if (h < 0 || v < 0) return false; // unknown seats: keep the old wording
+        return h < v;
+    }
+
     buildActionDescription(solverActions, street, heroPosition, villainPosition) {
         const nodeType = this.detectNodeType(solverActions, street);
 
@@ -1912,7 +1926,15 @@ export class DeterministicGTOEngine {
         // For postflop: extract what villain did from the action context
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${villainPosition} checks to ${heroPosition}`;
+                // This node means "hero may bet or check" -- which covers TWO
+                // different spots: hero out of position acting FIRST, and hero
+                // in position after villain checked. Reporting both as
+                // "villain checks to hero" produced the impossible line
+                // "BB vs BTN, villain checks" on the flop: the BTN acts LAST,
+                // so a BTN villain cannot have checked before the BB decides.
+                return this.heroActsFirstPostflop(heroPosition, villainPosition)
+                    ? 'First to act'
+                    : `${villainPosition} checks to ${heroPosition}`;
             case 'hero_faces_bet': {
                 // Infer villain's bet type from what the solver offers as responses
                 const raiseActions = solverActions.filter(a => a.toLowerCase().startsWith('r'));
@@ -1929,7 +1951,9 @@ export class DeterministicGTOEngine {
                 return `${villainPosition} bets into ${heroPosition}`;
             }
             default:
-                return `${villainPosition} checks to ${heroPosition}`;
+                return this.heroActsFirstPostflop(heroPosition, villainPosition)
+                    ? 'First to act'
+                    : `${villainPosition} checks to ${heroPosition}`;
         }
     }
 
