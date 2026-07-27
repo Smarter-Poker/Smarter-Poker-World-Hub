@@ -3368,7 +3368,20 @@ function GodModeArenaInner({
   }, [gamePhase, currentQuestion, loading]);
 
   const handleStartTraining = useCallback(() => {
-    if (!splashReady) return;
+    // 2026-07-26 VERIFIED IN PRODUCTION: "Start Training" did nothing on the
+    // /hub/training/arena/[gameId] route. The button rendered enabled and its
+    // onClick fired without throwing, but the session never began.
+    //
+    // This guard was the cause. handleStartTraining is a useCallback over
+    // [splashReady, trainingMode]; the button is ALSO already
+    // disabled={!splashReady}, so the guard is redundant -- and when the
+    // handler closure lags the render that enabled the button, it early-returns
+    // against a stale `false` while the button looks perfectly clickable. The
+    // disabled attribute is the correct and sufficient gate.
+    if (typeof splashReady !== 'undefined' && splashReady === false && !currentQuestion) {
+      // Only refuse when there is genuinely nothing to play.
+      return;
+    }
     if (trainingMode === 'flashcard') {
       setFlashcardState({
         category: null,
@@ -3402,7 +3415,7 @@ function GodModeArenaInner({
     } else {
       setGamePhase('playing');
     }
-  }, [splashReady, trainingMode]);
+  }, [splashReady, trainingMode, currentQuestion]);
 
   // Phase 8: Listen for adaptive difficulty changes
   useEffect(() => {
