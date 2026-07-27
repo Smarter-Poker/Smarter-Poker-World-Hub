@@ -1,0 +1,89 @@
+diff --git a/src/components/ui/UniversalHeader.js b/src/components/ui/UniversalHeader.js
+index df669c7bd3..bef2d90c1b 100644
+--- a/src/components/ui/UniversalHeader.js
++++ b/src/components/ui/UniversalHeader.js
+@@ -259,11 +259,6 @@ export default function UniversalHeader({
+     // ── OVERLAY HELPERS ──
+     const openOverlay = (page) => setOverlayPage(page);
+ 
+-    // Re-fetch real notification count after overlay closes so the badge reflects DB truth.
+-    // BroadcastChannel cannot bridge an iframe → parent in the same tab, so we poll on close.
+-    const isMountedRef = useRef(true);
+-    useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+-
+     // BUGFIX (header-audit #2/#10): closing an overlay no longer schedules an 800ms
+     // poll of /api/user/get-header-stats. FullScreenPageOverlay reports the fresh count
+     // straight up its postMessage bridge (onNotifCleared), which is both faster and
+@@ -714,6 +709,10 @@ export default function UniversalHeader({
+         const freshHref = `/hub/user/${currentUserProfile.username}`; // username is lowercased by DB trigger + hook
+         setProfileHref(prev => (prev !== freshHref ? freshHref : prev));
+     }, [currentUserProfile?.username]);
++    const goToProfile = useCallback(() => {
++        router.push(isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : profileHref);
++    }, [router, isClubMode, clubPage, profileHref]);
++
+     // Guard against rapid double-click on back button
+     const backInProgressRef = useRef(false);
+ 
+@@ -1096,8 +1095,9 @@ export default function UniversalHeader({
+                     )}
+                     {!hideLeftIcon && (
+                         <button
+-                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => { window.location.href = '/hub'; })}
++                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
+                             className="header-img-btn header-nav-btn"
++                            aria-label={pageDepth >= 2 ? 'Go back' : 'Return to Hub'}
+                         >
+                             <img
+                                 src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub-v4.png'}
+@@ -1121,10 +1121,17 @@ export default function UniversalHeader({
+                     {/* Avatar/Profile */}
+                     <div
+                         className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
+-                        onClick={() => router.push(isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : profileHref)}
++                        onClick={goToProfile}
++                        onKeyDown={(e) => {
++                            // A11Y: this advertises role="button" and sits in the tab order, but a
++                            // div gets no implicit keyboard activation — Enter/Space did nothing, so
++                            // keyboard and screen-reader users could focus the avatar and never open
++                            // it. clubPage.name is also nullable, which made the label read "null".
++                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToProfile(); }
++                        }}
+                         role="button"
+                         tabIndex={0}
+-                        aria-label={isClubMode && clubPage ? clubPage.name : "My Profile"}
++                        aria-label={isClubMode && clubPage ? (clubPage.name || 'My Page') : 'My Profile'}
+                         style={{
+                             background: displayAvatar
+                                 ? `url(${displayAvatar}) center/cover`
+@@ -1166,11 +1173,14 @@ export default function UniversalHeader({
+                         </button>
+                     )}
+ 
+-                    {/* Messages - Custom Metallic Messenger icon — Sovereign Redirect (no popup) */}
+-                    <button onClick={() => { window.location.href = '/hub/messenger'; }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
++                    {/* Messages — navigates to the full page rather than opening the overlay.
++                        PERF: this was window.location.href, a full document reload that discarded
++                        SPA state and re-downloaded the bundle on every click. router.push keeps the
++                        "no popup" behaviour the old comment was protecting. */}
++                    <button onClick={() => router.push('/hub/messenger')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages" aria-label="Messages">
+                             <img src="/images/header-messenger-v4.png" alt="Messages" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                             {safeUnreadCount > 0 && (
+-                                <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
++                                <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
+                             )}
+                     </button>
+ 
+@@ -1186,10 +1196,10 @@ export default function UniversalHeader({
+                         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                         markAllNotificationsRead();
+                         openOverlay('notifications');
+-                    }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
++                    }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications" aria-label="Notifications">
+                             <img src="/images/notification-bell-trimmed.png" alt="Notifications" style={{ width: 'auto', height: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                             {safeNotificationCount > 0 && (
+-                                <span className="orb-badge">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
++                                <span className="orb-badge" aria-live="polite" aria-atomic="true">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
+                             )}
+                     </button>
+ 

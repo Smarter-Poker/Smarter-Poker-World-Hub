@@ -173,6 +173,30 @@ export function applyHandSelection(questions, mode) {
   return filtered.length > 0 ? filtered : questions;
 }
 
+
+/**
+ * roadmap #3 — GAME MODE.
+ * GTO Wizard offers Full Hand (play the hand out across streets), Spot (a
+ * single decision, then a fresh hand) and Street (drill one street only).
+ * We only ever played the Full Hand behaviour: any flop/turn question silently
+ * started a multi-street hand, so there was no way to drill isolated decisions.
+ *
+ *   'full'   -> continue across streets (previous behaviour, still the default)
+ *   'spot'   -> one decision per hand, never continue
+ *   'street' -> like spot, but restricted to questions on `targetStreet`
+ *
+ * Like hand selection, the street filter never returns an empty queue.
+ */
+export function applyStreetFilter(questions, gameMode, targetStreet) {
+  if (!Array.isArray(questions) || questions.length === 0) return questions;
+  if (gameMode !== 'street' || !targetStreet) return questions;
+  const want = String(targetStreet).toLowerCase();
+  const filtered = questions.filter(
+    (q) => String(q?.scenario?.street || '').toLowerCase() === want
+  );
+  return filtered.length > 0 ? filtered : questions;
+}
+
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
@@ -456,7 +480,11 @@ export default function useGTOTrainer(
       console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
       // roadmap #7 — hand selection filter, applied once to the batch.
-      const selected = applyHandSelection(data.questions, trainerConfig?.handSelection);
+      const selected = applyStreetFilter(
+        applyHandSelection(data.questions, trainerConfig?.handSelection),
+        trainerConfig?.gameMode,
+        trainerConfig?.targetStreet
+      );
       if (selected.length !== data.questions.length) {
         console.debug(`[GTOTrainer] hand selection '${trainerConfig?.handSelection}': ${data.questions.length} -> ${selected.length}`);
       }
@@ -1536,8 +1564,12 @@ export default function useGTOTrainer(
         // ═══ START MULTI-STREET HAND if this is a postflop question ═══
         const scenario = nextQ.scenario || {};
         const street = scenario.street || '';
+        // roadmap #3 — only Full Hand mode plays the hand out. 'spot' and
+        // 'street' are single-decision modes, so a multi-street hand must never
+        // start; previously ANY flop/turn question began one regardless.
+        const gameMode = trainerConfig?.gameMode || 'full';
         // Removed 'DETERMINISTIC_SOLVER' source restriction to enable multi-street for all 100+ games
-        if (street === 'flop' || street === 'turn') {
+        if (gameMode === 'full' && (street === 'flop' || street === 'turn')) {
           try {
             const { MultiStreetHand } = await import('../engines/MultiStreetHandManager');
             multiStreetHandRef.current = new MultiStreetHand(nextQ);
