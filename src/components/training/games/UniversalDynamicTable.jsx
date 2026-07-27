@@ -1333,7 +1333,17 @@ function UniversalDynamicTable({
 
     // Phase 16: Computed height for the scale container to prevent layout collapse
     const scaledTableHeight = useMemo(() => {
-        // Design height of the table area canvas (fixed) — must match styles.tableArea.height
+        {/* QUESTION PROMPT — 2026-07-26. questionText was computed and never
+                    rendered at all, so the player only saw the context strip. First
+                    placement put it INSIDE the table container, where (position:
+                    static, no z-index) it sat on top of the villain's hole cards and
+                    the pot — caught by looking at the screen, not the code. It now
+                    renders above the felt, outside the table, where it cannot
+                    overlap anything. */}
+                {questionText && questionText !== 'Loading question...' && (
+                    <div style={styles.questionPrompt}>{questionText}</div>
+                )}
+                // Design height of the table area canvas (fixed) — must match styles.tableArea.height
         const DESIGN_HEIGHT = 600;
         return DESIGN_HEIGHT * scaleFactor;
     }, [scaleFactor]);
@@ -3002,18 +3012,6 @@ function UniversalDynamicTable({
                         );
                     })}
                 </div>
-
-                {/* QUESTION PROMPT - 2026-07-26 UX FIX: questionText was computed and
-
-                    never rendered, so the player only ever saw the position/action context
-
-                    line and had to infer what was actually being asked. */}
-
-                {questionText && questionText !== 'Loading question...' && (
-
-                    <div style={styles.questionPrompt}>{questionText}</div>
-
-                )}
 
 
                 {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
