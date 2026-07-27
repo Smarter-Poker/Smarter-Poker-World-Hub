@@ -2300,39 +2300,37 @@ function UniversalDynamicTable({
                     <div style={styles.gameTitle}>{gameTitle || 'GTO Training'}</div>
                 </div>
                 <div style={styles.topBarRight}>
-                    {/* PHASE 5: Adaptive Difficulty Badge */}
-                    {questionNumber > 1 && (
-                        <div style={{
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            fontSize: 9,
-                            fontWeight: 'bold',
-                            letterSpacing: 1,
-                            background: computedDifficulty.bg,
-                            color: computedDifficulty.color,
-                            border: `1px solid ${computedDifficulty.color}44`,
-                        }}>
-                            {computedDifficulty.label}
-                        </div>
-                    )}
-                    {/* Data source badge */}
-                    {question?.source && (
-                        <div style={{
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            fontSize: 9,
-                            fontWeight: 'bold',
-                            letterSpacing: 1,
-                            background: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO')
-                                ? 'rgba(0, 212, 255, 0.15)'
-                                : 'rgba(139, 92, 246, 0.15)',
-                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'var(--sp-accent-cyan)' : 'var(--sp-accent-purple)',
-                            border: `1px solid ${(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
-                        }}>
-                            {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'SOLVER' : 'AI'}
-                        </div>
-                    )}
-                    {/* Multi-Street Progress Indicator — GTO Wizard style */}
+                    {/* The MEDIUM difficulty chip and the SOLVER/AI data-source chip
+                        were build diagnostics wearing gameplay HUD clothing: a
+                        player deciding whether to call cannot act on either, and
+                        both cost a slot in the busiest row on screen. Gone.
+
+                        RNG and TRAIN/STUDY are real session modes, so they stay -
+                        but folded in here as two lit switches instead of owning a
+                        full-width strip of their own further down. Lit means on;
+                        the word "OFF" no longer has to be printed to say nothing
+                        is happening. */}
+                    <div style={styles.modeGroup} role="group" aria-label="Session modes">
+                        <button
+                            data-compact
+                            onClick={() => setRngMode(v => !v)}
+                            aria-pressed={rngMode}
+                            title={rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off'}
+                            style={{ ...styles.modeButton, ...(rngMode ? styles.modeButtonRng : null) }}
+                        >
+                            RNG
+                        </button>
+                        <button
+                            data-compact
+                            onClick={() => setStudyMode(v => !v)}
+                            aria-pressed={studyMode}
+                            title={studyMode ? 'Study - GTO frequencies shown before you answer' : 'Train - answer first, GTO after'}
+                            style={{ ...styles.modeButton, ...(studyMode ? styles.modeButtonStudy : null) }}
+                        >
+                            {studyMode ? 'STUDY' : 'TRAIN'}
+                        </button>
+                    </div>
+                                        {/* Multi-Street Progress Indicator — GTO Wizard style */}
                     {isMultiStreetActive && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
@@ -2443,235 +2441,67 @@ function UniversalDynamicTable({
                 </div>
             </div>
 
-            {/* GAP-5: Progress bar */}
-            <div style={styles.progressBarContainer}>
-                <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${((questionNumber || 1) / (totalQuestions || 25)) * 100}%` }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
-                    style={styles.progressBarFill}
-                />
-            </div>
+            {/* SESSION RAIL - one bar where there used to be six stacked strips.
 
-            {/* Phase 37: Classification mini-bar — shows move quality distribution */}
-            {classificationCounts && questionNumber > 1 && (() => {
-                const total = (classificationCounts.best || 0) + (classificationCounts.correct || 0) +
-                    (classificationCounts.inaccuracy || 0) + (classificationCounts.wrong || 0) + (classificationCounts.blunder || 0);
-                if (total === 0) return null;
-                const segments = [
-                    { key: 'best', color: 'var(--sp-accent-green)', count: classificationCounts.best || 0, label: '★' },
-                    { key: 'correct', color: 'var(--sp-accent-cyan)', count: classificationCounts.correct || 0, label: '✓' },
-                    { key: 'inaccuracy', color: 'var(--sp-accent-amber)', count: classificationCounts.inaccuracy || 0, label: '~' },
-                    { key: 'wrong', color: 'var(--sp-accent-orange)', count: classificationCounts.wrong || 0, label: '✗' },
-                    { key: 'blunder', color: 'var(--sp-accent-red)', count: classificationCounts.blunder || 0, label: '!!' },
-                ].filter(s => s.count > 0);
-                return (
-                    <div style={{ padding: '0 16px', marginBottom: 2 }}>
-                        <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
-                            {segments.map(seg => (
-                                <motion.div
-                                    key={seg.key}
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(seg.count / total) * 100}%` }}
-                                    transition={{ duration: 0.4, ease: 'easeOut' }}
-                                    style={{ background: seg.color, height: '100%' }}
-                                    title={`${seg.key}: ${seg.count} (${Math.round((seg.count / total) * 100)}%)`}
-                                />
-                            ))}
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 2 }}>
-                            {segments.map(seg => (
-                                <span key={seg.key} style={{ fontSize: 8, color: seg.color, fontWeight: 700, fontFamily: "'Inter', monospace" }}>
-                                    {seg.label}{seg.count}
-                                </span>
-                            ))}
-                            {bestGTOWStreak > 0 && (
-                                <span style={{ fontSize: 8, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>
-                                    best: {bestGTOWStreak}🔥
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                );
-            })()}
+                Between the question and the felt this component stacked SIX
+                separate full-width rows: a progress bar, a classification
+                mini-bar with its own legend, a position/street accuracy pill
+                row (up to ten pills), a leak ticker, a mode-toggle row, and a
+                second EV progress bar. On a phone that consumed most of the
+                screen before a single card was visible - which is exactly the
+                "UI is trash and stacked" complaint.
 
-            {/* Phase 38: Position & Street accuracy row — shows after 5+ hands */}
-            {positionAccuracy && Object.keys(positionAccuracy || {}).length > 0 && questionNumber > 5 && (
-                <div style={{ padding: '0 16px', marginBottom: 2, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {/* Position pills */}
-                    {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].filter(p => positionAccuracy[p]).map(pos => {
-                        const data = positionAccuracy[pos];
-                        const accColor = data.accuracy >= 80 ? 'var(--sp-accent-green)' : data.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
-                        const isWeakest = weakestPosition === pos;
+                They are now one rail, and the fill IS the quality breakdown:
+                progress and how you are playing are the same object, the way a
+                game shows it, with a lit leading edge riding the front. The
+                per-position, per-street, leak and distribution numbers are
+                session analytics rather than gameplay HUD and belong on the
+                review screen, where there is room to actually read them. */}
+            <div style={styles.sessionRail}>
+                <div style={styles.sessionRailTrack}>
+                    {(() => {
+                        const pct = Math.min(100, Math.max(0, ((questionNumber || 1) / (totalQuestions || 25)) * 100));
+                        const counts = classificationCounts || {};
+                        const segments = [
+                            { key: 'best', color: '#22c55e', count: counts.best || 0 },
+                            { key: 'correct', color: '#00d4ff', count: counts.correct || 0 },
+                            { key: 'inaccuracy', color: '#fbbf24', count: counts.inaccuracy || 0 },
+                            { key: 'wrong', color: '#f97316', count: counts.wrong || 0 },
+                            { key: 'blunder', color: '#ef4444', count: counts.blunder || 0 },
+                        ].filter(seg => seg.count > 0);
                         return (
-                            <div key={pos} style={{
-                                display: 'flex', alignItems: 'center', gap: 2,
-                                padding: '1px 5px', borderRadius: 4,
-                                background: isWeakest ? `${accColor}22` : 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${isWeakest ? accColor + '55' : 'rgba(255,255,255,0.06)'}`,
-                            }}>
-                                <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--sp-fg-muted)', letterSpacing: 0.5 }}>{pos}</span>
-                                <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
-                                <span style={{ fontSize: 7, color: 'var(--sp-fg-faint)' }}>({data.total})</span>
-                            </div>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                style={styles.sessionRailFill}
+                            >
+                                {segments.length > 0
+                                    ? segments.map(seg => (
+                                        <div
+                                            key={seg.key}
+                                            title={`${seg.key}: ${seg.count}`}
+                                            style={{ flex: seg.count, height: '100%', background: seg.color }}
+                                        />
+                                    ))
+                                    : <div style={{ flex: 1, height: '100%', background: '#00d4ff' }} />}
+                                <div style={styles.sessionRailHead} />
+                            </motion.div>
                         );
-                    })}
-                    {/* Street divider + pills */}
-                    {streetAccuracy && Object.keys(streetAccuracy || {}).length > 0 && (
-                        <>
-                            <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', alignSelf: 'center' }} />
-                            {['preflop', 'flop', 'turn', 'river'].filter(s => streetAccuracy[s]).map(st => {
-                                const data = streetAccuracy[st];
-                                const streetColors = { preflop: 'var(--sp-accent-purple)', flop: 'var(--sp-accent-green)', turn: 'var(--sp-accent-orange)', river: 'var(--sp-accent-red)' };
-                                const accColor = data.accuracy >= 80 ? 'var(--sp-accent-green)' : data.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
-                                return (
-                                    <div key={st} style={{
-                                        display: 'flex', alignItems: 'center', gap: 2,
-                                        padding: '1px 5px', borderRadius: 4,
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                    }}>
-                                        <span style={{ fontSize: 8, fontWeight: 700, color: streetColors[st] || 'var(--sp-fg-muted)', letterSpacing: 0.5, textTransform: 'capitalize' }}>{st.slice(0, 1).toUpperCase()}</span>
-                                        <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
-                                    </div>
-                                );
-                            })}
-                        </>
-                    )}
+                    })()}
                 </div>
-            )}
-
-            {/* Phase 49: Live Leak Ticker — compact inline leak alerts after 8+ hands */}
-            {mistakePatterns && mistakePatterns.length > 0 && questionNumber > 8 && (() => {
-                // Show only high/medium severity leaks, max 2
-                const significantLeaks = mistakePatterns
-                    .filter(p => p.severity === 'high' || (p.severity === 'medium' && p.count >= 3))
-                    .slice(0, 2);
-                if (significantLeaks.length === 0) return null;
-                return (
-                    <div style={{
-                        padding: '2px 16px', marginBottom: 2,
-                        display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
-                    }}>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sp-accent-amber)', letterSpacing: 1, textTransform: 'uppercase' }}>
-                            LEAK
-                        </span>
-                        {significantLeaks.map((leak, idx) => {
-                            const sevColor = leak.severity === 'high' ? 'var(--sp-accent-red)' : 'var(--sp-accent-amber)';
-                            return (
-                                <div key={idx} style={{
-                                    display: 'flex', alignItems: 'center', gap: 3,
-                                    padding: '1px 6px', borderRadius: 4,
-                                    background: `${sevColor}11`,
-                                    border: `1px solid ${sevColor}33`,
-                                }}>
-                                    <span style={{ fontSize: 9 }}>{leak.icon}</span>
-                                    <span style={{ fontSize: 8, fontWeight: 700, color: sevColor }}>
-                                        {leak.type.replace('_', ' ')}
-                                    </span>
-                                    <span style={{ fontSize: 7, color: 'var(--sp-fg-muted)' }}>({leak.count}x)</span>
-                                </div>
-                            );
-                        })}
-                        {significantLeaks.length > 0 && significantLeaks[0].tip && (
-                            <span style={{ fontSize: 7, color: 'var(--sp-fg-muted)', fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {significantLeaks[0].tip}
-                            </span>
-                        )}
-                    </div>
-                );
-            })()}
-
-            {/* BUG FIX (TRAIN-HEADER-CHIPS-1): RNG and TRAIN/STUDY were two
-                independent floating pills creating visual noise — the May 8
-                training-overhaul handoff specifically called them out:
-                "fold related ones (SOLVER+FULL into one mode chip; RNG OFF
-                + TRAIN into one)". Consolidated into a single segmented
-                pill: one rounded outer container, two flush-joined inner
-                buttons with a shared center divider. Reads as one
-                "mode status" control instead of two competing chips. Both
-                inner buttons carry `data-compact` so the global mobile-
-                touch-target rule from TRAIN-CSS-SWEEP-1 leaves them at
-                their intentionally compact size. */}
-            <div
-                style={{
-                    display: 'flex',
-                    padding: '0 16px 4px',
-                    justifyContent: 'flex-end',
-                }}
-                role="group"
-                aria-label="Session mode toggles"
-            >
-                <div
+                <span
                     style={{
-                        display: 'inline-flex',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        background: 'rgba(255,255,255,0.02)',
+                        ...styles.sessionRailEV,
+                        color: totalSessionEVLoss > 1 ? '#ef4444' : totalSessionEVLoss > 0 ? '#fbbf24' : '#22c55e',
                     }}
+                    title="Total EV surrendered this session"
                 >
-                    <button
-                        data-compact
-                        onClick={() => setRngMode(v => !v)}
-                        aria-pressed={rngMode}
-                        title={rngMode ? 'RNG mode on — drill rolls die for randomized actions' : 'RNG mode off'}
-                        style={{
-                            padding: '3px 10px', fontSize: 10, fontWeight: 700,
-                            border: 'none',
-                            borderRight: '1px solid rgba(255,255,255,0.08)',
-                            background: rngMode ? 'rgba(168,85,247,0.18)' : 'transparent',
-                            color: rngMode ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)', cursor: 'pointer',
-                            letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
-                        }}
-                    >
-                        RNG {rngMode ? 'ON' : 'OFF'}
-                    </button>
-                    <button
-                        data-compact
-                        onClick={() => setStudyMode(v => !v)}
-                        aria-pressed={studyMode}
-                        title={studyMode ? 'Study mode — see GTO frequencies before answering' : 'Train mode — answer first, see GTO after'}
-                        style={{
-                            padding: '3px 10px', fontSize: 10, fontWeight: 700,
-                            border: 'none',
-                            background: studyMode ? 'rgba(59,130,246,0.18)' : 'transparent',
-                            color: studyMode ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)', cursor: 'pointer',
-                            letterSpacing: 0.5, transition: 'background 0.15s ease, color 0.15s ease',
-                        }}
-                    >
-                        {studyMode ? 'STUDY' : 'TRAIN'}
-                    </button>
-                </div>
+                    {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)}` : '0.0'} EV
+                </span>
             </div>
 
-            {/* Phase 3: Session EV Progress Bar */}
-            <div style={{
-                margin: '0 16px 6px', height: 4, borderRadius: 2,
-                background: 'rgba(255,255,255,0.05)', overflow: 'hidden',
-                position: 'relative',
-            }}>
-                <motion.div
-                    animate={{ width: `${Math.min(100, Math.max(0, 50 + (totalSessionEVLoss > 0 ? -totalSessionEVLoss * 5 : 0)))}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    style={{
-                        height: '100%', borderRadius: 2,
-                        background: totalSessionEVLoss > 5
-                            ? 'linear-gradient(90deg, #ef4444, #f97316)'
-                            : totalSessionEVLoss > 1
-                                ? 'linear-gradient(90deg, #fbbf24, #f97316)'
-                                : 'linear-gradient(90deg, #22c55e, #4ade80)',
-                    }}
-                />
-                <div style={{
-                    position: 'absolute', top: -10, right: 4,
-                    fontSize: 8, fontWeight: 700,
-                    color: totalSessionEVLoss > 1 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-                }}>
-                    {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)} EV` : '0.0 EV'}
-                </div>
-            </div>
-            {/* TABLE AREA - Center */}
+                        {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
 
                 {/* Phase 3: Floating EV Popup */}
@@ -5397,6 +5227,81 @@ const styles = {
     questionPromptText: {
         flex: 1,
         minWidth: 0,
+    },
+
+    // Session modes, folded into the HUD cluster.
+    modeGroup: {
+        display: 'inline-flex',
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderRadius: 7,
+        overflow: 'hidden',
+        background: 'rgba(0,0,0,0.25)',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)',
+    },
+    modeButton: {
+        padding: '3px 9px',
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: 0.8,
+        border: 'none',
+        background: 'transparent',
+        color: 'var(--sp-fg-dim)',
+        cursor: 'pointer',
+        transition: 'background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+    },
+    modeButtonRng: {
+        background: 'rgba(168,85,247,0.22)',
+        color: '#c084fc',
+        boxShadow: 'inset 0 0 12px rgba(168,85,247,0.35)',
+    },
+    modeButtonStudy: {
+        background: 'rgba(0,212,255,0.18)',
+        color: '#00d4ff',
+        boxShadow: 'inset 0 0 12px rgba(0,212,255,0.3)',
+    },
+
+    // The one rail that replaced six stacked strips.
+    sessionRail: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '7px 16px 9px',
+        flexShrink: 0,
+    },
+    sessionRailTrack: {
+        position: 'relative',
+        flex: 1,
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+        background: 'rgba(255,255,255,0.05)',
+        // Depth: the track is cut into the surface, the fill sits proud of it.
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.65), inset 0 -1px 0 rgba(255,255,255,0.04)',
+    },
+    sessionRailFill: {
+        position: 'relative',
+        display: 'flex',
+        height: '100%',
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 0 14px rgba(0,212,255,0.35)',
+    },
+    sessionRailHead: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        right: 0,
+        width: 2,
+        background: '#ffffff',
+        boxShadow: '0 0 8px 2px rgba(0,212,255,0.85)',
+    },
+    sessionRailEV: {
+        flexShrink: 0,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: 0.6,
+        fontFamily: "'Inter', sans-serif",
+        fontVariantNumeric: 'tabular-nums',
     },
     chipStack: {
         position: 'absolute',
