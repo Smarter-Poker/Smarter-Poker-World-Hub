@@ -142,6 +142,13 @@ High/Low mode.
     legacy, 2 = signed). Grade and colour bands were rebased through the same
     transform and unit-checked: zero grade changes across the full 0..100
     input range, so every historical session keeps the grade it had.
+    Deploy-order race also closed (20260726193000): score_scale now DEFAULTS
+    to 1, and only this build's writer sets 2 explicitly. The migrations went
+    live before the signed-score code, so a default of 2 would have stamped
+    every row written by the still-deployed unsigned scorer as "signed" while
+    it held a legacy value -- mixing scales in one column, the precise failure
+    the marker exists to prevent. With the default at 1 the schema is correct
+    in both deploy states and neither has to land first.
     Trap worth remembering: the FIRST migration's backfill silently did
     nothing. Adding `score_scale` with `DEFAULT 2` stamps every existing row as
     already-migrated, so `WHERE score_scale <> 2` matched nothing — and the

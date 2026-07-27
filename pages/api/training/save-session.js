@@ -125,6 +125,11 @@ export default async function handler(req, res) {
               game_id: parsedGameId,
               game_name: gameName || parsedGameId,
               gtow_score: parsedGtowScore,
+              // roadmap #25 — mark the scale this row was written on. The
+              // column defaults to 1 (legacy 0..100) so that any older deploy
+              // still running the unsigned scorer labels its rows correctly;
+              // this build emits the signed -100..+100 score, so it says so.
+              score_scale: 2,
               total_ev_loss: parsedTotalEVLoss,
               hands_played: parsedHandsPlayed,
               mistake_count: parsedMistakeCount,
