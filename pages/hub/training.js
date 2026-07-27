@@ -143,7 +143,13 @@ export default function TrainingPage() {
   // arena fell back to its own defaults AND showed a second identical setup
   // screen (difficulty / timer / mode) before you could play.
   const handleSetupStart = useCallback((prefs) => {
-    setArenaConfig(prefs ? { difficulty: prefs.difficulty, timer: prefs.timer, mode: prefs.mode } : null);
+    setArenaConfig(prefs ? { 
+      difficulty: prefs.difficulty, 
+      timer: prefs.timer, 
+      mode: prefs.mode,
+      scope: prefs.scope,
+      speed: prefs.speed 
+    } : null);
     setSetupGame(null);
     setShowArena(true);
   }, [setShowArena]);

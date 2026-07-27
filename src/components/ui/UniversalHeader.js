@@ -997,26 +997,19 @@ export default function UniversalHeader({
                     }
                     
                     .header-left {
-                        gap: 2px;
-                        flex-shrink: 1;
-                        min-width: 0;
+                        gap: 4px;
                     }
-                    
+
                     .header-center {
-                        gap: 2px;
-                        flex-shrink: 1;
-                        min-width: 0;
+                        height: 24px;
                     }
                     
                     .header-right {
-                        gap: 2px;
-                        flex-shrink: 1; /* Allow container to shrink if needed */
-                        flex-grow: 0;
-                        justify-content: flex-end;
+                        gap: 4px;
                     }
-
+                    
+                    /* Reset flex items */
                     .header-right > * {
-                        display: flex;
                         align-items: center;
                         justify-content: center;
                         height: 24px;
@@ -1028,20 +1021,20 @@ export default function UniversalHeader({
                     
                     /* Hamburger button - mobile sizing */
                     .header-img-btn {
-                        height: 24px;
-                        width: 24px;
+                        height: 20px;
+                        width: 20px;
                     }
 
                     /* CRITICAL: Cap BACK/HUB nav button width on mobile */
                     .header-nav-btn {
-                        height: 20px;
+                        height: 16px;
                         width: auto;
-                        max-width: 76px;
+                        max-width: 60px;
                     }
                     
                     .hamburger-btn {
-                        width: 24px;
-                        height: 24px;
+                        width: 20px;
+                        height: 20px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
@@ -1070,16 +1063,6 @@ export default function UniversalHeader({
                         padding: 0 3px;
                         font-size: 8px;
                         min-width: 12px;
-                    }
-                    
-                    /* Shrink hamburger and hub/back navigation buttons for mobile */
-                    .hamburger-btn {
-                        width: 24px;
-                        height: 24px;
-                    }
-                    
-                    .header-nav-btn {
-                        height: 18px;
                     }
                 }
                 
