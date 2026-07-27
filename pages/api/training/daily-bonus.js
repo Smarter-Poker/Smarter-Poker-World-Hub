@@ -1,8 +1,8 @@
 /**
- * 🎁 DAILY TRAINING BONUS API
- * ═══════════════════════════════════════════════════════════════════════════
+ * DAILY TRAINING BONUS API
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Awards bonus diamonds for first training session each day
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -11,8 +11,9 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -49,12 +50,12 @@ export default async function handler(req, res) {
       // time, because UTC ticks over at 6pm CST. Same drift class as Phase 73.
       const today = getTodayCST(); // YYYY-MM-DD in America/Chicago
 
-      // ── Auth: verify JWT identity ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // ●● Auth: verify JWT identity (patched server client — local HMAC fast-path, GoTrue fallback) ●●
+      const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+      if (!user) {
+          if (authErr === 'No token') return res.status(401).json({ success: false, error: 'Auth required' });
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
       const userId = user.id; // From JWT, not request
 
       // GET: Check if daily bonus is available

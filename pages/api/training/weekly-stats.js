@@ -1,6 +1,6 @@
 /**
  * GET /api/training/weekly-stats
- * ─────────────────────────────────────────────────────────────────────────────
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Aggregated training dashboard payload for the redesigned /hub/training page.
  *
  * Returns:
@@ -28,6 +28,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 let _supabase = null;
 function getSupabase() {
@@ -49,15 +50,12 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ success: false, error: 'Auth required' });
-    }
-
     const supabase = getSupabase();
-    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-    const user = authData?.user;
-    if (authErr || !user) {
+    const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+    if (!user) {
+      if (authErr === 'No token') {
+        return res.status(401).json({ success: false, error: 'Auth required' });
+      }
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 

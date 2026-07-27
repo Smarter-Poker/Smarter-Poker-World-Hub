@@ -1,16 +1,17 @@
 /**
- * 📢 TRAINING SOCIAL SHARE API
- * ═══════════════════════════════════════════════════════════════════════════
+ * TRAINING SOCIAL SHARE API
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Share achievements, milestones, and accomplishments to the social feed
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -26,42 +27,42 @@ function getSupabase() {
 const SHARE_TEMPLATES = {
     achievement: {
         generateContent: (data) =>
-            `🏅 I just unlocked the "${data.name}" achievement in GTO Training! ${data.description || ''}`,
+            `★ I just unlocked the "${data.name}" achievement in GTO Training! ${data.description || ''}`,
         postType: 'achievement'
     },
     challenge: {
         generateContent: (data) =>
-            `🎯 I completed the ${data.challengeType} challenge: "${data.name}"! +${data.diamonds}💎`,
+            `◆ I completed the ${data.challengeType} challenge: "${data.name}"! +${data.diamonds}◆`,
         postType: 'challenge'
     },
     streak: {
         generateContent: (data) =>
-            `🔥 ${data.days}-day GTO Training streak! I'm on fire! ${data.days >= 30 ? '👑' : data.days >= 14 ? '⚡' : '💪'}`,
+            `▲ ${data.days}-day GTO Training streak! I'm on fire! ${data.days >= 30 ? '★' : data.days >= 14 ? '⌁' : '▲'}`,
         postType: 'milestone'
     },
     perfect_round: {
         generateContent: (data) =>
-            `💎 Perfect Round! 100% accuracy on "${data.gameName}"! That's ${data.totalPerfect} perfect rounds total!`,
+            `◆ Perfect Round! 100% accuracy on "${data.gameName}"! That's ${data.totalPerfect} perfect rounds total!`,
         postType: 'accomplishment'
     },
     leaderboard: {
         generateContent: (data) =>
-            `🏆 I reached #${data.rank} on the ${data.period} GTO Training leaderboard!`,
+            `★ I reached #${data.rank} on the ${data.period} GTO Training leaderboard!`,
         postType: 'milestone'
     },
     session_complete: {
         generateContent: (data) =>
-            `📚 Just completed a training session on "${data.gameName}" with ${data.accuracy}% accuracy!`,
+            `□ Just completed a training session on "${data.gameName}" with ${data.accuracy}% accuracy!`,
         postType: 'update'
     },
     autopilot: {
         generateContent: (data) =>
-            `🤖 Autopilot session complete! Trained ${data.spotsTrailed || 0} weak spots with ${data.accuracy || 0}% accuracy. ${(data.spots || []).slice(0, 3).join(', ')}`,
+            `■ Autopilot session complete! Trained ${data.spotsTrailed || 0} weak spots with ${data.accuracy || 0}% accuracy. ${(data.spots || []).slice(0, 3).join(', ')}`,
         postType: 'accomplishment'
     },
     'gto-score': {
         generateContent: (data) =>
-            `📊 My GTO Proximity Score: ${data.score}/100 (${data.tier}) — based on ${(data.hands || 0).toLocaleString()} hands analyzed!`,
+            `■ My GTO Proximity Score: ${data.score}/100 (${data.tier}) — based on ${(data.hands || 0).toLocaleString()} hands analyzed!`,
         postType: 'milestone'
     }
 };
@@ -76,11 +77,11 @@ export default async function handler(req, res) {
       // Require JWT auth for write operations
       const supabase = getSupabase();
       if (req.method !== 'GET') {
-          const _token = req.headers.authorization?.replace('Bearer ', '');
-          if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: authData, error: _authErr } = await supabase.auth.getUser(_token);
-          const _authUser = authData?.user;
-          if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const { user: _authUser, error: _authErr } = await getServerUserWithFallback(req, supabase);
+          if (!_authUser) {
+              if (_authErr === 'No token') return res.status(401).json({ success: false, error: 'Authentication required' });
+              return res.status(401).json({ success: false, error: 'Invalid token' });
+          }
           if (req.body) req.body.userId = _authUser.id;
       }
 

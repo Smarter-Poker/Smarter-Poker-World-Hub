@@ -1,5 +1,5 @@
 /**
- * 🧠 GTO EXPLANATION ENDPOINT (DETERMINISTIC — Operation Grok-Sweep)
+ * GTO EXPLANATION ENDPOINT (DETERMINISTIC — Operation Grok-Sweep)
  * ═══════════════════════════════════════════════════════════════════════════
  * Returns the rich "EngineExplanation" payload consumed by FeedbackCard.tsx
  * and other clients (mobile, legacy training arena).
@@ -33,6 +33,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { buildExplainAnswerPayload } from '../../../src/lib/explanationTemplates';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -97,11 +98,11 @@ export default async function handler(req, res) {
 
       // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
       const supabase = getSupabase();
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+      if (!user) {
+          if (authErr === 'No token') return res.status(401).json({ success: false, error: 'Auth required' });
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
 
       const {
           question,           // The original question object
@@ -122,7 +123,7 @@ export default async function handler(req, res) {
       const cacheKey = generateCacheKey(question, correctAnswer);
 
       try {
-          // 🔍 CHECK CACHE FIRST (cache stays in front of both branches)
+          // CHECK CACHE FIRST (cache stays in front of both branches)
           const { data: cached } = await supabase
               .from('grok_explanation_cache')
               .select('explanation, was_correct')
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
                   gtoFrequencies,
               });
 
-              // 💾 Cache the deterministic payload — even though generation is
+              // Cache the deterministic payload — even though generation is
               // free, caching saves the Supabase round-trip + JSON build cost on
               // repeat keys.
               supabase
@@ -168,7 +169,7 @@ export default async function handler(req, res) {
                       hit_count: 1,
                       created_at: new Date().toISOString(),
                   }, { onConflict: 'cache_key,was_correct' })
-                  .then(() => console.debug(`[Explain] 💾 Cached deterministic ${cacheKey.slice(0, 8)}…`))
+                  .then(() => console.debug(`[Explain] Cached deterministic ${cacheKey.slice(0, 8)}…`))
                   .catch(e => console.warn('[Explain] Cache save failed:', e?.message || e));
 
               return res.status(200).json({
@@ -210,7 +211,7 @@ SCENARIO CONTEXT: ${scenario.context || scenario.title || 'Mental-game spot'}
 
 USER'S ANSWER: ${userAnswer}
 CORRECT ANSWER: ${correctAnswer}
-RESULT: ${wasCorrect ? '✅ CORRECT' : '❌ INCORRECT'}
+RESULT: ${wasCorrect ? '✓ CORRECT': '✕ INCORRECT'}
 
 COACHING TONE: ${coachingTone}
 
@@ -245,7 +246,7 @@ Be specific to THIS scenario. Avoid generic advice.`;
           if (jsonMatch) {
               const explanation = JSON.parse(jsonMatch[0]);
 
-              // 💾 Save SCENARIO response to cache
+              // Save SCENARIO response to cache
               supabase
                   .from('grok_explanation_cache')
                   .upsert({
@@ -257,7 +258,7 @@ Be specific to THIS scenario. Avoid generic advice.`;
                       hit_count: 1,
                       created_at: new Date().toISOString(),
                   }, { onConflict: 'cache_key,was_correct' })
-                  .then(() => console.debug(`[Explain] 💾 Cached scenario ${cacheKey.slice(0, 8)}…`))
+                  .then(() => console.debug(`[Explain] Cached scenario ${cacheKey.slice(0, 8)}…`))
                   .catch(e => console.warn('[Explain] Cache save failed:', e?.message || e));
 
               return res.status(200).json({

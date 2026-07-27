@@ -1,8 +1,8 @@
 /**
  *  TRAINING STREAK API
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Track daily training streaks and award milestone rewards
- * ═══════════════════════════════════════════════════════════════════════════
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -11,8 +11,9 @@ import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
-// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+// ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -44,12 +45,12 @@ export default async function handler(req, res) {
 
       const supabase = getSupabase();
 
-      // ── Auth: verify JWT identity ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // ●● Auth: verify JWT identity (patched server client — local HMAC fast-path, GoTrue fallback) ●●
+      const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+      if (!user) {
+          if (authErr === 'No token') return res.status(401).json({ success: false, error: 'Auth required' });
+          return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
       const userId = user.id; // From JWT, not request
 
       // GET: Fetch user streak
