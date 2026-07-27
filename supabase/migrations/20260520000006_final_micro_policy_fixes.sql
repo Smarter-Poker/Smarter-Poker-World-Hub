@@ -69,3 +69,22 @@ CREATE POLICY "venue_news_auth_delete"
     ON public.venue_news FOR DELETE TO authenticated USING (true);
 
 COMMIT;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- 2026-07-27 SECURITY AUDIT NOTE — DO NOT COPY THE PATTERN ABOVE
+--
+-- Two blocks in this migration traded security away to silence a
+-- `multiple_permissive_policies` PERFORMANCE advisor warning:
+--
+--   * live_gifts: dropped `live_gifts_api_only_insert` (WITH CHECK (false))
+--     and recreated it as WITH CHECK (true) for `authenticated`, undoing
+--     20260501_harden_live_gifts_rls and 20260503_live_gifts_rls_api_only.
+--     Any logged-in user could POST fabricated gift rows with an arbitrary
+--     sender, receiver and amount, with no diamonds deducted.
+--
+--   * venue_news: created three unconditional `true` write policies, so any
+--     logged-in player could rewrite or delete any venue's news.
+--
+-- Both are re-closed by the 20260727 migrations in this directory. A
+-- performance advisor warning is never a reason to widen a WITH CHECK.
+-- ═══════════════════════════════════════════════════════════════════════
