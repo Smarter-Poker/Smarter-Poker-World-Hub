@@ -59,8 +59,13 @@ High/Low mode.
    had to fill in difficulty/timer/mode on two consecutive screens.
 2. **Setup choices are honoured.** DONE — `handleSetupStart` literally
    discarded its own prefs, so the arena fell back to defaults.
-3. **Game Mode: Full Hand / Spot / Street.** GAP — we always play a spot, with
-   partial multi-street support. GTOW makes this an explicit choice.
+3. **Game Mode: Full Hand / Spot / Street.** BUILT 2026-07-26 —
+   `trainerConfig.gameMode`. We only ever played Full Hand: ANY flop or turn
+   question silently began a multi-street hand, so isolated decisions could not
+   be drilled at all. Now 'full' continues across streets (unchanged default),
+   'spot' plays exactly one decision per hand, and 'street' additionally
+   restricts the queue to `trainerConfig.targetStreet`. Street filter
+   unit-tested including the never-empty fallback.
 4. **Timebank 7 / 15 / 25s.** BUILT 2026-07-26 — re-scaled to No timer /
    25s / 15s / 7s across the setup modal and both in-arena pickers. Ours had
    'Standard' at 60s, four times GTOW's longest tier.
@@ -83,10 +88,19 @@ High/Low mode.
 9. **Game speed Normal / Fast / Turbo.** BUILT 2026-07-26 — chosen in
    SessionSetupModal, passed through `initialConfig.speed`; the arena maps it
    to the auto-advance delay (fast 1500ms, turbo 1ms). Verified in source.
-10. **Up to 4 simultaneous tables.** GAP — reported complete on 2026-07-26,
-    but re-verified as NOT implemented: `GodModeArena` contains no reference to
-    `useMultiTable`, `numTables` or `tableCount`. The hook still exists
-    unused. Left open deliberately rather than marked done.
+10. **Up to 4 simultaneous tables.** GAP — and my earlier note pointing at
+    `useMultiTable` was WRONG; do not wire it. That hook is the PokerBros-style
+    club-arena cash-table manager: its slots hold
+    `{tableId, name, stakes, variant, clubName, clubId}`, it takes
+    `{supabase, userId}`, and it tracks per-table chat, BBJ wins and websocket
+    connection status. It manages real money tables, not training drills.
+    Connecting it to the trainer would be a category error.
+    A real implementation means N independent question queues and score
+    sessions rendered side by side. `GodModeArena` is ~13k lines and owns
+    session state, persistence and a GLOBAL body scroll lock, so four mounted
+    instances would fight over all three. This is the one remaining item that
+    is a genuine architectural build rather than a fix, and it should start by
+    extracting the per-session state out of the arena shell.
 
 ### The table
 
