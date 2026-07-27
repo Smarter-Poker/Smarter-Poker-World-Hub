@@ -2872,7 +2872,12 @@ function UniversalDynamicTable({
                 {(() => {
                     if (dealerButtonSeatIndex < 0) return null; // seat unknown: draw nothing
                     const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
-                    const lawKey = keys[dealerButtonSeatIndex];
+                    // keys is HERO-RELATIVE (index 0 is hero, 1 is the seat to
+                    // hero's left, ...) while dealerButtonSeatIndex is an ABSOLUTE
+                    // index into `seats`. Indexing one with the other only agreed
+                    // when hero happened to sit at absolute 0. Rotate first.
+                    const btnRel = ((dealerButtonSeatIndex - heroSeatIndex) % playerCount + playerCount) % playerCount;
+                    const lawKey = keys[btnRel];
                     if (!lawKey) return null;
                     const btnPos = DEALER_BUTTON_POSITIONS[lawKey] || DEALER_BUTTON_POSITIONS.hero;
                     return (
@@ -2930,8 +2935,15 @@ function UniversalDynamicTable({
                                 (a) => a.position?.toUpperCase() === seat.name?.toUpperCase()
                             );
                         if (!shown) return null;
-                        const pos = CHIP_STACK_POSITIONS[keys[index] || 'hero']
-                            || CHIP_STACK_POSITIONS.hero;
+                        // Same absolute-vs-hero-relative mismatch as the dealer
+                        // button: `index` walks `seats` from absolute 0, `keys` is
+                        // measured from hero. Unrotated, a hero posting the big
+                        // blind drew his chips in a villain's chip slot.
+                        const chipRel = ((index - heroSeatIndex) % playerCount + playerCount) % playerCount;
+                        const chipKey = keys[chipRel];
+                        if (!chipKey) return null;
+                        const pos = CHIP_STACK_POSITIONS[chipKey];
+                        if (!pos) return null;
                         return (
                             <div
                                 key={`chip-${index}`}
