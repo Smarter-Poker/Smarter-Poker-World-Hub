@@ -106,8 +106,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                     ? `translateY(0px) scale(1)`
                     : `translateY(150px) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
-                flex: 1,
-                maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
+                flex: orb.id === 'toke-tracker' ? 1.25 : 1,
+                maxWidth: orb.id === 'toke-tracker' ? `clamp(175px, 21vw, 230px)` : `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
                 transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -120,14 +120,43 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 e.currentTarget.style.transform = `translateY(0px) scale(1)`;
             }}
         >
+            {/* Holographic pedestal glow */}
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: 25,
+                    width: 160,
+                    height: 45,
+                    borderRadius: '50%',
+                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
+                    filter: 'blur(8px)',
+                    opacity: 0.5,
+                    transform: 'rotateX(70deg)',
+                }}
+            />
+
             {/* Card Container */}
             <div
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 186,
+                    maxWidth: orb.id === 'toke-tracker' ? 230 : 186,
+                    transformStyle: 'preserve-3d',
                 }}
             >
+                {/* Card bottom edge - visible 3D glass thickness */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: 3,
+                        bottom: -6,
+                        width: 'calc(100% - 6px)',
+                        height: 10,
+                        background: 'linear-gradient(90deg, rgba(50, 150, 200, 0.4), rgba(0, 180, 255, 0.3), rgba(100, 200, 255, 0.3))',
+                        borderRadius: '0 0 6px 6px',
+                        transform: 'rotateX(90deg) translateZ(3px)',
+                    }}
+                />
 
                 {/* Main card face */}
                 <div
