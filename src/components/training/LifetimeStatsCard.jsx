@@ -36,9 +36,33 @@ export default function LifetimeStatsCard({
     longestStreak = 0,
     totalMistakes = 0,
     gamesCompleted = 0,
+    handHistory = [],
 }) {
     const scoreColor = avgGTOWScore >= 80 ? '#22c55e' : avgGTOWScore >= 60 ? '#fbbf24' : '#ef4444';
     const bestColor = bestGTOWScore >= 80 ? '#22c55e' : bestGTOWScore >= 60 ? '#fbbf24' : '#ef4444';
+
+    // Calculate Pot-type breakdown
+    const potStats = {
+        srp: { count: 0, score: 0 },
+        '3bp': { count: 0, score: 0 },
+        '4bp': { count: 0, score: 0 },
+    };
+
+    if (handHistory && handHistory.length > 0) {
+        handHistory.forEach(h => {
+            const st = h.spotType || '';
+            let type = 'srp';
+            if (st.includes('3bet')) type = '3bp';
+            else if (st.includes('4bet')) type = '4bp';
+
+            potStats[type].count += 1;
+            potStats[type].score += h.classification === 'best' ? 100 : h.classification === 'correct' ? 75 : 0;
+        });
+    }
+
+    const srpAvg = potStats.srp.count ? Math.round(potStats.srp.score / potStats.srp.count) : 0;
+    const tbpAvg = potStats['3bp'].count ? Math.round(potStats['3bp'].score / potStats['3bp'].count) : 0;
+    const fbpAvg = potStats['4bp'].count ? Math.round(potStats['4bp'].score / potStats['4bp'].count) : 0;
 
     return (
         <div style={styles.container}>
@@ -73,6 +97,27 @@ export default function LifetimeStatsCard({
                 <StatBox icon="" label="Best Streak" value={longestStreak} color="#f97316" delay={0.3} />
                 <StatBox icon="⚠️" label="Mistakes" value={totalMistakes} color="#fbbf24" delay={0.35} />
             </div>
+
+            {/* Pot-Type Breakdown */}
+            {handHistory && handHistory.length > 0 && (
+                <div style={{ marginBottom: 12, marginTop: 12 }}>
+                    <div style={{ color: '#64748b', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, textAlign: 'center' }}>Pot-Type Accuracy</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
+                            <div style={{ color: '#94a3b8', fontSize: 9 }}>SRP ({potStats.srp.count})</div>
+                            <div style={{ color: srpAvg >= 80 ? '#22c55e' : srpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{srpAvg}%</div>
+                        </div>
+                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
+                            <div style={{ color: '#94a3b8', fontSize: 9 }}>3BP ({potStats['3bp'].count})</div>
+                            <div style={{ color: tbpAvg >= 80 ? '#22c55e' : tbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{tbpAvg}%</div>
+                        </div>
+                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
+                            <div style={{ color: '#94a3b8', fontSize: 9 }}>4BP+ ({potStats['4bp'].count})</div>
+                            <div style={{ color: fbpAvg >= 80 ? '#22c55e' : fbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{fbpAvg}%</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Progress narrative */}
             <div style={styles.narrative}>

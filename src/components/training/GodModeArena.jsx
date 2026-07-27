@@ -3579,6 +3579,15 @@ function GodModeArenaInner({
     }, 350);
   }, [nextQuestion, isTransitioning, importState.importedQuestion]);
 
+  // ═══ GLOBAL KEYBOARD LISTENER & SCROLL LOCK ═══
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // ═══ QW-2 / T2-2: KEYBOARD SHORTCUTS ═══
   useEffect(() => {
     const handler = (e) => {
@@ -13182,15 +13191,40 @@ const styles = {
 };
 
 function GodModeArena(props) {
-  const { gameId, onExit } = props;
-  // 2026-07-19 AUDIT FIX (E2E defect D3): cash-001 ("Preflop Blueprint" —
-  // the default CASH tile) was hardcoded to an endless PreflopRangeTrainer
-  // that ignored the selected level, had no 20-question structure or
-  // completion screen, and counted non-best picks as correct (always-RAISE
-  // scored 100%). cash-001 has real solver content in the question cache,
-  // so it now runs through the standard leveled arena like every other game.
+  const { gameId, onExit, initialConfig } = props;
+  
   if (gameId === 'adv-011') return <SPRTrainer onExit={onExit} />;
   if (gameId === 'quiz-gauntlet') return <QuizGauntlet onExit={onExit} />;
+
+  const tablesCount = parseInt(initialConfig?.tables || '1', 10);
+
+  if (tablesCount > 1) {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const cols = tablesCount === 4 ? '1fr 1fr' : (isMobile ? '1fr' : '1fr 1fr');
+    const rows = tablesCount === 4 ? '1fr 1fr' : (isMobile ? '1fr 1fr' : '1fr');
+
+    return (
+      <div 
+        style={{
+          display: 'grid',
+          gridTemplateColumns: cols,
+          gridTemplateRows: rows,
+          height: '100vh',
+          width: '100vw',
+          overflow: 'hidden',
+          background: '#000',
+          gap: '2px'
+        }}
+      >
+        {Array.from({ length: tablesCount }).map((_, i) => (
+          <div key={i} style={{ position: 'relative', overflow: 'hidden' }}>
+            <GodModeArenaInner {...props} autoAdvance={true} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return <GodModeArenaInner {...props} />;
 }
 

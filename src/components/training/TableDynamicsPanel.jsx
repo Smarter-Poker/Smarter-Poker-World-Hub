@@ -159,6 +159,8 @@ function DynamicAdjustments({ players, tableType }) {
 // ═══ MAIN COMPONENT ═══
 export default function TableDynamicsPanel() {
   const [selectedTable, setSelectedTable] = useState(0);
+  const [isPoppedOut, setIsPoppedOut] = useState(false);
+  
   const table = TABLE_PRESETS[selectedTable];
   const tableType = useMemo(() => classifyTable(table.players), [table]);
 
@@ -167,23 +169,62 @@ export default function TableDynamicsPanel() {
   const avgAf = table.players.reduce((a, p) => a + p.af, 0) / table.players.length;
   const avgStack = table.players.reduce((a, p) => a + p.stack, 0) / table.players.length;
 
+  const PanelWrapper = isPoppedOut ? motion.div : 'div';
+  const wrapperProps = isPoppedOut ? {
+    drag: true,
+    dragMomentum: false,
+    initial: { opacity: 0, scale: 0.95 },
+    animate: { opacity: 1, scale: 1 },
+    style: {
+      position: 'fixed',
+      top: '10%',
+      right: '10%',
+      zIndex: 9999,
+      width: 350,
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+      cursor: 'grab'
+    },
+    whileDrag: { cursor: 'grabbing' }
+  } : {
+    style: {
+      width: '100%'
+    }
+  };
+
   try {
     return (
-      <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Table Dynamics</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Real-time table analysis and strategy adjustments</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 18 }}>{tableType.icon}</span>
+      <PanelWrapper {...wrapperProps}>
+        <div style={{ background: 'rgba(15,23,42,0.85)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div>
-              <div style={{ color: tableType.color, fontSize: 13, fontWeight: 800 }}>{tableType.type}</div>
-              <div style={{ color: '#64748b', fontSize: 9 }}>{tableType.desc}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Table Dynamics</h3>
+                <button 
+                  onClick={() => setIsPoppedOut(!isPoppedOut)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    borderRadius: 4,
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    fontSize: 10
+                  }}
+                >
+                  {isPoppedOut ? 'Dock' : 'Pop-out'}
+                </button>
+              </div>
+              <div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>Real-time table analysis and strategy</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 18 }}>{tableType.icon}</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: tableType.color, fontSize: 13, fontWeight: 800 }}>{tableType.type}</div>
+                <div style={{ color: '#64748b', fontSize: 9 }}>{tableType.desc.split('—')[0]}</div>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Table preset selector */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -258,7 +299,8 @@ export default function TableDynamicsPanel() {
 
         {/* Dynamic Adjustments */}
         <DynamicAdjustments players={table.players} tableType={tableType} />
-      </div>
+        </div>
+      </PanelWrapper>
     );
   } catch (err) {
     return (
