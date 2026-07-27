@@ -1300,6 +1300,8 @@ function UniversalDynamicTable({
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
     const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
+    // Deep analysis starts CLOSED every hand: play first, study on request.
+    const [deepAnalysisOpen, setDeepAnalysisOpen] = React.useState(false);
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
@@ -2018,6 +2020,7 @@ function UniversalDynamicTable({
     React.useEffect(() => {
         setSelectedAnswer(null);
         setFeedbackCollapsed(false);
+        setDeepAnalysisOpen(false);
         try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [questionNumber]);
 
@@ -3903,6 +3906,34 @@ function UniversalDynamicTable({
                         </motion.div>
                     )}
 
+                    {/* DEEP ANALYSIS - everything past this line is opt-in.
+
+                        Between hands a player needs four things: what the move
+                        was graded, what it cost, what the solver preferred, and
+                        the mix. Those stay above this line, always visible.
+
+                        Below it were another twenty sections rendered
+                        unconditionally, every single hand, one after another: a
+                        per-action EV table, a strategic-why drawer carrying its
+                        own solver-analysis card and a range matrix, five
+                        structured explanation cards, five deep-coaching cards,
+                        and a 13x13 range grid. Stacked, that is the wall of
+                        text -- and it is also the fourth and fifth place the
+                        same EV number gets printed.
+
+                        Nothing here is deleted. It is behind one switch that
+                        starts closed on every new hand, so the depth is there
+                        when someone wants to study and out of the way when they
+                        want to play. */}
+                    <button
+                        onClick={() => setDeepAnalysisOpen(v => !v)}
+                        aria-expanded={deepAnalysisOpen}
+                        style={{ ...styles.analysisToggle, ...(deepAnalysisOpen ? styles.analysisToggleOpen : null) }}
+                    >
+                        <span style={styles.analysisToggleCaret}>{deepAnalysisOpen ? '\u25BE' : '\u25B8'}</span>
+                        <span>{deepAnalysisOpen ? 'HIDE ANALYSIS' : 'FULL ANALYSIS'}</span>
+                    </button>
+                    {deepAnalysisOpen && (<>
                     {/* Per-Action EV Comparison */}
                     {fq?.evData?.actionEVs && Object.keys(fq.evData.actionEVs || {}).length > 0 && (
                         <motion.div
@@ -4662,6 +4693,7 @@ function UniversalDynamicTable({
                         </div>
                     )}
 
+                    </>)}
                     </div>{/* end collapsible feedback body */}
 
                     {/* ═══ HAND SUMMARY — Shown when multi-street hand completes ═══ */}
@@ -5302,6 +5334,36 @@ const styles = {
         letterSpacing: 0.6,
         fontFamily: "'Inter', sans-serif",
         fontVariantNumeric: 'tabular-nums',
+    },
+
+    // The one switch that guards the depth.
+    analysisToggle: {
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+        padding: '7px 12px',
+        marginTop: 2,
+        borderRadius: 8,
+        border: '1px solid rgba(0,212,255,0.22)',
+        background: 'linear-gradient(180deg, rgba(0,212,255,0.10) 0%, rgba(0,212,255,0.03) 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+        color: '#7fdfff',
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: 1.2,
+        cursor: 'pointer',
+        transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    },
+    analysisToggleOpen: {
+        borderColor: 'rgba(0,212,255,0.45)',
+        background: 'linear-gradient(180deg, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0.06) 100%)',
+        color: '#00d4ff',
+    },
+    analysisToggleCaret: {
+        fontSize: 11,
+        lineHeight: 1,
     },
     chipStack: {
         position: 'absolute',
