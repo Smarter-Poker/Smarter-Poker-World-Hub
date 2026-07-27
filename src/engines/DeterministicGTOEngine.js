@@ -2035,7 +2035,15 @@ export class DeterministicGTOEngine {
                 ? `${villainPosition} bets ${betSizeFromHash}`
                 : `${villainPosition} bets`;
         } else {
-            villainAction = `${villainPosition} checks to you`;
+            // Same conflated node as buildActionDescription: 'hero_bets_or_checks'
+            // covers hero acting FIRST out of position as well as hero acting
+            // after a check in position. Only the second one involves a villain
+            // check. This is the sentence the player actually reads, so the
+            // earlier fix to buildActionDescription alone left the impossible
+            // "BTN checks to you" on screen in BB vs BTN.
+            villainAction = this.heroActsFirstPostflop(heroPosition, villainPosition)
+                ? 'you are first to act'
+                : `${villainPosition} checks to you`;
         }
 
         // Phase 52: Pot size in BB for context
@@ -2050,7 +2058,7 @@ export class DeterministicGTOEngine {
 
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainPosition} checks to you.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             case 'hero_faces_bet':
                 return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             default:

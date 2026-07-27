@@ -1785,7 +1785,16 @@ function UniversalDynamicTable({
         const vp = (villainPosition || '').toUpperCase().trim();
         if (vp === 'BTN' || vp === 'BUTTON' || vp === 'BTN/SB') return villainSeatIndex;
         const btnIdx = seats.findIndex(s => (s.name || '').toUpperCase().startsWith('BTN'));
-        return btnIdx >= 0 ? btnIdx : 0;
+        if (btnIdx >= 0) return btnIdx;
+        // DEALER_BUTTON_SEAT_KEYS is HERO-RELATIVE -- index 0 is always 'hero'.
+        // Falling back to 0 therefore did not mean "unknown", it meant "hero has
+        // the button", and that is what shipped: on a BB vs BTN hand the D chip
+        // sat on hero while the scenario said hero was the big blind. When we
+        // know hero's position and it is not the button, refuse to guess. A
+        // button on the wrong seat contradicts the very thing being trained;
+        // no button at all is the honest render.
+        if (hp) return -1;
+        return 0;
     })();
 
     // Generate STABLE villain stacks — relative to heroStack with ±variance
@@ -2861,8 +2870,10 @@ function UniversalDynamicTable({
 
                 {/* DEALER BUTTON — positions per DEALER_BUTTON_AND_CHIP_POSITIONS_LAW.md */}
                 {(() => {
+                    if (dealerButtonSeatIndex < 0) return null; // seat unknown: draw nothing
                     const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
-                    const lawKey = keys[dealerButtonSeatIndex] || 'hero';
+                    const lawKey = keys[dealerButtonSeatIndex];
+                    if (!lawKey) return null;
                     const btnPos = DEALER_BUTTON_POSITIONS[lawKey] || DEALER_BUTTON_POSITIONS.hero;
                     return (
                         <div style={{
