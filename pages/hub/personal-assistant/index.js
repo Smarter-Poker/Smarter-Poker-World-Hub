@@ -8,7 +8,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Image from 'next/image';
+
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -164,14 +164,10 @@ export default function PersonalAssistantPage() {
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
           {/* The metal frame image — strictly controls container height/width */}
-          <Image 
+          <img 
             src="/images/jarvis-combined.png" 
             alt="Virtual Sandbox and Leak Finder" 
-            width={1122} 
-            height={1402} 
-            quality={100}
             style={S.frameImage} 
-            priority
           />
 
           {/* ── HOTSPOT: Virtual Sandbox Card (Left Panel) ──── */}
@@ -308,7 +304,6 @@ const S = {
   // Page base
   page: {
     minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-    background: 'url(/images/jarvis-bg.png) center center / cover no-repeat fixed',
     backgroundColor: '#0a1628', // Fallback color
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
