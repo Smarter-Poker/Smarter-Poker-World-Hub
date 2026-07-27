@@ -2238,6 +2238,17 @@ function UniversalDynamicTable({
 
     return (
         <div className="gto-trainer-container" style={styles.container}>
+            {/* ═══ THE QUESTION — first element on the page, pinned to the top ═══
+                This is the single most important thing on screen: it is what the
+                player is being asked. It previously rendered nowhere at all, then
+                mid-page on top of the villain's cards. It now sits above everything
+                and sticks while the felt scrolls under it. */}
+            {questionText && questionText !== 'Loading question...' && (
+                <div style={styles.questionPrompt}>
+                    <span style={styles.questionPromptLabel}>YOUR SPOT</span>
+                    <span style={styles.questionPromptText}>{questionText}</span>
+                </div>
+            )}
             {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
@@ -2660,21 +2671,6 @@ function UniversalDynamicTable({
                     {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)} EV` : '0.0 EV'}
                 </div>
             </div>
-
-
-
-            {/* QUESTION PROMPT — 2026-07-26. questionText was computed and never
-                rendered at all, so the player only ever saw the context strip and had
-                to infer what was being asked. The first placement put it INSIDE the
-                table container where, being position:static with no z-index, it sat
-                directly on top of the villain's hole cards and the pot readout. That
-                was invisible in source review and obvious the moment the hand was on
-                screen. It now renders above the felt, outside the table, so it cannot
-                overlap the seats. */}
-            {questionText && questionText !== 'Loading question...' && (
-                <div style={styles.questionPrompt}>{questionText}</div>
-            )}
-
             {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
 
@@ -3995,7 +3991,12 @@ function UniversalDynamicTable({
                     })()}
 
                     {/* Phase 32: Stacked GTO Frequency Bar — shows all actions in one visual strip */}
-                    {computedFrequencies && Object.keys(computedFrequencies || {}).length > 0 && (
+                    {/* Only render when the solver actually gave us a distribution.
+                        Checking that KEYS exist is not enough: a spot with no solver
+                        data still yields {call:0, fold:0}, which drew an empty
+                        titled box under the feedback -- visible as a blank "GTO
+                        STRATEGY" panel on screen. */}
+                    {computedFrequencies && Object.values(computedFrequencies).some(v => Number(v) > 0) && (
                         <motion.div
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -4007,7 +4008,7 @@ function UniversalDynamicTable({
                             }}
                         >
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
-                                GTO Strategy
+                                Action mix
                             </div>
                             {/* Stacked bar */}
                             <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', gap: 1, background: 'rgba(0,0,0,0.3)' }}>
@@ -5365,17 +5366,37 @@ const styles = {
     },
 
     questionPrompt: {
-        margin: '0 auto 8px',
-        maxWidth: 620,
-        padding: '8px 14px',
-        borderRadius: 10,
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        color: '#e2e8f0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 60,
+        width: '100%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 10,
+        padding: '10px 16px',
+        // Depth: a lit rail across the top of the HUD, not a floating card.
+        background: 'linear-gradient(180deg, rgba(10,16,30,0.98) 0%, rgba(8,12,24,0.94) 100%)',
+        borderBottom: '1px solid rgba(0,212,255,0.28)',
+        boxShadow: '0 6px 18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)',
+        color: '#e8f4f8',
         fontSize: 14,
+        lineHeight: 1.4,
         fontWeight: 600,
-        lineHeight: 1.35,
-        textAlign: 'center',
+        flexShrink: 0,
+    },
+    questionPromptLabel: {
+        flexShrink: 0,
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: 1.4,
+        color: '#00d4ff',
+        textTransform: 'uppercase',
+        textShadow: '0 0 10px rgba(0,212,255,0.5)',
+    },
+    questionPromptText: {
+        flex: 1,
+        minWidth: 0,
     },
     chipStack: {
         position: 'absolute',
