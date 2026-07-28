@@ -642,6 +642,49 @@ const AVATARS = [
     '/avatars/table/free_cowboy.png',
 ];
 
+// Seat portrait. Takes an avatar image URL and degrades to a monogram disc when
+// the asset is missing or fails to decode, so a bad path can never leave a
+// blank hole on the felt where a character should be. Module-level because it
+// owns state and the seats are rendered inside a .map().
+function SeatAvatar({ src, label, fontSize }) {
+    const [failed, setFailed] = React.useState(false);
+    React.useEffect(() => { setFailed(false); }, [src]);
+    if (!src || failed) {
+        const monogram = ((label || '').trim().charAt(0) || '?').toUpperCase();
+        return (
+            <div style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'radial-gradient(circle at 50% 26%, #2a2a2e 0%, #141416 66%, #08080a 100%)',
+                color: 'rgba(255,214,122,0.92)',
+                fontSize,
+                fontWeight: 900,
+                letterSpacing: 0.5,
+                userSelect: 'none',
+            }}>
+                {monogram}
+            </div>
+        );
+    }
+    return (
+        <img
+            src={src}
+            alt={label || 'Player'}
+            onError={() => setFailed(true)}
+            style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: '50% 20%',
+                display: 'block',
+            }}
+        />
+    );
+}
+
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
 function getCardPath(card) {
     if (!card || card.length < 2) return '/cards/back.png';
@@ -2882,7 +2925,7 @@ function UniversalDynamicTable({
                                         zIndex: 2,
                                         flexShrink: 0,
                                         background: 'radial-gradient(circle at 50% 22%, #24304a 0%, #121a2c 68%, #070b14 100%)',
-                                        border: `${Math.max(1.5, ui(2))}px solid ${isActiveSeat ? '#ffc754' : 'rgba(0,212,255,0.30)'}`,
+                                        border: `${Math.max(1.5, ui(2))}px solid ${isActiveSeat ? '#ffc754' : 'rgba(214,163,42,0.55)'}`,
                                         boxShadow: isActiveSeat
                                             ? rimShadow
                                             : 'inset 0 2px 6px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.6)',
@@ -2892,17 +2935,10 @@ function UniversalDynamicTable({
                                         filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
                                     }}
                                 >
-                                    <img
-                                        src={isHero ? '/avatars/table/free_fox.png' : AVATARS[(index % (AVATARS.length - 1)) + 1]}
-                                        alt={isHero ? 'Hero' : 'Villain'}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                            objectPosition: '50% 20%',
-                                            display: 'block',
-                                        }}
-                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                    <SeatAvatar
+                                        src={isHero ? AVATARS[0] : AVATARS[(index % (AVATARS.length - 1)) + 1]}
+                                        label={seatLabel}
+                                        fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
                                     />
                                 </motion.div>
 
@@ -2924,9 +2960,11 @@ function UniversalDynamicTable({
                                         borderRadius: ui(8),
                                         textAlign: 'center',
                                         lineHeight: 1.18,
-                                        background: 'linear-gradient(180deg, rgba(21,31,52,0.97) 0%, rgba(7,11,22,0.98) 100%)',
-                                        border: `1px solid ${isActiveSeat ? 'rgba(255,199,84,0.55)' : 'rgba(0,212,255,0.22)'}`,
-                                        boxShadow: '0 5px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+                                        background: 'linear-gradient(180deg, rgba(20,20,23,0.97) 0%, rgba(6,6,8,0.98) 100%)',
+                                        border: `1px solid ${isActiveSeat ? 'rgba(255,199,84,0.95)' : 'rgba(214,163,42,0.75)'}`,
+                                        boxShadow: isActiveSeat
+                                            ? '0 5px 12px rgba(0,0,0,0.6), 0 0 16px rgba(255,199,84,0.45), inset 0 1px 0 rgba(255,255,255,0.06)'
+                                            : '0 5px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
                                     }}
                                 >
                                     <div style={{
@@ -2934,7 +2972,7 @@ function UniversalDynamicTable({
                                         fontWeight: 800,
                                         letterSpacing: 0.4,
                                         textTransform: 'uppercase',
-                                        color: isHero ? '#ffffff' : '#c6d5e3',
+                                        color: '#ffffff',
                                         whiteSpace: 'nowrap',
                                     }}>
                                         {seatLabel}
@@ -2943,7 +2981,7 @@ function UniversalDynamicTable({
                                         fontSize: Math.max(9, ui(11)),
                                         fontWeight: 800,
                                         fontVariantNumeric: 'tabular-nums',
-                                        color: isActiveSeat ? '#ffd67a' : 'var(--sp-accent-cyan)',
+                                        color: isActiveSeat ? '#ffd67a' : '#e2af3a',
                                         whiteSpace: 'nowrap',
                                     }}>
                                         {stackSize} bb
