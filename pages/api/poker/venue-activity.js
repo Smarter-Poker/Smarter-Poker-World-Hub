@@ -1,4 +1,4 @@
-import { getServerUserWithFallback } from "@/lib/serverAuth";
+import { getServerUserWithFallback } from "../../../src/lib/serverAuth";
 
 /**
  * Venue Activity Analytics API
