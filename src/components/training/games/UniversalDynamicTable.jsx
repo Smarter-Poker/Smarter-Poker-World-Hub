@@ -1904,9 +1904,11 @@ function UniversalDynamicTable({
     const playerCount = useMemo(() => {
         if (gameType === 'spins' || gameType === 'sng') return 3;
         if (gameType === 'heads-up' || gameType === 'hu') return 2;
+        // Force 6-max maximum on small viewports to prevent furniture collision
+        if (feltScale <= 0.65) return 6;
         if (gameType === '6max' || gameType === 'cash') return 6;
         return 9; // Default to 9-max for MTT
-    }, [gameType]);
+    }, [gameType, feltScale]);
 
     // Get seat configuration
     const seats = SEAT_CONFIGS[playerCount] || SEAT_CONFIGS[9];

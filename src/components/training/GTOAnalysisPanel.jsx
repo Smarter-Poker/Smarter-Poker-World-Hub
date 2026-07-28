@@ -12,6 +12,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import useVIPGate from '../../hooks/useVIPGate';
+import VIPGateModal from '../ui/VIPGateModal';
 
 // Action colors
 const ACTION_COLORS = {
@@ -61,6 +63,9 @@ export default function GTOAnalysisPanel({
         evAnalysis: true,
         alternateLines: true,
     });
+    
+    // VIP Gating
+    const { showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('gto-training');
 
     // Fetch analysis if not provided
     useEffect(() => {
@@ -130,12 +135,28 @@ export default function GTOAnalysisPanel({
 
     // Error state
     if (error) {
+        const isVipError = error.includes('VIP subscription required');
+        
         return (
             <div style={styles.container}>
                 <div style={styles.errorContainer}>
-                    <p style={styles.errorText}>Analysis failed: {error}</p>
+                    <p style={styles.errorText}>
+                        {isVipError ? 'Advanced post-flop solver scenarios are for VIP members only.' : `Analysis failed: ${error}`}
+                    </p>
+                    {isVipError ? (
+                        <button onClick={showUpgradeModal} style={{ ...styles.closeButton, background: '#FFD700', color: '#000', marginBottom: 12 }}>
+                            Unlock with VIP
+                        </button>
+                    ) : null}
                     <button onClick={onClose} style={styles.closeButton}>Close</button>
                 </div>
+                
+                <VIPGateModal 
+                    visible={upgradeModalVisible}
+                    onClose={hideUpgradeModal}
+                    featureName="Deep Solver Analysis"
+                    featureConfig={featureConfig}
+                />
             </div>
         );
     }

@@ -134,15 +134,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
   try {
-      // Allow cron to bypass JWT
-      const isCron = req.headers['x-cron-secret'] === process.env.CRON_SECRET || 
-                     req.headers['authorization'] === `Bearer ${process.env.CRON_SECRET}`;
+      // Allow cron to bypass JWT.
+      // SECURITY: the cron bypass only counts when CRON_SECRET is CONFIGURED.
+      // This previously FAILED OPEN: with CRON_SECRET unset,
+      // `undefined === undefined` made isCron true for any request that sent no
+      // x-cron-secret header, skipping the JWT check on this endpoint entirely.
+      const envCronSecret = process.env.CRON_SECRET;
+      const isCron = Boolean(envCronSecret) && (
+                     req.headers['x-cron-secret'] === envCronSecret ||
+                     req.headers['authorization'] === `Bearer ${envCronSecret}`);
                      
       if (!isCron) {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-          const authUser = authData?.user;
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+          /* removed duplicate authUser */
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 

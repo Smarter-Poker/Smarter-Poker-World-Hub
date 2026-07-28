@@ -191,8 +191,9 @@ async function handlePost(req, res) {
     // Require JWT for follow/unfollow writes
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Authentication required for follow/unfollow' });
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-    const authUser = authData?.user;
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+    /* removed duplicate authUser */
     if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = authUser.id;
 

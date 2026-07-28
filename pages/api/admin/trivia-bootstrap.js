@@ -230,12 +230,23 @@ Return ONLY valid JSON array:
 
 export default async function handler(req, res) {
   try {
+      // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+      // This previously FAILED OPEN: with CRON_SECRET unset the query-param
+      // comparison was `undefined !== undefined` → false, so a caller sending
+      // neither a Bearer token nor a ?secret= param passed the gate outright.
+      // (The Bearer branch also degraded to the literal "Bearer undefined".)
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret) {
+          console.warn('[trivia-bootstrap] CRON_SECRET is not configured — rejecting request');
+          return res.status(500).json({ error: 'Server misconfigured' });
+      }
+
       // Allow both GET and POST, but require auth
       const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      if (authHeader !== `Bearer ${cronSecret}`) {
           // Also allow without auth for admin testing
           const { secret } = req.query;
-          if (secret !== process.env.CRON_SECRET) {
+          if (secret !== cronSecret) {
               return res.status(401).json({ error: 'Unauthorized - pass secret as query param or Bearer token' });
           }
       }

@@ -33,11 +33,32 @@ export default async function handler(req, res) {
       // ── Auth: JWT required — userId derived from token, not body ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+      
       const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
       const authUser = authData?.user;
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = authUser.id; // Trust JWT, not request body
+
+      // ── VIP Check: Jarvis is a VIP feature ──
+      const { data: profile } = await getSupabase()
+          .from('profiles')
+          .select('is_vip, vip_tier, vip_expires_at')
+          .eq('id', userId)
+          .maybeSingle();
+
+      let isVip = false;
+      if (profile?.is_vip === true) {
+          if (profile.vip_tier === 'lifetime') {
+              isVip = true;
+          } else if (profile.vip_expires_at) {
+              isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
+          }
+      }
+      
+      if (!isVip) {
+          return res.status(403).json({ success: false, error: 'VIP subscription required for AI insights' });
+      }
 
       try {
           // Fetch last 90 days of ledger entries

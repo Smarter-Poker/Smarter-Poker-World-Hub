@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       // BUG FIX: No auth — anyone could read any user's GTO training report by supplying a userId
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 

@@ -50,7 +50,8 @@ export default async function handler(req, res) {
     // CONCURRENCY: Idempotency guard — dedup rapid double-taps
     if (checkIdempotency(req, res)) return;
 
-    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
     const user = authData?.user;
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 

@@ -48,7 +48,8 @@ export default async function handler(req, res) {
       // BUG #248 FIX: Require JWT auth — this route uses Grok AI API
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ error: 'Auth required' });
-      const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const _authUser = authData?.user;
       if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 

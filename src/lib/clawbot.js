@@ -190,8 +190,8 @@ export function verifyCronAuth(req) {
   
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
-    console.warn('[ClawBot] CRON_SECRET not set — allowing request');
-    return true;
+    console.error('[ClawBot] CRON_SECRET not set — denying request');
+    return false;
   }
   
   return req.headers.authorization === `Bearer ${cronSecret}`;

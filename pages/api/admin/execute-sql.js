@@ -59,7 +59,8 @@ export default async function handler(req, res) {
           try {
               
 
-              const { data: authData, error: userError } = await getSupabase().auth.getUser(token);
+              const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
               const user = authData?.user;
               if (userError || !user) {
                   return res.status(401).json({ success: false, error: 'Invalid JWT token.' });
@@ -203,7 +204,8 @@ export default async function handler(req, res) {
               // for them isn't a real auth.uid().
               try {
                   if (token !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
-                      const { data: authData } = await getSupabase().auth.getUser(token);
+                      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
                       const auditUser = authData?.user;
                       if (auditUser?.id) {
                           await getSupabase().rpc('fn_log_admin_action', {

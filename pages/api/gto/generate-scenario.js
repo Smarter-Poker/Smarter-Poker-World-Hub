@@ -331,6 +331,22 @@ export default async function handler(req, res) {
         const _authUser = authData?.user;
         if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
+        // Query profiles for VIP status
+        const { data: profile } = await _authSupa
+            .from('profiles')
+            .select('is_vip, vip_tier, vip_expires_at')
+            .eq('id', _authUser.id)
+            .maybeSingle();
+
+        let isVip = false;
+        if (profile?.is_vip === true) {
+            if (profile.vip_tier === 'lifetime') {
+                isVip = true;
+            } else if (profile.vip_expires_at) {
+                isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
+            }
+        }
+
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
@@ -341,6 +357,10 @@ export default async function handler(req, res) {
             const lvl = Number(level);
             if (!Number.isFinite(lvl) || lvl < 1 || lvl > 10) {
                 return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
+            }
+
+            if (lvl > 3 && !isVip) {
+                return res.status(403).json({ success: false, error: 'VIP subscription required for levels 4-10' });
             }
 
             const positionPool = POSITION_CONFIGS[lvl] || POSITION_CONFIGS[1];

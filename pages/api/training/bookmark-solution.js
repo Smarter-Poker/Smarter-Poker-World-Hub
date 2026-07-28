@@ -42,7 +42,8 @@ export default async function handler(req, res) {
             // 2026-07-19 AUDIT FIX: previous code referenced an undeclared
             // `error` variable here — every authenticated request threw a
             // ReferenceError and the endpoint 500'd unconditionally.
-            const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+            const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
             const user = authData?.user;
             if (!authErr && user) userId = user.id;
         }

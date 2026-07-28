@@ -51,7 +51,8 @@ export default async function handler(req, res) {
     if (token && !validEngineKey) {
       // FIX 2026-07-19: `error` was undefined here (never destructured) → the
       // owner/admin token path threw ReferenceError and 500'd. Destructure it.
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 

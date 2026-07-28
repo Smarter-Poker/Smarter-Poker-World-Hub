@@ -48,8 +48,18 @@ export default async function handler(req, res) {
       // Closes all clubs with auto_settlement_enabled = true
       // ═══════════════════════════════════════════════════════════
       if (action === 'auto_close') {
+          // SECURITY: a missing ADMIN_ROUTE_SECRET is a server misconfiguration,
+          // not a grant. This previously FAILED OPEN: with ADMIN_ROUTE_SECRET
+          // unset the comparison was `undefined !== undefined` → false, so a
+          // caller supplying no secret at all could trigger auto_close
+          // settlement for every club on the platform.
+          const envAdminSecret = process.env.ADMIN_ROUTE_SECRET;
+          if (!envAdminSecret) {
+              console.warn('[settlement-history] ADMIN_ROUTE_SECRET is not configured — rejecting auto_close');
+              return res.status(500).json({ error: 'Server misconfigured' });
+          }
           const secret = req.headers['x-admin-secret'] || req.body.secret;
-          if (secret !== process.env.ADMIN_ROUTE_SECRET) {
+          if (secret !== envAdminSecret) {
               return res.status(403).json({ error: 'Unauthorized cron call' });
           }
 
@@ -153,7 +163,8 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 

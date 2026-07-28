@@ -113,7 +113,8 @@ async function handlePost(req, res, id) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
 
         if (authError || !user) {
@@ -237,7 +238,8 @@ async function handleDelete(req, res, id) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
 
         if (authError || !user) {

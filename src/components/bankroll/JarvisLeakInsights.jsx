@@ -5,6 +5,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useVIPGate from '../../hooks/useVIPGate';
+import VIPGateModal from '../ui/VIPGateModal';
 
 const RISK_CONFIG = {
     low: { color: '#22c55e', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
@@ -19,6 +21,8 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    
+    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('bankroll-manager');
 
     const fetchInsights = async () => {
         if (!userId) return;
@@ -51,6 +55,10 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
     };
 
     const handleOpen = () => {
+        if (!allowed) {
+            showUpgradeModal();
+            return;
+        }
         setShowModal(true);
         // Only fetch if we don't already have insights
         if (!insights && !isLoading) {
@@ -68,10 +76,17 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
             <button onClick={handleOpen} style={styles.triggerBtn}>
                 <img src="/images/jarvis-avatar.png" alt="Jarvis" style={styles.triggerAvatar} />
                 <div style={styles.triggerText}>
-                    <span style={styles.triggerTitle}>Jarvis Insights</span>
+                    <span style={styles.triggerTitle}>Jarvis Insights {!allowed && '🔒'}</span>
                 </div>
                 <span style={styles.triggerArrow}>›</span>
             </button>
+            
+            <VIPGateModal 
+                visible={upgradeModalVisible}
+                onClose={hideUpgradeModal}
+                featureName="Jarvis AI Leak Detection"
+                featureConfig={featureConfig}
+            />
 
             {/* Full-Screen Modal */}
             <AnimatePresence>

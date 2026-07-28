@@ -156,9 +156,19 @@ Return ONLY a valid JSON array:
 
 export default async function handler(req, res) {
   try {
+      // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+      // This previously FAILED OPEN: with CRON_SECRET unset the template below
+      // collapsed to the literal string "Bearer undefined", so any caller
+      // sending `Authorization: Bearer undefined` authenticated successfully.
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret) {
+          console.warn('[trivia-bootstrap-strategy] CRON_SECRET is not configured — rejecting request');
+          return res.status(500).json({ error: 'Server misconfigured' });
+      }
+
       // Admin-only endpoint
       const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      if (authHeader !== `Bearer ${cronSecret}`) {
           return res.status(401).json({ error: 'Unauthorized' });
       }
 

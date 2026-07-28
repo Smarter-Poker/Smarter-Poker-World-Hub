@@ -120,6 +120,9 @@ function calculatePlaceProbabilities(stacks, remaining, payouts, equities, targe
  * @returns {{ pressure: number, riskPremium: number, bubbleFactor: number, description: string }}
  */
 export function calculateICMPressure(heroStack, allStacks, payouts, playersLeft) {
+    if (!allStacks || allStacks.length === 0) {
+        return { pressure: 0, riskPremium: 0, bubbleFactor: 1.0, description: "No ICM pressure" };
+    }
     const totalChips = allStacks.reduce((a, b) => a + b, 0);
     const avgStack = totalChips / allStacks.length;
     const heroRatio = heroStack / avgStack;

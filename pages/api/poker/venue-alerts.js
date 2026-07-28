@@ -32,8 +32,9 @@ export default async function handler(req, res) {
     // Mirrors pages/api/poker/tournament-alerts.js.
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Auth required' });
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-    const authUser = authData?.user;
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+    /* removed duplicate authUser */
     if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
     const user_id = authUser.id;
 

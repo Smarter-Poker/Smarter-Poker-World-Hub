@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DAILY TRIVIA API - Fetch Today's Questions
  * ═══════════════════════════════════════════════════════════════════════════
@@ -171,7 +172,8 @@ export default async function handler(req, res) {
           if (authHeader?.startsWith('Bearer ')) {
               try {
                   const token = authHeader.slice(7).trim();
-                  const { data: authData } = await getSupabase().auth.getUser(token);
+                  const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+                  const authData = { user: authUser };
                   const userId = authData?.user?.id;
                   if (userId) {
                       // Has the user already played today? (daily_trivia_plays is RLS-locked to own rows)

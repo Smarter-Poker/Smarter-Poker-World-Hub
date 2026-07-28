@@ -82,6 +82,22 @@ export default async function handler(req, res) {
     const _authUser = authData?.user;
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
+    // VIP Check
+    const { data: profile } = await _authSupa
+        .from('profiles')
+        .select('is_vip, vip_tier, vip_expires_at')
+        .eq('id', _authUser.id)
+        .maybeSingle();
+
+    let isVip = false;
+    if (profile?.is_vip === true) {
+        if (profile.vip_tier === 'lifetime') {
+            isVip = true;
+        } else if (profile.vip_expires_at) {
+            isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
+        }
+    }
+
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
@@ -118,6 +134,10 @@ export default async function handler(req, res) {
               gameType: (gameType || 'cash').toLowerCase(),
               players: typeof players === 'number' ? players : undefined,
           };
+
+          if (cacheParams.street !== 'preflop' && !isVip) {
+              return res.status(403).json({ success: false, error: 'VIP subscription required for advanced post-flop scenarios' });
+          }
 
           // Check cache first
           const cached = await getCachedResponse('gto-analysis', cacheParams);

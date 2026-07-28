@@ -32,8 +32,9 @@ export default async function handler(req, res) {
         const token = authHeader.replace('Bearer ', '');
         
         // Verify caller
-        const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         
         if (authError || !authUser) {
             return res.status(401).json({ error: 'Invalid or expired token' });

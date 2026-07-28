@@ -33,7 +33,8 @@ export default async function handler(req, res) {
               return res.status(401).json({ success: false, error: 'Authentication required' });
           }
 
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
           const user = authData?.user;
           if (authErr || !user) {
               return res.status(401).json({ success: false, error: 'Invalid session' });

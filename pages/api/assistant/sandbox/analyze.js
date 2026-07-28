@@ -868,8 +868,9 @@ export default async function handler(req, res) {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '');
         try {
-          const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
-          const authUser = authData?.user;
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+          /* removed duplicate authUser */
           if (!authError && authUser) {
             userId = authUser.id;
           }

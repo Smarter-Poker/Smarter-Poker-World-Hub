@@ -5,6 +5,8 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import useVIP from '../../src/hooks/useVIP';
+import useVIPGate from '../../src/hooks/useVIPGate';
+import VIPGateModal from '../../src/components/ui/VIPGateModal';
 import dynamic from 'next/dynamic';
 import ImageCropModal from '../../src/components/poker/ImageCropModal';
 import ReviewHandModal from '../../src/components/poker/ReviewHandModal';
@@ -53,6 +55,7 @@ export default function HandHistoryPage() {
   const userIdRef = useRef(null);
   const fileInputRef = useRef(null);
   const { isVip } = useVIP();
+  const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('hand-history');
 
   useEffect(() => {
     const handlePaste = (e) => {
@@ -81,11 +84,10 @@ export default function HandHistoryPage() {
   const processCroppedImage = async (base64Str) => {
     setCropFile(null); // Close crop modal
 
-    // Suppress cost messaging for VIP members
-    if (!isVip) {
-      if (!window.confirm("Using the AI Hand Scanner costs 5 Diamonds per scan. Do you want to proceed?")) {
-        return;
-      }
+    // AI Scanner is VIP only
+    if (!allowed) {
+      showUpgradeModal();
+      return;
     }
 
     setUploadingImage(true);
@@ -182,7 +184,7 @@ export default function HandHistoryPage() {
         .select('id,table_id,club_id,hand_number,variant,small_blind,big_blind,player_ids,hand_data,pot_total,winner_ids,started_at,completed_at,created_at')
         .contains('player_ids', [userIdRef.current])
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(allowed ? 1000 : 50);
 
       if (filterTable !== 'all') {
         query = query.eq('table_id', filterTable);
@@ -192,7 +194,7 @@ export default function HandHistoryPage() {
       setHands(data || []);
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     setLoading(false);
-  }, [filterTable]);
+  }, [filterTable, allowed]);
 
   useEffect(() => { fetchHands(); }, [fetchHands]);
 
@@ -472,11 +474,15 @@ export default function HandHistoryPage() {
                         </div>
                       )}
 
-                      {/* Share Button Placeholder */}
+                      {/* Share Button */}
                       <div style={{ marginTop: 12, textAlign: 'right' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (!allowed) {
+                              showUpgradeModal();
+                              return;
+                            }
                             setSharingHand({
                               heroCards: heroCards.map(c => cardStr(c)),
                               board: board.map(c => cardStr(c)),
@@ -508,7 +514,16 @@ export default function HandHistoryPage() {
       
       {cropFile && <ImageCropModal file={cropFile} onCropComplete={processCroppedImage} onCancel={() => setCropFile(null)} />}
       {reviewData && <ReviewHandModal initialData={reviewData} onSave={handleReviewSave} onCancel={() => setReviewData(null)} />}
+      
+      {/* Modals */}
       {sharingHand && <ShareableHandCard hand={sharingHand} onClose={() => setSharingHand(null)} />}
+      
+      <VIPGateModal 
+        visible={upgradeModalVisible}
+        onClose={hideUpgradeModal}
+        featureName="Hand History Pro"
+        featureConfig={featureConfig}
+      />
       
       <BottomNavBar />
     </div>

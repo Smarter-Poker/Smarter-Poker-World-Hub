@@ -255,7 +255,8 @@ export default async function handler(req, res) {
                       const authHeader = req.headers.authorization;
                       if (authHeader?.startsWith('Bearer ')) {
                           const token = authHeader.replace('Bearer ', '');
-                          const { data: authData } = await getSupabase().auth.getUser(token);
+                          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
                           const user = authData?.user;
                           if (user) {
                               await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
@@ -292,7 +293,8 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
           const user = authData?.user;
 
           if (authError || !user) {

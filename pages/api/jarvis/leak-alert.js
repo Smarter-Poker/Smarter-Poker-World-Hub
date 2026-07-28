@@ -33,7 +33,8 @@ export default async function handler(req, res) {
 
       if (authHeader?.startsWith('Bearer ')) {
           const token = authHeader.substring(7);
-          const { data: authData } = await getSupabase().auth.getUser(token);
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
           const user = authData?.user;
           if (!error && user) {
               userId = user.id;

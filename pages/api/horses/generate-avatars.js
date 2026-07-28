@@ -116,7 +116,8 @@ export default async function handler(req, res) {
 
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
-        const { data: authData } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
         if (!error && user) {
           const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();

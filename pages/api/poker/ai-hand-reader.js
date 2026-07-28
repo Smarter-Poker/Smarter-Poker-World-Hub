@@ -88,29 +88,12 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // MONETIZATION: Deduct 5 Diamonds for using the AI Hand Scanner
-    // (Bypassed if the user is a VIP)
+    // MONETIZATION: AI Hand Scanner is a VIP-only feature
     // ═══════════════════════════════════════════════════════════════
-    const { data: profile } = await supabase.from('profiles').select('diamonds, is_vip').eq('id', user.id).maybeSingle();
+    const supabase = getSupabase();
+    const { data: profile } = await supabase.from('profiles').select('diamonds, is_vip, vip_tier, vip_expires_at').eq('id', user.id).maybeSingle();
     if (!profile) return res.status(401).json({ error: 'Profile not found' });
 
-    if (!profile.is_vip) {
-        if ((profile.diamonds || 0) < 5) {
-            return res.status(402).json({ error: 'Insufficient diamonds. AI Reading costs 5 💎.' });
-        }
-        
-        // Deduct 5 diamonds securely
-        const { error: dedError } = await supabase.rpc('deduct_diamonds', {
-            p_user_id: user.id,
-            p_amount: 5,
-            p_source: 'ai_hand_reader',
-            p_metadata: {}
-        });
-        
-        if (dedError) {
-            // Fallback to legacy RPC if deduct_diamonds hasn't been added to this env yet
-            const { error: directError } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: user.id,
                 p_amount: -5,
                 p_type: 'ai_hand_reader',
                 p_description: 'AI Hand Scanner Use',

@@ -26,8 +26,9 @@ export default async function handler(req, res) {
       // Require JWT auth
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+      /* removed duplicate authUser */
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { calleeId, callerName, callerAvatar, callType, roomName } = req.body;

@@ -96,7 +96,8 @@ export default async function handler(req, res) {
     if (secretKey && AUTO_SYNC_SECRET && secretKey === AUTO_SYNC_SECRET) {
         authorized = true;
     } else if (token) {
-        const { data: authData } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
         if (user) authorized = true;
     }

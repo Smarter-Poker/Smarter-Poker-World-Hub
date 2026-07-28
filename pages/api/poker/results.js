@@ -186,7 +186,8 @@ async function handlePost(req, res) {
         // Fall back to JWT + platform admin role check
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (token) {
-            const { data: authData } = await getSupabase().auth.getUser(token);
+            const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
             const user = authData?.user;
             if (user) {
                 const { data: profile } = await getSupabase()

@@ -65,7 +65,8 @@ async function getUserFromToken(req) {
         // `error` variable — the ReferenceError was swallowed by this catch,
         // so getUserFromToken always returned null and the endpoint 401'd
         // on every request, even with a valid token.
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
         if (authErr || !user) return null;
         return user;

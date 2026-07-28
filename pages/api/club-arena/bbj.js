@@ -56,7 +56,8 @@ export default async function handler(req, res) {
       // could enumerate club BBJ pools, winner history, and contribution rates.
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -153,7 +154,8 @@ export default async function handler(req, res) {
 
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 

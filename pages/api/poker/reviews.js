@@ -33,8 +33,9 @@ try {
       if (req.method === 'POST') {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for reviews' });
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const user_id = authUser.id;
@@ -342,8 +343,9 @@ try {
       if (req.method === 'DELETE') {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const safeQ2 = (v) => Array.isArray(v) ? v[0] : v;
@@ -395,8 +397,9 @@ try {
         // on their own review (and 'helpful' is a sort option). Require a JWT.
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required to vote' });
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { review_id, action } = req.body;

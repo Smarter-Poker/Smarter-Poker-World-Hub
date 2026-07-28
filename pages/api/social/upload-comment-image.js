@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     const sb = getSupabase();
 
     // Verify JWT — extract user ID for path scoping
-    const { data: authData, error: authErr } = await sb.auth.getUser(token);
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
     if (authErr || !authData?.user) {
       return res.status(401).json({ error: 'Invalid auth token' });
     }

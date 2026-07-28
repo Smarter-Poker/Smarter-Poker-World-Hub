@@ -1,3 +1,5 @@
+import { getServerUserWithFallback } from "@/lib/authUtils";
+
 /**
  * Venue Activity Analytics API
  * GET /api/poker/venue-activity?venueId=xxx
@@ -72,6 +74,35 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Authenticate and check VIP status
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, supabase);
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        
+        const user_id = authUser.id;
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_vip, vip_tier, vip_expires_at')
+            .eq('id', user_id)
+            .maybeSingle();
+
+        let isVip = false;
+        if (profile?.is_vip === true) {
+            if (profile.vip_tier === 'lifetime') {
+                isVip = true;
+            } else if (profile.vip_expires_at) {
+                isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
+            }
+        }
+        
+        if (!isVip) {
+            return res.status(403).json({ error: 'VIP subscription required for historical venue analytics' });
+        }
+
         // Try to get historical snapshots for this venue
         const { data: snapshots, error } = await supabase
             .from('venue_game_snapshots')

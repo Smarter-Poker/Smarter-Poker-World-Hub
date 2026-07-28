@@ -196,22 +196,24 @@ export default async function handler(req, res) {
 
   // ── Authentication: only accept calls from deploy-monitor (same origin) ──
   // Verify the request comes from our own server, not an external attacker.
-  const host = req.headers.host || '';
   const internalSecret = process.env.DEPLOY_INTERNAL_SECRET;
   const providedSecret = req.headers['x-internal-secret'];
 
-  // If DEPLOY_INTERNAL_SECRET is set, require it. Otherwise, verify same-origin.
-  if (internalSecret) {
-    if (providedSecret !== internalSecret) {
-      return res.status(401).json({ error: 'Unauthorized — invalid internal secret' });
-    }
-  } else {
-    // Fallback: only accept requests where the host header matches expected domains
-    const allowedHosts = ['smarter.poker', 'localhost:3000', 'localhost:3001'];
-    const isFromSelf = allowedHosts.some(h => host.includes(h));
-    if (!isFromSelf) {
-      return res.status(401).json({ error: 'Unauthorized — external requests not allowed' });
-    }
+  // SECURITY: DEPLOY_INTERNAL_SECRET is REQUIRED — a missing one is a server
+  // misconfiguration, not a grant.
+  //
+  // This previously FAILED OPEN: when the secret was unset it fell back to a
+  // Host-header "same-origin" check, but the Host header is identical for a
+  // legitimate internal call and for any attacker POSTing to
+  // https://smarter.poker/api/deploy-autofix. An unset env var therefore left a
+  // route that spends ANTHROPIC_API_KEY and pushes commits with GH_PAT open to
+  // the public internet.
+  if (!internalSecret) {
+    console.warn('[deploy-autofix] DEPLOY_INTERNAL_SECRET is not configured — rejecting request');
+    return res.status(500).json({ error: 'Server misconfigured' });
+  }
+  if (providedSecret !== internalSecret) {
+    return res.status(401).json({ error: 'Unauthorized — invalid internal secret' });
   }
 
   const { commitSha, commitMessage, deploymentId, buildErrors, attempt, escalation } = req.body;

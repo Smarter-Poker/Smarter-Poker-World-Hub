@@ -17,6 +17,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
+import useVIPGate from '../../hooks/useVIPGate';
+import VIPGateModal from '../ui/VIPGateModal';
 import { getAuthUser, getSessionToken } from '../../lib/authUtils';
 import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
 
@@ -244,6 +246,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     const [levels, setLevels] = useState<LevelData[]>([]);
     const [startingLevel, setStartingLevel] = useState<number | null>(null);
 
+    // VIP Gating logic
+    const { allowed: vipAllowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('gto-training');
+
     // ========================================================================
     // DATA FETCHING
     // ========================================================================
@@ -362,6 +367,12 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     // ========================================================================
 
     const handlePlayLevel = async (level: number) => {
+        // Enforce VIP wall for levels 4-10
+        if (level > 3 && !vipAllowed) {
+            showUpgradeModal();
+            return;
+        }
+        
         setStartingLevel(level);
 
         try {

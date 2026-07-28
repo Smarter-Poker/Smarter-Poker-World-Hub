@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
@@ -97,8 +98,9 @@ export default async function handler(req, res) {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (token) {
             try {
-                const { data: authData } = await getSupabase().auth.getUser(token);
-                const authUser = authData?.user;
+                const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+                  const authData = { user: authUser };
+                /* removed duplicate authUser */
                 if (authUser) {
                     // Get caller's friends
                     const { data: friendships } = await getSupabase()

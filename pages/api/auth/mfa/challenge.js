@@ -64,7 +64,8 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
         const token = authHeader.replace(/^Bearer\s+/i, '');
-        const { data: authData, error: userError } = await getSupabase().auth.getUser(token);
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
         const user = authData?.user;
         if (userError || !user) {
             return res.status(401).json({ error: 'Invalid session' });

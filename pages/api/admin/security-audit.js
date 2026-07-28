@@ -34,8 +34,18 @@ export default async function handler(req, res) {
 
       // Admin-only in production
       if (process.env.NODE_ENV === 'production') {
+          // SECURITY: a missing ADMIN_API_TOKEN is a server misconfiguration, not
+          // a grant. This previously FAILED OPEN in production: with the token
+          // unset the template collapsed to the literal string "Bearer undefined",
+          // so `Authorization: Bearer undefined` authenticated any caller and
+          // exposed this endpoint's env-configuration inventory.
+          const adminApiToken = process.env.ADMIN_API_TOKEN;
+          if (!adminApiToken) {
+              console.warn('[security-audit] ADMIN_API_TOKEN is not configured — rejecting request');
+              return res.status(500).json({ error: 'Server misconfigured' });
+          }
           const authHeader = req.headers.authorization;
-          if (!authHeader || authHeader !== `Bearer ${process.env.ADMIN_API_TOKEN}`) {
+          if (!authHeader || authHeader !== `Bearer ${adminApiToken}`) {
               return res.status(403).json({ error: 'Forbidden' });
           }
       }

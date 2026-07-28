@@ -51,17 +51,31 @@ export default async function handler(req, res) {
       const internalSecret = req.headers['x-internal-secret'];
       let verified_user_id = null;
 
-      if (internalSecret === process.env.CRON_SECRET) {
+      // SECURITY: the trusted server-to-server branch requires a CONFIGURED
+      // CRON_SECRET. This previously FAILED OPEN: with CRON_SECRET unset the
+      // comparison was `undefined === undefined` → true for any request that
+      // simply omitted the x-internal-secret header, so an anonymous caller
+      // took the internal branch and could publish posts as any existing user.
+      const envCronSecret = process.env.CRON_SECRET;
+      const isInternalCall = Boolean(envCronSecret) && internalSecret === envCronSecret;
+
+      if (isInternalCall) {
           // Internal server-to-server call — validate user_id exists before trusting it
           const rawUserId = req.body.user_id;
           if (!rawUserId) return res.status(400).json({ success: false, error: 'user_id required for internal calls' });
-          // Verify the user_id is a real profile to prevent forged posts
-          const { data: profileCheck } = await getSupabase().from('profiles').select('id').eq('id', rawUserId).maybeSingle();
-          if (!profileCheck) return res.status(403).json({ success: false, error: 'Invalid user_id: profile not found' });
-          verified_user_id = rawUserId;
+        // Enforce that internal calls can only post as the system/bot account unless explicitly authorized
+        const botAccountId = process.env.BOT_ACCOUNT_ID;
+        if (botAccountId && rawUserId !== botAccountId) {
+            return res.status(403).json({ success: false, error: 'Internal calls restricted to bot account' });
+        }
+        // Verify the user_id is a real profile
+        const { data: profileCheck } = await getSupabase().from('profiles').select('id').eq('id', rawUserId).maybeSingle();
+        if (!profileCheck) return res.status(403).json({ success: false, error: 'Invalid user_id: profile not found' });
+        verified_user_id = rawUserId;
       } else if (token) {
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-          const authUser = authData?.user;
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+          /* removed duplicate authUser */
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           verified_user_id = authUser.id;
       } else {

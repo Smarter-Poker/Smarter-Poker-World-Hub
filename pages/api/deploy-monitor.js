@@ -577,9 +577,13 @@ Alert is rate-limited to 1 issue/comment per hour.`,
       return res.status(401).json({ error: 'Invalid webhook auth', authMethods: ['hmac', 'shared_secret'] });
     }
   } else {
-    // No secret configured — allow (dev only). Log a warning.
-    console.warn('[deploy-monitor] DEPLOY_WEBHOOK_SECRET not set — accepting unauthenticated webhook');
-    authMethod = 'unauthenticated_dev';
+    // SECURITY: a missing DEPLOY_WEBHOOK_SECRET is a server misconfiguration,
+    // not a grant. This previously FAILED OPEN: it only logged a warning, set
+    // authMethod = 'unauthenticated_dev' and fell through to the handler, so an
+    // unset secret let anyone POST a forged Vercel deployment-failure event and
+    // drive the autofix pipeline (Claude API spend + commits pushed via GH_PAT).
+    console.warn('[deploy-monitor] DEPLOY_WEBHOOK_SECRET is not configured — rejecting webhook');
+    return res.status(500).json({ error: 'Server misconfigured' });
   }
 
   // ── From here on: the webhook is authenticated. Proceed with handling. ──

@@ -39,7 +39,8 @@ export default async function handler(req, res) {
     // Auth required — protects GIPHY quota from unauthenticated scraping
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
     if (authErr || !authData?.user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // Cap limit to prevent GIPHY quota exhaustion and oversized payloads

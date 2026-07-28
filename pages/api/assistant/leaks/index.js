@@ -52,8 +52,9 @@ export default async function handler(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
+      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+      /* removed duplicate authUser */
       if (authError || !authUser) {
         // A token was presented but is invalid/expired — tell the client to
         // refresh instead of silently serving demo data

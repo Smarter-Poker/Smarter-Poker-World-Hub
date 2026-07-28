@@ -91,7 +91,8 @@ export default async function handler(req, res) {
               const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
               if (jwtToken) {
                   try {
-                      const { data: authData } = await getSupabase().auth.getUser(jwtToken);
+                      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
                       const verifiedUserId = authData?.user?.id;
                       if (verifiedUserId) {
                           const postIds = data.map(p => p.id);

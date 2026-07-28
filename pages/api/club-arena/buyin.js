@@ -49,7 +49,8 @@ export default async function handler(req, res) {
     const token = headerParse.data.authorization.replace('Bearer ', '');
 
     // 2. Auth Verification
-    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
     const user = authData?.user;
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 

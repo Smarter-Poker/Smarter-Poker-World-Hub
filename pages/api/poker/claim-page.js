@@ -27,8 +27,9 @@ try {
         // Require JWT for page claims
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for page claims' });
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { page_type, page_id, contact_name, contact_email, contact_phone, role, verification_notes } = req.body;
@@ -131,7 +132,8 @@ try {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (token) {
             try {
-              const { data: authData } = await getSupabase().auth.getUser(token);
+              const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
               isYours = Boolean(authData?.user && authData.user.id === data[0].user_id);
             } catch (_authErr) { isYours = false; }
           }
@@ -152,8 +154,9 @@ try {
         if (user_id) {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-          const authUser = authData?.user;
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+          /* removed duplicate authUser */
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (authUser.id !== user_id) {
             return res.status(403).json({ success: false, error: 'Not authorized to view these claims' });

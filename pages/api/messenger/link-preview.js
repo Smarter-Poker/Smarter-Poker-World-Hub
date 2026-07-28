@@ -57,7 +57,8 @@ export default async function handler(req, res) {
     // Require auth — link-preview is an outbound HTTP proxy; open access is an SSRF risk
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
     if (authErr || !authData?.user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // Block internal/private IPs — hardened SSRF protection

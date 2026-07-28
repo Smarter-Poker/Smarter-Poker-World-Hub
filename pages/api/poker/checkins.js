@@ -27,8 +27,9 @@ try {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for check-ins' });
-        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-        const authUser = authData?.user;
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+        /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, user_name, message } = req.body;
@@ -195,8 +196,9 @@ try {
           // accepted friend (same friendships pattern as checkins/whos-here.js).
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required to view check-in history' });
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-          const authUser = authData?.user;
+          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const authData = { user: authUser };
+          /* removed duplicate authUser */
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           if (authUser.id !== user_id) {
