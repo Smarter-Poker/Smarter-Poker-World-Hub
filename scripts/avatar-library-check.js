@@ -189,10 +189,12 @@ check('the same hand key always deals the same cast', () => {
 });
 
 check('no Math.random anywhere in the portrait path', () => {
-    const region = tableSource.slice(
-        tableSource.indexOf('const VILLAIN_AVATAR_POOL'),
-        tableSource.indexOf('// Seat portrait.')
-    );
+    // Comments stripped first -- the prose above dealSeatAvatars says the words
+    // "Math.random" on purpose, and matching that would be matching the docs.
+    const region = tableSource
+        .slice(tableSource.indexOf('const VILLAIN_AVATAR_POOL'), tableSource.indexOf('// Seat portrait.'))
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
     return !/Math\.random/.test(region) || 'Math.random is in the selection code';
 });
 
