@@ -256,8 +256,24 @@ export default async function handler(req, res) {
                               const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;
                               const tableNum = table?.table_number;
 
-                              // Dealer for this table
-                              const dealerName = g.table_id ? (dealerRotationMap[g.table_id] || null) : null;
+                              // Dealer for this table.
+                              // PII: venue STAFF, not a player — redacted on the same grounds as the
+                              // seat names above. This endpoint is public, so publishing a dealer's
+                              // full legal name against a specific table would disclose an
+                              // identifiable person's real-time physical location and shift pattern.
+                              // Employment is not consent to be publicly tracked, and a dealer cannot
+                              // opt out of their employer's social page. Redacted, not dropped:
+                              // "Dealer: Marcus T." is the board working as intended. Both branches
+                              // that populate dealerRotationMap converge here, so this covers both.
+                              // null is preserved deliberately — the clients render
+                              // `dealer_name || 'No Dealer'`, so an absent dealer must stay null.
+                              const rawDealerName = g.table_id ? (dealerRotationMap[g.table_id] || null) : null;
+                              // trim-guard: a blank/whitespace-only dealer_name is an ABSENT dealer,
+                              // not a person — it must stay null so the client shows "No Dealer"
+                              // rather than the redactName() empty-input fallback "Player".
+                              const dealerName = (rawDealerName && rawDealerName.trim())
+                                  ? redactName(rawDealerName)
+                                  : null;
 
                               // Sessions for this table (time tracking)
                               const tableSessions = tableNum ? allSessions.filter(s => s.table_number === tableNum) : [];
