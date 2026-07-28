@@ -1,5 +1,5 @@
 /**
- * 👥 PLAYER COUNT MAPPING
+ * PLAYER COUNT MAPPING
  * Maps each of the 100 training games to their required player count
  * Based on format standards: MTT=9, Cash=6, Spins=3, HU=2
  */

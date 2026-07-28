@@ -27,7 +27,7 @@ export const copyReferralLink = async (user) => {
         if (data?.player_number) {
             const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
             await navigator.clipboard.writeText(link);
-            alert(`Referral link copied!\n\n${link}\n\nShare it with friends — you earn 500💎 per signup!`);
+            alert(`Referral link copied!\n\n${link}\n\nShare it with friends — you earn 500◆ per signup!`);
         } else {
             alert('Could not find your player number. Please try again.');
         }
@@ -229,18 +229,18 @@ export const MENU_CONFIGS = {
             ]),
             createMenuItem.divider(),
             createMenuItem.section('Dealer Tools'),
-            createMenuItem.navigation('♠️ Toke Tracker', '/hub/toke-tracker'),
-            createMenuItem.navigation('📋 Work Schedule & Dealer Downs', '/hub/toke-tracker'),
-            createMenuItem.navigation('🎯 Set Monthly Goal', '/hub/toke-tracker/shift'),
+            createMenuItem.navigation('♠ Toke Tracker', '/hub/toke-tracker'),
+            createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/toke-tracker'),
+            createMenuItem.navigation('◆ Set Monthly Goal', '/hub/toke-tracker/shift'),
             createMenuItem.divider(),
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
             createMenuItem.navigation('Home Games', '/hub/home-games'),
-            createMenuItem.navigation('📊 Session History', '/hub/session-history'),
-            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('Session History', '/hub/session-history'),
+            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
-            createMenuItem.action('🎴 Customize My Hub', () => {
+            createMenuItem.action('Customize My Hub', () => {
                 // Preferred path: the page passes an openCardCustomizer handler
                 // (pages/hub/index.js does).
                 if (typeof handlers?.openCardCustomizer === 'function') {
@@ -254,7 +254,7 @@ export const MENU_CONFIGS = {
                     window.dispatchEvent(new Event('hub-open-customizer'));
                 }
             }),
-            createMenuItem.navigation('📲 Install App', '/hub/install')
+            createMenuItem.navigation('Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
@@ -658,14 +658,14 @@ export const MENU_CONFIGS = {
         const gridItems1 = [
             { label: `Quiz ${state.quizMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleQuiz },
             { label: `Coach ${state.coachMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleCoach },
-            { label: 'Ranges 🎯', onClick: handlers.onRanges },
-            { label: 'Villains 👤', onClick: handlers.onVillains },
+            { label: 'Ranges ◆', onClick: handlers.onRanges },
+            { label: 'Villains ', onClick: handlers.onVillains },
         ];
         
         const gridItems2 = [
             { label: 'Undo', onClick: handlers.onUndo },
             { label: 'Reset', onClick: handlers.onReset },
-            { label: 'Replay 🎬', onClick: handlers.onReplay },
+            { label: 'Replay ', onClick: handlers.onReplay },
         ];
         
         if (state.hasResults) {
@@ -694,13 +694,13 @@ export const MENU_CONFIGS = {
                 createMenuItem.divider(),
                 
                 createMenuItem.section('Pro Features'),
-                createMenuItem.action('⚡ God Mode', handlers.onGodMode),
-                createMenuItem.action('📥 Pro Import', handlers.onProImport),
-                createMenuItem.action('⚙️ Custom Spot', handlers.onCustomSpot),
-                createMenuItem.action('⚡ Drill', handlers.onDrill),
-                createMenuItem.toggle('🌡️ Heatmap', state.showHeatmap, handlers.onToggleHeatmap),
-                createMenuItem.toggle('🔒 Node Locks', state.showNodeLocks, handlers.onToggleNodeLocks),
-                createMenuItem.toggle('🔊 Sound', state.soundEnabled, handlers.onToggleSound),
+                createMenuItem.action('God Mode', handlers.onGodMode),
+                createMenuItem.action('Pro Import', handlers.onProImport),
+                createMenuItem.action('Custom Spot', handlers.onCustomSpot),
+                createMenuItem.action('Drill', handlers.onDrill),
+                createMenuItem.toggle('Heatmap', state.showHeatmap, handlers.onToggleHeatmap),
+                createMenuItem.toggle('Node Locks', state.showNodeLocks, handlers.onToggleNodeLocks),
+                createMenuItem.toggle('Sound', state.soundEnabled, handlers.onToggleSound),
             ],
             bottomLinks: [
                 { label: 'Play Tutorial', icon: MenuIcons.help, onClick: handlers.onPlayTutorial, action: true },
@@ -762,14 +762,14 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Posts', '/hub/social-media'),
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
-            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
             createMenuItem.section('Work'),
             createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/toke-tracker'),
             createMenuItem.navigation('Link to a Venue', '/hub/my-venues'),
             createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
-            createMenuItem.navigation('📲 Install App', '/hub/install')
+            createMenuItem.navigation('Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -791,14 +791,14 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
-            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
             createMenuItem.section('Club Pages'),
             createMenuItem.navigation(state.clubPageCreated ? 'My Club Page' : 'Add Club Page', state.clubPageCreated ? '/hub/social-media?view=club-pages' : '/hub/social-media?createPage=true'),
             createMenuItem.navigation('Browse Club Pages', '/hub/social-media?view=club-pages'),
             createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
-            createMenuItem.navigation('📲 Install App', '/hub/install')
+            createMenuItem.navigation('Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
@@ -902,12 +902,12 @@ export const MENU_CONFIGS = {
     'toke-tracker': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Toke Tracker'),
-            createMenuItem.navigation('🏠 Dashboard', '/hub/toke-tracker'),
-            createMenuItem.navigation('⏱️ Shift Tracker', '/hub/toke-tracker/shift'),
-            createMenuItem.navigation('📊 Analytics', '/hub/toke-tracker/analytics'),
-            createMenuItem.navigation('🔒 Dealer Vault', '/hub/toke-tracker/vault'),
-            createMenuItem.navigation('📄 Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax'),
-            createMenuItem.navigation('📍 Venue Intel', '/hub/toke-tracker/venues'),
+            createMenuItem.navigation('Dashboard', '/hub/toke-tracker'),
+            createMenuItem.navigation('⏱ Shift Tracker', '/hub/toke-tracker/shift'),
+            createMenuItem.navigation('Analytics', '/hub/toke-tracker/analytics'),
+            createMenuItem.navigation('Dealer Vault', '/hub/toke-tracker/vault'),
+            createMenuItem.navigation('Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax'),
+            createMenuItem.navigation('Venue Intel', '/hub/toke-tracker/venues'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             createMenuItem.toggle(
@@ -930,9 +930,9 @@ export const MENU_CONFIGS = {
             ),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('💰 Bankroll Manager', '/hub/bankroll-manager'),
-            createMenuItem.navigation('🎯 Poker Near Me', '/hub/poker-near-me/lobby'),
-            createMenuItem.navigation('🏠 World Hub', '/hub')
+            createMenuItem.navigation('Bankroll Manager', '/hub/bankroll-manager'),
+            createMenuItem.navigation('◆ Poker Near Me', '/hub/poker-near-me/lobby'),
+            createMenuItem.navigation('World Hub', '/hub')
         ],
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help },
@@ -1015,7 +1015,7 @@ export const MENU_CONFIGS = {
                         null, false, true
                     )
                     : createMenuItem.action(
-                        '🏛️ Apply to Midway Union',
+                        'Apply to Midway Union',
                         handlers.onApplyToUnion,
                         null, true, true
                     ),

@@ -1,5 +1,5 @@
 /**
- * 🎯 POKER LAWS — The 12 Fundamental GTO Principles
+ * ◆ POKER LAWS — The 12 Fundamental GTO Principles
  * ═══════════════════════════════════════════════════════════════════════════
  * Each law represents a core strategic concept that players must master.
  * When a player violates a law, they have a "leak" that needs fixing.

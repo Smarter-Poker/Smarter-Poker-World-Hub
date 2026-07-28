@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING QUESTIONS DATABASE — Cash Game Fundamentals (Games 1-4)
+ * TRAINING QUESTIONS DATABASE — Cash Game Fundamentals (Games 1-4)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

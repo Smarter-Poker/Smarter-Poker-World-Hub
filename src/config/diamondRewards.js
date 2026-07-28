@@ -1,12 +1,12 @@
 /**
- * 💎 DIAMOND REWARDS STANDARD v2 — CANONICAL CATALOG
+ * ◆ DIAMOND REWARDS STANDARD v2 — CANONICAL CATALOG
  * ═══════════════════════════════════════════════════════════════════════════
  * SINGLE SOURCE OF TRUTH for every way a user can earn diamonds.
  *
  * ECONOMIC ANCHOR
  *   1 diamond = $0.01 USD. VIP = $19.99/mo ($199.99/yr).
- *   A genuinely hard-working free user tops out at ~3,300 💎/month ($33) =
- *   a VIP card (1,999 💎) + ~1,300 💎 for the Diamond Arena.
+ * A genuinely hard-working free user tops out at ~3,300 ◆/month ($33) =
+ * a VIP card (1,999 ◆) + ~1,300 ◆ for the Diamond Arena.
  *   Every diamond is REAL MONEY. Ceilings are mandatory, not advisory.
  *
  * HARD RULES (enforced in SQL by public.award_diamonds_v2)
@@ -16,7 +16,7 @@
  *      profiles.diamond_multiplier (share streak) may make the cap easier to
  *      REACH; it must NEVER raise the ceiling. 110 is 110 at 1.00x and at
  *      2.00x. (The v1 bug: JS capped pre-multiplier, so the true ceiling was
- *      500 × 2.00 = 1,000 💎/day = $10/day/user.)
+ * 500 × 2.00 = 1,000 ◆/day = $10/day/user.)
  *   3. Lifetime rewards fire exactly once, ever, per user.
  *   4. `serverOnly` actions are NEVER claimable from the browser. They are
  *      awarded by trusted server flows (Stripe webhook, referral qualifier,
@@ -44,7 +44,7 @@ export const CATALOG_VERSION = 2;
 /**
  * Maximum diamonds a user may bank in one America/Chicago day, measured
  * AFTER the share-streak multiplier is applied.
- * free: 110 × 30 days = 3,300 💎 = $33/mo. vip: 150 × 30 = 4,500 💎 = $45/mo.
+ * free: 110 × 30 days = 3,300 ◆ = $33/mo. vip: 150 × 30 = 4,500 ◆ = $45/mo.
  */
 export const DAILY_CAP = { free: 110, vip: 150 };
 
@@ -52,13 +52,13 @@ export const DAILY_CAP = { free: 110, vip: 150 };
 export const MONTHLY_CAP = { free: 3300, vip: 4500 };
 
 /**
- * Platform-wide circuit breaker: 2,500,000 💎 = $25,000/month of liability.
+ * Platform-wide circuit breaker: 2,500,000 ◆ = $25,000/month of liability.
  * When the month-to-date platform total crosses this, award_diamonds_v2
  * returns reason 'budget_exhausted' for everyone until the month rolls.
  */
 export const PLATFORM_MONTHLY_BUDGET = 2500000;
 
-/** Easter eggs have their own separate monthly ceiling: 500 💎 = $5/user/mo. */
+/** Easter eggs have their own separate monthly ceiling: 500 ◆ = $5/user/mo. */
 export const EASTER_EGG_MONTHLY_CAP = 500;
 
 /**
@@ -126,7 +126,7 @@ export const REWARDS = {
     key: 'daily_login',
     label: 'Daily Login',
     description:
-      'Show up every day. Day 1 pays 5 💎 and each consecutive day adds 2 💎, up to 25 💎 at day 11+. Miss a day and the streak resets to 5.',
+      'Show up every day. Day 1 pays 5 ◆ and each consecutive day adds 2 ◆, up to 25 ◆ at day 11+. Miss a day and the streak resets to 5.',
     diamonds: 5,
     maxDiamonds: 25,
     scaling: {
@@ -352,7 +352,7 @@ export const REWARDS = {
     key: 'venue_review',
     label: 'Venue Review',
     description:
-      'Review a poker room you actually played. One payout per venue, ever — 25 💎 for real, useful intel.',
+      'Review a poker room you actually played. One payout per venue, ever — 25 ◆ for real, useful intel.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'engagement',
@@ -368,7 +368,7 @@ export const REWARDS = {
   birthday: {
     key: 'birthday',
     label: 'Birthday Bonus',
-    description: 'Happy birthday from Smarter.Poker — 100 💎, once a year.',
+    description: 'Happy birthday from Smarter.Poker — 100 ◆, once a year.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'engagement',
@@ -378,13 +378,13 @@ export const REWARDS = {
     icon: 'Cake',
     gate: 'free',
     verifyNote:
-      'Birth date must be locked at signup and immutable afterwards, or this is a 100 💎/day faucet.',
+      'Birth date must be locked at signup and immutable afterwards, or this is a 100 ◆/day faucet.',
   },
 
   // ─────────────────────────────────────────────────────────────────────────
   // ONE-TIME PROFILE MILESTONES
   // Lifetime once. Exempt from the daily cap so a new user can finish
-  // onboarding in one sitting (145 💎 total, one time, forever).
+  // onboarding in one sitting (145 ◆ total, one time, forever).
   // ─────────────────────────────────────────────────────────────────────────
   profile_complete: {
     key: 'profile_complete',
@@ -463,7 +463,7 @@ export const REWARDS = {
   first_purchase: {
     key: 'first_purchase',
     label: 'First Purchase',
-    description: 'Thanks for your first purchase — here is 25 💎 back. Paid once, ever.',
+    description: 'Thanks for your first purchase — here is 25 ◆ back. Paid once, ever.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'profile',
@@ -477,13 +477,13 @@ export const REWARDS = {
 
   // ─────────────────────────────────────────────────────────────────────────
   // REFERRAL — separate budget line, exempt from the daily cap, but hard
-  // capped at 10 qualified referrals per month (2,500 💎 = $25 max exposure).
+  // capped at 10 qualified referrals per month (2,500 ◆ = $25 max exposure).
   // ─────────────────────────────────────────────────────────────────────────
   referral_qualified: {
     key: 'referral_qualified',
     label: 'Qualified Referral',
     description:
-      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 💎 each, up to 20 qualified referrals per month.',
+      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 ◆ each, up to 20 qualified referrals per month.',
     diamonds: 500,
     maxPerDay: 20,
     monthlyMax: 20,
@@ -501,7 +501,7 @@ export const REWARDS = {
   referral_referee: {
     key: 'referral_referee',
     label: 'Welcome Bonus',
-    description: 'You joined with a friend’s invite code — here is 100 💎 to start.',
+    description: 'You joined with a friend’s invite code — here is 100 ◆ to start.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'referral',
@@ -516,7 +516,7 @@ export const REWARDS = {
   referral_vip_conversion: {
     key: 'referral_vip_conversion',
     label: 'Referral Went VIP',
-    description: 'A player you referred bought a VIP membership. 500 💎 bonus.',
+    description: 'A player you referred bought a VIP membership. 500 ◆ bonus.',
     diamonds: 500,
     maxPerDay: 20,
     monthlyMax: 20,
@@ -537,7 +537,7 @@ export const REWARDS = {
   vip_stipend: {
     key: 'vip_stipend',
     label: 'VIP Monthly Stipend',
-    description: '500 💎 credited every month for as long as your VIP membership is active.',
+    description: '500 ◆ credited every month for as long as your VIP membership is active.',
     diamonds: 500,
     maxPerDay: 1,
     oncePerMonth: true,
@@ -558,7 +558,7 @@ export const REWARDS = {
     key: 'easter_egg',
     label: 'Hidden Achievement',
     description:
-      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map — 5 to 500 💎 by rarity, capped at 500 💎 of eggs per month.',
+      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map — 5 to 500 ◆ by rarity, capped at 500 ◆ of eggs per month.',
     diamonds: 0,
     maxDiamonds: 500,
     amountFrom: 'EASTER_EGGS',
@@ -596,7 +596,7 @@ export const REFERRAL = {
 //     credits scrolling, Button Masher, Dark Mode Detective, Binary King,
 //     The Ghost User, Hardware Enthusiast. Paying people to rotate IPs and
 //     browse in incognito is paying them to look exactly like a fraud ring.
-//   • RESCALED so NOTHING exceeds 500 💎 ($5). v1 had a 10,000 💎 ($100) egg.
+// • RESCALED so NOTHING exceeds 500 ◆ ($5). v1 had a 10,000 ◆ ($100) egg.
 //   • CUT the padded 100 down to a curated set of real achievements.
 //   • Every egg now declares whether the SERVER can prove it.
 //
@@ -1440,7 +1440,7 @@ export function assertCatalogIntegrity() {
     }
     // No single uncapped action may pay more than the free monthly cap.
     if (ceiling > MONTHLY_CAP.free) {
-      problems.push(`REWARDS.${key} pays ${ceiling} 💎, above the free monthly cap`);
+      problems.push(`REWARDS.${key} pays ${ceiling} ◆, above the free monthly cap`);
     }
   }
 
@@ -1451,7 +1451,7 @@ export function assertCatalogIntegrity() {
       problems.push(`EASTER_EGGS.${key}.rarity "${e.rarity}" is not a known band`);
     } else if (e.diamonds < band.min || e.diamonds > band.max) {
       problems.push(
-        `EASTER_EGGS.${key} pays ${e.diamonds} 💎, outside the ${e.rarity} band ${band.min}-${band.max}`,
+        `EASTER_EGGS.${key} pays ${e.diamonds} ◆, outside the ${e.rarity} band ${band.min}-${band.max}`,
       );
     }
     if (e.diamonds > EASTER_EGG_MONTHLY_CAP) {

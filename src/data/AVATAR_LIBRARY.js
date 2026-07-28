@@ -1,5 +1,5 @@
 /**
- * 🎭 AVATAR LIBRARY — 75 Pre-Made User Avatars
+ * AVATAR LIBRARY — 75 Pre-Made User Avatars
  * ═══════════════════════════════════════════════════════════════════════════
  * Complete avatar library for user profile selection:
  * - 25 FREE avatars (accessible to all users)
@@ -10,12 +10,12 @@
 
 // Avatar categories
 export const AVATAR_CATEGORIES = {
-    PEOPLE: { id: 'people', name: 'People & Professions', icon: '👤' },
-    ANIMALS: { id: 'animals', name: 'Animals', icon: '🦁' },
-    ARCHETYPES: { id: 'archetypes', name: 'Archetypes', icon: '🎭' },
-    FANTASY: { id: 'fantasy', name: 'Fantasy', icon: '🧙' },
-    CULTURE: { id: 'culture', name: 'Culture', icon: '🌍' },
-    SPORTS: { id: 'sports', name: 'Sports', icon: '⚽' },
+    PEOPLE: { id: 'people', name: 'People & Professions', icon: '◆' },
+    ANIMALS: { id: 'animals', name: 'Animals', icon: '◆' },
+    ARCHETYPES: { id: 'archetypes', name: 'Archetypes', icon: '◆' },
+    FANTASY: { id: 'fantasy', name: 'Fantasy', icon: '◆' },
+    CULTURE: { id: 'culture', name: 'Culture', icon: '◆' },
+    SPORTS: { id: 'sports', name: 'Sports', icon: '◆' },
 };
 
 // Player personality archetypes (maps to playing style)

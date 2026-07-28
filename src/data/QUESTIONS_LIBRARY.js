@@ -1,5 +1,5 @@
 /**
- * ❓ TRAINING QUESTIONS LIBRARY
+ * TRAINING QUESTIONS LIBRARY
  * Database of 20 seeded questions for ALL 100 games.
  */
 

@@ -3,7 +3,6 @@
  * Shows: hands played, VPIP, PFR, win rate, session P&L
  * Tap "Notes" to open full PlayerNoteModal
  */
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const T = {

@@ -19,7 +19,7 @@ export const STREAK_TIERS = [
         minDays: 7,
         maxDays: 13,
         multiplier: 2.0,
-        badge: '🔥',
+        badge: '▲',
         color: '#60a5fa',
         title: 'Weekly Warrior',
         unlockReward: { type: 'weekly_chest', diamonds: 50 }
@@ -29,7 +29,7 @@ export const STREAK_TIERS = [
         minDays: 14,
         maxDays: 29,
         multiplier: 2.5,
-        badge: '💪',
+        badge: '▲',
         color: '#fbbf24',
         title: 'Dedicated Mind',
         unlockReward: { type: 'badge', id: 'dedicated_mind' }
@@ -39,7 +39,7 @@ export const STREAK_TIERS = [
         minDays: 30,
         maxDays: 99,
         multiplier: 3.0,
-        badge: '🏆',
+        badge: '★',
         color: '#a78bfa',
         title: 'Iron Mind',
         unlockReward: { type: 'title', id: 'iron_mind', diamonds: 100 }
@@ -49,7 +49,7 @@ export const STREAK_TIERS = [
         minDays: 100,
         maxDays: Infinity,
         multiplier: 5.0,
-        badge: '👑',
+        badge: '◆',
         color: '#00d4ff',
         title: 'Legendary Mind',
         unlockReward: { type: 'crown', id: 'legendary_crown', diamonds: 500 }
@@ -123,7 +123,7 @@ export const STREAK_SHIELD = {
     name: 'Streak Shield',
     description: 'Protects Your Streak if You Miss One Day',
     cost: 50, // diamonds
-    icon: '🛡️',
+    icon: '■',
     maxOwned: 3
 };
 

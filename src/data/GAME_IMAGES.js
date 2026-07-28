@@ -1,5 +1,5 @@
 /**
- * 🎨 GAME IMAGES MAPPING
+ * GAME IMAGES MAPPING
  * Maps every training game ID to a specific asset in public/images/training/
  * Uses intelligent reuse for 100% coverage.
  */

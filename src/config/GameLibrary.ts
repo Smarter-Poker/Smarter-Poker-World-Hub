@@ -47,11 +47,11 @@ export const GAME_RULES = {
 } as const;
 
 export const CATEGORIES: Record<string, GameCategory> = {
-    MTT:        { id: 'MTT',        name: 'Tournament',    emoji: '🔵', color: '#2196F3', count: 25 },
-    CASH:       { id: 'CASH',       name: 'Cash Game',     emoji: '🟢', color: '#4CAF50', count: 25 },
-    SPINS:      { id: 'SPINS',      name: 'Spins & SNGs',  emoji: '🟡', color: '#FFC107', count: 10 },
-    PSYCHOLOGY: { id: 'PSYCHOLOGY',  name: 'Psychology',    emoji: '🟣', color: '#9C27B0', count: 20 },
-    ADVANCED:   { id: 'ADVANCED',    name: 'Advanced',      emoji: '🔴', color: '#F44336', count: 20 },
+    MTT:        { id: 'MTT',        name: 'Tournament',    emoji: '◆', color: '#2196F3', count: 25 },
+    CASH:       { id: 'CASH',       name: 'Cash Game',     emoji: '◆', color: '#4CAF50', count: 25 },
+    SPINS:      { id: 'SPINS',      name: 'Spins & SNGs',  emoji: '◆', color: '#FFC107', count: 10 },
+    PSYCHOLOGY: { id: 'PSYCHOLOGY',  name: 'Psychology',    emoji: '◆', color: '#9C27B0', count: 20 },
+    ADVANCED:   { id: 'ADVANCED',    name: 'Advanced',      emoji: '◆', color: '#F44336', count: 20 },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

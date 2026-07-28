@@ -1,5 +1,5 @@
 /**
- * 🗺️ GAME-TO-CLINIC ROUTING MAP
+ * GAME-TO-CLINIC ROUTING MAP
  * ═══════════════════════════════════════════════════════════════════════════
  * Maps TRAINING_LIBRARY game IDs to TRAINING_CLINICS clinic IDs
  * 

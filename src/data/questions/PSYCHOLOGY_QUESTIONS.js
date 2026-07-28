@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING QUESTIONS DATABASE — Psychology & Mental Game
+ * TRAINING QUESTIONS DATABASE — Psychology & Mental Game
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

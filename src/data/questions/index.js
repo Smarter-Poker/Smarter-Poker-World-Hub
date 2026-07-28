@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING QUESTIONS INDEX — Master Database for All 100 Games
+ * TRAINING QUESTIONS INDEX — Master Database for All 100 Games
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Imports and re-exports all question databases

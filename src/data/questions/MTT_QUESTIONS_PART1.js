@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING QUESTIONS DATABASE — Part 1: MTT Mastery (Games 1-10)
+ * TRAINING QUESTIONS DATABASE — Part 1: MTT Mastery (Games 1-10)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * 20 unique, non-repeating questions per game

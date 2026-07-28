@@ -1,5 +1,5 @@
 /**
- * 🏥 TRAINING CLINICS — 28 Specialized Leak-Fixing Drills
+ * TRAINING CLINICS — 28 Specialized Leak-Fixing Drills
  * ═══════════════════════════════════════════════════════════════════════════
  * From the GTO Training Engine Blueprint:
  * - Each clinic targets a specific leak category
@@ -34,7 +34,7 @@ export const TRAINING_CLINICS = [
         category: 'DEFENSE',
         targetLeak: 'FOLD_TO_AGGRESSION',
         description: 'Stop Folding Bottom-of-range Winners Against Aggressive Opponents',
-        icon: '🛡️',
+        icon: '■',
         badge: 'Iron Wall Master',
         laws: [8, 9], // Stack Awareness, Bully Archetype
         difficulty: 3,
@@ -85,7 +85,7 @@ export const TRAINING_CLINICS = [
         category: 'SIZING',
         targetLeak: 'THIN_VALUE',
         description: 'Maximize EV with Strong Holdings Through Precise Bet Sizing',
-        icon: '💎',
+        icon: '◆',
         badge: 'Value Assassin',
         laws: [6], // Physical Slider
         difficulty: 4,
@@ -134,7 +134,7 @@ export const TRAINING_CLINICS = [
         category: 'DEFENSE',
         targetLeak: 'BLUFF_FREQUENCY',
         description: 'Master Minimum Defense Frequency (MDF) to Prevent Profitable Villain Bluffs',
-        icon: '⚖️',
+        icon: '◇',
         badge: 'MDF Master',
         laws: [9], // River Pressure
         difficulty: 4,
@@ -185,7 +185,7 @@ export const TRAINING_CLINICS = [
         category: 'POSITION',
         targetLeak: 'POSITION_AWARENESS',
         description: 'Train Seat-relative Range Mastery Through Rapid-fire Drills',
-        icon: '🔄',
+        icon: '◆',
         badge: 'Position Master',
         laws: [2, 3], // Table Re-orient, Button Motion
         difficulty: 3,
@@ -235,7 +235,7 @@ export const TRAINING_CLINICS = [
         category: 'STRATEGY',
         targetLeak: 'CBET_DEFENSE',
         description: 'Master Continuation Betting Logic by Identifying Range vs Nut Advantage',
-        icon: '💥',
+        icon: '◆',
         badge: 'C-Bet Pro',
         laws: [10], // Concept Mastery
         difficulty: 3,
@@ -251,7 +251,7 @@ export const TRAINING_CLINICS = [
         category: 'PSYCHOLOGY',
         targetLeak: 'TIMING_TELLS',
         description: 'Eliminate Timing Tells by Enforcing Consistent Action-rhythm',
-        icon: '⏱️',
+        icon: '◆',
         badge: 'Rhythm Master',
         laws: [9], // Visual Rhythm
         difficulty: 2,
@@ -268,7 +268,7 @@ export const TRAINING_CLINICS = [
         category: 'PSYCHOLOGY',
         targetLeak: 'TILT_PLAY',
         description: 'Test Emotional Discipline Through Deliberate Bad-beat Sequences',
-        icon: '🧊',
+        icon: '◆',
         badge: 'Ice Master',
         laws: [9], // Immersion
         difficulty: 5,
@@ -285,7 +285,7 @@ export const TRAINING_CLINICS = [
         category: 'PSYCHOLOGY',
         targetLeak: 'RESULT_BIAS',
         description: 'Separate Decision Quality From Outcome Through Self-assessment',
-        icon: '🔍',
+        icon: '◆',
         badge: 'Clear Thinker',
         laws: [10], // Feedback
         difficulty: 3,
@@ -305,7 +305,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'CONTEXT_ADAPTATION',
         description: 'Adapt to Switching Table Types and Stack Depths Mid-session',
-        icon: '⚡',
+        icon: '◆',
         badge: 'Agility Master',
         laws: [2], // Instant Orientation
         difficulty: 5,
@@ -322,7 +322,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'MISSED_EXPLOIT',
         description: 'Punish Non-GTO Opponents by Identifying Villain Leaks',
-        icon: '🎣',
+        icon: '◆',
         badge: 'Exploit Hunter',
         laws: [9], // Villain Immersion
         difficulty: 5,
@@ -339,7 +339,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'CAPPED_FOLDING',
         description: 'Stop Folding When Your Range is Condensed Due to Pre-flop Calling',
-        icon: '📦',
+        icon: '◆',
         badge: 'Range Defender',
         laws: [9], // Danger Immersion
         difficulty: 4,
@@ -355,7 +355,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'EFFECTIVE_STACK',
         description: 'Master Effective Stack Math and Price-commitment Thresholds',
-        icon: '📐',
+        icon: '◆',
         badge: 'Stack Mathematician',
         laws: [8], // Effective Stack Math
         difficulty: 4,
@@ -376,7 +376,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'ICM_AWARENESS',
         description: 'Comprehensive 150-level Tournament Engine: Push/Fold, ICM, ChipEV',
-        icon: '🏆',
+        icon: '★',
         badge: 'Tournament Master',
         laws: [3, 8, 9], // Button Rotation, Adaptive Difficulty, Environmental Pulse
         difficulty: 4,
@@ -500,7 +500,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'BOUNTY_MATH',
         description: 'Adjust Calling Ranges Based on Bounty Chip Equivalents',
-        icon: '💰',
+        icon: '◆',
         badge: 'Bounty Hunter',
         laws: [8, 9], // Bounty Math, Bounty Visuals
         difficulty: 4,
@@ -516,7 +516,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'SATELLITE_ICM',
         description: 'Absolute Survival GTO for Tournament Ticket Bubbles',
-        icon: '🎫',
+        icon: '◆',
         badge: 'Ticket Master',
         laws: [9, 10], // Survival Pressure, Survival Concepts
         difficulty: 5,
@@ -532,7 +532,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'BIG_STACK_PRESSURE',
         description: 'Exploit ICM Pressure When Playing as a Big Stack',
-        icon: '🦈',
+        icon: '◆',
         badge: 'Shark',
         laws: [8, 9], // Stack Awareness, Shark Mode
         difficulty: 4,
@@ -548,7 +548,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'ANTE_DEFENSE',
         description: 'Correct Defense Frequencies for BB Ante Formats (67% Larger Pots)',
-        icon: '🃏',
+        icon: '♠',
         badge: 'Ante Master',
         laws: [9, 12], // Large Pot Visual, Format Consistency
         difficulty: 3,
@@ -564,7 +564,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'PAY_JUMP_PATIENCE',
         description: 'Extreme Discipline for Pay-jump Maximization',
-        icon: '🪜',
+        icon: '◆',
         badge: 'Ladder Master',
         laws: [9, 10], // Patience Visual, ICM Survival
         difficulty: 5,
@@ -583,7 +583,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'FINAL_TABLE_ICM',
         description: 'Master Pay-jump Optimization at the Final Table',
-        icon: '👑',
+        icon: '◆',
         badge: 'Final Table Champion',
         laws: [8, 9], // Stack Asymmetry, Pressure
         difficulty: 5,
@@ -599,7 +599,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'HEADS_UP_PLAY',
         description: 'Specialized Training for Heads-up Tournament Finales',
-        icon: '⚔️',
+        icon: '◆',
         badge: 'Duel Champion',
         laws: [2, 3], // Table Re-orient, Button Rotation
         difficulty: 5,
@@ -615,7 +615,7 @@ export const TRAINING_CLINICS = [
         category: 'MTT',
         targetLeak: 'SHORT_STACK',
         description: 'Master Push/fold Ranges with 10-20BB Stacks',
-        icon: '🥷',
+        icon: '◆',
         badge: 'Short Stack Ninja',
         laws: [8], // Stack Awareness
         difficulty: 3,
@@ -631,7 +631,7 @@ export const TRAINING_CLINICS = [
         category: 'CASH',
         targetLeak: 'DEEP_STACK',
         description: 'Master Deep-stack Play with 100BB+ Effective Stacks',
-        icon: '📚',
+        icon: '□',
         badge: 'Deep Stack Pro',
         laws: [8], // Stack Awareness
         difficulty: 4,
@@ -647,7 +647,7 @@ export const TRAINING_CLINICS = [
         category: 'CASH',
         targetLeak: 'BVB_RANGES',
         description: 'Master Blind vs Blind Battles with Wide Ranges',
-        icon: '🥊',
+        icon: '◆',
         badge: 'Blind Warrior',
         laws: [2, 3], // Position awareness
         difficulty: 3,
@@ -663,7 +663,7 @@ export const TRAINING_CLINICS = [
         category: 'CASH',
         targetLeak: 'MULTI_WAY',
         description: 'Adjust Strategy for Multi-way Pot Dynamics',
-        icon: '👥',
+        icon: '◆',
         badge: 'Multi-Way Master',
         laws: [6, 8], // Dynamic Sizing, Stack Awareness
         difficulty: 4,
@@ -679,7 +679,7 @@ export const TRAINING_CLINICS = [
         category: 'STRATEGY',
         targetLeak: 'RIVER_PLAY',
         description: 'Master the Final Street Where Decisions Are Most Critical',
-        icon: '🌊',
+        icon: '◆',
         badge: 'River Pro',
         laws: [9, 10], // Pressure, Concepts
         difficulty: 5,
@@ -695,7 +695,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'OVERBET_FREQUENCY',
         description: 'Master Polarized Overbetting for Maximum EV Extraction',
-        icon: '💣',
+        icon: '◆',
         badge: 'Overbet Master',
         laws: [6], // Dynamic Sizing
         difficulty: 5,
@@ -711,7 +711,7 @@ export const TRAINING_CLINICS = [
         category: 'STRATEGY',
         targetLeak: 'CHECK_RAISE_FREQUENCY',
         description: 'Master the Check-raise for Both Value and Bluffs',
-        icon: '📈',
+        icon: '◆',
         badge: 'Check-Raise Artist',
         laws: [9], // Pressure
         difficulty: 4,
@@ -727,7 +727,7 @@ export const TRAINING_CLINICS = [
         category: 'ADVANCED',
         targetLeak: 'MIXED_FREQUENCY',
         description: 'Execute Mixed Strategies with Precise Solver Frequencies',
-        icon: '🎲',
+        icon: '◆',
         badge: 'Frequency Master',
         laws: [6], // Physical Slider
         difficulty: 5,
