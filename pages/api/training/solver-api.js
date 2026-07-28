@@ -10,6 +10,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { heroIsInPosition } from '../../../src/engines/positionOrder';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -200,7 +201,7 @@ export default async function handler(req, res) {
           }
 
           // 3) Return queued response with GTO baseline estimate
-          const baselineStrategy = generateBaselineStrategy(board, heroPosition, action);
+          const baselineStrategy = generateBaselineStrategy(board, heroPosition, action, villainPosition || 'BB');
 
           return res.status(202).json({
               success: true,
@@ -241,8 +242,14 @@ export default async function handler(req, res) {
 /**
  * Generate a reasonable GTO baseline strategy based on position + board texture.
  * Used as fallback when precise solver data isn't available.
+ *
+ * @param {string[]} board
+ * @param {string} heroPosition
+ * @param {string} currentAction
+ * @param {string} villainPosition - required: whether hero is in position is a
+ *   property of the PAIR of seats, not of hero's seat.
  */
-function generateBaselineStrategy(board, heroPosition, currentAction) {
+function generateBaselineStrategy(board, heroPosition, currentAction, villainPosition) {
     // Board texture analysis
     const ranks = board.map(c => 'AKQJT98765432'.indexOf(c[0].toUpperCase()));
     const suits = board.map(c => c[c.length - 1].toLowerCase());
@@ -250,9 +257,15 @@ function generateBaselineStrategy(board, heroPosition, currentAction) {
     const isPaired = new Set(ranks).size < board.length;
     const hasHighCards = ranks.some(r => r <= 3); // A, K, Q, J
 
-    // IP vs OOP heuristic
-    const ipPositions = ['BTN', 'CO', 'SB'];
-    const isIP = ipPositions.includes(heroPosition);
+    // IP vs OOP — relative to the actual opponent.
+    //
+    // This used to be `['BTN','CO','SB'].includes(heroPosition)`. Two separate
+    // errors: it never looked at the villain, and it listed the small blind as
+    // an in-position seat when the SB acts FIRST postflop against every other
+    // seat. A player drilling SB vs BB was handed the in-position baseline —
+    // bet 55% on a high board instead of 35% — which is the opposite of the
+    // spot they were actually in.
+    const isIP = heroIsInPosition(heroPosition, villainPosition);
 
     let betFreq, checkFreq, raiseFreq, callFreq, foldFreq;
 
