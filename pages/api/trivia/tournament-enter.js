@@ -105,15 +105,28 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'already_entered', entry_id: existingEntry.id });
         }
 
-        // ─── 5. CHECK BALANCE ───────────────────────────────────────────
         const { data: profile, error: profErr } = await sb()
             .from('profiles')
-            .select('diamonds')
+            .select('diamonds, is_vip, vip_tier, vip_expires_at')
             .eq('id', userId)
             .maybeSingle();
         if (profErr || !profile) {
             return res.status(500).json({ success: false, error: 'profile_load_failed' });
         }
+
+        let isVip = false;
+        if (profile?.is_vip === true) {
+            if (profile.vip_tier === 'lifetime') {
+                isVip = true;
+            } else if (profile.vip_expires_at) {
+                isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
+            }
+        }
+
+        if (!isVip) {
+            return res.status(403).json({ success: false, error: 'vip_required', message: 'Tournament entry requires an active VIP subscription.' });
+        }
+
         if ((profile.diamonds || 0) < entryFee) {
             return res.status(402).json({
                 success: false,
