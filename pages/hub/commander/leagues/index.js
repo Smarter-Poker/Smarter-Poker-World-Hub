@@ -112,12 +112,15 @@ export default function LeaguesPage() {
   const { data: swrData, isLoading: loading, mutate: refreshLeagues } = useSWR('/api/commander/leagues', async () => {
     const token = getAccessToken();
     const [allRes, myRes] = await Promise.all([
-      fetch('/api/commander/leagues').catch(() => ({ ok: false })),
-      token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ ok: false }))
-        : Promise.resolve({ json: () => ({ success: false }) })
+      fetch('/api/commander/leagues').catch(() => null),
+      token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+        : Promise.resolve(null)
     ]);
-    if (!allRes.ok) throw new Error(`Request failed (${allRes.status})`);
-    const [all, my] = await Promise.all([allRes.json(), myRes.json()]);
+    if (!allRes?.ok) throw new Error(`Request failed (${allRes?.status || 'network error'})`);
+    const all = await allRes.json();
+    // Safely parse /my — it may 500 if the Commander backend has an issue
+    let my = { success: false };
+    try { if (myRes?.ok) my = await myRes.json(); } catch (_) { /* show leagues without personal data */ }
     // 2026-07-25 audit fix: /leagues/my returns raw commander_league_standings
     // rows (points/rank + nested commander_leagues) — map them into the shape
     // MyLeagueCard renders (id/name/my_rank/my_points/events_played). Before,

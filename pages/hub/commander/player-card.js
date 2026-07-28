@@ -41,7 +41,7 @@ export default function PlayerCard() {
   }, []);
 
   // SWR-backed profile fetch
-  const { data: player, isLoading: loading } = useSWR('/api/hub/profile', (url) => {
+  const { data: player, isLoading: loading } = useSWR('/api/user/profile', (url) => {
     const token = getToken();
     if (!token) return null; // useRequireAuth handles redirect
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })

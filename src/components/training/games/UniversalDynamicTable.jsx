@@ -2429,11 +2429,28 @@ function UniversalDynamicTable({
                 totalEVLoss={totalSessionEVLoss}
                 show={questionNumber > 1}
             />
-            {/* TOP BAR — Context + Score (GTO Wizard style) */}
+            {/* TOP BAR — the template's three zones: a Back pill on the left,
+                the game name centred in cyan, and the session pills plus the
+                player's avatar on the right. The title used to be left-aligned
+                and the only way out of a session was a floating "Quit" chip
+                pinned over the top-left corner of the felt; that chip is gone
+                and this pill is the exit. */}
             <div style={styles.topBar}>
                 <div style={styles.topBarLeft}>
-                    <div style={styles.gameTitle}>{gameTitle || 'GTO Training'}</div>
+                    {onExit && (
+                        <button
+                            onClick={onExit}
+                            aria-label="Back to Training"
+                            style={styles.backPill}
+                        >
+                            <span style={styles.backPillArrow}>←</span>
+                            Back to Training
+                        </button>
+                    )}
                 </div>
+                {/* Centred on the BAR, not between its neighbours, so the title
+                    does not drift when the left or right cluster changes width. */}
+                <div style={styles.topBarTitle}>{gameTitle || 'GTO Training'}</div>
                 <div style={styles.topBarRight}>
                     {/* The MEDIUM difficulty chip and the SOLVER/AI data-source chip
                         were build diagnostics wearing gameplay HUD clothing: a
@@ -2516,47 +2533,37 @@ function UniversalDynamicTable({
                             })}
                         </motion.div>
                     )}
-                    {/* GTOW Score */}
-                    <div style={{ ...styles.scoreBadge, borderColor: scoreColor }}>
-                        <div style={{ ...styles.scoreValue, color: scoreColor }}>{gtowScore}%</div>
-                        <div style={styles.scoreLabel}>SCORE</div>
+                    {/* GOLD PILL — the template's XP slot. This component is
+                        handed no XP or diamond balance (GodModeArena keeps
+                        totalXP as a permanent 0 stub and never passes the
+                        diamond count down), so rather than print a fabricated
+                        currency the two pills carry the real session numbers in
+                        the template's treatment: score in gold, accuracy in
+                        cyan. */}
+                    <div style={styles.xpPill}>
+                        <span style={styles.xpPillIcon}>◆</span>
+                        <span style={{ ...styles.xpPillValue, color: scoreColor }}>{gtowScore}%</span>
+                        <span style={styles.pillCaption}>SCORE</span>
                     </div>
-                    {/* Phase 37: Streak indicator — fire emoji for hot streaks */}
-                    {questionNumber > 1 && gtowCurrentStreak !== 0 && (() => {
-                        const isPositive = gtowCurrentStreak > 0;
-                        const absStreak = Math.abs(gtowCurrentStreak);
-                        const streakColor = isPositive
-                            ? (absStreak >= 5 ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)')
-                            : 'var(--sp-accent-red)';
-                        const streakIcon = isPositive ? '▲': '▼';
-                        return absStreak >= 2 ? (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: 2,
-                                padding: '2px 6px', borderRadius: 6,
-                                background: `${streakColor}11`, border: `1px solid ${streakColor}33`,
-                            }}>
-                                <span style={{ fontSize: 10, lineHeight: 1 }}>{streakIcon}</span>
-                                <span style={{ fontSize: 11, fontWeight: 800, color: streakColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{absStreak}</span>
-                            </div>
-                        ) : null;
-                    })()}
-                    {/* Phase 37: Accuracy % — uses real gtowAccuracy from useGTOWScore */}
+                    {/* CYAN PILL — the template's diamonds slot. Streak lives on
+                        in the session rail and the toast; the question counter
+                        moved to the "Question N of M" pill at the lower right of
+                        the felt, where the template puts it. */}
                     {questionNumber > 1 && (() => {
                         const accColor = gtowAccuracy >= 80 ? 'var(--sp-accent-green)' : gtowAccuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                         return (
-                            <div style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                padding: '2px 6px', borderRadius: 6,
-                                background: `${accColor}11`, border: `1px solid ${accColor}33`,
-                            }}>
-                                <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{gtowAccuracy}%</div>
-                                <div style={{ fontSize: 7, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 0.8, textTransform: 'uppercase' }}>ACC</div>
+                            <div style={styles.gemPill}>
+                                <span style={styles.gemPillIcon}>◇</span>
+                                <span style={{ ...styles.xpPillValue, color: accColor }}>{gtowAccuracy}%</span>
+                                <span style={styles.pillCaption}>ACC</span>
                             </div>
                         );
                     })()}
-                    {/* Question Counter */}
-                    <div style={styles.questionCounter}>
-                        {questionNumber}/{totalQuestions}
+                    {/* PLAYER AVATAR — same portrait component the seats use, so
+                        a missing asset degrades to a monogram disc instead of a
+                        broken image. */}
+                    <div style={styles.topBarAvatar}>
+                        <SeatAvatar src={AVATARS[0]} label={playerName || 'HERO'} fontSize={13} />
                     </div>
                     {/* PHASE 9: Simplified Mode Toggle */}
                     <motion.button
@@ -2575,6 +2582,23 @@ function UniversalDynamicTable({
                     </motion.button>
                 </div>
             </div>
+
+            {/* ═══ THE QUESTION ═══════════════════════════════════════════
+                Full-width panel directly under the top bar: near-black fill,
+                cyan border with an outer glow, large bold white centred text.
+                It is ABOVE the table, not floating over the felt -- which is
+                where it lived until now, at 15px, on top of the top row of
+                seats. This is the single most important thing on screen. */}
+            {(contextString || (questionText && questionText !== 'Loading question...')) && (
+                <div style={styles.questionPanel}>
+                    {questionText && questionText !== 'Loading question...' && (
+                        <div style={styles.questionPanelText}>{questionText}</div>
+                    )}
+                    {contextString && (
+                        <div style={styles.questionPanelContext}>{contextString}</div>
+                    )}
+                </div>
+            )}
 
             {/* SESSION RAIL - one bar where there used to be six stacked strips.
 
@@ -2665,38 +2689,21 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* SCENARIO CONTEXT — Fixed at the top of the table area, with settings gear */}
+                {/* The question used to be printed HERE, as a 15px overlay
+                    pinned to the top of the table area -- i.e. on the felt, over
+                    the top row of seats. The template puts it in a panel of its
+                    own above the table; see styles.questionPanel. Only the
+                    settings gear remains in this corner. */}
                 <div style={{
                     position: 'absolute',
                     top: 3,
                     left: 0,
                     right: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    height: 34,
                     zIndex: 5,
                     pointerEvents: 'none',
                 }}>
-                    {contextString && (
-                        <div style={{
-                            fontSize: 15,
-                            fontWeight: 900,
-                            color: '#ffffff',
-                            textTransform: 'uppercase',
-                            letterSpacing: 1,
-                            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-                        }}>
-                            {(
-                        <span style={styles.spotBlock}>
-                            {questionText && questionText !== 'Loading question...' && (
-                                <span style={styles.spotQuestion}>{questionText}</span>
-                            )}
-                            <span style={styles.spotContext}>{contextString}</span>
-                        </span>
-                    )}
-                        </div>
-                    )}
-                    {/* Settings Gear — upper right of scenario area */}
+                    {/* Settings Gear — upper right of the table area */}
                     {onConfigClick && (
                         <button
                             onClick={onConfigClick}
@@ -3662,37 +3669,10 @@ function UniversalDynamicTable({
                         }
                     }}
                 />
-                {/* BUG FIX (TRAIN-LAYOUT-QUIT-1): Quit button used to be absolutely
-                    positioned at top:-40, left:0 relative to the action bar. The Hint
-                    ribbon ('Hint: On dry boards, c-bet small...') sits in flow
-                    immediately above the action bar at roughly the same vertical
-                    location, so Quit visibly overlapped the hint text on the live
-                    table (screenshot 2 in the May 8 training-overhaul handoff).
-                    Fix: lift Quit out of the action-bar layer entirely and pin it
-                    to the viewport's top-left corner with iOS/Android safe-area
-                    awareness. It now lives in a corner that is guaranteed not to
-                    collide with any bottom-UI element. */}
-                {onExit && (
-                    <button
-                        onClick={onExit}
-                        aria-label="Quit session"
-                        style={{
-                            position: 'fixed',
-                            top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                            left: 'calc(env(safe-area-inset-left, 0px) + 12px)',
-                            padding: '6px 14px', borderRadius: 8,
-                            background: 'rgba(0, 0, 0, 0.55)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(255, 255, 255, 0.18)',
-                            color: 'var(--sp-fg)', fontSize: 12, fontWeight: 600,
-                            cursor: 'pointer', zIndex: 9999,
-                            letterSpacing: 0.3,
-                        }}
-                    >
-                        Quit
-                    </button>
-                )}
+                {/* The floating "Quit" chip that used to be pinned over the
+                    top-left corner of the viewport is gone: it sat on top of the
+                    felt, and the template gives the exit a proper home as the
+                    "Back to Training" pill in the top bar. Same onExit. */}
                 {/* GTO WIZARD-STYLE: Render grouped/standard actions (up to 9) */}
                 {displayOptions.slice(0, 9).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index);
@@ -5370,27 +5350,176 @@ const styles = {
         overflow: 'hidden',
     },
 
-    // ── TOP BAR (replaces old questionBar)
+    // ── TOP BAR — Back pill | centred cyan title | session pills + avatar
     topBar: {
+        position: 'relative',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '10px 16px',
-        background: '#1a1a1a',
+        padding: '8px 12px',
+        background: 'linear-gradient(180deg, #141419 0%, #0d0d11 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         flexShrink: 0,
+        minHeight: 46,
+        zIndex: 6,
     },
 
     topBarLeft: {
         display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
+        alignItems: 'center',
+        gap: 8,
+        zIndex: 1,
     },
 
     topBarRight: {
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
+        zIndex: 1,
+    },
+
+    // The exit. Replaces the floating "Quit" chip that used to sit over the felt.
+    backPill: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 12px',
+        borderRadius: 999,
+        background: 'linear-gradient(180deg, rgba(28,32,46,0.95) 0%, rgba(15,18,28,0.95) 100%)',
+        border: '1px solid rgba(120,150,200,0.35)',
+        color: '#dbe7f5',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.2,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        fontFamily: "'Inter', -apple-system, sans-serif",
+    },
+
+    backPillArrow: {
+        color: 'var(--sp-accent-cyan)',
+        fontSize: 13,
+        lineHeight: 1,
+    },
+
+    // Centred on the bar itself, so it cannot drift with the side clusters.
+    // pointerEvents off so it never eats a click meant for a pill behind it.
+    topBarTitle: {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        fontSize: 'clamp(11px, 3.2vw, 15px)',
+        fontWeight: 800,
+        color: 'var(--sp-accent-cyan)',
+        fontFamily: "'Inter', sans-serif",
+        textTransform: 'uppercase',
+        letterSpacing: 2.2,
+        textShadow: '0 0 12px rgba(0,212,255,0.35)',
+        whiteSpace: 'nowrap',
+        maxWidth: '46%',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        pointerEvents: 'none',
+        zIndex: 0,
+    },
+
+    // Gold pill (template: XP) and cyan pill (template: diamonds).
+    xpPill: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '4px 10px',
+        borderRadius: 999,
+        background: 'rgba(226,175,58,0.10)',
+        border: '1px solid rgba(226,175,58,0.55)',
+        boxShadow: '0 0 10px rgba(226,175,58,0.15)',
+        lineHeight: 1,
+    },
+
+    xpPillIcon: {
+        color: '#e2af3a',
+        fontSize: 10,
+        lineHeight: 1,
+    },
+
+    gemPill: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '4px 10px',
+        borderRadius: 999,
+        background: 'rgba(0,212,255,0.08)',
+        border: '1px solid rgba(0,212,255,0.45)',
+        boxShadow: '0 0 10px rgba(0,212,255,0.12)',
+        lineHeight: 1,
+    },
+
+    gemPillIcon: {
+        color: 'var(--sp-accent-cyan)',
+        fontSize: 10,
+        lineHeight: 1,
+    },
+
+    xpPillValue: {
+        fontSize: 12,
+        fontWeight: 800,
+        fontFamily: "'Inter', monospace",
+        lineHeight: 1,
+    },
+
+    pillCaption: {
+        fontSize: 7,
+        fontWeight: 700,
+        letterSpacing: 0.9,
+        color: 'var(--sp-fg-dim)',
+        textTransform: 'uppercase',
+        lineHeight: 1,
+    },
+
+    topBarAvatar: {
+        width: 30,
+        height: 30,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        flexShrink: 0,
+        border: '1.5px solid rgba(0,212,255,0.55)',
+        boxShadow: '0 0 10px rgba(0,212,255,0.20)',
+        background: '#12121a',
+    },
+
+    // ── THE QUESTION PANEL — full width, above the table.
+    questionPanel: {
+        flexShrink: 0,
+        margin: '8px 10px 6px',
+        padding: '11px 16px',
+        borderRadius: 14,
+        background: 'linear-gradient(180deg, rgba(10,11,15,0.98) 0%, rgba(4,5,8,0.99) 100%)',
+        border: '1.5px solid rgba(0,212,255,0.55)',
+        boxShadow: [
+            '0 0 18px rgba(0,212,255,0.26)',
+            '0 0 46px rgba(0,212,255,0.10)',
+            'inset 0 1px 0 rgba(255,255,255,0.05)',
+        ].join(', '),
+        textAlign: 'center',
+    },
+
+    questionPanelText: {
+        fontSize: 'clamp(13px, 4.1vw, 19px)',
+        fontWeight: 800,
+        lineHeight: 1.34,
+        color: '#ffffff',
+        letterSpacing: 0.1,
+        textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+    },
+
+    questionPanelContext: {
+        marginTop: 5,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: 1.3,
+        textTransform: 'uppercase',
+        color: 'rgba(0,212,255,0.80)',
     },
 
     gameTitle: {

@@ -108,6 +108,9 @@ export default function OrbPage() {
             'trivia': '/hub/trivia',
             'poker-near-me': '/hub/poker-near-me/lobby',
             'memory-games': '/hub/preflop-charts',
+            'venues': '/hub/poker-near-me/lobby',
+            'poker': '/hub/poker-near-me/lobby',
+            'tours': '/hub/poker-series',
         };
 
         // Orbs that are proxied via next.config.js - must hard reload to hit the server proxy
