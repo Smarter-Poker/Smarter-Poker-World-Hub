@@ -28,6 +28,11 @@ export const MOVE_CLASSIFICATIONS = {
  * @returns {{ key: string, label: string, color: string }}
  */
 export function classifyMove(evLoss) {
+    // Every comparison below is false for undefined and NaN, so an unknown EV
+    // loss used to fall through the whole ladder and land on BLUNDER: a move
+    // recorded without an evLoss was shown to the player in red as their worst
+    // possible mistake. Not knowing the cost is not evidence of a blunder.
+    if (!Number.isFinite(evLoss)) return MOVE_CLASSIFICATIONS.CORRECT;
     if (evLoss < MOVE_CLASSIFICATIONS.CORRECT.evThreshold) return MOVE_CLASSIFICATIONS.CORRECT;
     if (evLoss < MOVE_CLASSIFICATIONS.INACCURACY.evThreshold) return MOVE_CLASSIFICATIONS.INACCURACY;
     if (evLoss < MOVE_CLASSIFICATIONS.MISTAKE.evThreshold) return MOVE_CLASSIFICATIONS.MISTAKE;

@@ -135,13 +135,20 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
         frequencies[key] = Math.round((frequencies[key] / total) * 100);
     });
 
-    // Ensure they sum to exactly 100
+    // Ensure they sum to exactly 100. The rounding remainder used to be parked
+    // on the correct answer's key and simply dropped when that key was not one
+    // of the options, so the displayed frequencies did not add up to 100 and no
+    // action was dominant — every option then graded as "Best Move". Park the
+    // remainder on the largest bucket instead so the total is always 100.
     const currentSum = Object.values(frequencies || {}).reduce((s, f) => s + f, 0);
     const diff = 100 - currentSum;
-    const correctKey = Object.keys(frequencies || {}).find(k =>
+    const keys = Object.keys(frequencies || {});
+    const correctKey = keys.find(k =>
         k === correctAnswer || k?.toLowerCase() === correctAnswer?.toLowerCase()
     );
-    if (correctKey) frequencies[correctKey] += diff;
+    const targetKey = correctKey
+        || keys.reduce((best, k) => (frequencies[k] > (frequencies[best] ?? -1) ? k : best), keys[0]);
+    if (targetKey) frequencies[targetKey] += diff;
 
     return frequencies;
 }
@@ -254,8 +261,21 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     // Get frequency of the selected action (0 if not in GTO)
     // Use ?? (nullish coalescing) — || would treat freq=0 as falsy and skip it
     const selectedFreq = gtoFrequencies[selectedAnswer] ?? gtoFrequencies[selectedNorm] ?? 0;
-    // Get frequency of the correct (highest-frequency) action
-    const correctFreq = gtoFrequencies[correctAnswer] ?? gtoFrequencies[correctNorm] ?? 100;
+    // Frequency of the correct (highest-frequency) action.
+    //
+    // The old default here was 100. When the question's correctAnswer id was
+    // not a key of the frequency map at all — an id-remap that did not line up,
+    // a solver payload keyed differently from the options — that 100 was pure
+    // invention, and it fed straight into `isPureStrategy = correctFreq >= 80`.
+    // A player looking at a 60/40 mixed spot who picked the 0% third option got
+    // BLUNDER and "100% off the solver frequency", both manufactured by the
+    // fallback. When the id is missing, use the distribution's own maximum,
+    // which is what this variable is documented to hold.
+    const freqValues = Object.values(gtoFrequencies || {}).map(Number).filter(Number.isFinite);
+    const maxFreq = freqValues.length ? Math.max(...freqValues) : 0;
+    const correctFreqRaw = gtoFrequencies[correctAnswer] ?? gtoFrequencies[correctNorm];
+    const correctAnswerInDistribution = typeof correctFreqRaw === 'number';
+    const correctFreq = correctAnswerInDistribution ? correctFreqRaw : maxFreq;
 
     // Frequency difference from the most frequent action
     const frequencyDiff = Math.abs(correctFreq - selectedFreq);
@@ -286,7 +306,16 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     // Classification is PURELY frequency-based — EV is only for display.
     let classification;
 
-    if (selectedNorm === correctNorm) {
+    // A question whose declared correctAnswer the solver plays 0% of the time is
+    // internally inconsistent — the feedback banner said "Best Move" with a
+    // double check while the frequency bar right beside it read 0%. That is the
+    // question's fault, not the player's: keep them marked correct, but do not
+    // award the top tier on a number the panel contradicts.
+    const inconsistentQuestion = selectedNorm === correctNorm && selectedFreq === 0 && maxFreq > 0;
+
+    if (inconsistentQuestion) {
+        classification = MOVE_CLASSIFICATIONS.CORRECT;
+    } else if (selectedNorm === correctNorm) {
         // Chose the highest-frequency action — always BEST
         classification = MOVE_CLASSIFICATIONS.BEST;
     } else if (selectedFreq >= 20) {
@@ -345,6 +374,8 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         selectedFreq,
         correctFreq,
         isRealData,
+        correctAnswerInDistribution,
+        inconsistentQuestion,
     };
 }
 
