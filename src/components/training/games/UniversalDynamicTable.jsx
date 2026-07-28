@@ -25,6 +25,7 @@ import { busEmit } from '../../../engine/EventBus';
 import ActionButton from '../../poker/ActionButton';
 // TRAIN-WIRE-UDT-ACTIONBTN-1 — adoption: UDT action bar uses shared ActionButton
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
+import { committedFor, computeDisplayPot } from './potMath';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -2309,9 +2310,14 @@ function UniversalDynamicTable({
         return '';
     }, [street, boardCards.length]);
 
-    // Pot shown on the felt — preflop spots without an explicit pot show the
-    // posted blinds (SB 0.5 + BB 1) instead of nothing.
-    const displayPot = pot || (streetLabel === 'PREFLOP' ? 1.5 : 0);
+    // Pot shown on the felt. Single source of truth with the per-seat chip
+    // stacks below (see potMath.js): the pill and the chips are the same money.
+    const displayPot = useMemo(() => computeDisplayPot({
+        scenarioPot: pot,
+        streetLabel,
+        seats,
+        actionHistory,
+    }), [pot, streetLabel, seats, actionHistory]);
 
     // Build context string (e.g., "BTN vs BB • 3-Bet Pot • Flop")
     const contextString = useMemo(() => {
@@ -3167,32 +3173,11 @@ function UniversalDynamicTable({
                     const keys = DEALER_BUTTON_SEAT_KEYS[playerCount] || DEALER_BUTTON_SEAT_KEYS[9];
                     const isPreflopStreet = streetLabel === 'PREFLOP';
 
-                    // Amount committed by a seat: explicit amount/size field first,
-                    // then the first number in the action text ("RAISE 3BB" -> 3),
-                    // then posted blinds preflop when nothing else is recorded.
-                    const betFor = (seat) => {
-                        const entry = actionHistory.find(
-                            (a) => a.position?.toUpperCase() === seat.name?.toUpperCase()
-                        );
-                        if (entry) {
-                            const act = String(entry.action || '').toLowerCase();
-                            if (act.includes('fold') || act.includes('check')) return 0;
-                            const raw = entry.amount ?? entry.size ?? entry.bb;
-                            if (typeof raw === 'number' && isFinite(raw)) return raw;
-                            const m = String(entry.action || '').match(/(\d+(?:\.\d+)?)/);
-                            if (m) return parseFloat(m[1]);
-                            return 0;
-                        }
-                        if (isPreflopStreet) {
-                            const n = (seat.name || '').toUpperCase();
-                            if (n === 'SB' || n === 'BTN/SB') return 0.5;
-                            if (n === 'BB') return 1;
-                        }
-                        return 0;
-                    };
-
+                    // committedFor() is the SAME function the POT pill sums over
+                    // (potMath.js). The chips in front of the seats and the number
+                    // in the middle are one calculation, so they cannot disagree.
                     return seats.map((seat, index) => {
-                        const amount = betFor(seat);
+                        const amount = committedFor(seat, actionHistory, isPreflopStreet);
                         if (!amount || amount <= 0) return null;
                         // Only seats actually shown on the felt get chips.
                         const isHeroSeat = index === heroSeatIndex;
