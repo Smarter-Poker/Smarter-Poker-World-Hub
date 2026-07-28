@@ -177,7 +177,28 @@ function _estimateFoldEquity(madeHand, street, betAmount, potSize) {
 export function calculateEVLoss(params, playerAction) {
     const evs = calculateActionEVs(params);
 
-    const playerEV = evs.actions[playerAction]?.ev ?? 0;
+    // The action set depends on the node: facing a bet it is fold/call/raise,
+    // otherwise it is check/bet_small/bet_medium/bet_large. An action outside
+    // that set is not a zero-EV action, it is an action we cannot price.
+    //
+    // This used to read `evs.actions[playerAction]?.ev ?? 0`, and 0 is also
+    // exactly the EV of folding. So a hero RAISE facing a bet — which the
+    // caller mapped to the key 'bet_medium', absent from that branch — was
+    // priced as a fold and reported as "you lost 2.32 BB, mistake" on a raise
+    // that was in fact the highest-EV action available. Say so instead.
+    if (!Object.prototype.hasOwnProperty.call(evs.actions, playerAction)) {
+        return {
+            evLoss: 0,
+            gtoAction: evs.bestAction,
+            gtoEV: Math.round(evs.bestEV * 100) / 100,
+            playerEV: null,
+            classification: 'unpriced',
+            actionUnavailable: true,
+            allActionEVs: evs.actions,
+        };
+    }
+
+    const playerEV = evs.actions[playerAction].ev;
     const gtoEV = evs.bestEV;
     const evLoss = Math.max(0, gtoEV - playerEV);
 

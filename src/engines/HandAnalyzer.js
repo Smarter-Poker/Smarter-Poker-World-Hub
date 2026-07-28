@@ -20,6 +20,7 @@ import { analyzeBoard } from './BoardTextureEngine';
 import { getPostflopStrategy } from './PostflopStrategyEngine';
 import { calculateEVLoss, calculateActionEVs } from './EVCalculator';
 import { classifyMove, MOVE_CLASSIFICATIONS } from './GTOScoreEngine';
+import { postflopActionIndex } from './positionOrder';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // HAND ANALYSIS
@@ -82,7 +83,7 @@ function analyzeDecision(point, hand) {
     const { street, board, holeCards, action, amount, position } = point;
 
     // Determine position context
-    const posContext = _getPositionContext(position, hand);
+    const posContext = _getPositionContext(position, hand, street);
     const isPFR = _wasHeroPFR(hand);
 
     // Get board analysis
@@ -116,6 +117,10 @@ function analyzeDecision(point, hand) {
         });
 
         // Calculate EV loss
+        // EVCalculator decides which actions exist from currentBet > 0, so the
+        // key mapping has to read facingBet off the SAME value or the two
+        // disagree about which branch of the tree we are in.
+        const currentBet = _getCurrentBet(hand, street);
         evLossResult = calculateEVLoss({
             holeCards,
             board,
@@ -124,12 +129,17 @@ function analyzeDecision(point, hand) {
             street,
             position: posContext,
             isPFR,
-            currentBet: _getCurrentBet(hand, street),
-        }, _mapActionToEVKey(action, amount, potSize));
+            currentBet,
+        }, _mapActionToEVKey(action, amount, potSize, currentBet > 0));
     }
 
     const evLoss = evLossResult?.evLoss || 0;
-    const classification = classifyMove(evLoss);
+    // An action we could not price is not a correct action — it is an unknown
+    // one. Grading it 'correct' off a 0 EV loss would be the same silent lie in
+    // the other direction, so surface it as its own tier.
+    const classification = evLossResult?.actionUnavailable
+        ? { key: 'unpriced', label: 'Not priced', color: '#94a3b8' }
+        : classifyMove(evLoss);
 
     return {
         street,
@@ -249,10 +259,48 @@ export function analyzeSession(hands) {
 // HELPERS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function _getPositionContext(position, hand) {
-    // Determine if hero is IP or OOP relative to villain
-    const ipPositions = ['BTN', 'CO'];
-    return ipPositions.includes(position) ? 'IP' : 'OOP';
+/**
+ * Positions of every opponent still in the pot at the given street.
+ * A player is out once they fold on that street or any earlier one.
+ */
+function _liveOpponentPositions(hand, street) {
+    const order = ['preflop', 'flop', 'turn', 'river'];
+    const upTo = order.slice(0, Math.max(0, order.indexOf(street)) + 1);
+    const folded = new Set();
+    for (const st of upTo) {
+        for (const a of hand?.streets?.[st]?.actions || []) {
+            if (a.action === 'fold' && a.player) folded.add(a.player);
+        }
+    }
+    const heroName = hand?.hero?.name;
+    return (hand?.players || [])
+        .filter(p => p.name !== heroName && !folded.has(p.name) && p.position)
+        .map(p => p.position);
+}
+
+/**
+ * 'IP' or 'OOP' for hero at this decision point.
+ *
+ * Position is relative. This used to read `['BTN','CO'].includes(position)`,
+ * which is wrong by construction: it ignored the opponent entirely, so CO
+ * against the button was reported IP when the button acts after it, and HJ
+ * against UTG was reported OOP when the hijack acts after it. Every strategy
+ * lookup keyed on the result then read the wrong frequency column.
+ *
+ * Hero is in position only when hero acts after EVERY opponent still in the
+ * pot, so a multiway pot with one opponent behind is OOP even from the CO.
+ */
+function _getPositionContext(position, hand, street) {
+    const opponents = _liveOpponentPositions(hand, street);
+    const heroIdx = postflopActionIndex(position);
+    if (heroIdx < 0 || opponents.length === 0) {
+        // Unknown seat, or no opponent we can name: we genuinely do not know.
+        // Report the acts-first side rather than claim positional advantage.
+        return 'OOP';
+    }
+    const latestOpponent = opponents.reduce((m, p) => Math.max(m, postflopActionIndex(p)), -1);
+    if (latestOpponent < 0) return 'OOP';
+    return heroIdx > latestOpponent ? 'IP' : 'OOP';
 }
 
 function _wasHeroPFR(hand) {
@@ -309,20 +357,39 @@ function _getEffectiveStack(hand) {
     return heroPlayer?.stack || 100;
 }
 
-function _mapActionToEVKey(action, amount, potSize) {
-    if (action === 'fold') return 'fold';
-    if (action === 'check') return 'check';
-    if (action === 'call') return 'call';
+/**
+ * Map a hand-history action onto an EVCalculator action key.
+ *
+ * The key set depends on the node. Facing a bet, EVCalculator prices
+ * fold / call / raise. Not facing a bet, it prices check / bet_small /
+ * bet_medium / bet_large. This function used to map every bet AND every raise
+ * onto a bet_* key regardless, so a hero raise facing a bet landed on a key
+ * that did not exist at that node, and EVCalculator's `?? 0` fallback then
+ * priced it as a fold. And the final `return 'check'` claimed hero checked
+ * whenever the parser produced any action string this list did not name.
+ *
+ * @param {string} action - parsed action ('fold'|'check'|'call'|'bet'|'raise')
+ * @param {number} amount
+ * @param {number} potSize
+ * @param {boolean} facingBet - is there a live bet in front of hero?
+ * @returns {string|null} key, or null when the action has no key at this node
+ */
+function _mapActionToEVKey(action, amount, potSize, facingBet) {
+    if (action === 'fold') return facingBet ? 'fold' : null;
+    if (action === 'check') return facingBet ? null : 'check';
+    if (action === 'call') return facingBet ? 'call' : null;
 
-    // Map bet/raise to sizing key
-    if (action === 'bet' || action === 'raise') {
-        const fraction = amount / potSize;
-        if (fraction < 0.40) return 'bet_small';
-        if (fraction < 0.80) return 'bet_medium';
-        return 'bet_large';
-    }
+    if (action === 'raise') return facingBet ? 'raise' : _betSizeKey(amount, potSize);
+    if (action === 'bet') return facingBet ? 'raise' : _betSizeKey(amount, potSize);
 
-    return 'check';
+    return null;
+}
+
+function _betSizeKey(amount, potSize) {
+    const fraction = potSize > 0 ? amount / potSize : 0;
+    if (fraction < 0.40) return 'bet_small';
+    if (fraction < 0.80) return 'bet_medium';
+    return 'bet_large';
 }
 
 export default {
