@@ -321,6 +321,16 @@ export function classifyDraws(holeCards, board) {
     const draws = [];
     let totalOuts = 0;
 
+    // A hand hero has already MADE is not a hand hero is drawing to. Without
+    // this, AhKh on QhJhTh — a royal flush — came back "gutshot, 4 outs",
+    // because the window [9..K] is one card short of another straight. The
+    // trainer then printed "You have: Royal Flush | Draws: gutshot" side by
+    // side, and EVCalculator blended 30% of that phantom draw equity into the
+    // equity of the nuts.
+    const madeRank = evaluateHand(holeCards, board).rank;
+    const hasMadeStraightOrBetter = madeRank >= HAND_RANKS.STRAIGHT;
+    const hasMadeFlushOrBetter = madeRank >= HAND_RANKS.FLUSH;
+
     // Flush draw check — count the suits HERO holds, not the board's. A three-
     // or four-flush on the board alone is not hero's draw: hero has to hold at
     // least one card of the suit for the flush to ever be hero's hand.
@@ -334,8 +344,8 @@ export function classifyDraws(holeCards, board) {
     const hasFlushDraw = maxSuit === 4;
     const hasBackdoorFlush = maxSuit === 3 && board.length === 3;
 
-    if (hasFlushDraw) { draws.push(DRAWS.FLUSH_DRAW); totalOuts += 9; }
-    else if (hasBackdoorFlush) { draws.push(DRAWS.BACKDOOR_FLUSH); totalOuts += 1.5; }
+    if (hasFlushDraw && !hasMadeFlushOrBetter) { draws.push(DRAWS.FLUSH_DRAW); totalOuts += 9; }
+    else if (hasBackdoorFlush && !hasMadeFlushOrBetter) { draws.push(DRAWS.BACKDOOR_FLUSH); totalOuts += 1.5; }
 
     // Straight draw check
     const values = [...new Set(allCards.map(c => RANK_VALUES[c[0]]))].sort((a, b) => a - b);
@@ -367,10 +377,15 @@ export function classifyDraws(holeCards, board) {
         straightOuts = 4;
     }
 
+    if (hasMadeStraightOrBetter) {
+        bestStraightDraw = DRAWS.NONE;
+        straightOuts = 0;
+    }
+
     if (bestStraightDraw !== DRAWS.NONE) {
         draws.push(bestStraightDraw);
         totalOuts += straightOuts;
-    } else if (board.length === 3) {
+    } else if (board.length === 3 && !hasMadeStraightOrBetter) {
         // Check for backdoor straight draw
         for (let target = 1; target <= 10; target++) {
             const window = [target, target + 1, target + 2, target + 3, target + 4];
@@ -384,7 +399,7 @@ export function classifyDraws(holeCards, board) {
     }
 
     // Combo draw check
-    const isCombo = hasFlushDraw && bestStraightDraw !== DRAWS.NONE;
+    const isCombo = hasFlushDraw && !hasMadeFlushOrBetter && bestStraightDraw !== DRAWS.NONE;
     if (isCombo) {
         draws.push(DRAWS.COMBO_DRAW);
         totalOuts = Math.min(totalOuts, 15); // Avoid double-counting overlapping outs

@@ -80,5 +80,6 @@ require('./harness/suite-scenario');
 require('./harness/suite-grading');
 require('./harness/suite-ev');
 require('./harness/suite-api');
+require('./harness/suite-hand');
 
 process.exitCode = report() > 0 ? 1 : 0;
