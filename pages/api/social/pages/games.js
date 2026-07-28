@@ -34,11 +34,11 @@ function getSupabase() {
 // PII: the GET branch of this endpoint is PUBLICLY READABLE — requireAuth is only
 // applied to POST/PUT/PATCH/DELETE — and it queries with the service role, so RLS
 // does not apply. On the Commander-bridged path the player names come from the
-// VENUE'S MEMBER RECORDS (commander_seats / commander_table_sessions), which the
-// player never consented to publish. Redact them to "First L." here, server-side,
-// so the full name never enters the JSON payload. Format matches the public TV
-// display endpoint (smarter-poker-commander pages/api/displays/[deviceId]/content.js,
-// 2026-07-25) so both public surfaces agree.
+// VENUE'S MEMBER RECORDS (commander_table_sessions / commander_dealer_rotations),
+// which the player never consented to publish. Redact them to "First L." here,
+// server-side, so the full name never enters the JSON payload. Format matches the
+// public TV display endpoint (smarter-poker-commander pages/api/displays/[deviceId]/
+// content.js, 2026-07-25) so both public surfaces agree.
 // The club_game_seats path is deliberately left alone: those names are self-entered
 // by the player into the social page to reserve a seat, and are consented for it.
 function redactName(name) {
@@ -137,48 +137,53 @@ export default async function handler(req, res) {
                   const rawVenueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
                   const venueId = rawVenueId ? parseInt(rawVenueId, 10) : null;
                   if (venueId && !isNaN(venueId)) {
-                      const { data: cmdGames } = await getSupabase()
-                          .from('commander_games')
-                          .select('id, game_type, stakes, current_players, max_players, status, started_at, table_id')
+                      // The live floor lives in commander_tables + commander_table_sessions.
+                      // The legacy commander_games / commander_seats pair has had no activity
+                      // since 2026-02-28, so filtering it on status IN ('running','waiting')
+                      // matched nothing and this tab rendered "No Live Games Right Now" while
+                      // the floor was running. Source-of-truth queries, status filters and the
+                      // cash/tournament split below mirror Commander's own floor code
+                      // (smarter-poker-commander pages/commander/table-tablets.js and
+                      // pages/api/dealer/sessions-batch.js).
+                      const { data: cmdTables } = await getSupabase()
+                          .from('commander_tables')
+                          .select('id, venue_id, table_number, table_name, max_seats, status, mode, table_purpose, game_type, stakes, tournament_id')
                           .eq('venue_id', venueId)
-                          .in('status', ['running', 'waiting'])
-                          .order('started_at', { ascending: false });
+                          .eq('status', 'in_use')
+                          .order('table_number', { ascending: true })
+                              .limit(100);
 
-                      if (cmdGames && cmdGames.length > 0) {
-                          // Fetch all commander_seats for these games in one batch
-                          const cmdGameIds = cmdGames.map(g => g.id);
-                          const { data: cmdSeats } = await getSupabase()
-                              .from('commander_seats')
-                              .select('id, game_id, seat_number, player_name, player_id, status')
-                              .in('game_id', cmdGameIds)
-                              .order('seat_number', { ascending: true })
-                                  .limit(100);
-                          const allCmdSeats = cmdSeats || [];
+                      // Cash floor only — tournaments have their own Schedule tab. Mirrors
+                      // isTournamentTable() in table-tablets.js, widened with the table_purpose
+                      // test used by sessions-batch.js so a tournament table is never mistaken
+                      // for a cash game on a public surface.
+                      const isTournamentTable = (t) => (
+                          (t.mode || t.table_purpose || 'cash') === 'tournament'
+                          || t.table_purpose === 'tournament'
+                      );
+                      const cashTables = (cmdTables || []).filter(t => !isTournamentTable(t));
 
-                          // Fetch profile pictures for players with Smarter.Poker accounts
-                          const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean);
-                          let profilePicMap = {};
-                          if (playerIds.length > 0) {
+                      if (cashTables.length > 0) {
+                          const tableNumbers = cashTables
+                              .map(t => t.table_number)
+                              .filter(n => n !== null && n !== undefined);
+
+                          // Seat occupancy is derived from live sessions: the denormalised
+                          // commander_tables.occupied_seats / .player_count counters are not
+                          // maintained (they read zero across the whole floor).
+                          let allSessions = [];
+                          if (tableNumbers.length > 0) {
                               try {
-                                  const { data: profiles } = await getSupabase()
-                                      .from('profiles')
-                                      .select('id, avatar_url')
-                                      .in('id', playerIds)
-                                          .limit(100);
-                                  (profiles || []).forEach(p => { profilePicMap[p.id] = p.avatar_url; });
+                                  const { data: sessions } = await getSupabase()
+                                      .from('commander_table_sessions')
+                                      .select('id, table_number, seat_number, player_name, started_at, status, time_allocated_minutes, time_added_minutes')
+                                      .eq('venue_id', venueId)
+                                      .in('table_number', tableNumbers)
+                                      .in('status', ['active', 'paused', 'meal_break'])
+                                      .order('seat_number', { ascending: true })
+                                          .limit(500);
+                                  allSessions = sessions || [];
                               } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                          }
-
-                          // Fetch table names for display
-                          const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
-                          let tableMap = {};
-                          if (tableIds.length > 0) {
-                              const { data: tables } = await getSupabase()
-                                  .from('commander_tables')
-                                  .select('id, table_name, table_number')
-                                  .in('id', tableIds)
-                                      .limit(100);
-                              (tables || []).forEach(t => { tableMap[t.id] = t; });
                           }
 
                           // Fetch venue type for timer mode
@@ -192,91 +197,57 @@ export default async function handler(req, res) {
                               if (venueSettings?.venue_type) venueType = venueSettings.venue_type;
                           } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-                          // Fetch active dealer rotations for all tables in one batch
-                          // Rotations may have table_id, table_number, or both — query by both
-                          const tableNumbers = Object.values(tableMap || {}).map(t => t.table_number).filter(Boolean);
+                          // Active dealer rotations, keyed by table_number (most recent wins),
+                          // matching the rotation lookup in Commander's tablet-data endpoint.
+                          //
+                          // Do NOT PostgREST-embed commander_dealers here. There is no foreign
+                          // key from commander_dealer_rotations.dealer_id to commander_dealers.id
+                          // (the table's only FKs are table_id and venue_id), so an embedded
+                          // select fails the WHOLE query with PGRST200 and returns null data.
+                          // That silently left this map empty and made dealer_name null on every
+                          // game. dealer_name is stored inline on the rotation row, so no join is
+                          // needed. The error is surfaced rather than swallowed so a future
+                          // schema drift here fails loudly instead of blanking the dealer.
                           let dealerRotationMap = {};
-                          if (tableIds.length > 0 || tableNumbers.length > 0) {
-                              try {
-                                  // Query 1: by table_id (if rotations have it)
-                                  if (tableIds.length > 0) {
-                                      const { data: rotById } = await getSupabase()
-                                          .from('commander_dealer_rotations')
-                                          .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
-                                          .in('table_id', tableIds)
-                                          .is('ended_at', null);
-                                      (rotById || []).forEach(r => {
-                                          const name = r.dealer_name || r.commander_dealers?.name || null;
-                                          if (name) dealerRotationMap[r.table_id] = name;
-                                      });
-                                  }
-                                  // Query 2: by table_number (if rotations only have table_number, no table_id)
-                                  if (tableNumbers.length > 0) {
-                                      const { data: rotByNum } = await getSupabase()
-                                          .from('commander_dealer_rotations')
-                                          .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
-                                          .eq('venue_id', venueId)
-                                          .in('table_number', tableNumbers)
-                                          .is('ended_at', null);
-                                      // Build a reverse map: table_number → table_id
-                                      const numToId = {};
-                                      Object.entries(tableMap || {}).forEach(([tid, t]) => { numToId[t.table_number] = tid; });
-                                      (rotByNum || []).forEach(r => {
-                                          const name = r.dealer_name || r.commander_dealers?.name || null;
-                                          const resolvedTableId = r.table_id || numToId[r.table_number];
-                                          if (name && resolvedTableId && !dealerRotationMap[resolvedTableId]) {
-                                              dealerRotationMap[resolvedTableId] = name;
-                                          }
-                                      });
-                                  }
-                              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                          }
-
-                          // Fetch active table sessions for time tracking
-                          let allSessions = [];
                           if (tableNumbers.length > 0) {
                               try {
-                                  const { data: sessions } = await getSupabase()
-                                      .from('commander_table_sessions')
-                                      .select('*')
+                                  const { data: rotations, error: rotErr } = await getSupabase()
+                                      .from('commander_dealer_rotations')
+                                      .select('table_number, dealer_name, started_at')
+                                      .eq('venue_id', venueId)
                                       .in('table_number', tableNumbers)
-                                      .in('status', ['active', 'paused', 'meal_break'])
-                                      .order('seat_number', { ascending: true })
-                                          .limit(100);
-                                  allSessions = sessions || [];
+                                      .is('ended_at', null)
+                                      .order('started_at', { ascending: false })
+                                          .limit(500);
+                                  if (rotErr) console.warn('[games] dealer rotation lookup failed:', rotErr.message);
+                                  (rotations || []).forEach(r => {
+                                      const name = r.dealer_name || null;
+                                      if (name && r.table_number !== null && r.table_number !== undefined
+                                          && dealerRotationMap[r.table_number] === undefined) {
+                                          dealerRotationMap[r.table_number] = name;
+                                      }
+                                  });
                               } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                           }
 
                           const now = new Date();
 
-                          const mapped = cmdGames.map(g => {
-                              const gameSeats = allCmdSeats.filter(s => s.game_id === g.id);
-                              const occupiedSeats = gameSeats.filter(s => s.status === 'occupied');
-                              const table = g.table_id ? tableMap[g.table_id] : null;
-                              const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;
-                              const tableNum = table?.table_number;
+                          const mapped = cashTables.map(t => {
+                              const tableSessions = allSessions.filter(s => s.table_number === t.table_number);
 
                               // Dealer for this table.
-                              // PII: venue STAFF, not a player — redacted on the same grounds as the
-                              // seat names above. This endpoint is public, so publishing a dealer's
-                              // full legal name against a specific table would disclose an
-                              // identifiable person's real-time physical location and shift pattern.
-                              // Employment is not consent to be publicly tracked, and a dealer cannot
-                              // opt out of their employer's social page. Redacted, not dropped:
-                              // "Dealer: Marcus T." is the board working as intended. Both branches
-                              // that populate dealerRotationMap converge here, so this covers both.
-                              // null is preserved deliberately — the clients render
-                              // `dealer_name || 'No Dealer'`, so an absent dealer must stay null.
-                              const rawDealerName = g.table_id ? (dealerRotationMap[g.table_id] || null) : null;
-                              // trim-guard: a blank/whitespace-only dealer_name is an ABSENT dealer,
-                              // not a person — it must stay null so the client shows "No Dealer"
-                              // rather than the redactName() empty-input fallback "Player".
+                              // PII: venue STAFF, not a player — redacted on the same grounds as
+                              // the seat names below. This endpoint is public, so publishing a
+                              // dealer's full legal name against a specific table would disclose
+                              // an identifiable person's real-time physical location and shift
+                              // pattern. null is preserved deliberately — the clients render
+                              // `dealer_name || 'No Dealer'`, so an absent dealer must stay null
+                              // rather than becoming redactName()'s empty-input fallback.
+                              const rawDealerName = dealerRotationMap[t.table_number] || null;
                               const dealerName = (rawDealerName && rawDealerName.trim())
                                   ? redactName(rawDealerName)
                                   : null;
 
-                              // Sessions for this table (time tracking)
-                              const tableSessions = tableNum ? allSessions.filter(s => s.table_number === tableNum) : [];
                               const mappedSessions = tableSessions.map(s => {
                                   const totalAllocatedSeconds = ((s.time_allocated_minutes || 0) + (s.time_added_minutes || 0)) * 60;
                                   const elapsedSeconds = Math.floor((now - new Date(s.started_at)) / 1000);
@@ -296,30 +267,43 @@ export default async function handler(req, res) {
                                   };
                               });
 
-                              // Map commander_seats to match club_game_seats shape
-                              const mappedSeats = gameSeats.map(s => ({
-                                  id: s.id,
-                                  game_id: s.game_id,
-                                  seat_number: s.seat_number,
-                                  // PII: venue member record — redacted for this public endpoint
-                                  player_name: s.player_name ? redactName(s.player_name) : null,
-                                  player_id: s.player_id || null,
-                                  avatar_url: s.player_id ? (profilePicMap[s.player_id] || null) : null,
-                                  status: s.status === 'occupied' ? 'reserved' : s.status === 'empty' ? null : s.status,
-                              })).filter(s => s.status === 'reserved'); // Only include occupied seats
+                              // Each live session is one occupied seat. player_id and avatar_url
+                              // stay null: a session carries member_id, which is a
+                              // commander_members row (venue membership), not a Smarter.Poker
+                              // profiles id, so there is no linked account photo to resolve.
+                              const mappedSeats = tableSessions
+                                  .filter(s => s.seat_number !== null && s.seat_number !== undefined)
+                                  .map(s => ({
+                                      id: s.id,
+                                      game_id: t.id,
+                                      seat_number: s.seat_number,
+                                      // PII: venue member record — redacted for this public endpoint
+                                      player_name: s.player_name ? redactName(s.player_name) : null,
+                                      player_id: null,
+                                      avatar_url: null,
+                                      status: 'reserved',
+                                  }));
+
+                              // No started_at on the table itself; use the earliest live session.
+                              const startedAt = tableSessions.reduce((earliest, s) => {
+                                  if (!s.started_at) return earliest;
+                                  return (!earliest || s.started_at < earliest) ? s.started_at : earliest;
+                              }, null);
+
+                              const tableName = t.table_name || `Table ${t.table_number}`;
 
                               return {
-                                  id: g.id,
-                                  game_name: `${(g.game_type || 'NLH').toUpperCase()} ${g.stakes || ''}`.trim(),
-                                  game_type: g.game_type || 'NLH',
-                                  stakes: g.stakes || '',
-                                  max_seats: g.max_players || 9,
-                                  status: g.status === 'running' ? 'running' : 'open',
-                                  started_at: g.started_at,
+                                  id: t.id,
+                                  game_name: `${(t.game_type || 'NLH').toUpperCase()} ${t.stakes || ''}`.trim(),
+                                  game_type: t.game_type || 'NLH',
+                                  stakes: t.stakes || '',
+                                  max_seats: t.max_seats || 9,
+                                  status: 'running',
+                                  started_at: startedAt,
                                   source: 'commander',
                                   table_number: tableName,
                                   seats: mappedSeats,
-                                  seated_count: occupiedSeats.length,
+                                  seated_count: mappedSeats.length,
                                   waitlist_count: 0,
                                   dealer_name: dealerName,
                                   venue_type: venueType,

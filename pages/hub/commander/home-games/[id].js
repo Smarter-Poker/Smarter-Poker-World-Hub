@@ -11,7 +11,7 @@ import RsvpForm from '../../../../src/components/commander/home-games/RsvpForm';
 import TournamentList from '../../../../src/components/home-games/TournamentList';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -333,7 +333,7 @@ export default function HomeGameDetailPage() {
 
   // Join group
   async function handleJoin() {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;
@@ -386,7 +386,7 @@ export default function HomeGameDetailPage() {
   // weird ways (e.g. simultaneous yes-then-no leaving stale waitlist).
   // X-Idempotency-Key lets the server collapse a timeout-then-retry.
   async function handleRsvp(event, status) {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;

@@ -20,7 +20,7 @@ import {
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 // 2026-07-25 audit fix: needed for the authenticated public-join call.
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 
 export default function VenueDetail() {
@@ -99,7 +99,7 @@ export default function VenueDetail() {
     // 2026-07-25 audit fix: /api/commander/waitlist POST is staff-only — players
     // must use /api/commander/waitlist/public-join with a Bearer token (same
     // endpoint + body shape as waitlist/[venueId].js).
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/venue/${id}`);
       return;

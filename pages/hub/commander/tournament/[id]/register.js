@@ -9,7 +9,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
 // 2026-07-25 audit fix: added getAuthUser for the entries-list fallback check.
-import { getAccessToken, getAuthUser } from '../../../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser, getFreshAccessToken } from '../../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
@@ -91,7 +91,7 @@ export default function TournamentRegisterPage() {
   }
 
   async function handleRegister(signal) {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;
@@ -131,7 +131,7 @@ export default function TournamentRegisterPage() {
   async function handleUnregister(signal) {
     if (!myEntry) return;
 
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;

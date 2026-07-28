@@ -10,7 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
-import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { supabase } from '../../../../src/lib/supabase';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -128,7 +128,7 @@ export default function LeagueDetailPage() {
   async function handleJoinLeague() {
     setJoining(true);
     try {
-      const token = getAccessToken();
+      const token = await getFreshAccessToken();
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/leagues/${id}`);
         return;

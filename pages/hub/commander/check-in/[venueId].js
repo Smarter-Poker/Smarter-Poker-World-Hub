@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getFreshAccessToken } from '../../../../src/lib/authUtils';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
 import {
   CheckCircle,
@@ -83,7 +83,7 @@ export default function PlayerCheckInPage() {
   }
 
   async function handleCheckIn(signal) {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/check-in/${venueId}`);
       return;

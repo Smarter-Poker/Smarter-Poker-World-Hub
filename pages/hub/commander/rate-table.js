@@ -10,7 +10,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 // 2026-07-25 audit fix: use the standard auth helper ('smarter-poker-auth' key)
 // instead of the nonexistent 'sb-access-token' localStorage key.
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../../src/lib/authUtils';
 import {
   ArrowLeft, Flame, Smile, Zap, Star, Send, CheckCircle2, Loader2
 } from 'lucide-react';
@@ -43,7 +43,7 @@ export default function RateTable() {
     setSubmitting(true);
     setError(null);
     try {
-      const token = getToken();
+      const token = await getFreshAccessToken();
       if (!token) {
         router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
         return;

@@ -729,3 +729,35 @@ export async function getFreshAccessToken() {
     })().finally(() => { _inFlightRefresh = null; });
     return _inFlightRefresh;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🚀 MODULE BOOTSTRAP — Pre-seed sp_auth_confirmed fast-path flag
+// ═══════════════════════════════════════════════════════════════════════════
+// Problem: useRequireAuth() checks sessionStorage('sp_auth_confirmed') as a
+// fast-path to skip the slow ensureAuthReady() async chain. But this flag
+// is only SET after the FIRST successful useRequireAuth call completes.
+// 
+// Result: A user who just logged in and navigates directly to any auth-gated
+// Commander page (services, profile, rewards, etc.) triggers a full async
+// auth check including supabase.auth.getSession() — which can race, throw
+// AbortError, or simply take >200ms — and the user sees a redirect to login
+// even though their session is valid in localStorage.
+//
+// Fix: At module load time (browser only), synchronously check if a valid
+// session exists in localStorage. If yes, pre-seed the flag so useRequireAuth
+// uses the instant fast-path for the entire session without an async round-trip.
+// ═══════════════════════════════════════════════════════════════════════════
+if (typeof window !== 'undefined') {
+    try {
+        const _bootstrapSession = localStorage.getItem('smarter-poker-auth');
+        if (_bootstrapSession) {
+            const _parsed = JSON.parse(_bootstrapSession);
+            if (_parsed?.access_token && _parsed?.user?.id) {
+                sessionStorage.setItem('sp_auth_confirmed', '1');
+            }
+        }
+    } catch (_) {
+        // Non-fatal: if localStorage is blocked or parse fails, useRequireAuth
+        // falls back to the normal async chain — no user-visible impact.
+    }
+}
