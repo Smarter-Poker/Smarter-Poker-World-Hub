@@ -31,6 +31,23 @@ function getSupabase() {
     return _supabase;
 }
 
+// PII: the GET branch of this endpoint is PUBLICLY READABLE — requireAuth is only
+// applied to POST/PUT/PATCH/DELETE — and it queries with the service role, so RLS
+// does not apply. On the Commander-bridged path the player names come from the
+// VENUE'S MEMBER RECORDS (commander_seats / commander_table_sessions), which the
+// player never consented to publish. Redact them to "First L." here, server-side,
+// so the full name never enters the JSON payload. Format matches the public TV
+// display endpoint (smarter-poker-commander pages/api/displays/[deviceId]/content.js,
+// 2026-07-25) so both public surfaces agree.
+// The club_game_seats path is deliberately left alone: those names are self-entered
+// by the player into the social page to reserve a seat, and are consented for it.
+function redactName(name) {
+  if (!name || typeof name !== 'string' || !name.trim()) return 'Player';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -250,7 +267,8 @@ export default async function handler(req, res) {
                                   const timeRemaining = Math.max(0, totalAllocatedSeconds - elapsedSeconds);
                                   return {
                                       seat_number: s.seat_number,
-                                      player_name: s.player_name,
+                                      // PII: venue member record — redacted for this public endpoint
+                                      player_name: redactName(s.player_name),
                                       started_at: s.started_at,
                                       time_allocated_minutes: s.time_allocated_minutes || 0,
                                       time_added_minutes: s.time_added_minutes || 0,
@@ -267,7 +285,8 @@ export default async function handler(req, res) {
                                   id: s.id,
                                   game_id: s.game_id,
                                   seat_number: s.seat_number,
-                                  player_name: s.player_name || null,
+                                  // PII: venue member record — redacted for this public endpoint
+                                  player_name: s.player_name ? redactName(s.player_name) : null,
                                   player_id: s.player_id || null,
                                   avatar_url: s.player_id ? (profilePicMap[s.player_id] || null) : null,
                                   status: s.status === 'occupied' ? 'reserved' : s.status === 'empty' ? null : s.status,
