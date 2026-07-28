@@ -508,9 +508,14 @@ export class DeterministicGTOEngine {
                     context: contextParts.join(' | '),
                     heroPosition: scenario.position,
                     villainPosition: villainPos,
+                    // scenario.potSize / effectiveStack are the street-correct
+                    // numbers from PostflopScenarioGenerator.potGeometry. The old
+                    // `|| 6` fallback drew every flop, turn and river node with a
+                    // 6bb pot against a full 100bb stack, which put SPR 16.7 on
+                    // the river and made the "% of pot" EV figure ~4x too big.
                     pot: scenario.potSize || 6,
-                    heroStack: scenario.stackDepth || scenario.stackSize || 100,
-                    villainStack: scenario.stackDepth || scenario.stackSize || 100,
+                    heroStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
+                    villainStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
                     street: scenario.street,
                     board: boardStr,
                     heroHand: heroStr,

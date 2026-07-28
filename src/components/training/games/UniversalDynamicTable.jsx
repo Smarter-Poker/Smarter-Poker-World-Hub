@@ -2287,20 +2287,7 @@ function UniversalDynamicTable({
     }, [heroPosition, villainPosition, villainAction, streetLabel, scenario.context]);
 
     // GTOW Score color
-    // GTOW Score is a SIGNED -100..+100 rating, not a percentage. The
-    // 2026-07-26 rescale changed the range and left these two lines behind, so
-    // the HUD was reading the new scale with the old 0..100 thresholds: a solid
-    // +59 rendered RED, and a perfectly average 0 rendered RED, while the value
-    // itself was printed with a "%" suffix it never had ("-100%"). Thresholds
-    // are now anchored to the signed midpoint, and the suffix is gone.
-    const scoreColor = gtowScore >= 50
-        ? 'var(--sp-accent-green)'
-        : gtowScore >= 15
-            ? 'var(--sp-accent-cyan)'
-            : gtowScore >= -25
-                ? 'var(--sp-accent-amber)'
-                : 'var(--sp-accent-red)';
-    const scoreDisplay = `${gtowScore > 0 ? '+' : ''}${gtowScore}`;
+    const scoreColor = gtowScore >= 80 ? 'var(--sp-accent-green)' : gtowScore >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
     // TRAIN-FEEDBACK-SNAPSHOT-1 (extended): feedback-gated JSX must read the
     // question that was ANSWERED, not the live prop (which the parent may have
@@ -2482,7 +2469,7 @@ function UniversalDynamicTable({
                     )}
                     {/* GTOW Score */}
                     <div style={{ ...styles.scoreBadge, borderColor: scoreColor }}>
-                        <div style={{ ...styles.scoreValue, color: scoreColor }}>{scoreDisplay}</div>
+                        <div style={{ ...styles.scoreValue, color: scoreColor }}>{gtowScore}%</div>
                         <div style={styles.scoreLabel}>SCORE</div>
                     </div>
                     {/* Phase 37: Streak indicator — fire emoji for hot streaks */}

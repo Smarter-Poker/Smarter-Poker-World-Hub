@@ -77,23 +77,89 @@ const HERO_HANDS = [
  */
 const POSITION_MATCHUPS = [
     // PFR in position (most common and most important)
-    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot — BTN vs BB', isPFR: true },
-    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot — CO vs BB', isPFR: true },
-    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot — BTN vs SB', isPFR: true },
+    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot — BTN vs BB', isPFR: true, potType: 'SRP' },
+    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot — CO vs BB', isPFR: true, potType: 'SRP' },
+    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot — BTN vs SB', isPFR: true, potType: 'SRP' },
     // PFR out of position
-    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot — UTG vs BTN', isPFR: true },
-    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot — MP vs CO', isPFR: true },
+    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot — UTG vs BTN', isPFR: true, potType: 'SRP' },
+    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot — MP vs CO', isPFR: true, potType: 'SRP' },
     // Caller in position (facing c-bet)
-    { hero: 'BTN', villain: 'CO', context: 'Caller IP — BTN cold-called CO open', isPFR: false },
+    { hero: 'BTN', villain: 'CO', context: 'Caller IP — BTN cold-called CO open', isPFR: false, potType: 'SRP' },
     // Caller out of position (BB defense)
-    { hero: 'BB', villain: 'BTN', context: 'BB Defense — called BTN open', isPFR: false },
-    { hero: 'BB', villain: 'CO', context: 'BB Defense — called CO open', isPFR: false },
-    { hero: 'BB', villain: 'SB', context: 'BB Defense — called SB open', isPFR: false },
+    { hero: 'BB', villain: 'BTN', context: 'BB Defense — called BTN open', isPFR: false, potType: 'SRP' },
+    { hero: 'BB', villain: 'CO', context: 'BB Defense — called CO open', isPFR: false, potType: 'SRP' },
+    { hero: 'BB', villain: 'SB', context: 'BB Defense — called SB open', isPFR: false, potType: 'SRP' },
     // 3-bet pots
-    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot — BB 3-bet vs BTN', isPFR: true },
-    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot — BTN called BB 3-bet', isPFR: false },
-    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true },
-].map(m => ({ ...m, posContext: positionContext(m.hero, m.villain) }));
+    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot — BB 3-bet vs BTN', isPFR: true, potType: '3BET' },
+    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot — BTN called BB 3-bet', isPFR: false, potType: '3BET' },
+    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true, potType: '3BET' },
+].map(m => ({
+    ...m,
+    posContext: positionContext(m.hero, m.villain),
+    // Scenario ids are built from the seat pair, and the seat pair alone does
+    // not identify a matchup: BTN vs BB exists twice (single-raised and 3-bet)
+    // and so does BB vs BTN. Without this tag both members of each pair minted
+    // the SAME id, so de-duplication by id ("don't show a spot twice") silently
+    // suppressed one whole pot type, and any id-keyed store conflated a 3-bet
+    // pot answer with the single-raised answer for a different correct action.
+    idTag: `${m.hero}-${m.villain}-${m.potType}-${m.isPFR ? 'pfr' : 'call'}`.toLowerCase(),
+    is3BetPot: m.potType === '3BET',
+}));
+
+// ●● Pot Geometry ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+//
+// Every L8-L10 scenario used to ship without a pot size at all, so the trainer
+// fell back to a hard-coded 6bb pot against a 100bb stack for the flop, the
+// turn AND the river, in single-raised and 3-bet pots alike. A river node was
+// therefore drawn as "pot 6bb, stacks 100bb" — SPR 16.7 on the river, which
+// cannot happen — and the EV-loss panel divided by that 6 to print a "% of
+// pot" figure that was roughly four times too large. Pot and stack are a
+// function of the pot type and the street, so compute them.
+
+const OPEN_SIZE_BB = 2.5;        // standard 100bb open
+const THREE_BET_SIZE_BB = 10;    // standard 3-bet facing a 2.5x open
+const FLOP_BET_FRACTION = 0.5;   // the flop bet assumed to have gone in
+const TURN_BET_FRACTION = 0.6;   // the turn bet assumed to have gone in
+
+/**
+ * Pot and effective stack at a postflop decision node, in big blinds.
+ *
+ * Assumes the two named seats are heads-up and both put in the same preflop
+ * amount, plus the small blind's dead 0.5bb when neither seat IS the small
+ * blind. Later streets assume one bet and one call at the fractions above,
+ * which is the line the scenario descriptions already narrate.
+ *
+ * @param {Object} matchup - POSITION_MATCHUPS entry (hero, villain, potType)
+ * @param {'flop'|'turn'|'river'} street
+ * @param {number} [stackDepth] - starting stack in bb
+ * @returns {{ potSize: number, effectiveStack: number, preflopInvested: number }}
+ */
+function potGeometry(matchup, street, stackDepth = 100) {
+    const perPlayer = matchup.potType === '3BET' ? THREE_BET_SIZE_BB : OPEN_SIZE_BB;
+    const sbIsInHand = matchup.hero === 'SB' || matchup.villain === 'SB';
+    const deadBlind = sbIsInHand ? 0 : 0.5;
+
+    let pot = perPlayer * 2 + deadBlind;
+    let stack = stackDepth - perPlayer;
+
+    if (street === 'turn' || street === 'river') {
+        const bet = Math.min(pot * FLOP_BET_FRACTION, stack);
+        pot += bet * 2;
+        stack -= bet;
+    }
+    if (street === 'river') {
+        const bet = Math.min(pot * TURN_BET_FRACTION, stack);
+        pot += bet * 2;
+        stack -= bet;
+    }
+
+    const round2 = (v) => Math.round(v * 100) / 100;
+    return {
+        potSize: round2(pot),
+        effectiveStack: round2(Math.max(0, stack)),
+        preflopInvested: perPlayer,
+    };
+}
 
 // ●● Board Generation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
@@ -158,6 +224,7 @@ export function generateLevel8() {
             const board = generateBoard(heroCards, 3, seed);
             const boardAnalysis = analyzeBoard(board);
             if (boardAnalysis.error) continue;
+            const geometry = potGeometry(matchup, 'flop');
 
             const madeHand = classifyMadeHand(heroCards, board);
             const draws = classifyDraws(heroCards, board);
@@ -167,7 +234,7 @@ export function generateLevel8() {
             // Get GTO strategy — use ENHANCED solver-data lookup
             let strategy;
             if (matchup.isPFR) {
-                strategy = getEnhancedCbetStrategy(board, matchup.posContext, heroCards);
+                strategy = getEnhancedCbetStrategy(board, matchup.posContext, heroCards, { is3BetPot: matchup.is3BetPot });
             } else {
                 // As defender, use the calibrated check-raise matrix so options
                 // and correctAction come from the same solver source
@@ -202,7 +269,7 @@ export function generateLevel8() {
             }
 
             scenarios.push({
-                id: `l8-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
+                id: `l8-${matchup.idTag}-${handIdx}`,
                 level: 8,
                 title: `Flop: ${handNotation} — ${matchup.context}`,
                 description: `${matchup.context}. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
@@ -215,7 +282,10 @@ export function generateLevel8() {
                 vsPosition: matchup.villain,
                 posContext: matchup.posContext,
                 isPFR: matchup.isPFR,
+                potType: matchup.potType,
                 stackDepth: 100,
+                potSize: geometry.potSize,
+                effectiveStack: geometry.effectiveStack,
                 spotType: matchup.isPFR ? 'cbet' : 'check_raise',
                 boardTexture: boardAnalysis,
                 boardTextureKey: strategy.boardTexture || classifyBoardTexture(boardAnalysis),
@@ -431,6 +501,7 @@ export function generateLevel9() {
             const board = generateBoard(heroCards, 4, seed);
             const boardAnalysis = analyzeBoard(board);
             if (boardAnalysis.error) continue;
+            const geometry = potGeometry(matchup, 'turn');
 
             const madeHand = classifyMadeHand(heroCards, board);
             const draws = classifyDraws(heroCards, board);
@@ -443,7 +514,7 @@ export function generateLevel9() {
             const options = buildMultiSizeOptions(strategy, 'turn');
 
             scenarios.push({
-                id: `l9-turn-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
+                id: `l9-turn-${matchup.idTag}-${handIdx}`,
                 level: 9,
                 title: `Turn: ${handNotation} — ${matchup.context}`,
                 description: `${matchup.context}. Hero c-bet flop, villain called. Board: ${board.join(' ')} (${boardAnalysis.description}).`,
@@ -456,7 +527,10 @@ export function generateLevel9() {
                 vsPosition: matchup.villain,
                 posContext: matchup.posContext,
                 isPFR: matchup.isPFR,
+                potType: matchup.potType,
                 stackDepth: 100,
+                potSize: geometry.potSize,
+                effectiveStack: geometry.effectiveStack,
                 spotType: 'turn_barrel',
                 boardTexture: boardAnalysis,
                 handClass,
@@ -505,6 +579,7 @@ export function generateLevel10() {
             const board = generateBoard(heroCards, 5, seed);
             const boardAnalysis = analyzeBoard(board);
             if (boardAnalysis.error) continue;
+            const geometry = potGeometry(matchup, 'river');
 
             const madeHand = classifyMadeHand(heroCards, board);
 
@@ -538,7 +613,7 @@ export function generateLevel10() {
             }
 
             scenarios.push({
-                id: `l10-river-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
+                id: `l10-river-${matchup.idTag}-${handIdx}`,
                 level: 10,
                 title: `River: ${handNotation} — ${matchup.context}`,
                 description,
@@ -551,7 +626,10 @@ export function generateLevel10() {
                 vsPosition: matchup.villain,
                 posContext: matchup.posContext,
                 isPFR: matchup.isPFR,
+                potType: matchup.potType,
                 stackDepth: 100,
+                potSize: geometry.potSize,
+                effectiveStack: geometry.effectiveStack,
                 spotType: `river_${strategy.category}`,
                 boardTexture: boardAnalysis,
                 boardState: strategy.boardState || null,
