@@ -20,8 +20,20 @@ import { busEmit } from '../engine/EventBus';
  * Supabase stores session in localStorage under a key like:
  * sb-<project_ref>-auth-token
  */
+/**
+ * Extract the Supabase access token from localStorage.
+ * Primary key: 'smarter-poker-auth' (set by supabase.ts storageKey config)
+ * Fallback: legacy sb-<ref>-auth-token keys for backwards compatibility.
+ */
 function getAccessToken() {
     try {
+        // Primary: smarter-poker-auth (set by supabase.ts storageKey config)
+        const primary = localStorage.getItem('smarter-poker-auth');
+        if (primary) {
+            const parsed = JSON.parse(primary);
+            if (parsed?.access_token) return parsed.access_token;
+        }
+        // Legacy fallback: sb-<ref>-auth-token
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
@@ -35,6 +47,7 @@ function getAccessToken() {
     } catch { /* noop */ }
     return null;
 }
+
 
 /**
  * Fire-and-forget reward claim with toast notification
