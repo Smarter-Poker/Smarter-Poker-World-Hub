@@ -95,7 +95,7 @@ begin
 end
 $fn$;
 
--- ── 2. Tournament rebuy ────────────────────────────────────────────────────────
+-- ── 2. Tournament rebuy ───────────────────────────────────────────────────────
 -- The max-rebuys check moves into the UPDATE predicate, so two concurrent
 -- rebuys can no longer both read rebuy_count = max - 1 and both be allowed.
 create or replace function public.commander_txn_tournament_rebuy(
@@ -414,7 +414,7 @@ grant execute on function public.commander_txn_tournament_addon(uuid, uuid, inte
 grant execute on function public.commander_txn_member_time_purchase(uuid, integer, uuid, bigint, numeric, text, text, text) to service_role;
 grant execute on function public.commander_txn_award_comp(uuid, integer, numeric, numeric, integer, numeric, numeric, text, text, text, boolean, uuid, text, text, text) to service_role;
 
--- ── post-condition ────────────────────────────────────────────────────────────
+-- ── post-condition ───────────────────────────────────────────────────────────
 do $post$
 declare
   v_expected text[] := array[
