@@ -29,7 +29,8 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
-import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
+import useVIPGate from '../../../src/hooks/useVIPGate';
+import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -43,7 +44,7 @@ const STAKE_OPTIONS = [10, 25, 50, 100];
 export default function PvPPage() {
     useTrainingBus('trivia-pvp');
     const router = useRouter();
-    const { guardAction, UpgradePopup } = useFeatureGate('trivia_pvp');
+    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, searching, battle, waiting, result
     const [userId, setUserId] = useState(null);
@@ -250,7 +251,10 @@ export default function PvPPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-            if (!guardAction()) return;
+            if (!allowed) {
+                showUpgradeModal();
+                return;
+            }
         // Clear any TriviaLobby payment flag (pvp handles its own variable-stake billing)
         try {
             sessionStorage.removeItem('trivia_paid');
@@ -836,7 +840,6 @@ export default function PvPPage() {
 
     return (
         <TriviaErrorBoundary pageName="PvP Battle">
-            {UpgradePopup}
             <SEOHead
                 title="PvP Trivia — Player vs Player"
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
@@ -1083,7 +1086,15 @@ export default function PvPPage() {
                         </div>
                     )}
                 </div>
-              <BottomNavBar />
+            {/* Modals */}
+            <VIPGateModal 
+                visible={upgradeModalVisible}
+                onClose={hideUpgradeModal}
+                featureName="PvP Battle Mode"
+                featureConfig={featureConfig}
+            />
+
+            <BottomNavBar />
             </div>
 
             <style>{`
