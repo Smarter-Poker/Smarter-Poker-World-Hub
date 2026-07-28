@@ -609,6 +609,11 @@ const CHIP_STACK_POSITIONS = {
     v8: { left: 64.17, top: 69.10 },
 };
 
+// Height of the strip reserved under the felt on a phone for the countdown and
+// the question pill. Every pixel here comes straight off the felt, so it is
+// exactly the compact 42px countdown plate plus a hairline.
+const CORNER_RAIL_BAND = 44;
+
 const DEALER_BUTTON_SEAT_KEYS = {
     9: ['hero', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'],
     6: ['hero', 'v2', 'v3', 'v4', 'v6', 'v7'],
@@ -829,7 +834,7 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring' }) {
+function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring', compact = false }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
     const expiredRef = React.useRef(false);
     const radius = 18;
@@ -880,9 +885,9 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 62,
-                    height: 62,
-                    borderRadius: 14,
+                    width: compact ? 42 : 62,
+                    height: compact ? 42 : 62,
+                    borderRadius: compact ? 10 : 14,
                     background: 'linear-gradient(180deg, rgba(24,24,28,0.96) 0%, rgba(10,10,13,0.98) 100%)',
                     border: '1px solid rgba(255,255,255,0.10)',
                     boxShadow: '0 8px 22px rgba(0,0,0,0.65)',
@@ -890,7 +895,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                 }}
             >
                 <span style={{
-                    fontSize: 30,
+                    fontSize: compact ? 21 : 30,
                     fontWeight: 900,
                     lineHeight: 1,
                     color: 'var(--sp-accent-red)',
@@ -1418,7 +1423,8 @@ function UniversalDynamicTable({
         card: isMobile ? { width: 36, height: 52, borderRadius: 3 } : {},
         boardCard: isMobile ? { width: 34, height: 48, borderRadius: 3 } : {},
         pot: isMobile ? { fontSize: 13 } : {},
-        actionButton: isMobile ? { padding: '10px 4px', minHeight: 50, fontSize: 12 } : {},
+        actionButton: isMobile ? { padding: '8px 4px', minHeight: 46, fontSize: 12 } : {},
+        questionPanel: isMobile ? { margin: '6px 8px 5px', padding: '8px 12px' } : {},
         villainCard: isMobile ? { width: 16, height: 22 } : {},
         boardCards: isMobile ? { gap: 3 } : {},
         seat: isMobile ? { gap: 2 } : {},
@@ -1433,10 +1439,11 @@ function UniversalDynamicTable({
     // nothing clipped it, it just sat on top of other chrome. Measuring the felt
     // and scaling every piece of furniture by the same factor makes the felt
     // reserve room for its own furniture at every table size.
-    // The felt's own full-size content box: styles.basicTable is maxWidth 440
-    // with a 1px border each side and a 1 / 1.45 aspect ratio.
-    const FELT_DESIGN_W = 438;
-    const FELT_DESIGN_H = 635;
+    // The felt's own full-size content box: styles.basicTable is maxWidth 440,
+    // box-sizing border-box, a 2.5px gold border each side and a 1 / 1.45
+    // aspect ratio -- so 440 - 5 wide and 440 * 1.45 - 5 tall.
+    const FELT_DESIGN_W = 435;
+    const FELT_DESIGN_H = 633;
     const tableRef = useRef(null);
     const [feltBox, setFeltBox] = React.useState({ w: FELT_DESIGN_W, h: FELT_DESIGN_H });
     useEffect(() => {
@@ -2349,6 +2356,26 @@ function UniversalDynamicTable({
         return '';
     }, [street, boardCards.length]);
 
+    // POT BAND — the pill lives in the gap between the bottom of the top row of
+    // seats and the top of the board. A fixed 29% is right at a full-size felt
+    // and wrong at a tiny one: feltScale is floored at 0.58, so below that the
+    // furniture stops shrinking while the felt keeps going, the top row grows
+    // as a fraction of the felt, and a fixed band walks straight into it.
+    // Centre the pill in whatever gap actually exists.
+    const potTopPct = useMemo(() => {
+        const h = Math.max(1, feltBox.h);
+        const villainBoxH = ui(52) + ui(34) - ui(8) + ui(3) + ui(35);
+        const topRowBottom = 0.15 * h + villainBoxH / 2;
+        const boardTop = 0.38 * h - ui(70) / 2;
+        const potH = Math.max(11, ui(15)) + ui(4) + ui(5) + 6;
+        const lo = topRowBottom + potH / 2 + 3;
+        const hi = boardTop - potH / 2 - 3;
+        // When the gap is too small to hold the pill at all, split it: half a
+        // pill of overlap on each side beats all of it on one.
+        const centre = lo > hi ? (topRowBottom + boardTop) / 2 : Math.min(Math.max(0.29 * h, lo), hi);
+        return (centre / h) * 100;
+    }, [feltBox.h, ui]);
+
     // Pot shown on the felt. Single source of truth with the per-seat chip
     // stacks below (see potMath.js): the pill and the chips are the same money.
     const displayPot = useMemo(() => computeDisplayPot({
@@ -2629,7 +2656,7 @@ function UniversalDynamicTable({
                 where it lived until now, at 15px, on top of the top row of
                 seats. This is the single most important thing on screen. */}
             {(contextString || (questionText && questionText !== 'Loading question...')) && (
-                <div style={styles.questionPanel}>
+                <div style={{ ...styles.questionPanel, ...m.questionPanel }}>
                     {questionText && questionText !== 'Loading question...' && (
                         <div style={styles.questionPanelText}>{questionText}</div>
                     )}
@@ -2700,7 +2727,15 @@ function UniversalDynamicTable({
             </div>
 
                         {/* TABLE AREA - Center */}
-            <div style={styles.tableArea}>
+            <div style={{
+                ...styles.tableArea,
+                // On a phone the felt fills the table area edge to edge and the
+                // gutters beside the oval are too narrow to hold the countdown
+                // and the question pill without them reaching into hero's hole
+                // cards. Reserve a strip UNDER the felt for them instead, and
+                // let the oval shrink into what is left.
+                paddingBottom: isMobile ? CORNER_RAIL_BAND : 0,
+            }}>
 
                 {/* Phase 3: Floating EV Popup */}
                 <AnimatePresence>
@@ -3388,6 +3423,7 @@ function UniversalDynamicTable({
                         style={{
                             ...styles.pot,
                             ...m.pot,
+                            top: `${potTopPct}%`,
                             x: '-50%',
                             y: '-50%',
                             padding: `${ui(4)}px ${ui(12)}px ${ui(5)}px`,
@@ -3439,14 +3475,18 @@ function UniversalDynamicTable({
                     rounded rail leaves empty at every size. Both clear hero's
                     cluster: hero owns the middle of the bottom edge. */}
                 <div style={styles.feltCornerRail}>
-                    <div style={styles.feltCornerRailInner}>
-                        <div style={styles.countdownSlot}>
+                    <div style={{
+                        ...styles.feltCornerRailInner,
+                        width: isMobile ? '100%' : '96%',
+                    }}>
+                        <div style={{ ...styles.countdownSlot, bottom: isMobile ? 1 : 10 }}>
                             <CountdownTimer
                                 seconds={trainerConfig?.timerSeconds || 30}
                                 questionNumber={questionNumber}
                                 showFeedback={showFeedback}
                                 active={trainerConfig?.timerEnabled || false}
                                 variant="plate"
+                                compact={isMobile}
                                 onTimeExpired={() => {
                                     // BUG-04 FIX: Auto-submit worst option when timer expires
                                     if (!showFeedback && !selectedAnswer && onAnswer) {
@@ -3463,7 +3503,7 @@ function UniversalDynamicTable({
                                 }}
                             />
                         </div>
-                        <div style={styles.questionOfPill}>
+                        <div style={{ ...styles.questionOfPill, bottom: isMobile ? 3 : 16 }}>
                             Question {questionNumber} of {totalQuestions}
                         </div>
                     </div>
