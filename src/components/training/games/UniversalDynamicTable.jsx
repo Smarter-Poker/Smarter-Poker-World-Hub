@@ -2708,6 +2708,42 @@ function UniversalDynamicTable({
                     top of it in the same percentage coordinate space. */}
                 <div style={{ ...styles.feltSurface, inset: ui(15) }} />
 
+                {/* FELT BRAND — the game name burned into the centre of the
+                    felt with the product mark beneath it, the way a real table
+                    carries the room's logo. Decorative only: pointer-events off
+                    and below every seat, chip and card in z-order. */}
+                <div style={{
+                    position: 'absolute',
+                    top: '59%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '68%',
+                    textAlign: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    lineHeight: 1.2,
+                }}>
+                    <div style={{
+                        fontSize: Math.max(11, ui(19)),
+                        fontWeight: 800,
+                        color: 'rgba(255,255,255,0.90)',
+                        letterSpacing: 0.4,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.85)',
+                    }}>
+                        {gameTitle || 'GTO Training'}
+                    </div>
+                    <div style={{
+                        marginTop: ui(3),
+                        fontSize: Math.max(8, ui(12)),
+                        fontWeight: 800,
+                        color: 'rgba(226,175,58,0.95)',
+                        letterSpacing: 0.3,
+                        textShadow: '0 1px 6px rgba(0,0,0,0.85)',
+                    }}>
+                        Smarter.Poker
+                    </div>
+                </div>
+
                 {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
                 <div style={styles.seatsContainer}>
                     {seats.map((seat, index) => {
@@ -5452,14 +5488,17 @@ const styles = {
         aspectRatio: '1 / 1.45',
         borderRadius: '50% / 26%',
         background: [
-            'radial-gradient(ellipse at 50% -8%, rgba(0,212,255,0.10) 0%, rgba(0,212,255,0) 52%)',
-            'repeating-linear-gradient(135deg, rgba(255,255,255,0.020) 0px, rgba(255,255,255,0.020) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 7px)',
-            'linear-gradient(180deg, #141c30 0%, #0a0e1c 55%, #060912 100%)',
+            'radial-gradient(ellipse at 50% 8%, rgba(255,190,70,0.05) 0%, rgba(255,190,70,0) 55%)',
+            'linear-gradient(180deg, #0b0b0d 0%, #060607 58%, #030304 100%)',
         ].join(', '),
-        border: '1px solid rgba(0,212,255,0.16)',
+        // OUTER GOLD RING of the racetrack rail. The rail reads as two
+        // concentric gold hoops with a black channel between them: this border
+        // is hoop one, `feltSurface`'s border is hoop two.
+        border: '2px solid rgba(214,163,42,0.92)',
         boxShadow: [
-            '0 26px 60px rgba(0,0,0,0.78)',
-            'inset 0 2px 0 rgba(255,255,255,0.055)',
+            '0 26px 60px rgba(0,0,0,0.85)',
+            '0 0 22px rgba(226,175,58,0.20)',
+            'inset 0 0 0 1px rgba(255,214,122,0.30)',
             'inset 0 -22px 44px rgba(0,0,0,0.55)',
         ].join(', '),
         margin: '0 auto',
@@ -5477,14 +5516,15 @@ const styles = {
         position: 'absolute',
         borderRadius: '50% / 26%',
         background: [
-            'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0) 58%)',
-            'radial-gradient(ellipse at 50% 42%, #1d6a4c 0%, #155641 40%, #0e3d2f 72%, #082a21 100%)',
+            'radial-gradient(ellipse at 50% 34%, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0) 60%)',
+            'radial-gradient(ellipse at 50% 44%, #1a1a1c 0%, #121214 38%, #0a0a0b 72%, #050506 100%)',
         ].join(', '),
         boxShadow: [
             'inset 0 12px 30px rgba(0,0,0,0.62)',
             'inset 0 -16px 38px rgba(0,0,0,0.58)',
-            'inset 0 0 0 1px rgba(0,212,255,0.20)',
-            '0 0 24px rgba(0,212,255,0.07)',
+            // INNER GOLD RING (hoop two of the racetrack rail).
+            '0 0 0 2px rgba(214,163,42,0.90)',
+            '0 0 18px rgba(226,175,58,0.16)',
         ].join(', '),
         pointerEvents: 'none',
         zIndex: 0,
