@@ -257,7 +257,7 @@ grant execute on function public.commander_adjust_session_added_minutes(uuid, in
 grant execute on function public.commander_adjust_table_session_payment(uuid, numeric)                          to service_role;
 grant execute on function public.commander_end_table_session(uuid, text)                                        to service_role;
 
--- ── post-condition ────────────────────────────────────────────────────────────
+-- ── post-condition ───────────────────────────────────────────────────────────
 do $post$
 declare
   v_expected text[] := array[
