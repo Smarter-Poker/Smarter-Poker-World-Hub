@@ -94,19 +94,17 @@ export default async function handler(req, res) {
     const { data: profile } = await supabase.from('profiles').select('diamonds, is_vip, vip_tier, vip_expires_at').eq('id', user.id).maybeSingle();
     if (!profile) return res.status(401).json({ error: 'Profile not found' });
 
-                p_amount: -5,
-                p_type: 'ai_hand_reader',
-                p_description: 'AI Hand Scanner Use',
-                p_reference_id: null
-            });
-            if (directError) {
-                console.warn('[AI-Hand-Reader] Diamond deduction failed:', directError);
-                return res.status(500).json({ error: 'Failed to process diamond payment' });
-            }
+    let isVip = false;
+    if (profile?.is_vip === true) {
+        if (profile.vip_tier === 'lifetime') {
+            isVip = true;
+        } else if (profile.vip_expires_at) {
+            isVip = new Date(profile.vip_expires_at).getTime() > Date.now();
         }
-        
-        // Both deduct_diamonds and add_diamonds_to_balance log their own ledger
-        // entries internally. No manual insert needed.
+    }
+
+    if (!isVip) {
+        return res.status(403).json({ error: 'VIP subscription required for AI Hand Scanner' });
     }
 
     try {
