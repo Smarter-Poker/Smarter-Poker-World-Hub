@@ -23,6 +23,8 @@ import { checkFeatureAccess, FEATURE_CONFIG } from '../lib/gates/premiumFeatureG
  *   loading: boolean,
  *   featureConfig: object|null,
  *   showUpgradeModal: function,
+ *   hideUpgradeModal: function,
+ *   upgradeModalVisible: boolean,
  * }}
  */
 export default function useVIPGate(featureKey) {

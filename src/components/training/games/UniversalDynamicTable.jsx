@@ -26,6 +26,7 @@ import ActionButton from '../../poker/ActionButton';
 // TRAIN-WIRE-UDT-ACTIONBTN-1 — adoption: UDT action bar uses shared ActionButton
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 import { committedFor, computeDisplayPot } from './potMath';
+import { AVATAR_LIBRARY } from '../../../data/AVATAR_LIBRARY';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -635,18 +636,90 @@ const POSITION_NAMES = {
     'BTN/SB': 'Button/SB',
 };
 
-// 3D Illustrated avatar images
-const AVATARS = [
-    '/avatars/table/free_fox.png',
-    '/avatars/table/vip_viking_warrior.png',
-    '/avatars/table/free_wizard.png',
-    '/avatars/table/free_ninja.png',
-    '/avatars/table/vip_wolf.png',
-    '/avatars/table/vip_spartan.png',
-    '/avatars/table/vip_pharaoh.png',
-    '/avatars/table/free_pirate.png',
-    '/avatars/table/free_cowboy.png',
-];
+// ═══════════════════════════════════════════════════════════════════════════
+// SEAT PORTRAITS — the whole avatar library, not a hardcoded nine
+// ═══════════════════════════════════════════════════════════════════════════
+// This used to be a nine-element array of /avatars/table/*.png, so every hand
+// in a session sat the same nine characters at the felt in the same order.
+// AVATAR_LIBRARY is the catalogue the profile picker already sells from
+// (/avatars/free/*, /avatars/vip/*) and it holds seventy portraits; the felt
+// now draws from all of them.
+//
+// Deduped BY IMAGE PATH rather than by entry id: two library entries
+// ('Pop Star' and 'Street Musician') point at the same musician.png, and an
+// id-keyed pool would happily seat that one face twice while insisting the two
+// seats held different avatars.
+//
+// scripts/avatar-library-check.js walks every path this pool can yield and
+// asserts the file exists under public/ -- a missing asset degrades to a
+// monogram disc in SeatAvatar and is otherwise silent, which is how
+// vip_pirate.png hid for as long as it did.
+const VILLAIN_AVATAR_POOL = (() => {
+    const seen = new Set();
+    const pool = [];
+    for (const entry of (AVATAR_LIBRARY || [])) {
+        const src = entry && entry.image;
+        if (!src || seen.has(src)) continue;
+        seen.add(src);
+        pool.push(src);
+    }
+    return pool;
+})();
+
+// Hero's face when the account has not chosen one: the fox the design template
+// puts in the bottom seat.
+const HERO_DEFAULT_AVATAR = '/avatars/table/free_fox.png';
+
+// FNV-1a. Any stable string in, the same 32-bit seed out. There is deliberately
+// no Math.random anywhere near the felt: a re-render that reshuffles the
+// portraits reads as the table swapping its entire cast mid-question, and
+// React re-renders this component on every hover, timer tick and feedback flip.
+function hashHandKey(key) {
+    const s = String(key == null ? '' : key);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+}
+
+// mulberry32 — small, fast, and completely determined by its seed.
+function seededRandom(seed) {
+    let a = seed >>> 0;
+    return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+// Deal one hand's portraits, in HERO-RELATIVE order: entry 0 is hero's seat,
+// entry 1 the seat to his left, and so on clockwise -- the same ordering
+// SEAT_CONFIGS, DEALER_BUTTON_SEAT_KEYS and CHIP_STACK_POSITIONS use. Callers
+// hold ABSOLUTE seat indices and must rotate before indexing this.
+//
+// Distinctness is structural, not statistical: this is a partial Fisher-Yates
+// over a copy of the pool, so an index leaves play the moment it is drawn.
+// The previous code reached for the pool with a modulus and relied on the
+// pool being at least as long as the table, which is exactly how two seats
+// came to share a face. Hero's own portrait is filtered out of the pool first,
+// so no villain can wear hero's face either.
+function dealSeatAvatars(handKey, count, heroSrc) {
+    const pool = VILLAIN_AVATAR_POOL.filter((src) => src !== heroSrc);
+    const villains = Math.max(0, Math.min(count - 1, pool.length));
+    const idx = pool.map((_, i) => i);
+    const rnd = seededRandom(hashHandKey(handKey));
+    const out = [heroSrc || HERO_DEFAULT_AVATAR];
+    for (let i = 0; i < villains; i++) {
+        const j = i + Math.floor(rnd() * (idx.length - i));
+        const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+        out.push(pool[idx[i]]);
+    }
+    return out;
+}
 
 // Seat portrait. Takes an avatar image URL and degrades to a monogram disc when
 // the asset is missing or fails to decode, so a bad path can never leave a
@@ -1285,6 +1358,7 @@ function UniversalDynamicTable({
     difficultyLevel = 0,            // 0-10 difficulty level for display
     // Player identity
     heroName = null,                 // Player's display name or poker alias
+    heroAvatarUrl = null,            // Player's chosen avatar image URL (wins over the cached one)
     // Settings config — gear button relocated to scenario area
     onConfigClick = null,
     trainerConfig = null,
@@ -1368,6 +1442,25 @@ function UniversalDynamicTable({
         } catch { /* silent fallback */ }
         return null;
     }, [heroName]);
+
+    // HERO'S OWN FACE. The account's chosen avatar wins; the header caches it
+    // under the same localStorage key AvatarContext seeds itself from, so the
+    // felt and the top bar agree on the very first frame with no round-trip.
+    // Falls back to the template's fox. Villains never draw this portrait --
+    // dealSeatAvatars filters it out of their pool.
+    const heroAvatar = useMemo(() => {
+        if (heroAvatarUrl) return heroAvatarUrl;
+        try {
+            if (typeof window === 'undefined') return HERO_DEFAULT_AVATAR;
+            const raw = localStorage.getItem('sp-cached-header-user');
+            if (raw) {
+                const data = JSON.parse(raw);
+                const fresh = !data?._ts || (Date.now() - data._ts) <= 24 * 60 * 60 * 1000;
+                if (fresh && data?.avatar) return data.avatar;
+            }
+        } catch { /* silent fallback */ }
+        return HERO_DEFAULT_AVATAR;
+    }, [heroAvatarUrl]);
 
     // Phase 3: RNG Mode state
     const [rngMode, setRngMode] = React.useState(false);
