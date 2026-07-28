@@ -235,7 +235,7 @@ const SoundEngine = {
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
                     osc.start(now); osc.stop(now + 0.15);
             }
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) { console.warn('[App] Handled exception:', (e && e.message) || e); }
     }
 };
 
@@ -1993,21 +1993,55 @@ function UniversalDynamicTable({
         return () => window.removeEventListener('keydown', handleModeKey);
     }, [MODE_TABS]);
 
-    // Determine player count based on game type
+    // Determine player count based on game type.
+    //
+    // TABLE SIZE IS A PROPERTY OF THE HAND, NOT OF THE VIEWPORT. A
+    // `if (feltScale <= 0.65) return 6` cap lived here to stop furniture
+    // colliding with the POT pill at 360x640. It was removed, for three
+    // reasons:
+    //
+    //  1. It does not fix the collision. Both SEAT_CONFIGS[9] and
+    //     SEAT_CONFIGS[6] put their top row at y = 15%, and potTopPct below
+    //     already measures the gap from that same 15% row and re-centres the
+    //     pill (splitting the overlap when no gap exists). Dropping three
+    //     seats changes nothing the pill reacts to.
+    //  2. playerCount is the axis every position table is keyed on.
+    //     getHeroSeatIndex's 6-max map has no UTG+1, MP+1 or UTG+2, so an MTT
+    //     hand whose hero sits at UTG+1 fell through `?? 0` onto the BTN seat
+    //     -- and the dealer button, finding heroSeatIndex === the BTN seat,
+    //     went right back onto hero. That is the exact defect fixed in
+    //     c2c5cad682, re-introduced by a viewport check.
+    //  3. Seats are matched to actionHistory by name. On a 6-seat map an
+    //     UTG+1 villain has no seat, so both the villain AND the chips
+    //     committedFor() puts in front of him vanish from the felt while the
+    //     hand still describes his raise.
+    //
+    // A 9-max hand renders as 9-max at every size; the clamp in the seat block
+    // and potTopPct are what keep it on the felt (scripts/table-geometry-check.js
+    // sweeps 360x640 for exactly that).
     const playerCount = useMemo(() => {
         if (gameType === 'spins' || gameType === 'sng') return 3;
         if (gameType === 'heads-up' || gameType === 'hu') return 2;
-        // Force 6-max maximum on small viewports to prevent furniture collision
-        if (feltScale <= 0.65) return 6;
         if (gameType === '6max' || gameType === 'cash') return 6;
         return 9; // Default to 9-max for MTT
-    }, [gameType, feltScale]);
+    }, [gameType]);
 
     // Get seat configuration
     const seats = SEAT_CONFIGS[playerCount] || SEAT_CONFIGS[9];
 
     // Find hero seat index based on position
     const heroSeatIndex = getHeroSeatIndex(heroPosition, playerCount);
+
+    // PORTRAITS FOR THIS HAND, hero-relative (entry 0 is hero). Seeded off the
+    // question's stable identity -- the same key the board uses for its deal
+    // animation -- so one hand always shows one cast: re-renders, the feedback
+    // flip, street changes and a remount all reproduce it exactly, and the next
+    // question deals a fresh set from the full library.
+    const handAvatarKey = question?.id || question?.scenario?.id || `q-${questionNumber || 1}`;
+    const seatAvatars = useMemo(
+        () => dealSeatAvatars(handAvatarKey, playerCount, heroAvatar),
+        [handAvatarKey, playerCount, heroAvatar]
+    );
 
     // Resolve the named villain through the SAME alias-aware mapping as hero
     // so alias positions (MP on 6-max, SB heads-up, LJ, etc.) keep their seat.
@@ -2724,7 +2758,7 @@ function UniversalDynamicTable({
                         a missing asset degrades to a monogram disc instead of a
                         broken image. */}
                     <div style={styles.topBarAvatar}>
-                        <SeatAvatar src={AVATARS[0]} label={playerName || 'HERO'} fontSize={13} />
+                        <SeatAvatar src={heroAvatar} label={playerName || 'HERO'} fontSize={13} />
                     </div>
                     {/* PHASE 9: Simplified Mode Toggle */}
                     <motion.button
@@ -3117,16 +3151,20 @@ function UniversalDynamicTable({
                                         filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
                                     }}
                                 >
-                                    {/* AVATARS is HERO-RELATIVE like every other
-                                        seat table here: entry 0 is hero's fox and
-                                        1..8 run clockwise from him, which is the
-                                        cast in the design template. `index` is an
+                                    {/* seatAvatars is HERO-RELATIVE like every
+                                        other seat table here: entry 0 is hero and
+                                        1..8 run clockwise from him. `index` is an
                                         ABSOLUTE seat index, so it has to be
                                         rotated -- unrotated, a hero sitting
                                         anywhere but absolute 0 wrapped two
-                                        villains onto the same character. */}
+                                        villains onto the same character. Hero is
+                                        read straight off heroAvatar rather than
+                                        through the rotation, so his own face is
+                                        never at the mercy of the deal. */}
                                     <SeatAvatar
-                                        src={AVATARS[((index - heroSeatIndex) % playerCount + playerCount) % playerCount % AVATARS.length]}
+                                        src={isHero
+                                            ? heroAvatar
+                                            : seatAvatars[((index - heroSeatIndex) % playerCount + playerCount) % playerCount]}
                                         label={seatLabel}
                                         fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
                                     />
