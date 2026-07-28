@@ -644,7 +644,7 @@ const AVATARS = [
     '/avatars/table/vip_wolf.png',
     '/avatars/table/vip_spartan.png',
     '/avatars/table/vip_pharaoh.png',
-    '/avatars/table/vip_pirate.png',
+    '/avatars/table/free_pirate.png',
     '/avatars/table/free_cowboy.png',
 ];
 
@@ -3022,8 +3022,16 @@ function UniversalDynamicTable({
                                         filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
                                     }}
                                 >
+                                    {/* AVATARS is HERO-RELATIVE like every other
+                                        seat table here: entry 0 is hero's fox and
+                                        1..8 run clockwise from him, which is the
+                                        cast in the design template. `index` is an
+                                        ABSOLUTE seat index, so it has to be
+                                        rotated -- unrotated, a hero sitting
+                                        anywhere but absolute 0 wrapped two
+                                        villains onto the same character. */}
                                     <SeatAvatar
-                                        src={isHero ? AVATARS[0] : AVATARS[(index % (AVATARS.length - 1)) + 1]}
+                                        src={AVATARS[((index - heroSeatIndex) % playerCount + playerCount) % playerCount % AVATARS.length]}
                                         label={seatLabel}
                                         fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
                                     />
