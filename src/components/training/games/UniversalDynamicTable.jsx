@@ -829,7 +829,7 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null }) {
+function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring' }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
     const expiredRef = React.useRef(false);
     const radius = 18;
@@ -867,6 +867,42 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
     const dashOffset = circumference * (1 - progress);
     const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
     const pulseClass = timeLeft <= 5 ? { animation: 'pulse 0.5s infinite' } : {};
+
+    // PLATE — the template's clock: a large red number in a dark rounded
+    // square outside the oval at the lower left. Nothing else on the felt is
+    // red, so the number reads as "you are on the clock" at a glance.
+    if (variant === 'plate') {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 62,
+                    height: 62,
+                    borderRadius: 14,
+                    background: 'linear-gradient(180deg, rgba(24,24,28,0.96) 0%, rgba(10,10,13,0.98) 100%)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 8px 22px rgba(0,0,0,0.65)',
+                    ...pulseClass,
+                }}
+            >
+                <span style={{
+                    fontSize: 30,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    color: 'var(--sp-accent-red)',
+                    fontFamily: "'Inter', monospace",
+                    fontVariantNumeric: 'tabular-nums',
+                    textShadow: '0 0 14px rgba(239,68,68,0.55)',
+                }}>
+                    {timeLeft}
+                </span>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -3377,7 +3413,9 @@ function UniversalDynamicTable({
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.6)',
                                 flexShrink: 0,
                             }} />
-                            POT {displayPot} bb
+                            <span style={{ fontSize: Math.max(8, ui(10)), fontWeight: 800, letterSpacing: 1.1, color: 'rgba(255,255,255,0.72)' }}>POT</span>
+                            {displayPot}
+                            <span style={{ fontSize: Math.max(7, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>BB</span>
                         </span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
@@ -3387,6 +3425,46 @@ function UniversalDynamicTable({
                     </motion.div>
                 )}
                 </div> {/* END basicTable */}
+
+                {/* ═══ FELT CORNER RAIL ═══════════════════════════════════
+                    The template hangs two things off the bottom corners of the
+                    table, OUTSIDE the oval: the countdown at the lower left and
+                    the "Question N of M" pill at the lower right. This rail is
+                    centred like the table and a little wider than it, so on a
+                    desktop the pair sit in the gutter beside the oval and on a
+                    phone they tuck into the oval's bottom corners -- which the
+                    rounded rail leaves empty at every size. Both clear hero's
+                    cluster: hero owns the middle of the bottom edge. */}
+                <div style={styles.feltCornerRail}>
+                    <div style={styles.feltCornerRailInner}>
+                        <div style={styles.countdownSlot}>
+                            <CountdownTimer
+                                seconds={trainerConfig?.timerSeconds || 30}
+                                questionNumber={questionNumber}
+                                showFeedback={showFeedback}
+                                active={trainerConfig?.timerEnabled || false}
+                                variant="plate"
+                                onTimeExpired={() => {
+                                    // BUG-04 FIX: Auto-submit worst option when timer expires
+                                    if (!showFeedback && !selectedAnswer && onAnswer) {
+                                        const opts = question?.options || [];
+                                        // Find fold option, or use the first option as fallback
+                                        const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
+                                        const worstId = foldOpt ? (foldOpt.id || foldOpt) : (opts[0]?.id || opts[0]);
+                                        if (worstId) {
+                                            setSelectedAnswer(worstId);
+                                            onAnswer(worstId);
+                                            SoundEngine.play('wrong');
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div style={styles.questionOfPill}>
+                            Question {questionNumber} of {totalQuestions}
+                        </div>
+                    </div>
+                </div>
 
                 {/* Street indicator removed — already shown in header */}
             </div>
@@ -3648,27 +3726,8 @@ function UniversalDynamicTable({
                         })}
                     </motion.div>
                 )}
-                {/* Countdown Timer — Enable via trainer config or settings */}
-                <CountdownTimer
-                    seconds={trainerConfig?.timerSeconds || 30}
-                    questionNumber={questionNumber}
-                    showFeedback={showFeedback}
-                    active={trainerConfig?.timerEnabled || false}
-                    onTimeExpired={() => {
-                        // BUG-04 FIX: Auto-submit worst option when timer expires
-                        if (!showFeedback && !selectedAnswer && onAnswer) {
-                            const opts = question?.options || [];
-                            // Find fold option, or use the first option as fallback
-                            const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
-                            const worstId = foldOpt ? (foldOpt.id || foldOpt) : (opts[0]?.id || opts[0]);
-                            if (worstId) {
-                                setSelectedAnswer(worstId);
-                                onAnswer(worstId);
-                                SoundEngine.play('wrong');
-                            }
-                        }
-                    }}
-                />
+                {/* The countdown moved out of the action bar and onto the felt's
+                    lower-left corner, where the template puts it. */}
                 {/* The floating "Quit" chip that used to be pinned over the
                     top-left corner of the viewport is gone: it sat on top of the
                     felt, and the template gives the exit a proper home as the
@@ -5644,13 +5703,16 @@ const styles = {
             'linear-gradient(180deg, #0b0b0d 0%, #060607 58%, #030304 100%)',
         ].join(', '),
         // OUTER GOLD RING of the racetrack rail. The rail reads as two
-        // concentric gold hoops with a black channel between them: this border
-        // is hoop one, `feltSurface`'s border is hoop two.
-        border: '2px solid rgba(214,163,42,0.92)',
+        // concentric BRIGHT gold hoops with a black channel between them: this
+        // border is hoop one, `feltSurface`'s ring is hoop two. Both hoops carry
+        // their own soft outer bloom -- in the template they glow, they are not
+        // just drawn.
+        border: '2.5px solid #e8bd4e',
         boxShadow: [
             '0 26px 60px rgba(0,0,0,0.85)',
-            '0 0 22px rgba(226,175,58,0.20)',
-            'inset 0 0 0 1px rgba(255,214,122,0.30)',
+            '0 0 26px rgba(232,189,78,0.38)',
+            '0 0 60px rgba(232,189,78,0.14)',
+            'inset 0 0 0 1px rgba(255,224,150,0.45)',
             'inset 0 -22px 44px rgba(0,0,0,0.55)',
         ].join(', '),
         margin: '0 auto',
@@ -5675,8 +5737,8 @@ const styles = {
             'inset 0 12px 30px rgba(0,0,0,0.62)',
             'inset 0 -16px 38px rgba(0,0,0,0.58)',
             // INNER GOLD RING (hoop two of the racetrack rail).
-            '0 0 0 2px rgba(214,163,42,0.90)',
-            '0 0 18px rgba(226,175,58,0.16)',
+            '0 0 0 2.5px #e8bd4e',
+            '0 0 22px rgba(232,189,78,0.32)',
         ].join(', '),
         pointerEvents: 'none',
         zIndex: 0,
@@ -6043,9 +6105,13 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.15)',
     },
 
+    // POT — the template floats it in the UPPER middle of the felt, not down
+    // by the brand. The window is tight: the top row of villains bottoms out
+    // around 24% of the felt and the board's top edge is at 32%, so the pill
+    // lives at 29% where it clears both.
     pot: {
         position: 'absolute',
-        top: '52%',
+        top: '29%',
         left: '50%',
         // NOTE: Do NOT use CSS transform here — framer-motion's scale animation overrides it.
         // x/y are set inline on the <motion.div> to compose with scale.
@@ -6068,6 +6134,48 @@ const styles = {
 
     chipIcon: {
         fontSize: 16,
+    },
+
+    // Centred on the table and a little wider than it, so its two corners land
+    // just outside the oval on a desktop and on the oval's dead corners on a
+    // phone. pointerEvents off; the pill and the clock are both read-only.
+    feltCornerRail: {
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+        zIndex: 4,
+    },
+
+    feltCornerRailInner: {
+        position: 'relative',
+        width: '96%',
+        maxWidth: 560,
+        height: '100%',
+    },
+
+    countdownSlot: {
+        position: 'absolute',
+        left: 0,
+        bottom: 10,
+    },
+
+    questionOfPill: {
+        position: 'absolute',
+        right: 0,
+        bottom: 16,
+        padding: '6px 12px',
+        borderRadius: 8,
+        background: 'rgba(4,10,16,0.85)',
+        border: '1px solid rgba(0,212,255,0.45)',
+        color: 'var(--sp-accent-cyan)',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.6,
+        whiteSpace: 'nowrap',
+        fontFamily: "'Inter', monospace",
+        boxShadow: '0 0 12px rgba(0,212,255,0.12)',
     },
 
     // GAP-2: SPR + Pot Odds overlays
