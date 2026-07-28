@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const MAP_OPTIONS = [
-  { id: 'auto', label: 'Auto-Detect', desc: 'Use your device default', icon: '🔄' },
+  { id: 'auto', label: 'Auto-Detect', desc: 'Use your device default', icon: '◆' },
   { id: 'apple', label: 'Apple Maps', desc: 'iOS, iPad, Mac', icon: null, svg: 'apple' },
   { id: 'google', label: 'Google Maps', desc: 'Works everywhere', icon: null, svg: 'google' },
   { id: 'waze', label: 'Waze', desc: 'Real-time traffic', icon: null, svg: 'waze' },

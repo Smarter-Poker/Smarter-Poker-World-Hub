@@ -241,7 +241,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
 
                     {/* Status */}
                     <div className="voice-status">
-                        {listening && <span className="voice-status-text">🎤 Listening... Speak now</span>}
+                        {listening && <span className="voice-status-text">● Listening... Speak now</span>}
                         {!listening && !result && !error && <span className="voice-status-text">Tap the mic button to speak</span>}
                         {error && <span className="voice-error">{error}</span>}
                     </div>
@@ -265,7 +265,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
                                 {result.filters.venueType && <span className="voice-tag type">{result.filters.venueType.replace('_', ' ')}</span>}
                                 {result.filters.minBuyin && <span className="voice-tag buyin">Min ${result.filters.minBuyin}</span>}
                                 {result.filters.maxBuyin && <span className="voice-tag buyin">Max ${result.filters.maxBuyin}</span>}
-                                {result.searchQuery && <span className="voice-tag search">🔍 {result.searchQuery}</span>}
+                                {result.searchQuery && <span className="voice-tag search">○ {result.searchQuery}</span>}
                             </div>
                             <button className="voice-apply-btn" onClick={applyResult}>Apply Filters</button>
                         </div>

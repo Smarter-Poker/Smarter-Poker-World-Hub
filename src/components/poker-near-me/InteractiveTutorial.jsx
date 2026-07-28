@@ -318,13 +318,13 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
 
   const icons = {
-    'pod-nearme': '📍', 'pod-homegames': '🏠', 'pod-livegames': '🔴', 'pod-tours': '🎯',
-    'pod-mapview': '🗺️', 'pod-calendar': '📅', 'pod-series': '🏆', 'pod-roadtrip': '🚗',
-    'pod-daily': '📊', 'pod-favorites': '❤️', 'pod-social': '👥', 'pod-alerts': '🔔',
-    'tab-venues': '📍', 'tab-events': '📅', 'tab-live': '🔴', 'tab-map': '🗺️',
-    'tab-saved': '❤️', 'tab-more': '⚡',
-    'pnm-search': '🔍', 'pnm-gps': '📡', 'pnm-filters': '🎛️', 'pnm-sort': '↕️',
-    'subtab-tours': '🎯', 'subtab-series': '🏆', 'subtab-daily': '📊', 'subtab-calendar': '📅',
+    'pod-nearme': '●', 'pod-homegames': '', 'pod-livegames': '', 'pod-tours': '◆',
+    'pod-mapview': '■', 'pod-calendar': '', 'pod-series': '★', 'pod-roadtrip': '',
+    'pod-daily': '', 'pod-favorites': '', 'pod-social': '', 'pod-alerts': '',
+    'tab-venues': '●', 'tab-events': '', 'tab-live': '', 'tab-map': '■',
+    'tab-saved': '', 'tab-more': '',
+    'pnm-search': '○', 'pnm-gps': '', 'pnm-filters': '', 'pnm-sort': '↕',
+    'subtab-tours': '◆', 'subtab-series': '★', 'subtab-daily': '', 'subtab-calendar': '',
   };
 
   // Mobile: bottom-sheet style so users can still see the page above
@@ -439,7 +439,7 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
             boxShadow: '0 0 20px rgba(110,231,239,0.1)',
           }}>
             <span style={{ fontSize: isMobile ? 24 : 36 }}>
-              {icons[step.targetId] || '✦'}
+              {icons[step.targetId] || ''}
             </span>
           </div>
           <div>
