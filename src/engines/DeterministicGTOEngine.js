@@ -34,6 +34,7 @@ import {
     generateAllPostflopScenarios,
 } from './PostflopScenarioGenerator';
 import { calculateActionEVs } from './EVCalculator';
+import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
 import { getPsychologyQuestions } from '../data/psychologyQuestionBank';
@@ -1904,13 +1905,13 @@ export class DeterministicGTOEngine {
      * SB acts first, BTN acts last. Hero is "in position" when hero acts after
      * villain, which is the only situation in which villain can already have
      * checked when hero is asked to decide.
+     *
+     * The order itself lives in src/engines/positionOrder.js so that every
+     * consumer — this engine and the postflop scenario generator alike — reads
+     * the same table. Unknown seats return false, keeping the old wording.
      */
     heroActsFirstPostflop(heroPosition, villainPosition) {
-        const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'LJ', 'HJ', 'CO', 'BTN'];
-        const h = ORDER.indexOf(String(heroPosition || '').toUpperCase());
-        const v = ORDER.indexOf(String(villainPosition || '').toUpperCase());
-        if (h < 0 || v < 0) return false; // unknown seats: keep the old wording
-        return h < v;
+        return actsFirstPostflop(heroPosition, villainPosition);
     }
 
     buildActionDescription(solverActions, street, heroPosition, villainPosition) {
@@ -2408,7 +2409,7 @@ export class DeterministicGTOEngine {
         const sizingReason = this._getSizingReason(sizePct, handStrength, texture, street, isBet, isRaise);
 
         // ═══ STRATEGIC CONCEPT — What poker concept drives this? ═══
-        const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition);
+        const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition, villainPosition);
 
         // ═══ Phase 60: BLOCKER AWARENESS ═══
         const blockerNote = this._getBlockerContext(heroHand, board, handStrength, optimalAction, street, texture);
@@ -2886,7 +2887,7 @@ export class DeterministicGTOEngine {
     /**
      * Phase 25: Identify the core strategic concept behind the solver's action.
      */
-    _getStrategicConcept(action, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition) {
+    _getStrategicConcept(action, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition, villainPosition) {
         const a = action.toLowerCase();
         const isBet = a.startsWith('b') || a === 'allin';
         const isCheck = a === 'c' || a === 'x';
@@ -2894,9 +2895,12 @@ export class DeterministicGTOEngine {
         const isCall = a === 'call';
         const isRaise = a.startsWith('r');
 
-        // Phase 68: Position context
-        const isIP = heroPosition && ['BTN', 'CO', 'HJ'].includes(heroPosition);
-        const isOOP = heroPosition && ['SB', 'BB'].includes(heroPosition);
+        // Phase 68: Position context — relative to villain, never hero's seat
+        // alone. Hero is only "checking back in position" when hero actually
+        // acts after THIS villain, so a CO with the BTN still to act is OOP
+        // and a BB facing the SB is IP.
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        const isOOP = Boolean(heroPosition && villainPosition) && !isIP;
         const posTag = isIP ? ' (IP)' : isOOP ? ' (OOP)' : '';
 
         // ═══ CHECKING CONCEPTS (Phase 56: Enhanced depth, Phase 68: Position-aware) ═══
@@ -3534,8 +3538,8 @@ export class DeterministicGTOEngine {
 
         // Villain position context
         const vPos = villainPosition || '';
-        const villainIsIP = ['BTN', 'CO', 'HJ'].includes(vPos);
-        const villainIsOOP = ['SB', 'BB'].includes(vPos);
+        const villainIsIP = this._isInPosition(vPos, heroPosition);
+        const villainIsOOP = this._isInPosition(heroPosition, vPos);
         const villainTag = vPos ? ` (${vPos})` : '';
 
         // ═══ FACING VILLAIN'S BET (hero_faces_bet) ═══
@@ -5353,16 +5357,10 @@ export class DeterministicGTOEngine {
 
     /**
      * Phase 78: Determine if hero is in position relative to villain.
+     * Same table as heroActsFirstPostflop() — see src/engines/positionOrder.js.
      */
     _isInPosition(heroPos, villainPos) {
-        if (!heroPos || !villainPos) return false;
-        const posOrder = { 'UTG': 0, 'UTG+1': 1, 'MP': 2, 'MP+1': 3, 'HJ': 4, 'CO': 5, 'BTN': 6, 'SB': 7, 'BB': 8 };
-        // In postflop, BTN is last to act, then CO, etc. SB and BB act first.
-        // Postflop order: SB(first) → BB → UTG → ... → BTN(last)
-        const postflopOrder = { 'SB': 0, 'BB': 1, 'UTG': 2, 'UTG+1': 3, 'MP': 4, 'MP+1': 5, 'HJ': 6, 'CO': 7, 'BTN': 8 };
-        const heroOrder = postflopOrder[heroPos] ?? posOrder[heroPos] ?? 0;
-        const villainOrder = postflopOrder[villainPos] ?? posOrder[villainPos] ?? 0;
-        return heroOrder > villainOrder; // Higher = later to act = in position
+        return heroIsInPosition(heroPos, villainPos);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -15799,7 +15797,7 @@ export class DeterministicGTOEngine {
         }
 
         // Generate heuristic GTO frequencies based on position + board texture
-        const gtoFreqs = this._heuristicGTOFrequencies(heroHandNotation, boardCards, parsedHand.heroPosition, street, potBB);
+        const gtoFreqs = this._heuristicGTOFrequencies(heroHandNotation, boardCards, parsedHand.heroPosition, street, potBB, parsedHand.villainPosition);
 
         return {
             id: `hh_import_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -15833,10 +15831,10 @@ export class DeterministicGTOEngine {
      * Phase 355: Generate heuristic GTO frequencies for imported hands
      * when no solver data is available.
      */
-    _heuristicGTOFrequencies(heroHand, boardCards, position, street, potBB) {
+    _heuristicGTOFrequencies(heroHand, boardCards, position, street, potBB, villainPosition) {
         const freqs = {};
-        // SB is out of position postflop — do not treat it as IP
-        const isIP = ['BTN', 'CO', 'HJ'].includes(position);
+        // Position is relative: SB is OOP against everyone, BB is IP against SB.
+        const isIP = this._isInPosition(position, villainPosition);
 
         // Classify board texture
         const texture = this.classifyBoardTexture(boardCards);

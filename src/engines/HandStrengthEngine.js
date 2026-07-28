@@ -171,6 +171,65 @@ function compareHandResults(a, b) {
 // ●● Made Hand Classification ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
+ * Does hero's own holding take part in the made hand, or is the board playing
+ * by itself?
+ *
+ * evaluateHand() returns the best five of seven, and the board alone can be
+ * that five: a board flush, a board straight, board quads, a board full house,
+ * board trips and board two pair all belong to everyone at the table, not to
+ * hero. Attributing them to hero makes the trainer teach and grade a hand hero
+ * does not hold (Kh 9h 4h 2h 7h with 2c 3d was reported as a flush).
+ *
+ * Same reasoning the board-paired pair rule below already applies: AQ on KK7
+ * is not top pair.
+ *
+ * @param {{rank:number, kickers:number[]}} eval5 - result of evaluateHand()
+ * @param {string[]} holeCards
+ * @param {string[]} board
+ * @returns {boolean} true when at least one hole card is part of the hand
+ */
+function heroParticipatesInMadeHand(eval5, holeCards, board) {
+    const heroValues = holeCards.map(c => RANK_VALUES[c[0]]);
+    const boardValues = board.map(c => RANK_VALUES[c[0]]);
+
+    switch (eval5.rank) {
+        case HAND_RANKS.ROYAL_FLUSH:
+        case HAND_RANKS.STRAIGHT_FLUSH:
+        case HAND_RANKS.FLUSH: {
+            // Find the suit that actually makes the flush (5+ cards).
+            const suitCounts = {};
+            for (const c of [...holeCards, ...board]) suitCounts[c[1]] = (suitCounts[c[1]] || 0) + 1;
+            const flushSuit = Object.keys(suitCounts || {}).find(su => suitCounts[su] >= 5);
+            if (!flushSuit) return true;
+            const heroOfSuit = holeCards.filter(c => c[1] === flushSuit).map(c => RANK_VALUES[c[0]]);
+            if (heroOfSuit.length === 0) return false; // hero holds none of that suit
+            const boardOfSuit = board.filter(c => c[1] === flushSuit)
+                .map(c => RANK_VALUES[c[0]]).sort((a, b) => b - a);
+            // The board is already a five-card flush: hero only has a flush of
+            // their own when a hole card beats the board's fifth-best card of
+            // that suit. Otherwise hero is playing the board.
+            if (boardOfSuit.length >= 5) return Math.max(...heroOfSuit) > boardOfSuit[4];
+            return true;
+        }
+        case HAND_RANKS.STRAIGHT: {
+            const high = eval5.kickers[0];
+            const ranks = high === 5 ? [14, 2, 3, 4, 5] : [high, high - 1, high - 2, high - 3, high - 4];
+            // If the board holds every rank of the straight, the board plays.
+            return !ranks.every(r => boardValues.includes(r));
+        }
+        case HAND_RANKS.FOUR_OF_A_KIND:
+        case HAND_RANKS.THREE_OF_A_KIND:
+            return heroValues.includes(eval5.kickers[0]);
+        case HAND_RANKS.FULL_HOUSE:
+        case HAND_RANKS.TWO_PAIR:
+            return heroValues.includes(eval5.kickers[0]) || heroValues.includes(eval5.kickers[1]);
+        default:
+            // ONE_PAIR and HIGH_CARD are handled inline in classifyMadeHand.
+            return true;
+    }
+}
+
+/**
  * Classify the made hand relative to the board
  * @param {string[]} holeCards - Hero's 2 cards
  * @param {string[]} board - Community cards (3-5)
@@ -178,6 +237,14 @@ function compareHandResults(a, b) {
  */
 export function classifyMadeHand(holeCards, board) {
     const eval5 = evaluateHand(holeCards, board);
+
+    // Hero has to be part of the hand. A board flush / board straight / board
+    // boat / board trips / board two pair is a board-play, not hero's holding,
+    // and must never be scored at that made hand's strength.
+    if (!heroParticipatesInMadeHand(eval5, holeCards, board)) {
+        return { category: MADE_HANDS.NOTHING, description: 'High Card', strength: 0.10 };
+    }
+
     const boardValues = board.map(c => RANK_VALUES[c[0]]).sort((a, b) => b - a);
     const heroValues = holeCards.map(c => RANK_VALUES[c[0]]).sort((a, b) => b - a);
     const topBoardCard = boardValues[0];
@@ -254,13 +321,16 @@ export function classifyDraws(holeCards, board) {
     const draws = [];
     let totalOuts = 0;
 
-    // Flush draw check
+    // Flush draw check — count the suits HERO holds, not the board's. A three-
+    // or four-flush on the board alone is not hero's draw: hero has to hold at
+    // least one card of the suit for the flush to ever be hero's hand.
     const suitCounts = {};
     for (const card of allCards) {
         const suit = card[1];
         suitCounts[suit] = (suitCounts[suit] || 0) + 1;
     }
-    const maxSuit = Math.max(...Object.values(suitCounts || {}));
+    const heroSuits = [...new Set(holeCards.map(c => c[1]))];
+    const maxSuit = heroSuits.length > 0 ? Math.max(...heroSuits.map(su => suitCounts[su] || 0)) : 0;
     const hasFlushDraw = maxSuit === 4;
     const hasBackdoorFlush = maxSuit === 3 && board.length === 3;
 
@@ -277,11 +347,16 @@ export function classifyDraws(holeCards, board) {
     // Count distinct completing ranks across every 5-card window.
     // 2+ distinct completing ranks = 8 outs (OESD-equivalent, incl. double gutshots),
     // exactly 1 = 4-out gutshot. Normalize ace-low (1) to 14 so it isn't counted twice.
+    // Same hero-participation rule as the flush draw: a straight the board is
+    // drawing to on its own is not hero's draw.
+    const heroValueSet = new Set(holeCards.map(c => RANK_VALUES[c[0]]));
+    const heroInWindow = (win) => win.some(v => heroValueSet.has(v === 1 ? 14 : v));
+
     const completing = new Set();
     for (let target = 1; target <= 10; target++) {
         const window = [target, target + 1, target + 2, target + 3, target + 4];
         const need = window.filter(v => !values.includes(v));
-        if (need.length === 1) completing.add(need[0] === 1 ? 14 : need[0]);
+        if (need.length === 1 && heroInWindow(window)) completing.add(need[0] === 1 ? 14 : need[0]);
     }
 
     if (completing.size >= 2) {
@@ -300,7 +375,7 @@ export function classifyDraws(holeCards, board) {
         for (let target = 1; target <= 10; target++) {
             const window = [target, target + 1, target + 2, target + 3, target + 4];
             const haveCount = window.filter(v => values.includes(v)).length;
-            if (haveCount === 3) {
+            if (haveCount === 3 && heroInWindow(window)) {
                 draws.push(DRAWS.BACKDOOR_STRAIGHT);
                 totalOuts += 1;
                 break;

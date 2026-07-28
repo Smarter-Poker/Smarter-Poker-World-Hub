@@ -23,6 +23,7 @@
 import { DeckEngine, RANK_VALUES, handToCards } from './DeckEngine';
 import { analyzeBoard } from './BoardTextureEngine';
 import { classifyMadeHand, classifyDraws, evaluateHand } from './HandStrengthEngine';
+import { positionContext } from './positionOrder';
 import {
     getCbetStrategy,
     getCheckRaiseStrategy,
@@ -67,26 +68,32 @@ const HERO_HANDS = [
 /**
  * Position matchups for postflop scenarios.
  * Format: { hero, villain, context, isPFR }
+ *
+ * posContext is DERIVED from the pair of seats, never hand-written: position
+ * is a property of the matchup, not of hero's seat. Hard-coding it is how
+ * BB vs SB ended up tagged OOP — postflop the SB acts first and the BB acts
+ * last, so the BB is IP in a blind-vs-blind pot, and the wrong tag sent every
+ * solver lookup for that matchup to the wrong frequency table.
  */
 const POSITION_MATCHUPS = [
     // PFR in position (most common and most important)
-    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot — BTN vs BB', isPFR: true, posContext: 'IP' },
-    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot — CO vs BB', isPFR: true, posContext: 'IP' },
-    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot — BTN vs SB', isPFR: true, posContext: 'IP' },
+    { hero: 'BTN', villain: 'BB', context: 'Single Raised Pot — BTN vs BB', isPFR: true },
+    { hero: 'CO', villain: 'BB', context: 'Single Raised Pot — CO vs BB', isPFR: true },
+    { hero: 'BTN', villain: 'SB', context: 'Single Raised Pot — BTN vs SB', isPFR: true },
     // PFR out of position
-    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot — UTG vs BTN', isPFR: true, posContext: 'OOP' },
-    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot — MP vs CO', isPFR: true, posContext: 'OOP' },
+    { hero: 'UTG', villain: 'BTN', context: 'Single Raised Pot — UTG vs BTN', isPFR: true },
+    { hero: 'MP', villain: 'CO', context: 'Single Raised Pot — MP vs CO', isPFR: true },
     // Caller in position (facing c-bet)
-    { hero: 'BTN', villain: 'CO', context: 'Caller IP — BTN cold-called CO open', isPFR: false, posContext: 'IP' },
+    { hero: 'BTN', villain: 'CO', context: 'Caller IP — BTN cold-called CO open', isPFR: false },
     // Caller out of position (BB defense)
-    { hero: 'BB', villain: 'BTN', context: 'BB Defense — called BTN open', isPFR: false, posContext: 'OOP' },
-    { hero: 'BB', villain: 'CO', context: 'BB Defense — called CO open', isPFR: false, posContext: 'OOP' },
-    { hero: 'BB', villain: 'SB', context: 'BB Defense — called SB open', isPFR: false, posContext: 'OOP' },
+    { hero: 'BB', villain: 'BTN', context: 'BB Defense — called BTN open', isPFR: false },
+    { hero: 'BB', villain: 'CO', context: 'BB Defense — called CO open', isPFR: false },
+    { hero: 'BB', villain: 'SB', context: 'BB Defense — called SB open', isPFR: false },
     // 3-bet pots
-    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot — BB 3-bet vs BTN', isPFR: true, posContext: 'OOP' },
-    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot — BTN called BB 3-bet', isPFR: false, posContext: 'IP' },
-    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true, posContext: 'OOP' },
-];
+    { hero: 'BB', villain: 'BTN', context: '3-Bet Pot — BB 3-bet vs BTN', isPFR: true },
+    { hero: 'BTN', villain: 'BB', context: '3-Bet Pot — BTN called BB 3-bet', isPFR: false },
+    { hero: 'SB', villain: 'BTN', context: '3-Bet Pot — SB 3-bet vs BTN', isPFR: true },
+].map(m => ({ ...m, posContext: positionContext(m.hero, m.villain) }));
 
 // ●● Board Generation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
