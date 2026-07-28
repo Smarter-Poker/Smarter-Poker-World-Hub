@@ -70,7 +70,7 @@ export default function PeakHoursHeatmap({ venueId }) {
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     background: 'rgba(0,0,0,0.4)', borderRadius: 10, zIndex: 10, padding: 16, textAlign: 'center'
                 }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}></div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>Peak Hours Intelligence</div>
                     <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock to see when games are best</div>
                     <button

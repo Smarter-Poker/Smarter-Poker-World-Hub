@@ -56,7 +56,7 @@ export default function PotOddsHUD({ potSize = 0, betToCall = 0, heroStack = 0, 
           fontSize: 9, fontWeight: 800, color: '#666',
           letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
         }}>
-          📊 POT ODDS
+          POT ODDS
         </div>
 
         {/* Main odds display */}

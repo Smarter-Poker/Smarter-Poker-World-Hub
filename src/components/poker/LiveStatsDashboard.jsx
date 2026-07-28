@@ -186,7 +186,7 @@ export default function LiveStatsDashboard({ isOpen, onClose, stats }) {
             background: 'rgba(0,0,0,0.3)',
           }}>
             <div>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>📊 SESSION STATS</div>
+              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>SESSION STATS</div>
               <div style={{ color: '#666', fontSize: 9, fontFamily: 'monospace' }}>{elapsed}</div>
             </div>
             <button

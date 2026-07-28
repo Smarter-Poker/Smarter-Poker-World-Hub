@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING GAME TABLE — EXACT GOLDEN TEMPLATE CLONE
+ * TRAINING GAME TABLE — EXACT GOLDEN TEMPLATE CLONE
  * 
  * MANDATORY SPECS (NO DEVIATION ALLOWED):
  * - VERY NARROW stadium (left: 25%, right: 25%)
@@ -179,7 +179,7 @@ function TrainingGameTable({
                     {gameTitle}
                 </div>
                 <div style={{ display: 'flex', gap: 6, fontSize: 8, fontWeight: 'bold' }}>
-                    <span style={{ color: '#22d3ee' }}>💎 {diamonds.toLocaleString()} Diamonds</span>
+                    <span style={{ color: '#22d3ee' }}>{diamonds.toLocaleString()} Diamonds</span>
                     <span style={{ color: '#ef4444' }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {diamonds}</span>
                 </div>
             </div>

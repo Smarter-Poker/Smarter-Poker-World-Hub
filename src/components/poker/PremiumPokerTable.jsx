@@ -1,5 +1,5 @@
 /**
- * 🎮 PREMIUM POKER TABLE — Next-Gen UI
+ * PREMIUM POKER TABLE — Next-Gen UI
  * 
  * Architecture:
  * - React for state management

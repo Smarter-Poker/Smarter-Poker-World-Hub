@@ -130,7 +130,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                 background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: `1px solid ${T.border}`, padding: 16,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
             }}>
-                <div style={{ fontSize: 24, marginBottom: 8 }}>📓</div>
+                <div style={{ fontSize: 24, marginBottom: 8 }}></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>Player Notes</div>
                 <div style={{ fontSize: 13, color: T.textSec, marginBottom: 12 }}>
                     Keep private strategic notes on {targetPlayerName || 'this opponent'} to gain an edge.
@@ -163,7 +163,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 16 }}>📓</div>
+                    <div style={{ fontSize: 16 }}></div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
                         Notes on {targetPlayerName || 'Opponent'}
                     </div>

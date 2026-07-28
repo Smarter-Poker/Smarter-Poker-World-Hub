@@ -306,7 +306,7 @@ export function AnalyticsSidebar({ hands, onClose }) {
       }}
     >
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>📊 Analytics</span>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Analytics</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>✕</button>
       </div>
 
@@ -364,11 +364,11 @@ function StatBox({ label, value, color, prefix = '', small }) {
 // ═══════════════════════════════════════════════════════════
 
 const NOTE_COLORS = [
-  { id: 'fish', label: 'Fish', color: '#4CAF50', icon: '🟢' },
-  { id: 'shark', label: 'Shark', color: '#f44336', icon: '🔴' },
-  { id: 'tight', label: 'Tight', color: '#FFD600', icon: '🟡' },
-  { id: 'lag', label: 'LAG', color: '#FF9800', icon: '🟠' },
-  { id: 'whale', label: 'Whale', color: '#2196F3', icon: '🔵' },
+  { id: 'fish', label: 'Fish', color: '#4CAF50', icon: '●' },
+  { id: 'shark', label: 'Shark', color: '#f44336', icon: '●' },
+  { id: 'tight', label: 'Tight', color: '#FFD600', icon: '●' },
+  { id: 'lag', label: 'LAG', color: '#FF9800', icon: '●' },
+  { id: 'whale', label: 'Whale', color: '#2196F3', icon: '●' },
 ];
 
 function getPlayerNotes() {
@@ -447,7 +447,7 @@ export function PlayerNotesPopup({ playerId, displayName, position, onClose, sup
         boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
       }}
     >
-      <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, marginBottom: 8 }}>📝 {displayName}</div>
+      <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{displayName}</div>
       
       {/* Color Labels */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
@@ -463,7 +463,7 @@ export function PlayerNotesPopup({ playerId, displayName, position, onClose, sup
             }}
             title={c.label}
           >
-            {c.icon}
+            <span style={{ color: c.color }}>{c.icon}</span>
           </button>
         ))}
       </div>
@@ -527,7 +527,7 @@ export function SessionSummaryModal({ stats, onClose, onShare }) {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 28, marginBottom: 4 }}>🏁</div>
+          <div style={{ fontSize: 28, marginBottom: 4 }}></div>
           <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: 0 }}>Session Complete</h2>
           <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
             {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} at the table
@@ -542,7 +542,7 @@ export function SessionSummaryModal({ stats, onClose, onShare }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onShare} style={{ flex: 1, padding: '10px 0', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>📤 Share</button>
+          <button onClick={onShare} style={{ flex: 1, padding: '10px 0', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
           <button onClick={onClose} style={{ flex: 1, padding: '10px 0', background: '#333', color: '#E4E6EB', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Close</button>
         </div>
 
@@ -604,7 +604,7 @@ export function SpectatorBadge({ count }) {
         padding: '3px 8px', border: '1px solid #444',
       }}
     >
-      <span style={{ fontSize: 12 }}>👁️</span>
+      <span style={{ fontSize: 12 }}></span>
       <span style={{ color: '#B0B3B8', fontSize: 11, fontWeight: 600 }}>{count}</span>
     </motion.div>
   );
@@ -703,7 +703,7 @@ export function ReportHandButton({ supabase, handId }) {
       }}
       title="Flag this hand for admin review"
     >
-      {reported ? '✓ Reported' : reporting ? '...' : '⚠️ Report'}
+      {reported ? '✓ Reported' : reporting ? '...' : '▲ Report'}
     </button>
   );
 }

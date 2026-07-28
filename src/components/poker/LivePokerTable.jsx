@@ -1,5 +1,5 @@
 /**
- * 🎮 LIVE POKER TABLE — Real-Time Multiplayer
+ * LIVE POKER TABLE — Real-Time Multiplayer
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Connects to the poker engine via Supabase Realtime (RealtimeSync).
@@ -270,7 +270,7 @@ function RabbitHuntOverlay({ cards, onClose }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 16 }}>🐰</span>
+        <span style={{ fontSize: 16 }}></span>
         <span style={{ color: '#fbbf24', fontSize: 12, fontWeight: 800, letterSpacing: 1 }}>RABBIT HUNT</span>
       </div>
       <div style={{ display: 'flex', gap: 4 }}>
@@ -319,7 +319,7 @@ function AutoTopUpBadge({ isOn, onToggle, stack, maxBuyIn }) {
         transition: 'all 0.2s ease',
       }}
     >
-      {isOn ? '💰 Auto' : '💰'}
+      {isOn ? 'Auto' : ''}
       {isOn && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34C759', animation: 'pulse 1.5s infinite' }} />}
     </motion.button>
   );
@@ -529,7 +529,7 @@ function TableLayoutManager({ onClose }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>📐 Layouts</span>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>Layouts</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 16, cursor: 'pointer' }}>✕</button>
       </div>
       <button onClick={saveLayout} style={{
@@ -669,7 +669,7 @@ function WinFlyUp({ amount, isVisible }) {
               animate={{ opacity: 0, x: off.x, y: off.y }}
               transition={{ duration: 1.2, delay: 0.2 + i * 0.1 }}
               style={{ position: 'absolute', fontSize: 10, pointerEvents: 'none' }}
-            >✨</motion.span>
+            ></motion.span>
           ))}
         </motion.div>
       )}
@@ -704,7 +704,7 @@ function FeltColorPicker({ currentFelt, onSelect, onClose }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>🎨 Table Felt</span>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>Table Felt</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 16, cursor: 'pointer' }}>✕</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -751,7 +751,7 @@ function AutoMuckFlash({ isVisible }) {
         pointerEvents: 'none',
       }}
     >
-      <span style={{ fontSize: 14 }}>🃏</span>
+      <span style={{ fontSize: 14 }}></span>
       <span style={{ color: '#c4b5fd', fontSize: 12, fontWeight: 700 }}>Cards Mucked</span>
     </motion.div>
   );
@@ -801,7 +801,7 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <div style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 800 }}>📈 Session Stack Graph</div>
+            <div style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 800 }}>Session Stack Graph</div>
             <div style={{ color: '#888', fontSize: 11 }}>{history.length} hands played</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -901,11 +901,11 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
             background: 'linear-gradient(135deg, rgba(79,195,247,0.2), rgba(79,195,247,0.1))',
             border: '1px solid rgba(79,195,247,0.3)', color: '#4fc3f7',
             fontSize: 11, fontWeight: 700, cursor: 'pointer',
-          }}>📸 Export PNG</button>
+          }}>Export PNG</button>
           {/* G5: Share text summary */}
           <button onClick={(e) => {
             e.stopPropagation();
-            const text = `📈 Session Stack Graph\n📊 ${history.length} hands\n💰 Net: ${net >= 0 ? '+' : ''}${fmt(net)}\n🔝 Peak: ${fmt(max)} | Valley: ${fmt(min)}\n🎰 smarter.poker`;
+            const text = `Session Stack Graph\n${history.length} hands\nNet: ${net >= 0 ? '+' : ''}${fmt(net)}\nPeak: ${fmt(max)} | Valley: ${fmt(min)}\nsmarter.poker`;
             navigator.clipboard?.writeText(text)?.then(() => {
               try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             });
@@ -913,7 +913,7 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
             padding: '6px 18px', borderRadius: 8,
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
             color: '#B0B3B8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-          }}>📋 Copy Summary</button>
+          }}>Copy Summary</button>
           <button onClick={onClose} style={{
             padding: '6px 24px', borderRadius: 8,
             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
@@ -1243,7 +1243,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
           padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB' }}>📋 Hand History</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB' }}>Hand History</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 11, color: '#8E8E93' }}>{hands.length} hands</span>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8E8E93', fontSize: 18, cursor: 'pointer' }}>✕</button>
@@ -1287,7 +1287,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                     Pot: {formatStack ? formatStack(h.potTotal) : h.potTotal?.toLocaleString() || '0'}
                   </span>
                   <span style={{ fontSize: 11, color: pnlColor, fontWeight: 700 }}>
-                    {heroWon ? '✅ Won' : '—'}
+                    {heroWon ? '✓ Won' : '—'}
                   </span>
                 </div>
                 {/* Board cards */}
@@ -1307,7 +1307,7 @@ function HandHistoryDrawer({ isOpen, onClose, hands = [], formatStack }) {
                   </div>
                 )}
                 <div style={{ fontSize: 10, color: '#8E8E93', marginTop: 4 }}>
-                  Winner: {winnerNames} {h.bombPot ? '💣' : ''}
+                  Winner: {winnerNames} {h.bombPot ? '◆' : ''}
                 </div>
                 {/* E6: Expandable replay section */}
                 {isExpanded && (
@@ -1396,7 +1396,7 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [entries]);
   if (!isOpen) return null;
-  const ICON_MAP = { fold: '🏳️', check: '✓', call: '📞', bet: '💰', raise: '🔺', all_in: '🔥', deal: '🎴', board: '🃏' };
+  const ICON_MAP = { fold: '', check: '✓', call: '', bet: '', raise: '', all_in: '', deal: '', board: '' };
   // G12: Filter entries
   const FILTERS = { all: null, bets: ['bet', 'raise', 'all_in'], calls: ['call'], folds: ['fold'] };
   const filtered = filter === 'all' ? entries : entries.filter(e => (FILTERS[filter] || []).includes(e.type));
@@ -1413,16 +1413,16 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
       }}
     >
       <div style={{ padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB' }}>📝 Action Log</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB' }}>Action Log</span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {/* I5: Copy log to clipboard */}
           <button onClick={(e) => {
             e.stopPropagation();
             const text = filtered.map(e => `${ICON_MAP[e.type] || '•'} ${e.playerName} ${e.text}${e.amount > 0 ? ' ' + e.amount.toLocaleString() : ''}`).join('\n');
-            navigator.clipboard?.writeText(`📝 Action Log (${filtered.length} entries)\n${text}\n🎰 smarter.poker`)?.then(() => {
+            navigator.clipboard?.writeText(`Action Log (${filtered.length} entries)\n${text}\nsmarter.poker`)?.then(() => {
               try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             });
-          }} style={{ background: 'none', border: 'none', color: '#4fc3f7', fontSize: 11, cursor: 'pointer', padding: '0 2px' }} title="Copy log">📋</button>
+          }} style={{ background: 'none', border: 'none', color: '#4fc3f7', fontSize: 11, cursor: 'pointer', padding: '0 2px' }} title="Copy log"></button>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
         </div>
       </div>
@@ -1501,23 +1501,23 @@ function TableStatsBanner({ sessionStats, tableState, isOpen, onClose }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#E4E6EB' }}>📊 Table Stats</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#E4E6EB' }}>Table Stats</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
       </div>
       {/* Row 1: Core metrics */}
       <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginBottom: 8 }}>
-        <Stat icon="🃏" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
-        <Stat icon="💰" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
-        <Stat icon="🪙" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
-        <Stat icon="👥" label="Players" value={activePlayers.length} />
-        <Stat icon="📋" label="Total" value={sessionStats.handsPlayed || 0} />
+        <Stat icon="" label="Hands/Hr" value={handsPerHour} color="#4fc3f7" />
+        <Stat icon="" label="Avg Pot" value={avgPot > 0 ? avgPot.toLocaleString() : '—'} color="#FFD700" />
+        <Stat icon="" label="Avg Stack" value={`${Math.round(avgStack / bb)}BB`} color="#4ade80" />
+        <Stat icon="" label="Players" value={activePlayers.length} />
+        <Stat icon="" label="Total" value={sessionStats.handsPlayed || 0} />
       </div>
       {/* G8: Row 2 — Player performance metrics */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, display: 'flex', gap: 14, justifyContent: 'center', marginBottom: posStats.length > 0 ? 8 : 0 }}>
-        <Stat icon="🎯" label="VPIP%" value={`${vpipPct}%`} color={vpipPct > 30 ? '#ef5350' : vpipPct > 18 ? '#FFD700' : '#4ade80'} />
-        <Stat icon="⚡" label="PFR%" value={`${pfrPct}%`} color={pfrPct > 20 ? '#ef5350' : pfrPct > 10 ? '#FFD700' : '#4ade80'} />
-        <Stat icon="🔥" label="AF" value={af} color="#ff9800" />
-        <Stat icon="🏆" label="Win Rate" value={`${winRate}%`} color={winRate > 50 ? '#4ade80' : winRate > 30 ? '#FFD700' : '#ef5350'} />
+        <Stat icon="" label="VPIP%" value={`${vpipPct}%`} color={vpipPct > 30 ? '#ef5350' : vpipPct > 18 ? '#FFD700' : '#4ade80'} />
+        <Stat icon="" label="PFR%" value={`${pfrPct}%`} color={pfrPct > 20 ? '#ef5350' : pfrPct > 10 ? '#FFD700' : '#4ade80'} />
+        <Stat icon="" label="AF" value={af} color="#ff9800" />
+        <Stat icon="" label="Win Rate" value={`${winRate}%`} color={winRate > 50 ? '#4ade80' : winRate > 30 ? '#FFD700' : '#ef5350'} />
       </div>
       {/* G8: Row 3 — Position breakdown */}
       {posStats.length > 0 && (
@@ -1601,7 +1601,7 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
               boxShadow: `0 4px 12px rgba(${i === 0 ? '26,35,126' : '183,28,28'},0.4)`,
             }}
           >
-            {i === 0 ? '🂠' : '🂠'}
+            {i === 0 ? '' : ''}
           </motion.div>
         ))}
       </div>
@@ -1628,7 +1628,7 @@ function RunItTwicePrompt({ visible, onAccept, onDecline }) {
             cursor: 'pointer', boxShadow: '0 4px 12px rgba(30,136,229,0.3)',
           }}
         >
-          ✅ Run It Twice
+          ✓ Run It Twice
         </motion.button>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -2466,7 +2466,7 @@ function PlayerSeat({
             <span style={{
               color: '#ef4444', fontSize: 8, fontWeight: 800,
               textTransform: 'uppercase', letterSpacing: 0.5,
-            }}>⚡ DC</span>
+            }}>DC</span>
           </div>
         )}
 
@@ -2577,12 +2577,12 @@ function PlayerSeat({
         }}>
           {noteType && noteType !== 'unknown' && (
             <span style={{ marginRight: 2, fontSize: isHero ? 11 : 9 }}>
-              {({ fish: '🐟', reg: '🎯', shark: '🦈', whale: '🐋', nit: '🐢', lag: '🔥', tag: '🎯' })[noteType] || ''}
+              {({ fish: '', reg: '', shark: '', whale: '', nit: '', lag: '', tag: '' })[noteType] || ''}
             </span>
           )}
           {player?.displayName || 'Player'}
-          {isSittingOut && ' 💤'}
-          {isDisconnected && ' 📡'}
+          {isSittingOut && ''}
+          {isDisconnected && ''}
         </div>
       )}
 
@@ -2731,7 +2731,7 @@ function CommunityCards({ cards = [], boards, prevCardCount, fourColorDeck }) {
                   justifyContent: 'center', padding: '1px 0',
                 }}>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
-                  <span style={{ fontSize: 12, filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.5))' }}>⚡</span>
+                  <span style={{ fontSize: 12, filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.5))' }}></span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
                 </div>
               )}
@@ -2873,7 +2873,7 @@ function PotDisplay({ potTotal, pots = [], formatFn, seats = [] }) {
           gap: 6,
         }}
       >
-        <span style={{ fontSize: 14, color: T.accent }}>🏆</span>
+        <span style={{ fontSize: 14, color: T.accent }}></span>
         <span style={{ fontSize: 16, fontWeight: 800, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>
           {formatFn ? formatFn(potTotal) : potTotal.toLocaleString()}
         </span>
@@ -2994,7 +2994,7 @@ function DiscardPanel({ cards, onDiscard }) {
       }}
     >
       <span style={{ color: '#FFD700', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>
-        🍍 DISCARD ONE CARD
+        DISCARD ONE CARD
       </span>
       <div style={{ display: 'flex', gap: 12 }}>
         {cards.map((card, i) => (
@@ -3378,7 +3378,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
                     alignItems: 'center',
                   }}
                 >
-                  ⚙️
+
                 </button>
               </div>
             )}
@@ -3608,7 +3608,7 @@ function AdminTablePanel({ tableId, clubId, tableState, seats, userId, userRole,
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #3E4042' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB' }}>⚙️ Admin Controls</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB' }}>Admin Controls</div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 20, cursor: 'pointer' }}>✕</button>
       </div>
 
@@ -3623,8 +3623,8 @@ function AdminTablePanel({ tableId, clubId, tableState, seats, userId, userRole,
       <div style={{ padding: '12px 16px' }}>
         <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Table Actions</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <AdminBtn label={isPaused ? '▶️ Resume Table' : '⏸️ Pause Table'} onClick={() => doAction(isPaused ? 'resume' : 'pause')} loading={loading === 'pause' || loading === 'resume'} />
-          <AdminBtn label="🛑 Close Table" onClick={() => { if (confirm('Close this table? All players will be cashed out.')) doAction('close'); }} color="#FA383E" loading={loading === 'close'} />
+          <AdminBtn label={isPaused ? 'Resume Table' : 'Pause Table'} onClick={() => doAction(isPaused ? 'resume' : 'pause')} loading={loading === 'pause' || loading === 'resume'} />
+          <AdminBtn label="Close Table" onClick={() => { if (confirm('Close this table? All players will be cashed out.')) doAction('close'); }} color="#FA383E" loading={loading === 'close'} />
         </div>
       </div>
 
@@ -3717,7 +3717,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 20, padding: '4px 16px',
       }}>
-        <span style={{ fontSize: 14 }}>👁️</span>
+        <span style={{ fontSize: 14 }}></span>
         <span style={{ color: '#B0B3B8', fontSize: 12, fontWeight: 600 }}>Watching</span>
         {tableState?.game?.phase && tableState.game.phase !== 'idle' && (
           <span style={{ color: '#4ECDC4', fontSize: 11, fontWeight: 700 }}>LIVE</span>
@@ -3737,7 +3737,7 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
           }}
         >
           <div>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>🎉 Seat Available!</div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>Seat Available!</div>
             <div style={{ color: '#81C784', fontSize: 12 }}>Seat #{seatOffer.seatIndex + 1} reserved for you</div>
           </div>
           <div style={{
@@ -3862,7 +3862,7 @@ function RebuyModal({ currentStack, maxBuyIn, chipBalance, loading, error, onCon
           borderRadius: 14, padding: 24, width: 300, boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>💰 Add Chips</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>Add Chips</div>
         <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 16 }}>Top up your stack at the table</div>
 
         {/* Balance info */}
@@ -4149,7 +4149,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
             padding: '4px 10px', fontSize: 11, cursor: 'pointer', position: 'relative',
           }}
         >
-          💬 {expanded ? 'Hide' : 'Chat'}
+          {expanded ? 'Hide' : 'Chat'}
           {!expanded && unreadCount > 0 && (
             <span style={{
               position: 'absolute', top: -6, right: -6,
@@ -4163,7 +4163,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
         {expanded && (
           <motion.button
             whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={() => onSend('GG 🤝')}
+            onClick={() => onSend('GG')}
             style={{
               background: 'rgba(255,215,0,0.15)', color: '#FFD700',
               border: '1px solid rgba(255,215,0,0.3)', borderRadius: 6,
@@ -4191,7 +4191,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
                 padding: '4px 8px', background: 'rgba(255,215,0,0.08)',
                 borderBottom: '1px solid rgba(255,215,0,0.15)', fontSize: 10,
                 color: '#FFD700', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
-              }}>📌 {pinnedMsg.text || pinnedMsg.message}</div>
+              }}>{pinnedMsg.text || pinnedMsg.message}</div>
             )}
 
             <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 8, fontSize: 11 }}>
@@ -4202,7 +4202,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
                   onMouseLeave={() => setHoveredMsg(null)}
                 >
                   {m.type === 'dealer' ? (
-                    <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>🂠 {m.text}</span>
+                    <span style={{ color: '#F5A623', fontWeight: 600, fontSize: 10, fontStyle: 'italic' }}>{m.text}</span>
                   ) : m.type === 'emoji' ? (
                     <span style={{ color: T.textSecondary, fontSize: 10 }}>{m.senderName || 'Player'} threw {m.emoji}</span>
                   ) : (
@@ -4253,7 +4253,7 @@ function ChatOverlay({ messages, onSend, players = [], reactions = {}, onReact }
               <button
                 onClick={() => setShowEmoji(!showEmoji)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: '4px 6px', opacity: showEmoji ? 1 : 0.5 }}
-              >😀</button>
+              ></button>
             </div>
 
             <AnimatePresence>
@@ -4441,7 +4441,7 @@ function TournamentHUD({ tournamentId, userId }) {
       >
         {isBreak ? (
           <>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#4ECDC4', textTransform: 'uppercase' }}>☕ BREAK</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#4ECDC4', textTransform: 'uppercase' }}>BREAK</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
               Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '—'}
             </div>
@@ -4452,7 +4452,7 @@ function TournamentHUD({ tournamentId, userId }) {
         ) : (
           <>
             <div style={{ fontSize: 10, fontWeight: 800, color: isITM ? '#4caf50' : '#FFD700', textTransform: 'uppercase' }}>
-              {isITM ? '💰 ITM' : `🏆 LVL ${state.currentLevel}`}
+              {isITM ? 'ITM' : `LVL ${state.currentLevel}`}
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{blinds.smallBlind || '?'}/{blinds.bigBlind || '?'}</div>
             {blinds.ante > 0 && <div style={{ fontSize: 11, color: '#B0B3B8' }}>A:{blinds.ante}</div>}
@@ -4467,7 +4467,7 @@ function TournamentHUD({ tournamentId, userId }) {
         {/* Elimination flash */}
         {elimFlash && (
           <div style={{ fontSize: 10, fontWeight: 800, color: '#ef5350', animation: 'pulse 0.5s ease-in-out' }}>
-            💀 OUT
+            ▼ OUT
           </div>
         )}
       </div>
@@ -4479,7 +4479,7 @@ function TournamentHUD({ tournamentId, userId }) {
           background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.5)',
           color: '#fbbf24', textAlign: 'center',
         }}>
-          ⚠️ BUBBLE — {remaining} players left, {paidPlaces} paid
+          ▲ BUBBLE — {remaining} players left, {paidPlaces} paid
         </div>
       )}
 
@@ -4512,7 +4512,7 @@ function TournamentHUD({ tournamentId, userId }) {
                 <div style={{ gridColumn: '1/3' }}>
                   <span style={{ color: '#B0B3B8' }}>Paid: </span>
                   <strong style={{ color: isITM ? '#4caf50' : '#B0B3B8' }}>
-                    Top {paidPlaces} {isITM ? '✅ You\'re in the money!' : `(${remaining - paidPlaces} eliminations to go)`}
+                    Top {paidPlaces} {isITM ? '✓ You\'re in the money!' : `(${remaining - paidPlaces} eliminations to go)`}
                   </strong>
                 </div>
               )}
@@ -4548,7 +4548,7 @@ function TournamentHUD({ tournamentId, userId }) {
 
               {state.lateRegOpen && (
                 <div style={{ gridColumn: '1/3', color: '#4ECDC4', fontWeight: 700 }}>
-                  📝 Late Registration Open
+                  Late Registration Open
                 </div>
               )}
             </div>
@@ -4567,7 +4567,7 @@ function TournamentHUD({ tournamentId, userId }) {
                   flex: 1, padding: '6px 10px', background: 'rgba(35,116,225,0.2)', color: '#4FC3F7',
                   border: '1px solid rgba(35,116,225,0.4)', borderRadius: 6, fontSize: 11,
                   fontWeight: 700, cursor: 'pointer',
-                }}>🔄 Rebuy</button>
+                }}>Rebuy</button>
               )}
               {state.addonAtBreak && state.status === 'break' && (
                 <button onClick={async () => {
@@ -4581,7 +4581,7 @@ function TournamentHUD({ tournamentId, userId }) {
                   flex: 1, padding: '6px 10px', background: 'rgba(76,175,80,0.2)', color: '#81C784',
                   border: '1px solid rgba(76,175,80,0.4)', borderRadius: 6, fontSize: 11,
                   fontWeight: 700, cursor: 'pointer',
-                }}>➕ Add-on</button>
+                }}>Add-on</button>
               )}
             </div>
           </motion.div>
@@ -4624,7 +4624,7 @@ function ThemePresetBar({ onSave, onLoad, onDelete }) {
           padding: '4px 10px', fontSize: 10, cursor: 'pointer', fontWeight: 600,
         }}
       >
-        🎨 Presets {expanded ? '▾' : '▸'}
+        Presets {expanded ? '▾' : '▸'}
       </button>
 
       <AnimatePresence>
@@ -4647,7 +4647,7 @@ function ThemePresetBar({ onSave, onLoad, onDelete }) {
                 borderRadius: 6, color: T.accent, padding: '5px 0', fontSize: 10,
                 fontWeight: 700, cursor: 'pointer', marginBottom: 6,
               }}
-            >💾 Save Current</button>
+            >Save Current</button>
 
             {presets.length === 0 ? (
               <div style={{ fontSize: 9, color: T.textMuted, textAlign: 'center', padding: 8 }}>
@@ -4726,7 +4726,7 @@ function HandHistoryBrowser({ tableId, userId, onClose }) {
         background: 'linear-gradient(to bottom, rgba(30,41,59,0.5), transparent)',
       }}>
         <h2 style={{ margin: 0, fontSize: 18, color: T.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: T.accent }}>📋</span> Hand History
+          <span style={{ color: T.accent }}></span> Hand History
         </h2>
         <button onClick={onClose} style={{
           background: 'none', border: 'none', color: T.textMuted, fontSize: 24, cursor: 'pointer',
@@ -4865,7 +4865,7 @@ function SessionStatsOverlay({ sessionStats, myStack, onClose }) {
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>📊 Session Stats</span>
+        <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>Session Stats</span>
         <button onClick={onClose} style={{
           background: 'none', border: 'none', color: '#65676B', fontSize: 18,
           cursor: 'pointer', padding: '0 4px', lineHeight: 1,
@@ -4967,7 +4967,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           {({
             holdem: 'NLH', omaha4: 'PLO4', omaha5: 'PLO5', omaha6: 'PLO6',
             omaha_hilo: 'PLO8', short_deck: '6+',
-            pineapple: '🍍', flo: 'FLO', mixed: 'MIX',
+            pineapple: 'PINE', flo: 'FLO', mixed: 'MIX',
           })[tableState?.config?.variant] || 'NLH'}
         </span>
         <span style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600 }}>
@@ -5019,13 +5019,13 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             />
           )}
           <SmallButton label="Add Chips" onClick={onAddChips} />
-          {lastHandResult && <SmallButton label="📋 Last Hand" onClick={onShowLastHand} />}
-          {onShowHistory && <SmallButton label="📜 History" onClick={onShowHistory} />}
-          {onShowActionLog && <SmallButton label="📝 Log" onClick={onShowActionLog} />}
-          {onShowStackGraph && <SmallButton label="📈 Stack" onClick={onShowStackGraph} />}
-          {onShowTableStats && <SmallButton label="📊 Stats" onClick={onShowTableStats} />}
+          {lastHandResult && <SmallButton label="Last Hand" onClick={onShowLastHand} />}
+          {onShowHistory && <SmallButton label="History" onClick={onShowHistory} />}
+          {onShowActionLog && <SmallButton label="Log" onClick={onShowActionLog} />}
+          {onShowStackGraph && <SmallButton label="Stack" onClick={onShowStackGraph} />}
+          {onShowTableStats && <SmallButton label="Stats" onClick={onShowTableStats} />}
           <SmallButton
-            label={autoTopUpOn ? '💰 Auto Top-Up ✓' : '💰 Auto-Chip'}
+            label={autoTopUpOn ? 'Auto Top-Up ✓' : 'Auto-Chip'}
             onClick={onToggleAutoTopUp}
             color={autoTopUpOn ? '#34C759' : undefined}
           />
@@ -5036,7 +5036,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           />
           {sessionStats?.initialBuyIn > 0 && (
             <SmallButton
-              label={showStats ? '✓ Stats' : '📊'}
+              label={showStats ? '✓ Stats' : ''}
               onClick={() => setShowStats(!showStats)}
               color={showStats ? '#3b82f6' : undefined}
             />
@@ -5068,17 +5068,17 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             color={fourColorDeck ? '#34d399' : undefined}
           />
           <SmallButton
-            label='🏆 Board'
+            label='Board'
             onClick={onShowLeaderboard}
           />
           <SmallButton
-            label={rabbitHuntEnabled ? '✓ 🐰' : '🐰'}
+            label={rabbitHuntEnabled ? '✓' : ''}
             onClick={onToggleRabbitHunt}
             color={rabbitHuntEnabled ? '#fbbf24' : undefined}
           />
-          <SmallButton label='⌨️' onClick={onShowKeyboard} />
-          <SmallButton label='📐 Layout' onClick={onShowLayouts} />
-          <SmallButton label='🎨 Felt' onClick={onShowFelt} />
+          <SmallButton label='' onClick={onShowKeyboard} />
+          <SmallButton label='Layout' onClick={onShowLayouts} />
+          <SmallButton label='Felt' onClick={onShowFelt} />
           {stackHistory?.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', marginLeft: 4 }}>
               <SessionSparkline history={stackHistory} width={60} height={20} />
@@ -5148,26 +5148,26 @@ function GTOCheckBadge({ result, heroAction, visible }) {
 
     // Fold with strong hand = major deviation
     if (action === 'fold' && handStrength > 60) {
-      return { grade: 'deviation', label: '❌ Major Deviation', color: '#ef5350', tip: 'Folded a strong hand. GTO suggests continuing with equity advantage.' };
+      return { grade: 'deviation', label: '✕ Major Deviation', color: '#ef5350', tip: 'Folded a strong hand. GTO suggests continuing with equity advantage.' };
     }
     // Call with weak hand and bad pot odds = leak
     if (action === 'call' && handStrength < 25 && potOdds > 30) {
-      return { grade: 'leak', label: '⚠️ Slight Leak', color: '#f59e0b', tip: 'Called with insufficient equity. Required better pot odds or a stronger draw.' };
+      return { grade: 'leak', label: '▲ Slight Leak', color: '#f59e0b', tip: 'Called with insufficient equity. Required better pot odds or a stronger draw.' };
     }
     // Raise with premium = optimal
     if ((action === 'raise' || action === 'bet') && handStrength > 70) {
-      return { grade: 'optimal', label: '✅ Optimal', color: '#4caf50', tip: 'Value bet with strong hand — well played.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Value bet with strong hand — well played.' };
     }
     // Fold with weak hand = optimal
     if (action === 'fold' && handStrength < 20) {
-      return { grade: 'optimal', label: '✅ Optimal', color: '#4caf50', tip: 'Good fold — limited equity vs. opponent range.' };
+      return { grade: 'optimal', label: '✓ Optimal', color: '#4caf50', tip: 'Good fold — limited equity vs. opponent range.' };
     }
     // Default: slight leak for passive play
     if (action === 'check' && handStrength > 50 && phase === 'river') {
-      return { grade: 'leak', label: '⚠️ Slight Leak', color: '#f59e0b', tip: 'Missed value bet on the river with a strong hand.' };
+      return { grade: 'leak', label: '▲ Slight Leak', color: '#f59e0b', tip: 'Missed value bet on the river with a strong hand.' };
     }
     // Neutral/acceptable
-    return { grade: 'neutral', label: '✅ Acceptable', color: '#4caf50', tip: 'Play was within acceptable GTO range.' };
+    return { grade: 'neutral', label: '✓ Acceptable', color: '#4caf50', tip: 'Play was within acceptable GTO range.' };
   };
 
   const { label, color, tip } = evaluate();
@@ -5197,7 +5197,7 @@ function GTOCheckBadge({ result, heroAction, visible }) {
           gap: 4,
         }}
       >
-        🧠 {label}
+        {label}
       </motion.button>
 
       <AnimatePresence>
@@ -5410,7 +5410,7 @@ function ResultOverlay({ result, send, userId }) {
 
   // Format hand for sharing
   const formatHandForShare = () => {
-    const lines = ['♠️ Smarter.Poker Hand Result'];
+    const lines = ['♠ Smarter.Poker Hand Result'];
     const winners = result.winners || result.result?.winners || [];
     const board = result.board || result.result?.board || result.communityCards || boardAtEnd || [];
     const type = result.type || result.result?.type || 'showdown';
@@ -5429,7 +5429,7 @@ function ResultOverlay({ result, send, userId }) {
       const name = w.displayName || w.playerName || `Player`;
       const amt = w.amount ? ` (+${w.amount})` : '';
       const hand = w.handDescription || '';
-      lines.push(`🏆 ${name}${amt}${hand ? ` — ${hand}` : ''}`);
+      lines.push(`★ ${name}${amt}${hand ? ` — ${hand}` : ''}`);
     });
 
     if (result.rake) lines.push(`Rake: ${result.rake}`);
@@ -5528,7 +5528,7 @@ function ResultOverlay({ result, send, userId }) {
                 gap: 6,
               }}
             >
-              <span style={{ fontSize: 16 }}>🐇</span>
+              <span style={{ fontSize: 16 }}></span>
               Rabbit Hunt
             </motion.button>
           ) : (
@@ -5541,7 +5541,7 @@ function ResultOverlay({ result, send, userId }) {
                 fontSize: 10, color: '#65676B', marginBottom: 6,
                 textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
               }}>
-                🐇 Would have been dealt
+                Would have been dealt
               </div>
 
               {/* Show existing board + rabbit cards */}
@@ -5613,7 +5613,7 @@ function ResultOverlay({ result, send, userId }) {
               opacity: rabbitLoading ? 0.6 : 1,
             }}
           >
-            <span style={{ fontSize: 16 }}>🐰</span>
+            <span style={{ fontSize: 16 }}></span>
             {rabbitLoading ? 'Loading...' : 'Request Rabbit Hunt'}
           </motion.button>
         </div>
@@ -5631,7 +5631,7 @@ function ResultOverlay({ result, send, userId }) {
             fontSize: 10, color: '#65676B', marginBottom: 6,
             textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
           }}>
-            🐇 Would have been dealt
+            Would have been dealt
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
             {(onDemandRabbit.board || []).map((card, i) => (
@@ -5671,7 +5671,7 @@ function ResultOverlay({ result, send, userId }) {
               fontSize: 11, fontWeight: 700, cursor: 'pointer',
             }}
           >
-            👁️ Show All
+            Show All
           </motion.button>
           {myCards && myCards.length >= 2 && myCards.map((_, idx) => (
             <motion.button
@@ -5717,7 +5717,7 @@ function ResultOverlay({ result, send, userId }) {
             transition: 'all 0.2s ease',
           }}
         >
-          {copied ? '✓ Copied!' : '📤 Share Hand'}
+          {copied ? '✓ Copied!' : 'Share Hand'}
         </motion.button>
       </div>
     </motion.div>
@@ -7274,7 +7274,7 @@ function LivePokerTable({
   }, [sessionStats, onLeave]);
 
   const handleShareSession = useCallback(() => {
-    const text = `🎰 Smarter.Poker Session\n📊 Hands: ${sessionStats?.handsPlayed || 0}\n💰 P&L: ${(sessionStats?.totalAdded || 0) >= 0 ? '+' : ''}${sessionStats?.totalAdded || 0}\n⏱️ Duration: ${sessionStats?.sessionStart ? Math.round((Date.now() - sessionStats.sessionStart) / 60000) : 0}m`;
+    const text = `Smarter.Poker Session\nHands: ${sessionStats?.handsPlayed || 0}\nP&L: ${(sessionStats?.totalAdded || 0) >= 0 ? '+' : ''}${sessionStats?.totalAdded || 0}\nDuration: ${sessionStats?.sessionStart ? Math.round((Date.now() - sessionStats.sessionStart) / 60000) : 0}m`;
     navigator.clipboard?.writeText(text);
   }, [sessionStats]);
 
@@ -7565,11 +7565,11 @@ function LivePokerTable({
               backdropFilter: 'blur(8px)',
             }}
           >
-            {tableAlert.type === 'warning' && '⚠️ '}
-            {tableAlert.type === 'expired' && '🛑 '}
-            {tableAlert.type === 'paused' && '⏸️ '}
-            {tableAlert.type === 'removed' && '🚪 '}
-            {tableAlert.type === 'extended' && '🔄 '}
+            {tableAlert.type === 'warning' && '▲ '}
+            {tableAlert.type === 'expired' && ''}
+            {tableAlert.type === 'paused' && ''}
+            {tableAlert.type === 'removed' && ''}
+            {tableAlert.type === 'extended' && ''}
             {tableAlert.message}
           </motion.div>
         )}
@@ -7654,11 +7654,11 @@ function LivePokerTable({
         const cat = strength.category || 0;
         // 5-tier: 0-1 Weak (red) | 2-3 Marginal (orange) | 4-5 Medium (yellow) | 6-7 Strong (green) | 8-9 Monster (gold/diamond)
         const tiers = [
-          { min: 0, color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: '🔴', label: 'Weak' },
-          { min: 2, color: '#f97316', bg: 'rgba(249,115,22,0.12)', icon: '🟠', label: 'Marginal' },
-          { min: 4, color: '#eab308', bg: 'rgba(234,179,8,0.12)', icon: '🟡', label: 'Medium' },
-          { min: 6, color: '#22c55e', bg: 'rgba(34,197,94,0.12)', icon: '🟢', label: 'Strong' },
-          { min: 8, color: '#FFD700', bg: 'rgba(255,215,0,0.15)', icon: '💎', label: 'Monster' },
+          { min: 0, color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: '', label: 'Weak' },
+          { min: 2, color: '#f97316', bg: 'rgba(249,115,22,0.12)', icon: '', label: 'Marginal' },
+          { min: 4, color: '#eab308', bg: 'rgba(234,179,8,0.12)', icon: '', label: 'Medium' },
+          { min: 6, color: '#22c55e', bg: 'rgba(34,197,94,0.12)', icon: '', label: 'Strong' },
+          { min: 8, color: '#FFD700', bg: 'rgba(255,215,0,0.15)', icon: '', label: 'Monster' },
         ];
         const tier = [...tiers].reverse().find(t => cat >= t.min) || tiers[0];
         const fillPct = Math.min(100, ((cat + 1) / 10) * 100);
@@ -7941,7 +7941,7 @@ function LivePokerTable({
               }}
             >
               <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 12, textAlign: 'center' }}>
-                ⌨️ Keyboard Shortcuts
+                Keyboard Shortcuts
               </div>
               {[
                 { section: 'Game Actions', keys: [
@@ -8026,7 +8026,7 @@ function LivePokerTable({
                 padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
-                <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>🏆 Session Leaderboard</span>
+                <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Session Leaderboard</span>
                 <button
                   onClick={() => setShowLeaderboard(false)}
                   style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 20, cursor: 'pointer', padding: 0 }}
@@ -8057,7 +8057,7 @@ function LivePokerTable({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#65676B', fontSize: 14, fontWeight: 800, width: 24 }}>
-                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                          {`#${i + 1}`}
                         </span>
                         <span style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 600 }}>{p.name}</span>
                       </div>
@@ -8130,7 +8130,7 @@ function LivePokerTable({
           borderRadius: 20, padding: '3px 16px', zIndex: 55,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <span style={{ fontSize: 12 }}>🏆</span>
+          <span style={{ fontSize: 12 }}></span>
           <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 700 }}>
             BAD BEAT JACKPOT
           </span>
@@ -8157,7 +8157,7 @@ function LivePokerTable({
         }}
         title="Open Messenger"
       >
-        <div style={{ fontSize: 16 }}>💬</div>
+        <div style={{ fontSize: 16 }}></div>
         {messengerBadgeCount > 0 && !isMessengerOpen && (
           <div style={{
             position: 'absolute', top: -4, right: -4, background: '#FF3B30',
@@ -8189,7 +8189,7 @@ function LivePokerTable({
               border: '3px solid #FFD700', borderRadius: 16,
               padding: '32px 48px', textAlign: 'center', maxWidth: 460,
             }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🏆💰🏆</div>
+              <div style={{ fontSize: 48, marginBottom: 8 }}></div>
               <h2 style={{ color: '#FFD700', fontSize: 26, margin: '0 0 8px', fontWeight: 800 }}>
                 BAD BEAT JACKPOT!
               </h2>
@@ -8258,7 +8258,7 @@ function LivePokerTable({
             backdropFilter: 'blur(8px)',
           }}
           title="Session Statistics"
-        >📊</motion.button>
+        ></motion.button>
       </div>
 
       {/* ═══════════ TABLE THEME PICKER ═══════════ */}
@@ -8342,7 +8342,7 @@ function LivePokerTable({
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 24 }}>🛡️</span>
+              <span style={{ fontSize: 24 }}></span>
               <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: '4px 0' }}>Insurance Available</h3>
               <p style={{ color: '#B0B3B8', fontSize: 12, margin: 0 }}>
                 You&apos;re ahead! Protect against {result.insuranceOffer.trailerEquity}% equity ({result.insuranceOffer.estimatedOuts} outs)
@@ -8410,7 +8410,7 @@ function LivePokerTable({
               style={{ textAlign: 'center', marginBottom: 8 }}
             >
               <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 700 }}>
-                🃏 Run It {result.runItMultiple.numBoards === 2 ? 'Twice' : 'Three Times'}
+                Run It {result.runItMultiple.numBoards === 2 ? 'Twice' : 'Three Times'}
               </span>
             </motion.div>
             {/* Board split divider animation */}
@@ -8507,7 +8507,7 @@ function LivePokerTable({
               zIndex: 80, textAlign: 'center', boxShadow: '0 0 40px rgba(255,215,0,0.3)',
             }}
           >
-            <div style={{ fontSize: 24, marginBottom: 4 }}>🃏💰</div>
+            <div style={{ fontSize: 24, marginBottom: 4 }}></div>
             <div style={{ color: '#FFD700', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
               7-2 BONUS!
             </div>
@@ -8540,7 +8540,7 @@ function LivePokerTable({
               zIndex: 85, textAlign: 'center', pointerEvents: 'none',
             }}
           >
-            <div style={{ fontSize: 48 }}>💣</div>
+            <div style={{ fontSize: 48 }}></div>
             <div style={{
               color: '#FF6B35', fontSize: 22, fontWeight: 900, textShadow: '0 2px 10px rgba(255,107,53,0.5)',
               letterSpacing: 3,
@@ -8633,7 +8633,7 @@ function LivePokerTable({
               boxShadow: '0 4px 20px rgba(255,152,0,0.2)',
             }}>
               <div style={{ color: '#FF9800', fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-                📋 Waitlist Position #{waitlistState.position || '?'}
+                Waitlist Position #{waitlistState.position || '?'}
               </div>
               <div style={{ color: '#B0B3B8', fontSize: 11, marginBottom: 8 }}>
                 You will be notified when a seat opens
@@ -8662,7 +8662,7 @@ function LivePokerTable({
                 letterSpacing: 0.5,
               }}
             >
-              {waitlistState.loading ? 'Joining...' : '📋 Join Waitlist'}
+              {waitlistState.loading ? 'Joining...' : 'Join Waitlist'}
             </button>
           )}
         </div>
@@ -8683,7 +8683,7 @@ function LivePokerTable({
               boxShadow: '0 0 40px rgba(168,85,247,0.3)',
             }}
           >
-            <div style={{ fontSize: 28, marginBottom: 6 }}>🎰🎰</div>
+            <div style={{ fontSize: 28, marginBottom: 6 }}></div>
             <div style={{ color: '#a855f7', fontSize: 18, fontWeight: 800, marginBottom: 4, letterSpacing: 1 }}>
               {isRitProposer ? 'YOU HAVE THE BEST HAND' : 'RUN IT MULTIPLE TIMES?'}
             </div>
@@ -8785,7 +8785,7 @@ function LivePokerTable({
           fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
         }}
       >
-        {soundRef.current?.enabled !== false ? '🔊' : '🔇'} Sound
+        {soundRef.current?.enabled !== false ? '' : ''} Sound
       </button>
 
       {/* Error toast */}
@@ -8896,7 +8896,7 @@ function LivePokerTable({
           }}
           title="Table Reactions"
         >
-          😎
+
         </button>
       </div>
 
@@ -9021,7 +9021,7 @@ function LivePokerTable({
                 boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>🃏 Run It Twice — Results</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#E4E6EB', marginBottom: 12 }}>Run It Twice — Results</div>
               {/* I7: Auto-dismiss countdown bar */}
               <div style={{ width: '100%', height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' }}>
                 <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: 6, ease: 'linear' }}
@@ -9035,7 +9035,7 @@ function LivePokerTable({
                     background: b.won ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.05)',
                   }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: b.won ? '#4ade80' : '#ef5350', marginBottom: 6 }}>
-                      {b.label} {b.won ? '✅ WIN' : '❌'}
+                      {b.label} {b.won ? '✓ WIN' : '✕'}
                     </div>
                     <div style={{ display: 'flex', gap: 3 }}>
                       {b.board.map((card, ci) => (
@@ -9080,7 +9080,7 @@ function LivePokerTable({
               display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            🎉 A seat opened up! Buy in now. {seatCountdown > 0 && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, opacity: 0.8 }}>({seatCountdown}s)</span>}
+            A seat opened up! Buy in now. {seatCountdown > 0 && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, opacity: 0.8 }}>({seatCountdown}s)</span>}
           </motion.div>
         )}
       </AnimatePresence>
@@ -9125,7 +9125,7 @@ function LivePokerTable({
               transition={{ delay: 1.2 }}
               style={{ marginTop: 20, fontSize: 18, fontWeight: 700, color: '#FFD700', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}
             >
-              🎰 SPIN & GO
+              SPIN & GO
             </motion.div>
           </motion.div>
         )}
@@ -9144,7 +9144,7 @@ function LivePokerTable({
           }}
           title="Tap: mute/unmute • Double-tap: volume"
         >
-          {soundEnabled ? '🔊' : '🔇'}
+          {soundEnabled ? '' : ''}
         </button>
         {showSoundPanel && (
           <div style={{
@@ -9180,7 +9180,7 @@ function LivePokerTable({
           fontSize: 12, fontWeight: 700, cursor: 'pointer',
           backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         }}>
-          {showAdminPanel ? '✕ Close' : '⚙️ Admin'}
+          {showAdminPanel ? '✕ Close' : 'Admin'}
         </button>
       )}
       <AnimatePresence>

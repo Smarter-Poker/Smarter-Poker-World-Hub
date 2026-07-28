@@ -210,7 +210,7 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
     >
       {/* Header */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>📋 Hand History</span>
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Hand History</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>✕</button>
       </div>
 
@@ -329,13 +329,13 @@ function ShareDropdown({ handData, handId, onClose, containerRef }) {
       onClick={e => e.stopPropagation()}
     >
       <button onClick={copyText} style={shareBtn}>
-        📄 {copied === 'text' ? '✓ Copied!' : 'Copy as Text'}
+        {copied === 'text' ? '✓ Copied!' : 'Copy as Text'}
       </button>
       <button onClick={copyLink} style={shareBtn}>
-        🔗 {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
+        {copied === 'link' ? '✓ Copied!' : 'Copy Link'}
       </button>
       <button onClick={copyScreenshot} style={shareBtn}>
-        📸 {copied === 'screenshot' ? '✓ Saved!' : copied === 'failed' ? 'Failed' : 'Save Screenshot'}
+        {copied === 'screenshot' ? '✓ Saved!' : copied === 'failed' ? 'Failed' : 'Save Screenshot'}
       </button>
     </motion.div>
   );
@@ -689,7 +689,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                 style={{ background: showSidebar ? '#2374E1' : '#333', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
                 title="Hand History List"
               >
-                📋
+                
               </button>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ color: '#fff', fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: 1 }}>DVR REPLAYER</span>
@@ -703,7 +703,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                 style={{ background: showEquity ? '#4CAF50' : '#333', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
                 title="Toggle Equity Overlays"
               >
-                📊 EQ
+                EQ
               </button>
               {/* #3: Share button */}
               <div style={{ position: 'relative' }}>
@@ -711,7 +711,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                   onClick={() => setShowShareMenu(s => !s)}
                   style={{ background: '#333', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
                 >
-                  📤 Share
+                  Share
                 </button>
                 <AnimatePresence>
                   {showShareMenu && (
@@ -775,7 +775,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                         animate={{ rotate: [0, 10, -10, 0] }}
                         transition={{ repeat: Infinity, duration: 2 }}
                         style={{ marginRight: 6 }}
-                      >🪙</motion.span>
+                      ></motion.span>
                     )}
                     POT: {stateAtStep.potTotal.toLocaleString()}
                   </motion.div>
@@ -845,7 +845,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                             boxShadow: isWinner ? '0 0 12px rgba(255,215,0,0.6)' : '0 2px 4px rgba(0,0,0,0.5)',
                           }}
                         >
-                          {isWinner && '🏆 '}{p.lastAction}
+                          {isWinner && '★ '}{p.lastAction}
                         </motion.div>
                       )}
 

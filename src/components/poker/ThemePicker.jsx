@@ -54,7 +54,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.5)'; e.currentTarget.style.color = '#B0B3B8'; }}
         title="Table Settings"
       >
-        ⚙
+        
       </button>
 
       {/* Modal */}
@@ -89,7 +89,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                 padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
-                <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>⚙ Table Settings</span>
+                <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>Table Settings</span>
                 <button
                   onClick={() => setOpen(false)}
                   style={{
@@ -104,7 +104,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                 display: 'flex', gap: 0,
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
               }}>
-                {[['theme', '🎨 Theme'], ['cardback', '🃏 Cards'], ['sound', '🔊 Sound'], ['display', '💻 Display']].map(([key, label]) => (
+                {[['theme', 'Theme'], ['cardback', 'Cards'], ['sound', 'Sound'], ['display', 'Display']].map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => setTab(key)}
@@ -217,7 +217,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                                 rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 6px
                               )`,
                             }} />
-                            <span style={{ fontSize: 16, opacity: 0.6 }}>🃏</span>
+                            <span style={{ fontSize: 16, opacity: 0.6 }}></span>
                           </div>
                           <span style={{
                             fontSize: 10, fontWeight: 600,
@@ -282,18 +282,18 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
 
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
-                        💡 Tip: Mute sounds for multi-tabling or late-night sessions
+                        Tip: Mute sounds for multi-tabling or late-night sessions
                       </div>
                     </div>
 
                     {/* Phase 26: Sound Pack Picker */}
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
-                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>🎵 Sound Pack</div>
+                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Sound Pack</div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {[
-                          { id: 'casino', label: '🎰 Casino', desc: 'Warm, reverbed' },
-                          { id: 'minimal', label: '⚡ Minimal', desc: 'Clicks only' },
-                          { id: 'retro', label: '👾 Retro', desc: '8-bit chiptune' },
+                          { id: 'casino', label: 'Casino', desc: 'Warm, reverbed' },
+                          { id: 'minimal', label: 'Minimal', desc: 'Clicks only' },
+                          { id: 'retro', label: 'Retro', desc: '8-bit chiptune' },
                         ].map(pack => {
                           const isActive = soundPack === pack.id;
                           return (
@@ -406,7 +406,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
 
                     <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
                       <div style={{ color: '#65676B', fontSize: 11 }}>
-                        💡 4-color deck uses green for ♣ and blue for ♦ to reduce misreads
+                        4-color deck uses green for ♣ and blue for ♦ to reduce misreads
                       </div>
                     </div>
                   </div>

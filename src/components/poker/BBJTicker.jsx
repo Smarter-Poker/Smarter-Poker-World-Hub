@@ -124,7 +124,7 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
           userSelect: 'none',
         }}
       >
-        <span style={{ fontSize: 14 }}>🏆</span>
+        <span style={{ fontSize: 14 }}></span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span style={{ fontSize: 9, fontWeight: 700, color: GOLD_DARK, letterSpacing: 1.5, textTransform: 'uppercase' }}>
             BBJ
@@ -175,7 +175,7 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
                 boxShadow: `0 0 40px rgba(255,215,0,0.3), 0 0 80px rgba(255,215,0,0.1)`,
               }}
             >
-              <div style={{ fontSize: 40, marginBottom: 8 }}>🏆</div>
+              <div style={{ fontSize: 40, marginBottom: 8 }}></div>
               <div style={{ fontSize: 22, fontWeight: 900, color: GOLD, textShadow: '0 0 12px rgba(255,215,0,0.5)' }}>
                 BAD BEAT JACKPOT!
               </div>

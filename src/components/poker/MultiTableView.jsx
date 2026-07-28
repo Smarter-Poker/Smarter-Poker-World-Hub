@@ -207,7 +207,7 @@ function TableTabBar({
                 boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 2,
               }}>
-                💬{unreadCount > 9 ? '9+' : unreadCount}
+                {unreadCount > 9 ? '9+' : unreadCount}
               </div>
             )}
 
@@ -238,7 +238,7 @@ function TableTabBar({
               flex: 1,
               textAlign: 'center',
             }}>
-              {isDisconnected ? '⚠️ Offline' : `${slot.variant}${slot.stakes ? ` ${slot.stakes}` : ''}`}
+              {isDisconnected ? '▲ Offline' : `${slot.variant}${slot.stakes ? ` ${slot.stakes}` : ''}`}
             </span>
 
             {/* Close "×" button */}
@@ -377,7 +377,7 @@ function GlobalControlsHUD({ onSitOutAll }) {
               gap: 12,
             }}
           >
-            <span style={{ fontSize: 18 }}>🛑</span>
+            <span style={{ fontSize: 18 }}></span>
             Sit Out All Tables
           </button>
 
@@ -403,7 +403,7 @@ function GlobalControlsHUD({ onSitOutAll }) {
               marginTop: 4,
             }}
           >
-            <span style={{ fontSize: 18 }}>▶️</span>
+            <span style={{ fontSize: 18 }}></span>
             Sit In All Tables
           </button>
         </div>
@@ -563,7 +563,7 @@ function BBJOverlay({ bbjData, onDismiss }) {
         border: `3px solid ${T.gold}`, borderRadius: 16,
         padding: '32px 48px', textAlign: 'center', maxWidth: 500,
       }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}></div>
         <h2 style={{ color: T.gold, fontSize: 28, margin: '0 0 8px', fontWeight: 800 }}>
           BAD BEAT JACKPOT!
         </h2>
@@ -870,7 +870,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
           onSitOutAll={handleSitOutAll}
         />
         <div style={{ marginTop: TAB_BAR_HEIGHT + 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>🃏</div>
+          <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}></div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>No Tables Open</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
             Tap a &quot;+&quot; slot to open a table from the lobby

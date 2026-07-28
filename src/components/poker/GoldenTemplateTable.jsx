@@ -1,5 +1,5 @@
 /**
- * 🎮 GOLDEN TEMPLATE POKER TABLE
+ * GOLDEN TEMPLATE POKER TABLE
  * 
  * EXACT clone of the reference design:
  * - Large illustrated avatars extending outside table

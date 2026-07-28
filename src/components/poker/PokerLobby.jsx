@@ -1,5 +1,5 @@
 /**
- * 🎮 POKER LOBBY — Browse, Join & Create Tables
+ * POKER LOBBY — Browse, Join & Create Tables
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Live lobby connected via Supabase Realtime channel.
@@ -516,7 +516,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
                 cursor: 'pointer',
               }}
             >
-              ⚡ Quick Seat
+              Quick Seat
             </motion.button>
 
             <motion.button
@@ -602,7 +602,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       {/* Empty state */}
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: T.textMuted }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🃏</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}></div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>No tables found</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>
             {tables.length === 0

@@ -13,8 +13,8 @@ const T = {
 };
 
 const TYPE_LABELS = {
-  unknown: '❓', fish: '🐟', reg: '🎯', shark: '🦈',
-  whale: '🐋', nit: '🐢', lag: '🔥', tag: '🎯',
+  unknown: '', fish: '', reg: '', shark: '',
+  whale: '', nit: '', lag: '', tag: '',
 };
 
 function StatPill({ label, value, color }) {
@@ -37,7 +37,7 @@ export default function PlayerQuickView({ player, isOpen, onClose, onOpenNotes, 
   const sessionPnl = stats.sessionPnl || 0;
   const pnlColor = sessionPnl > 0 ? T.green : sessionPnl < 0 ? T.red : T.dim;
   const pnlSign = sessionPnl > 0 ? '+' : '';
-  const typeEmoji = note?.player_type ? (TYPE_LABELS[note.player_type] || '❓') : null;
+  const typeEmoji = note?.player_type ? (TYPE_LABELS[note.player_type] || '') : null;
 
   return (
     <AnimatePresence>
@@ -98,7 +98,7 @@ export default function PlayerQuickView({ player, isOpen, onClose, onOpenNotes, 
             {/* Note preview */}
             {note?.notes && (
               <div style={{ fontSize: 11, color: T.dim, marginBottom: 10, padding: '6px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 6, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                📝 {note.notes}
+                {note.notes}
               </div>
             )}
 
@@ -108,7 +108,7 @@ export default function PlayerQuickView({ player, isOpen, onClose, onOpenNotes, 
                 onClick={() => { onClose(); onOpenNotes?.(); }}
                 style={{ flex: 1, padding: '8px 0', background: T.accent, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
-                📝 Notes
+                Notes
               </button>
             </div>
           </motion.div>

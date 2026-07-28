@@ -13,14 +13,14 @@ const T = {
 };
 
 const PLAYER_TYPES = [
-  { id: 'unknown', emoji: '❓', label: 'Unknown' },
-  { id: 'fish', emoji: '🐟', label: 'Fish' },
-  { id: 'reg', emoji: '🎯', label: 'Regular' },
-  { id: 'shark', emoji: '🦈', label: 'Shark' },
-  { id: 'whale', emoji: '🐋', label: 'Whale' },
-  { id: 'nit', emoji: '🐢', label: 'Nit' },
-  { id: 'lag', emoji: '🔥', label: 'LAG' },
-  { id: 'tag', emoji: '🛡️', label: 'TAG' },
+  { id: 'unknown', emoji: '', label: 'Unknown' },
+  { id: 'fish', emoji: '', label: 'Fish' },
+  { id: 'reg', emoji: '', label: 'Regular' },
+  { id: 'shark', emoji: '', label: 'Shark' },
+  { id: 'whale', emoji: '', label: 'Whale' },
+  { id: 'nit', emoji: '', label: 'Nit' },
+  { id: 'lag', emoji: '', label: 'LAG' },
+  { id: 'tag', emoji: '', label: 'TAG' },
 ];
 
 export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, onSave }) {
@@ -149,7 +149,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
           <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: T.text, display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {player.avatarUrl ? <img src={player.avatarUrl} style={{ width: '100%', height: '100%' }} /> : '👤'}
+                {player.avatarUrl ? <img src={player.avatarUrl} style={{ width: '100%', height: '100%' }} /> : null}
               </div>
               {player.displayName || 'Player'}
             </div>

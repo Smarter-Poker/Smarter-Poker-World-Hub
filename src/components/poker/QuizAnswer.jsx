@@ -8,7 +8,7 @@
  * Unlike ActionButton (which carries poker-action theme colors fold/call/raise
  * etc.), QuizAnswer is theme-neutral: in idle state it uses --sp-bg-elev0 /
  * --sp-border / --sp-fg, and only takes a colored state after the answer is
- * revealed (correct → green band + ✓, picked-wrong → red band + ✗).
+ * revealed (correct → green band + ✓, picked-wrong → red band + ✕).
  *
  * Props
  *   label             string — the visible answer text (e.g. "A-6-7-8-9")
@@ -27,7 +27,7 @@
  *
  * Verdict states (precedence top-down):
  *   show && correct                 → green band + ✓ overlay
- *   show && selected && !correct    → red band + ✗ overlay
+ *   show && selected && !correct    → red band + ✕ overlay
  *   show && !selected && !correct   → muted (un-picked, wrong, faded)
  *   !show                           → default interactive
  *
@@ -35,7 +35,7 @@
  * listener (number keys 1/2/3/4) — this component just RENDERS the kbd
  * hint chip. Same pattern as ActionButton.
  *
- * Build-safety: no emoji chars (✓/✗ are basic-multilingual-plane), no
+ * Build-safety: no emoji chars (✓/✕ are basic-multilingual-plane), no
  * JSX comments inside conditional expressions.
  */
 // TRAIN-QUIZ-ANSWER-1 — audit-marker registry token
@@ -97,7 +97,7 @@ const QuizAnswer = React.forwardRef(function QuizAnswer(
       bg = 'rgba(var(--sp-accent-red-rgb), 0.12)';
       border = 'rgba(var(--sp-accent-red-rgb), 0.4)';
       color = 'var(--sp-fg)';
-      overlay = '✗'; // ✗
+      overlay = '✕'; // ✕
     } else {
       bg = 'rgba(0,0,0,0.2)';
       border = 'var(--sp-border)';
