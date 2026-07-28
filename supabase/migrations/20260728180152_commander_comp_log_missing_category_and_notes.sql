@@ -33,7 +33,7 @@ create index if not exists idx_member_comp_log_void_ref
   on public.commander_member_comp_log (venue_id, member_id, type)
   where type = 'void';
 
--- ── post-condition ────────────────────────────────────────────────────────────
+-- ── post-condition ───────────────────────────────────────────────────────────
 do $post$
 declare
   v_col text;

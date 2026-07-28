@@ -38,7 +38,7 @@ create unique index if not exists commander_cash_transactions_idempotency_key_ui
   on public.commander_cash_transactions (idempotency_key)
   where idempotency_key is not null;
 
--- ── post-condition ────────────────────────────────────────────────────────────
+-- ── post-condition ───────────────────────────────────────────────────────────
 do $post$
 declare
   v_tables text[] := array[
