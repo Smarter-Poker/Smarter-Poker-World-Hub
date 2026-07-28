@@ -25,10 +25,13 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import useVIPGate from '../../../src/hooks/useVIPGate';
+import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
 export default function TournamentsPage() {
     useTrainingBus('trivia-tournaments');
     const router = useRouter();
+    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
@@ -350,6 +353,11 @@ export default function TournamentsPage() {
             sessionStorage.removeItem('trivia_paid');
             sessionStorage.removeItem('trivia_mode');
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+
+        if (!allowed) {
+            showUpgradeModal();
+            return;
+        }
 
         // Cheap client-side balance check (server re-verifies authoritatively)
         if (userDiamonds < tournament.entry_fee) {
@@ -1723,7 +1731,14 @@ export default function TournamentsPage() {
                     }
                 }
             `}</style>
-              <BottomNavBar />
+              <VIPGateModal 
+                visible={upgradeModalVisible}
+                onClose={hideUpgradeModal}
+                featureName="Trivia Tournaments"
+                featureConfig={featureConfig}
+            />
+
+            <BottomNavBar />
     </PageTransition>
         </TriviaErrorBoundary>
     );

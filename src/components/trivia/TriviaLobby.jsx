@@ -12,6 +12,8 @@ import PortholeIcon from '../ui/PortholeIcon';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
 import { getAuthUser } from '../../lib/authUtils';
+import useVIPGate from '../../hooks/useVIPGate';
+import VIPGateModal from '../ui/VIPGateModal';
 
 // Pre-computed particle positions to avoid Math.random() hydration mismatches
 const SUITS = ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'];
@@ -177,9 +179,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
     // VIP Gating state
     const [showChargePopup, setShowChargePopup] = useState(false);
-    const [showTopUpPopup, setShowTopUpPopup] = useState(false);
     const [pendingMode, setPendingMode] = useState(null);
     const [isDeducting, setIsDeducting] = useState(false);
+    const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
 
     // Route to the correct page for a mode
     const routeToMode = (modeId) => {
@@ -284,7 +286,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             } else {
                 // Deduction failed (insufficient) — show top-up
                 setShowChargePopup(false);
-                setShowTopUpPopup(true);
+                showUpgradeModal();
             }
         } finally {
             setIsDeducting(false);
@@ -295,7 +297,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     // Phase 70: synchronous re-entry guard prevents rapid clicks on a
     // mode card from firing two startMode flows. With Phase 56's
     // _deductInFlightRef the SECOND call's deduct is blocked, but
-    // success=false flowed back to setShowTopUpPopup(true), falsely
+    // success=false flowed back to showUpgradeModal(), falsely
     // telling the user they're out of diamonds. This ref short-circuits
     // before any state changes.
     const _startModeInFlightRef = useRef(false);
@@ -342,7 +344,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         if (!acknowledged) {
             // FIRST TIME: Show confirmation popup
             if (userDiamonds < GAME_COST) {
-                setShowTopUpPopup(true);
+                showUpgradeModal();
                 return;
             }
             setPendingMode(modeId);
@@ -352,7 +354,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
         // RETURNING USER: Auto-deduct silently
         if (userDiamonds < GAME_COST) {
-            setShowTopUpPopup(true);
+            showUpgradeModal();
             return;
         }
 
@@ -367,7 +369,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             routeToMode(modeId);
         } else {
-            setShowTopUpPopup(true);
+            showUpgradeModal();
         }
     };
 
@@ -843,101 +845,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     from { opacity: 0; }
                     to { opacity: 1; }
                 }
-                .gate-card {
-                    background: #242526;
-                    border: 1px solid #4e4f50;
-                    border-radius: 16px;
-                    padding: 32px 28px;
-                    max-width: 360px;
-                    width: 90%;
-                    text-align: center;
-                    box-shadow: 0 0 40px rgba(35, 116, 225, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
-                }
-                .gate-icon {
-                    font-size: 48px;
-                    margin-bottom: 12px;
-                }
-                .gate-title {
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin-bottom: 8px;
-                }
-                .gate-desc {
-                    font-size: 14px;
-                    color: #65676b;
-                    line-height: 1.5;
-                    margin-bottom: 24px;
-                }
-                .gate-cost {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    background: rgba(35, 116, 225, 0.1);
-                    border: 1px solid rgba(35, 116, 225, 0.25);
-                    border-radius: 12px;
-                    padding: 10px 20px;
-                    margin-bottom: 24px;
-                    font-size: 22px;
-                    font-weight: 700;
-                    color: #2374e1;
-                }
-                .gate-cost svg {
-                    width: 22px;
-                    height: 22px;
-                }
-                .gate-buttons {
-                    display: flex;
-                    gap: 12px;
-                    justify-content: center;
-                }
-                .gate-btn {
-                    flex: 1;
-                    padding: 12px 20px;
-                    border-radius: 10px;
-                    border: none;
-                    font-size: 15px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    font-family: inherit;
-                }
-                .gate-btn--accept {
-                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
-                    color: #fff;
-                }
-                .gate-btn--accept:hover {
-                    transform: scale(1.03);
-                    box-shadow: 0 0 20px rgba(35, 116, 225, 0.4);
-                }
-                .gate-btn--accept:disabled {
-                    opacity: 0.6;
-                    cursor: wait;
-                }
-                .gate-btn--cancel {
-                    background: #3a3b3c;
-                    color: rgba(255, 255, 255, 0.7);
-                    border: 1px solid #4e4f50;
-                }
-                .gate-btn--cancel:hover {
-                    background: #4e4f50;
-                }
-                .gate-btn--store {
-                    background: linear-gradient(135deg, #f97316, #ea580c);
-                    color: #fff;
-                    flex: unset;
-                    padding: 12px 28px;
-                }
-                .gate-btn--store:hover {
-                    transform: scale(1.03);
-                    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
-                }
-                .gate-balance {
-                    margin-top: 12px;
-                    font-size: 13px;
-                    color: #65676b;
-                }
-
+                
                 /* Deducting overlay */
                 .deducting-overlay {
                     position: fixed;
@@ -967,7 +875,6 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     width: 90%;
                     max-width: 440px;
                     margin: 0 auto;
-                    /* the image has built-in translucent/neon edges, so no background/border needed */
                 }
 
                 .diamond-modal__bg {
@@ -1089,49 +996,18 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             <div className="dm-balance">
                                 {userDiamonds} diamonds
                             </div>
-
-                            {isDeducting && (
-                                <div className="dm-spinner-overlay">
-                                    <div className="deducting-spinner" />
-                                </div>
-                            )}
                         </div>
                     </div>
                 )
             }
 
-            {/* ═══════ TOP-UP POPUP (insufficient diamonds) ═══════ */}
-            {
-                showTopUpPopup && (
-                    <div className="gate-overlay" onClick={() => setShowTopUpPopup(false)}>
-                        <div className="gate-card" onClick={e => e.stopPropagation()}>
-                            <div className="gate-icon">⚠️</div>
-                            <div className="gate-title">Not Enough Diamonds</div>
-                            <div className="gate-desc">
-                                You need at least <strong>{GAME_COST} diamonds</strong> to play this mode.
-                                Visit the Diamond Store to top up your balance.
-                            </div>
-                            <div className="gate-cost" style={{ color: '#f02849', borderColor: 'rgba(240,40,73,0.25)', background: 'rgba(240,40,73,0.1)' }}>
-                                <Gem size={22} /> Balance: {userDiamonds} diamonds
-                            </div>
-                            <div className="gate-buttons">
-                                <button
-                                    className="gate-btn gate-btn--cancel"
-                                    onClick={() => setShowTopUpPopup(false)}
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    className="gate-btn gate-btn--store"
-                                    onClick={() => router.push('/hub/diamond-store')}
-                                >
-                                    diamonds Get Diamonds
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+            {/* ═══════ VIP UPGRADE GATE ═══════ */}
+            <VIPGateModal 
+                visible={upgradeModalVisible}
+                onClose={hideUpgradeModal}
+                featureName="Unlimited Trivia Sessions"
+                featureConfig={featureConfig}
+            />
 
             {/* Deducting spinner overlay */}
             {
