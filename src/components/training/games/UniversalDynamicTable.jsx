@@ -2286,14 +2286,17 @@ function UniversalDynamicTable({
     const getActionButtonStyle = (option, index) => {
         const optionId = option.id || String.fromCharCode(97 + index);
         const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
-        const actionType = detectActionType(text);
-        const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
-
+        // The template paints all four actions the same indigo, with white bold
+        // centred labels -- the buttons are a set of choices, not a traffic
+        // light. The per-action colour survives where it still carries meaning:
+        // the frequency bar under each button, and every feedback state below
+        // (correct green, chosen-wrong classification colour, dimmed rest).
         const baseStyle = {
             ...styles.actionButton,
             ...m.actionButton,
-            background: colors.bg,
-            color: colors.text,
+            background: 'linear-gradient(180deg, #4356e0 0%, #3341c9 55%, #2b37ad 100%)',
+            border: '1px solid rgba(146,160,255,0.45)',
+            color: '#ffffff',
         };
 
         if (showFeedback) {
@@ -3648,7 +3651,15 @@ function UniversalDynamicTable({
             })()}
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
-            <div style={{ ...styles.actionBar, position: 'relative' }}>
+            <div style={{
+                ...styles.actionBar,
+                position: 'relative',
+                // The template lays four actions out as a 2x2 GRID, not a single
+                // row of four thin slivers. Two columns up to four options;
+                // beyond that a third column, because a 2-wide grid of nine
+                // buttons would push the felt off a phone screen.
+                gridTemplateColumns: `repeat(${Math.min(displayOptions.length, 9) > 4 ? 3 : 2}, minmax(0, 1fr))`,
+            }}>
                 {/* YOUR ACTION turn indicator */}
                 {!showFeedback && (
                     <motion.div
@@ -3787,12 +3798,7 @@ function UniversalDynamicTable({
                     ) : null;
 
                     return (
-                        <div key={optionId} style={{
-                            ...styles.actionButtonWrapper,
-                            // Flex basis adapts to option count
-                            flex: isVeryCompact ? '0 0 auto' : 1,
-                            minWidth: isVeryCompact ? `${Math.floor(100 / optionCount) - 1}%` : undefined,
-                        }}>
+                        <div key={optionId} style={styles.actionButtonWrapper}>
                             <ActionButton
                                 action="fold"
                                 size={sizeKey}
@@ -6384,23 +6390,24 @@ const styles = {
 
     // ── ACTION BAR (GTO Wizard-style — adapts to 2-9 buttons)
     actionBar: {
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
         gap: 8,
-        padding: '10px 12px',
+        padding: '10px 12px 12px',
         flexShrink: 0,
     },
 
     actionButtonWrapper: {
-        flex: 1,
         display: 'flex',
         flexDirection: 'column',
+        minWidth: 0,
     },
 
     actionButton: {
         position: 'relative',
-        padding: '12px 8px',
-        minHeight: 64,
+        padding: '10px 8px',
+        // Two rows of buttons instead of one: keep each row shorter so the grid
+        // does not eat the felt's height on a short phone.
+        minHeight: 54,
         fontSize: 14,
         fontWeight: 800,
         fontFamily: "'Inter', sans-serif",
