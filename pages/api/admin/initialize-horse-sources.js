@@ -35,9 +35,19 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+      // This previously FAILED OPEN: with CRON_SECRET unset the template below
+      // collapsed to the literal string "Bearer undefined", so any caller
+      // sending `Authorization: Bearer undefined` authenticated successfully.
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret) {
+          console.warn('[initialize-horse-sources] CRON_SECRET is not configured — rejecting request');
+          return res.status(500).json({ success: false, error: 'Server misconfigured' });
+      }
+
       // Verify admin access
       const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      if (authHeader !== `Bearer ${cronSecret}`) {
           return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 

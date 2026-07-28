@@ -21,9 +21,19 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // SECURITY: a missing ONESIGNAL_REST_API_KEY is a server misconfiguration,
+      // not a grant. This previously FAILED OPEN: with the key unset,
+      // `undefined?.slice(0, 20)` is undefined and the template collapsed to the
+      // literal string "Bearer undefined", so any caller sending
+      // `Authorization: Bearer undefined` authenticated successfully.
+      if (!ONESIGNAL_REST_API_KEY) {
+          console.warn('[import-users] ONESIGNAL_REST_API_KEY is not configured — rejecting request');
+          return res.status(500).json({ success: false, error: 'Server misconfigured' });
+      }
+
       // Simple auth check - require a secret header for admin endpoints
       const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${ONESIGNAL_REST_API_KEY?.slice(0, 20)}`) {
+      if (authHeader !== `Bearer ${ONESIGNAL_REST_API_KEY.slice(0, 20)}`) {
           return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 

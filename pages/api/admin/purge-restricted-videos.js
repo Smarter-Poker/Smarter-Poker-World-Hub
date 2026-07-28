@@ -16,10 +16,21 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 export default async function handler(req, res) {
+    // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+    // This previously FAILED OPEN: the whole check was wrapped in
+    // `if (process.env.CRON_SECRET && ...)` with no else, so an unset
+    // CRON_SECRET skipped authentication entirely and left this destructive
+    // post-purge endpoint world-callable.
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        console.warn('[purge-restricted-videos] CRON_SECRET is not configured — rejecting request');
+        return res.status(500).json({ error: 'Server misconfigured' });
+    }
+
     // Auth check
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (req.headers.authorization !== `Bearer ${cronSecret}`) {
         // Also allow admin access via query param for one-time use
-        if (req.query.key !== process.env.CRON_SECRET) {
+        if (req.query.key !== cronSecret) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
     }

@@ -15,9 +15,20 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+    // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+    // This previously FAILED OPEN: with CRON_SECRET unset the comparison below
+    // was `undefined !== undefined` → false, so a request carrying no
+    // Authorization header at all passed the gate and any caller could run the
+    // zombie-stream cleanup.
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        console.warn('[live-cleanup] CRON_SECRET is not configured — rejecting request');
+        return res.status(500).json({ error: 'Server misconfigured' });
+    }
+
     // Auth: CRON_SECRET or service-level check
     const auth = req.headers.authorization?.replace('Bearer ', '');
-    if (auth !== process.env.CRON_SECRET) {
+    if (auth !== cronSecret) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 

@@ -9,11 +9,19 @@ async function handler(req, res) {
     }
 
     // Vercel Cron Security Authentication
-    if (process.env.CRON_SECRET) {
-        const authHeader = req.headers.authorization;
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+    // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
+    // This previously FAILED OPEN: the entire check was wrapped in
+    // `if (process.env.CRON_SECRET)` with no else, so an unset CRON_SECRET
+    // skipped authentication altogether and left this push-notification route
+    // world-callable.
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        console.warn('[late-reg-cron] CRON_SECRET is not configured — rejecting request');
+        return res.status(500).json({ error: 'Server misconfigured' });
+    }
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${cronSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
