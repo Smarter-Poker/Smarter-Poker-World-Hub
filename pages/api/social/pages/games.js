@@ -199,19 +199,29 @@ export default async function handler(req, res) {
 
                           // Active dealer rotations, keyed by table_number (most recent wins),
                           // matching the rotation lookup in Commander's tablet-data endpoint.
+                          //
+                          // Do NOT PostgREST-embed commander_dealers here. There is no foreign
+                          // key from commander_dealer_rotations.dealer_id to commander_dealers.id
+                          // (the table's only FKs are table_id and venue_id), so an embedded
+                          // select fails the WHOLE query with PGRST200 and returns null data.
+                          // That silently left this map empty and made dealer_name null on every
+                          // game. dealer_name is stored inline on the rotation row, so no join is
+                          // needed. The error is surfaced rather than swallowed so a future
+                          // schema drift here fails loudly instead of blanking the dealer.
                           let dealerRotationMap = {};
                           if (tableNumbers.length > 0) {
                               try {
-                                  const { data: rotations } = await getSupabase()
+                                  const { data: rotations, error: rotErr } = await getSupabase()
                                       .from('commander_dealer_rotations')
-                                      .select('table_number, dealer_name, started_at, commander_dealers:dealer_id (id, name)')
+                                      .select('table_number, dealer_name, started_at')
                                       .eq('venue_id', venueId)
                                       .in('table_number', tableNumbers)
                                       .is('ended_at', null)
                                       .order('started_at', { ascending: false })
-                                          .limit(200);
+                                          .limit(500);
+                                  if (rotErr) console.warn('[games] dealer rotation lookup failed:', rotErr.message);
                                   (rotations || []).forEach(r => {
-                                      const name = r.dealer_name || r.commander_dealers?.name || null;
+                                      const name = r.dealer_name || null;
                                       if (name && r.table_number !== null && r.table_number !== undefined
                                           && dealerRotationMap[r.table_number] === undefined) {
                                           dealerRotationMap[r.table_number] = name;
