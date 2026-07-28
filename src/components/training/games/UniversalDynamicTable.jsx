@@ -1993,15 +1993,38 @@ function UniversalDynamicTable({
         return () => window.removeEventListener('keydown', handleModeKey);
     }, [MODE_TABS]);
 
-    // Determine player count based on game type
+    // Determine player count based on game type.
+    //
+    // TABLE SIZE IS A PROPERTY OF THE HAND, NOT OF THE VIEWPORT. A
+    // `if (feltScale <= 0.65) return 6` cap lived here to stop furniture
+    // colliding with the POT pill at 360x640. It was removed, for three
+    // reasons:
+    //
+    //  1. It does not fix the collision. Both SEAT_CONFIGS[9] and
+    //     SEAT_CONFIGS[6] put their top row at y = 15%, and potTopPct below
+    //     already measures the gap from that same 15% row and re-centres the
+    //     pill (splitting the overlap when no gap exists). Dropping three
+    //     seats changes nothing the pill reacts to.
+    //  2. playerCount is the axis every position table is keyed on.
+    //     getHeroSeatIndex's 6-max map has no UTG+1, MP+1 or UTG+2, so an MTT
+    //     hand whose hero sits at UTG+1 fell through `?? 0` onto the BTN seat
+    //     -- and the dealer button, finding heroSeatIndex === the BTN seat,
+    //     went right back onto hero. That is the exact defect fixed in
+    //     c2c5cad682, re-introduced by a viewport check.
+    //  3. Seats are matched to actionHistory by name. On a 6-seat map an
+    //     UTG+1 villain has no seat, so both the villain AND the chips
+    //     committedFor() puts in front of him vanish from the felt while the
+    //     hand still describes his raise.
+    //
+    // A 9-max hand renders as 9-max at every size; the clamp in the seat block
+    // and potTopPct are what keep it on the felt (scripts/table-geometry-check.js
+    // sweeps 360x640 for exactly that).
     const playerCount = useMemo(() => {
         if (gameType === 'spins' || gameType === 'sng') return 3;
         if (gameType === 'heads-up' || gameType === 'hu') return 2;
-        // Force 6-max maximum on small viewports to prevent furniture collision
-        if (feltScale <= 0.65) return 6;
         if (gameType === '6max' || gameType === 'cash') return 6;
         return 9; // Default to 9-max for MTT
-    }, [gameType, feltScale]);
+    }, [gameType]);
 
     // Get seat configuration
     const seats = SEAT_CONFIGS[playerCount] || SEAT_CONFIGS[9];
