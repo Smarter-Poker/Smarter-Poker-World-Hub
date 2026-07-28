@@ -3014,6 +3014,9 @@ function UniversalDynamicTable({
                             ? heroStack
                             : (index === villainSeatIndex && villainStack ? villainStack : generateVillainStack(index));
                         // Determine if this villain has folded
+                        // HERO-RELATIVE ring index for this ABSOLUTE seat index.
+                        // Entry 0 is hero, 1 is the seat to his left, clockwise.
+                        const seatRel = ((index - heroSeatIndex) % playerCount + playerCount) % playerCount;
                         const villainFolded = !isHero && actionHistory.some(
                             a => a.position?.toUpperCase() === seat.name?.toUpperCase() && /fold/i.test(a.action)
                         );
@@ -3039,14 +3042,31 @@ function UniversalDynamicTable({
                         // rotated into that space with
                         //   ((absolute - heroSeatIndex) % playerCount + playerCount) % playerCount
                         // wherever they meet those tables (dealer button and chip
-                        // blocks below). Nothing here changes that contract.
+                        // blocks below).
                         const activeCount = seats.filter((s, i) => {
                             if (i === heroSeatIndex) return true;
                             return i === villainSeatIndex
                                 || actionHistory.some(a => a.position?.toUpperCase() === s.name?.toUpperCase());
                         }).length;
-                        let seatX = seat.x;
-                        let seatY = seat.y;
+                        // ...and the seat ring is one of those tables. `seats` is a
+                        // POSITION table: entry 0 is BTN, entry 1 is SB, and so on,
+                        // because that is what getHeroSeatIndex maps into. Reading
+                        // seat.x/seat.y at the ABSOLUTE index therefore drew every
+                        // seat at its POSITION's coordinates while the dealer button
+                        // and the chip stacks -- which do rotate -- drew at its
+                        // hero-relative ones. With hero on the button the two agreed
+                        // and nobody noticed. With hero in the big blind they did
+                        // not: hero was pulled to y = 84 but kept the big blind's
+                        // x = 16, so he sat in the bottom-LEFT while his own chips
+                        // sat in the bottom-CENTRE hero slot, the button seat was
+                        // drawn underneath him at bottom-centre, and the D chip was
+                        // over on the mid-right rail. Read the ring through the same
+                        // rotation as everything else and hero lands at (50, 84)
+                        // with the table running clockwise from him, which is the
+                        // arrangement the design template shows.
+                        const ringSeat = seats[seatRel] || seat;
+                        let seatX = ringSeat.x;
+                        let seatY = ringSeat.y;
                         // Heads-up used to slam the lone villain to y = -8%, i.e.
                         // clean OFF the felt and on top of the HUD header. Because
                         // tableArea is overflow:visible nothing clipped it -- it
@@ -3164,7 +3184,7 @@ function UniversalDynamicTable({
                                     <SeatAvatar
                                         src={isHero
                                             ? heroAvatar
-                                            : seatAvatars[((index - heroSeatIndex) % playerCount + playerCount) % playerCount]}
+                                            : seatAvatars[seatRel]}
                                         label={seatLabel}
                                         fontSize={Math.max(12, Math.round(avatarPx * 0.42))}
                                     />
@@ -3422,8 +3442,13 @@ function UniversalDynamicTable({
                         // the pot and settle in their law-defined slot. Keyed on
                         // the amount so a NEW bet re-runs the slide and an
                         // unchanged one does not.
-                        const srcTop = isHeroSeat ? 84 : seat.y;
-                        const srcLeft = seat.x;
+                        // Travel from where the seat is DRAWN, which is its
+                        // hero-relative ring slot, not from its position's
+                        // coordinates -- otherwise the chips fly in from an
+                        // empty patch of felt whenever hero is not on the button.
+                        const ringSeat = seats[chipRel] || seat;
+                        const srcTop = isHeroSeat ? 84 : ringSeat.y;
+                        const srcLeft = ringSeat.x;
                         return (
                             <motion.div
                                 key={`chip-${index}-${amount}`}

@@ -169,6 +169,94 @@ for (const vp of VIEWPORTS) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// THE THREE RINGS AGREE
+// ---------------------------------------------------------------------------
+// Three tables describe the same ring of seats and all three are HERO-RELATIVE:
+// SEAT_CONFIGS (where the furniture is drawn), DEALER_BUTTON_POSITIONS (where
+// the D chip goes) and CHIP_STACK_POSITIONS (where a seat's bet sits). Slot k
+// in each must mean the same chair. Four shipped defects have come from reading
+// one of them at an ABSOLUTE seat index while the others were rotated: the
+// button on hero, hero's chips in a villain's slot, two villains sharing a
+// face, and hero drawn in the bottom-left with the button seat underneath him.
+// The tolerances below are loose on purpose -- chips and the button sit inboard
+// of the seat, toward the pot -- but they are tight enough that a slot landing
+// on the opposite side of the felt fails.
+const DEALER_BUTTON_POSITIONS = {
+    hero: { left: 50.49, top: 75.74 }, v1: { left: 28.73, top: 71.38 },
+    v2: { left: 27.26, top: 55.15 }, v3: { left: 27.85, top: 31.73 },
+    v4: { left: 35.05, top: 15.28 }, v5: { left: 62.55, top: 14.74 },
+    v6: { left: 73.14, top: 31.95 }, v7: { left: 72.70, top: 54.06 },
+    v8: { left: 71.96, top: 71.60 },
+};
+const CHIP_STACK_POSITIONS = {
+    hero: { left: 47.70, top: 71.82 }, v1: { left: 31.67, top: 69.75 },
+    v2: { left: 29.61, top: 54.61 }, v3: { left: 30.79, top: 31.19 },
+    v4: { left: 33.29, top: 18.01 }, v5: { left: 58.29, top: 17.57 },
+    v6: { left: 64.61, top: 31.52 }, v7: { left: 64.32, top: 53.63 },
+    v8: { left: 64.17, top: 69.10 },
+};
+const DEALER_BUTTON_SEAT_KEYS = {
+    9: ['hero', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'],
+    6: ['hero', 'v2', 'v3', 'v4', 'v6', 'v7'],
+    3: ['hero', 'v3', 'v6'],
+    2: ['hero', 'v4'],
+};
+
+console.log('\n=== The seat ring, the button ring and the chip ring agree ===');
+
+for (const count of [9, 6, 3, 2]) {
+    const seats = SEAT_CONFIGS[count];
+    const keys = DEALER_BUTTON_SEAT_KEYS[count];
+
+    check(count + '-max -- slot 0 is hero at the bottom centre of the felt', () => {
+        const s = seats[0];
+        if (Math.abs(s.x - 50) > 2) return 'seat slot 0 is at x ' + s.x;
+        if (s.y < 70) return 'seat slot 0 is at y ' + s.y + ', not on the bottom edge';
+        if (keys[0] !== 'hero') return "button/chip slot 0 is '" + keys[0] + "', not 'hero'";
+        return true;
+    });
+
+    for (const [label, table] of [['chip', CHIP_STACK_POSITIONS], ['button', DEALER_BUTTON_POSITIONS]]) {
+        check(count + '-max -- every ' + label + ' slot lands on its own seat', () => {
+            const bad = [];
+            for (let r = 0; r < seats.length; r++) {
+                const seat = seats[r];
+                const pos = table[keys[r]];
+                if (!pos) { bad.push('slot ' + r + ' has no ' + label + ' position'); continue; }
+                // Vertically the two must be within a seat's height of each other.
+                if (Math.abs(pos.top - seat.y) > 14) {
+                    bad.push(seat.name + ' slot ' + r + ' ' + label + ' top ' + pos.top + ' vs seat y ' + seat.y);
+                }
+                // Horizontally: same side of the felt. A seat within 8% of the
+                // centre line has no side, so it is exempt.
+                const seatSide = Math.abs(seat.x - 50) < 8 ? 0 : Math.sign(seat.x - 50);
+                const posSide = Math.abs(pos.left - 50) < 8 ? 0 : Math.sign(pos.left - 50);
+                if (seatSide !== 0 && posSide !== 0 && seatSide !== posSide) {
+                    bad.push(seat.name + ' slot ' + r + ' ' + label + ' left ' + pos.left + ' is across the felt from seat x ' + seat.x);
+                }
+            }
+            return bad.length === 0 || bad.join('; ');
+        });
+    }
+
+    check(count + '-max -- rotating an absolute seat index lands on the right slot', () => {
+        // The rotation the component applies. For every possible hero seat, the
+        // seat hero occupies must map to slot 0 and the mapping must be a
+        // bijection -- two seats sharing a slot is two seats sharing a chair,
+        // a chip stack, a portrait and a dealer button.
+        for (let heroSeatIndex = 0; heroSeatIndex < count; heroSeatIndex++) {
+            const slots = [];
+            for (let i = 0; i < count; i++) {
+                slots.push(((i - heroSeatIndex) % count + count) % count);
+            }
+            if (slots[heroSeatIndex] !== 0) return 'hero at ' + heroSeatIndex + ' did not map to slot 0';
+            if (new Set(slots).size !== count) return 'hero at ' + heroSeatIndex + ' collapsed two seats onto one slot';
+        }
+        return true;
+    });
+}
+
 console.log('\n=== The POT pill sits between the top row and the board ===');
 for (const vp of VIEWPORTS) {
     const tableAreaH = Math.max(140, vp.h - chromeFor(vp.w));
