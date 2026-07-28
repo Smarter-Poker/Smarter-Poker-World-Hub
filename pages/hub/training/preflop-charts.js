@@ -24,6 +24,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
 import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
+import useVIPGate from '../../../src/hooks/useVIPGate';
+import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
 // TRAIN-CSS-MOTION-ADOPT-18 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -82,8 +84,9 @@ export default function PreflopCharts() {
   // TRAIN-WIRE-BOTTOMSHEET-5 — info sheet state
   const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('preflop-charts');
-
+  
   // Filters
+  const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('gto-training');
   const [gameType, setGameType] = useState('cash_6max');
   const [scenario, setScenario] = useState('rfi');
   const [position, setPosition] = useState('BTN');
@@ -366,11 +369,17 @@ export default function PreflopCharts() {
               >
                 Scenario:
               </span>
-              {SCENARIOS.map((sc) => (
+              {SCENARIOS.map((s) => (
                 <button
-                  key={sc.value}
-                  onClick={() => setScenario(sc.value)}
-                  title={sc.desc}
+                  key={s.value}
+                  onClick={() => {
+                    if (s.value !== 'rfi' && !allowed) {
+                      showUpgradeModal();
+                      return;
+                    }
+                    setScenario(s.value);
+                  }}
+                  title={s.desc}
                   style={{
                     padding: '4px 10px',
                     borderRadius: 6,
@@ -380,11 +389,11 @@ export default function PreflopCharts() {
                     border: 'none',
                     transition: 'all 0.15s',
                     background:
-                      scenario === sc.value ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: scenario === sc.value ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
+                      scenario === s.value ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
+                    color: scenario === s.value ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   }}
                 >
-                  {sc.label}
+                  {s.label}
                 </button>
               ))}
             </div>
@@ -428,7 +437,7 @@ export default function PreflopCharts() {
           </div>
         </div>
 
-        {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
+        {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
         <div style={{ padding: '20px 24px' }}>
           {/* Position Selector + Compare Toggle */}
           <div
@@ -491,6 +500,10 @@ export default function PreflopCharts() {
             {/* Compare Toggle */}
             <button
               onClick={() => {
+                if (!compareMode && !allowed) {
+                  showUpgradeModal();
+                  return;
+                }
                 setCompareMode(!compareMode);
                 if (!compareMode && comparePosition === position) {
                   const alt = displayedPositions.find((p) => p !== position);
@@ -783,9 +796,15 @@ export default function PreflopCharts() {
                 </>
               )}
             </p>
+            <div style={{ height: 20 }} />
           </div>
         </div>
       </div>
+      <VIPGateModal 
+        visible={upgradeModalVisible}
+        onClose={hideUpgradeModal}
+        featureName="Advanced Preflop Charts"
+      />
       <ConnectionToast />
     </>
   );
