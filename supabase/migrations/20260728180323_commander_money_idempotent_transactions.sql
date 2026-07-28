@@ -95,7 +95,7 @@ begin
 end
 $fn$;
 
--- ── 2. Tournament rebuy ───────────────────────────────────────────────────────
+-- ── 2. Tournament rebuy ──────────────────────────────────────────────────────
 -- The max-rebuys check moves into the UPDATE predicate, so two concurrent
 -- rebuys can no longer both read rebuy_count = max - 1 and both be allowed.
 create or replace function public.commander_txn_tournament_rebuy(
@@ -177,7 +177,7 @@ begin
 end
 $fn$;
 
--- ── 3. Tournament add-on ───────────────────────────────────────────────────────
+-- ── 3. Tournament add-on ─────────────────────────────────────────────────────
 -- addon_taken is a one-time flag; checking it in JS and setting it in a second
 -- statement let two concurrent add-ons both pass the check and both add chips.
 -- The flag check is now the UPDATE predicate.
@@ -337,7 +337,7 @@ begin
 end
 $fn$;
 
--- ── 5. Comp award / void ───────────────────────────────────────────────────────
+-- ── 5. Comp award / void ─────────────────────────────────────────────────────
 -- Covers all four comp write paths in pages/api/comps/balances.js (membership,
 -- free time, dollar award, void) because each moves a different combination of
 -- comp_balance / lifetime totals / prepaid minutes and none of them may
