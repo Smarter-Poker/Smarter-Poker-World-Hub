@@ -53,19 +53,26 @@ const SORT_OPTIONS = [
 function getAccessToken() {
     if (typeof window === 'undefined') return null;
     try {
+        // Primary: smarter-poker-auth (storageKey set in supabase.ts)
+        const primary = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+        if (primary?.access_token) return primary.access_token;
+        // Legacy fallback: sb-*-auth-token
         const keys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         if (keys.length > 0) {
             const data = JSON.parse(localStorage.getItem(keys[0]) || '{}');
             return data?.access_token || null;
         }
-        const auth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-        return auth?.access_token || null;
     } catch { return null; }
+    return null;
 }
 
 function getCurrentUser() {
     if (typeof window === 'undefined') return null;
     try {
+        // Primary: smarter-poker-auth
+        const primary = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+        if (primary?.user) return primary.user;
+        // Legacy fallback: sb-*-auth-token
         const keys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         if (keys.length > 0) {
             const data = JSON.parse(localStorage.getItem(keys[0]) || '{}');
@@ -74,6 +81,7 @@ function getCurrentUser() {
         return null;
     } catch { return null; }
 }
+
 
 function timeAgo(dateStr) {
     if (!dateStr) return '';

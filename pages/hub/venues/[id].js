@@ -509,11 +509,13 @@ export default function VenueDetailPage() {
     var headers = {};
     if (authUser) {
       try {
-        var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
-        if (sbKeys.length > 0) {
-          var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-          if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+        var _primaryAuth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+        var _token = _primaryAuth?.access_token || null;
+        if (!_token) {
+          var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+          if (sbKeys.length > 0) _token = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
         }
+        if (_token) headers['Authorization'] = 'Bearer ' + _token;
       } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     }
     fetch(whUrl, { headers: headers })
@@ -966,11 +968,13 @@ export default function VenueDetailPage() {
     var fetchHeaders = { 'Content-Type': 'application/json' };
     var hasToken = false;
     try {
-      var sbKeys = Object.keys(localStorage || {}).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
-      if (sbKeys.length > 0) {
-        var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-        if (tokenData.access_token) { fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token; hasToken = true; }
+      var _pa = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      var _ft = _pa?.access_token || null;
+      if (!_ft) {
+        var sbKeys = Object.keys(localStorage || {}).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        if (sbKeys.length > 0) _ft = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
       }
+      if (_ft) { fetchHeaders['Authorization'] = 'Bearer ' + _ft; hasToken = true; }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     if (!hasToken) return; // Anonymous follow state saved to localStorage only (above)
@@ -1112,11 +1116,13 @@ export default function VenueDetailPage() {
       // Build headers with JWT auth
       var fetchHeaders = { 'Content-Type': 'application/json' };
       try {
-        var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
-        if (sbKeys.length > 0) {
-          var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-          if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
+        var _ci_auth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+        var _ci_tok = _ci_auth?.access_token || null;
+        if (!_ci_tok) {
+          var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+          if (sbKeys.length > 0) _ci_tok = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
         }
+        if (_ci_tok) fetchHeaders['Authorization'] = 'Bearer ' + _ci_tok;
       } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
 
       var res = await fetch('/api/poker/checkins', {

@@ -584,7 +584,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <button onClick={async () => {
                                     try {
                                         const token = getAccessToken();
-                                        const shareRes = await fetch('/api/social/posts', {
+                                        const shareRes = await fetch('/api/social/pages/posts', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                             body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),

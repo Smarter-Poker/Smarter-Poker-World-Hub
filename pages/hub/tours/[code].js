@@ -174,17 +174,18 @@ export default function TourDetailPage() {
     let accessToken = null;
     let userId = null;
     try {
-      const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) {
-        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-        accessToken = tokenData.access_token || null;
-        // Extract user UUID from JWT payload (user.id is in the 'sub' claim)
-        if (accessToken) {
-          try {
-            const sub = JSON.parse(atob(accessToken.split('.')[1]));
-            userId = sub?.sub || null;
-          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        }
+      const _pa = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      accessToken = _pa?.access_token || null;
+      if (!accessToken) {
+        const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) accessToken = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
+      }
+      // Extract user UUID from JWT payload
+      if (accessToken) {
+        try {
+          const sub = JSON.parse(atob(accessToken.split('.')[1]));
+          userId = sub?.sub || null;
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // Only query follow state if we have a real authenticated UUID
@@ -267,10 +268,16 @@ export default function TourDetailPage() {
     // Persist follow state via API (JWT required)
     const fetchHeaders = { 'Content-Type': 'application/json' };
     try {
-      const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) {
-        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-        if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
+      const _hf_auth = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      const _hf_tok = _hf_auth?.access_token || null;
+      if (_hf_tok) {
+        fetchHeaders['Authorization'] = 'Bearer ' + _hf_tok;
+      } else {
+        const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) {
+          const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+          if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
+        }
       }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     fetch('/api/poker/follow', {

@@ -8618,7 +8618,7 @@ function SocialMediaPage() {
   // block feed render on this. Auth required server-side so this can't
   // be hammered anonymously.
   useEffect(() => {
-    const token = typeof localStorage !== 'undefined' && localStorage.getItem('sb-access-token');
+    const token = typeof localStorage !== 'undefined' && (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token || (() => { const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token')); return k ? JSON.parse(localStorage.getItem(k) || '{}')?.access_token : null; })());
     fetch('/api/live/cleanup-stale', {
       method: 'POST',
       headers: {

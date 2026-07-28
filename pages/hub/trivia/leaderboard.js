@@ -34,7 +34,7 @@ export default function TriviaLeaderboard() {
         };
         update();
         // Re-check whenever auth might have changed (other tabs / supabase auth-state-change broadcast)
-        const onStorage = (e) => { if (e.key === 'sb-kuklfnapbkmacvwxktbh-auth-token') update(); };
+        const onStorage = (e) => { if (e.key === 'smarter-poker-auth' || (e.key?.startsWith('sb-') && e.key?.endsWith('-auth-token'))) update(); };
         window.addEventListener('storage', onStorage);
         return () => window.removeEventListener('storage', onStorage);
     }, []);
