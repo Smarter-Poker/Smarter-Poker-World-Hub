@@ -285,3 +285,60 @@ export function reconcileAnswerKey(q) {
     q.answerKeyReconciled = true;
     return q;
 }
+
+/**
+ * Choose which solver actions to serve as answer options, and the frequency
+ * bars that go with them.
+ *
+ * get-question.js used to do `readableActions.slice(0, 4)` while taking
+ * correctAnswer from the argmax of the whole distribution. validActions keeps
+ * the solver's own action order, so on any node with five or more actions
+ * (f, c, b33, b75, b150, allin is routine) the highest-frequency action could
+ * sit at index 4 or later — and then the correct answer was not one of the
+ * four buttons on screen. The player could not pick it. Every attempt at that
+ * question graded wrong, and the frequency bars referenced action ids that had
+ * no button at all, so the visible frequencies did not add up to 100 either.
+ *
+ * Selection is by frequency, highest first, with the optimal action always
+ * kept. Bars are renormalised over the served set so they total exactly 100.
+ *
+ * @param {Array<{id: string, text: string, frequency: number}>} readableActions
+ * @param {string} optimalAction - the argmax action id, must survive selection
+ * @param {number} [maxOptions]
+ * @returns {{ options: Array, gtoFrequencies: Object<string, number> }}
+ */
+export function selectServedOptions(readableActions, optimalAction, maxOptions = 4) {
+    const all = Array.isArray(readableActions) ? readableActions.filter(Boolean) : [];
+    if (all.length === 0) return { options: [], gtoFrequencies: {} };
+
+    const byFreq = [...all].sort((a, b) => (b.frequency || 0) - (a.frequency || 0));
+    const served = byFreq.slice(0, Math.max(1, maxOptions));
+
+    // The grading key is not optional. If frequency ordering somehow dropped it
+    // (ties, a caller passing an optimalAction from a different pass), put it
+    // back in place of the least-played served action.
+    if (optimalAction && !served.some((a) => a.id === optimalAction)) {
+        const optimal = all.find((a) => a.id === optimalAction);
+        if (optimal) served[served.length - 1] = optimal;
+    }
+
+    const total = served.reduce((sum, a) => sum + (Number(a.frequency) || 0), 0);
+    const gtoFrequencies = {};
+    let acc = 0;
+    served.forEach((a, i) => {
+        if (i === served.length - 1) {
+            gtoFrequencies[a.id] = Math.max(0, 100 - acc);
+        } else {
+            const pct = total > 0
+                ? Math.max(0, Math.min(Math.round(((Number(a.frequency) || 0) / total) * 100), 100 - acc))
+                : Math.round(100 / served.length);
+            gtoFrequencies[a.id] = pct;
+            acc += pct;
+        }
+    });
+
+    return {
+        options: served.map((a) => ({ id: a.id, text: a.text })),
+        gtoFrequencies,
+    };
+}

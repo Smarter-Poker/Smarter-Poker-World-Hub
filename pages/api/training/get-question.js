@@ -20,7 +20,8 @@ import { applyDeterministicEnginePatches } from '../../../src/engines/determinis
 // 2026-07-19 engine-audit runtime patches (see that module's header)
 applyDeterministicEnginePatches(deterministicEngine);
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey, selectServedOptions } from '../../../src/utils/trainingApiUtils';
+import { heroActsFirstPostflop } from '../../../src/engines/positionOrder';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Deterministic hash for seeded fallback data ──
@@ -408,11 +409,13 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
       HJ: 'BB',
     };
 
-    // Build normalized GTO frequencies (0-100% scale) for UI frequency bars
-    const gtoFrequencies = {};
-    validActions.forEach((action) => {
-      gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
-    });
+    // Serve the highest-frequency actions as the answer options, and build the
+    // frequency bars over exactly those. `readableActions.slice(0, 4)` kept the
+    // solver's action order, so on a five-plus-action node the argmax could sit
+    // outside the four buttons: the correct answer was unpickable and the bars
+    // referenced ids with no button.
+    const { options: servedOptions, gtoFrequencies } =
+      selectServedOptions(readableActions, optimalAction, 4);
 
     // Extract hand EVs from strategy matrix for real EV loss computation
     const handEVs = strategyMatrix.hand_evs || scenario.handEVs || {};
@@ -439,16 +442,24 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         pot: estimatedPot,
         villainPosition: villainPositionMap[extractedPosition.toUpperCase()] || 'BB',
         villainStack: scenario.stackDepth || 100, // Effective stacks
-        action: scenario.street !== 'preflop' ? 'Villain checks' : '',
+        // "Villain checks" was hard-coded for every postflop question. When
+        // hero is BB and villain is BTN, hero acts FIRST postflop — the button
+        // cannot have checked to the big blind. The prompt told the player the
+        // opposite of the action order the same question was grading them on.
+        action: scenario.street === 'preflop'
+          ? ''
+          : (heroActsFirstPostflop(
+              extractedPosition.toUpperCase(),
+              villainPositionMap[extractedPosition.toUpperCase()] || 'BB'
+            )
+            ? 'Action is on you'
+            : 'Villain checks'),
       },
       // Add heroCards in the format expected by UniversalDynamicTable
       // (heroHand here is notation like 'AKs' — convert, don't substring-split)
       heroCards: heroHandToCards(heroHand),
       question: `You hold ${formatHand(heroHand)} on the ${scenario.street} with board ${scenario.board.join(' ')}. Stack: ${scenario.stackDepth}BB. What is the GTO play?`,
-      options: readableActions.slice(0, 4).map((a) => ({
-        id: a.id,
-        text: a.text,
-      })),
+      options: servedOptions,
       correctAnswer: optimalAction,
       correctAnswerText: actionNameMap[optimalAction] || optimalAction,
       frequencies: handActions, // Raw 0.0-1.0 per action (legacy compatibility)
