@@ -374,7 +374,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── MAP & RETURN ─────────────────────────────────────────────────
+    // ── MAP & RETURN ───────────────────────────────────────────────
     const action = result.action;
     const mappedAction = ACTION_MAP[action.type] || action.type.toUpperCase();
 
