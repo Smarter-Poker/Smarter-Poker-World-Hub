@@ -154,7 +154,7 @@ export default async function handler(req, res) {
       // 4. Database Security Checks
       // ==========================================
 
-      if (supabaseUrl && supabaseServiceKey) {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
           
 
           // Check RLS is enabled on critical tables
