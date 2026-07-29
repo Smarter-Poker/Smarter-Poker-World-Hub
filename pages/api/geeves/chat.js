@@ -1,7 +1,8 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+/* ═══════════════════════════════════════════════════════════════════════
    GEEVES CHAT API — Lightweight endpoint for GeevesMenuWidget
    Now includes cache lookup before calling Grok for efficiency
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';

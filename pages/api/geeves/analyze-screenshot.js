@@ -1,6 +1,7 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+/* ═══════════════════════════════════════════════════════════════════════
    SCREENSHOT ANALYSIS API — Analyze poker table screenshots using Grok Vision
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
