@@ -30,74 +30,39 @@
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
 # ─── /hub/lives.js — UI-UX-Pro-Max + 4 audit passes ─────────────────────────
-LV-AUDIT-1
-LV-AUDIT-2
-LV-AUDIT-3
-LV-AUDIT-4
-LV-AUDIT-5
-LV-AUDIT-6
-LV-AUDIT-7
-LV-AUDIT-8
-LV-AUDIT-9
 
 # ─── /hub/lives.js — pre-existing adversarial-audit fixes ───────────────────
-LV-LIKES
-LV-SHARE
-LV-WATCH
-LV-AUDIO
-L-LIVES-1
-L-LIVES-2
-L-LIVES-3
-L-LIVES-4
 
 # ─── src/components/social/GoLiveModal.jsx ──────────────────────────────────
-GLM-1
-GLM-2
-GLM-3
-GLM-5
-GLM-6
 
 # ─── src/components/social/LiveStreamViewer.jsx ─────────────────────────────
-LSV-1
-LSV-2
-LSV-4
-LSV-5
-LSV-6
-LV-1
-V-VIDEO-1
 
 # ─── pages/hub/user/[username].js — profile lookup hardening ────────────────
 # USER-LOOKUP-1 — fixes 'User Not Found' when clicking profile avatars even
 # though the profile exists. Root cause: select('*') triggers a 403 from
 # PostgREST because phone+email columns have column-level REVOKE.
 # See src/lib/profileColumns.js header and /hub/user/[username].js comment.
-USER-LOOKUP-1
 
 # ─── pages/hub/user/[username].js — post delete + mobile layout ─────────────
 # USER-DELETE-1 — handleDeletePost was fire-and-forget on the DB delete and
 # fired same-tab cache invalidation BEFORE the DB write completed, causing
 # the optimistic-removed post to be re-fetched and re-added to state. User
 # had to click delete a second time. Fix: await the DB delete THEN broadcast.
-USER-DELETE-1
 # USER-DELETE-2 — social_reels.source_post_id FK was ON DELETE SET NULL, so
 # deleting a profile post left an orphan reel that kept playing in /hub/reels.
 # App-layer defense in depth: explicitly delete matching reels after post
 # delete confirms. Backed by a DB migration changing FK to ON DELETE CASCADE.
-USER-DELETE-2
 # USER-LAYOUT-1 — explicit width / max-width / box-sizing on the .sp-profile-page
 # wrapper to prevent the page from rendering in a narrow column on mobile when
 # an ancestor has a stale width / flex-basis. Reported visible after the
 # USER-LOOKUP-1 fix made the page actually render.
-USER-LAYOUT-1
 
 # ─── pages/hub/reels.js — DELETE realtime subscriptions ─────────────────────
 # REELS-DELETE-1 — subscribe to DELETE events on social_reels so deleted reels
 # disappear from /hub/reels in real time instead of continuing to play.
-REELS-DELETE-1
 # REELS-DELETE-2 — also subscribe to DELETE on social_posts and filter reels
 # whose source_post_id matches; covers the case where a profile post-delete
 # transitively means the reel should disappear.
-REELS-DELETE-2
 
 
 # ─── /hub/training — Surface C (post-answer feedback) critical bugs ─────────
@@ -110,7 +75,6 @@ REELS-DELETE-2
 # and (18472/1326 combos). Fix: per-hand normalize so each cell's actions
 # sum to ≤100 before applying weight, mathematically guaranteeing
 # actionTotals ≤ totalCombos regardless of input scale.
-TRAIN-RANGE-PCT-1
 # TRAIN-ACTIONS-COUNT-1 — UniversalDynamicTable.jsx displayOptions useMemo.
 # Question pipeline sometimes pre-trims `options` to 2 entries on a postflop
 # spot where ≥4 actions should be available. After groupActions returns, top
@@ -118,14 +82,12 @@ TRAIN-RANGE-PCT-1
 # missing actions first) until length ≥ 4 in standard difficulty mode. Push/
 # fold short-stack trainers are detected via the {push, fold, allin} ID set
 # and left at 2 buttons.
-TRAIN-ACTIONS-COUNT-1
 # TRAIN-ERROR-BOUNDARY-1 — GlobalErrorCatcher.jsx. Logged uncaught errors and
 # unhandled rejections at console.warn level, which is invisible in many
 # production log filters and silently swallowed state-corruption errors that
 # the training surface was throwing. Tightened to console.error on both code
 # paths, and the dev-mode toast now names the underlying error type and a
 # trimmed message so triage is actionable. Production toast text unchanged.
-TRAIN-ERROR-BOUNDARY-1
 
 # ─── /hub/training — Bug 2B follow-up (deferred from PR1) ───────────────────
 # TRAIN-FEEDBACK-SYNC-1 — UniversalDynamicTable.jsx defensive guard against
@@ -135,7 +97,6 @@ TRAIN-ERROR-BOUNDARY-1
 # says "On the Qc Kc 7d flop, you hold 86o from the CO." Root cause is in
 # the scenario pipeline (tracked as #283); this guard prevents wrong text
 # from reaching users while the upstream fix is built.
-TRAIN-FEEDBACK-SYNC-1
 
 # ─── /hub/training — Surface B (active table) layout polish ─────────────────
 # TRAIN-LAYOUT-QUIT-1 — UniversalDynamicTable.jsx Quit button. Was absolutely
@@ -144,7 +105,6 @@ TRAIN-FEEDBACK-SYNC-1
 # overlapped the hint text. Lifted Quit out of the action-bar layer and
 # pinned it to the viewport's top-left corner with iOS/Android safe-area
 # awareness so it cannot collide with any bottom-UI element.
-TRAIN-LAYOUT-QUIT-1
 
 # ─── /hub/training — Surface C (post-answer feedback) IA pass ───────────────
 # TRAIN-FB-COPY-1 — UniversalDynamicTable.jsx Hand Summary header. The previous
@@ -152,7 +112,6 @@ TRAIN-LAYOUT-QUIT-1
 # both ambiguous (which street?) and SCREAMING-CAPS. Replaced with a natural
 # language map: 1 → "Played to flop", 2 → "Played to turn", 3 → "Played to
 # river", 4 → "Hand to showdown", and a generic fallback for higher counts.
-TRAIN-FB-COPY-1
 # TRAIN-FB-IA-1 — UniversalDynamicTable.jsx auxiliary feedback cards. The
 # post-answer feedback layer was stacking up to 10 narrative cards (PRINCIPLE
 # / POSITION / TEXTURE / SPR / VILLAIN RANGE / STREET PLAN / HAND / EQUITY /
@@ -161,7 +120,6 @@ TRAIN-FB-COPY-1
 # button below the fold. Wrapped them in a single <details> accordion ("More
 # coaching insights") so the two important cards stay visible by default and
 # the deep insights are opt-in.
-TRAIN-FB-IA-1
 
 # ─── /hub/training — cross-cutting CSS sweep across all 89 game pages ───────
 # TRAIN-CSS-SWEEP-1 — src/styles/worlds/training.css. The training theme file
@@ -180,7 +138,6 @@ TRAIN-FB-IA-1
 #  10. Print stylesheet for sane Cmd-P output
 # Each block addresses a specific anti-pattern category from the May 8
 # training-overhaul handoff and the ui-ux-pro-max design-system standards.
-TRAIN-CSS-SWEEP-1
 
 # ─── /hub/training — typography rhythm + spacing scale (sweep #2) ───────────
 # TRAIN-CSS-TYPO-1 — src/styles/worlds/training.css second sweep block.
@@ -199,7 +156,6 @@ TRAIN-CSS-SWEEP-1
 #   9. Empty-state pattern (sp-empty, sp-empty-title)
 #  10. Skeleton shimmer (sp-skeleton, sp-skeleton-line, sp-skeleton-block) —
 #      honors prefers-reduced-motion via the guard from TRAIN-CSS-SWEEP-1.
-TRAIN-CSS-TYPO-1
 
 # ─── /hub/training — ConnectionToast emoji→SVG (46 pages) ───────────────────
 # TRAIN-TOAST-SVG-1 — src/components/training/ConnectionToast.js. Replaced
@@ -212,7 +168,6 @@ TRAIN-CSS-TYPO-1
 # vs 'polite' when reconnected (reassurance, can wait). 46 training pages
 # import this component, so the fix propagates broadly. Adds a
 # prefers-reduced-motion guard for the slideUp animation.
-TRAIN-TOAST-SVG-1
 
 # ─── /hub/training — ErrorBanner polish (28 pages) ──────────────────────────
 # TRAIN-ERROR-BANNER-1 — src/components/training/ErrorBanner.js polishing
@@ -226,7 +181,6 @@ TRAIN-TOAST-SVG-1
 #      the FULL banner when message changes, not just the diff.
 #   4. Retry button uses :focus-visible offset and minimum 32px height for
 #      better keyboard + touch ergonomics.
-TRAIN-ERROR-BANNER-1
 
 # ─── /hub/training — PageTransition reduced-motion + dvh (14 pages) ─────────
 # TRAIN-PAGE-TRANSITION-1 — src/components/transitions/PageTransition.jsx.
@@ -238,7 +192,6 @@ TRAIN-ERROR-BANNER-1
 # minHeight: '100vh' is the handoff §5 viewport-units anti-pattern; 100vh on
 # mobile includes the address-bar area and causes scroll/jank. Replaced with
 # 100dvh (Chrome 108+, Safari 15.4+, Firefox 101+).
-TRAIN-PAGE-TRANSITION-1
 
 # ─── /hub/training — backend RPCs for dashboard surfaces ────────────────────
 # TRAIN-DB-DASHBOARD-1 — supabase/migrations/20260510175000_training_dashboard_rpcs.sql.
@@ -255,7 +208,6 @@ TRAIN-PAGE-TRANSITION-1
 # production via Supabase MCP apply_migration on 2026-05-10 and verified via
 # pg_proc on the same date. Unblocks the deferred Session Setup popup
 # (issue #288) which needs these stats for the YOUR PERFORMANCE (30 DAYS) card.
-TRAIN-DB-DASHBOARD-1
 
 # ─── /hub/training — Session Setup popup (greenfield, closes #288) ──────────
 # TRAIN-SETUP-MODAL-1 — src/components/training/SessionSetupModal.jsx (new
@@ -273,7 +225,6 @@ TRAIN-DB-DASHBOARD-1
 # TRAIN-CSS-TYPO-1 so it inherits a11y + touch + reduced-motion guards.
 # A11y: role=dialog, aria-modal, aria-labelledby, ESC dismisses, focus
 # rings, pills are real <button role="radio" aria-checked> elements.
-TRAIN-SETUP-MODAL-1
 
 # ─── /hub/training — header chip consolidation (PR4 follow-up) ──────────────
 # TRAIN-HEADER-CHIPS-1 — src/components/training/games/UniversalDynamicTable.jsx
@@ -286,7 +237,6 @@ TRAIN-SETUP-MODAL-1
 # data-compact so the global mobile 44px touch-target rule from
 # TRAIN-CSS-SWEEP-1 leaves them at their intentionally compact size.
 # aria-pressed states + title tooltips added.
-TRAIN-HEADER-CHIPS-1
 
 # ─── /hub/training — sticky NEXT HAND button on mobile (PR2 follow-up) ──────
 # TRAIN-NEXT-HAND-STICKY-1 — src/components/training/games/UniversalDynamicTable.jsx
@@ -299,7 +249,6 @@ TRAIN-HEADER-CHIPS-1
 # feedback panel exceeds the viewport height. Desktop behaviour is unchanged
 # because position:sticky has no effect until content scrolls past the
 # button's natural inline position.
-TRAIN-NEXT-HAND-STICKY-1
 
 # ─── /hub/training — frontend race root-cause fix (closes #283) ─────────────
 # TRAIN-FEEDBACK-SNAPSHOT-1 — src/components/training/games/UniversalDynamicTable.jsx.
@@ -317,7 +266,6 @@ TRAIN-NEXT-HAND-STICKY-1
 # All three TRAIN-FEEDBACK-SYNC-1 guard sites updated: displayExplanation
 # construction (~3954), structuredExplanation.takeaway (~4234), and the
 # Phase 301 SOLVER LINE narration (~4458). Closes issue #283.
-TRAIN-FEEDBACK-SNAPSHOT-1
 
 # ─── /hub/training/skill-tree — visible surface a11y + emoji→SVG ────────────
 # TRAIN-SKILL-TREE-A11Y-1 — pages/hub/training/skill-tree.js. The 12-level
@@ -333,7 +281,6 @@ TRAIN-FEEDBACK-SNAPSHOT-1
 #   - Page title becomes semantic h1; branch headers become semantic h2.
 #   - XP chip gets role="status" + aria-label and tabular numerals.
 # Visible surface, no other touches.
-TRAIN-SKILL-TREE-A11Y-1
 
 # ─── /hub/training/progress — surface a11y + emoji→SVG ──────────────────────
 # TRAIN-PROGRESS-A11Y-1 — pages/hub/training/progress.js. Personal progress
@@ -343,7 +290,6 @@ TRAIN-SKILL-TREE-A11Y-1
 # `kind`, currentColor inheritance) and routed StatCard via a new
 # `iconKind` prop with back-compat fallback for the legacy `icon` text
 # prop. Same pattern as TRAIN-SKILL-TREE-A11Y-1.
-TRAIN-PROGRESS-A11Y-1
 
 # ─── /hub/training/leaderboard — restore stripped-emoji gaps ────────────────
 # TRAIN-LEADERBOARD-A11Y-1 — pages/hub/training/leaderboard.js. Found two
@@ -354,7 +300,6 @@ TRAIN-PROGRESS-A11Y-1
 # but never replaced). Added TrophyIcon + MedalIcon SVG components and
 # wired them in. Medal stroke colour preserves the existing gold/silver/
 # bronze theme (#FFD700/#C0C0C0/#CD7F32) via currentColor.
-TRAIN-LEADERBOARD-A11Y-1
 
 # ─── /hub/training/daily-challenge — surface a11y polish ─────────────────────
 # TRAIN-DAILY-CHALLENGE-A11Y-1 — pages/hub/training/daily-challenge.js. The
@@ -370,7 +315,6 @@ TRAIN-LEADERBOARD-A11Y-1
 # + aria-label on all three buttons, and lift the About section to <h2>
 # while preserving its original inline style chrome. Visible surface only,
 # no logic changes.
-TRAIN-DAILY-CHALLENGE-A11Y-1
 
 # ─── /hub/training/achievements — surface a11y + emoji→SVG ──────────────────
 # TRAIN-ACHIEVEMENTS-A11Y-1 — pages/hub/training/achievements.js. The training
@@ -384,7 +328,6 @@ TRAIN-DAILY-CHALLENGE-A11Y-1
 # refetch. Skeleton wrapper gets role="status" + aria-label. Progress bars
 # gain role="progressbar" with aria-valuenow/min/max. Filter row gets
 # role="tablist". Same surface-specific pattern as PR #320/#322/#324/#327.
-TRAIN-ACHIEVEMENTS-A11Y-1
 
 # ─── /hub/training/challenges — surface a11y + emoji→SVG ────────────────────
 # TRAIN-CHALLENGES-A11Y-1 — pages/hub/training/challenges.js. Goals/challenges
@@ -396,7 +339,6 @@ TRAIN-ACHIEVEMENTS-A11Y-1
 # (was an unlabeled button). Progress bar gains role=progressbar +
 # aria-valuenow/min/max. Skeleton loader wrapper gains role=status. Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328.
-TRAIN-CHALLENGES-A11Y-1
 
 # ─── /hub/training/streaks — surface a11y + emoji→SVG ───────────────────────
 # TRAIN-STREAKS-A11Y-1 — pages/hub/training/streaks.js. Streak dashboard had
@@ -413,7 +355,6 @@ TRAIN-CHALLENGES-A11Y-1
 # with valuenow/min/max. At-Risk banner gains role="alert". Loading wrapper
 # gains role="status". Calendar days gain per-day aria-label. Same surface-
 # specific pattern as PR #320/#322/#324/#327/#328/#329.
-TRAIN-STREAKS-A11Y-1
 
 # ─── /hub/training/milestones — surface a11y + emoji→SVG ────────────────────
 # TRAIN-MILESTONES-A11Y-1 — pages/hub/training/milestones.js. Milestone
@@ -429,7 +370,6 @@ TRAIN-STREAKS-A11Y-1
 # Legacy emoji `icon` strings preserved on every milestone def for any
 # external API consumer still reading the old shape. Same surface-specific
 # pattern as PR #320/#322/#324/#327/#328/#329/#330.
-TRAIN-MILESTONES-A11Y-1
 
 # ─── /hub/training/training-feed — surface a11y + emoji→SVG ─────────────────
 # TRAIN-FEED-A11Y-1 — pages/hub/training/training-feed.js. Social activity
@@ -443,7 +383,6 @@ TRAIN-MILESTONES-A11Y-1
 # type="button"; back gains aria-label. Page title raised to <h1>. Filter
 # row gains role="tablist". Loading wrapper gains role="status". Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331.
-TRAIN-FEED-A11Y-1
 
 # ─── /hub/training/glossary — surface a11y polish ───────────────────────────
 # TRAIN-GLOSSARY-A11Y-1 — pages/hub/training/glossary.js. GTO glossary page
@@ -458,7 +397,6 @@ TRAIN-FEED-A11Y-1
 # to <h1>. Filtered-count region becomes role="status" aria-live="polite"
 # so SR announces search/filter changes. Same surface-specific pattern as
 # PR #320/#322/#324/#327/#328/#329/#330/#331/#332.
-TRAIN-GLOSSARY-A11Y-1
 
 # ─── /hub/training/training-calendar — surface a11y polish ──────────────────
 # TRAIN-CALENDAR-A11Y-1 — pages/hub/training/training-calendar.js. GitHub-
@@ -473,7 +411,6 @@ TRAIN-GLOSSARY-A11Y-1
 # gains role="status". Title raised to <h1>. Loading wrapper gains
 # role="status" + aria-label. Same surface-specific pattern as PR #320/
 # #322/#324/#327/#328/#329/#330/#331/#332/#333.
-TRAIN-CALENDAR-A11Y-1
 
 # ─── /hub/training/daily-goals — surface a11y polish ────────────────────────
 # TRAIN-DAILY-GOALS-A11Y-1 — pages/hub/training/daily-goals.js. Daily goals
@@ -488,7 +425,6 @@ TRAIN-CALENDAR-A11Y-1
 # progress bar becomes role="progressbar" with valuenow/min/max. Loading
 # wrapper gains role="status". Title raised to <h1>. Same surface-specific
 # pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334.
-TRAIN-DAILY-GOALS-A11Y-1
 
 # ─── /hub/training/my-playbook — surface a11y polish ────────────────────────
 # TRAIN-PLAYBOOK-A11Y-1 — pages/hub/training/my-playbook.js. Custom strategy
@@ -501,7 +437,6 @@ TRAIN-DAILY-GOALS-A11Y-1
 # Plays-count subtitle gains role="status". Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
 # #332/#333/#334/#335.
-TRAIN-PLAYBOOK-A11Y-1
 
 # ─── /hub/training/mental-journal — surface a11y polish ─────────────────────
 # TRAIN-JOURNAL-A11Y-1 — pages/hub/training/mental-journal.js. Tilt &
@@ -517,7 +452,6 @@ TRAIN-PLAYBOOK-A11Y-1
 # appropriate role="tab"/"radio"/"radiogroup". Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/
 # #332/#333/#334/#335/#336.
-TRAIN-JOURNAL-A11Y-1
 
 # ─── /hub/training/session-warmup — surface a11y polish ─────────────────────
 # TRAIN-WARMUP-A11Y-1 — pages/hub/training/session-warmup.js. Pre-session
@@ -531,7 +465,6 @@ TRAIN-JOURNAL-A11Y-1
 # indicator dots wrapped in role="progressbar" with valuenow/min/max.
 # Input gains aria-label. Same surface-specific pattern as PR #320/#322/
 # #324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337.
-TRAIN-WARMUP-A11Y-1
 
 # ─── /hub/training/gto-news — surface a11y polish ───────────────────────────
 # TRAIN-NEWS-A11Y-1 — pages/hub/training/gto-news.js. GTO news feed had a
@@ -548,7 +481,6 @@ TRAIN-WARMUP-A11Y-1
 # gains type=search + aria-label. Title raised to <h1>. Same surface-
 # specific pattern as PR #320/#322/#324/#327/#328/#329/#330/#331/#332/
 # #333/#334/#335/#336/#337/#338.
-TRAIN-NEWS-A11Y-1
 
 # ─── /hub/training/aggregate — surface a11y polish ──────────────────────────
 # TRAIN-AGGREGATE-A11Y-1 — pages/hub/training/aggregate.js. Aggregate flop
@@ -562,7 +494,6 @@ TRAIN-NEWS-A11Y-1
 # back button gains type+aria-label. Same surface-specific pattern as PR
 # #320/#322/#324/#327/#328/#329/#330/#331/#332/#333/#334/#335/#336/#337/
 # #338/#339.
-TRAIN-AGGREGATE-A11Y-1
 
 # ─── /hub/training/bankroll-coach — surface a11y polish ─────────────────────
 # TRAIN-BANKROLL-A11Y-1 — pages/hub/training/bankroll-coach.js. Bankroll
@@ -572,7 +503,6 @@ TRAIN-AGGREGATE-A11Y-1
 # + per-stake aria-label. "Fix My Leaks" and "Start Training" CTA buttons
 # gain type+aria-label. Title raised to <h1>. Same surface-specific
 # pattern as PR #320/#322/#324/#327-#340.
-TRAIN-BANKROLL-A11Y-1
 
 # ─── /hub/training/tilt-guard — surface a11y polish ─────────────────────────
 # TRAIN-TILTGUARD-A11Y-1 — pages/hub/training/tilt-guard.js. Tilt guard
@@ -584,7 +514,6 @@ TRAIN-BANKROLL-A11Y-1
 # CheckSquareIcon replaces ✅. MeditateIcon used standalone for the
 # breathing CTA. BackArrowIcon replaces ←. Same surface-specific pattern
 # as PR #320/#322/#324/#327-#341.
-TRAIN-TILTGUARD-A11Y-1
 
 # ─── /hub/training/reports — surface a11y polish ────────────────────────────
 # TRAIN-REPORTS-A11Y-1 — pages/hub/training/reports.js. GTO performance
@@ -595,7 +524,6 @@ TRAIN-TILTGUARD-A11Y-1
 # buttons (Week / Month / All Time) gain type=button + aria-pressed +
 # per-period aria-label. Same surface-specific pattern as PR #320/#322/
 # #324/#327-#342.
-TRAIN-REPORTS-A11Y-1
 
 # ─── /hub/training/coach-mode — surface a11y + emoji→SVG ────────────────────
 # TRAIN-COACH-A11Y-1 — pages/hub/training/coach-mode.js. Guided GTO lesson
@@ -609,7 +537,6 @@ TRAIN-REPORTS-A11Y-1
 # BackArrowIcon for both back buttons. Buttons gain type+aria-label.
 # Completion counter gains role="status". Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#343.
-TRAIN-COACH-A11Y-1
 
 # ─── /hub/training/autopilot — surface a11y + emoji→SVG ─────────────────────
 # TRAIN-AUTOPILOT-A11Y-1 — pages/hub/training/autopilot.js. Autopilot leak-
@@ -622,7 +549,6 @@ TRAIN-COACH-A11Y-1
 # Legacy `icon` emoji preserved. Back + start + bottom-CTA buttons gain
 # type+aria-label. Title raised to <h1>. Same surface-specific pattern as
 # PR #320/#322/#324/#327-#345.
-TRAIN-AUTOPILOT-A11Y-1
 
 # ─── /hub/training/weakness-scanner — surface a11y polish ───────────────────
 # TRAIN-WEAKNESS-A11Y-1 — pages/hub/training/weakness-scanner.js. AI leak-
@@ -631,7 +557,6 @@ TRAIN-AUTOPILOT-A11Y-1
 # Icon for back. Back button + time-filter buttons + per-leak Practice/
 # Jarvis CTAs gain type="button" + per-instance aria-label. Title raised
 # to <h1>. Same surface-specific pattern as PR #320/#322/#324/#327-#346.
-TRAIN-WEAKNESS-A11Y-1
 
 # ─── /hub/training/gto-scorecard — surface a11y polish ──────────────────────
 # TRAIN-SCORECARD-A11Y-1 — pages/hub/training/gto-scorecard.js. Frequency
@@ -639,7 +564,6 @@ TRAIN-WEAKNESS-A11Y-1
 # Polish: back button gains type+aria-label + SVG ScorecardBackArrowIcon
 # replacing the bare '&larr;' HTML entity. Title raised to <h1>. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#346.
-TRAIN-SCORECARD-A11Y-1
 
 # ─── /hub/training/player-profiles — surface a11y polish ────────────────────
 # TRAIN-PROFILES-A11Y-1 — pages/hub/training/player-profiles.js. Custom
@@ -648,7 +572,6 @@ TRAIN-SCORECARD-A11Y-1
 # back button gains type="button" + aria-label="Back to training";
 # scenario-tab buttons gain type="button". Same surface-specific pattern
 # as PR #320/#322/#324/#327-#350.
-TRAIN-PROFILES-A11Y-1
 
 # ─── /hub/training/jarvis — surface a11y + emoji→SVG ────────────────────────
 # TRAIN-JARVIS-A11Y-1 — pages/hub/training/jarvis.js. JARVIS Dashboard had
@@ -660,7 +583,6 @@ TRAIN-PROFILES-A11Y-1
 # wired into StatCard via new `iconKind` prop, TrophyIcon (best venue),
 # AlertIcon (worst venue). Legacy `icon` emoji prop preserved as fallback.
 # Same surface-specific pattern as PR #320/#322/#324/#327-#352.
-TRAIN-JARVIS-A11Y-1
 
 # ─── /hub/training/community-leaderboard — surface a11y polish ──────────────
 # TRAIN-COMMUNITY-A11Y-1 — pages/hub/training/community-leaderboard.js.
@@ -674,7 +596,6 @@ TRAIN-JARVIS-A11Y-1
 # (First/Second/Third place). Title raised to <h1>. Legacy `icon` emoji
 # preserved on CATEGORIES. Same surface-specific pattern as PR #320/
 # #322/#324/#327-#355.
-TRAIN-COMMUNITY-A11Y-1
 
 # ─── /hub/training/study-group — surface a11y + emoji→SVG ───────────────────
 # TRAIN-STUDYGROUP-A11Y-1 — pages/hub/training/study-group.js. Collaborative
@@ -685,7 +606,6 @@ TRAIN-COMMUNITY-A11Y-1
 # StarIcon. All interactive buttons gain type="button" + aria-label.
 # Input fields gain aria-label. Same surface-specific pattern as PR
 # #320/#322/#324/#327-#356.
-TRAIN-STUDYGROUP-A11Y-1
 
 # ─── /hub/training/study-group-finder — surface a11y + emoji→SVG ────────────
 # TRAIN-STUDYFINDER-A11Y-1 — pages/hub/training/study-group-finder.js. The
@@ -695,7 +615,6 @@ TRAIN-STUDYGROUP-A11Y-1
 # `avatarKind` field on each group entry; CheckIcon for applied state;
 # BackArrowIcon for back. Legacy `avatar` emoji string preserved. Same
 # surface-specific pattern as PR #320/#322/#324/#327-#357.
-TRAIN-STUDYFINDER-A11Y-1
 
 # ─── /hub/training/final-table-sim — surface a11y polish ────────────────────
 # TRAIN-FTS-A11Y-1 — pages/hub/training/final-table-sim.js. ICM final-table
@@ -703,14 +622,12 @@ TRAIN-STUDYFINDER-A11Y-1
 # gains type+aria-label + SVG FtsBackArrowIcon replacing bare '← Hub' text-
 # arrow; deal-proposal CTA gains type+aria-label. Same surface-specific
 # pattern as PR #320/#322/#324/#327-#359.
-TRAIN-FTS-A11Y-1
 
 # ─── /hub/training/mixed-strategy-lab — surface a11y polish ─────────────────
 # TRAIN-MSL-A11Y-1 — pages/hub/training/mixed-strategy-lab.js. Mixed-
 # strategy visualization lab was already emoji-free. Polish: back button
 # gains type+aria-label + SVG MslBackArrowIcon replacing bare '← Hub'
 # text-arrow. Same surface-specific pattern as PR #320/#322/#324/#327-#360.
-TRAIN-MSL-A11Y-1
 
 # ─── /hub/training/tournaments — surface a11y + emoji→SVG ───────────────────
 # TRAIN-TOURNAMENTS-A11Y-1 — pages/hub/training/tournaments.js. Tournaments
@@ -724,7 +641,6 @@ TRAIN-MSL-A11Y-1
 # && or ternary expressions, NO emoji characters in legacy fallback strings.
 # All tab/register buttons gain type="button" + per-instance aria-label.
 # Same surface-specific pattern as PR #320/#322/#324/#327-#361.
-TRAIN-TOURNAMENTS-A11Y-1
 
 # ─── /hub/training/focus-timer — surface a11y polish ────────────────────────
 # TRAIN-FOCUS-A11Y-1 — pages/hub/training/focus-timer.js. Pomodoro training
@@ -733,7 +649,6 @@ TRAIN-TOURNAMENTS-A11Y-1
 # BellOffIcon (conditional render), FtCheckIcon. Bell toggle gains type=
 # button + aria-pressed + aria-label. Page title raised to <h1>. Follows
 # build-safety rules from PR #362/#365/#369.
-TRAIN-FOCUS-A11Y-1
 
 # ─── /hub/training/tournament-prep — surface a11y polish ────────────────────
 # TRAIN-TPP-A11Y-1 — pages/hub/training/tournament-prep.js. ICM-aware
@@ -742,7 +657,6 @@ TRAIN-FOCUS-A11Y-1
 # button hardening; TppLightbulbIcon (SVG) for strategy tip. Tab buttons
 # gain explicit type="button" (aria already present). Follows build-safety
 # rules from PR #362/#365/#369.
-TRAIN-TPP-A11Y-1
 
 # ─── Shared PlayingCard component — canonical 52-deck PNG everywhere ────────
 # TRAIN-PLAYCARD-1 — src/components/poker/PlayingCard.jsx (new). Shared
@@ -757,7 +671,6 @@ TRAIN-TPP-A11Y-1
 # parsing uses \u escapes), no JSX comments in conditional expressions.
 # This unblocks subsequent PRs that replace inline unicode-string card
 # rendering across all 89 training surfaces with the shared component.
-TRAIN-PLAYCARD-1
 
 # ─── Shared ActionButton — GTO-Wizard 4-button display ──────────────────────
 # TRAIN-ACTIONBTN-1 — src/components/poker/ActionButton.jsx (new). Shared
@@ -770,7 +683,6 @@ TRAIN-PLAYCARD-1
 # equal-flex layout. Parent owns global keydown wiring — this just renders
 # the kbd hint chip. Build-safe: no emoji chars, no JSX comments in
 # conditional expressions.
-TRAIN-ACTIONBTN-1
 
 # ─── Shared FeedbackCard v2 — GTO-Wizard 1:1 ────────────────────────────────
 # TRAIN-FEEDBACK-V2 — src/components/poker/FeedbackCard.jsx (new). Shared
@@ -780,7 +692,6 @@ TRAIN-ACTIONBTN-1
 # More expand to full, optional rangeSlot + detailsSlot, primary NEXT +
 # optional secondary REVIEW CTA. stickyNext prop for mobile bottom-sheet.
 # Build-safe: no emoji chars, no JSX comments in conditional expressions.
-TRAIN-FEEDBACK-V2
 
 # ─── Shared ProgressStrip — in-play progress affordance ─────────────────────
 # TRAIN-PROGRESS-STRIP-1 — src/components/poker/ProgressStrip.jsx (new).
@@ -789,7 +700,6 @@ TRAIN-FEEDBACK-V2
 # accuracy chip, a difficulty chip with color band (beginner..expert),
 # best-streak flame chip, and an optional elapsed-time chip. Build-safe:
 # no emoji chars, no JSX comments in conditional expressions.
-TRAIN-PROGRESS-STRIP-1
 
 # ─── Shared TrainerEmptyState — empty/lock/retry/complete primitive ─────────
 # TRAIN-EMPTY-STATE-1 — src/components/training/TrainerEmptyState.jsx (new).
@@ -798,7 +708,6 @@ TRAIN-PROGRESS-STRIP-1
 # complete) each with default icon + tone, plus custom override. Optional
 # primary + secondary CTAs (44+ touch). Build-safe: no emoji chars, no
 # JSX comments in conditional expressions.
-TRAIN-EMPTY-STATE-1
 
 # ─── Shared RangeMatrix — unified 13x13 hand grid ───────────────────────────
 # TRAIN-RANGE-MATRIX-1 — src/components/poker/RangeMatrix.jsx (new). Drop-
@@ -807,7 +716,6 @@ TRAIN-EMPTY-STATE-1
 # split-fill raise/call/fold gradient bars, optional cell click handler,
 # keyboard-accessible cells, highlight outline, title tooltips, role=grid.
 # Build-safe: no emoji chars, no JSX comments inside conditionals.
-TRAIN-RANGE-MATRIX-1
 
 # ─── training-tokens.css — design tokens (color + motion + radius + z) ──────
 # TRAIN-DESIGN-TOKENS-1 — src/styles/training-tokens.css (new). Combines
@@ -817,7 +725,6 @@ TRAIN-RANGE-MATRIX-1
 # transition shortcuts. prefers-reduced-motion collapses durations + adds
 # global *::before *::after override per WCAG 2.3.3. Plus z-index scale,
 # radii, and safe-area helpers. Build-safe: pure CSS, no JSX or JS.
-TRAIN-DESIGN-TOKENS-1
 
 # ─── Shared BottomSheet — mobile-first panel primitive ──────────────────────
 # TRAIN-BOTTOMSHEET-1 — src/components/ui/BottomSheet.jsx (new). Controlled
@@ -826,7 +733,6 @@ TRAIN-DESIGN-TOKENS-1
 # Drag-handle visual + safe-area-inset-bottom padding. Slide-up / slide-left
 # keyframes with prefers-reduced-motion collapse. Build-safe: no emoji
 # chars, no JSX comments in conditional expressions.
-TRAIN-BOTTOMSHEET-1
 
 # ─── Shared useTrainingFeedback hook — sound + haptics ──────────────────────
 # TRAIN-FEEDBACK-FX-1 — src/hooks/useTrainingFeedback.js (new). Unified
@@ -837,7 +743,6 @@ TRAIN-BOTTOMSHEET-1
 # buzz), click (A5 tick), complete (C-E-G-C arpeggio), warning (E4 double
 # pulse). WebAudio synthesis means zero asset loads + no autoplay-policy
 # issues. iOS Safari has no Vibration API — silent no-op. Build-safe.
-TRAIN-FEEDBACK-FX-1
 
 # ─── SQL data improvements — rollup table + leaderboard MV + replay table ───
 # TRAIN-DATA-ROLLUPS-1 — supabase/migrations/20260511180000_training_rollups.sql
@@ -851,7 +756,6 @@ TRAIN-FEEDBACK-FX-1
 # Backfill from existing jarvis_training_sessions in-place.
 # Migration file checked in because the live Supabase MCP connection timed
 # out — apply via supabase db push or psql -f.
-TRAIN-DATA-ROLLUPS-1
 
 # ─── First adoption: wire shared PlayingCard into bluff-catcher ─────────────
 # TRAIN-WIRE-PLAYCARD-1 — pages/hub/training/bluff-catcher.js. Replaces the
@@ -862,7 +766,6 @@ TRAIN-DATA-ROLLUPS-1
 # Build-safe: no JSX comments inside conditionals, the existing SCENARIOS
 # data still contains card-suit glyphs (♠♣♦♥) in string literals which is
 # the same form that was on main pre-patch.
-TRAIN-WIRE-PLAYCARD-1
 
 # ─── Phase-2 adoption: wire shared PlayingCard into scenario-demo ────────────
 # TRAIN-WIRE-PLAYCARD-2 — pages/hub/training/scenario-demo.js. Replaces the
@@ -873,7 +776,6 @@ TRAIN-WIRE-PLAYCARD-1
 # with highlighted=true — previously the data was in TUTORIAL_STEPS but never
 # rendered. Build-safe: no JSX comments inside conditionals, suit glyphs in
 # the TUTORIAL_STEPS data are unchanged from main.
-TRAIN-WIRE-PLAYCARD-2
 
 # ─── Phase-2 adoption: wire shared PlayingCard into blind-defense ────────────
 # TRAIN-WIRE-PLAYCARD-3 — pages/hub/training/blind-defense.js. Replaces the
@@ -885,7 +787,6 @@ TRAIN-WIRE-PLAYCARD-2
 # steady-state visual is now the shared deck PNG. Build-safe: no JSX comments
 # inside conditionals; SUITS/RANKS arrays still contain unicode glyphs in
 # string-literal form (same as main).
-TRAIN-WIRE-PLAYCARD-3
 
 # ─── Phase-2 adoption: wire shared PlayingCard into hand-lab ────────────────
 # TRAIN-WIRE-PLAYCARD-4 — pages/hub/training/hand-lab.js. Replaces the three
@@ -895,7 +796,6 @@ TRAIN-WIRE-PLAYCARD-3
 # cardSlot frames + selectedSlot click handlers + the deck picker grid below
 # (which is a 4×13 suit×rank button picker, NOT a card display) are unchanged.
 # Build-safe: no JSX comments inside conditionals.
-TRAIN-WIRE-PLAYCARD-4
 
 # ─── Phase-2 adoption: wire shared PlayingCard into three-way-postflop ──────
 # TRAIN-WIRE-PLAYCARD-5 — pages/hub/training/three-way-postflop.js. Replaces
@@ -905,7 +805,6 @@ TRAIN-WIRE-PLAYCARD-4
 # glyphs (♠♥♦♣ → s/h/d/c via SUIT_FROM_SYMBOL) and lowercase suit chars.
 # Build-safe: no JSX comments inside conditionals; BOARD_TEXTURES data with
 # its unicode strings unchanged.
-TRAIN-WIRE-PLAYCARD-5
 
 # ─── Phase-2 adoption: wire useTrainingFeedback into bluff-catcher ─────────
 # TRAIN-WIRE-FX-1 — pages/hub/training/bluff-catcher.js. Adds the shared
@@ -914,96 +813,72 @@ TRAIN-WIRE-PLAYCARD-5
 # after an incorrect answer; fb.click() runs on Next Hand. Gated by
 # localStorage prefs sp.training.sound / sp.training.haptics; honors
 # prefers-reduced-motion. No new UI; behavior layer only.
-TRAIN-WIRE-FX-1
 
 # ─── Phase-2 adoption: extend useTrainingFeedback to 3 more trainers ────────
 # TRAIN-WIRE-FX-2a — pages/hub/training/scenario-demo.js. fb.correct() /
 # fb.incorrect() inside answerQuizQ; fb.click() inside nextStep + nextQuizQ.
 # Pure behavior; no UI change. Respects sp.training.sound/haptics + reduced
 # motion.
-TRAIN-WIRE-FX-2a
 # TRAIN-WIRE-FX-2b — pages/hub/training/blind-defense.js. fb.correct() /
 # fb.incorrect() inside handleAction immediately after isCorrect resolves.
-TRAIN-WIRE-FX-2b
 # TRAIN-WIRE-FX-2c — pages/hub/training/hand-lab.js. fb.click() on
 # handleCardSelect + runAnalysis entry to give tactile picker feedback.
-TRAIN-WIRE-FX-2c
 
 # ─── Phase-2 adoption: useTrainingFeedback batch 6 ──────────────────────────
 # TRAIN-WIRE-FX-3a — pages/hub/training/ev-trainer.js. fb.correct() /
 # fb.incorrect() right after `const isCorrect = res !== 'wrong';` resolves.
-TRAIN-WIRE-FX-3a
 # TRAIN-WIRE-FX-3b — pages/hub/training/short-deck-trainer.js. fb.correct() /
 # fb.incorrect() inside answerQuiz; fb.click() on nextQuiz.
-TRAIN-WIRE-FX-3b
 
 # ─── Phase-2 adoption: useTrainingFeedback batch 7a ─────────────────────────
 # TRAIN-WIRE-FX-4a — pages/hub/training/spot-trainer.js. fb.correct() /
 # fb.incorrect() inside the answer handler immediately after isCorrect derives.
-TRAIN-WIRE-FX-4a
 # TRAIN-WIRE-FX-4b — pages/hub/training/pot-geometry.js. fb.correct() /
 # fb.incorrect() inside handleAnswer right after isCorrect derives.
-TRAIN-WIRE-FX-4b
 # TRAIN-WIRE-FX-4c — pages/hub/training/spr-trainer.js. fb.correct() /
 # fb.incorrect() inside handleChoice right after isCorrect derives.
-TRAIN-WIRE-FX-4c
 # TRAIN-WIRE-FX-4d — pages/hub/training/daily-challenge.js. fb.correct() /
 # fb.incorrect() inside answer handler right after isCorrect derives.
-TRAIN-WIRE-FX-4d
 
 # ─── Phase-2 adoption: useTrainingFeedback batch 7b ─────────────────────────
 # TRAIN-WIRE-FX-5a — pages/hub/training/preflop-advisor.js. fb.correct() /
 # fb.incorrect() inside handleDecision after isCorrect derives.
-TRAIN-WIRE-FX-5a
 # TRAIN-WIRE-FX-5b — pages/hub/training/villain-range.js. fb.correct() /
 # fb.incorrect() inside quiz answer handler after isCorrect derives.
-TRAIN-WIRE-FX-5b
 # TRAIN-WIRE-FX-5c — pages/hub/training/famous-finals.js. fb.correct() /
 # fb.incorrect() inside handleAnswer based on `opt.correct` lookup.
-TRAIN-WIRE-FX-5c
 
 # ─── Phase-3 adoption: wire TrainerEmptyState into 3 trainers ───────────────
 # TRAIN-WIRE-EMPTY-1a — pages/hub/training/session-dashboard.js. Replaces the
 # inline "No sessions found. Start training to see your progress!" div with
 # <TrainerEmptyState variant="no-data" compact />.
-TRAIN-WIRE-EMPTY-1a
 # TRAIN-WIRE-EMPTY-1b — pages/hub/training/reports.js. Replaces the
 # "No training data found for this period." block + "REPORT" emoji label with
 # <TrainerEmptyState variant="no-data" />.
-TRAIN-WIRE-EMPTY-1b
 # TRAIN-WIRE-EMPTY-1c — pages/hub/training/mental-journal.js. Replaces the
 # "No entries found in database." inline div with <TrainerEmptyState
 # variant="no-data" compact />.
-TRAIN-WIRE-EMPTY-1c
 
 # ─── Phase-3 adoption: wire TrainerEmptyState batch 2 ───────────────────────
 # TRAIN-WIRE-EMPTY-2a — pages/hub/training/autopilot.js. Replaces 30-line
 # inline "Need More Data" block (ChartIcon + label + cta button) with
 # <TrainerEmptyState variant="no-data" cta={{ label, onClick }} />.
-TRAIN-WIRE-EMPTY-2a
 # TRAIN-WIRE-EMPTY-2b — pages/hub/training/training-feed.js. Replaces inline
 # "No activity yet" + AntennaSvg + helper line with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-2b
 # TRAIN-WIRE-EMPTY-2c — pages/hub/training/achievements.js. Replaces
 # user-branching inline div with TrainerEmptyState variant='no-data'|'locked'.
-TRAIN-WIRE-EMPTY-2c
 
 # ─── Phase-3 adoption: TrainerEmptyState batch 3 ────────────────────────────
 # TRAIN-WIRE-EMPTY-3a — pages/hub/training/session-notes.js. "📝 No notes yet"
 # inline block replaced with TrainerEmptyState compact no-data variant.
-TRAIN-WIRE-EMPTY-3a
 # TRAIN-WIRE-EMPTY-3b — pages/hub/training/my-playbook.js. "Your Playbook is
 # empty" 14-line block replaced with TrainerEmptyState (full size).
-TRAIN-WIRE-EMPTY-3b
 # TRAIN-WIRE-EMPTY-3c — pages/hub/training/glossary.js. "No matching terms"
 # + SearchIcon block replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-3c
 # TRAIN-WIRE-EMPTY-3d — pages/hub/training/gto-news.js. "No articles match
 # your filters." inline div replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-3d
 # TRAIN-WIRE-EMPTY-3e — pages/hub/training/challenges.js. "No Active Goals
 # Right Now" + TargetIcon block replaced with full TrainerEmptyState.
-TRAIN-WIRE-EMPTY-3e
 
 # ─── Phase-3 adoption: TrainerEmptyState batch 4 ────────────────────────────
 # TRAIN-WIRE-EMPTY-4a — pages/hub/training/leaderboard.js. TWO inline empty
@@ -1011,7 +886,6 @@ TRAIN-WIRE-EMPTY-3e
 # TrainerEmptyState. Each preserves the existing CTA destination via window.
 # location.href since the original used <Link>; switching to a CTA prop keeps
 # the same UX. View=friends CTA: Find Friends. Default CTA: Start Training.
-TRAIN-WIRE-EMPTY-4a
 
 # ─── Phase-3 adoption: wire ProgressStrip into bluff-catcher ───────────────
 # TRAIN-WIRE-PROGRESS-1 — pages/hub/training/bluff-catcher.js. Replaces the
@@ -1020,7 +894,6 @@ TRAIN-WIRE-EMPTY-4a
 # correct count since each correct answer scores 10. Streak chip is read from
 # existing streak state. Difficulty pinned to "intermediate" (matches the
 # trainer's MDF level).
-TRAIN-WIRE-PROGRESS-1
 
 # ─── Phase-3 adoption: wire ProgressStrip into scenario-demo ───────────────
 # TRAIN-WIRE-PROGRESS-2 — pages/hub/training/scenario-demo.js. Replaces the
@@ -1028,53 +901,40 @@ TRAIN-WIRE-PROGRESS-1
 # total={TUTORIAL_STEPS.length} correct={quizScore.correct} difficulty=
 # "beginner" compact />. The full-width gradient progress bar below is left
 # as-is (it's a visual continuation of the brand header).
-TRAIN-WIRE-PROGRESS-2
 
 # ─── Phase-4 adoption: TrainerEmptyState batch 5 (6 trainers) ───────────────
 # TRAIN-WIRE-EMPTY-5a — pages/hub/training/tournaments.js. "No {tab} tournaments"
 # + TrophyIcon block replaced. Tab-aware message kept.
-TRAIN-WIRE-EMPTY-5a
 # TRAIN-WIRE-EMPTY-5b — pages/hub/training/progress.js. Sign-in gate replaced
 # with locked variant + Sign In CTA.
-TRAIN-WIRE-EMPTY-5b
 # TRAIN-WIRE-EMPTY-5c — pages/hub/training/streaks.js. Sign-in gate replaced
 # with locked variant + Sign In CTA.
-TRAIN-WIRE-EMPTY-5c
 # TRAIN-WIRE-EMPTY-5d — pages/hub/training/jarvis.js. Sign-in gate replaced
 # with locked variant + Sign In CTA.
-TRAIN-WIRE-EMPTY-5d
 # TRAIN-WIRE-EMPTY-5e — pages/hub/training/aggregate.js. "No solver data found
 # for this configuration" + InboxEmptyIcon block replaced.
-TRAIN-WIRE-EMPTY-5e
 # TRAIN-WIRE-EMPTY-5f — pages/hub/training/study-group.js. "No Hand Active"
 # block with Load Demo Hand button replaced; CTA preserved via cta prop.
-TRAIN-WIRE-EMPTY-5f
 
 # ─── Phase-4 adoption: TrainerEmptyState batch 6 (2 trainers) ───────────────
 # TRAIN-WIRE-EMPTY-6a — pages/hub/training/weakness-scanner.js. Branching
 # empty-state (no-data-in-range vs no-data-to-scan) replaced with two
 # TrainerEmptyState calls inside the same conditional.
-TRAIN-WIRE-EMPTY-6a
 # TRAIN-WIRE-EMPTY-6b — pages/hub/training/bankroll-coach.js. "Need Training
 # Data" + DollarIcon block + Start Training motion.button replaced with
 # TrainerEmptyState; CTA preserved via cta prop.
-TRAIN-WIRE-EMPTY-6b
 
 # ─── Phase-4 adoption: TrainerEmptyState batch 7 (nodelocking + history) ────
 # TRAIN-WIRE-EMPTY-7a — pages/hub/training/nodelocking.js. "No saved profiles
 # yet" tip-style inline div replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-7a
 # TRAIN-WIRE-EMPTY-7b — pages/hub/training/hand-history-upload.js. "No saved
 # sessions yet" inline div replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-7b
 
 # ─── Phase-5 adoption: TrainerEmptyState batch 8 (flashcards + quiz-builder) ─
 # TRAIN-WIRE-EMPTY-8a — pages/hub/training/flashcards.js. "🏆 All Caught Up!"
 # block replaced with compact TrainerEmptyState variant="complete".
-TRAIN-WIRE-EMPTY-8a
 # TRAIN-WIRE-EMPTY-8b — pages/hub/training/quiz-builder.js. "📝 No quizzes
 # yet" inline empty state replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-8b
 
 # ─── Phase-6 adoption: wire RangeMatrix into range-explorer ─────────────────
 # TRAIN-WIRE-RANGE-MATRIX-1 — pages/hub/training/range-explorer.js. Replaces
@@ -1085,25 +945,20 @@ TRAIN-WIRE-EMPTY-8b
 # percentages with threshold-colored cells) into RangeMatrix's data prop and
 # preserves the existing selectedHand state + click-to-select handler via
 # onCellClick + highlight props. The Details Panel below is unchanged.
-TRAIN-WIRE-RANGE-MATRIX-1
 
 # ─── Phase-6 adoption: useTrainingFeedback batch 6 ──────────────────────────
 # TRAIN-WIRE-FX-6a — pages/hub/training/bounty-trainer.js. fb.correct() /
 # fb.incorrect() inside handleAnswer based on `action === scenario.correctAction`.
-TRAIN-WIRE-FX-6a
 # TRAIN-WIRE-FX-6b — pages/hub/training/quiz-gauntlet.js. fb.correct() /
 # fb.incorrect() right after `isCorrect = res !== 'wrong'` derives — covers
 # both 'correct' and 'close' as correct, 'wrong' and 'timeout' as incorrect.
-TRAIN-WIRE-FX-6b
 
 # ─── Phase-7 adoption: TrainerEmptyState batch 9 ────────────────────────────
 # TRAIN-WIRE-EMPTY-9a — pages/hub/training/replay-theater.js. "🎉 No mistakes
 # found" + dynamic message (sessions-vs-filters) replaced with compact
 # TrainerEmptyState variant="complete" with dynamic message.
-TRAIN-WIRE-EMPTY-9a
 # TRAIN-WIRE-EMPTY-9b — pages/hub/training/study-group-finder.js. "No groups
 # match your filters." inline div replaced with compact TrainerEmptyState.
-TRAIN-WIRE-EMPTY-9b
 
 # ─── Phase-7 adoption: wire ProgressStrip into quiz-gauntlet ────────────────
 # TRAIN-WIRE-PROGRESS-3 — pages/hub/training/quiz-gauntlet.js. Adds
@@ -1111,7 +966,6 @@ TRAIN-WIRE-EMPTY-9b
 # stat chip grid; removes the Question chip (its data now lives in the
 # strip's position chip + completion ring). The grid drops from 4 columns to
 # 3 (Score / Combo / Time).
-TRAIN-WIRE-PROGRESS-3
 
 # ─── Phase-8 adoption: FeedbackCard V2 into quiz-gauntlet ───────────────────
 # TRAIN-WIRE-FEEDBACK-V2-1 — pages/hub/training/quiz-gauntlet.js. Replaces
@@ -1121,7 +975,6 @@ TRAIN-WIRE-PROGRESS-3
 # ('correct' → 'correct', 'close' → 'mixed', 'wrong'/'timeout' → 'incorrect').
 # userAction = `${userAnswer}${q.unit}`; solverAction = `${q.answer}${q.unit}`;
 # whyShort = q.explanation stripped of bold-asterisk markup. compact=true.
-TRAIN-WIRE-FEEDBACK-V2-1
 
 # ─── Phase-8 adoption: ActionButton + ActionButtonRow into blind-defense ────
 # TRAIN-WIRE-ACTIONBTN-1 — pages/hub/training/blind-defense.js. Replaces the
@@ -1131,7 +984,6 @@ TRAIN-WIRE-FEEDBACK-V2-1
 # wiring; gains role=group accessibility, keyboard-shortcut chip rendering,
 # selected/recommended ring visuals, and themed action colors from the
 # ACTION_THEMES palette in ActionButton.
-TRAIN-WIRE-ACTIONBTN-1
 
 # ─── Phase-8 adoption: BottomSheet into bluff-catcher ───────────────────────
 # TRAIN-WIRE-BOTTOMSHEET-1 — pages/hub/training/bluff-catcher.js. Adds a "?"
@@ -1140,7 +992,6 @@ TRAIN-WIRE-ACTIONBTN-1
 # infoOpen state. Mobile-first: bottom placement (default); on desktop it
 # renders as the same bottom sheet for consistency. Build-safe: no JSX
 # comments inside conditionals; no emoji chars.
-TRAIN-WIRE-BOTTOMSHEET-1
 
 # ─── Phase-9 adoption: UDT migrates action bar to shared ActionButton ───────
 # TRAIN-WIRE-UDT-ACTIONBTN-1 — src/components/training/games/UniversalDynamic
@@ -1162,19 +1013,16 @@ TRAIN-WIRE-BOTTOMSHEET-1
 # onMouseDown translateY(1px) microinteraction; functionally equivalent.
 # This closes the deferred Task #88 epic that required widening
 # ActionButton's prop surface before UDT migration was safe.
-TRAIN-WIRE-UDT-ACTIONBTN-1
 
 # ─── Phase-10 adoption: FeedbackCard V2 sweep (2 trainers) ──────────────────
 # TRAIN-WIRE-FEEDBACK-V2-2 — pages/hub/training/bluff-catcher.js. Full
 # feedback panel (CORRECT/INCORRECT label + body + explanation + Next
 # button motion.div) replaced with <FeedbackCard verdict userAction
 # solverAction whyShort whyFull onNext nextLabel="Next Scenario" />.
-TRAIN-WIRE-FEEDBACK-V2-2
 # TRAIN-WIRE-FEEDBACK-V2-3 — pages/hub/training/ev-trainer.js. The result
 # badge (verdict label + Your/Correct) replaced with compact <FeedbackCard
 # verdict userAction solverAction whyShort compact />. Formula Breakdown
 # block immediately below is preserved.
-TRAIN-WIRE-FEEDBACK-V2-3
 
 # ─── Phase-11 adoption: ActionButton sweep (bluff-catcher) ──────────────────
 # TRAIN-WIRE-ACTIONBTN-2 — pages/hub/training/bluff-catcher.js. Replaces the
@@ -1185,7 +1033,6 @@ TRAIN-WIRE-FEEDBACK-V2-3
 # Each button gets a numeric `shortcut` (1=CALL, 2=FOLD) so the kbd hint
 # chip surfaces in the corner, and `size="lg"` matches the page's prior
 # touch target. Parent already wires keyboard listeners via useTrainingBus.
-TRAIN-WIRE-ACTIONBTN-2
 
 # ─── Phase-12 adoption: ProgressStrip sweep (flashcards + short-deck) ───────
 # TRAIN-WIRE-PROGRESS-STRIP-2 — pages/hub/training/flashcards.js. Replaces the
@@ -1193,12 +1040,10 @@ TRAIN-WIRE-ACTIONBTN-2
 # with a shared <ProgressStrip current={currentIdx+1} total={sessionDeck.length}
 # difficulty="intermediate" compact />. The current/total semantics map 1:1 to
 # the session deck index and length.
-TRAIN-WIRE-PROGRESS-STRIP-2
 # TRAIN-WIRE-PROGRESS-STRIP-3 — pages/hub/training/short-deck-trainer.js
 # (quiz mode). Replaces the inline "Score: x/y (z%)" text line with shared
 # <ProgressStrip current total correct compact />. Total ramps in steps of 10
 # to match the existing 10-question save cadence. Calc mode is unaffected.
-TRAIN-WIRE-PROGRESS-STRIP-3
 
 # ─── Phase-13 adoption: BottomSheet "How it works" sheets ───────────────────
 # TRAIN-WIRE-BOTTOMSHEET-2 — pages/hub/training/ev-trainer.js. Adds a
@@ -1207,12 +1052,10 @@ TRAIN-WIRE-PROGRESS-STRIP-3
 # Sheet state is local (infoOpen / setInfoOpen) — matches the bluff-catcher
 # pattern from TRAIN-WIRE-BOTTOMSHEET-1. Purely additive — no behavior change
 # on existing answer flow.
-TRAIN-WIRE-BOTTOMSHEET-2
 # TRAIN-WIRE-BOTTOMSHEET-3 — pages/hub/training/spr-trainer.js. Adds the
 # same "How it works" BottomSheet pattern explaining SPR (Stack-to-Pot
 # Ratio) commitment decisions. Wired to a header-row toggle pill in the
 # trainer's accent color (#fbbf24). Purely additive.
-TRAIN-WIRE-BOTTOMSHEET-3
 
 # ─── Phase-14 infrastructure: semantic --sp-* token contract ────────────────
 # TRAIN-CSS-TOKENS-1 — src/styles/worlds/training.css. Adds a complete
@@ -1222,7 +1065,6 @@ TRAIN-WIRE-BOTTOMSHEET-3
 # tokens become the source-of-truth contract for inline JS styles across
 # all 89 training pages, replacing hand-rolled hex literals. Adoption is
 # tracked separately by TRAIN-CSS-TOKENS-ADOPT-* markers as files migrate.
-TRAIN-CSS-TOKENS-1
 
 # ─── Phase-15a adoption: --sp-* token adoption in trainers ──────────────────
 # TRAIN-CSS-TOKENS-ADOPT-1 — pages/hub/training/bluff-catcher.js. Replaces
@@ -1238,57 +1080,43 @@ TRAIN-CSS-TOKENS-1
 # Page-bg darks (#05050a, #0a0a15) preserved — outside the accent contract.
 # String-interpolation contexts (e.g. `${color}33` hex-alpha suffix) left for
 # follow-up using rgba(var(--sp-*-rgb), 0.x).
-TRAIN-CSS-TOKENS-ADOPT-1
 # TRAIN-CSS-TOKENS-ADOPT-2 — pages/hub/training/ev-trainer.js. Replaces 31
 # quoted hex literals with var(--sp-*) tokens spanning the full accent +
 # neutral ramp. Page-bg darks (#0a0f1e, #0d1629, #1e2d3d) and string-interp
 # accent literals (#00d4ff, #a855f7 in gradient template strings) preserved.
-TRAIN-CSS-TOKENS-ADOPT-2
 
 # ─── Phase-15b adoption: --sp-* token sweep batch 2 ─────────────────────────
 # TRAIN-CSS-TOKENS-ADOPT-3 — pages/hub/training/spr-trainer.js. 45 quoted
 # hex literals routed to var(--sp-accent-* / fg / fg-muted / fg-dim) per the
 # PR #470 contract. linear-gradient template strings retained as literals
 # (deferred to rgba(var(--sp-*-rgb), 1) follow-up).
-TRAIN-CSS-TOKENS-ADOPT-3
 # TRAIN-CSS-TOKENS-ADOPT-4 — pages/hub/training/spot-trainer.js. 36 quoted
 # hex literals swapped. Page-bg darks (#0a0a12, #0f0f1e, #1a1a2e) retained
 # as literals (outside accent contract).
-TRAIN-CSS-TOKENS-ADOPT-4
 # TRAIN-CSS-TOKENS-ADOPT-5 — pages/hub/training/short-deck-trainer.js. 23
 # quoted hex literals swapped. Red bg gradient darks (#120808, #1e0b0b)
 # retained.
-TRAIN-CSS-TOKENS-ADOPT-5
 # TRAIN-CSS-TOKENS-ADOPT-6 — pages/hub/training/flashcards.js. 31 quoted
 # hex literals swapped. Page-bg darks + gradient-string interp literals
 # retained.
-TRAIN-CSS-TOKENS-ADOPT-6
 # TRAIN-CSS-TOKENS-ADOPT-7 — pages/hub/training/pot-geometry.js. 41 quoted
 # hex literals swapped. Gradient-string accent interp literals retained.
-TRAIN-CSS-TOKENS-ADOPT-7
 
 # ─── Phase-15c adoption: --sp-* token sweep batch 3 ─────────────────────────
 # TRAIN-CSS-TOKENS-ADOPT-8 — pages/hub/training/blind-defense.js (15 hex
 # literals → tokens).
-TRAIN-CSS-TOKENS-ADOPT-8
 # TRAIN-CSS-TOKENS-ADOPT-9 — pages/hub/training/hand-lab.js (19 literals).
-TRAIN-CSS-TOKENS-ADOPT-9
 # TRAIN-CSS-TOKENS-ADOPT-10 — pages/hub/training/scenario-demo.js (27).
-TRAIN-CSS-TOKENS-ADOPT-10
 # TRAIN-CSS-TOKENS-ADOPT-11 — pages/hub/training/three-way-postflop.js (2).
-TRAIN-CSS-TOKENS-ADOPT-11
 # TRAIN-CSS-TOKENS-ADOPT-12 — pages/hub/training/hand-comparison.js (36).
-TRAIN-CSS-TOKENS-ADOPT-12
 
 # ─── Phase-17 adoption: BottomSheet "How it works" — pot-geometry + preflop-charts
 # TRAIN-WIRE-BOTTOMSHEET-4 — pages/hub/training/pot-geometry.js. Adds a
 # "How it works" BottomSheet explaining bet-sizing for target SPR. Toggle
 # pill on the back-link row in the trainer accent (#f97316). Purely additive.
-TRAIN-WIRE-BOTTOMSHEET-4
 # TRAIN-WIRE-BOTTOMSHEET-5 — pages/hub/training/preflop-charts.js. Adds a
 # "How it works" BottomSheet explaining RFI / Vs RFI / 3-bet chart usage.
 # Toggle pill in the trainer accent (#00d4ff). Purely additive.
-TRAIN-WIRE-BOTTOMSHEET-5
 
 # ─── Phase-SQL audit: training_sessions UPDATE/DELETE RLS ───────────────────
 # TRAIN-SQL-RLS-1 — supabase/migrations/20260512100000_training_sessions_owner_update_delete_rls.sql.
@@ -1298,7 +1126,6 @@ TRAIN-WIRE-BOTTOMSHEET-5
 # subject to (SELECT auth.uid()) = user_id. The existing SECURITY DEFINER
 # rollup trigger tup_after_session_delete continues to revert tup totals on
 # legitimate self-deletes.
-TRAIN-SQL-RLS-1
 
 # ─── Phase-18 infrastructure: semantic motion tokens ────────────────────────
 # TRAIN-CSS-MOTION-1 — src/styles/worlds/training.css. Adds a complete
@@ -1310,7 +1137,6 @@ TRAIN-SQL-RLS-1
 # construction. Belt-and-braces with the existing TRAIN-CSS-SWEEP-1
 # blanket override above. Adoption tracked separately under
 # TRAIN-CSS-MOTION-ADOPT-* markers.
-TRAIN-CSS-MOTION-1
 
 # ─── Phase-19 infrastructure: mobile-optimization data-attr patterns ────────
 # TRAIN-CSS-MOBILE-1 — src/styles/worlds/training.css. Adds three semantic
@@ -1322,69 +1148,52 @@ TRAIN-CSS-MOTION-1
 # Also widens ActionButtonRow's prop surface to forward arbitrary attrs to
 # the underlying container so trainers can apply data-sticky-action-bar
 # directly to the row without wrapping it.
-TRAIN-CSS-MOBILE-1
 # TRAIN-CSS-MOBILE-ADOPT-1 — pages/hub/training/bluff-catcher.js. Marks the
 # 2-stat panel with data-stats-grid and the ActionButtonRow with
 # data-sticky-action-bar. ActionButton bumped to v1.2.0 to expose ...rest
 # spread on ActionButtonRow.
-TRAIN-CSS-MOBILE-ADOPT-1
 # TRAIN-CSS-MOBILE-ADOPT-2 — pages/hub/training/preflop-charts.js. Marks the
 # game-type pill row and the scenario+stack pill row with data-pills-row.
 # Long pill sequences scroll horizontally with snap below 600px instead of
 # wrapping into multiple visual rows.
-TRAIN-CSS-MOBILE-ADOPT-2
 
 # ─── Phase-19b: mobile data-attr adoption (batch 2) ─────────────────────────
 # TRAIN-CSS-MOBILE-ADOPT-3 — pages/hub/training/ev-trainer.js. data-stats-grid
 # on the 4-col stats panel (Accuracy/Correct/EV-loss/Streak).
-TRAIN-CSS-MOBILE-ADOPT-3
 # TRAIN-CSS-MOBILE-ADOPT-4 — pages/hub/training/spr-trainer.js. Marker-only
 # registration; trainer's 3-col grids use compact pills that already wrap
 # cleanly under 480px and its decision buttons aren't via ActionButtonRow.
-TRAIN-CSS-MOBILE-ADOPT-4
 # TRAIN-CSS-MOBILE-ADOPT-5 — pages/hub/training/spot-trainer.js.
 # data-pills-row x2 on the position selector + game-type pill rows.
-TRAIN-CSS-MOBILE-ADOPT-5
 # TRAIN-CSS-MOBILE-ADOPT-6 — pages/hub/training/short-deck-trainer.js.
 # Marker-only; this trainer's quiz mode now uses ProgressStrip (P12) which
 # already handles narrow viewports via compact mode.
-TRAIN-CSS-MOBILE-ADOPT-6
 # TRAIN-CSS-MOBILE-ADOPT-7 — pages/hub/training/scenario-demo.js.
 # data-pills-row on the scenario-type filter row.
-TRAIN-CSS-MOBILE-ADOPT-7
 # TRAIN-CSS-MOBILE-ADOPT-8 — pages/hub/training/blind-defense.js.
 # data-sticky-action-bar on the ActionButtonRow.
-TRAIN-CSS-MOBILE-ADOPT-8
 # TRAIN-CSS-MOBILE-ADOPT-9 — pages/hub/training/hand-lab.js. Marker-only;
 # hand-lab is a single-card visualizer with no pill rows or stat grids that
 # require the patterns.
-TRAIN-CSS-MOBILE-ADOPT-9
 # TRAIN-CSS-MOBILE-ADOPT-10 — pages/hub/training/hand-comparison.js.
 # data-stats-grid x2 on the per-position 7-col + per-spot 3-col grids,
 # data-pills-row on the filter strip.
-TRAIN-CSS-MOBILE-ADOPT-10
 # TRAIN-CSS-MOBILE-ADOPT-11 — pages/hub/training/pot-geometry.js.
 # data-pills-row on the answer-option strip.
-TRAIN-CSS-MOBILE-ADOPT-11
 # TRAIN-CSS-MOBILE-ADOPT-12 — pages/hub/training/range-builder.js.
 # data-pills-row x2 on the chart-type + position pill rows.
-TRAIN-CSS-MOBILE-ADOPT-12
 
 # ─── Phase-20a: shared-component token adoption ─────────────────────────────
 # TRAIN-CSS-TOKENS-SHARED-1 — src/components/poker/ActionButton.jsx. 13 quoted
 # hex literals routed to --sp-accent-* / --sp-fg-* tokens. Per-action theme
 # fill/border colors retained as literals (intentional bespoke tints).
-TRAIN-CSS-TOKENS-SHARED-1
 # TRAIN-CSS-TOKENS-SHARED-2 — src/components/poker/FeedbackCard.jsx. 19 hex
 # literals routed to tokens. Verdict-band tinted backgrounds retained.
-TRAIN-CSS-TOKENS-SHARED-2
 # TRAIN-CSS-TOKENS-SHARED-3 — src/components/poker/ProgressStrip.jsx. 15 hex
 # literals routed to tokens. Difficulty-theme colors retained.
-TRAIN-CSS-TOKENS-SHARED-3
 # TRAIN-CSS-TOKENS-SHARED-4 — src/components/training/RangeGrid.jsx. 78 hex
 # literals routed to tokens. Range-action ramps (yellow/orange/green/blue)
 # routed through accent tokens; bespoke dark bg literals retained.
-TRAIN-CSS-TOKENS-SHARED-4
 
 # ─── Phase-20b: silent-catch robustness fix ─────────────────────────────────
 # TRAIN-CATCH-FIX-1 — 13 silent `catch {}` blocks across 8 training pages
@@ -1392,7 +1201,6 @@ TRAIN-CSS-TOKENS-SHARED-4
 #  progress, replay-theater, streaks, villain-range x2) replaced with
 # console.warn-backed handlers so dev-side gets visibility while preserving
 # existing fallback behavior.
-TRAIN-CATCH-FIX-1
 
 # ─── Phase-20b: motion-token adoption (15 trainers) ─────────────────────────
 # Each adopter file inserts a top-of-file `const MOTION = { fast: 0.12,
@@ -1401,21 +1209,6 @@ TRAIN-CATCH-FIX-1
 # 0.3) with MOTION.standard / .fast / .slow as appropriate. Values stay
 # in framer-motion's number-of-seconds contract; the body.world-training
 # blanket prefers-reduced-motion override still collapses them.
-TRAIN-CSS-MOTION-ADOPT-1
-TRAIN-CSS-MOTION-ADOPT-2
-TRAIN-CSS-MOTION-ADOPT-3
-TRAIN-CSS-MOTION-ADOPT-4
-TRAIN-CSS-MOTION-ADOPT-5
-TRAIN-CSS-MOTION-ADOPT-6
-TRAIN-CSS-MOTION-ADOPT-7
-TRAIN-CSS-MOTION-ADOPT-8
-TRAIN-CSS-MOTION-ADOPT-9
-TRAIN-CSS-MOTION-ADOPT-10
-TRAIN-CSS-MOTION-ADOPT-11
-TRAIN-CSS-MOTION-ADOPT-12
-TRAIN-CSS-MOTION-ADOPT-13
-TRAIN-CSS-MOTION-ADOPT-14
-TRAIN-CSS-MOTION-ADOPT-15
 
 # ─── Phase-20c: hex sweep batch 4 (20 trainers, 966 literals) ───────────────
 # 966 quoted hex literals routed to --sp-accent-* / --sp-fg-* tokens across
@@ -1440,26 +1233,6 @@ TRAIN-CSS-MOTION-ADOPT-15
 #   15  bounty-trainer.js          [BATCH4-18]
 #   20  frequency-locking.js       [BATCH4-19]
 #   16  player-profiles.js         [BATCH4-20]
-TRAIN-CSS-TOKENS-BATCH4-1
-TRAIN-CSS-TOKENS-BATCH4-2
-TRAIN-CSS-TOKENS-BATCH4-3
-TRAIN-CSS-TOKENS-BATCH4-4
-TRAIN-CSS-TOKENS-BATCH4-5
-TRAIN-CSS-TOKENS-BATCH4-6
-TRAIN-CSS-TOKENS-BATCH4-7
-TRAIN-CSS-TOKENS-BATCH4-8
-TRAIN-CSS-TOKENS-BATCH4-9
-TRAIN-CSS-TOKENS-BATCH4-10
-TRAIN-CSS-TOKENS-BATCH4-11
-TRAIN-CSS-TOKENS-BATCH4-12
-TRAIN-CSS-TOKENS-BATCH4-13
-TRAIN-CSS-TOKENS-BATCH4-14
-TRAIN-CSS-TOKENS-BATCH4-15
-TRAIN-CSS-TOKENS-BATCH4-16
-TRAIN-CSS-TOKENS-BATCH4-17
-TRAIN-CSS-TOKENS-BATCH4-18
-TRAIN-CSS-TOKENS-BATCH4-19
-TRAIN-CSS-TOKENS-BATCH4-20
 
 # ─── Phase-20d: UDT token adoption ──────────────────────────────────────────
 # TRAIN-CSS-TOKENS-SHARED-5 — src/components/training/games/UniversalDynamicTable.jsx.
@@ -1469,7 +1242,6 @@ TRAIN-CSS-TOKENS-BATCH4-20
 # #93c5fd, #4a4a55 etc.) retained as literals. UDT is the single biggest
 # rendering surface in training — this PR lifts most of its presentation
 # onto the shared token contract.
-TRAIN-CSS-TOKENS-SHARED-5
 
 # ─── Phase-21: <QuizAnswer> primitive ───────────────────────────────────────
 # TRAIN-QUIZ-ANSWER-1 — src/components/poker/QuizAnswer.jsx. New shared
@@ -1478,48 +1250,37 @@ TRAIN-CSS-TOKENS-SHARED-5
 # gauntlet, short-deck-trainer, daily-challenge). Theme-neutral: idle uses
 # --sp-bg-elev1 / --sp-border / --sp-fg; correct reveal -> green tint + ✓;
 # wrong reveal -> red tint + ✗. Includes QuizAnswerStack wrapper.
-TRAIN-QUIZ-ANSWER-1
 # TRAIN-WIRE-QUIZ-ANSWER-1 — pages/hub/training/scenario-demo.js. First
 # adopter: replaces the inline motion.button quiz-options block (with hand-
 # rolled rgba conditionals and inline ✓/✗) with <QuizAnswerStack> +
 # <QuizAnswer>. Numeric `shortcut` (idx+1) renders the kbd hint chip.
-TRAIN-WIRE-QUIZ-ANSWER-1
 
 # ─── Phase-22: QuizAnswer adoption sweep ────────────────────────────────────
 # TRAIN-WIRE-QUIZ-ANSWER-2 — pages/hub/training/pot-geometry.js. Replaces
 # inline motion.button SPR-category options (with hand-rolled bg/border/
 # color conditionals) with QuizAnswerStack + 4 QuizAnswer instances.
 # Numeric shortcut={idx+1} per option.
-TRAIN-WIRE-QUIZ-ANSWER-2
 # TRAIN-WIRE-QUIZ-ANSWER-3 — pages/hub/training/short-deck-trainer.js (quiz
 # mode). Replaces inline motion.button rule-question options with
 # QuizAnswer instances inline (parent container handles layout).
 # textTransform: 'capitalize' preserved via style prop pass-through.
-TRAIN-WIRE-QUIZ-ANSWER-3
 # TRAIN-WIRE-QUIZ-ANSWER-4 — pages/hub/training/daily-challenge.js.
 # Replaces the 2-col motion.button action options (CALL/FOLD/etc.) with
 # QuizAnswer instances. Parent grid container preserves the 2-col layout.
-TRAIN-WIRE-QUIZ-ANSWER-4
 
 # ─── Phase-23: mobile data-attr long-tail sweep (6 GAME files) ──────────────
 # TRAIN-CSS-MOBILE-ADOPT-13 — pages/hub/training/famous-finals.js.
 # data-pills-row on the filter-pill row.
-TRAIN-CSS-MOBILE-ADOPT-13
 # TRAIN-CSS-MOBILE-ADOPT-14 — pages/hub/training/multiway-preflop.js.
 # data-stats-grid + data-pills-row on the position + scenario rows.
-TRAIN-CSS-MOBILE-ADOPT-14
 # TRAIN-CSS-MOBILE-ADOPT-15 — pages/hub/training/play-mode.js. data-stats-grid
 # on the session-stats panel.
-TRAIN-CSS-MOBILE-ADOPT-15
 # TRAIN-CSS-MOBILE-ADOPT-16 — pages/hub/training/coach-mode.js. Marker-only
 # (no qualifying patterns; layout is single-column).
-TRAIN-CSS-MOBILE-ADOPT-16
 # TRAIN-CSS-MOBILE-ADOPT-17 — pages/hub/training/bounty-trainer.js.
 # data-pills-row x2 on the bounty-type + difficulty pill rows.
-TRAIN-CSS-MOBILE-ADOPT-17
 # TRAIN-CSS-MOBILE-ADOPT-18 — pages/hub/training/quiz-gauntlet.js. Marker-only
 # (numeric-input UI doesn't have pill rows or stat grids).
-TRAIN-CSS-MOBILE-ADOPT-18
 
 # ─── Phase-24: targeted ActionButton/QuizAnswer adopters ────────────────────
 # TRAIN-WIRE-ACTIONBTN-3 — pages/hub/training/play-mode.js. Replaces the
@@ -1527,18 +1288,15 @@ TRAIN-CSS-MOBILE-ADOPT-18
 # allin) with <ActionButtonRow> + <ActionButton>. Preserves the special
 # bet-amount logic (clicking 'bet' opens betting modal vs. invoking
 # handleAction directly). Numeric shortcut={idx+1} renders kbd hints.
-TRAIN-WIRE-ACTIONBTN-3
 # TRAIN-WIRE-QUIZ-ANSWER-5 — pages/hub/training/multiway-preflop.js.
 # Replaces inline YES/NO motion.button pair with two <QuizAnswer> instances.
 # The trainer's quiz is binary so QuizAnswer fits cleanly; preserves
 # parent flex row layout.
-TRAIN-WIRE-QUIZ-ANSWER-5
 # TRAIN-WIRE-QUIZ-ANSWER-6 — pages/hub/training/spot-trainer.js. Replaces
 # the inline motion.button GTO-action options (with hand-rolled rgba
 # conditionals) with <QuizAnswer> instances. Preserves the parent 2-col
 # grid layout. The frequency badge ('(N%)') shown on correct answer is
 # preserved via QuizAnswer's children slot.
-TRAIN-WIRE-QUIZ-ANSWER-6
 
 # ─── Phase-25: mass token sweep — hex + gradient + motion ────────────────────
 # Single-batch mechanical sweep across 85 training files:
@@ -1549,193 +1307,37 @@ TRAIN-WIRE-QUIZ-ANSWER-6
 # outside the accent contract) intentionally retained.
 
 # BATCH5 markers:
-TRAIN-CSS-TOKENS-BATCH5-1
-TRAIN-CSS-TOKENS-BATCH5-2
-TRAIN-CSS-TOKENS-BATCH5-3
-TRAIN-CSS-TOKENS-BATCH5-4
-TRAIN-CSS-TOKENS-BATCH5-5
-TRAIN-CSS-TOKENS-BATCH5-6
-TRAIN-CSS-TOKENS-BATCH5-7
-TRAIN-CSS-TOKENS-BATCH5-8
-TRAIN-CSS-TOKENS-BATCH5-9
-TRAIN-CSS-TOKENS-BATCH5-10
-TRAIN-CSS-TOKENS-BATCH5-11
-TRAIN-CSS-TOKENS-BATCH5-12
-TRAIN-CSS-TOKENS-BATCH5-13
-TRAIN-CSS-TOKENS-BATCH5-14
-TRAIN-CSS-TOKENS-BATCH5-15
-TRAIN-CSS-TOKENS-BATCH5-16
-TRAIN-CSS-TOKENS-BATCH5-17
-TRAIN-CSS-TOKENS-BATCH5-18
-TRAIN-CSS-TOKENS-BATCH5-19
-TRAIN-CSS-TOKENS-BATCH5-20
-TRAIN-CSS-TOKENS-BATCH5-21
-TRAIN-CSS-TOKENS-BATCH5-22
-TRAIN-CSS-TOKENS-BATCH5-23
-TRAIN-CSS-TOKENS-BATCH5-24
-TRAIN-CSS-TOKENS-BATCH5-25
-TRAIN-CSS-TOKENS-BATCH5-26
-TRAIN-CSS-TOKENS-BATCH5-27
-TRAIN-CSS-TOKENS-BATCH5-28
-TRAIN-CSS-TOKENS-BATCH5-29
-TRAIN-CSS-TOKENS-BATCH5-30
-TRAIN-CSS-TOKENS-BATCH5-31
-TRAIN-CSS-TOKENS-BATCH5-32
-TRAIN-CSS-TOKENS-BATCH5-33
-TRAIN-CSS-TOKENS-BATCH5-34
-TRAIN-CSS-TOKENS-BATCH5-35
-TRAIN-CSS-TOKENS-BATCH5-36
-TRAIN-CSS-TOKENS-BATCH5-37
-TRAIN-CSS-TOKENS-BATCH5-38
-TRAIN-CSS-TOKENS-BATCH5-39
-TRAIN-CSS-TOKENS-BATCH5-40
-TRAIN-CSS-TOKENS-BATCH5-41
-TRAIN-CSS-TOKENS-BATCH5-42
-TRAIN-CSS-TOKENS-BATCH5-43
-TRAIN-CSS-TOKENS-BATCH5-44
-TRAIN-CSS-TOKENS-BATCH5-45
-TRAIN-CSS-TOKENS-BATCH5-46
-TRAIN-CSS-TOKENS-BATCH5-47
-TRAIN-CSS-TOKENS-BATCH5-48
-TRAIN-CSS-TOKENS-BATCH5-49
-TRAIN-CSS-TOKENS-BATCH5-50
-TRAIN-CSS-TOKENS-BATCH5-51
-TRAIN-CSS-TOKENS-BATCH5-52
-TRAIN-CSS-TOKENS-BATCH5-53
-TRAIN-CSS-TOKENS-BATCH5-54
-TRAIN-CSS-TOKENS-BATCH5-55
-TRAIN-CSS-TOKENS-BATCH5-56
-TRAIN-CSS-TOKENS-BATCH5-57
-TRAIN-CSS-TOKENS-BATCH5-58
-TRAIN-CSS-TOKENS-BATCH5-59
-TRAIN-CSS-TOKENS-BATCH5-60
-TRAIN-CSS-TOKENS-BATCH5-61
-TRAIN-CSS-TOKENS-BATCH5-62
-TRAIN-CSS-TOKENS-BATCH5-63
 
 # GRADIENT markers:
-TRAIN-CSS-GRADIENT-ADOPT-1
-TRAIN-CSS-GRADIENT-ADOPT-2
-TRAIN-CSS-GRADIENT-ADOPT-3
-TRAIN-CSS-GRADIENT-ADOPT-4
-TRAIN-CSS-GRADIENT-ADOPT-5
-TRAIN-CSS-GRADIENT-ADOPT-6
-TRAIN-CSS-GRADIENT-ADOPT-7
-TRAIN-CSS-GRADIENT-ADOPT-8
-TRAIN-CSS-GRADIENT-ADOPT-9
-TRAIN-CSS-GRADIENT-ADOPT-10
-TRAIN-CSS-GRADIENT-ADOPT-11
-TRAIN-CSS-GRADIENT-ADOPT-12
-TRAIN-CSS-GRADIENT-ADOPT-13
-TRAIN-CSS-GRADIENT-ADOPT-14
-TRAIN-CSS-GRADIENT-ADOPT-15
-TRAIN-CSS-GRADIENT-ADOPT-16
-TRAIN-CSS-GRADIENT-ADOPT-17
-TRAIN-CSS-GRADIENT-ADOPT-18
-TRAIN-CSS-GRADIENT-ADOPT-19
-TRAIN-CSS-GRADIENT-ADOPT-20
-TRAIN-CSS-GRADIENT-ADOPT-21
-TRAIN-CSS-GRADIENT-ADOPT-22
-TRAIN-CSS-GRADIENT-ADOPT-23
-TRAIN-CSS-GRADIENT-ADOPT-24
-TRAIN-CSS-GRADIENT-ADOPT-25
-TRAIN-CSS-GRADIENT-ADOPT-26
-TRAIN-CSS-GRADIENT-ADOPT-27
-TRAIN-CSS-GRADIENT-ADOPT-28
-TRAIN-CSS-GRADIENT-ADOPT-29
-TRAIN-CSS-GRADIENT-ADOPT-30
-TRAIN-CSS-GRADIENT-ADOPT-31
-TRAIN-CSS-GRADIENT-ADOPT-32
-TRAIN-CSS-GRADIENT-ADOPT-33
-TRAIN-CSS-GRADIENT-ADOPT-34
-TRAIN-CSS-GRADIENT-ADOPT-35
-TRAIN-CSS-GRADIENT-ADOPT-36
-TRAIN-CSS-GRADIENT-ADOPT-37
-TRAIN-CSS-GRADIENT-ADOPT-38
-TRAIN-CSS-GRADIENT-ADOPT-39
-TRAIN-CSS-GRADIENT-ADOPT-40
-TRAIN-CSS-GRADIENT-ADOPT-41
-TRAIN-CSS-GRADIENT-ADOPT-42
-TRAIN-CSS-GRADIENT-ADOPT-43
-TRAIN-CSS-GRADIENT-ADOPT-44
-TRAIN-CSS-GRADIENT-ADOPT-45
-TRAIN-CSS-GRADIENT-ADOPT-46
-TRAIN-CSS-GRADIENT-ADOPT-47
-TRAIN-CSS-GRADIENT-ADOPT-48
-TRAIN-CSS-GRADIENT-ADOPT-49
-TRAIN-CSS-GRADIENT-ADOPT-50
-TRAIN-CSS-GRADIENT-ADOPT-51
-TRAIN-CSS-GRADIENT-ADOPT-52
-TRAIN-CSS-GRADIENT-ADOPT-53
 
 # MOTION markers:
-TRAIN-CSS-MOTION-ADOPT-16
-TRAIN-CSS-MOTION-ADOPT-17
-TRAIN-CSS-MOTION-ADOPT-18
-TRAIN-CSS-MOTION-ADOPT-19
-TRAIN-CSS-MOTION-ADOPT-20
-TRAIN-CSS-MOTION-ADOPT-21
-TRAIN-CSS-MOTION-ADOPT-22
-TRAIN-CSS-MOTION-ADOPT-23
-TRAIN-CSS-MOTION-ADOPT-24
-TRAIN-CSS-MOTION-ADOPT-25
-TRAIN-CSS-MOTION-ADOPT-26
-TRAIN-CSS-MOTION-ADOPT-27
-TRAIN-CSS-MOTION-ADOPT-28
-TRAIN-CSS-MOTION-ADOPT-29
 
 # ─── Phase-26: useTrainingFeedback hook wiring (last 3 holdouts) ────────────
 # TRAIN-WIRE-FEEDBACK-HOOK-1 — pages/hub/training/coach-mode.js. Adds
 # `const fb = useTrainingFeedback()` and fires fb.correct() / fb.incorrect()
 # in handleAnswer based on lesson-quiz correctness.
-TRAIN-WIRE-FEEDBACK-HOOK-1
 # TRAIN-WIRE-FEEDBACK-HOOK-2 — pages/hub/training/multiway-preflop.js. Adds
 # fb hook and fires fb.correct/incorrect on YES/NO QuizAnswer click handlers.
-TRAIN-WIRE-FEEDBACK-HOOK-2
 # TRAIN-WIRE-FEEDBACK-HOOK-3 — pages/hub/training/play-mode.js. Adds fb hook
 # and fires fb.correct() (when totalEVLoss >= -0.2 BB) or fb.incorrect()
 # at hand-completion in the showdownResult set point.
-TRAIN-WIRE-FEEDBACK-HOOK-3
 
 # ─── Phase-26b: hex sweep batch 6 — extended palette ────────────────────────
 # 54 quoted hex literals routed to --sp-* tokens via extended palette map:
 #   '#00e0ff' -> cyan, '#818cf8' -> blue, '#6b7280' -> fg-dim, '#60a5fa' -> blue,
 #   '#34d399' -> emerald, '#a5b4fc' -> blue, '#c4b5fd' -> purple, '#0066ff' -> blue
-TRAIN-CSS-TOKENS-BATCH6-1
-TRAIN-CSS-TOKENS-BATCH6-2
-TRAIN-CSS-TOKENS-BATCH6-3
-TRAIN-CSS-TOKENS-BATCH6-4
-TRAIN-CSS-TOKENS-BATCH6-5
-TRAIN-CSS-TOKENS-BATCH6-6
-TRAIN-CSS-TOKENS-BATCH6-7
-TRAIN-CSS-TOKENS-BATCH6-8
-TRAIN-CSS-TOKENS-BATCH6-9
-TRAIN-CSS-TOKENS-BATCH6-10
-TRAIN-CSS-TOKENS-BATCH6-11
-TRAIN-CSS-TOKENS-BATCH6-12
-TRAIN-CSS-TOKENS-BATCH6-13
-TRAIN-CSS-TOKENS-BATCH6-14
-TRAIN-CSS-TOKENS-BATCH6-15
-TRAIN-CSS-TOKENS-BATCH6-16
-TRAIN-CSS-TOKENS-BATCH6-17
-TRAIN-CSS-TOKENS-BATCH6-18
-TRAIN-CSS-TOKENS-BATCH6-19
-TRAIN-CSS-TOKENS-BATCH6-20
 
 # ─── Phase-27: BottomSheet "How it works" sweep round 3 (3 more trainers) ───
 # TRAIN-WIRE-BOTTOMSHEET-6 — pages/hub/training/scenario-demo.js. Adds the
 # "How it works" sheet explaining the GTO Training Tutorial step-by-step
 # lessons + comprehension quiz flow. Toggle pill in cyan accent next to
 # the back arrow.
-TRAIN-WIRE-BOTTOMSHEET-6
 # TRAIN-WIRE-BOTTOMSHEET-7 — pages/hub/training/short-deck-trainer.js. Adds
 # the sheet explaining 36-card dynamics (flushes > full houses, more
 # straights, equity shifts). Toggle pill in trainer's red accent.
-TRAIN-WIRE-BOTTOMSHEET-7
 # TRAIN-WIRE-BOTTOMSHEET-8 — pages/hub/training/multiway-preflop.js. Adds
 # the sheet explaining how multiway pots tighten ranges compared to
 # heads-up play. Toggle pill in trainer's purple accent.
-TRAIN-WIRE-BOTTOMSHEET-8
 
 # ─── Phase-28: FeedbackCard adoption round 2 (3 more trainers) ──────────────
 # TRAIN-WIRE-FEEDBACK-V2-4 — pages/hub/training/pot-geometry.js. Replaces
@@ -1743,16 +1345,13 @@ TRAIN-WIRE-BOTTOMSHEET-8
 # emoji-prefixed CORRECT/INCORRECT) with <FeedbackCard compact /> wrapped
 # in the existing AnimatePresence. SPR category description routed through
 # whyShort.
-TRAIN-WIRE-FEEDBACK-V2-4
 # TRAIN-WIRE-FEEDBACK-V2-5 — pages/hub/training/spot-trainer.js. Replaces
 # the inner verdict band (CORRECT/INCORRECT text) with <FeedbackCard
 # compact /> while preserving the surrounding GTO Frequencies + countdown
 # body unchanged.
-TRAIN-WIRE-FEEDBACK-V2-5
 # TRAIN-WIRE-FEEDBACK-V2-6 — pages/hub/training/daily-challenge.js. Same
 # pattern — verdict band routed through FeedbackCard, leaving the GTO
 # Frequencies breakdown body inline.
-TRAIN-WIRE-FEEDBACK-V2-6
 
 # ─── Phase-31: Trivia consolidation — shared TriviaAnswerOption ─────────────
 # TRAIN-TRIVIA-ANSWER-OPTION-1 — src/components/trivia/TriviaAnswerOption.jsx.
@@ -1762,14 +1361,10 @@ TRAIN-WIRE-FEEDBACK-V2-6
 # survival-game). Render contract is intentionally identical to the prior
 # inline JSX so existing trivia CSS (.option, .option.correct, .option.wrong,
 # .option.selected) keeps working unchanged. Lucide React icons reused.
-TRAIN-TRIVIA-ANSWER-OPTION-1
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1 — pages/hub/trivia/mixed.js. Replaces
 # 30-line inline options.map block with <TriviaAnswerOption /> usage.
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 — pages/hub/trivia/pvp.js. Same swap.
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — pages/hub/trivia/tournaments.js. Same.
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
 
 # ─── Phase-32: useTriviaQuestion hook ───────────────────────────────────────
 # TRAIN-TRIVIA-HOOK-1 — src/hooks/useTriviaQuestion.js. New shared hook
@@ -1779,7 +1374,6 @@ TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
 # of state boilerplate per file. Hook also adds an internal lockedRef to
 # prevent the double-fire race that several trivia pages hand-rolled with
 # different inline guards. Adoption can land incrementally.
-TRAIN-TRIVIA-HOOK-1
 
 
 # ─── Phase-33/34/35: useTriviaQuestion hook adoption (3 CSS-class adopters) ──
@@ -1789,32 +1383,26 @@ TRAIN-TRIVIA-HOOK-1
 # shared hook. Mode-specific side effects (timer stop, per-category stats,
 # scoring, answersRef ledger, busEmit, 1200ms advance via setTimeout)
 # live in the hook's onAnswer callback so external semantics are identical.
-TRAIN-WIRE-TRIVIA-HOOK-1
 # TRAIN-WIRE-TRIVIA-HOOK-2 — pages/hub/trivia/pvp.js. Second hook adopter.
 # Same pattern as HOOK-1 but with PvP-specific side effects (per-question
 # accuracy ledger via playerAnswersRef, scoreRef, 500ms advance). PR #504
 # also restored the missing TriviaAnswerOption import that PR #497 had
 # left dangling — would have crashed the PvP playing screen at runtime.
-TRAIN-WIRE-TRIVIA-HOOK-2
 # TRAIN-WIRE-TRIVIA-HOOK-3 — pages/hub/trivia/tournaments.js. Third hook
 # adopter. Same pattern with tournament-specific side effects (scoreRef
 # += 100 per correct, answersRef ledger, finishRoundPlay on last question,
 # 500ms advance). PR #505 also restored the missing TriviaAnswerOption
 # import (same latent crash as pvp.js had).
-TRAIN-WIRE-TRIVIA-HOOK-3
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — pages/hub/trivia/endless.js. Fourth
 # TriviaAnswerOption adopter. Replaced raw <button> answer map with
 # <TriviaAnswerOption variant="inline"> component. PR #513.
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4
 # TRAIN-WIRE-TRIVIA-HOOK-4 — pages/hub/trivia/endless.js. Fourth hook
 # adopter. Replaced bare selectedAnswer/showResult useState with shared
 # useTriviaQuestion hook. PR #515.
-TRAIN-WIRE-TRIVIA-HOOK-4
 # TRAIN-WIRE-TRIVIA-HOOK-5 — pages/hub/trivia/survival-game.js. Fifth hook
 # adopter. Replaced bare selectedAnswer/showResult useState with shared
 # useTriviaQuestion hook. Double Chance invariant preserved: first-wrong
 # early-return touches only local state. PR #517.
-TRAIN-WIRE-TRIVIA-HOOK-5
 
 # TRAIN-WIRE-TRIVIA-TIMER-1 — src/hooks/useTriviaTimer.js. Shared shot-clock
 # hook extracted from mixed.js, pvp.js, tournaments.js, endless.js,
@@ -1822,22 +1410,17 @@ TRAIN-WIRE-TRIVIA-HOOK-5
 # visibility-change pause/resume, and setInterval countdown with onTimeout.
 # autoResumeOnVisible flag controls whether hook auto-resumes on tab-return.
 # PR #524.
-TRAIN-WIRE-TRIVIA-TIMER-1
 # TRAIN-WIRE-TRIVIA-TIMER-2 — pages/hub/trivia/mixed.js. First page to adopt
 # useTriviaTimer. Removed local timer state/refs/effects; replaced with hook.
 # autoResumeOnVisible=true (no explicit resume UI). PR #525.
-TRAIN-WIRE-TRIVIA-TIMER-2
 # TRAIN-WIRE-TRIVIA-TIMER-3 — pages/hub/trivia/pvp.js and
 # pages/hub/trivia/tournaments.js. Second and third pages to adopt
 # useTriviaTimer. Same autoResumeOnVisible=true pattern. PRs #526, #527.
-TRAIN-WIRE-TRIVIA-TIMER-3
 # TRAIN-WIRE-TRIVIA-TIMER-4 — pages/hub/trivia/endless.js. Fourth page to
 # adopt useTriviaTimer. autoResumeOnVisible=false: page has explicit Resume
 # Game overlay; hook stops timer on tab-hide, page shows overlay, resume
 # button calls timer.setIsTimerRunning(true). PR #528.
-TRAIN-WIRE-TRIVIA-TIMER-4
 # TRAIN-WIRE-TRIVIA-TIMER-5 — pages/hub/trivia/survival-game.js. Fifth and
 # final page to adopt useTriviaTimer. autoResumeOnVisible=false (same explicit
 # Resume UI pattern as endless.js). All five trivia game pages now share the
 # single useTriviaTimer hook. PR #530.
-TRAIN-WIRE-TRIVIA-TIMER-5
