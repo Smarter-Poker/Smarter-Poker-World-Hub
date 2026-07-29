@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       // Build update object — E-05: NaN-safe numeric parsing
       const updates = { updated_at: new Date().toISOString() };
 
-      // ── E-01: XSS-safe name sanitization ─────────────────────────
+      // ── E-01: XSS-safe name sanitization ─────────────────────────────────
       if (name !== undefined) updates.name = sanitizeTableName(name, 100);
 
       // ── E-05: Reject NaN from parseFloat — return 400 ──────────────────
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'bigBlind must be greater than smallBlind' });
       }
 
-      // ── E-06: Whitelist settings keys before merge ─────────────────
+      // ── E-06: Whitelist settings keys before merge ───────────────────
       if (settings && typeof settings === 'object') {
         const existingSettings = table.settings || {};
         const cleanSettings = sanitizeSettings(settings);

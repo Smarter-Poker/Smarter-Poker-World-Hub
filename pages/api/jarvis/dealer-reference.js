@@ -1,10 +1,10 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * JARVIS — DEALER REFERENCE API
- * ═════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════
  * Dealer-facing AI endpoint for game rules, TDA lookups, and dealing
  * procedure refreshers. System prompt tuned for cardroom knowledge.
- * ═════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
