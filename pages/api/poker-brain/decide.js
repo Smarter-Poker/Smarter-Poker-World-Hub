@@ -360,7 +360,7 @@ export default async function handler(req, res) {
     // mode, the human types their own chat. Clear to prevent memory leaks.
     clearHorseSideEffects(brain);
 
-    // ── VALIDATE RESULT ──────────────────────────────────────────────
+    // ── VALIDATE RESULT ────────────────────────────────────────────
     if (!result || !result.action || typeof result.action.type !== 'string') {
       console.warn('[poker-brain/decide] Router returned invalid result:', result);
       return res.status(200).json({
