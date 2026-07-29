@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/anti-cheat | ORB-7 AUDITED
  * 
@@ -168,9 +169,9 @@ try {
       }
 
       switch (action) {
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET FLAGS — Open flags for this club
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_flags': {
           const { status = 'open', severity, flagType, limit = 50, offset = 0 } = params;
 
@@ -195,9 +196,9 @@ try {
           return res.status(200).json({ success: true, flags: data || [], count });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET EVENTS — Recent anti-cheat events
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_events': {
           const { limit = 50, offset = 0, eventType, playerId } = params;
 
@@ -220,9 +221,9 @@ try {
           return res.status(200).json({ success: true, events: data || [] });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET SESSIONS — Active table sessions
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_sessions': {
           const { tableId } = params;
 
@@ -245,12 +246,12 @@ try {
           return res.status(200).json({ success: true, sessions: data || [] });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // REVIEW FLAG — Atomic conditional update (TOCTOU-safe)
         // Uses .eq('status', 'open') to prevent double-review race.
         // Two admins clicking "Review" at the same time: only one
         // succeeds, the other gets 409 Conflict.
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'review_flag': {
           const { flagId, newStatus, notes } = params;
 
@@ -317,12 +318,12 @@ try {
           return res.status(200).json(reviewResult);
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // KICK PLAYER — Recovery-tracked multi-step operation
         // Each step records its completion. If any step fails,
         // the recovery log allows manual or automated rollback.
         // Idempotency key prevents double-kicks from fat-fingers.
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'kick_player': {
           // Round 68 follow-up: this action used to call the World-Hub-internal
           // GameController.standUp which operates on a parallel in-memory
@@ -426,9 +427,9 @@ try {
           return res.status(200).json(kickResult);
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET PLAYER HISTORY — All flags/events for a player
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_player_history': {
           const { playerId: targetPlayerId } = params;
           if (!targetPlayerId) return res.status(400).json({ error: 'playerId required' });
@@ -473,9 +474,9 @@ try {
           });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET STATS — Anti-cheat summary for dashboard
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_stats': {
           const [openFlags, recentBlocks, activeSessions] = await Promise.all([
             getSupabase()
@@ -518,11 +519,11 @@ try {
           });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET COLLUSION PAIRS — Chip-dumping ratio detection
         // ORB-7 Mandate: Track Win/Loss chip-dumping ratios
         // between specific player pairs
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_collusion_pairs': {
           const { threshold = 0.75, minHands = 5, limit = 500 } = params;
 
@@ -643,10 +644,10 @@ try {
           });
         }
 
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         // GET ANOMALIES — Folding-the-nuts detection
         // ORB-7 Mandate: Auto-flag folding the nuts on the river
-        // ─────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────
         case 'get_anomalies': {
           const { limit = 500 } = params;
 

@@ -1,8 +1,9 @@
-/* ═══════════════════════════════════════════════════════════════════
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+/* ═════════════════════════════════════════════════════════════════
    API: /api/club-arena/bbj
    GET: Fetch BBJ pool amount, recent winners, tier config
    POST action=contribute: Add hand contribution to pool
-   ═══════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
