@@ -1,7 +1,7 @@
 /**
  * TRIVIA QUESTION POOL STATUS & BULK GENERATOR
  * Admin endpoint to check pool status and trigger bulk generation
- * 
+ *
  * Usage:
  * GET /api/admin/trivia-pool-status - Get current pool stats
  * POST /api/admin/trivia-pool-status - Trigger bulk generation (pass batches in body)
@@ -35,7 +35,7 @@ const CATEGORIES = [
     { id: 'gto_scenarios', name: 'GTO Scenarios' }
 ];
 
-// Phase 49 (2026-05-05): bumped down from 3000 → 1500. Plan v3 target:
+// Phase 49 (2026-05-05): bumped down from 3000 to 1500. Plan v3 target:
 // 5 strategy categories at 1500 each (deterministic engine) + 5 fact categories
 // at 1500 each (Grok refill) = 15,000 total at 60-day rotation capacity.
 const TARGET_PER_CATEGORY = 1500;
@@ -47,6 +47,20 @@ export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
+
+    // Auth: require admin/superadmin/god for ALL methods. GET was previously
+    // unauthenticated, leaking full content-pipeline metrics to anyone.
+    {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        const { data: prof } = await getSupabase().from('profiles').select('role').eq('id', authUser.id).maybeSingle();
+        if (!prof || !['admin', 'superadmin', 'god'].includes(prof.role)) {
+            return res.status(403).json({ success: false, error: 'Admin access required' });
+        }
+    }
 
     try {
         // Get comprehensive pool statistics
@@ -121,7 +135,7 @@ export default async function handler(req, res) {
         const overallProgress = Math.round((totalQuestions / targetTotal) * 100);
 
         // Calculate estimated gameplay support
-        const survivalRunQuestions = 200; // 10 levels × 20 questions
+        const survivalRunQuestions = 200; // 10 levels x 20 questions
         const dailyQuestions = 225; // Survival + Mixed + Daily typical usage
         const daysSupported = Math.floor(totalQuestions / dailyQuestions);
         const playersSupported = Math.floor(totalQuestions / (dailyQuestions * 60)); // 60-day rotation
@@ -145,20 +159,20 @@ export default async function handler(req, res) {
 
         // Add recommendations
         if (totalQuestions < 1000) {
-            poolStatus.recommendations.push('⚠️ CRITICAL: Question pool too small. Run bulk generation immediately.');
+            poolStatus.recommendations.push('CRITICAL: Question pool too small. Run bulk generation immediately.');
         } else if (totalQuestions < 5000) {
-            poolStatus.recommendations.push('🔶 WARNING: Question pool is low. Schedule frequent cron runs.');
+            poolStatus.recommendations.push('WARNING: Question pool is low. Schedule frequent cron runs.');
         } else if (totalQuestions < targetTotal) {
-            poolStatus.recommendations.push('📈 INFO: Pool growing. Continue scheduled cron runs.');
+            poolStatus.recommendations.push('INFO: Pool growing. Continue scheduled cron runs.');
         } else {
-            poolStatus.recommendations.push('✅ SUCCESS: Question pool is complete!');
+            poolStatus.recommendations.push('SUCCESS: Question pool is complete!');
         }
 
         // Check for imbalanced categories
         const lowCategories = Object.values(stats || {}).filter(s => s.total < TARGET_PER_CATEGORY / 3);
         if (lowCategories.length > 0) {
             poolStatus.recommendations.push(
-                `🎯 PRIORITY: Focus on ${lowCategories.map(c => c.name).join(', ')}`
+                `PRIORITY: Focus on ${lowCategories.map(c => c.name).join(', ')}`
             );
         }
 
@@ -174,7 +188,7 @@ export default async function handler(req, res) {
                 ...poolStatus,
                 bulkGeneration: {
                     triggered: false,
-                    error: 'Manual bulk-generation removed. Generation now runs daily at 04:30 UTC via Open Claw → workers VM. Stats endpoint (GET) still works.',
+                    error: 'Manual bulk-generation removed. Generation now runs daily at 04:30 UTC via Open Claw to workers VM. Stats endpoint (GET) still works.',
                     nextScheduledRun: 'Daily 04:30 UTC',
                 }
             });
