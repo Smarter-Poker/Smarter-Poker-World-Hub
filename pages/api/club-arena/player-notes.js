@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Notes API — CRUD for online opponent notes
- * ═══════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════
  * 
  * Actions:
  *   get      — Get note for a specific target player
@@ -150,7 +151,7 @@ export default async function handler(req, res) {
           return res.json({ success: true, note: data });
         }
 
-        // ── DELETE ────────────────────────────────────────────────
+        // ── DELETE ────────────────────────────────────────────
         case 'delete': {
           if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 

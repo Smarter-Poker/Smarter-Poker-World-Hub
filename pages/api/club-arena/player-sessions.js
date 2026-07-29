@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Session Tracker API — Real-time view of player activity
- * ═══════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════════════════════════
  * GET /api/club-arena/player-sessions?clubId=xxx
  *
  * Returns: Active player sessions with duration, table location, buy-in/stack info

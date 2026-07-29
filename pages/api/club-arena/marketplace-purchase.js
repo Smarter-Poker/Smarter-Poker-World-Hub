@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/marketplace-purchase
  * Atomic marketplace item purchase. Deducts chips, records purchase + transaction.
