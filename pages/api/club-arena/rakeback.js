@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/rakeback
  *
@@ -47,9 +48,9 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // GET — Status or History
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'GET') {
         const { clubId, action: getAction } = req.query;
         // RED TEAM: Strict UUID validation on query param
@@ -119,9 +120,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // POST — Open / Close / Claim
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'POST') {
         const { action, clubId } = req.body;
 

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/player-retention
  * 
@@ -82,7 +83,7 @@ export default async function handler(req, res) {
 
       const retConfig = { ...RETENTION_DEFAULTS, ...(club?.settings?.retention || {}) };
 
-      // ─── SCAN: Find at-risk and churned players ──────────────
+      // ─── SCAN: Find at-risk and churned players ──────────────────
       if (action === 'scan') {
           try {
               const now = new Date();
