@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { Pool } from 'pg';
 import { reportApiError } from '../../../src/lib/sentryWrap';

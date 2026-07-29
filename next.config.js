@@ -619,6 +619,10 @@ const nextConfig = {
       { source: '/hub/MLB-ANALYTICS/backtest', destination: '/hub/MLB-ANALYTICS/model-intel', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
+      // Legacy avatar page names (Club Arena's ProfilePage/AvatarService still
+      // link to /hub/avatars-complete, which no longer exists as a page)
+      { source: '/hub/avatars-complete', destination: '/hub/avatars', permanent: true },
+      { source: '/hub/avatars-standalone', destination: '/hub/avatars', permanent: true },
       // Memory Games → Preflop Charts (renamed April 2026)
       { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
       {
