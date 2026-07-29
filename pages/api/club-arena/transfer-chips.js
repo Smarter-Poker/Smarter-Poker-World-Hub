@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/transfer-chips
  * Transfer chips between members within the same club.
@@ -95,9 +96,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═════════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════
       // IN-PLAY LOCK — Block transfer while seated at an active table
-      // ═════════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════
       const { data: activeSeat } = await getSupabase()
         .from('table_sessions')
         .select('id, table_id')
