@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Tournament Engine API
  * POST /api/poker/engine/tournament
