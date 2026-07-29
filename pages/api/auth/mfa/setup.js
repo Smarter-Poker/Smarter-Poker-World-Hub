@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    2FA SETUP API - Generate TOTP Secret and QR Code
    POST /api/auth/mfa/setup

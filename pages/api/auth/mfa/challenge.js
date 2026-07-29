@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    MFA LOGIN CHALLENGE — Phase 6.1.21
    POST /api/auth/mfa/challenge
