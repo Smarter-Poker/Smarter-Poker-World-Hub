@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       // Build update object — E-05: NaN-safe numeric parsing
       const updates = { updated_at: new Date().toISOString() };
 
-      // ── E-01: XSS-safe name sanitization ─────────────────────────────────
+      // ── E-01: XSS-safe name sanitization ─────────────────────────────
       if (name !== undefined) updates.name = sanitizeTableName(name, 100);
 
       // ── E-05: Reject NaN from parseFloat — return 400 ──────────────────
