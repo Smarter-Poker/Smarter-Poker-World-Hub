@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Waitlist API — Queue management for full tables
- * ═══════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════
  * POST /api/club-arena/waitlist
  *
  * Actions:
