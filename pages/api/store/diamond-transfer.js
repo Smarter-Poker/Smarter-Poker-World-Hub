@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  *  POST /api/store/diamond-transfer
@@ -398,9 +399,9 @@ export default async function handler(req, res) {
             return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers` });
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════
         // PHASE 2: SOURCE-TIERED ROLLING 30-DAY LIMITS (accounts 30–89 days)
-        // ════════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════
         const rolling30Start = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
         
         // Rolling 30-day window for outbound gifts
@@ -417,7 +418,6 @@ export default async function handler(req, res) {
             .select('amount')
             .eq('ip_address', clientIp)
             .gte('created_at', rolling30Start));
-        
         const effectiveAlreadySent = Math.max(alreadySent30Day, ipAlreadySent30Day);
 
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
