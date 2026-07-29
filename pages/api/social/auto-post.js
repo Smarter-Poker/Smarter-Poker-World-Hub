@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Auto-Post API - Creates automatic social posts for profile updates
  * 

@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Live Session API — "I'm At The Table" Broadcasting
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * POST /api/social/live-session
  *   action=start  — Start a live session
  *   action=update — Update profit/status/notes
@@ -10,7 +11,7 @@
  *   ?type=public  — All public active sessions
  *   ?type=mine    — Current user's active session
  *   ?session_id=  — Specific session details
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
