@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Employee Downs API — GET /api/employee/downs
  * Returns dealing history (cash game + tournament table assignments)
