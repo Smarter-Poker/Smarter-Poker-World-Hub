@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Poker Brain -- Single Session Detail API
  * GET /api/poker-brain/session/[id]
