@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Poker Brain -- Historical Equity Migration API
  * POST /api/poker-brain/migrate-equities

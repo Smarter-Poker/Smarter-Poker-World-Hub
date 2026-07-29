@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Poker Brain HUD — Horse Brain Decision API
  * POST /api/poker-brain/decide
@@ -39,13 +40,13 @@ function getSupabase() {
   return _supabase;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // HORSE BRAIN INITIALIZATION
 // CRITICAL: Load through brain/index.js barrel, NOT brain/router directly.
 // The barrel calls router.setRouterLiveReadFn(liveObserver.getLiveRead)
 // which wires the live observer into the decision pipeline. Without this,
 // opponent tracking is completely dead.
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 let _brain = null;
 function getBrain() {
   if (!_brain) {
@@ -279,9 +280,9 @@ function buildEngineState(body, userId) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // API HANDLER
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 
 // Decision timeout: 5 seconds. The Horse Brain pipeline should complete
 // in under 500ms. If it hangs (e.g., Supabase network issue), fail fast
