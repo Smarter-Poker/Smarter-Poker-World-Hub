@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/horse-launch
  *
@@ -418,9 +419,9 @@ export default async function handler(req, res) {
   const t0 = Date.now();
 
   try {
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     // LAUNCH ALL
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     if (action === 'launch_all') {
       const horses = await getHorsesByClub();
       if (horses.all.length === 0) {
@@ -632,9 +633,9 @@ export default async function handler(req, res) {
       return res.json({ success: true, action: 'launch_all', ...summary });
     }
 
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     // STATUS
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     if (action === 'status') {
       const { count: totalHorses } = await getSupabase()
         .from('profiles')
@@ -668,9 +669,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     // SHUTDOWN
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
     if (action === 'shutdown') {
       // Remove all horse seats
       const { data: horseIds } = await getSupabase()
