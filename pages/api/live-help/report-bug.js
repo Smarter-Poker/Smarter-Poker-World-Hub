@@ -1,10 +1,11 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+/* ═══════════════════════════════════════════════════════════════════════
    API: Report a Bug — Direct to admin@smarter.poker
    
    Receives bug reports from the Geeves messenger widget and emails them
    directly to admin@smarter.poker. Optional auth — logged-in users get
    profile attribution, anonymous users can still report.
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
