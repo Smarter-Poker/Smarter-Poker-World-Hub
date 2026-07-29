@@ -1,8 +1,9 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/join-club
  * Join a club by numeric club code.
  *
- * ── Agent assignment ─────────────────────────────────────────────────────────
+ * ── Agent assignment ─────────────────────────────────────────────────────────────
  * Every Smarter.Poker player has a player_number (profiles.player_number).
  * That same number serves two independent purposes depending on context:
  *
@@ -129,7 +130,7 @@ export default async function handler(req, res) {
               return res.status(409).json({ success: false, error: 'You are already a member of this club' });
           }
 
-          // ── Resolve agent assignment ──────────────────────────────────
+          // ── Resolve agent assignment ──────────────────────────────
           // agentPlayerNumber = agent's player_number from profiles.
           // We look them up by player_number, then verify they are an active
           // agent in THIS club before assigning. No platform referral reward

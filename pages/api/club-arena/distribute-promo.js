@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/distribute-promo
  * 
@@ -74,9 +75,9 @@ export default async function handler(req, res) {
 
     try {
       switch (action) {
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // SEND — Agent distributes promo to player
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'send': {
           if (!['agent', 'sub_agent', 'super_agent', 'owner', 'admin'].includes(member.role)) {
             return res.status(403).json({ error: 'Only agents can distribute promo chips' });
@@ -187,9 +188,9 @@ export default async function handler(req, res) {
           });
         }
 
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // STATUS — Get player's promo status
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'status': {
           const { targetUserId: statusTarget } = params;
           if (!statusTarget) return res.status(400).json({ error: 'targetUserId required' });
@@ -205,9 +206,9 @@ export default async function handler(req, res) {
           return res.status(200).json({ success: true, ...status });
         }
 
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // HISTORY — Agent's distribution history
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'history': {
           const { data: distributions, error: histErr } = await getSupabase()
             .from('promo_distributions')
