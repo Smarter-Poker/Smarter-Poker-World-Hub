@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (userError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ error: 'Invalid session' });
           }
 

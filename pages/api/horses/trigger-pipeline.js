@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (userError || !user) return res.status(401).json({ error: 'Invalid token' });
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
