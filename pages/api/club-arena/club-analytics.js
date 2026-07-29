@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Club Analytics API — Real-time admin dashboard data
- * ═══════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════
  * GET /api/club-arena/club-analytics?clubId=xxx
  * GET /api/club-arena/club-analytics?clubId=xxx&action=rake_report&period=7d
  * GET /api/club-arena/club-analytics?clubId=xxx&action=csv&period=30d
