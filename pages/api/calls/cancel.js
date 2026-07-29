@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 // API to cancel/delete a pending call
 // DELETE /api/calls/cancel
 
