@@ -1,14 +1,14 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-/* ═══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════
    GEEVES ANALYTICS API — Admin-only endpoint
    Serves the Geeves tab in the Horses admin page.
-   ═══════════════════════════════════════════════════════════════════════
+   ═══════════════════════════════════════════════════════════════════════════
    Actions:
      GET  ?action=summary       — KB hit rate, Grok call count, avg confidence this week
      GET  ?action=top_missed    — Top 20 unanswered questions by asked_count
      POST { action:'mark_resolved', id, added_to_kb }
    Auth: admin or superadmin role required
-   ═══════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   }
 
   try {
-      // ── Auth: only admins ────────────────────────────────────
+      // ── Auth: only admins ──────────────────────────────────────────────
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Admin access required' });
       }
 
-      // ── Route by method + action ───────────────────────────────
+      // ── Route by method + action ───────────────────────────────────────
       if (req.method === 'GET') {
           const { action = 'summary' } = req.query;
 
