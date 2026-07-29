@@ -1,7 +1,7 @@
 /**
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * EV CALCULATOR — Per-Move Expected Value Computation
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Calculates the expected value (in BB) of each action at a decision node:
  *   - EV of check/bet/call/raise/fold for a given hand on a given board
@@ -10,13 +10,25 @@
  *   - Mixed strategy EV (weighted by GTO frequencies)
  *
  * EV is always expressed in big blinds (BB).
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import { classifyMadeHand, classifyDraws } from './HandStrengthEngine';
 import { getPostflopStrategy, getCbetStrategy, BET_SIZES } from './PostflopStrategyEngine';
 
-// ●● EV Estimation Models ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●● Calibration ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// The two heuristic biases the trainer's EV grades hinge on — check realization
+// and fold equity — live in one dependency-free module (evCalibration.mjs) so
+// they can be tuned in isolation and pinned by __tests__/ev-calibration.test.mjs.
+import { checkRealization, estimateFoldEquity } from './evCalibration.mjs';
+
+// Re-export the tunable constants + helpers through the engine's public surface.
+export {
+    CHECK_REALIZATION, FE_ELASTICITY, STREET_FE_ADJ, FE_STRENGTH_ADJ, FE_MIN, FE_MAX,
+    checkRealization, estimateFoldEquity,
+} from './evCalibration.mjs';
+
+// ●● EV Estimation Models ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Estimate the EV of each possible action at a postflop decision node.
@@ -68,17 +80,21 @@ export function calculateActionEVs(params) {
 
         // EV of raise (simplified: assume opponent folds X% and calls Y%)
         const raiseAmount = Math.min(currentBet * 3, effectiveStack);
-        const foldEquity = _estimateFoldEquity(madeHand, street, raiseAmount, potSize);
+        const foldEquity = estimateFoldEquity(madeHand?.strength, street, raiseAmount, potSize);
         const potIfCalled = potSize + raiseAmount + raiseAmount;
         actions.raise = {
             ev: foldEquity * potSize + (1 - foldEquity) * (equity * potIfCalled - (1 - equity) * raiseAmount),
             frequency: 0,
         };
     } else {
-        // Not facing a bet
-        // EV of check = equity * pot (simplified — we still get pot share)
+        // Not facing a bet.
+        // EV of check = (equity share of the current pot) * a realization factor.
+        // The old flat 0.6 was wrong two ways: it ignored position (IP realizes
+        // far more than OOP) and it discounted RIVER checks even though a river
+        // check goes straight to showdown (realization ~1.0). See CHECK_REALIZATION.
+        const realization = checkRealization(street, position);
         actions.check = {
-            ev: equity * potSize * 0.6, // Discount: checking doesn't build the pot
+            ev: equity * potSize * realization,
             frequency: 0,
         };
 
@@ -93,7 +109,7 @@ export function calculateActionEVs(params) {
             const betAmount = potSize * fraction;
             if (betAmount > effectiveStack) continue;
 
-            const foldEquity = _estimateFoldEquity(madeHand, street, betAmount, potSize);
+            const foldEquity = estimateFoldEquity(madeHand?.strength, street, betAmount, potSize);
             const potIfCalled = potSize + betAmount * 2;
 
             actions[key] = {
@@ -147,25 +163,9 @@ export function calculateActionEVs(params) {
     };
 }
 
-/**
- * Estimate fold equity based on hand strength, street, and bet size.
- */
-function _estimateFoldEquity(madeHand, street, betAmount, potSize) {
-    // Base fold equity by street (opponents fold less on later streets)
-    const baseFold = street === 'flop' ? 0.45
-        : street === 'turn' ? 0.40
-        : 0.35; // river
+// (fold-equity + check-realization models now live in ./evCalibration.mjs)
 
-    // Larger bets generate more fold equity
-    const sizeMultiplier = Math.min(1.5, betAmount / potSize);
-
-    // Boards with fewer draws = more fold equity
-    const strengthAdjust = madeHand.strength > 0.5 ? 0.05 : -0.05;
-
-    return Math.max(0.10, Math.min(0.80, baseFold * sizeMultiplier + strengthAdjust));
-}
-
-// ●● EV Loss Calculation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●● EV Loss Calculation ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate EV loss for a specific player action vs the GTO optimal action.
@@ -219,7 +219,7 @@ export function calculateEVLoss(params, playerAction) {
     };
 }
 
-// ●● Mixed Strategy EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●● Mixed Strategy EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Calculate the EV of a mixed strategy (playing multiple actions at GTO frequencies).
@@ -247,7 +247,7 @@ export function calculateMixedStrategyEV(actionEVs) {
     };
 }
 
-// ●● Preflop EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●● Preflop EV ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Simple preflop EV estimate for raise/call/fold decisions.
