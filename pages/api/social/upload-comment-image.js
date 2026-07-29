@@ -10,6 +10,10 @@
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+// 2026-07-29: this handler calls getServerUserWithFallback (line ~46) but the
+// import was missing, so every comment-image upload threw ReferenceError at
+// runtime on top of the wrong bucket name below. Restore the canonical import.
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 function getSupabase() {
   const { createClient } = require('@supabase/supabase-js');
@@ -80,7 +84,7 @@ export default async function handler(req, res) {
     const path = `comment-images/${userId}/${Date.now()}.${ext}`;
 
     const { error: uploadErr } = await sb.storage
-      .from('social_media')
+      .from('social-media')
       .upload(path, fileBuffer, {
         contentType: file.mimetype,
         cacheControl: '31536000',
@@ -93,7 +97,7 @@ export default async function handler(req, res) {
     }
 
     const { data: { publicUrl } } = sb.storage
-      .from('social_media')
+      .from('social-media')
       .getPublicUrl(path);
 
     // Clean up temp file
