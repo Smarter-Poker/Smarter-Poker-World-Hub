@@ -161,16 +161,36 @@ export default async function handler(req, res) {
             });
         }
 
+        // 2026-07-29 data-loss fix: only ever sweep objects whose top-level
+        // folder is one that referenced post/reel/page media actually lives in.
+        // The reference set above is built ONLY from social_posts / social_reels /
+        // social_page_posts, but this same social-media bucket also holds media
+        // that NO row here enumerates: avatars, club covers + logos, messenger
+        // images + voice notes, messenger wallpapers, and comment-images. Without
+        // this guard every one of those older than 24h was classified as an orphan
+        // and deleted. Deriving the allowlist from the referenced paths themselves
+        // keeps this strictly narrowing: a folder with zero referenced media is
+        // never touched, so the worst case is a storage leak, never deletion of
+        // live avatars / chat media / club branding.
+        const allowedPrefixes = new Set();
+        for (const p of referenced) {
+            const seg = String(p).split('/')[0];
+            if (seg) allowedPrefixes.add(seg);
+        }
+
         // 2. List every object in the social-media bucket.
         const objects = await listAllObjects(supa);
 
-        // 3. Compute orphans — older than 24h AND not in the referenced set.
+        // 3. Compute orphans — older than 24h AND in a post-media folder AND not
+        //    in the referenced set.
         const cutoff = Date.now() - MIN_AGE_MS;
         const orphans = [];
         for (const obj of objects) {
             const createdMs = obj.created_at ? new Date(obj.created_at).getTime() : 0;
             if (createdMs === 0) continue; // unknown age — skip for safety
             if (createdMs > cutoff) continue; // too young — skip
+            const topSeg = String(obj.path).split('/')[0];
+            if (!allowedPrefixes.has(topSeg)) continue; // not a post/reel media folder — never sweep
             if (referenced.has(obj.path)) continue; // referenced by a post / reel
             orphans.push(obj);
             if (orphans.length >= HARD_CAP_DELETES) break;
@@ -201,6 +221,7 @@ export default async function handler(req, res) {
             success: true,
             dryRun,
             referenced_count: referenced.size,
+            allowed_prefixes: Array.from(allowedPrefixes),
             scanned_objects: objects.length,
             orphans_found: orphans.length,
             deleted,
