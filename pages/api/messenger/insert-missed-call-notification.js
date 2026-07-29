@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 📞 INSERT MISSED CALL NOTIFICATION API
  * POST /api/messenger/insert-missed-call-notification

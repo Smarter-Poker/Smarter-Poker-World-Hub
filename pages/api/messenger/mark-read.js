@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 📬 MARK CONVERSATION AS READ API - Service Role
  * Bypasses RLS to ensure last_read_at is properly updated
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
 
 
       try {
-          // Verify the user is a participant before marking read \u2014 defense-in-depth guard
+          // Verify the user is a participant before marking read — defense-in-depth guard
           // (fn_mark_messages_read may not enforce membership internally)
           const { data: participant, error: partErr } = await getSupabase()
               .from('social_conversation_participants')
