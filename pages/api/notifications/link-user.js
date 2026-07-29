@@ -1,10 +1,11 @@
-/* ═══════════════════════════════════════════════════════════════════════════
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+/* ═══════════════════════════════════════════════════════════════════════
    ONESIGNAL — LINK USER ID API
    POST /api/notifications/link-user
 
    Links a Supabase user ID to their OneSignal player ID via REST API
    (Fallback because OneSignal.login() JavaScript SDK isn't working)
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
