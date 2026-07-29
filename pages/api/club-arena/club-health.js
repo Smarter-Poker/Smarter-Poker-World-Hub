@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/club-health
  * 
@@ -74,9 +75,9 @@ export default async function handler(req, res) {
               const twoWeeksAgo = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
               const oneMonthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // 1. ACTIVE PLAYERS (40%) — players active in last 7 days
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const { data: allMembers } = await getSupabase()
                   .from('club_members')
                   .select('user_id, last_active, role, created_at')
@@ -93,9 +94,9 @@ export default async function handler(req, res) {
               const activeRatio = totalPlayers > 0 ? (activePlayers / totalPlayers) : 0;
               const activeScore = Math.min(100, Math.round(activeRatio * 100));
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // 2. RAKE TREND (20%) — this week vs last week
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const { data: thisWeekLogs } = await getSupabase()
                   .from('action_audit_logs')
                   .select('amount')
@@ -122,9 +123,9 @@ export default async function handler(req, res) {
                   trendScore = 80; // New activity from nothing = good
               }
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // 3. AGENT ENGAGEMENT (15%) — agents with activity this week
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const { data: agents } = await getSupabase()
                   .from('agents')
                   .select('user_id')
@@ -146,9 +147,9 @@ export default async function handler(req, res) {
               }
               const agentScore = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 50;
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // 4. ACQUISITION RATE (15%) — new players this month
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const newPlayers = (allMembers || []).filter(m =>
                   m.created_at && new Date(m.created_at) >= new Date(oneMonthAgo)
               ).length;
@@ -157,9 +158,9 @@ export default async function handler(req, res) {
               const growthRate = totalPlayers > 0 ? (newPlayers / totalPlayers) : 0;
               const acquisitionScore = Math.min(100, Math.round(30 + growthRate * 700));
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // 5. CASHOUT VELOCITY (10%) — high cashout = drain = lower score
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const { count: cashoutCount } = await getSupabase()
                   .from('action_audit_logs')
                   .select('id', { count: 'exact', head: true })
@@ -181,9 +182,9 @@ export default async function handler(req, res) {
                   cashoutScore = Math.round(100 - cashoutRatio * 100); // Lower cashout ratio = higher score
               }
 
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               // COMPOSITE SCORE
-              // ═══════════════════════════════════════════════════════
+              // ═══════════════════════════════════════════════════
               const composite = Math.round(
                   activeScore * 0.40 +
                   trendScore * 0.20 +

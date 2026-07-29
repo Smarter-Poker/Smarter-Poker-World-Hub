@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/create-table
  * Create a new poker table in a club.
@@ -31,7 +32,7 @@ const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 export default async function handler(req, res) {
   const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
-      // ── E-13: Rate limiter ─────────────────────────────────────────────
+      // ── E-13: Rate limiter ───────────────────────────────────
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
           try {
               const { applyRateLimit: rl, LIMITS } = require('../../../src/lib/apiRateLimit');
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
 
       const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
 
-      // ── E-04: UUID validation ──────────────────────────────────────────
+      // ── E-04: UUID validation ──────────────────────────────────
       if (!clubId || !isUUID(clubId)) {
           return res.status(400).json({ error: 'clubId must be a valid UUID' });
       }
@@ -142,7 +143,7 @@ export default async function handler(req, res) {
           // Ensure max >= min
           if (resolvedMaxBuyIn < resolvedMinBuyIn) resolvedMaxBuyIn = resolvedMinBuyIn;
 
-          // ── E-01: Sanitize table name (strip HTML/XSS) ────────────────
+          // ── E-01: Sanitize table name (strip HTML/XSS) ──────────────
           const cleanName = sanitizeTableName(name, 50) || `New ${gv.toUpperCase()} Table`;
 
           // ── E-03: Whitelist settings keys ──────────────────────────────
