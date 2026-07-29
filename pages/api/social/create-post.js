@@ -37,6 +37,10 @@ export default async function handler(req, res) {
 
           const hasContent = content && content.trim().length > 0;
           const hasMedia = Array.isArray(media_urls) && media_urls.length > 0;
+          // Media-only posts send no `content`; normalise once so the RPC and the
+          // fallback insert never call .trim() on undefined (was a 500 on every
+          // caption-less photo/video post).
+          const contentText = (content || '').trim();
 
           if (!hasContent && !hasMedia) {
               return res.status(400).json({ success: false, error: 'Content or media required' });
@@ -53,7 +57,7 @@ export default async function handler(req, res) {
           const { data: rpcResult, error: rpcError } = await getSupabase()
               .rpc('fn_create_social_post', {
                   p_author_id: user.id,
-                  p_content: content.trim(),
+                  p_content: contentText,
                   p_content_type: content_type,
                   p_media_urls: media_urls || [],
                   p_visibility: visibility,
@@ -71,7 +75,7 @@ export default async function handler(req, res) {
                   .from('social_posts')
                   .insert({
                       author_id: user.id,
-                      content: content.trim(),
+                      content: contentText,
                       content_type,
                       media_urls: media_urls || [],
                       visibility,
