@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * API: /api/poker/venue-alerts
  * CRUD for venue game alerts system.
