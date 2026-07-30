@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/training/record-question
  * Records that a user has seen/answered a question (for no-repeat tracking)
