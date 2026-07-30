@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * RECEIPT SCANNER API
  * OCR for tournament receipts + travel expenses  
