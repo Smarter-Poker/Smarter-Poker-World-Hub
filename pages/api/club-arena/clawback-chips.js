@@ -92,9 +92,9 @@ export default async function handler(req, res) {
     }
 
     try {
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 1. Get the original transaction
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       const { data: txn, error: txnErr } = await getSupabase()
         .from('chip_transactions')
         .select('id, from_user_id, to_user_id, amount, club_id, created_at, transaction_type, notes')
@@ -105,9 +105,9 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, error: 'Transaction not found' });
       }
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 2. Verify this is the agent who sent the chips
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       if (txn.from_user_id !== user.id) {
         return res.status(403).json({ success: false, error: 'You can only clawback your own distributions' });
       }
@@ -127,9 +127,9 @@ export default async function handler(req, res) {
         return res.status(409).json({ success: false, error: 'This transaction has already been clawed back' });
       }
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 3. Check the 10-minute window
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       const txnTime = new Date(txn.created_at).getTime();
       const now = Date.now();
       const elapsed = now - txnTime;
@@ -145,9 +145,9 @@ export default async function handler(req, res) {
 
       const remainingSeconds = Math.ceil((CLAWBACK_WINDOW_MS - elapsed) / 1000);
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 4. Determine clawback amount — sanitized
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       let clawbackAmount;
       if (rawRequestedAmount != null) {
         clawbackAmount = Math.floor(Number(rawRequestedAmount));
@@ -163,9 +163,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Invalid clawback amount' });
       }
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 5. Atomically claim the transaction (prevents double-clawback)
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       const clawbackNote = `${txn.notes || ''} [CLAWED BACK: ${clawbackAmount} at ${new Date().toISOString()}]`;
       const { data: claimed, error: claimErr } = await getSupabase()
         .from('chip_transactions')
@@ -179,9 +179,9 @@ export default async function handler(req, res) {
         return res.status(409).json({ success: false, error: 'Transaction already clawed back or claim failed' });
       }
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 6. Execute atomic clawback via RPC
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_clawback_chips_atomic', {
         p_transaction_id: transactionId,
         p_club_id: clubId,
@@ -209,15 +209,15 @@ export default async function handler(req, res) {
 
       const { partial, requested, recovered, player_new_balance: freshPlayerBal, agent_new_balance: freshAgentBal } = rpcResult;
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 8. Log and Reply
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
 
       // Balances are already returned by the RPC as freshPlayerBal and freshAgentBal
 
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       // 9. ORB-5 MANDATE: Immutable audit log via centralized logger
-      // ═════════════════════════════════════════════════════════
+      // ═════════════════════════════════════════════════════════════
       logAudit(supabaseAdmin, {
         actionType: 'clawback',
         userId: user.id,
