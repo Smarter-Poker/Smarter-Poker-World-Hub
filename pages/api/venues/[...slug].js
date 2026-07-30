@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/venues/* — Hono catch-all router (Phase 4.4 module #2, 2026-04-27)
  *
@@ -30,7 +31,7 @@ import { sendPushNotification } from '../../../src/lib/pushAlerts';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 const safeBody = (v) => {
   if (Array.isArray(v)) return typeof v[0] === 'object' ? null : v[0];
   if (typeof v === 'string' || typeof v === 'number') return v;
