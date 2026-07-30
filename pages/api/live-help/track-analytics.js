@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    TRACK ANALYTICS — Track Live Help usage analytics
    ═══════════════════════════════════════════════════════════════════════════ */
