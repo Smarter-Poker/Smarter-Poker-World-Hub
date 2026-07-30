@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    GEEVES API v2.0 — Smart Caching + Grok-powered poker strategy expert
    - First checks cache for existing answers
