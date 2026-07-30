@@ -340,13 +340,13 @@ export function AvatarProvider({ children }) {
         return () => cleanupVipSync();
     }, [user?.id]);
 
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════════════════════════
     // TIER 2: Avatar Changes — event-driven (no Realtime channel)
     // The old `avatar:{userId}` postgres_changes channel watched for admin-side
     // avatar changes, which happen <0.1% of the time. Replaced with:
     //   1. window focus refetch — covers the remote-change case
     //   2. BroadcastChannel — cross-tab sync when the user changes their own avatar
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════════════════════════
     const loadAvatarRef = useRef(null);
 
     // Keep a stable ref so the focus handler always calls the latest loadAvatar
@@ -437,12 +437,20 @@ export function AvatarProvider({ children }) {
     async function selectPresetAvatar(avatarId) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
-        const result = await setPresetAvatar(user.id, avatarId);
+        // Pass VIP status so the service can unlock the full library for VIP members
+        const result = await setPresetAvatar(user.id, avatarId, { isVip });
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar
             // Broadcast avatar change to other tabs
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
+            // Notify same-tab listeners (header, hamburger menu, open games)
+            // that profiles.avatar_url changed
+            if (result.imageUrl && typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('profile-updated', {
+                    detail: { avatar_url: result.imageUrl }
+                }));
+            }
         }
 
         return result;
@@ -481,10 +489,27 @@ export function AvatarProvider({ children }) {
 
             if (error) throw error;
 
+            // Sync profiles.avatar_url so Club Arena, training games and the
+            // header (all of which read profiles) see the new avatar too.
+            if (imageUrl) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: imageUrl })
+                    .eq('id', user.id);
+                if (profileError) console.warn('Profile avatar sync failed (non-fatal):', profileError.message);
+            }
+
             await loadAvatar(); // Refresh avatar
 
             // Broadcast avatar change to other tabs
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
+
+            // Notify same-tab listeners that profiles.avatar_url changed
+            if (imageUrl && typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('profile-updated', {
+                    detail: { avatar_url: imageUrl }
+                }));
+            }
 
             return { success: true };
         } catch (error) {
