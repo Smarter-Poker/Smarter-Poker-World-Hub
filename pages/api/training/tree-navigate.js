@@ -59,7 +59,7 @@ export default async function handler(req, res) {
           // Sanitize query params used in Supabase queries
           const safeHash = sanitizeParam(scenarioHash, 200);
 
-          // ●●● STRATEGY 1: Exact hash extension ●●●●●●●●●●●●●●●●●●●●●●
+          // ●●● STRATEGY 1: Exact hash extension ●●●●●●●●●●●●●●●●●●●●●●●●●●
           // If nextCard is provided, append it to the current board in the hash
           // to find the child node for the next street.
           if (nextCard) {
