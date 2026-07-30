@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * TAX REPORT GENERATOR API
  * Generate IRS-ready session logs with W2-G tracking
