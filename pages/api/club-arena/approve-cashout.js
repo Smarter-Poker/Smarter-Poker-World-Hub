@@ -100,11 +100,11 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
 
     try {
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // 1. Get cashout request — select ALL fields used downstream
       //    BUG FIX: was .select('id') — cashout.club_id, .agent_id, .player_id,
       //    .amount were all undefined, breaking auth, chip transfer, and notifications
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       const { data: cashout, error: coErr } = await getSupabase()
         .from('cashout_requests')
         .select('id, club_id, player_id, agent_id, amount, status')
@@ -121,9 +121,9 @@ export default async function handler(req, res) {
       // The atomic RPCs now handle the status claim and verify the cashout is 'pending'.
       // We only need the lockCheck pre-flight here.
 
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // 2. Verify caller is the assigned agent or club owner/admin
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       const { data: callerMember } = await getSupabase()
         .from('club_members')
         .select('role')
@@ -167,9 +167,9 @@ export default async function handler(req, res) {
         .maybeSingle();
       const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // APPROVE: Held chips → treasury (agent settles fiat off-platform)
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'approve') {
         // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_approve_cashout_atomic', {
@@ -200,9 +200,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // CANCEL: Return held chips to player's balance
-      // ═════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'cancel') {
         // Atomic cancellation (updates status + credits player chips + logs transaction)
         const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
