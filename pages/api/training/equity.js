@@ -40,7 +40,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ●●● Card parsing (inline to avoid CJS/ESM import issues) ●●●●●●●●●●●●●●●●●●●
+// ●●● Card parsing (inline to avoid CJS/ESM import issues) ●●●●●●●●●●●●●●●●●●
 const RANK_CHARS = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7, 'T': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12 };
 const SUIT_CHARS = { 'c': 0, 'd': 1, 'h': 2, 's': 3 };
 const RANK_DISPLAY = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
