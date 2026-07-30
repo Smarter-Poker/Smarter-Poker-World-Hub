@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    API: React to Live Help Message
    Saves user reaction (helpful/unhelpful) to Jarvis message
