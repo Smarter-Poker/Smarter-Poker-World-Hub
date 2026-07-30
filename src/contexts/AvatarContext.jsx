@@ -340,13 +340,13 @@ export function AvatarProvider({ children }) {
         return () => cleanupVipSync();
     }, [user?.id]);
 
-    // ═════════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
     // TIER 2: Avatar Changes — event-driven (no Realtime channel)
     // The old `avatar:{userId}` postgres_changes channel watched for admin-side
     // avatar changes, which happen <0.1% of the time. Replaced with:
     //   1. window focus refetch — covers the remote-change case
     //   2. BroadcastChannel — cross-tab sync when the user changes their own avatar
-    // ═════════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
     const loadAvatarRef = useRef(null);
 
     // Keep a stable ref so the focus handler always calls the latest loadAvatar
