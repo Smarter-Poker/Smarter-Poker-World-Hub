@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/training/next-street
  * Fetches the next street question for multi-street hand progression.
