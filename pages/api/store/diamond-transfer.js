@@ -418,6 +418,7 @@ export default async function handler(req, res) {
             .select('amount')
             .eq('ip_address', clientIp)
             .gte('created_at', rolling30Start));
+        
         const effectiveAlreadySent = Math.max(alreadySent30Day, ipAlreadySent30Day);
 
         const { purchasedWonAvailable } = await getSourceTierAvailable(getSupabase(), userId);
