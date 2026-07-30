@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Create Stripe Checkout Session
  * POST /api/store/create-checkout-session
