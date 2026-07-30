@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Venue Claim Verification API
  *
@@ -16,7 +17,7 @@
  * 'under_review' — a valid venue_claims.status — and an admin performs the
  * actual approval (venue_managers grant + poker_venues.is_claimed). The code
  * check is retained as a first factor and is now bounded by an expiry window.
- * ───────────────────────────────────────────────────────────────────────────
+ * ───────────────────────────────────────────────────────────────────────
  */
 
 import { supabase } from '../../../../src/lib/supabase';
