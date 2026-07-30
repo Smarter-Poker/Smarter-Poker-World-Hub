@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/manage-agent
  * 
@@ -135,11 +136,11 @@ export default async function handler(req, res) {
 
       if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // PROMOTE: Player → Agent / Super Agent / Sub Agent
       // Commission rate MUST be explicitly set. No defaults.
       // Rakeback % to players must be < (agent commission - 10%)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'promote') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -300,9 +301,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // DEMOTE: Agent → Member (reassigns their players)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'demote') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -398,9 +399,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // UPDATE: Change agent settings
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'update') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -480,9 +481,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, action: 'updated', updates: { ...updates, ...agentUpdates } });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // REASSIGN: Move player between agents
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'reassign') {
         const { playerId, fromAgentId, toAgentId } = params;
         if (!playerId) {
@@ -540,9 +541,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // SUSPEND / REACTIVATE
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'suspend' || action === 'reactivate') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -586,10 +587,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, action, targetUserId, newStatus });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // CHANGE_ROLE: General role change (owner/admin/agent/player)
       // Handles agent promotion/demotion transitions automatically
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'change_role') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -702,9 +703,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // REMOVE: Remove a member from the club entirely
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'remove') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -797,7 +798,6 @@ export default async function handler(req, res) {
           if (err_club_members_xuqug) console.warn('[Supabase] Silent mutation failed in club_members:', err_club_members_xuqug.message);
 
           const { error: err_agents_1c83s } = await getSupabase()
-
             .from('agents')
 
             .update({ status: 'inactive', active_player_count: 0 })
@@ -839,9 +839,9 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // SET PARENT AGENT (create sub-agent relationship)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'set_parent_agent') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required (the sub-agent)' });
         // Accept both parentAgentUserId (from admin.js) and parentAgentId (from older callers)
@@ -900,9 +900,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, action: 'parent_set', parentAgentId });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // LIST SUB-AGENTS (for a given parent agent)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'list_sub_agents') {
         const { parentAgentUserId } = req.body;
         if (!parentAgentUserId) return res.status(400).json({ success: false, error: 'parentAgentUserId required' });
@@ -964,12 +964,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, subAgents: enriched });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // SET PLAYER RAKEBACK — Agent sets rakeback % for their player
       // Max rakeback = agent_commission - 10%
       // e.g. Agent at 70% → max player rakeback is 60%
       // Default is 0 (no rakeback to players)
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'set_player_rakeback') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId (player) required' });
         const { rakebackPercentage } = params;
@@ -1057,10 +1057,10 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // UPDATE COMMISSION — Change an agent's commission rate
       // Must re-validate all business rules
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'update_commission') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
         const { commissionRate } = params;
@@ -1160,11 +1160,11 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // PROMOTE TO SUB-AGENT (agent self-service)
       // Agents can promote their own downline players to sub-agents.
       // No owner approval needed — fully automated.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'promote_to_sub_agent') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
         const { commissionRate } = params;
@@ -1249,10 +1249,10 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // AUTO PROMOTE CHECK — Evaluate if agent meets promotion thresholds
       // Read-only check. Returns recommendation, no auto-action.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'auto_promote_check') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
@@ -1323,10 +1323,10 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // TRANSFER TO AGENT — Horizontal agent-to-agent chip transfer
       // Validates both agents are in same club, debits sender → credits receiver
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'transfer_to_agent') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId (receiving agent) required' });
         const { amount, notes } = params;
@@ -1399,10 +1399,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, action: 'transfer_complete', amount, from: user.id, to: targetUserId });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // TRANSFER OWNERSHIP — Delegate club ownership to another member
       // Only current owner can execute. Target must be a club member.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'transfer_ownership') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
         if (club.owner_id !== user.id) {
@@ -1455,10 +1455,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, action: 'ownership_transferred', newOwner: targetUserId, oldOwner: user.id });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // BATCH SUSPEND / REACTIVATE — Bulk agent operations
       // Accepts targetUserIds[] array (max 50), processes each.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'batch_suspend' || action === 'batch_reactivate') {
         const { targetUserIds } = params;
         if (!targetUserIds || !Array.isArray(targetUserIds) || targetUserIds.length === 0) {
