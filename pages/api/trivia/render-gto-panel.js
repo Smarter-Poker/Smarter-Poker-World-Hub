@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Trivia GTO Panel Image Generator
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * Generates premium GTO analysis panel images for trivia questions using Grok AI.
  * Images are cached in Supabase storage for reuse.
  * 
