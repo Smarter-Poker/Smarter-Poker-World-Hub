@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Promo Code Redemption API
  * POST /api/promo/redeem
