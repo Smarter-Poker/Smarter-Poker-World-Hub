@@ -185,7 +185,7 @@ export default async function handler(req, res) {
               }
           }
 
-          // ●●● BB Defense ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+          // ●●● BB Defense ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           else if (scenario === 'bb_defense') {
               // BB defense vs opener — uses vsPosition or falls back to vs_BTN
               const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
           // Accessed when frontend queries scenario=vs3bet with a specific vsPosition
           // or via the new expanded spot picker
 
-          // ●●● Cold Call ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+          // ●●● Cold Call ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           else if (scenario === 'cold_call') {
               // Cold call spots: CO_vs_UTG, BTN_vs_UTG, BTN_vs_CO, SB_vs_BTN
               const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
