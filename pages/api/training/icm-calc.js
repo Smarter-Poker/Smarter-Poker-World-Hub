@@ -30,7 +30,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-// ●●● Malmuth-Harville ICM Model ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ●●● Malmuth-Harville ICM Model ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
  * Recursively calculates ICM equity using the Harville method.
