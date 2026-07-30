@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Notes API - CRUD for player-on-player intelligence
  * GET /api/poker/player-notes?targetPlayerId=xxx
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // ─── POST: Upsert note ──────────────────────────────────────────────────
+    // ─── POST: Upsert note ────────────────────────────────────────────────
     if (req.method === 'POST') {
         const { targetPlayerId, targetPlayerName, noteContent, colorTag } = req.body;
         
