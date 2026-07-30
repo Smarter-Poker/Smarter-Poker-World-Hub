@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // ─── POST: Upsert note ────────────────────────────────────────────────
+    // ─── POST: Upsert note ──────────────────────────────────────────────────
     if (req.method === 'POST') {
         const { targetPlayerId, targetPlayerName, noteContent, colorTag } = req.body;
         
