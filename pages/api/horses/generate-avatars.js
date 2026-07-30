@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🐴 HORSE AVATAR GENERATOR
  * Generates profile pictures for all horses using AI
