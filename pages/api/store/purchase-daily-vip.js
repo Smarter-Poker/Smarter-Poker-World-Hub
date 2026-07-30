@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Purchase Daily VIP Pass
  * POST /api/store/purchase-daily-vip
