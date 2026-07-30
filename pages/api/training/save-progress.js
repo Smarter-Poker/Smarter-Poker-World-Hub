@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * API: Save Training Progress
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
