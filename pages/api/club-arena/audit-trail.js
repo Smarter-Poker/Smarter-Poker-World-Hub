@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/audit-trail
  * 
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ error: 'Owner/admin only' });
       }
 
-      // ─── BUILD QUERY ──────────────────────────────────────────
+      // ─── BUILD QUERY ──────────────────────────────────────
       function buildQuery(selectClause, withCount = false) {
           let query = getSupabase()
               .from('action_audit_logs')
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
           return query;
       }
 
-      // ─── LIST: Paginated audit log ────────────────────────────
+      // ─── LIST: Paginated audit log ──────────────────────────
       if (action === 'list') {
           try {
               const offset = (page - 1) * pageSize;
@@ -137,7 +138,7 @@ export default async function handler(req, res) {
           }
       }
 
-      // ─── EXPORT: CSV-ready data ───────────────────────────────
+      // ─── EXPORT: CSV-ready data ─────────────────────────────
       if (action === 'export') {
           try {
               const { data: logs, error } = await buildQuery(
@@ -164,7 +165,7 @@ export default async function handler(req, res) {
           }
       }
 
-      // ─── STATS: Aggregate stats ───────────────────────────────
+      // ─── STATS: Aggregate stats ─────────────────────────────
       if (action === 'stats') {
           try {
               const { data: logs } = await buildQuery('action_type, amount')

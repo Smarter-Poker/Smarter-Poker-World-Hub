@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * ⭐ ADMIN REVIEWS API
  * GET  /api/horses/admin-reviews — List all venue reviews with filters

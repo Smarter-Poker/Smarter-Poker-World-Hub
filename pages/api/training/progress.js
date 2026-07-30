@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/training/progress
  * Returns user's training progress for a game

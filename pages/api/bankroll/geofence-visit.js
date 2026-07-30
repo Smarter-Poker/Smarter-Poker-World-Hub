@@ -1,8 +1,9 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 📍 GEOFENCE VISIT TRACKER API
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * Records when a user enters a poker venue geo-fence
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';

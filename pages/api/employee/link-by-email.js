@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Link by Email API — POST /api/employee/link-by-email  
  * Auto-link: checks if any commander_staff records have the same email as the authenticated user

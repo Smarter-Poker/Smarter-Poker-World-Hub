@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Purchase With Diamonds
  * POST /api/store/purchase-with-diamonds

@@ -45,27 +45,27 @@ export default function AvatarGallery({ onSelect }) {
       } catch (error) {
         console.warn('Error in loadAllAvatars:', error);
       } finally {
+        // BUGFIX: this used to run only when a user was logged in, so the
+        // logged-out state showed "Loading Avatars..." forever.
         setLoading(false);
       }
     }
 
-    if (user) {
-      loadAllAvatars();
-    }
+    loadAllAvatars();
   }, [user?.id, isVip]);
 
 
 
   async function loadAvatars() {
     try {
-      // Load ALL avatars regardless of tier (to show VIP upsells)
-      const data = await getAvailableAvatars(user?.id || null, 'all');
-
-      // Determine lock status: if it's not a free avatar and user is not VIP, it's locked
-      setAvatars(data.map(a => ({
-        ...a,
-        isLocked: !isVip && a.category !== 'free' && a.tier !== 'free' && !a.is_free
-      })));
+      // Load ALL avatars regardless of tier (to show VIP upsells).
+      // The service computes isLocked correctly: FREE tier always unlocked,
+      // VIP tier unlocked for VIP members or via an avatar_unlocks row.
+      // BUGFIX: the old override here compared `a.tier !== 'free'` against the
+      // library's uppercase 'FREE'/'VIP' tiers, which marked EVERY avatar
+      // locked for non-VIP users — including all 25 free ones.
+      const data = await getAvailableAvatars(user?.id || null, 'all', isVip);
+      setAvatars(data);
     } catch (error) {
       console.warn('Error loading avatars:', error);
       setAvatars([]);
@@ -92,8 +92,8 @@ export default function AvatarGallery({ onSelect }) {
     const result = await setActiveAvatar(customAvatar.image_url, 'custom', null, customAvatar.prompt);
     if (result.success) {
       if (onSelect) onSelect(null);
-      // Refresh custom avatars
-      if (user?.id && isVip) {
+      // Refresh custom avatars (free users have a custom slot too)
+      if (user?.id) {
         const customs = await getCustomAvatarGallery(user.id);
         setCustomAvatars(customs || []);
       }
@@ -140,8 +140,8 @@ export default function AvatarGallery({ onSelect }) {
 
   async function handleCloseBuilder() {
     setShowCustomBuilder(false);
-    // Refresh custom avatars after creating
-    if (user?.id && isVip) {
+    // Refresh custom avatars after creating (free users have a slot too)
+    if (user?.id) {
       const customs = await getCustomAvatarGallery(user.id);
       setCustomAvatars(customs || []);
     }
@@ -478,10 +478,12 @@ export default function AvatarGallery({ onSelect }) {
       {/* PRESET AVATARS SECTION */}
       <div className="gallery-section">
         <h2 className="section-title">
-          {isVip ? '💎 VIP AVATAR LIBRARY' : '⚡ FREE AVATAR LIBRARY'}
+          {isVip ? '💎 VIP AVATAR LIBRARY' : '⚡ AVATAR LIBRARY'}
         </h2>
         <p className="section-subtitle">
-          {avatars.length} {isVip ? 'VIP' : 'FREE'} avatars available
+          {isVip
+            ? `${avatars.length} avatars available`
+            : `${avatars.filter(a => !a.isLocked).length} unlocked • ${avatars.filter(a => a.isLocked).length} VIP-only`}
         </p>
 
         {loading ? (

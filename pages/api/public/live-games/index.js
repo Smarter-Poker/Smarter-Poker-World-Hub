@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Live Games API - Public endpoint for viewing live games
  *

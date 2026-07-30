@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Emoji Reaction API — Auth-Hardened
  * POST /api/poker/engine/emoji-reaction

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    API: Report a Bug — Direct to admin@smarter.poker
    

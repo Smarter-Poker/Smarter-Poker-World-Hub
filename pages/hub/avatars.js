@@ -23,12 +23,14 @@ export default function AvatarsPage() {
 
     const menuConfig = getMenuConfig('avatars', user, {}, {});
 
-    // Refresh user session on page load to get latest VIP status
+    // Refresh user session on page load to get latest VIP status.
+    // BUGFIX: dep was [] — user is null on first render (auth restores async),
+    // so refreshUser never actually ran. Key on the user id instead.
     useEffect(() => {
-        if (user && refreshUser) {
+        if (user?.id && refreshUser) {
             refreshUser();
         }
-    }, []);
+    }, [user?.id]);
 
     return (
         <PageTransition>
@@ -129,6 +131,7 @@ export default function AvatarsPage() {
                         bottomLinks={menuConfig.bottomLinks}
                     />
                     <div className="header">
+                        <a href="/hub" className="back-btn">← Back to Hub</a>
 
                         {avatar && (
                             <div className="current-avatar">

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/training/save-session
  * Saves a complete training session with GTOW scoring, hand history,

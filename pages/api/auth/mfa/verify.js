@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    2FA VERIFY API - Verify TOTP Code and Enable 2FA
    POST /api/auth/mfa/verify

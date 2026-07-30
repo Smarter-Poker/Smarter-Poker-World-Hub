@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    SESSION TRACK API - Track/Update Current Session
    POST /api/auth/sessions/track

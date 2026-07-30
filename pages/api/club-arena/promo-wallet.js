@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/promo-wallet
  * 
@@ -6,9 +7,9 @@
  *   action: 'mint_promo'   — owner adds promo chips to club balance
  *   action: 'grant_to_agent' — transfer promo from club → agent
  * 
- * ═══════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════
  * PROMO CHIPS ARE NOT SETTLEMENT DEBTS
- * ═══════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════
  * Promo chips are funded from 30% of the BBJ allocation.
  * They are ALREADY raked and accounted for. They do NOT:
  *   - Count as agent credit (no credit_used bump)
@@ -18,7 +19,7 @@
  * 
  * They flow through separate promo_balance columns on:
  *   clubs.promo_balance → agents.promo_balance → club_members.promo_balance
- * ═══════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════
  * 
  * Auth: Bearer token (owner/admin only)
  */
@@ -75,9 +76,9 @@ export default async function handler(req, res) {
 
     try {
       switch (action) {
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // GET BALANCES — club promo + all agent promo balances
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'get_balances': {
           const { data: club } = await getSupabase()
             .from('clubs')
@@ -122,9 +123,9 @@ export default async function handler(req, res) {
           });
         }
 
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // MINT PROMO — add promo chips to club balance (owner only)
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'mint_promo': {
           if (member.role !== 'owner') {
             return res.status(403).json({ success: false, error: 'Only the club owner can mint promo chips' });
@@ -152,9 +153,9 @@ export default async function handler(req, res) {
           });
         }
 
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         // GRANT TO AGENT — transfer promo from club → agent
-        // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════
         case 'grant_to_agent': {
           const { agentUserId, amount: grantAmount, note } = params;
           const amt = parseFloat(grantAmount);

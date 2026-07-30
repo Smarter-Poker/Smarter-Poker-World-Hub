@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 📊 SHARE COUNT INCREMENT API
  * pages/api/social/share-count.js

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Waitlist API — Queue management for full tables
  * ═══════════════════════════════════════════════════════

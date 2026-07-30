@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../../src/lib/serverAuth';
 /**
  * Venue Management API
  * For claimed/verified venue owners to update their venue info

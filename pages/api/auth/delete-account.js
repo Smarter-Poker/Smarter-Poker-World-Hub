@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DELETE ACCOUNT API
  * DELETE /api/auth/delete-account

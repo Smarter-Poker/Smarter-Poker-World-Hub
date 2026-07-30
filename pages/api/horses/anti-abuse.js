@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🛡️ ANTI-ABUSE ADMIN API
  * GET /api/horses/anti-abuse — Returns abuse log, audit log, alerts, and economy data

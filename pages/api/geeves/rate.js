@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    RATE GEEVES ANSWER — User feedback on cached answers
    Updates cache ratings for quality tracking

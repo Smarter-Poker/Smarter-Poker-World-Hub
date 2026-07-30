@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Auto-Close Tables — Game Length Enforcement API
- * ═══════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════════════════════════
  * Closes tables that have exceeded their configured `game_length_hours`.
  * Designed to be called from a cron job or manual trigger.
  * 

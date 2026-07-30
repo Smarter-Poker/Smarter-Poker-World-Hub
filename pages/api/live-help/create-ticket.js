@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    API: Create Live Help Ticket
    Escalates conversation to support ticket

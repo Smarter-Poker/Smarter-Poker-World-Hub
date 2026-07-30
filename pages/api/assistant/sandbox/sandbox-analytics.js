@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Sandbox Analytics API — Personal Leak Tracker
  * POST: Log analyzed spot (position, street, action, outcome)

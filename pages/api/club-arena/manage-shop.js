@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/manage-shop
  * 
@@ -41,9 +42,9 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // GET — List shop items with purchase counts
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'GET') {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
@@ -87,9 +88,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, items: enriched });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // POST — Create/Update/Delete/Toggle shop items
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'POST') {
         const { action, clubId, itemId, name, description, price, category, imageUrl, isActive } = req.body;
         if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });

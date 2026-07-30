@@ -1,6 +1,7 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Club Branding API — Save and retrieve custom club themes
- * ═══════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════════════════════════
  * POST /api/club-arena/club-branding
  *
  * Actions:

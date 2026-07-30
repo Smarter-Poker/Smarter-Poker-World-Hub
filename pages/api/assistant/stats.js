@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/assistant/stats
  * Returns user's assistant stats (sessions reviewed, leaks found, etc.)

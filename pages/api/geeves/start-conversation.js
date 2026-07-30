@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    START GEEVES CONVERSATION — Initialize new poker strategy conversation
    ═══════════════════════════════════════════════════════════════════════════ */

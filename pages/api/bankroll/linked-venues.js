@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Linked Venues API
  * Returns the user's bankroll_locations that have a poker_venue_id,

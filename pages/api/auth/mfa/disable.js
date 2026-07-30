@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    2FA DISABLE API - Disable Two-Factor Authentication
    POST /api/auth/mfa/disable

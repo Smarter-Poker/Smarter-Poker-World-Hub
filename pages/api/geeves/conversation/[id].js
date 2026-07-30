@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    GET CONVERSATION MESSAGES — Load messages for a specific conversation
    ═══════════════════════════════════════════════════════════════════════════ */

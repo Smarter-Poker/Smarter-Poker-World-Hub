@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/announcements
  * 
@@ -42,9 +43,9 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // GET — List announcements
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'GET') {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
@@ -70,9 +71,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, announcements: announcements || [] });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // POST — Create/Update/Delete
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (req.method === 'POST') {
         const { action, clubId, title, content, announcementId, pinned } = req.body;
         if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });

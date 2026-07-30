@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    SESSION LIST API - List Active Sessions
    GET /api/auth/sessions/list

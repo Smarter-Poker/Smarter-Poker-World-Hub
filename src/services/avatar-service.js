@@ -8,6 +8,37 @@ import supabase from '../lib/supabase';
 import { getAll, getByTier, getAvatarById } from '../data/AVATAR_LIBRARY';
 
 /**
+ * Resolve a preset avatar id to its library entry, tolerating the legacy
+ * `free_shark` / `vip_wolf` id scheme (old DB rows + unlock_free_avatars RPC)
+ * alongside the current `free-animal-001` library ids.
+ */
+export function resolvePresetAvatar(avatarId) {
+    if (!avatarId) return null;
+
+    const entry = getAvatarById(avatarId);
+    if (entry) return entry;
+
+    // Legacy scheme: `{tier}_{filename}` maps directly to /avatars/{tier}/{filename}.png
+    const legacy = /^(free|vip)_(.+)$/.exec(avatarId);
+    if (legacy) {
+        const [, tier, slug] = legacy;
+        const image = `/avatars/${tier}/${slug}.png`;
+        // Prefer the real library entry if one uses this image
+        const byImage = getAll().find(a => a.image === image);
+        if (byImage) return byImage;
+        return {
+            id: avatarId,
+            name: slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            tier: tier.toUpperCase(),
+            category: 'archetypes',
+            image
+        };
+    }
+
+    return null;
+}
+
+/**
  * Get user's current active avatar
  */
 export async function getUserAvatar(userId) {
@@ -31,10 +62,12 @@ export async function getUserAvatar(userId) {
 
         // Return formatted avatar
         if (data.avatar_type === 'preset') {
-            const avatarData = getAvatarById(data.preset_avatar_id);
+            const avatarData = resolvePresetAvatar(data.preset_avatar_id);
             return {
                 type: 'preset',
-                id: data.preset_avatar_id,
+                // Normalize legacy ids (free_shark) to the library id so
+                // selected-state checks in the gallery match up
+                id: avatarData?.id || data.preset_avatar_id,
                 imageUrl: avatarData?.image || '/avatars/free/shark.png',
                 name: avatarData?.name || 'Avatar'
             };
@@ -54,26 +87,62 @@ export async function getUserAvatar(userId) {
 
 /**
  * Set a preset avatar from the library
+ * @param {string} userId
+ * @param {string} avatarId
+ * @param {object} [opts]
+ * @param {boolean} [opts.isVip]   - VIP members have the whole library unlocked
  */
-export async function setPresetAvatar(userId, avatarId) {
+export async function setPresetAvatar(userId, avatarId, opts = {}) {
     try {
-        // Check if avatar is unlocked
-        const isUnlocked = await isAvatarUnlocked(userId, avatarId);
+        // Check if avatar is unlocked (FREE tier always is; VIP tier for VIP members
+        // or via an explicit avatar_unlocks row from a purchase/achievement)
+        const isUnlocked = await isAvatarUnlocked(userId, avatarId, opts.isVip === true);
 
         if (!isUnlocked) {
-            throw new Error('Avatar is locked. Unlock it first!');
+            throw new Error('This avatar is VIP-only. Upgrade to VIP to unlock it!');
         }
 
-        // Use the database function to set active avatar
-        const { data, error } = await supabase.rpc('set_active_avatar', {
+        const entry = resolvePresetAvatar(avatarId);
+        const imageUrl = entry?.image || null;
+
+        // Use the database function to set active avatar.
+        // p_image_url lets the RPC sync profiles.avatar_url so Club Arena,
+        // training games and the header all pick up the change.
+        const { error } = await supabase.rpc('set_active_avatar', {
             p_user_id: userId,
             p_avatar_type: 'preset',
-            p_preset_avatar_id: avatarId
+            p_preset_avatar_id: avatarId,
+            p_image_url: imageUrl
         });
 
-        if (error) throw error;
+        if (error) {
+            // FALLBACK: direct table writes (covers environments where the RPC
+            // signature hasn't been migrated yet). RLS restricts both writes
+            // to the caller's own rows.
+            console.warn('set_active_avatar RPC failed, falling back to direct write:', error.message);
+            const { error: upsertError } = await supabase
+                .from('user_avatars')
+                .upsert({
+                    user_id: userId,
+                    avatar_type: 'preset',
+                    preset_avatar_id: avatarId,
+                    custom_image_url: null,
+                    custom_prompt: null,
+                    is_active: true,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            if (upsertError) throw upsertError;
+        }
 
-        return { success: true, avatarId };
+        // Belt & braces: make sure profiles.avatar_url reflects the new avatar
+        // even on the fallback path (ignore failure — RPC path already synced it).
+        if (imageUrl) {
+            try {
+                await supabase.from('profiles').update({ avatar_url: imageUrl }).eq('id', userId);
+            } catch (_) { /* non-fatal */ }
+        }
+
+        return { success: true, avatarId, imageUrl };
     } catch (error) {
         console.warn('Error setting preset avatar:', error);
         return { success: false, error: error.message };
@@ -302,15 +371,28 @@ async function generateAvatarFromText(prompt, userId = null) {
 
 /**
  * Check if an avatar is unlocked for a user
+ * @param {string} userId
+ * @param {string} avatarId
+ * @param {boolean} [isVip] - VIP members have every library avatar unlocked
+ *
+ * BUGFIX: this used to check `avatarId.startsWith('free_')`, but the library
+ * ids use hyphens (`free-animal-001`), so EVERY free avatar failed the check,
+ * fell through to the avatar_unlocks table (seeded with the old `free_*` ids),
+ * and came back locked — preset selection was broken for everyone.
  */
-export async function isAvatarUnlocked(userId, avatarId) {
+export async function isAvatarUnlocked(userId, avatarId, isVip = false) {
     try {
-        // All FREE avatars are unlocked by default
-        if (avatarId.startsWith('free_')) {
+        // FREE-tier library avatars are always unlocked
+        // (supports both current `free-...` ids and legacy `free_...` ids)
+        const entry = resolvePresetAvatar(avatarId);
+        if (entry?.tier === 'FREE' || String(avatarId).startsWith('free')) {
             return true;
         }
 
-        // Check unlock table for VIP avatars
+        // VIP members have the full library unlocked
+        if (isVip) return true;
+
+        // Non-VIP: check unlock table (individual purchase / achievement)
         const { data, error } = await supabase
             .from('avatar_unlocks')
             .select('id')
@@ -329,13 +411,17 @@ export async function isAvatarUnlocked(userId, avatarId) {
 
 /**
  * Get all available avatars for a user (filtered by unlocks)
+ * @param {string|null} userId
+ * @param {string} tierFilter - 'all' | 'free' | 'vip'
+ * @param {boolean} [isVip]   - VIP members have every library avatar unlocked
  */
-export async function getAvailableAvatars(userId, tierFilter = 'all') {
+export async function getAvailableAvatars(userId, tierFilter = 'all', isVip = false) {
     try {
         let unlockedIds = new Set();
 
-        // Only query unlocks if user is logged in
-        if (userId) {
+        // Only query individual unlocks for non-VIP logged-in users
+        // (VIP members have everything unlocked anyway)
+        if (userId && !isVip) {
             const { data: unlocks } = await supabase
                 .from('avatar_unlocks')
                 .select('avatar_id')
@@ -346,11 +432,11 @@ export async function getAvailableAvatars(userId, tierFilter = 'all') {
         // Get all avatars from library
         let avatars = tierFilter === 'all' ? getAll() : getByTier(tierFilter);
 
-        // Mark locked status (VIP avatars locked if not in unlocked set)
-        // FREE avatars are always unlocked
+        // Mark locked status: FREE avatars are always unlocked; VIP avatars are
+        // unlocked for VIP members or via an explicit avatar_unlocks row.
         return avatars.map(avatar => ({
             ...avatar,
-            isLocked: avatar.tier === 'VIP' && !unlockedIds.has(avatar.id)
+            isLocked: avatar.tier === 'VIP' && !isVip && !unlockedIds.has(avatar.id)
         }));
     } catch (error) {
         console.warn('Error fetching available avatars:', error);
@@ -443,6 +529,7 @@ export async function initializeFreeAvatars(userId) {
 
 export default {
     getUserAvatar,
+    resolvePresetAvatar,
     setPresetAvatar,
     generateCustomAvatar,
     isAvatarUnlocked,

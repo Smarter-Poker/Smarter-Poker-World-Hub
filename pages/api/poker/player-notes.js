@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Notes API - CRUD for player-on-player intelligence
  * GET /api/poker/player-notes?targetPlayerId=xxx

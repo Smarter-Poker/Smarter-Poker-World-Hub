@@ -1,13 +1,14 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🛡️ BULLETPROOF PROFILE CREATION API
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * POST /api/auth/ensure-profile
  * 
  * This API guarantees that every authenticated user has a profile.
  * Called on every session check/app load to catch orphaned users.
  * 
  * NEVER LET A USER BE ORPHANED AGAIN.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -97,12 +98,12 @@ export default async function handler(req, res) {
               });
           }
 
-          // ═══════════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════
           // 🔗 DUPLICATE PREVENTION: Check if a profile with same email exists
           // This catches the case where a user signed up with email/password
           // and then signs in with Google OAuth (or vice versa), which creates
           // a new auth.users entry but should NOT create a new profile.
-          // ═══════════════════════════════════════════════════════════════════
+          // ═══════════════════════════════════════════════════════════════
           if (email) {
               const { data: emailMatch, error: emailCheckError } = await getSupabase()
                   .from('profiles')

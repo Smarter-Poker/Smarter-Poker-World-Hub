@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * GET /api/assistant/leaks
  * Returns user's detected leaks
@@ -345,7 +346,7 @@ export default async function handler(req, res) {
   }
 }
 
-// ─── Demo data helpers ──────────────────────────────────────────────────────
+// ─── Demo data helpers ────────────────────────────────────────────────────────────
 
 // Last `n` consecutive YYYY-MM month labels ending with the current month —
 // the exact format detect.js's updateTrendData writes

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DEALER DOCUMENT SCANNER API
  * OCR for gaming licenses, paystubs, and tax documents

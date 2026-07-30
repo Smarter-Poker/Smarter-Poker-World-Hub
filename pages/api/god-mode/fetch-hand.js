@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🎮 GOD MODE ENGINE — Fetch Hand API
  * ═══════════════════════════════════════════════════════════════════════════

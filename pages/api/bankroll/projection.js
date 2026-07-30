@@ -1,8 +1,9 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 📈 BANKROLL PROJECTION API
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * Monte Carlo simulation for bankroll growth projections (on-demand only)
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Message Host API — Send an initial outreach to a home game host
  * POST /api/home-games/message-host

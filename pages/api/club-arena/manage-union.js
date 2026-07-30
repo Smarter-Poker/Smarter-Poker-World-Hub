@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/manage-union
  * 
@@ -66,9 +67,9 @@ export default async function handler(req, res) {
     const { action, unionId, name, description, settings, clubId, adminUserId, adminRole, leaveRequestId } = payload;
 
     try {
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // CREATE UNION
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'create') {
         // RED TEAM: Sanitize name before insert
         const safeName = name.trim().replace(/[;'"\\<>]/g, '').slice(0, 100);
@@ -131,12 +132,12 @@ export default async function handler(req, res) {
       // All other actions require unionId
       if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // REQUEST LEAVE — CLUB OWNER (not union admin) asks to exit the union.
       // IMPROVE 2026-07-21: the approve/deny side existed but nothing could
       // ever SUBMIT a leave request. Sits before the union-admin gate because
       // the caller is a club owner.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'request_leave') {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
@@ -212,9 +213,9 @@ export default async function handler(req, res) {
 
       if (!callerAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // UPDATE SETTINGS
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'update_settings') {
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can update settings' });
 
@@ -274,9 +275,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // ADD CLUB TO UNION
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'add_club') {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
@@ -345,9 +346,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, clubName: club.name, club_commission_rate: clubCommissionRate });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // REMOVE CLUB FROM UNION
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'remove_club') {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove clubs' });
@@ -374,9 +375,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // ADD UNION ADMIN
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'add_admin') {
         if (!adminUserId) return res.status(400).json({ success: false, error: 'adminUserId required' });
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can add admins' });
@@ -405,9 +406,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, admin: profile });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // REMOVE UNION ADMIN
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'remove_admin') {
         if (!adminUserId) return res.status(400).json({ success: false, error: 'adminUserId required' });
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove admins' });
@@ -423,10 +424,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // SEARCH USER — find user by username/display_name for admin addition
       // No union_lead requirement — any union admin can search
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'search_user') {
         const { query: searchQuery } = payload;
         if (!searchQuery?.trim() || searchQuery.trim().length < 2) {
@@ -452,10 +453,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, users: profiles });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // UPDATE CLUB COMMISSION — change a specific club's commission rate
       // union_lead only
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'update_club_commission') {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
         if (callerAdmin.role !== 'union_lead') {
@@ -498,11 +499,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, commissionRate: newRate });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // UNION ANNOUNCEMENT BROADCAST
       // Sends an in-app announcement to all members of union clubs
       // or to a specific club. Uses clubs.announcements table.
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'union_announcement') {
         if (callerAdmin.role !== 'union_lead') {
           return res.status(403).json({ success: false, error: 'Only union lead can broadcast announcements' });
@@ -558,10 +559,10 @@ export default async function handler(req, res) {
         });
       }
 
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // LEAVE REQUEST ACTIONS (list, approve, deny)
       // Union lead manages club leave requests
-      // ═══════════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       if (action === 'list_leave') {
         const { data: leaveReqs } = await getSupabase()
           .from('union_leave_requests')

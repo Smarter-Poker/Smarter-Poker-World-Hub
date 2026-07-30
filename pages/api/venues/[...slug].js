@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/venues/* — Hono catch-all router (Phase 4.4 module #2, 2026-04-27)
  *

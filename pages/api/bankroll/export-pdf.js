@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * PDF EXPORT API
  * Generate PDF reports for bankroll data

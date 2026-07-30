@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/training/custom-train
  * Fetches training questions based on custom trainer configuration.

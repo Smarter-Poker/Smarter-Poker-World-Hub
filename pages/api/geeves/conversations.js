@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    GET GEEVES CONVERSATIONS — Fetch user's conversation history
    ═══════════════════════════════════════════════════════════════════════════ */

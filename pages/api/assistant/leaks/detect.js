@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * POST /api/assistant/leaks/detect
  * Runs leak detection analysis on user's hand history
@@ -64,9 +65,9 @@ Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustment
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // LEAK DETECTION PATTERNS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 const LEAK_PATTERNS = {
   // Preflop Leaks
@@ -209,9 +210,9 @@ function deviationFromRange(value, optimalRange) {
   return 0;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // LEAK DETECTION ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 async function getPlayerStats(supabase, userId) {
   let finalStats = null;
@@ -268,7 +269,7 @@ async function getPlayerStats(supabase, userId) {
   return finalStats || trainingStats || null;
 }
 
-// ─── DATA BRIDGE FOR TRAINING SESSIONS ─────────────────────────────────────
+// ─── DATA BRIDGE FOR TRAINING SESSIONS ─────────────────────────────────────────
 async function getTrainingStats(supabase, userId) {
   const { data: sessions, error } = await getSupabase()
     .from('training_sessions')
@@ -657,9 +658,9 @@ function generateExplanation(leakType, currentValue, optimalRange) {
   return explanations[leakType] || `Your frequency of ${currentValue}% deviates from optimal (${optMin}-${optMax}%).`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // API HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   try {
@@ -886,9 +887,9 @@ export default async function handler(req, res) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 function getCurrentValue(stats, leakType) {
   const valueMap = {
