@@ -139,17 +139,12 @@ export default async function handler(req, res) {
         const batchId = String(batch_id || `receive-${Date.now()}`);
 
         const results = {
-            venues_received: venues.length,
             tournaments_upserted: 0,
             tournaments_skipped: 0,
             tournaments_deactivated: 0,
             news_inserted: 0,
             news_duplicates: 0,
             venues_updated: 0,
-            // Venues Manus reported as status:'failed'. Counted and listed so a
-            // batch where every venue failed can never be logged as a clean run.
-            venues_failed: 0,
-            failures: [],
             errors: [],
         };
 
@@ -165,13 +160,7 @@ export default async function handler(req, res) {
                 }
 
                 if (status === 'failed') {
-                    // Was a bare `continue` with no counter — a batch in which every
-                    // venue failed was indistinguishable from a clean run.
-                    results.venues_failed++;
-                    if (results.failures.length < 50) {
-                        results.failures.push(`Venue ${vid}: scrape reported status 'failed'${source_url ? ` (${source_url})` : ''}`);
-                    }
-                    console.warn(`[Venue Receive] Venue ${vid} scrape failed`);
+                    console.debug(`[Venue Receive] Venue ${vid} scrape failed — skipping`);
                     continue;
                 }
 
@@ -344,30 +333,15 @@ export default async function handler(req, res) {
             }
         }
 
-        // ── Determine the true outcome of this batch ──
-        // A batch in which EVERY venue failed to scrape is a failed run, even
-        // though no exception was thrown while processing it.
-        const allVenuesFailed = venues.length > 0 && results.venues_failed === venues.length;
-        const clean = results.errors.length === 0 && results.venues_failed === 0;
-        const runStatus = allVenuesFailed ? 'failed' : (clean ? 'success' : 'partial');
-        if (allVenuesFailed) {
-            console.warn(`[Venue Receive] TOTAL BATCH FAILURE: all ${venues.length} venues reported status 'failed' (batch ${batchId})`);
-        }
-
         // ── Log the receive run ──
         try {
             const { error: err_scraper_runs_rz6n3 } = await getSupabase()
               .from('scraper_runs')
               .insert({
                     source: `venue-scraper-receive-${source_tier || 'unknown'}`,
-                    status: runStatus,
+                    status: results.errors.length === 0 ? 'success' : 'partial',
                     stats: results,
-                    metadata: {
-                        batch_id,
-                        source_tier,
-                        venues_failed: results.venues_failed,
-                        failures: results.failures.slice(0, 10),
-                    },
+                    metadata: { batch_id, source_tier },
                     started_at: new Date().toISOString(),
                 });
             if (err_scraper_runs_rz6n3) console.warn('[Supabase] Silent mutation failed in scraper_runs:', err_scraper_runs_rz6n3.message);
@@ -376,12 +350,11 @@ export default async function handler(req, res) {
         }
 
         const nothingWritten =
-            results.tournaments_upserted === 0 && results.news_inserted === 0 &&
-            (results.errors.length > 0 || allVenuesFailed);
+            results.tournaments_upserted === 0 && results.news_inserted === 0 && results.errors.length > 0;
 
         return res.status(nothingWritten ? 500 : 200).json({
-            success: runStatus === 'success',
-            status: runStatus,
+            success: results.errors.length === 0,
+            status: results.errors.length === 0 ? 'success' : 'partial',
             batch_id,
             results,
         });

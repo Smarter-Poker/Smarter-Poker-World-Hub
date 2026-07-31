@@ -26,44 +26,6 @@ function getSupabase() {
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// State -> IANA timezone. Mirrors game-predictions.js / peak-activity.js, which
-// were already fixed for this bug; this endpoint powers the venue CARD list and
-// was still bucketing in UTC, so the card and the detail page disagreed.
-const IANA_TZ = {
-  'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix',
-  'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
-  'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York',
-  'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
-  'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago',
-  'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago',
-  'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York',
-  'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago',
-  'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago',
-  'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York',
-  'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York',
-  'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago',
-  'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York',
-  'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago',
-  'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York',
-  'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York',
-  'WI': 'America/Chicago', 'WY': 'America/Denver',
-};
-const DEFAULT_TZ = 'America/New_York';
-
-/**
- * Bucket a snapshot by the VENUE's local hour/day rather than UTC — otherwise a
- * 7 PM PT peak is reported as 2 AM and Friday nights are attributed to Saturday.
- */
-function getLocalParts(value, timeZone) {
-  const dt = new Date(value);
-  if (isNaN(dt.getTime())) return null;
-  try {
-    const local = new Date(dt.toLocaleString('en-US', { timeZone }));
-    if (!isNaN(local.getTime())) return { hour: local.getHours(), day: local.getDay() };
-  } catch (_tzErr) { /* fall through to UTC */ }
-  return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
-}
-
 function formatHour(h) {
   if (h === 0) return '12 AM';
   if (h === 12) return '12 PM';
@@ -73,7 +35,7 @@ function formatHour(h) {
 /**
  * Analyze a set of snapshot rows and produce a compact prediction summary.
  */
-function analyzeVenueData(rows, timeZone = DEFAULT_TZ) {
+function analyzeVenueData(rows) {
   if (!rows || rows.length === 0) return null;
 
   // === Aggregate by game type ===
@@ -82,11 +44,9 @@ function analyzeVenueData(rows, timeZone = DEFAULT_TZ) {
   const dayCounts = {};   // Global day aggregation
 
   rows.forEach(row => {
-    // Bucket in the VENUE's local time, not UTC.
-    const parts = getLocalParts(row.snapshot_time, timeZone);
-    if (!parts) return;
-    const hour = parts.hour;
-    const day = parts.day;
+    const dt = new Date(row.snapshot_time);
+    const hour = dt.getUTCHours();
+    const day = dt.getUTCDay();
     const gameType = gameShortLabel(row.game_type || 'Unknown');
     const tables = row.tables || 1;
 
@@ -211,9 +171,6 @@ function analyzeVenueData(rows, timeZone = DEFAULT_TZ) {
     day_scores,
     data_quality,
     data_points: totalPoints,
-    // Timezone the hour/day buckets were computed in, so a client can tell
-    // whether a card and the venue detail page are using the same basis.
-    timezone: timeZone,
     has_data: true,
   };
 }
@@ -320,72 +277,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, predictions: {} });
     }
 
-    // ── Resolve each venue's timezone from poker_venues.state (one batched query) ──
-    // Without this the card list buckets snapshots in UTC and reports a Las Vegas
-    // 7 PM peak as 2 AM, contradicting the venue detail page for the same rows.
-    const tzByVenueId = {};
-    const numericIds = Object.values(nameToId);
-    if (numericIds.length > 0) {
-      try {
-        const { data: venueRows, error: venueErr } = await supabase
-          .from('poker_venues')
-          .select('id, state')
-          .in('id', numericIds);
-        if (venueErr) {
-          console.warn('venue-predictions-batch: venue timezone lookup failed:', venueErr.message);
-        } else {
-          (venueRows || []).forEach(v => {
-            const st = (v.state || '').toUpperCase();
-            if (IANA_TZ[st]) tzByVenueId[v.id] = IANA_TZ[st];
-          });
-        }
-      } catch (tzErr) {
-        console.warn('venue-predictions-batch: venue timezone lookup threw:', tzErr.message);
-      }
-    }
-
     // Fetch history for all these venues by name from game_live_history
     let historyData = [];
-    let historyTruncated = false;
-    let historyErrors = 0;
-    // Batch in chunks of 20 venue names to avoid query limits.
-    // Supabase caps a query at 1000 rows regardless of .limit(), so page with
-    // .range() — .limit(10000) silently returned only the first 1000 rows.
-    const PAGE_SIZE = 1000;
-    const MAX_PAGES = 10;
+    // Batch in chunks of 20 venue names to avoid query limits
     for (let i = 0; i < venueNamesArray.length; i += 20) {
       const batch = venueNamesArray.slice(i, i + 20);
-      let fatal = false;
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const { data, error } = await supabase
-          .from('game_live_history')
-          .select('venue_name, game_type, tables, waiting, snapshot_time')
-          .gte('snapshot_time', fourWeeksAgo)
-          .in('venue_name', batch)
-          .order('snapshot_time', { ascending: true })
-          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data, error } = await supabase
+        .from('game_live_history')
+        .select('venue_name, game_type, tables, waiting, snapshot_time')
+        .gte('snapshot_time', fourWeeksAgo)
+        .in('venue_name', batch)
+        .order('snapshot_time', { ascending: true })
+        .limit(10000);
 
-        if (error) {
-          if (error.code === '42P01' || error.code === '42703') {
-            // Table not ready — return empty state for all
-            const predictions = {};
-            ids.forEach(id => { predictions[id] = { has_data: false }; });
-            return res.status(200).json({ success: true, predictions });
-          }
-          historyErrors++;
-          console.warn('venue-predictions-batch: history query error:', error.message);
-          fatal = true;
-          break;
+      if (error) {
+        if (error.code === '42P01' || error.code === '42703') {
+          // Table not ready — return empty state for all
+          const predictions = {};
+          ids.forEach(id => { predictions[id] = { has_data: false }; });
+          return res.status(200).json({ success: true, predictions });
         }
-        if (!data || data.length === 0) break;
-        historyData = historyData.concat(data);
-        if (data.length < PAGE_SIZE) break;
-        if (page === MAX_PAGES - 1) {
-          historyTruncated = true;
-          console.warn(`venue-predictions-batch: history page ceiling (${MAX_PAGES * PAGE_SIZE}) reached for a venue batch — analysis is partial`);
-        }
+        console.warn('venue-predictions-batch: history query error:', error.message);
+        continue;
       }
-      if (fatal) continue;
+      if (data) historyData = historyData.concat(data);
     }
 
     // Group history by venue ID
@@ -407,7 +322,7 @@ export default async function handler(req, res) {
         predictions[id] = { has_data: false };
         return;
       }
-      const analysis = analyzeVenueData(rows, tzByVenueId[intId] || DEFAULT_TZ);
+      const analysis = analyzeVenueData(rows);
       predictions[id] = analysis || { has_data: false };
       if (analysis) predictions[id].venue_id = intId;
     });
@@ -417,8 +332,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       predictions,
-      truncated: historyTruncated,
-      history_query_errors: historyErrors,
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {

@@ -26,7 +26,7 @@ const { crossTableRadar, tableTimebankBlacklist } = require('./anti-exploit');
 let _liveObserver = null;
 function _getLO() {
     if (!_liveObserver) {
-        try { _liveObserver = require('./live-observer'); }
+        // try { _liveObserver = require('./live-observer'); }
         catch (_) { _liveObserver = {}; }
     }
     return _liveObserver;
