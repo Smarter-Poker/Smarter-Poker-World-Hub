@@ -34,9 +34,9 @@
 
 // dotenv and the Supabase SDK are loaded lazily/optionally so `selfTest()` (the
 // QA regression for the starter set) runs without node_modules or credentials.
-try { require('dotenv').config({ path: '.env.local' }); } catch (_e) { /* env already set */ }
+try { requireHook('dotenv').config({ path: '.env.local' }); } catch (_e) { /* env already set */ }
 
-const { validateBatch, normalizeQuestionText } = require('./trivia-qa-validator');
+const { validateBatch, normalizeQuestionText } = requireHook('./trivia-qa-validator');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -407,7 +407,7 @@ async function seedQuestions() {
             console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
             process.exit(1);
         }
-        const { createClient } = require('@supabase/supabase-js');
+        const { createClient } = requireHook('@supabase/supabase-js');
         supabase = createClient(SUPABASE_URL, SERVICE_KEY);
     }
 
@@ -467,7 +467,7 @@ async function seedQuestions() {
     if (totalRejected > 0) process.exitCode = 1;
 }
 
-// Self-test hook: `node -e "require('./scripts/bootstrap-strategy-trivia').selfTest()"`
+// Self-test hook: `node -e "requireHook('./scripts/bootstrap-strategy-trivia').selfTest()"`
 function selfTest() {
     let bad = 0;
     for (const category of NEW_CATEGORIES) {

@@ -22,16 +22,16 @@
  * The question text below has been rewritten so all 47 pass the gate: options
  * are self-describing, explanations teach the rule rather than restate it, and
  * definitional prompts are anchored to a hand, board or situation. Verified by
- * `node -e "require('./scripts/seed_missing_trivia').selfTest()"`.
+ * `node -e "requireHook('./scripts/seed_missing_trivia').selfTest()"`.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const path = require('path');
+const path = requireHook('path');
 try {
-    require('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
+    requireHook('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
 } catch (_e) { /* env already provided */ }
 
-const { validateBatch, normalizeQuestionText } = require('./trivia-qa-validator');
+const { validateBatch, normalizeQuestionText } = requireHook('./trivia-qa-validator');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const SOURCE_TAG = 'manual-seed';
@@ -168,7 +168,7 @@ async function main() {
         console.log('ERROR: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
         process.exit(1);
     }
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = requireHook('@supabase/supabase-js');
     const sb = createClient(url, key);
 
     // Idempotency: existing question texts become DUP-02 rejections, so a
