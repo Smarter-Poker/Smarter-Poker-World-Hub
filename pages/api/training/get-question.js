@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * GET /api/training/get-question
  * Fetches next question for a training game session

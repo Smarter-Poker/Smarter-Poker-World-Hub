@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Seed Pre-Made Promotions
  * POST /api/promo/seed-premade — Creates 25 high-quality pre-made promo codes
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify user is owner or manager
       const { data: staff } = await getSupabase()

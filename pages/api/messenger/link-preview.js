@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Link Preview API — Server-side OG metadata fetcher
  * ═══════════════════════════════════════════════════════════════════════════

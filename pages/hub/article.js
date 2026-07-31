@@ -337,27 +337,19 @@ export default function ArticlePage() {
                         thumbnail: article.image_url
                     });
                 }
-                // Guest storage is for GUESTS only. Writing it while signed in
-                // left one account's saved article ids and titles in the browser
-                // for whoever used it next — on a shared machine the next signed
-                // -out visitor would see them in Read Later. Signed-in users get
-                // their list (with metadata) back from addToReadLater/getReadLater,
-                // so the local copy buys nothing.
-                if (!userId) {
-                    const list = readGuestReadLater();
-                    if (!list.some((x) => String(x) === String(articleId))) {
-                        writeGuestReadLater([...list, articleId]);
-                    }
-                    // Cache the columns /hub/news needs to RENDER this saved story.
-                    // The id array alone is not enough there: the feed is paginated,
-                    // so an article saved from this page is usually not in the page
-                    // of rows /hub/news has loaded, and the queue would silently drop
-                    // it. Real values from the row on screen only — nothing invented.
-                    saveLocalReadLaterMeta([
-                        toLocalReadLaterRow(articleId, article),
-                        ...getLocalReadLaterMeta().filter((r) => String(r.article_id) !== String(articleId))
-                    ]);
+                const list = readGuestReadLater();
+                if (!list.some((x) => String(x) === String(articleId))) {
+                    writeGuestReadLater([...list, articleId]);
                 }
+                // Cache the columns /hub/news needs to RENDER this saved story.
+                // The id array alone is not enough there: the feed is paginated,
+                // so an article saved from this page is usually not in the page
+                // of rows /hub/news has loaded, and the queue would silently drop
+                // it. Real values from the row on screen only — nothing invented.
+                saveLocalReadLaterMeta([
+                    toLocalReadLaterRow(articleId, article),
+                    ...getLocalReadLaterMeta().filter((r) => String(r.article_id) !== String(articleId))
+                ]);
                 setIsReadLater(true);
                 toast.success('Saved To Read Later');
             }
@@ -584,7 +576,7 @@ export default function ArticlePage() {
 
             <div className="article-page">
                 {/* UniversalHeader */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
@@ -694,9 +686,7 @@ export default function ArticlePage() {
                         background: rgba(10, 10, 18, 0.95);
                         backdrop-filter: blur(12px);
                         border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-                        position: sticky;
-                        top: 0;
-                        z-index: 100;
+                        z-index: 99;
                     }
 
                     .actions {

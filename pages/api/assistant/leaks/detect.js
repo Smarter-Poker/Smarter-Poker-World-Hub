@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * POST /api/assistant/leaks/detect
  * Runs leak detection analysis on user's hand history

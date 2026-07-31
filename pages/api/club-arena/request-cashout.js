@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/request-cashout
  * 
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
     const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
     const user = authData?.user;
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, amount: rawAmount, note: rawNote } = req.body;
 

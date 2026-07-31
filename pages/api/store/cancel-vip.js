@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Cancel VIP Subscription
  * POST /api/store/cancel-vip

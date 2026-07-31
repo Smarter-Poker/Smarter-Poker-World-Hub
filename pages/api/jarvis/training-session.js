@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 📊 TRAINING DATA → JARVIS INTEGRATION
  * ═══════════════════════════════════════════════════════════════════════════

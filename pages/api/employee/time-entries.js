@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Employee Time Entries API — GET /api/employee/time-entries
  * Returns clock in/out history from commander_time_clock

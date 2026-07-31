@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════
    API: /api/club-arena/bbj
    GET: Fetch BBJ pool amount, recent winners, tier config

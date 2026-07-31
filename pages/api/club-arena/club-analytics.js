@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Club Analytics API — Real-time admin dashboard data
  * ═══════════════════════════════════════════════════════

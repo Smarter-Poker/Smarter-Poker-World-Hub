@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Live Session API — "I'm At The Table" Broadcasting
  * ═══════════════════════════════════════════════════════════════════════════

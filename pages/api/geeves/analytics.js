@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    GEEVES ANALYTICS API — Admin-only endpoint
    Serves the Geeves tab in the Horses admin page.

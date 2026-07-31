@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 🤖 AI AVATAR GENERATION - PHOTO TO IMAGE (LIKENESS)
  * Uses Grok Vision to analyze photo + grok-2-image-1212 to generate avatar

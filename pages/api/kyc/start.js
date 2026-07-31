@@ -60,7 +60,7 @@ export default async function handler(req, res) {
             error: authError
         } = await supabase.auth.getUser(token);
 
-        if (authError || !user) {
+        if (authErr || !user) {
             return res.status(401).json({ error: "Invalid or expired session" });
         }
 

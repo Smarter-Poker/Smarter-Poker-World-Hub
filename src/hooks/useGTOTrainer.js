@@ -742,7 +742,14 @@ export default function useGTOTrainer(
 
       // Phase 75: Update adaptive difficulty tracking
       try {
-        deterministicEngine.updateSessionDifficulty(isCorrect);
+        deterministicEngine.updateSessionDifficulty(isCorrect, {
+          street: scenario.street || 'flop',
+          heroPosition: currentQuestion.heroPosition || '',
+          selectedAction: selectedOptionId,
+          evLoss: moveResult.evLoss || 0,
+          frequencies: currentQuestion.options || [],
+          handCategory: currentQuestion.handCategory || ''
+        });
       } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
       }

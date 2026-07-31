@@ -39,16 +39,18 @@ const SEATS = [
 ];
 
 // Avatar images (large illustrated characters)
+import { dealSeatAvatars } from '../../../lib/avatarHelpers';
+const _tableAvatars = dealSeatAvatars('golden', 9);
 const AVATAR_IMAGES = {
-    hero: '/avatars/table/free_fox.png',
-    v1: '/avatars/table/vip_viking_warrior.png',
-    v2: '/avatars/table/free_wizard.png',
-    v3: '/avatars/table/free_ninja.png',
-    v4: '/avatars/table/vip_wolf.png',
-    v5: '/avatars/table/vip_spartan.png',
-    v6: '/avatars/table/vip_pharaoh.png',
-    v7: '/avatars/table/free_cowboy.png',
-    v8: '/avatars/table/free_pirate.png',
+    hero: _tableAvatars[0],
+    v1: _tableAvatars[1],
+    v2: _tableAvatars[2],
+    v3: _tableAvatars[3],
+    v4: _tableAvatars[4],
+    v5: _tableAvatars[5],
+    v6: _tableAvatars[6],
+    v7: _tableAvatars[7],
+    v8: _tableAvatars[8],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

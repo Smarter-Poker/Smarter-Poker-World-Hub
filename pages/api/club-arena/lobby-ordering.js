@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Lobby Ordering API — Drag-and-drop table ordering for lobby display
  * ═══════════════════════════════════════════════════════════════

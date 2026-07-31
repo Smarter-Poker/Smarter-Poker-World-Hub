@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Poker Brain -- Aggregate Stats API
  * GET /api/poker-brain/stats?variant=nlhe&period=30d

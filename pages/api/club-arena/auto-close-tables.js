@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Auto-Close Tables — Game Length Enforcement API
  * ═══════════════════════════════════════════════════════════════

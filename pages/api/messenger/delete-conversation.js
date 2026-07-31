@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 🗑️ DELETE CONVERSATION API - Service Role
  * Removes the user's participation from a conversation (soft-delete).

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * GET /api/training/get-sessions
  * Fetches recent training sessions for a user/game.

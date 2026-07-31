@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Table Chat API — In-table messaging and dealer announcements
  * ═══════════════════════════════════════════════════════════════

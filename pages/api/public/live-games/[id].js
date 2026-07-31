@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Live Game Detail API
  *
@@ -117,7 +118,7 @@ async function handlePost(req, res, id) {
     const authData = { user: authUser };
         const user = authData?.user;
 
-        if (authError || !user) {
+        if (authErr || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
@@ -242,7 +243,7 @@ async function handleDelete(req, res, id) {
     const authData = { user: authUser };
         const user = authData?.user;
 
-        if (authError || !user) {
+        if (authErr || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
  * Uses Grok (xAI) grok-2-image-1212 to generate avatars from text descriptions

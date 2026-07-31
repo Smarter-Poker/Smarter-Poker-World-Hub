@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/buyin
  * 
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
     const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
     const user = authData?.user;
-    if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // 3. Zod Contract Validation (Payload)
     const bodyParse = BuyInRequestSchema.safeParse(req.body);

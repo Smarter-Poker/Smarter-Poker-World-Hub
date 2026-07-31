@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    API: Get Live Help Conversation
    Fetches conversation history with all messages
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (authError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ error: 'Invalid token' });
           }
 

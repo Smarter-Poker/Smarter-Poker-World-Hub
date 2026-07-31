@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    API: Send Live Help Message
    Handles user messages and generates AI responses
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (authError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ error: 'Invalid token' });
           }
 

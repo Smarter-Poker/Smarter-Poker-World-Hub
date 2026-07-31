@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Employee Claim API — POST /api/employee/claim
  * Authenticated hub user claims a code to link their account to a venue staff record

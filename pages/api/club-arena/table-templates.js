@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * Table Templates API — Save & Load reusable table configurations
  * ═══════════════════════════════════════════════════════════════

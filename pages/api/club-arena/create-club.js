@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * POST /api/club-arena/create-club
  * Creates a new club and the owner's membership record.

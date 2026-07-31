@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * GTO Panel Image Generator - Using Grok AI
  * ═══════════════════════════════════════════════════════════════════════════

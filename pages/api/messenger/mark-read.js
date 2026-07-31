@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 📬 MARK CONVERSATION AS READ API - Service Role
  * Bypasses RLS to ensure last_read_at is properly updated

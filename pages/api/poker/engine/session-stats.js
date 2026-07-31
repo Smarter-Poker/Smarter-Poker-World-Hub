@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * POST /api/training/log-request
  * Logs a "Train This Spot" conversion event to the training_events table.

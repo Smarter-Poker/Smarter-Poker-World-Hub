@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * 🎨 AI AVATAR EDIT - IMAGE EDITING
  * Uses Grok Vision to analyze existing avatar + grok-2-image-1212 to regenerate with edits
