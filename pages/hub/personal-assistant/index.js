@@ -264,7 +264,7 @@ export default function PersonalAssistantPage() {
             flexWrap: 'wrap',
           }}>
             <div style={{ flex: 1, minWidth: 160 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#4599FF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#4599FF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 Hand of the Day
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>
@@ -272,7 +272,7 @@ export default function PersonalAssistantPage() {
                 {dailyHand.board ? <span style={{ color: '#65676B', fontWeight: 400, marginLeft: 6 }}>| Board: {dailyHand.board}</span> : null}
               </div>
               {dailyHand.title && (
-                <div style={{ fontSize: 11, color: '#B0B3B8', marginTop: 2 }}>{dailyHand.title}</div>
+                <div style={{ fontSize: 13, color: '#B0B3B8', marginTop: 2 }}>{dailyHand.title}</div>
               )}
             </div>
             <button

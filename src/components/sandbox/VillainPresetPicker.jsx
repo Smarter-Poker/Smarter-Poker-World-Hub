@@ -1,152 +1,233 @@
 /**
  * VILLAIN PRESET PICKER (W5-3)
- * Quick-select opponent profiles with pre-configured ranges.
- * Compact dropdown that fills villain range field.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Quick-select opponent profiles. Every profile is now sourced from the
+ * canonical ARCHETYPE_CONFIG in src/lib/sandbox/VillainArchetypeRanges so the
+ * range that gets applied, the VPIP that gets displayed and the archetype the
+ * villain simulator uses can never disagree.
+ *
+ * The sheet stays open after a selection (multi-seat setups need it) and shows
+ * a 13x13 preview of the range being applied.
  */
-import { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Users, Check, Snowflake, Target, Zap, Fish, Phone, Flame, Scale } from 'lucide-react';
+import { T, F, S, R, btn, pill, numeric } from './paTokens';
+import { BottomSheet, PAStyles, Segmented } from './paKit';
+import {
+    ARCHETYPE_CONFIG,
+    getArchetypeRangeString,
+    getArchetypeVPIP,
+} from '../../lib/sandbox/VillainArchetypeRanges';
+import { RANKS, parseRange, countCombos } from './RangeExplorer';
 
-const M = {
-    card: '#242526', border: '#3a3b3c',
-    cyan: '#4599FF', green: '#00E676', red: '#EF5350',
-    gold: '#F5A623', text: '#E4E6EB', sub: '#B0B3B8',
-    dim: 'rgba(255,255,255,0.4)',
+const ICONS = {
+    Snowflake, Target, Zap, Fish, Phone, Flame, Scale,
 };
 
-const PRESETS = [
-    {
-        name: 'Nit', vpip: '12%', emoji: '🔒',
-        color: '#60a5fa',
-        desc: 'Only plays premium hands. Folds everything marginal.',
-        range: 'AA,KK,QQ,JJ,TT,AKs,AQs,AKo',
-        sizing: 'Large opens, rarely bluffs post-flop',
-    },
-    {
-        name: 'TAG', vpip: '22%', emoji: '🎯',
-        color: '#34d399',
-        desc: 'Tight-Aggressive. Solid range, aggressive post-flop.',
-        range: 'AA,KK,QQ,JJ,TT,99,88,AKs,AQs,AJs,ATs,KQs,KJs,AKo,AQo,AJo,KQo',
-        sizing: 'Standard opens, balanced c-bets',
-    },
-    {
-        name: 'LAG', vpip: '30%', emoji: '⚡',
-        color: '#fbbf24',
-        desc: 'Loose-Aggressive. Wide range, constant pressure.',
-        range: 'AA,KK,QQ,JJ,TT,99,88,77,66,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A5s,A4s,KQs,KJs,KTs,K9s,QJs,QTs,JTs,T9s,98s,87s,76s,65s,AKo,AQo,AJo,ATo,KQo,KJo,QJo',
-        sizing: 'Mixed sizes, frequent 3-bets',
-    },
-    {
-        name: 'Maniac', vpip: '45%', emoji: '🔥',
-        color: '#f87171',
-        desc: 'Hyper-aggressive. Plays almost anything, overbets often.',
-        range: 'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,QJs,QTs,Q9s,Q8s,JTs,J9s,T9s,T8s,98s,97s,87s,86s,76s,75s,65s,64s,54s,53s,43s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,KQo,KJo,KTo,K9o,QJo,QTo,JTo,J9o,T9o,98o',
-        sizing: 'Overbets, frequent all-ins',
-    },
-    {
-        name: 'Fish', vpip: '55%', emoji: '🐟',
-        color: '#a78bfa',
-        desc: 'Recreational. Calls wide, chases draws, rarely folds.',
-        range: 'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,JTs,J9s,J8s,J7s,T9s,T8s,T7s,98s,97s,96s,87s,86s,76s,75s,65s,64s,54s,53s,43s,32s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,KQo,KJo,KTo,K9o,K8o,QJo,QTo,Q9o,JTo,J9o,T9o,98o,87o,76o',
-        sizing: 'Limps often, passive post-flop',
-    },
-];
+// Display order — tightest to loosest, GTO baseline last.
+const ORDER = ['nit', 'tag', 'lag', 'calling_station', 'fish', 'maniac', 'gto_neutral'];
 
-export default function VillainPresetPicker({ onSelectPreset, onClose, villains = [] }) {
-    const [selected, setSelected] = useState(null);
-    const [villainIdx, setVillainIdx] = useState(0);
-
-    const handleSelect = (preset) => {
-        setSelected(preset.name);
-        // Ship the matching archetype alongside the range so the parent can set
-        // BOTH — otherwise the villain read card keeps showing the stale
-        // archetype ("GTO Neutral") next to a Maniac range.
-        onSelectPreset?.({
-            ...preset,
-            archetype: { id: preset.name.toLowerCase(), name: preset.name },
-        }, villainIdx);
-        try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        // Auto-close after brief delay so user sees the selection
-        setTimeout(() => onClose?.(), 300);
-    };
-
+/** Tiny 13x13 preview so the user sees the shape of what they are applying. */
+function RangeMiniMap({ range }) {
+    const cells = useMemo(() => parseRange(range || ''), [range]);
     return (
-        <div style={s.overlay} onClick={onClose}>
-            <div style={s.modal} onClick={e => e.stopPropagation()}>
-                <div style={s.header}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: M.text }}>{'👤 Villain Profiles'}</span>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
-                </div>
-
-                {/* Seat selector — only meaningful with multiple villains */}
-                {villains.length > 1 && (
-                    <div style={{ display: 'flex', gap: 6, padding: '0 10px 8px', flexWrap: 'wrap' }}>
-                        {villains.map((v, i) => (
-                            <button
-                                key={v?.id ?? i}
-                                onClick={() => setVillainIdx(i)}
-                                style={{
-                                    padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                                    background: villainIdx === i ? 'rgba(69,153,255,0.18)' : 'rgba(255,255,255,0.04)',
-                                    border: `1px solid ${villainIdx === i ? 'rgba(69,153,255,0.4)' : M.border}`,
-                                    color: villainIdx === i ? M.cyan : M.sub,
-                                    cursor: 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent',
-                                }}
-                            >
-                                {v?.position || `Seat ${i + 1}`}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {PRESETS.map(p => (
-                        <button
-                            key={p.name}
-                            onClick={() => handleSelect(p)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '10px 12px', borderRadius: 10,
-                                background: selected === p.name ? `${p.color}15` : 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${selected === p.name ? p.color + '44' : M.border}`,
-                                cursor: 'pointer', textAlign: 'left',
-                                outline: 'none', WebkitTapHighlightColor: 'transparent',
-                                touchAction: 'manipulation',
-                                transition: 'all 0.15s',
-                            }}
-                        >
-                            <span style={{ fontSize: 22 }}>{p.emoji}</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                                    <span style={{ fontSize: 12, fontWeight: 800, color: p.color }}>{p.name}</span>
-                                    <span style={{ fontSize: 9, color: M.dim, fontFamily: '"Orbitron", monospace' }}>{p.vpip} VPIP</span>
-                                </div>
-                                <div style={{ fontSize: 9, color: M.sub, lineHeight: 1.3, marginTop: 2 }}>{p.desc}</div>
-                                <div style={{ fontSize: 8, color: M.dim, marginTop: 2, fontStyle: 'italic' }}>{p.sizing}</div>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
+        <div
+            aria-hidden="true"
+            style={{
+                display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
+                width: 104, flexShrink: 0,
+            }}
+        >
+            {RANKS.flatMap((_, i) => RANKS.map((__, j) => {
+                const on = !!cells[`${i},${j}`];
+                const tone = i === j ? T.success : i < j ? T.accent : T.warn;
+                return (
+                    <div
+                        key={`${i},${j}`}
+                        style={{
+                            aspectRatio: '1',
+                            background: on ? tone : T.surface,
+                            opacity: on ? 0.9 : 0.35,
+                            borderRadius: 1,
+                        }}
+                    />
+                );
+            }))}
         </div>
     );
 }
 
-const s = {
-    overlay: {
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 999, padding: 12,
-    },
-    modal: {
-        background: M.card,
-        border: `1px solid ${M.border}`,
-        borderRadius: 14,
-        width: '100%', maxWidth: 400,
-        maxHeight: '90vh', overflow: 'auto',
-    },
-    header: {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 12px 6px',
-    },
-};
+export default function VillainPresetPicker({
+    onSelectPreset,
+    onClose,
+    /** Optional — enables the seat selector for multi-villain setups. */
+    villains = [],
+    initialVillainIdx = 0,
+}) {
+    const seats = Array.isArray(villains) ? villains : [];
+    const [villainIdx, setVillainIdx] = useState(() => (
+        seats.length > 0 ? Math.min(Math.max(0, initialVillainIdx), seats.length - 1) : 0
+    ));
+    const [appliedTo, setAppliedTo] = useState({}); // { [archetypeId]: seatLabel }
+    const [expanded, setExpanded] = useState(null);
+
+    const seat = seats[villainIdx] || null;
+    const seatPosition = seat?.position || 'BB';
+    const seatLabel = seat?.position || (seats.length > 1 ? `Seat ${villainIdx + 1}` : 'the villain');
+
+    const presets = useMemo(() => ORDER
+        .filter(id => ARCHETYPE_CONFIG[id])
+        .map(id => {
+            const cfg = ARCHETYPE_CONFIG[id];
+            let range = '';
+            let vpip = null;
+            try {
+                range = getArchetypeRangeString(id, seatPosition, 'open') || '';
+                vpip = getArchetypeVPIP(id, seatPosition);
+            } catch (e) {
+                console.warn('[VillainPresetPicker] archetype lookup failed:', e?.message || e);
+            }
+            return {
+                id,
+                name: cfg.name,
+                icon: cfg.icon,
+                colour: cfg.color || T.accent,
+                desc: cfg.description || '',
+                tip: cfg.postflopTip || '',
+                range,
+                vpip,
+            };
+        }), [seatPosition]);
+
+    const handleSelect = useCallback((preset) => {
+        if (!preset?.range) return;
+        // The page reads `preset.range`; `archetype` is shipped alongside so the
+        // villain read card and the simulator adopt the profile, not just the
+        // range. Extra keys are ignored by older handlers.
+        onSelectPreset?.({
+            ...preset,
+            archetype: { id: preset.id, name: preset.name, color: preset.colour },
+        }, villainIdx);
+        setAppliedTo(prev => ({ ...prev, [preset.id]: seatLabel }));
+        try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    }, [onSelectPreset, villainIdx, seatLabel]);
+
+    return (
+        <BottomSheet
+            open
+            onClose={onClose}
+            title="Villain profiles"
+            titleIcon={<Users size={18} strokeWidth={2} color={T.accent} />}
+            subtitle={`Ranges shown for ${seatPosition}`}
+            ariaLabel="Villain profile picker"
+            footer={(
+                <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('primary'), flex: 1 }}>
+                    Done
+                </button>
+            )}
+        >
+            <PAStyles />
+
+            {seats.length > 1 && (
+                <div style={{ marginBottom: S.lg }}>
+                    <Segmented
+                        label="Apply to seat"
+                        idPrefix="vp-seat"
+                        value={villainIdx}
+                        onChange={(idx) => { setVillainIdx(idx); setAppliedTo({}); }}
+                        options={seats.map((v, i) => ({ value: i, label: v?.position || `Seat ${i + 1}` }))}
+                    />
+                </div>
+            )}
+
+            {presets.length === 0 ? (
+                <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
+                    Opponent profiles are unavailable right now. Set a range by hand in the Range Explorer instead.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                    {presets.map(p => {
+                        const Icon = ICONS[p.icon] || Users;
+                        const applied = appliedTo[p.id];
+                        const open = expanded === p.id;
+                        const combos = countCombos(parseRange(p.range));
+                        return (
+                            <div
+                                key={p.id}
+                                style={{
+                                    background: T.surface2, border: `1px solid ${applied ? `${p.colour}66` : T.border}`,
+                                    borderRadius: R.md, padding: S.md, boxSizing: 'border-box', width: '100%',
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: S.md }}>
+                                    <div style={{
+                                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                        background: `${p.colour}26`, color: p.colour,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <Icon size={18} strokeWidth={2} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: F.h3, fontWeight: 800, color: p.colour }}>{p.name}</span>
+                                            {p.vpip != null && (
+                                                <span style={{ ...pill('neutral'), ...numeric }}>{p.vpip}% VPIP</span>
+                                            )}
+                                            {applied && (
+                                                <span style={pill('success')}>
+                                                    <Check size={12} strokeWidth={3} /> Applied to {applied}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: `${S.xs}px 0 0`, lineHeight: 1.45 }}>
+                                            {p.desc}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: S.sm, marginTop: S.md, flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className="pa-btn"
+                                        onClick={() => handleSelect(p)}
+                                        style={{
+                                            ...btn('secondary'), flex: '1 1 140px', fontSize: F.label,
+                                            background: `${p.colour}1F`, color: p.colour, borderColor: `${p.colour}55`,
+                                        }}
+                                    >
+                                        Apply to {seatLabel}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="pa-btn"
+                                        aria-expanded={open}
+                                        onClick={() => setExpanded(open ? null : p.id)}
+                                        style={{ ...btn('ghost'), fontSize: F.label, padding: '0 12px', color: T.accent }}
+                                    >
+                                        {open ? 'Hide range' : 'Preview range'}
+                                    </button>
+                                </div>
+
+                                {open && (
+                                    <div style={{ display: 'flex', gap: S.md, alignItems: 'center', marginTop: S.md, flexWrap: 'wrap' }}>
+                                        <RangeMiniMap range={p.range} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
+                                                {combos} combos ({((combos / 1326) * 100).toFixed(1)}%)
+                                            </div>
+                                            {p.tip && (
+                                                <div style={{ fontSize: F.caption, color: T.textDim, marginTop: S.xs, lineHeight: 1.45 }}>
+                                                    {p.tip}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </BottomSheet>
+    );
+}

@@ -6,104 +6,103 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import {
+    Spade, CalendarDays, Target, BarChart3, Calculator, Palette, Download,
+    Brain, Flame, Wallet, MapPin, Clock, Lock, FileText, ClipboardList,
+    Undo2, RotateCcw, Clapperboard, Share2, Zap, Thermometer, Volume2,
+    UploadCloud, SlidersHorizontal, FolderOpen, Save, Bookmark, Flag,
+    LayoutGrid, RefreshCw, ListChecks, Gauge, Home as HomeIcon, UserPlus,
+    Newspaper, Timer, Trophy as TrophyIcon, MessageSquare, Sparkles,
+} from 'lucide-react';
 
-// Helper to copy referral link for the current user
+// NOTE: sign-out lives in exactly ONE place — HamburgerMenu.handleLogout,
+// which clears the full cache list (sp-social-user, sp-vip-status,
+// smarter-poker-auth, sp-cached-header-user, sp-cached-settings-profile,
+// sp-notif-count). The menu auto-appends a "Log Out" row whenever a config
+// does not already supply one, so configs must NOT define their own.
+
+// Helper to copy / share the current user's referral link.
 export const copyReferralLink = async (user) => {
+    const notify = async (kind, message) => {
+        try {
+            const { default: toast } = await import('react-hot-toast');
+            if (kind === 'error') toast.error(message);
+            else toast.success(message);
+        } catch (_) {
+            try { window.alert(message); } catch (__) { /* non-browser */ }
+        }
+    };
+
     if (!user?.id) {
-        alert('Please log in to use referral links.');
+        await notify('error', 'Please log in to use referral links.');
         return;
     }
     try {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-        const { data } = await supabase
+        // Shared singleton — it is the only client configured with the
+        // `smarter-poker-auth` storage key, so the profiles read runs
+        // authenticated instead of anonymously failing RLS.
+        const { supabase } = await import('../lib/supabase');
+        const { data, error } = await supabase
             .from('profiles')
             .select('player_number')
             .eq('id', user.id)
             .maybeSingle();
-        if (data?.player_number) {
-            const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
-            await navigator.clipboard.writeText(link);
-            alert(`Referral link copied!\n\n${link}\n\nShare it with friends — you earn 500◆ per signup!`);
-        } else {
-            alert('Could not find your player number. Please try again.');
+        if (error || !data?.player_number) {
+            await notify('error', 'Could not find your player number. Please try again.');
+            return;
         }
+        const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
+        // Safari revokes the user-gesture clipboard grant across an await, so
+        // prefer the native share sheet on mobile.
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ title: 'Smarter Poker', text: 'Join me on Smarter Poker', url: link });
+                return;
+            } catch (shareErr) {
+                if (shareErr?.name === 'AbortError') return; // user dismissed
+            }
+        }
+        await navigator.clipboard.writeText(link);
+        await notify('success', 'Referral link copied — you earn 500 diamonds per signup.');
     } catch (err) {
         console.warn('Copy referral link error:', err);
-        alert('Failed to copy referral link. Please try again.');
+        await notify('error', 'Failed to copy referral link. Please try again.');
     }
 };
 
-// Self-contained sign out action — works without requiring handlers
-const signOutAction = () => {
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        { auth: { storageKey: 'smarter-poker-auth' } }
-    );
-    // signOut() must run FIRST so it can read the session token to revoke server-side.
-    // localStorage cleanup runs in .finally() AFTER the server request completes.
-    supabase.auth.signOut().finally(() => {
-        try { localStorage.removeItem('sp-social-user'); } catch (_) {}
-        try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
-        try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
-        window.top.location.href = '/';
-    });
-};
-
-// Round 33 fix: Lazy-built sign-out link to dodge a Next.js SSG TDZ that
-// kept reproducing as `ReferenceError: Cannot access 'tW' before initialization`
-// in the prerender of /hub/settings (every Vercel build since commit
-// 551de7a2). The original code declared this object as a module-scope
-// `const` whose `icon` JSX is evaluated during module load. Even though
-// `signOutAction` is declared above on line 41, Next.js page-level static
-// optimization can re-order or split chunks across the module boundary in
-// ways that expose the TDZ window during SSR. Wrapping the definition in
-// a function ensures the JSX + closure binding only evaluate at the call
-// site (which always runs INSIDE a MENU_CONFIGS callback, after both
-// signOutAction and the JSX runtime are resolved).
-function getSignOutBottomLink() {
-    return {
-        label: 'Log Out',
-        action: true,
-        onClick: signOutAction,
-        icon: (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-        ),
-    };
-}
-
-// Helper function to create menu items
+// Helper function to create menu items.
+// `opts` carries the structural flags the renderer understands:
+//   id       — stable identity used for de-duplication (never match on copy)
+//   hardNav  — force a full document load (getServerSideProps SPAs)
+//   danger   — destructive styling + separation
+//   variant  — 'flat' removes the border/padding chrome
 export const createMenuItem = {
-    navigation: (label, href, icon = null, badge = null, onClick = null) => ({
+    navigation: (label, href, icon = null, badge = null, onClick = null, opts = {}) => ({
         type: 'navigation',
         label,
         href,
         icon,
         badge,
-        onClick
+        onClick,
+        ...opts
     }),
-    toggle: (label, checked, onChange, hint = null) => ({
+    toggle: (label, checked, onChange, hint = null, icon = null, opts = {}) => ({
         type: 'toggle',
         label,
         checked,
         onChange,
-        hint
+        hint,
+        icon,
+        ...opts
     }),
-    action: (label, onClick, icon = null, primary = false, closeOnClick = true) => ({
+    action: (label, onClick, icon = null, primary = false, closeOnClick = true, opts = {}) => ({
         type: 'action',
         label,
         onClick,
         icon,
         primary,
-        closeOnClick
+        closeOnClick,
+        ...opts
     }),
     divider: () => ({
         type: 'divider'
@@ -181,7 +180,48 @@ export const MenuIcons = {
             <circle cx="20" cy="21" r="1" />
             <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
         </svg>
-    )
+    ),
+
+    // ── lucide-react set (repo rule: icons, never bare emoji in labels) ─────
+    spade: <Spade size={24} strokeWidth={2} />,
+    schedule: <CalendarDays size={24} strokeWidth={2} />,
+    target: <Target size={24} strokeWidth={2} />,
+    chart: <BarChart3 size={24} strokeWidth={2} />,
+    calculator: <Calculator size={24} strokeWidth={2} />,
+    palette: <Palette size={24} strokeWidth={2} />,
+    install: <Download size={24} strokeWidth={2} />,
+    brain: <Brain size={24} strokeWidth={2} />,
+    flame: <Flame size={24} strokeWidth={2} />,
+    wallet: <Wallet size={24} strokeWidth={2} />,
+    mapPin: <MapPin size={24} strokeWidth={2} />,
+    clock: <Clock size={24} strokeWidth={2} />,
+    lock: <Lock size={24} strokeWidth={2} />,
+    fileText: <FileText size={24} strokeWidth={2} />,
+    clipboard: <ClipboardList size={24} strokeWidth={2} />,
+    undo: <Undo2 size={24} strokeWidth={2} />,
+    reset: <RotateCcw size={24} strokeWidth={2} />,
+    replay: <Clapperboard size={24} strokeWidth={2} />,
+    share: <Share2 size={24} strokeWidth={2} />,
+    zap: <Zap size={24} strokeWidth={2} />,
+    heatmap: <Thermometer size={24} strokeWidth={2} />,
+    sound: <Volume2 size={24} strokeWidth={2} />,
+    upload: <UploadCloud size={24} strokeWidth={2} />,
+    sliders: <SlidersHorizontal size={24} strokeWidth={2} />,
+    folder: <FolderOpen size={24} strokeWidth={2} />,
+    save: <Save size={24} strokeWidth={2} />,
+    bookmark: <Bookmark size={24} strokeWidth={2} />,
+    flag: <Flag size={24} strokeWidth={2} />,
+    grid: <LayoutGrid size={24} strokeWidth={2} />,
+    refresh: <RefreshCw size={24} strokeWidth={2} />,
+    checklist: <ListChecks size={24} strokeWidth={2} />,
+    gauge: <Gauge size={24} strokeWidth={2} />,
+    hub: <HomeIcon size={24} strokeWidth={2} />,
+    userPlus: <UserPlus size={24} strokeWidth={2} />,
+    news: <Newspaper size={24} strokeWidth={2} />,
+    timer: <Timer size={24} strokeWidth={2} />,
+    award: <TrophyIcon size={24} strokeWidth={2} />,
+    chat: <MessageSquare size={24} strokeWidth={2} />,
+    sparkles: <Sparkles size={24} strokeWidth={2} />
 };
 
 // Menu configurations for each world
@@ -190,6 +230,21 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Quick Navigation'),
             createMenuItem.grid([
+                {
+                    label: 'Personal Assistant',
+                    href: '/hub/personal-assistant',
+                    icon: MenuIcons.brain
+                },
+                {
+                    label: 'GTO Sandbox',
+                    href: '/hub/personal-assistant/sandbox',
+                    icon: MenuIcons.target
+                },
+                {
+                    label: 'Leak Finder',
+                    href: '/hub/personal-assistant/leaks',
+                    icon: MenuIcons.flame
+                },
                 {
                     label: 'Training',
                     href: '/hub/training',
@@ -203,11 +258,12 @@ export const MENU_CONFIGS = {
                 {
                     label: 'Club Arena',
                     href: '/hub/club-arena',
+                    hardNav: true,
                     icon: (
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
                             <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
-                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#c4b5fd" />
+                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#A78BFA" />
                         </svg>
                     )
                 },
@@ -216,11 +272,8 @@ export const MENU_CONFIGS = {
                     href: '/hub/diamond-store',
                     icon: MenuIcons.store
                 },
-                {
-                    label: 'Friends',
-                    href: '/hub/friends',
-                    icon: MenuIcons.users
-                },
+                // Friends has a permanent BottomNavBar tab, so the grid spends
+                // its 8 slots on destinations the tab bar cannot reach.
                 {
                     label: 'Messenger',
                     href: '/hub/messenger',
@@ -258,8 +311,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
-            getSignOutBottomLink()
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
         ]
     }),
 
@@ -299,9 +351,11 @@ export const MENU_CONFIGS = {
             ),
             createMenuItem.divider(),
             createMenuItem.section('Navigation'),
-            createMenuItem.navigation('Training Library', '/hub/training'),
-            createMenuItem.navigation('My Progress', '/hub/training/progress'),
-            createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard')
+            createMenuItem.navigation('Training Library', '/hub/training', MenuIcons.training),
+            createMenuItem.navigation('My Progress', '/hub/training/progress', MenuIcons.chart),
+            createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard', MenuIcons.trophy),
+            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('Leak Finder', '/hub/personal-assistant/leaks', MenuIcons.flame)
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
@@ -458,17 +512,25 @@ export const MENU_CONFIGS = {
     'settings': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Quick Navigation'),
-            createMenuItem.navigation('Account Settings', '/hub/settings?section=account'),
-            createMenuItem.navigation('Privacy & Security', '/hub/settings?section=privacy'),
-            createMenuItem.navigation('Notifications', '/hub/settings?section=notifications'),
-            createMenuItem.navigation('Display & Sound', '/hub/settings?section=display'),
-            createMenuItem.navigation('Billing & Payments', '/hub/settings?section=billing'),
+            createMenuItem.navigation('Account Settings', '/hub/settings?section=account', MenuIcons.settings),
+            createMenuItem.navigation('Privacy & Security', '/hub/settings?section=privacy', MenuIcons.lock),
+            createMenuItem.navigation('Notifications', '/hub/settings?section=notifications', MenuIcons.flag),
+            createMenuItem.navigation('Display & Sound', '/hub/settings?section=display', MenuIcons.sliders),
+            createMenuItem.navigation('Billing & Payments', '/hub/settings?section=billing', MenuIcons.wallet),
             createMenuItem.divider(),
             createMenuItem.section('Account Actions'),
-            // Falls back to the self-contained signOutAction so 'Log Out' can never be
-            // a no-op if the page forgets to pass onSignOut.
-            createMenuItem.action('Log Out', () => (handlers?.onSignOut || signOutAction)(), null, false, true),
-            createMenuItem.navigation('Delete Account', '/hub/settings?section=delete-account')
+            // Sign-out lives in bottomLinks only: HamburgerMenu owns handleLogout
+            // (shared supabase client) and auto-appends a 'Log Out' row whenever no
+            // sign-out item exists in menuItems or bottomLinks, deduping any
+            // config-supplied row. So it can never be a no-op, and never doubles up.
+            createMenuItem.navigation(
+                'Delete Account',
+                '/hub/settings?section=delete-account',
+                MenuIcons.flag,
+                null,
+                null,
+                { danger: true, id: 'delete-account' }
+            )
         ],
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help }
@@ -656,58 +718,156 @@ export const MENU_CONFIGS = {
 
     'sandbox': (user, state, handlers) => {
         const gridItems1 = [
-            { label: `Quiz ${state.quizMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleQuiz },
-            { label: `Coach ${state.coachMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleCoach },
-            { label: 'Ranges ◆', onClick: handlers.onRanges },
-            { label: 'Villains ', onClick: handlers.onVillains },
+            { label: `Quiz ${state.quizMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleQuiz, icon: MenuIcons.checklist },
+            { label: `Coach ${state.coachMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleCoach, icon: MenuIcons.brain },
+            { label: 'Ranges', onClick: handlers.onRanges, icon: MenuIcons.grid },
+            { label: 'Villains', onClick: handlers.onVillains, icon: MenuIcons.users },
         ];
-        
+
+        // 3-across keeps the tile row square-ish at 375px and avoids the
+        // orphaned half-width tile the 2-column layout always produced.
         const gridItems2 = [
-            { label: 'Undo', onClick: handlers.onUndo },
-            { label: 'Reset', onClick: handlers.onReset },
-            { label: 'Replay ', onClick: handlers.onReplay },
+            { label: 'Undo', onClick: handlers.onUndo, icon: MenuIcons.undo },
+            { label: 'Reset', onClick: handlers.onReset, icon: MenuIcons.reset },
+            { label: 'Replay', onClick: handlers.onReplay, icon: MenuIcons.replay },
         ];
-        
+
         if (state.hasResults) {
-            gridItems2.push({ label: 'Results', onClick: handlers.onResults });
-            gridItems2.push({ label: 'Share', onClick: handlers.onShare });
+            gridItems2.push({ label: 'Results', onClick: handlers.onResults, icon: MenuIcons.chart });
+            gridItems2.push({ label: 'Share', onClick: handlers.onShare, icon: MenuIcons.share });
+            gridItems2.push({ label: 'Report', onClick: handlers.onReport, icon: MenuIcons.fileText });
         }
-        
+
         return {
             menuItems: [
                 createMenuItem.section('Tools'),
                 createMenuItem.grid(gridItems1),
-                createMenuItem.divider(),
-                
+
                 createMenuItem.section('Actions'),
-                createMenuItem.grid(gridItems2),
-                createMenuItem.divider(),
-                
+                createMenuItem.grid(gridItems2, 3),
+
+                createMenuItem.section('Study'),
+                createMenuItem.action('Import Hand History', handlers.onImportHH, MenuIcons.upload),
+                createMenuItem.action('Leak Stats', handlers.onLeakStats, MenuIcons.flame),
+                createMenuItem.action('Session Analytics', handlers.onAnalytics, MenuIcons.chart),
+                createMenuItem.action('Share Scenario', handlers.onShareScenario, MenuIcons.share),
+                createMenuItem.navigation('Leak Finder', '/hub/personal-assistant/leaks', MenuIcons.flame),
+
                 createMenuItem.section('Saves & Lore'),
-                createMenuItem.action(state.saveStatus === 'saving' ? 'Saving...' : state.saveStatus === 'saved' ? 'Saved' : 'Save Session', handlers.onSave, null, false, false),
-                createMenuItem.action('Sessions', handlers.onSessions),
-                createMenuItem.action('Folders', handlers.onFolders),
-                createMenuItem.action(`Log (${state.sessionLogCount || 0})`, handlers.onLog),
-                createMenuItem.action('Templates', handlers.onTemplates),
-                createMenuItem.action('Save Spot', handlers.onSaveSpot),
-                createMenuItem.action('Report', handlers.onReport),
-                createMenuItem.divider(),
-                
+                createMenuItem.action(
+                    state.saveStatus === 'saving' ? 'Saving...' : state.saveStatus === 'saved' ? 'Saved' : 'Save Session',
+                    handlers.onSave, MenuIcons.save, false, false
+                ),
+                createMenuItem.action('Sessions', handlers.onSessions, MenuIcons.clock),
+                createMenuItem.action('Folders', handlers.onFolders, MenuIcons.folder),
+                createMenuItem.action(`Log (${state.sessionLogCount || 0})`, handlers.onLog, MenuIcons.clipboard),
+                createMenuItem.action('Templates', handlers.onTemplates, MenuIcons.bookmark),
+                // onSaveTemplate opens the naming prompt in sandbox.js — never
+                // call saveAsTemplate() bare, it takes a name argument.
+                createMenuItem.action('Save as Template', handlers.onSaveTemplate, MenuIcons.save),
+                createMenuItem.action('Save Spot', handlers.onSaveSpot, MenuIcons.bookmark),
+                createMenuItem.action('Session Report', handlers.onReport, MenuIcons.fileText),
+
                 createMenuItem.section('Pro Features'),
-                createMenuItem.action('God Mode', handlers.onGodMode),
-                createMenuItem.action('Pro Import', handlers.onProImport),
-                createMenuItem.action('Custom Spot', handlers.onCustomSpot),
-                createMenuItem.action('Drill', handlers.onDrill),
-                createMenuItem.toggle('Heatmap', state.showHeatmap, handlers.onToggleHeatmap),
-                createMenuItem.toggle('Node Locks', state.showNodeLocks, handlers.onToggleNodeLocks),
-                createMenuItem.toggle('Sound', state.soundEnabled, handlers.onToggleSound),
+                createMenuItem.action('God Mode', handlers.onGodMode, MenuIcons.zap),
+                createMenuItem.action('Pro Import', handlers.onProImport, MenuIcons.upload),
+                createMenuItem.action('Custom Spot', handlers.onCustomSpot, MenuIcons.sliders),
+                createMenuItem.action('Quick Drill', handlers.onDrill, MenuIcons.timer),
+                createMenuItem.toggle('Equity Heatmap', state.showHeatmap, handlers.onToggleHeatmap, 'Overlay board equity on the felt', MenuIcons.heatmap),
+                createMenuItem.toggle('Node Locks', state.showNodeLocks, handlers.onToggleNodeLocks, 'Lock villain frequencies to exploit them', MenuIcons.lock),
+                createMenuItem.toggle('Sound', state.soundEnabled, handlers.onToggleSound, 'Card, chip and coach audio', MenuIcons.sound),
             ],
             bottomLinks: [
-                { label: 'Play Tutorial', icon: MenuIcons.help, onClick: handlers.onPlayTutorial, action: true },
-                { label: 'Hub', href: '/hub' }
+                { id: 'tutorial', label: 'Play Tutorial', icon: MenuIcons.help, onClick: handlers.onPlayTutorial, action: true },
+                { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
+                { label: 'PA Hub', href: '/hub/personal-assistant', icon: MenuIcons.brain },
+                { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+                { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
+                { label: 'World Hub', href: '/hub', icon: MenuIcons.home }
             ]
         };
     },
+
+    // ── Personal Assistant hub ────────────────────────────────────────────────
+    'personal-assistant': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Coach Tools'),
+            createMenuItem.grid([
+                { label: 'GTO Sandbox', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
+                { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
+                { label: 'Training', href: '/hub/training', icon: MenuIcons.training },
+                { label: 'Preflop Charts', href: '/hub/preflop-charts', icon: MenuIcons.grid },
+                { label: 'Session History', href: '/hub/session-history', icon: MenuIcons.clock },
+                { label: 'Bankroll', href: '/hub/bankroll-manager', icon: MenuIcons.wallet },
+            ]),
+
+            createMenuItem.section('Ask Jarvis'),
+            createMenuItem.action('Open Jarvis Chat', handlers?.onOpenJarvis, MenuIcons.chat),
+            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools', MenuIcons.calculator),
+            createMenuItem.navigation('Video Library', '/hub/video-library', MenuIcons.video),
+
+            createMenuItem.section('Progress'),
+            createMenuItem.navigation('My Progress', '/hub/training/progress', MenuIcons.chart),
+            createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard', MenuIcons.trophy),
+            createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+        ]
+    }),
+
+    // ── Leak Finder ───────────────────────────────────────────────────────────
+    // Single-page surface: the "Views" entries switch tab / scroll to a section
+    // rather than navigating, so they are actions driven by handlers the page
+    // supplies. EVERY row below has a real producer in leaks.js — rows whose
+    // handler is missing are omitted entirely rather than rendered dead.
+    'leaks': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Views'),
+            ...(handlers?.onViewOverview
+                ? [createMenuItem.action('Overview', handlers.onViewOverview, MenuIcons.gauge)]
+                : []),
+            ...(handlers?.onViewLeaks
+                ? [createMenuItem.action(
+                    state?.leakCount ? `Detected Leaks (${state.leakCount})` : 'Detected Leaks',
+                    handlers.onViewLeaks, MenuIcons.flame,
+                )]
+                : []),
+            ...(handlers?.onViewAnalytics
+                ? [createMenuItem.action('Insights & Analytics', handlers.onViewAnalytics, MenuIcons.chart)]
+                : []),
+
+            createMenuItem.section('Actions'),
+            ...(handlers?.onRescan
+                ? [createMenuItem.action(
+                    state?.isDetecting ? 'Detection Running…' : 'Re-run Detection',
+                    handlers.onRescan, MenuIcons.refresh,
+                )]
+                : []),
+            ...(handlers?.onPracticeWorst
+                ? [createMenuItem.action('Practice Worst Leak', handlers.onPracticeWorst, MenuIcons.target)]
+                : []),
+
+            ...(handlers?.onToggleResolved
+                ? [
+                    createMenuItem.section('Filters'),
+                    createMenuItem.toggle('Show Resolved', !!state?.showResolved, handlers.onToggleResolved,
+                        'Include leaks you have already fixed', MenuIcons.checklist),
+                ]
+                : []),
+
+            createMenuItem.section('Navigation'),
+            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('PA Hub', '/hub/personal-assistant', MenuIcons.brain),
+            createMenuItem.navigation('Session History', '/hub/session-history', MenuIcons.clock),
+            createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)
+        ],
+        bottomLinks: [
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
 
     'preflop-charts': (user, state, handlers) => ({
         menuItems: [
@@ -739,12 +899,12 @@ export const MENU_CONFIGS = {
     'avatars': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Avatar Options'),
-            createMenuItem.navigation('My Avatars', '/hub/avatars'),
-            createMenuItem.navigation('Create New', '/hub/avatars'),
+            // 'Create New' pointed at the identical href — one row, not two.
+            createMenuItem.navigation('My Avatars', '/hub/avatars', MenuIcons.users),
             createMenuItem.divider(),
             createMenuItem.section('Quick Navigation'),
-            createMenuItem.navigation('Profile', '/hub/profile'),
-            createMenuItem.navigation('Settings', '/hub/settings')
+            createMenuItem.navigation('Profile', '/hub/profile', MenuIcons.users),
+            createMenuItem.navigation('Settings', '/hub/settings', MenuIcons.settings)
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
@@ -754,22 +914,23 @@ export const MENU_CONFIGS = {
     'profile': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Profile'),
-            createMenuItem.navigation('View Profile', '/hub/profile'),
-            createMenuItem.navigation('Edit Profile', '/hub/profile-edit'),
-            createMenuItem.navigation('My Avatars', '/hub/avatars'),
+            createMenuItem.navigation('View Profile', '/hub/profile', MenuIcons.users),
+            createMenuItem.navigation('Edit Profile', '/hub/profile-edit', MenuIcons.sliders),
+            createMenuItem.navigation('My Avatars', '/hub/avatars', MenuIcons.palette),
             createMenuItem.divider(),
             createMenuItem.section('Activity'),
             createMenuItem.navigation('My Posts', '/hub/social-media'),
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('Personal Assistant', '/hub/personal-assistant', MenuIcons.brain),
             createMenuItem.divider(),
             createMenuItem.section('Work'),
-            createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/toke-tracker'),
-            createMenuItem.navigation('Link to a Venue', '/hub/my-venues'),
+            createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/toke-tracker', MenuIcons.schedule),
+            createMenuItem.navigation('Link to a Venue', '/hub/my-venues', MenuIcons.mapPin),
             createMenuItem.divider(),
-            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
-            createMenuItem.navigation('Install App', '/hub/install')
+            { type: 'action', id: 'invite-friends', label: 'Invite Friends', openInviteModal: true, closeOnClick: false, icon: MenuIcons.userPlus },
+            createMenuItem.navigation('Install App', '/hub/install', MenuIcons.install)
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -782,27 +943,34 @@ export const MENU_CONFIGS = {
     'social': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Social Hub'),
-            createMenuItem.navigation('Feed', '/hub/social-media'),
-            createMenuItem.navigation('Friends', '/hub/friends'),
-            createMenuItem.navigation('Messenger', '/hub/messenger'),
-            createMenuItem.navigation('Reels', '/hub/reels'),
+            createMenuItem.navigation('Feed', '/hub/social-media', MenuIcons.message),
+            createMenuItem.navigation('Friends', '/hub/friends', MenuIcons.users),
+            createMenuItem.navigation('Messenger', '/hub/messenger', MenuIcons.chat),
+            createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.divider(),
             createMenuItem.section('Content'),
-            createMenuItem.navigation('News', '/hub/news'),
-            createMenuItem.navigation('Lives', '/hub/lives'),
-            createMenuItem.navigation('Video Library', '/hub/video-library'),
-            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools'),
+            createMenuItem.navigation('News', '/hub/news', MenuIcons.news),
+            createMenuItem.navigation('Lives', '/hub/lives', MenuIcons.video),
+            createMenuItem.navigation('Video Library', '/hub/video-library', MenuIcons.video),
+            createMenuItem.navigation('Odds Calculator', '/hub/poker-tools', MenuIcons.calculator),
             createMenuItem.divider(),
             createMenuItem.section('Club Pages'),
-            createMenuItem.navigation(state.clubPageCreated ? 'My Club Page' : 'Add Club Page', state.clubPageCreated ? '/hub/social-media?view=club-pages' : '/hub/social-media?createPage=true'),
-            createMenuItem.navigation('Browse Club Pages', '/hub/social-media?view=club-pages'),
+            // When a club page exists, 'My Club Page' already resolves to the
+            // club-pages view — a second identical row was pure duplication.
+            createMenuItem.navigation(
+                state.clubPageCreated ? 'My Club Page' : 'Add Club Page',
+                state.clubPageCreated ? '/hub/social-media?view=club-pages' : '/hub/social-media?createPage=true',
+                MenuIcons.grid
+            ),
+            ...(state.clubPageCreated
+                ? []
+                : [createMenuItem.navigation('Browse Club Pages', '/hub/social-media?view=club-pages', MenuIcons.grid)]),
             createMenuItem.divider(),
-            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
-            createMenuItem.navigation('Install App', '/hub/install')
+            { type: 'action', id: 'invite-friends', label: 'Invite Friends', openInviteModal: true, closeOnClick: false, icon: MenuIcons.userPlus },
+            createMenuItem.navigation('Install App', '/hub/install', MenuIcons.install)
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
-            getSignOutBottomLink()
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
         ]
     }),
 
@@ -888,7 +1056,9 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Promotions'),
             createMenuItem.navigation('All Promotions', '/hub/promotions'),
-            createMenuItem.navigation('VIP Offers', '/hub/diamond-store?tab=vip'),
+            // Normalized to the canonical param used by the diamond-store and
+            // diamond-arena configs (?category=vip); ?tab=vip landed unfiltered.
+            createMenuItem.navigation('VIP Offers', '/hub/diamond-store?category=vip'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
             createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
@@ -902,12 +1072,12 @@ export const MENU_CONFIGS = {
     'toke-tracker': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Toke Tracker'),
-            createMenuItem.navigation('Dashboard', '/hub/toke-tracker'),
-            createMenuItem.navigation('⏱ Shift Tracker', '/hub/toke-tracker/shift'),
-            createMenuItem.navigation('Analytics', '/hub/toke-tracker/analytics'),
-            createMenuItem.navigation('Dealer Vault', '/hub/toke-tracker/vault'),
-            createMenuItem.navigation('Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax'),
-            createMenuItem.navigation('Venue Intel', '/hub/toke-tracker/venues'),
+            createMenuItem.navigation('Dashboard', '/hub/toke-tracker', MenuIcons.home),
+            createMenuItem.navigation('Shift Tracker', '/hub/toke-tracker/shift', MenuIcons.timer),
+            createMenuItem.navigation('Analytics', '/hub/toke-tracker/analytics', MenuIcons.chart),
+            createMenuItem.navigation('Dealer Vault', '/hub/toke-tracker/vault', MenuIcons.lock),
+            createMenuItem.navigation('Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax', MenuIcons.fileText),
+            createMenuItem.navigation('Venue Intel', '/hub/toke-tracker/venues', MenuIcons.mapPin),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             createMenuItem.toggle(
@@ -930,9 +1100,9 @@ export const MENU_CONFIGS = {
             ),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Bankroll Manager', '/hub/bankroll-manager'),
-            createMenuItem.navigation('◆ Poker Near Me', '/hub/poker-near-me/lobby'),
-            createMenuItem.navigation('World Hub', '/hub')
+            createMenuItem.navigation('Bankroll Manager', '/hub/bankroll-manager', MenuIcons.wallet),
+            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby', MenuIcons.mapPin),
+            createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)
         ],
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help },
@@ -945,13 +1115,14 @@ export const MENU_CONFIGS = {
     'help': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Help Center'),
-            createMenuItem.navigation('FAQ', '/hub/help'),
-            createMenuItem.navigation('Contact Support', '/hub/help#contact'),
-            createMenuItem.navigation('Report Issue', '/hub/help#report'),
+            createMenuItem.navigation('FAQ', '/hub/help', MenuIcons.help),
+            createMenuItem.navigation('Contact Support', '/hub/help#contact', MenuIcons.chat),
+            // 'Report Issue' removed: ReportBugWidget is rendered inline in
+            // every drawer, so the row was a duplicate path to the same flow.
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Settings', '/hub/settings'),
-            createMenuItem.navigation('Home', '/hub')
+            createMenuItem.navigation('Settings', '/hub/settings', MenuIcons.settings),
+            createMenuItem.navigation('Home', '/hub', MenuIcons.home)
         ],
         bottomLinks: []
     }),
@@ -977,16 +1148,18 @@ export const MENU_CONFIGS = {
     // human to confirm before removal.
     'club-arena': (user, state, handlers) => ({
         menuItems: [
+            // Club Arena is a getServerSideProps SPA: EVERY href below needs a
+            // full document load, not a client-side Next.js transition.
             createMenuItem.section('Club Navigation'),
-            createMenuItem.navigation('My Clubs', '/hub/club-arena'),
-            createMenuItem.navigation('Find Clubs', '/hub/club-arena#find'),
-            createMenuItem.navigation('Create Club', '/hub/club-arena#create'),
+            createMenuItem.navigation('My Clubs', '/hub/club-arena', MenuIcons.grid, null, null, { hardNav: true }),
+            createMenuItem.navigation('Find Clubs', '/hub/club-arena#find', MenuIcons.users, null, null, { hardNav: true }),
+            createMenuItem.navigation('Create Club', '/hub/club-arena#create', MenuIcons.userPlus, null, null, { hardNav: true }),
             createMenuItem.divider(),
             createMenuItem.section('Game Modes'),
-            createMenuItem.navigation('Cash Games', '/hub/club-arena?mode=cash'),
-            createMenuItem.navigation('Tournaments', '/hub/club-arena?mode=tournament'),
-            createMenuItem.navigation('Sit & Go', '/hub/club-arena?mode=sng'),
-            createMenuItem.navigation('Spin-It', '/hub/club-arena?mode=spin'),
+            createMenuItem.navigation('Cash Games', '/hub/club-arena?mode=cash', MenuIcons.spade, null, null, { hardNav: true }),
+            createMenuItem.navigation('Tournaments', '/hub/club-arena?mode=tournament', MenuIcons.trophy, null, null, { hardNav: true }),
+            createMenuItem.navigation('Sit & Go', '/hub/club-arena?mode=sng', MenuIcons.timer, null, null, { hardNav: true }),
+            createMenuItem.navigation('Spin-It', '/hub/club-arena?mode=spin', MenuIcons.refresh, null, null, { hardNav: true }),
             createMenuItem.divider(),
             createMenuItem.section('Club Features'),
             createMenuItem.navigation('Messages', '/hub/club-arena/messages'),
@@ -1008,17 +1181,19 @@ export const MENU_CONFIGS = {
             //   items under it.
             ...(state.isClubOwner && state.clubInUnion === false && state.unionApplicationStatus !== 'approved' ? [
                 createMenuItem.section('Midway Union'),
-                state.unionApplicationStatus === 'pending'
-                    ? createMenuItem.action(
-                        '⏳ Union Application Pending',
+                ...(state.unionApplicationStatus === 'pending' ? [
+                    createMenuItem.action(
+                        'Union Application Pending',
                         handlers.onViewApplicationStatus,
-                        null, false, true
-                    )
-                    : createMenuItem.action(
+                        MenuIcons.clock, false, true
+                    ),
+                ] : state.unionApplicationStatus === 'approved' ? [] : [
+                    createMenuItem.action(
                         'Apply to Midway Union',
                         handlers.onApplyToUnion,
-                        null, true, true
+                        MenuIcons.award, true, true
                     ),
+                ]),
                 createMenuItem.divider(),
             ] : []),
             createMenuItem.section('Settings'),
@@ -1054,8 +1229,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Home', href: '/hub', icon: MenuIcons.home },
-            getSignOutBottomLink()
+            { label: 'Home', href: '/hub', icon: MenuIcons.home }
         ]
     }),
 
@@ -1079,36 +1253,47 @@ export const MENU_CONFIGS = {
     })
 };
 
-// Helper to get menu config for a specific world
-export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
-    const config = MENU_CONFIGS[worldKey];
-    if (!config) {
-        console.warn(`No menu config found for world: ${worldKey}`);
-        return { menuItems: [], bottomLinks: [] };
-    }
-    const result = config(user, state, handlers);
+// Identity-based de-duplication. Never match on user-facing copy — it breaks
+// the moment a label is reworded or localized.
+const hasItemWithId = (list, id) => (list || []).some((i) => i?.id === id);
 
-    // Inject "Refer a Friend" into bottomLinks for logged-in users
-    // Skip if the config already has a referral item in menuItems or bottomLinks
-    if (user && result.bottomLinks) {
+/**
+ * Helper to get menu config for a specific world.
+ * An unknown worldKey falls back to the universal hub menu rather than
+ * returning an empty drawer (the "never a blank screen" rule).
+ */
+export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
+    const config = MENU_CONFIGS[worldKey] || MENU_CONFIGS['hub-home'];
+    if (!MENU_CONFIGS[worldKey] && process.env.NODE_ENV !== 'production') {
+        console.warn(`No menu config found for world: ${worldKey} — falling back to hub-home`);
+    }
+    const result = config(user, state, handlers) || {};
+    const menuItems = result.menuItems || [];
+    let bottomLinks = result.bottomLinks || [];
+
+    // Inject "Invite Friends" into bottomLinks for logged-in users, unless the
+    // config already surfaces it somewhere.
+    if (user) {
         const alreadyHasReferral =
-            (result.menuItems || []).some(i => i?.label?.includes?.('Refer a Friend') || i?.label?.includes?.('Invite Friends') || i?.openInviteModal) ||
-            result.bottomLinks.some(l => l?.label?.includes?.('Refer a Friend') || l?.label?.includes?.('Invite Friends') || l?.openInviteModal);
+            hasItemWithId(menuItems, 'invite-friends') ||
+            hasItemWithId(bottomLinks, 'invite-friends') ||
+            menuItems.some((i) => i?.openInviteModal) ||
+            bottomLinks.some((l) => l?.openInviteModal);
         if (!alreadyHasReferral) {
             const referralItem = {
+                id: 'invite-friends',
                 label: 'Invite Friends',
                 action: true,
                 openInviteModal: true,
+                icon: MenuIcons.userPlus,
             };
-            // Add before the last item (usually Settings)
-            const settingsIdx = result.bottomLinks.findIndex(l => l.label === 'Settings');
-            if (settingsIdx >= 0) {
-                result.bottomLinks.splice(settingsIdx, 0, referralItem);
-            } else {
-                result.bottomLinks.push(referralItem);
-            }
+            // Place it above Settings when present; otherwise append.
+            const settingsIdx = bottomLinks.findIndex((l) => l?.label === 'Settings');
+            bottomLinks = settingsIdx >= 0
+                ? [...bottomLinks.slice(0, settingsIdx), referralItem, ...bottomLinks.slice(settingsIdx)]
+                : [...bottomLinks, referralItem];
         }
     }
 
-    return result;
+    return { ...result, menuItems, bottomLinks };
 }

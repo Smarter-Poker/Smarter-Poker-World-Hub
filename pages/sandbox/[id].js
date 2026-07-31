@@ -1,14 +1,29 @@
 /**
  * Route: /sandbox/[id]
  * W6-2: Dynamic route to consume a shared sandbox scenario.
- * Resolves the state_json from Supabase and redirects to /hub/personal-assistant/sandbox with injected state.
+ *
+ * Resolves state_json from Supabase and hands it to the Sandbox page.
+ * Three transports, tried in order, so a scenario is never silently degraded:
+ *   1. sessionStorage  — biggest payloads, same-origin, instant
+ *   2. ?s=<lz-string>  — FULL fidelity (villains + action history + stacks)
+ *                        in the URL; survives Safari private mode
+ *   3. legacy ?h/?p/?b — last-resort partial restore (hand + board only)
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '../../src/lib/supabaseServerClient';
 import Head from 'next/head';
+import LZString from 'lz-string';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { T, F, S, R, FONT, btn } from '../../src/components/sandbox/paTokens';
 
 // Share ids are short alphanumeric slugs (create-share generates 6 chars)
 const SHARE_ID_RE = /^[A-Za-z0-9]{4,16}$/;
+
+const SANDBOX_PATH = '/hub/personal-assistant/sandbox';
+// Above this, a compressed payload starts bumping into real-world URL limits
+const MAX_URL_PAYLOAD = 3000;
+// Above this, sessionStorage.setItem is very likely to throw QuotaExceededError
+const MAX_STORAGE_PAYLOAD = 100000;
 
 let _supabase = null;
 function getSupabase() {
@@ -20,72 +35,160 @@ function getSupabase() {
     return _supabase;
 }
 
-// Build the query-string fallback the sandbox page already hydrates from
-// (?h=hand &p=position &s=stack &g=gameType &pot=pot &b=board) — used when
-// sessionStorage is unavailable (Safari private mode, storage disabled).
-function buildQueryFallback(state) {
+/**
+ * Build the URL the sandbox page hydrates from.
+ *
+ * `s` carries the WHOLE snapshot (villains, action history, stacks, pot)
+ * compressed with lz-string — the plain query params below can only express
+ * hand/position/stack/board and silently dropped everything else.
+ */
+export function buildQueryFallback(state) {
     const params = new URLSearchParams();
+
+    // Full-fidelity payload first
+    try {
+        const packed = LZString.compressToEncodedURIComponent(JSON.stringify(state || {}));
+        if (packed && packed.length <= MAX_URL_PAYLOAD) params.set('s', packed);
+    } catch (e) {
+        console.warn('[shared-sandbox] compress failed:', e?.message || e);
+    }
+
+    // Legacy params kept as a readable secondary path (and a safety net if the
+    // decompress ever fails on the receiving end).
     const hand = `${state?.heroHand?.card1 || ''}${state?.heroHand?.card2 || ''}`;
     if (hand) params.set('h', hand);
     if (state?.heroPosition) params.set('p', state.heroPosition);
-    if (state?.heroStack != null) params.set('s', String(state.heroStack));
+    if (state?.heroStack != null) params.set('s_bb', String(state.heroStack));
     if (state?.gameType) params.set('g', state.gameType);
     if (state?.potSize != null) params.set('pot', String(state.potSize));
     const board = Array.isArray(state?.board)
         ? state.board
         : [...(state?.board?.flop || []), state?.board?.turn, state?.board?.river].filter(Boolean);
     if (board.length) params.set('b', board.join(','));
-    return `/hub/personal-assistant/sandbox?${params.toString()}`;
+
+    // Tell the sandbox whether anything was lost so it can toast honestly
+    const hasRich = params.has('s');
+    if (!hasRich && ((state?.villains?.length > 1) || state?.actionHistory?.length)) {
+        params.set('partial', '1');
+    }
+    return `${SANDBOX_PATH}?${params.toString()}`;
 }
 
 export default function SharedSandboxRedirect({ error, stateJson }) {
-    // `null` = still deciding, true/false once the redirect has been attempted
     const [failed, setFailed] = useState(!!error);
+    const [slow, setSlow] = useState(false);
+    const slowTimerRef = useRef(null);
+
+    const fallbackHref = useMemo(
+        () => (stateJson ? buildQueryFallback(stateJson) : SANDBOX_PATH),
+        [stateJson],
+    );
 
     useEffect(() => {
-        if (error) { setFailed(true); return; }
-        if (!stateJson) { setFailed(true); return; }
+        if (error || !stateJson) { setFailed(true); return undefined; }
+
+        // Nothing here is allowed to leave the user on a permanent spinner.
+        slowTimerRef.current = setTimeout(() => { slowTimerRef.current = null; setSlow(true); }, 4000);
+
         try {
-            sessionStorage.setItem('shared-sandbox-state', JSON.stringify(stateJson));
-            window.location.replace('/hub/personal-assistant/sandbox?loadShared=true');
+            const payload = JSON.stringify(stateJson);
+            if (payload.length < MAX_STORAGE_PAYLOAD) {
+                sessionStorage.setItem('shared-sandbox-state', payload);
+                window.location.replace(`${SANDBOX_PATH}?loadShared=true`);
+            } else {
+                // Too big for sessionStorage — go straight to the URL transport
+                window.location.replace(fallbackHref);
+            }
         } catch (e) {
-            // Storage blocked — fall back to the query-string share format
-            console.warn('[shared-sandbox] sessionStorage unavailable, using query fallback:', e?.message || e);
+            console.warn('[shared-sandbox] sessionStorage unavailable, using URL fallback:', e?.message || e);
             try {
-                window.location.replace(buildQueryFallback(stateJson));
+                window.location.replace(fallbackHref);
             } catch (redirectErr) {
                 console.warn('[shared-sandbox] redirect failed:', redirectErr?.message || redirectErr);
                 setFailed(true);
             }
         }
-    }, [error, stateJson]);
+
+        return () => {
+            if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
+        };
+    }, [error, stateJson, fallbackHref]);
+
+    const page = {
+        minHeight: '100dvh', background: T.bg, color: T.text,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: `${S.xl}px max(16px, env(safe-area-inset-left, 0px))`,
+        paddingTop: 'calc(24px + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        fontFamily: FONT, textAlign: 'center',
+    };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0B0D11', color: '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={page} className="shared-sandbox-page">
             <Head>
                 <title>Shared Poker Scenario | Smarter.Poker</title>
+                {/* Ephemeral share pages must never enter the index */}
+                <meta name="robots" content="noindex, nofollow" />
                 <meta property="og:title" content="Smarter.Poker Sandbox Scenario" />
                 <meta property="og:description" content="View this custom poker hand analysis scenario." />
                 <meta property="og:image" content="https://smarter.poker/images/social/sandbox-share.jpg" />
             </Head>
+
             {failed ? (
-                <div style={{ textAlign: 'center' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="2" style={{ marginBottom: 16 }}>
-                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <h1 style={{ fontSize: 20, marginBottom: 8 }}>Scenario Not Found</h1>
-                    <p style={{ color: '#B0B3B8' }}>This link may be invalid or expired.</p>
-                    <a href="/hub/personal-assistant/sandbox" style={{ display: 'inline-block', marginTop: 16, color: '#4599FF', fontSize: 13 }}>Open the Sandbox</a>
+                <div style={{ maxWidth: 320 }} role="alert">
+                    <div style={{
+                        width: 56, height: 56, borderRadius: '50%', background: T.dangerSoft,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: `0 auto ${S.lg}px`, color: T.warn,
+                    }}>
+                        <AlertTriangle size={24} strokeWidth={2} aria-hidden="true" />
+                    </div>
+                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>Scenario not found</h1>
+                    <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
+                        This link may be invalid or expired.
+                    </p>
+                    <a href={SANDBOX_PATH} style={{ ...btn('primary'), textDecoration: 'none' }}>
+                        Open the Sandbox
+                    </a>
                 </div>
             ) : (
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: 40, height: 40, border: '3px solid rgba(69,153,255,0.2)', borderTopColor: '#4599FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                    <p style={{ color: '#B0B3B8' }}>Loading scenario...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <div style={{ maxWidth: 320 }} aria-live="polite">
+                    <div
+                        className="shared-spinner"
+                        style={{
+                            width: 40, height: 40, border: `3px solid ${T.accentSoft}`,
+                            borderTopColor: T.accent, borderRadius: '50%',
+                            margin: `0 auto ${S.lg}px`,
+                        }}
+                        aria-hidden="true"
+                    />
+                    <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: 0 }}>Loading scenario…</p>
+                    {slow && (
+                        <div style={{ marginTop: S.lg }}>
+                            <p style={{ color: T.textMuted, fontSize: F.caption, lineHeight: 1.45, margin: `0 0 ${S.md}px` }}>
+                                Still loading. Your browser may have blocked the automatic redirect.
+                            </p>
+                            <a href={fallbackHref} style={{ ...btn('primary'), textDecoration: 'none' }}>
+                                <ExternalLink size={18} strokeWidth={2} aria-hidden="true" />
+                                Open the Sandbox
+                            </a>
+                        </div>
+                    )}
                 </div>
             )}
+
+            <style>{`
+                .shared-spinner { animation: sharedSpin 1s linear infinite; }
+                @keyframes sharedSpin { to { transform: rotate(360deg); } }
+                @media (prefers-reduced-motion: reduce) {
+                    .shared-spinner { animation: none; opacity: 0.6; }
+                    *, *::before, *::after {
+                        animation-duration: 0.01ms !important;
+                        animation-iteration-count: 1 !important;
+                        transition-duration: 0.01ms !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
@@ -99,8 +202,12 @@ export async function getServerSideProps(context) {
     }
 
     try {
-        // CDN-cache repeated hits so scrapers can't hammer the service-role client
-        context.res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        // NOT CDN-cached: the view counter below runs in this same request, so a
+        // shared `s-maxage` would record ~one view per 5 minutes globally
+        // regardless of how many people opened the link. The id regex above is
+        // what keeps enumeration off the service-role client.
+        context.res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        context.res.setHeader('X-Robots-Tag', 'noindex');
 
         const supabase = getSupabase();
 

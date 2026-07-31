@@ -1,47 +1,67 @@
 /**
- * SandboxPokerTable — Vertical Mobile-First Table Visual (v2.0)
- * 
- * Uses a cropped + rotated poker-table-vertical.png for portrait orientation.
- * Elliptical seat positions recalculated for vertical layout.
- * Community cards, pot, equity, and board texture all rendered ON the table felt.
+ * SandboxPokerTable — Vertical Mobile-First Table Visual (v3.0)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * PA_DESIGN_SPEC v1 "Neon Slate".
+ *
+ * Everything on the felt is now WIDTH-DRIVEN: a ResizeObserver measures the
+ * wrapper and every avatar / card / font size is derived from that width, so
+ * the table degrades gracefully from a 375px phone down to a 200px column
+ * instead of overflowing its own graphic.
+ *
+ * Also fixed here:
+ *  - hero cards no longer paint above page overlays (zIndex 150 -> Z.feltCards,
+ *    plus `isolation:isolate` on the root so nothing can escape the felt)
+ *  - hero card offset is a PERCENTAGE of table height, not a hard-coded -50px
+ *  - long-press cancels on scroll (touchmove) and shows a progress ring
+ *  - swipe uses pointer capture, an 80px threshold, a 2:1 axis ratio and
+ *    ignores anything tagged [data-no-swipe]
+ *  - every tappable is a real <button> with an aria-label and keyboard support
+ *  - an explicit Edit mode replaces the undiscoverable 500ms long-press
  */
 import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { RotateCcw, Pencil, X as XIcon, Check } from 'lucide-react';
+import { T, F, R, Z, usePrefersReducedMotion } from './paTokens';
 
-/**
- * Long-press hook for card removal.
- * Returns a full prop bag INCLUDING onClick — the click handler swallows the
- * synthetic click that browsers dispatch right after a long-press so the deck
- * picker never opens immediately after a card was removed.
- * NOTE: we deliberately do NOT call e.preventDefault() in onTouchStart — React
- * attaches touchstart passively at the root, so it is a no-op that only logs
- * "Unable to preventDefault inside passive event listener". Selection artifacts
- * are suppressed with CSS (userSelect/touchCallout) + onContextMenu instead.
- */
-function useLongPress(callback, { onClick, ms = 500 } = {}) {
+/* ═══════════════════════════════════════════════════════════════════════
+   LONG PRESS — with movement cancellation + pending feedback
+   ═══════════════════════════════════════════════════════════════════════ */
+const MOVE_TOLERANCE = 10;
+
+function useLongPress(callback, { onClick, ms = 500, enabled = true } = {}) {
     const timerRef = useRef(null);
     const firedRef = useRef(false);
+    const originRef = useRef(null);
+    const [pressing, setPressing] = useState(false);
 
     const clear = useCallback(() => {
         if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        originRef.current = null;
+        setPressing(false);
     }, []);
 
-    // Clear any pending long-press on unmount so the callback can never fire
-    // with a stale index after the card has already been removed.
     useEffect(() => clear, [clear]);
 
-    const onStart = useCallback(() => {
+    const start = useCallback((x, y) => {
+        if (!enabled) return;
         firedRef.current = false;
-        clear();
+        originRef.current = { x, y };
+        setPressing(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
             timerRef.current = null;
             firedRef.current = true;
+            setPressing(false);
             try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             callback?.();
         }, ms);
-    }, [callback, ms, clear]);
+    }, [callback, ms, enabled, clear]);
 
-    const onEnd = useCallback(() => { clear(); }, [clear]);
+    const move = useCallback((x, y) => {
+        const o = originRef.current;
+        if (!o) return;
+        if (Math.abs(x - o.x) > MOVE_TOLERANCE || Math.abs(y - o.y) > MOVE_TOLERANCE) clear();
+    }, [clear]);
 
     const handleClick = useCallback((e) => {
         if (firedRef.current) {
@@ -53,18 +73,25 @@ function useLongPress(callback, { onClick, ms = 500 } = {}) {
         onClick?.(e);
     }, [onClick]);
 
-    const onContextMenu = useCallback((e) => { e?.preventDefault?.(); }, []);
-
-    return {
-        onTouchStart: onStart, onTouchEnd: onEnd, onTouchCancel: onEnd,
-        onMouseDown: onStart, onMouseUp: onEnd, onMouseLeave: onEnd,
-        onClick: handleClick, onContextMenu,
+    const props = {
+        onTouchStart: (e) => { const t = e.touches?.[0]; if (t) start(t.clientX, t.clientY); },
+        onTouchMove: (e) => { const t = e.touches?.[0]; if (t) move(t.clientX, t.clientY); },
+        onTouchEnd: clear,
+        onTouchCancel: clear,
+        onMouseDown: (e) => start(e.clientX, e.clientY),
+        onMouseMove: (e) => move(e.clientX, e.clientY),
+        onMouseUp: clear,
+        onMouseLeave: clear,
+        onClick: handleClick,
+        onContextMenu: (e) => e?.preventDefault?.(),
     };
+
+    return { props, pressing };
 }
 
 const NO_SELECT = {
     userSelect: 'none', WebkitUserSelect: 'none',
-    WebkitTouchCallout: 'none', touchAction: 'manipulation',
+    WebkitTouchCallout: 'none', touchAction: 'pan-y',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -100,9 +127,10 @@ export function TableCard({ card, style = {} }) {
 
     const wrapperStyle = {
         width: 40, height: 56,
-        background: '#fff', borderRadius: 4,
+        background: '#fff', borderRadius: R.sm,
         boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
         overflow: 'hidden', border: '1px solid #ddd',
+        boxSizing: 'border-box',
         ...style,
     };
 
@@ -116,9 +144,9 @@ export function TableCard({ card, style = {} }) {
                 color: isRed ? '#d32029' : '#1a1a1a',
                 fontWeight: 800, lineHeight: 1,
                 fontFamily: "'Inter',-apple-system,sans-serif",
-            }} title={raw}>
-                <span style={{ fontSize: Math.max(10, Math.round(h * 0.32)) }}>{rankChar || '?'}</span>
-                <span style={{ fontSize: Math.max(8, Math.round(h * 0.22)) }}>{SUIT_LETTER[suitChar] || '?'}</span>
+            }} aria-label={raw}>
+                <span style={{ fontSize: Math.max(12, Math.round(h * 0.32)) }}>{rankChar || '?'}</span>
+                <span style={{ fontSize: Math.max(12, Math.round(h * 0.24)) }}>{SUIT_LETTER[suitChar] || '?'}</span>
             </div>
         );
     }
@@ -131,6 +159,7 @@ export function TableCard({ card, style = {} }) {
                 alt={raw}
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 onError={() => setImgFailed(true)}
+                decoding="async"
             />
         </div>
     );
@@ -159,37 +188,95 @@ function computeVerticalSeatPositions(maxSeats) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUBCOMPONENTS TO PREVENT CONDITIONAL HOOK VIOLATION
+// CARD SUBCOMPONENTS (separate components so hooks are never conditional)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function BoardCardItem({ card, i, onRemove, onTap }) {
+function DeleteBadge({ size, onRemove, label }) {
+    return (
+        <button
+            type="button"
+            data-no-swipe="true"
+            aria-label={label}
+            onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+            style={{
+                position: 'absolute', top: -8, right: -8, zIndex: 2,
+                width: Math.max(22, size), height: Math.max(22, size), borderRadius: '50%',
+                background: T.danger, border: '2px solid #18191A', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0, touchAction: 'manipulation',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+            }}
+        >
+            <XIcon size={12} strokeWidth={3} aria-hidden="true" />
+        </button>
+    );
+}
+
+function PressRing({ visible, reduce }) {
+    if (!visible || reduce) return null;
+    return (
+        <span
+            aria-hidden="true"
+            style={{
+                position: 'absolute', inset: -3, borderRadius: R.sm, pointerEvents: 'none',
+                border: `2px solid ${T.accent}`, boxShadow: `0 0 12px ${T.accent}`,
+                animation: 'paCardHold 0.5s linear forwards',
+            }}
+        />
+    );
+}
+
+function BoardCardItem({ card, i, onRemove, onTap, w, h, editMode, reduce }) {
     const handleRemove = useCallback(() => { onRemove?.(i); }, [onRemove, i]);
-    const lp = useLongPress(handleRemove, { onClick: onTap });
+    const { props: lp, pressing } = useLongPress(handleRemove, { onClick: onTap, enabled: !editMode });
     return (
         <motion.div
             {...lp}
-            initial={{ y: -15, opacity: 0, scale: 0.5 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 180, damping: 12, delay: i * 0.1 }}
-            style={{ cursor: onTap ? 'pointer' : 'default', ...NO_SELECT }}
+            data-no-swipe="true"
+            role="button"
+            tabIndex={0}
+            aria-label={`Board card ${card}. Tap to change, long press or use Delete to remove.`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap?.(); }
+                if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); handleRemove(); }
+            }}
+            initial={reduce ? { opacity: 0 } : { y: -15, opacity: 0, scale: 0.5 }}
+            animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1, scale: 1 }}
+            transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 180, damping: 12, delay: i * 0.06 }}
+            style={{ position: 'relative', cursor: 'pointer', ...NO_SELECT }}
         >
-            <TableCard card={card} style={{ width: 32, height: 45 }} />
+            <TableCard card={card} style={{ width: w, height: h }} />
+            <PressRing visible={pressing} reduce={reduce} />
+            {editMode && <DeleteBadge size={22} onRemove={handleRemove} label={`Remove board card ${card}`} />}
         </motion.div>
     );
 }
 
-function HeroCardItem({ card, i, onRemove, onTap }) {
+function HeroCardItem({ card, i, onRemove, onTap, w, h, editMode, reduce }) {
     const handleRemove = useCallback(() => { onRemove?.(i); }, [onRemove, i]);
-    const lp = useLongPress(handleRemove, { onClick: onTap });
+    const { props: lp, pressing } = useLongPress(handleRemove, { onClick: onTap, enabled: !editMode });
     return (
         <motion.div
             {...lp}
-            initial={{ y: 20, opacity: 0, rotateY: 90 }}
-            animate={{ y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.15 + i * 0.12 }}
-            style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800, ...NO_SELECT }}
+            data-no-swipe="true"
+            role="button"
+            tabIndex={0}
+            aria-label={`Your card ${card}. Tap to change, long press or use Delete to remove.`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap?.(); }
+                if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); handleRemove(); }
+            }}
+            initial={reduce ? { opacity: 0 } : { y: 20, opacity: 0, rotateY: 90 }}
+            animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
+            transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 200, damping: 15, delay: 0.12 + i * 0.1 }}
+            style={{
+                position: 'relative', marginLeft: i > 0 ? -Math.round(w * 0.16) : 0,
+                cursor: 'pointer', perspective: 800, ...NO_SELECT,
+            }}
         >
-            <TableCard card={card} style={{ width: 34, height: 48 }} />
+            <TableCard card={card} style={{ width: w, height: h }} />
+            <PressRing visible={pressing} reduce={reduce} />
+            {editMode && <DeleteBadge size={22} onRemove={handleRemove} label={`Remove your card ${card}`} />}
         </motion.div>
     );
 }
@@ -198,7 +285,7 @@ function HeroCardItem({ card, i, onRemove, onTap }) {
 // STATIC TABLE ASSETS (module scope — never rebuilt per render)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Deterministic avatar assignment for sandbox seats
+// Deterministic avatar assignment for sandbox seats (max table = hero + 5)
 const SANDBOX_AVATARS = [
     '/avatars/table/free_fox.png',       // Hero
     '/avatars/table/free_shark.png',
@@ -206,11 +293,10 @@ const SANDBOX_AVATARS = [
     '/avatars/table/free_viking.png',
     '/avatars/table/free_lion.png',
     '/avatars/table/free_owl.png',
-    '/avatars/table/free_samurai.png',
-    '/avatars/table/free_pirate.png',
-    '/avatars/table/free_cowboy.png',
-    '/avatars/table/free_knight.png',
 ];
+
+const BASE_WIDTH = 300;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN TABLE — Vertical portrait orientation
@@ -226,6 +312,12 @@ export default function SandboxPokerTable({
     street = 'flop',
     boardTexture,
     equity,
+    equityLabel = null,
+    spr = null,
+    /** Board texture now renders as a chip ABOVE the table (it never fit on the felt). */
+    showTextureBadge = false,
+    /** Renders a one-time "swipe to deal" hint chip on the felt. */
+    showDealHint = false,
     onTapHeroCards,
     onTapBoard,
     onReset,
@@ -235,14 +327,47 @@ export default function SandboxPokerTable({
     onSwipeLeft,
     onSwipeRight,
 }) {
-    const totalSeats = 1 + villains.length;
+    const reduce = usePrefersReducedMotion();
+    const rootRef = useRef(null);
+    const [tw, setTw] = useState(BASE_WIDTH);
+    const [editMode, setEditMode] = useState(false);
+
+    // ── Width-driven scale ────────────────────────────────────────────────
+    useEffect(() => {
+        const node = rootRef.current;
+        if (!node || typeof window === 'undefined') return undefined;
+        const apply = (w) => { if (w > 0) setTw(Math.round(w)); };
+        apply(node.getBoundingClientRect().width);
+        if (typeof ResizeObserver === 'undefined') {
+            const onResize = () => apply(node.getBoundingClientRect().width);
+            window.addEventListener('resize', onResize);
+            return () => window.removeEventListener('resize', onResize);
+        }
+        const ro = new ResizeObserver((entries) => {
+            const w = entries?.[0]?.contentRect?.width;
+            if (w) apply(w);
+        });
+        ro.observe(node);
+        return () => ro.disconnect();
+    }, []);
+
+    const u = tw / BASE_WIDTH;
+    const compact = tw < 230;             // seat badge collapses to avatar only
+    const avatarSize = Math.round(clamp(44 * u, 28, 52));
+    const boardW = Math.round(clamp(34 * u, 24, 46));
+    const boardH = Math.round(boardW * 1.4);
+    const heroW = Math.round(clamp(38 * u, 28, 52));
+    const heroH = Math.round(heroW * 1.4);
+    const fs = (base, floor = 12) => Math.max(floor, Math.round(base * u));
+
+    const totalSeats = 1 + (villains?.length || 0);
     const maxSeats = Math.max(totalSeats, 2);
     const { seatPositions } = useMemo(() => computeVerticalSeatPositions(maxSeats), [maxSeats]);
 
     // Build seat array: hero at index 0, then villains
     const seatArr = useMemo(() => [
         { name: heroPosition, stack: Number(heroStack) || 0, isHero: true },
-        ...villains.map((v, i) => ({
+        ...(villains || []).map((v, i) => ({
             name: v.position || `V${i + 1}`,
             stack: Number(v.stack) || 100,
             archetype: v.archetype?.name || 'Opponent',
@@ -250,166 +375,254 @@ export default function SandboxPokerTable({
         })),
     ], [heroPosition, heroStack, villains]);
 
-    const avatarSize = 44;
-
     const streetLabel = String(street || 'flop');
     const potValue = Number(pot) || 0;
     const equityValue = Number(equity);
     const hasEquity = equity != null && Number.isFinite(equityValue);
 
-    // Swipe gesture tracking for street navigation.
-    // Pointer events so mouse drag works on desktop as well as touch.
+    // ── Swipe gesture ─────────────────────────────────────────────────────
+    // Pointer capture so a drag that leaves the felt still resolves; 80px
+    // threshold + a 2:1 axis ratio so ordinary vertical scrolling never deals.
     const pointerStartRef = useRef(null);
     const handlePointerDown = useCallback((e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) { pointerStartRef.current = null; return; }
-        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+        if (e.target?.closest?.('[data-no-swipe]')) { pointerStartRef.current = null; return; }
+        pointerStartRef.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* capture unsupported */ }
+    }, []);
+    const releaseCapture = useCallback((e) => {
+        try {
+            if (e?.pointerId != null && e.currentTarget?.hasPointerCapture?.(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+        } catch (err) { /* noop */ }
     }, []);
     const handlePointerUp = useCallback((e) => {
         const start = pointerStartRef.current;
         pointerStartRef.current = null;
+        releaseCapture(e);
         if (!start) return;
         const dx = e.clientX - start.x;
         const dy = e.clientY - start.y;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
             try { navigator.vibrate?.(10); } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
             if (dx < 0) onSwipeLeft?.();
             else onSwipeRight?.();
         }
-    }, [onSwipeLeft, onSwipeRight]);
-    const handlePointerCancel = useCallback(() => { pointerStartRef.current = null; }, []);
+    }, [onSwipeLeft, onSwipeRight, releaseCapture]);
+    const handlePointerCancel = useCallback((e) => { pointerStartRef.current = null; releaseCapture(e); }, [releaseCapture]);
+    const handleLostCapture = useCallback(() => { pointerStartRef.current = null; }, []);
+
+    const cornerBtn = (extra) => ({
+        position: 'absolute', zIndex: Z.feltCards,
+        width: 44, height: 44, borderRadius: '50%', padding: 0,
+        background: 'rgba(36,37,38,0.9)', border: `1px solid ${T.border}`,
+        color: T.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)',
+        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+        ...extra,
+    });
+
+    const hasAnyCard = heroCards.length > 0 || communityCards.length > 0;
 
     return (
         <div
+            ref={rootRef}
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
+            onLostPointerCapture={handleLostCapture}
             style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 280,
+                maxWidth: 'min(100%, 380px)',
                 margin: '0 auto',
                 aspectRatio: '341 / 609',
                 overflow: 'visible',
+                // Nothing inside the felt may ever paint over a page overlay.
+                zIndex: 0,
+                isolation: 'isolate',
+                touchAction: 'pan-y',
+                background: 'radial-gradient(ellipse at 50% 45%, #1f2a24 0%, #18191A 70%)',
+                borderRadius: R.lg,
             }}>
-            {/* Poker table — official Smarter.Poker brand table (same as Commander tablets) */}
+            <style>{`
+                @keyframes paCardHold { from { transform: scale(1); opacity: .35 } to { transform: scale(1.06); opacity: 1 } }
+                @media (prefers-reduced-motion: reduce) {
+                    @keyframes paCardHold { from { opacity: 1 } to { opacity: 1 } }
+                }
+            `}</style>
+
+            {/* Poker table — official Smarter.Poker brand table.
+                This is the LCP element on a cold mobile load, so it is eager. */}
             <img
                 src="/images/poker-table-black-gold-nobg.png"
-                alt="Poker Table"
+                alt=""
+                aria-hidden="true"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                     objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
                 }}
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
             />
 
-            {/* Quick Reset Button — top-right corner */}
+            {/* Reset — 44x44, lucide glyph, excluded from the swipe surface */}
             {onReset && (
-                <motion.button
+                <button
+                    type="button"
+                    data-no-swipe="true"
                     onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReset(); }}
-                    whileTap={{ scale: 0.85, rotate: -90 }}
-                    style={{
-                        position: 'absolute', top: 6, right: 6, zIndex: 20,
-                        width: 28, height: 28, borderRadius: '50%',
-                        background: 'rgba(36,37,38,0.85)', border: '1px solid #3A3B3C',
-                        color: '#B0B3B8', fontSize: 14, fontWeight: 700,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', backdropFilter: 'blur(4px)',
-                        touchAction: 'manipulation',
-                    }}
+                    style={cornerBtn({ top: 2, right: 2 })}
                     aria-label="Reset hand"
-                >↻</motion.button>
+                >
+                    <RotateCcw size={18} strokeWidth={2} aria-hidden="true" />
+                </button>
             )}
 
-            {/* Center info on the table felt — positioned BELOW the community card row (38%) */}
-            <div style={{
-                position: 'absolute', top: '62%', left: '50%',
-                transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-            }}>
-                {/* Pot Display */}
+            {/* Edit mode — replaces the undiscoverable long-press with an
+                explicit toggle that puts a delete badge on every card. */}
+            {hasAnyCard && (onRemoveHeroCard || onRemoveBoardCard) && (
+                <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => { setEditMode(v => !v); try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
+                    aria-pressed={editMode}
+                    aria-label={editMode ? 'Done editing cards' : 'Edit cards'}
+                    style={cornerBtn({
+                        top: 2, left: 2,
+                        color: editMode ? T.accent : T.textMuted,
+                        borderColor: editMode ? T.accent : T.border,
+                    })}
+                >
+                    {editMode
+                        ? <Check size={18} strokeWidth={2.5} aria-hidden="true" />
+                        : <Pencil size={18} strokeWidth={2} aria-hidden="true" />}
+                </button>
+            )}
+
+            {/* Board texture badge — opt-in only; the page renders it as a chip
+                above the table where it has room to be legible. */}
+            {showTextureBadge && boardTexture && (
                 <div style={{
-                    fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.9)',
-                    letterSpacing: 0.5, marginBottom: 2,
+                    position: 'absolute', top: '13%', left: '50%', transform: 'translateX(-50%)',
+                    padding: '3px 8px', borderRadius: R.sm, fontSize: 12, fontWeight: 700, zIndex: Z.felt,
+                    background: boardTexture.color || 'rgba(69,153,255,0.2)',
+                    color: boardTexture.textColor || T.accent,
+                    border: `1px solid ${boardTexture.textColor || T.accentPress}44`,
+                    whiteSpace: 'nowrap', maxWidth: '86%', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                    {boardTexture.label}
+                </div>
+            )}
+
+            {/* Community Cards — 34% leaves vertical breathing room under the
+                villain seat and above the pot readout. */}
+            {communityCards.length > 0 ? (
+                <div
+                    style={{
+                        position: 'absolute', top: '34%', left: '50%',
+                        transform: 'translateX(-50%)', display: 'flex',
+                        gap: Math.max(2, Math.round(3 * u)), zIndex: Z.felt,
+                        maxWidth: '94%',
+                    }}
+                >
+                    {communityCards.map((cardVal, i) => (
+                        <BoardCardItem
+                            key={cardVal || i}
+                            card={cardVal}
+                            i={i}
+                            onRemove={onRemoveBoardCard}
+                            onTap={onTapBoard}
+                            w={boardW} h={boardH}
+                            editMode={editMode}
+                            reduce={reduce}
+                        />
+                    ))}
+                </div>
+            ) : onTapBoard ? (
+                <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={onTapBoard}
+                    aria-label="Choose board cards"
+                    style={{
+                        position: 'absolute', top: '34%', left: '50%',
+                        transform: 'translateX(-50%)', display: 'flex',
+                        gap: Math.max(3, Math.round(4 * u)), zIndex: Z.felt,
+                        background: 'none', border: 'none', padding: 6, margin: -6,
+                        cursor: 'pointer', touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                    }}
+                >
+                    {[0, 1, 2].map(i => (
+                        <span key={i} style={{
+                            display: 'block', width: boardW, height: boardH, borderRadius: R.sm,
+                            border: '1.5px dashed rgba(255,255,255,0.28)',
+                            background: 'rgba(255,255,255,0.04)',
+                        }} />
+                    ))}
+                </button>
+            ) : null}
+
+            {/* Center info — moved from 62% to 55% so it clears the hero cards */}
+            <div style={{
+                position: 'absolute', top: '55%', left: '50%',
+                transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                width: '80%',
+            }}>
+                <div style={{
+                    fontSize: fs(16, 14), fontWeight: 800, color: 'rgba(255,255,255,0.92)',
+                    letterSpacing: 0.4, marginBottom: 2, lineHeight: 1.2,
+                    fontVariantNumeric: 'tabular-nums',
                     textShadow: '0 1px 6px rgba(0,0,0,0.7)',
                 }}>
                     Pot {potValue.toFixed(1)} BB
                 </div>
 
-                {/* Street Label */}
                 <div style={{
-                    fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)',
-                    textTransform: 'uppercase', letterSpacing: 1.5,
+                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.55)',
+                    textTransform: 'uppercase', letterSpacing: 1.2, lineHeight: 1.2,
                 }}>
                     {streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}
+                    {spr != null && Number.isFinite(Number(spr)) && (
+                        <span style={{ color: T.accent, marginLeft: 6, fontVariantNumeric: 'tabular-nums' }}>
+                            SPR {spr}
+                        </span>
+                    )}
                 </div>
 
-                {/* Equity on felt */}
                 {hasEquity && (
                     <div style={{
-                        marginTop: 4, fontSize: 11, fontWeight: 700,
-                        color: equityValue >= 50 ? '#4ade80' : '#fbbf24',
+                        marginTop: 4, fontSize: 13, fontWeight: 700, lineHeight: 1.2,
+                        color: equityValue >= 50 ? T.success : T.warn,
+                        fontVariantNumeric: 'tabular-nums',
                         textShadow: '0 1px 4px rgba(0,0,0,0.6)',
                     }}>
                         {equityValue.toFixed(1)}% equity
                     </div>
                 )}
-
-                {/* Branding */}
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.15)', marginTop: 3 }}>
-                    Smarter.Poker
-                </div>
+                {hasEquity && equityLabel && (
+                    <div style={{
+                        fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 1,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                        {equityLabel}
+                    </div>
+                )}
             </div>
 
-            {/* Community Cards — centered above pot, long-press to remove */}
-            {communityCards.length > 0 && (
-                <div
-                    style={{
-                        position: 'absolute', top: '38%', left: '50%',
-                        transform: 'translateX(-50%)', display: 'flex', gap: 2, zIndex: 10,
-                    }}
-                >
-                    {communityCards.map((card, i) => (
-                        <BoardCardItem
-                            key={card || i}
-                            card={card}
-                            i={i}
-                            onRemove={onRemoveBoardCard}
-                            onTap={onTapBoard}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Empty board slots — tappable to open deck */}
-            {communityCards.length === 0 && onTapBoard && (
-                <div
-                    onClick={onTapBoard}
-                    style={{
-                        position: 'absolute', top: '38%', left: '50%',
-                        transform: 'translateX(-50%)', display: 'flex', gap: 3, zIndex: 10,
-                        cursor: 'pointer',
-                    }}
-                >
-                    {[0, 1, 2].map(i => (
-                        <div key={i} style={{
-                            width: 30, height: 42, borderRadius: 3,
-                            border: '1.5px dashed rgba(255,255,255,0.2)',
-                            background: 'rgba(255,255,255,0.03)',
-                        }} />
-                    ))}
-                </div>
-            )}
-
-            {/* Board Texture Badge */}
-            {boardTexture && (
+            {/* Swipe affordance — the gesture is otherwise invisible */}
+            {showDealHint && (
                 <div style={{
-                    position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
-                    padding: '2px 6px', borderRadius: 4, fontSize: 7, fontWeight: 700, zIndex: 10,
-                    background: boardTexture.color || 'rgba(59,130,246,0.2)',
-                    color: boardTexture.textColor || '#4599FF',
-                    border: `1px solid ${boardTexture.textColor || '#2374E1'}44`,
-                    whiteSpace: 'nowrap',
+                    position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
+                    zIndex: Z.felt, padding: '4px 10px', borderRadius: R.pill,
+                    background: 'rgba(24,25,26,0.8)', border: `1px solid ${T.border}`,
+                    color: T.textMuted, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
                 }}>
-                    {boardTexture.label}
+                    Swipe left to deal · right to undo
                 </div>
             )}
 
@@ -425,113 +638,133 @@ export default function SandboxPokerTable({
                 else if (isRightSide) badgeTransform = 'translate(calc(-100% + 10px), -50%)';
 
                 return (
-                    <motion.div key={idx}
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: idx * 0.05 }}
+                    <motion.div key={`${seat.name}-${idx}`}
+                        initial={reduce ? { opacity: 0 } : { scale: 0, opacity: 0 }}
+                        animate={reduce ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                        transition={reduce ? { duration: 0 } : { delay: idx * 0.05 }}
                         style={{
                             position: 'absolute', top: pos.top, left: pos.left,
                             transform: badgeTransform, zIndex: 2,
-                            display: 'flex', alignItems: 'center', gap: 5,
+                            display: 'flex', alignItems: 'center', gap: compact ? 0 : 5,
                             background: 'rgba(36,37,38,0.95)',
-                            borderRadius: 8,
-                            padding: '3px 6px 3px 3px',
-                            border: `2px solid ${seat.isHero ? 'rgba(35,116,225,0.7)' : '#3A3B3C'}`,
-                            backdropFilter: 'blur(6px)',
-                            minWidth: 50,
+                            borderRadius: R.sm,
+                            padding: compact ? 2 : '3px 6px 3px 3px',
+                            border: `2px solid ${seat.isHero ? 'rgba(69,153,255,0.7)' : T.border}`,
+                            WebkitBackdropFilter: 'blur(6px)', backdropFilter: 'blur(6px)',
+                            maxWidth: Math.round(tw * 0.52),
                         }}>
-                        {/* Avatar image */}
                         <div style={{
                             width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
                             overflow: 'hidden',
-                            border: `2px solid ${seat.isHero ? '#2374E1' : 'rgba(255,255,255,0.15)'}`,
+                            border: `2px solid ${seat.isHero ? T.accentPress : 'rgba(255,255,255,0.15)'}`,
                             boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
                             background: 'rgba(0,0,0,0.3)',
                         }}>
                             <img
                                 src={SANDBOX_AVATARS[idx % SANDBOX_AVATARS.length]}
-                                alt={seat.name}
+                                alt=""
+                                aria-hidden="true"
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={(e) => { e.target.style.display = 'none'; }}
+                                loading="lazy"
+                                decoding="async"
                             />
                         </div>
-                        {/* Name + Stack */}
-                        <div style={{ overflow: 'hidden' }}>
-                            <div style={{
-                                fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                                color: seat.isHero ? '#4599FF' : '#E4E6EB',
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                maxWidth: 65,
+                        {compact ? (
+                            <span className="pa-vh-inline" style={{
+                                position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
+                                fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                                color: seat.isHero ? T.accent : T.textMuted,
+                                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
                             }}>
-                                {seat.isHero ? `You (${seat.name})` : seat.name}
-                            </div>
-                            <div style={{
-                                fontSize: 9, fontWeight: 700, color: '#B0B3B8', lineHeight: 1.2,
-                            }}>
-                                {Number(seat.stack) || 0} BB
-                            </div>
-                            {!seat.isHero && seat.archetype && (
+                                {seat.name} · {Number(seat.stack) || 0}
+                            </span>
+                        ) : (
+                            <div style={{ overflow: 'hidden', minWidth: 0 }}>
                                 <div style={{
-                                    fontSize: 7, fontWeight: 600,
-                                    color: 'rgba(255,255,255,0.3)', lineHeight: 1.2,
+                                    fontSize: 12, fontWeight: 700, lineHeight: 1.2,
+                                    color: seat.isHero ? T.accent : T.text,
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    maxWidth: Math.round(tw * 0.32),
                                 }}>
-                                    {seat.archetype}
+                                    {seat.isHero ? `You (${seat.name})` : seat.name}
                                 </div>
-                            )}
-                        </div>
+                                <div style={{
+                                    fontSize: 12, fontWeight: 700, color: T.textMuted, lineHeight: 1.2,
+                                    fontVariantNumeric: 'tabular-nums',
+                                }}>
+                                    {Number(seat.stack) || 0} BB
+                                </div>
+                                {!seat.isHero && seat.archetype && !compact && tw >= 280 && (
+                                    <div style={{
+                                        fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.45)',
+                                        lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap', maxWidth: Math.round(tw * 0.32),
+                                    }}>
+                                        {seat.archetype}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </motion.div>
                 );
             })}
 
-            {/* Hero Cards — positioned near hero seat (bottom), long-press to remove */}
-            {heroCards.length > 0 && seatPositions.length > 0 && (
+            {/* Hero Cards — offset expressed as a PERCENTAGE of table height so
+                they scale with the felt instead of colliding with the pot block. */}
+            {heroCards.length > 0 && seatPositions.length > 0 ? (
                 <div
                     style={{
                         position: 'absolute',
-                        top: `calc(${seatPositions[0].top} - 50px)`,
+                        top: `calc(${seatPositions[0].top} - 13%)`,
                         left: seatPositions[0].left,
                         transform: 'translateX(-50%)',
-                        display: 'flex', zIndex: 150,
+                        display: 'flex', zIndex: Z.feltCards,
                     }}
                 >
-                    {heroCards.map((card, i) => (
+                    {heroCards.map((cardVal, i) => (
                         <HeroCardItem
-                            key={card || i}
-                            card={card}
+                            key={cardVal || i}
+                            card={cardVal}
                             i={i}
                             onRemove={onRemoveHeroCard}
                             onTap={onTapHeroCards}
+                            w={heroW} h={heroH}
+                            editMode={editMode}
+                            reduce={reduce}
                         />
                     ))}
                 </div>
-            )}
-
-            {/* Empty hero card slots — tappable */}
-            {heroCards.length === 0 && onTapHeroCards && (
-                <div
+            ) : onTapHeroCards ? (
+                <button
+                    type="button"
+                    data-no-swipe="true"
                     onClick={onTapHeroCards}
+                    aria-label="Choose your hole cards"
                     style={{
                         position: 'absolute',
-                        top: `calc(${seatPositions[0]?.top || '85%'} - 50px)`,
+                        top: `calc(${seatPositions[0]?.top || '86%'} - 13%)`,
                         left: seatPositions[0]?.left || '50%',
                         transform: 'translateX(-50%)',
-                        display: 'flex', gap: 3, zIndex: 150,
-                        cursor: 'pointer',
+                        display: 'flex', gap: 4, zIndex: Z.feltCards,
+                        background: 'none', border: 'none', padding: 6, margin: -6,
+                        cursor: 'pointer', touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
                     }}
                 >
                     {[0, 1].map(i => (
-                        <div key={i} style={{
-                            width: 32, height: 45, borderRadius: 4,
-                            border: '2px dashed rgba(35,116,225,0.4)',
-                            background: 'rgba(35,116,225,0.05)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, color: 'rgba(35,116,225,0.5)', fontWeight: 700,
+                        <span key={i} style={{
+                            display: 'flex', width: heroW, height: heroH, borderRadius: R.sm,
+                            border: `2px dashed rgba(69,153,255,0.45)`,
+                            background: 'rgba(69,153,255,0.06)',
+                            alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, color: 'rgba(69,153,255,0.7)', fontWeight: 800,
                         }}>
                             ?
-                        </div>
+                        </span>
                     ))}
-                </div>
-            )}
+                </button>
+            ) : null}
         </div>
     );
 }

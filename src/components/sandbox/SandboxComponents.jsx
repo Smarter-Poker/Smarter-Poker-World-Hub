@@ -10,12 +10,266 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Check, X as XIcon, Camera, Share2, Spade } from 'lucide-react';
+import {
+    Brain, Check, X as XIcon, Camera, Share2, Spade, Plus, Trash2,
+    ChevronDown, ChevronUp, ChevronRight, Maximize2, AlertTriangle,
+    Inbox, Flame, Target, RotateCcw, Info, Filter,
+} from 'lucide-react';
 import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
-import toast from '../../stores/toastStore';
+// react-hot-toast matches the <Toaster> host the sandbox page mounts. The old
+// `../../stores/toastStore` import rendered nowhere on this page.
+import toast from 'react-hot-toast';
 import { claimReward } from '../../lib/claimReward';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PA_DESIGN_SPEC v1 — "Neon Slate" tokens.
+// Kept in this module (rather than a separate file) so the Sandbox surface has
+// zero cross-file import risk; values are byte-identical to the shared spec.
+// ═══════════════════════════════════════════════════════════════════════════
+export const T = {
+    bg: '#18191A',
+    surface: '#242526',
+    surface2: '#3A3B3C',
+    surface3: '#4E4F50',
+    border: '#3A3B3C',
+    borderHi: '#4E4F50',
+    text: '#E4E6EB',
+    textMuted: '#B0B3B8',
+    textDim: '#65676B',
+    accent: '#4599FF',
+    accentPress: '#2374E1',
+    accentSoft: 'rgba(69,153,255,0.15)',
+    success: '#22C55E',
+    successSoft: 'rgba(34,197,94,0.15)',
+    warn: '#FBBF24',
+    warnSoft: 'rgba(251,191,36,0.15)',
+    danger: '#EF4444',
+    dangerSoft: 'rgba(239,68,68,0.15)',
+    purple: '#A78BFA',
+    purpleSoft: 'rgba(167,139,250,0.15)',
+    scrim: 'rgba(0,0,0,0.6)',
+    glassEdge: 'rgba(255,255,255,0.08)',
+};
+
+export const F = { h1: 22, h2: 18, h3: 16, body: 15, bodySm: 14, label: 13, caption: 12, input: 16 };
+export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
+export const R = { sm: 8, md: 12, lg: 16, sheet: '20px 20px 0 0', pill: 999 };
+export const E = {
+    card: '0 1px 3px rgba(0,0,0,0.4)',
+    raised: '0 4px 16px rgba(0,0,0,0.5)',
+    sheet: '0 -8px 32px rgba(0,0,0,0.6)',
+};
+export const Z = { base: 1, felt: 10, feltCards: 20, sticky: 50, bottomNav: 100, backdrop: 900, sheet: 901, popover: 950, toast: 1000 };
+export const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
+export const NUM = { fontVariantNumeric: 'tabular-nums' };
+
+export const card = {
+    background: T.surface, border: `1px solid ${T.border}`, borderRadius: R.md,
+    padding: S.lg, boxShadow: E.card, boxSizing: 'border-box', width: '100%', maxWidth: '100%',
+};
+export const cardCompact = { ...card, padding: S.md, borderRadius: R.sm };
+
+export function btn(variant = 'primary', opts = {}) {
+    const base = {
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: S.sm,
+        minHeight: 44, minWidth: 44, padding: '0 18px', borderRadius: R.sm,
+        fontSize: F.bodySm, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1,
+        cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+        transition: 'transform .12s ease, background .12s ease, opacity .12s ease',
+        boxSizing: 'border-box', border: '1px solid transparent', width: opts.block ? '100%' : 'auto',
+    };
+    const v = {
+        primary: { background: `linear-gradient(135deg, ${T.accent}, ${T.accentPress})`, color: '#FFFFFF' },
+        secondary: { background: T.surface2, color: T.text, borderColor: T.borderHi },
+        ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
+        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(239,68,68,0.4)' },
+        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(34,197,94,0.4)' },
+        purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(167,139,250,0.4)' },
+    }[variant] || {};
+    const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
+    return { ...base, ...v, ...dis };
+}
+
+export function iconBtn(opts = {}) {
+    return {
+        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
+        background: opts.transparent ? 'transparent' : T.surface2,
+        border: '1px solid transparent', color: opts.color || T.text,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', padding: 0, flexShrink: 0,
+        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+    };
+}
+
+export function pill(tone = 'neutral') {
+    const m = {
+        neutral: [T.textMuted, 'rgba(176,179,184,0.14)'], accent: [T.accent, T.accentSoft],
+        success: [T.success, T.successSoft], warn: [T.warn, T.warnSoft],
+        danger: [T.danger, T.dangerSoft], purple: [T.purple, T.purpleSoft],
+    }[tone] || [T.textMuted, 'rgba(176,179,184,0.14)'];
+    return {
+        display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '5px 10px',
+        borderRadius: R.pill, fontSize: F.caption, fontWeight: 700, lineHeight: 1.2,
+        color: m[0], background: m[1], border: `1px solid ${m[0]}33`, whiteSpace: 'nowrap',
+    };
+}
+
+export const sheetBackdrop = {
+    position: 'fixed', inset: 0, background: T.scrim, zIndex: Z.backdrop,
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    WebkitBackdropFilter: 'blur(2px)', backdropFilter: 'blur(2px)',
+};
+export const sheetStyle = {
+    width: '100%', maxWidth: 520, background: T.surface, borderTop: `1px solid ${T.border}`,
+    borderRadius: R.sheet, boxShadow: E.sheet, zIndex: Z.sheet,
+    maxHeight: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    paddingBottom: 'env(safe-area-inset-bottom,0px)',
+};
+export const sheetGrip = { width: 40, height: 4, borderRadius: R.pill, background: T.surface3, margin: '10px auto 6px', flexShrink: 0 };
+export const sheetHeader = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, padding: `0 ${S.lg}px ${S.md}px`, borderBottom: `1px solid ${T.border}`, flexShrink: 0 };
+export const sheetBody = { padding: S.lg, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', flex: 1, minHeight: 0 };
+export const sheetFooter = { padding: S.lg, borderTop: `1px solid ${T.border}`, display: 'flex', gap: S.sm, flexShrink: 0, background: T.surface };
+
+export const sectionHeader = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, marginBottom: S.md, minHeight: 28 };
+export const sectionTitle = { fontSize: F.label, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.textDim, margin: 0 };
+
+export const emptyWrap = { ...card, textAlign: 'center', padding: `${S.xl}px ${S.lg}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: S.md };
+export const emptyIcon = { width: 56, height: 56, borderRadius: '50%', background: T.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textDim, flexShrink: 0 };
+export const emptyTitle = { fontSize: F.h3, fontWeight: 700, color: T.text, margin: 0 };
+export const emptyBody = { fontSize: F.bodySm, color: T.textMuted, margin: 0, maxWidth: 280, lineHeight: 1.45 };
+
+export const errorWrap = { ...card, borderColor: 'rgba(239,68,68,0.4)', background: T.dangerSoft, display: 'flex', flexDirection: 'column', gap: S.md, alignItems: 'flex-start' };
+export const errorTitle = { fontSize: F.bodySm, fontWeight: 700, color: T.danger, display: 'flex', alignItems: 'center', gap: S.sm, margin: 0 };
+export const errorBody = { fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 };
+
+export const skeleton = (h = 14, w = '100%') => ({ height: h, width: w, borderRadius: R.sm, background: T.surface2 });
+
+/** prefers-reduced-motion, live-updating. Use on EVERY framer-motion component. */
+export function usePrefersReducedMotion() {
+    const [r, setR] = useState(false);
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+        const m = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const on = () => setR(!!m.matches);
+        on();
+        if (m.addEventListener) m.addEventListener('change', on); else m.addListener(on);
+        return () => { if (m.removeEventListener) m.removeEventListener('change', on); else m.removeListener(on); };
+    }, []);
+    return r;
+}
+
+/** Locks body scroll while `active` — restores the previous value on unmount. */
+export function useBodyScrollLock(active) {
+    useEffect(() => {
+        if (!active || typeof document === 'undefined') return undefined;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev; };
+    }, [active]);
+}
+
+/** Escape-to-close for every overlay. */
+export function useEscapeKey(active, onEscape) {
+    useEffect(() => {
+        if (!active || typeof window === 'undefined') return undefined;
+        const h = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onEscape?.(); } };
+        window.addEventListener('keydown', h);
+        return () => window.removeEventListener('keydown', h);
+    }, [active, onEscape]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STANDARD BOTTOM SHEET — the ONLY overlay pattern on mobile.
+// Grip + 44px close + backdrop tap + Escape + body-scroll lock + dvh cap.
+// ═══════════════════════════════════════════════════════════════════════════
+export function BottomSheet({
+    isOpen, onClose, title, subtitle, children, footer,
+    maxWidth = 520, headerRight = null, bodyStyle = null, labelledBy,
+}) {
+    const reduce = usePrefersReducedMotion();
+    useBodyScrollLock(isOpen);
+    useEscapeKey(isOpen, onClose);
+    const titleId = labelledBy || 'pa-sheet-title';
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    key="pa-sheet-backdrop"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={reduce ? { duration: 0 } : { duration: 0.18 }}
+                    style={sheetBackdrop}
+                    onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+                >
+                    <motion.div
+                        role="dialog" aria-modal="true" aria-labelledby={titleId}
+                        initial={reduce ? { opacity: 0 } : { y: '100%' }}
+                        animate={reduce ? { opacity: 1 } : { y: 0 }}
+                        exit={reduce ? { opacity: 0 } : { y: '100%' }}
+                        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34 }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ ...sheetStyle, maxWidth }}
+                    >
+                        <div style={sheetGrip} aria-hidden="true" />
+                        <div style={sheetHeader}>
+                            <div style={{ minWidth: 0 }}>
+                                <h3 id={titleId} style={{ margin: 0, fontSize: F.h3, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
+                                {subtitle && <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 2 }}>{subtitle}</div>}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexShrink: 0 }}>
+                                {headerRight}
+                                <button type="button" className="pa-btn" onClick={onClose} aria-label="Close" style={iconBtn()}>
+                                    <XIcon size={18} strokeWidth={2} aria-hidden="true" />
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ ...sheetBody, ...(bodyStyle || {}) }}>{children}</div>
+                        {footer && <div style={sheetFooter}>{footer}</div>}
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}
+
+/** Loading skeleton block — mirrors the real layout, never a bare spinner. */
+export function SkeletonRows({ rows = 3, height = 56 }) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }} aria-busy="true" aria-live="polite">
+            {Array.from({ length: rows }).map((_, i) => (
+                <div key={i} className="pa-skel" style={skeleton(height)} />
+            ))}
+            <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Loading</span>
+        </div>
+    );
+}
+
+export function EmptyState({ icon, title, body, action }) {
+    return (
+        <div style={emptyWrap}>
+            <div style={emptyIcon}>{icon || <Inbox size={24} strokeWidth={2} aria-hidden="true" />}</div>
+            <h4 style={emptyTitle}>{title}</h4>
+            {body && <p style={emptyBody}>{body}</p>}
+            {action}
+        </div>
+    );
+}
+
+export function ErrorState({ title = 'Something went wrong', body, onRetry, retryLabel = 'Try again' }) {
+    return (
+        <div style={errorWrap} role="alert">
+            <p style={errorTitle}><AlertTriangle size={16} strokeWidth={2} aria-hidden="true" />{title}</p>
+            {body && <p style={errorBody}>{body}</p>}
+            {onRetry && (
+                <button type="button" className="pa-btn" onClick={onRetry} style={btn('secondary')}>
+                    <RotateCcw size={16} strokeWidth={2} aria-hidden="true" />{retryLabel}
+                </button>
+            )}
+        </div>
+    );
+}
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -93,35 +347,222 @@ export function gradeAction(userLabel, gtoLabel) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FREQUENCY BAR
+// LEGAL-ACTION ENGINE + POT MATH
+// A tiny two-player state machine over actionHistory. It knows whose turn it
+// is, what is legal, the amount to call, pot odds, MDF, per-player investment,
+// remaining stacks, SPR and terminal states. Shared by the action builder, the
+// coach picker, the felt readouts and the page's pot calculation so all four
+// agree instead of each rolling its own (buggy) maths.
 // ═══════════════════════════════════════════════════════════════════════════
-export function FrequencyBar({ action, isOptimal }) {
+export const ACTION_CATALOG = [
+    { id: 'fold', label: 'Fold', tone: 'danger' },
+    { id: 'check', label: 'Check', tone: 'neutral' },
+    { id: 'call', label: 'Call', tone: 'warn' },
+    { id: 'bet_33', label: 'Bet 33%', tone: 'success' },
+    { id: 'bet_50', label: 'Bet 50%', tone: 'success' },
+    { id: 'bet_66', label: 'Bet 66%', tone: 'success' },
+    { id: 'bet_75', label: 'Bet 75%', tone: 'success' },
+    { id: 'bet_100', label: 'Bet Pot', tone: 'success' },
+    { id: 'bet_150', label: 'Bet 150%', tone: 'success' },
+    { id: 'raise', label: 'Raise', tone: 'accent' },
+    { id: 'allin', label: 'All-In', tone: 'warn' },
+];
+
+const STREET_ORDER = ['preflop', 'flop', 'turn', 'river'];
+
+function actorOf(entry, heroPosition) {
+    if (!entry) return 'hero';
+    if (entry.isVillain === true) return 'villain';
+    if (entry.isHero === true) return 'hero';
+    if (entry.position && heroPosition) return entry.position === heroPosition ? 'hero' : 'villain';
+    return 'hero';
+}
+
+function betPctOf(actionId) {
+    const m = String(actionId || '').match(/^bet_(\d+(?:\.\d+)?)$/);
+    if (!m) return null;
+    const pct = parseFloat(m[1]);
+    return Number.isFinite(pct) && pct > 0 ? pct : null;
+}
+
+/**
+ * Replay an action line and return the full hand state.
+ *
+ * @param {object} o
+ * @param {number} o.basePot       starting pot in BB (blinds / manual entry)
+ * @param {object[]} o.actions     action history entries
+ * @param {string} o.heroPosition
+ * @param {number} o.heroStack     starting stack, BB
+ * @param {number} o.villainStack  starting stack, BB
+ * @param {string} o.street        the street currently being built
+ */
+export function computeHandState({
+    basePot = 1.5, actions = [], heroPosition = 'BTN',
+    heroStack = 100, villainStack = 100, street = 'preflop',
+} = {}) {
+    const startStacks = {
+        hero: Math.max(0, Number(heroStack) || 0),
+        villain: Math.max(0, Number(villainStack) || 0),
+    };
+    const effective = Math.min(startStacks.hero, startStacks.villain);
+    const invested = { hero: 0, villain: 0 };
+    let committed = Math.max(0, Number(basePot) || 0); // chips already in the middle from closed streets
+    let streetIn = { hero: 0, villain: 0 };
+    let currentStreet = STREET_ORDER.includes(String(actions?.[0]?.street || '')) ? actions[0].street : 'preflop';
+    let terminal = null;   // 'fold' | 'allin' | null
+    let winner = null;
+    let lastActor = null;
+    let streetClosed = false;
+    let actorsThisStreet = 0;
+
+    const remainingOf = (who) => Math.max(0, effective - invested[who]);
+
+    const closeStreet = () => {
+        committed += streetIn.hero + streetIn.villain;
+        streetIn = { hero: 0, villain: 0 };
+        actorsThisStreet = 0;
+        lastActor = null;
+        streetClosed = false;
+    };
+
+    (actions || []).forEach((entry) => {
+        if (terminal) return;
+        const who = actorOf(entry, heroPosition);
+        const other = who === 'hero' ? 'villain' : 'hero';
+        const entryStreet = STREET_ORDER.includes(String(entry?.street || '')) ? entry.street : currentStreet;
+        if (entryStreet !== currentStreet) { closeStreet(); currentStreet = entryStreet; }
+
+        const potNow = committed + streetIn.hero + streetIn.villain;
+        const toCall = Math.max(0, streetIn[other] - streetIn[who]);
+        const id = String(entry?.action || '').toLowerCase();
+        const add = (amt) => {
+            const capped = Math.max(0, Math.min(amt, remainingOf(who)));
+            streetIn[who] += capped;
+            invested[who] += capped;
+            return capped;
+        };
+
+        if (id === 'fold') {
+            terminal = 'fold'; winner = other;
+        } else if (id === 'check') {
+            if (actorsThisStreet >= 1 && toCall === 0) streetClosed = true;
+        } else if (id === 'call') {
+            // A "call" with nothing to call is a check behind — it must NOT
+            // invent chips (the old code added 50% of the pot).
+            if (toCall > 0) { add(toCall); streetClosed = true; }
+            else if (actorsThisStreet >= 1) streetClosed = true;
+        } else if (id === 'raise') {
+            // Raise-to = 3x the outstanding bet (2.5x if there is none to raise,
+            // i.e. an open-raise off the blind), never a flat 1.5x pot.
+            const target = toCall > 0 ? streetIn[other] * 3 : Math.max(potNow * 0.75, 2.5);
+            add(Math.max(target - streetIn[who], toCall));
+        } else if (id === 'allin') {
+            add(remainingOf(who));
+            if (remainingOf(who) <= 0 && remainingOf(other) <= 0) terminal = 'allin';
+        } else {
+            const pct = betPctOf(id);
+            if (pct != null) add(potNow * (pct / 100));
+        }
+
+        if (remainingOf('hero') <= 0 && remainingOf('villain') <= 0 && !terminal) terminal = 'allin';
+        lastActor = who;
+        actorsThisStreet += 1;
+    });
+
+    const pot = Math.round((committed + streetIn.hero + streetIn.villain) * 10) / 10;
+    const toActRaw = terminal ? null : (streetClosed ? null : (lastActor ? (lastActor === 'hero' ? 'villain' : 'hero') : 'hero'));
+    const toAct = toActRaw;
+    const who = toAct || 'hero';
+    const other = who === 'hero' ? 'villain' : 'hero';
+    const toCall = Math.max(0, Math.round((streetIn[other] - streetIn[who]) * 10) / 10);
+    const facingBet = toCall > 0;
+    const potOdds = facingBet && pot + toCall > 0 ? Math.round((toCall / (pot + toCall)) * 1000) / 10 : null;
+    const mdf = facingBet && pot > 0 ? Math.round((pot / (pot + toCall)) * 1000) / 10 : null;
+    const remaining = { hero: remainingOf('hero'), villain: remainingOf('villain') };
+    const spr = pot > 0 ? Math.round((Math.min(remaining.hero, remaining.villain) / pot) * 10) / 10 : null;
+
+    // Legal action ids for whoever is to act
+    let legal;
+    if (terminal) legal = [];
+    else if (facingBet) legal = ['fold', 'call', 'raise', 'allin'];
+    else legal = ['check', 'bet_33', 'bet_50', 'bet_66', 'bet_75', 'bet_100', 'bet_150', 'allin'];
+
+    return {
+        pot, toAct, toCall, facingBet, potOdds, mdf, spr,
+        invested, remaining, effective, terminal, winner,
+        streetClosed, legal, street: currentStreet || street,
+        streetIn: { ...streetIn },
+    };
+}
+
+/** Legal action ids for a specific actor given the current street contributions. */
+export function legalActionsFor(handState, who = 'hero') {
+    if (!handState || handState.terminal) return [];
+    const other = who === 'hero' ? 'villain' : 'hero';
+    const streetIn = handState.streetIn || { hero: 0, villain: 0 };
+    const toCall = Math.max(0, (streetIn[other] || 0) - (streetIn[who] || 0));
+    return toCall > 0
+        ? ['fold', 'call', 'raise', 'allin']
+        : ['check', 'bet_33', 'bet_50', 'bet_66', 'bet_75', 'bet_100', 'bet_150', 'allin'];
+}
+
+/** Convenience wrapper used for the page's pot readout. */
+export function potFromActions(basePot, actions, opts = {}) {
+    return computeHandState({ basePot, actions, ...opts }).pot;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FREQUENCY BAR — supports a "ghost" GTO baseline behind the solid exploit bar
+// ═══════════════════════════════════════════════════════════════════════════
+export function FrequencyBar({ action, isOptimal, ghostFrequency = null }) {
+    const reduce = usePrefersReducedMotion();
+    const freq = Math.max(0, Math.min(100, Number(action?.frequency) || 0));
+    const ghost = ghostFrequency == null ? null : Math.max(0, Math.min(100, Number(ghostFrequency) || 0));
+    const delta = ghost == null ? null : Math.round(freq - ghost);
     return (
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <motion.div
+            initial={reduce ? { opacity: 0 } : { opacity: 0, x: -20 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, x: 0 }}
+            transition={reduce ? { duration: 0 } : undefined}
+            style={{ marginBottom: S.md }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: S.xs, gap: S.sm }}>
                 <span style={{
-                    color: isOptimal ? '#22c55e' : '#B0B3B8', fontSize: '13px',
-                    fontWeight: isOptimal ? '700' : '500', display: 'flex', alignItems: 'center', gap: '6px',
+                    color: isOptimal ? T.success : T.textMuted, fontSize: F.bodySm,
+                    fontWeight: isOptimal ? 700 : 600, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                 }}>
-                    {isOptimal && <Check size={12} strokeWidth={3} style={{ color: '#22c55e', flexShrink: 0 }} aria-hidden="true" />}
-                    {action.label}
+                    {isOptimal && <Check size={14} strokeWidth={3} style={{ color: T.success, flexShrink: 0 }} aria-hidden="true" />}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{action.label}</span>
                 </span>
-                <span style={{
-                    color: isOptimal ? '#22c55e' : '#E4E6EB', fontSize: '13px',
-                    fontWeight: '700', fontFamily: "'Orbitron', monospace",
-                }}>
-                    {action.frequency}%
+                <span style={{ color: isOptimal ? T.success : T.text, fontSize: F.bodySm, fontWeight: 700, ...NUM, flexShrink: 0 }}>
+                    {freq}%
+                    {delta != null && delta !== 0 && (
+                        <span style={{ marginLeft: 6, fontSize: F.caption, color: delta > 0 ? T.warn : T.textDim }}>
+                            {delta > 0 ? '+' : ''}{delta}
+                        </span>
+                    )}
                 </span>
             </div>
-            <div style={{ height: '8px', background: '#3A3B3C', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: 10, background: T.surface2, borderRadius: R.sm, overflow: 'hidden' }}>
+                {ghost != null && (
+                    <div
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute', inset: 0, width: `${ghost}%`, borderRadius: R.sm,
+                            background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 4px, transparent 4px 8px)',
+                            border: '1px solid rgba(255,255,255,0.18)', boxSizing: 'border-box',
+                        }}
+                    />
+                )}
                 <motion.div
-                    initial={{ width: 0 }} animate={{ width: `${action.frequency}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    initial={reduce ? false : { width: 0 }}
+                    animate={{ width: `${freq}%` }}
+                    transition={reduce ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
                     style={{
-                        height: '100%', borderRadius: '4px',
+                        height: '100%', borderRadius: R.sm, position: 'relative',
                         background: isOptimal
-                            ? 'linear-gradient(90deg, #22c55e, #4ade80)'
-                            : `linear-gradient(90deg, ${action.color || '#2374E1'}, ${action.color || '#2374E1'}88)`,
+                            ? `linear-gradient(90deg, ${T.success}, #4ade80)`
+                            : `linear-gradient(90deg, ${action.color || T.accentPress}, ${action.color || T.accentPress}88)`,
                     }}
                 />
             </div>
@@ -146,62 +587,109 @@ function getMatrixColor(freq) {
     return 'rgba(255,255,255,0.03)';
 }
 
-// Module-level memoized cell — only the two cells whose isHovered flips re-render
-// when the pointer sweeps across the 169-cell grid.
-const MatrixCell = memo(function MatrixCell({ handKey, freq, isHovered, onHover }) {
+// Module-level memoized cell — only the two cells whose selection flips re-render
+// when the user sweeps across the 169-cell grid. Tap (not hover) selects, so the
+// detail view is reachable on touch.
+const MatrixCell = memo(function MatrixCell({ handKey, freq, isSelected, onSelect, fontSize }) {
+    const select = useCallback(() => onSelect(handKey), [onSelect, handKey]);
     return (
         <div
-            onMouseEnter={() => onHover(handKey)}
-            onMouseLeave={() => onHover(null)}
+            role="button"
+            tabIndex={0}
+            aria-label={`${handKey}${freq != null ? `, ${freq}%` : ', not in range'}`}
+            aria-pressed={isSelected}
+            onClick={select}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
+            onMouseEnter={() => onSelect(handKey, true)}
             style={{
                 aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '9px', fontWeight: '600', color: freq > 50 ? '#000' : '#E4E6EB',
-                background: getMatrixColor(freq), cursor: 'pointer', transition: 'all 0.15s',
-                opacity: isHovered ? 1 : 0.85,
-                border: isHovered ? '1px solid #fff' : '1px solid transparent',
+                fontSize, fontWeight: 700, color: freq > 50 ? '#000' : T.text,
+                background: getMatrixColor(freq), cursor: 'pointer', transition: 'opacity .15s',
+                opacity: isSelected ? 1 : 0.85, letterSpacing: -0.4, overflow: 'hidden',
+                outline: isSelected ? `2px solid ${T.text}` : 'none', outlineOffset: -2,
+                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
             }}
         >{handKey}</div>
     );
 });
 
-export function RangeMatrix({ rangeHeatmap, selectedAction }) {
-    const [hoveredHand, setHoveredHand] = useState(null);
-    const handleHover = useCallback((hk) => { setHoveredHand(hk); }, []);
+/**
+ * 13x13 solver heatmap. Tap a cell to pin its per-action breakdown in a fixed
+ * strip UNDER the grid (an absolutely-positioned tooltip clipped on mobile and
+ * was hover-only, i.e. unreachable for 90% of users).
+ */
+export function RangeMatrix({ rangeHeatmap, selectedAction, onPickHand }) {
+    const [pinned, setPinned] = useState(null);
+    const [expanded, setExpanded] = useState(false);
+    const handleSelect = useCallback((hk, isHover) => {
+        if (isHover) { if (typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)')?.matches) setPinned(hk); return; }
+        setPinned(prev => (prev === hk ? null : hk));
+    }, []);
     if (!rangeHeatmap?.data) return null;
     const actionId = selectedAction || rangeHeatmap.actions?.[0]?.id;
+    const detail = pinned ? rangeHeatmap.data[pinned] : null;
 
-    return (
-        <div style={{ position: 'relative' }}>
-            <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px',
-                background: '#3A3B3C', borderRadius: '8px', overflow: 'hidden', padding: '1px',
-            }}>
-                {RANKS.map((_, row) => RANKS.map((_, col) => {
-                    const hk = getMatrixHandKey(row, col);
-                    const freq = rangeHeatmap.data[hk]?.[actionId] ?? null;
-                    return (
-                        <MatrixCell key={`${row}-${col}`}
-                            handKey={hk} freq={freq}
-                            isHovered={hoveredHand === hk}
-                            onHover={handleHover}
-                        />
-                    );
-                }))}
-            </div>
-            {hoveredHand && rangeHeatmap.data[hoveredHand] && (
-                <div style={{
-                    position: 'absolute', bottom: -55, left: '50%', transform: 'translateX(-50%)',
-                    background: '#242526', border: '1px solid #3A3B3C',
-                    borderRadius: '8px', padding: '6px 10px', zIndex: 10, whiteSpace: 'nowrap', fontSize: '11px', color: '#E4E6EB',
-                }}>
-                    <strong>{hoveredHand}</strong>
-                    {rangeHeatmap.actions?.slice(0, 4).map(a => (
-                        <span key={a.id} style={{ marginLeft: '8px', color: a.id === actionId ? '#22c55e' : '#B0B3B8' }}>
-                            {a.label}: {rangeHeatmap.data[hoveredHand][a.id] ?? 0}%
+    const grid = (fontSize) => (
+        <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
+            background: T.surface2, borderRadius: R.sm, overflow: 'hidden', padding: 1, width: '100%',
+        }}>
+            {RANKS.map((_, row) => RANKS.map((_, col) => {
+                const hk = getMatrixHandKey(row, col);
+                const freq = rangeHeatmap.data[hk]?.[actionId] ?? null;
+                return (
+                    <MatrixCell key={`${row}-${col}`}
+                        handKey={hk} freq={freq} fontSize={fontSize}
+                        isSelected={pinned === hk}
+                        onSelect={handleSelect}
+                    />
+                );
+            }))}
+        </div>
+    );
+
+    const detailStrip = (
+        <div style={{
+            marginTop: S.sm, minHeight: 44, display: 'flex', alignItems: 'center', gap: S.sm,
+            padding: `${S.sm}px ${S.md}px`, borderRadius: R.sm, background: T.surface,
+            border: `1px solid ${T.border}`, flexWrap: 'wrap',
+        }}>
+            {detail ? (
+                <>
+                    <strong style={{ fontSize: F.bodySm, color: T.text }}>{pinned}</strong>
+                    {(rangeHeatmap.actions || []).slice(0, 4).map(a => (
+                        <span key={a.id} style={{ fontSize: F.caption, color: a.id === actionId ? T.success : T.textMuted, ...NUM }}>
+                            {a.label}: {detail[a.id] ?? 0}%
                         </span>
                     ))}
-                </div>
+                    {onPickHand && (
+                        <button type="button" className="pa-btn" onClick={() => onPickHand(pinned)}
+                            style={{ ...btn('ghost'), minHeight: 44, padding: '0 10px', fontSize: F.caption, color: T.accent, marginLeft: 'auto' }}>
+                            Use this hand
+                        </button>
+                    )}
+                </>
+            ) : (
+                <span style={{ fontSize: F.caption, color: T.textMuted }}>Tap any cell to see its action mix.</span>
             )}
+        </div>
+    );
+
+    return (
+        <div>
+            <div style={{ ...sectionHeader, marginBottom: S.sm }}>
+                <p style={sectionTitle}>Hand grid</p>
+                <button type="button" className="pa-btn" onClick={() => setExpanded(true)} aria-label="Expand range grid to full screen"
+                    style={{ ...btn('ghost'), minHeight: 44, padding: '0 10px', fontSize: F.caption, color: T.accent }}>
+                    <Maximize2 size={16} strokeWidth={2} aria-hidden="true" />Expand
+                </button>
+            </div>
+            {grid(F.caption)}
+            {detailStrip}
+            <BottomSheet isOpen={expanded} onClose={() => setExpanded(false)} title="Range grid" subtitle="Tap a hand for its action mix" maxWidth={720}>
+                {grid(F.caption)}
+                {detailStrip}
+            </BottomSheet>
         </div>
     );
 }
@@ -286,70 +774,167 @@ export function classifyBoardTexture(board) {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION HISTORY BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
-export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
-    const [adding, setAdding] = useState(false);
-    const [newAction, setNewAction] = useState({ position: 'BTN', action: 'bet_66' });
-    const [customPct, setCustomPct] = useState(75);
-    const sty = { padding: '6px 10px', borderRadius: '6px', fontSize: '12px', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' };
+const STREET_TITLE = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
 
-    const handleAdd = () => {
-        let label;
-        if (newAction.action === 'custom') {
-            label = `Bet ${customPct}%`;
-        } else {
-            label = BET_ACTIONS.find(b => b.id === newAction.action)?.label;
-        }
-        onAdd({ ...newAction, action: newAction.action === 'custom' ? `bet_${customPct}` : newAction.action, label });
-        setAdding(false);
+/**
+ * Action-line builder.
+ * - One tap per action (preset strip) instead of select → select → OK.
+ * - Only LEGAL actions are offered (no Check facing a bet, no Call with
+ *   nothing to call), so the analyze API never receives an impossible line.
+ * - Hero/Villain toggle replaces the position dropdown that used to default to
+ *   BTN regardless of the hero's actual seat.
+ * - Chips grouped per street; delete is a 44x44 labelled button.
+ */
+export function ActionHistoryBuilder({
+    actions = [], onAdd, onRemove, potSize,
+    heroPosition = 'BTN', villainPosition = 'BB', street = 'preflop',
+    handState = null, disabled = false,
+}) {
+    const [actor, setActor] = useState(null); // null => follow whose turn it is
+    const [customOpen, setCustomOpen] = useState(false);
+    const [customPct, setCustomPct] = useState(75);
+
+    const state = handState || computeHandState({ basePot: potSize, actions, heroPosition, street });
+    const turn = state.toAct || 'hero';
+    const who = actor || turn;
+    const legal = legalActionsFor(state, who);
+    const outOfTurn = !!state.toAct && who !== state.toAct;
+
+    const grouped = useMemo(() => {
+        const out = [];
+        (actions || []).forEach((a, i) => {
+            const st = STREET_TITLE[String(a?.street || '').toLowerCase()] || STREET_TITLE[street] || 'Line';
+            const bucket = out[out.length - 1];
+            if (bucket && bucket.street === st) bucket.items.push({ a, i });
+            else out.push({ street: st, items: [{ a, i }] });
+        });
+        return out;
+    }, [actions, street]);
+
+    const emit = (id, label) => {
+        if (disabled) return;
+        try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        onAdd?.({
+            position: who === 'hero' ? heroPosition : villainPosition,
+            action: id,
+            label,
+            street,
+            isHero: who === 'hero',
+            isVillain: who === 'villain',
+        });
     };
 
+    const actorBtn = (key, label) => (
+        <button type="button" className="pa-btn" onClick={() => setActor(key)} aria-pressed={who === key}
+            style={{
+                ...btn(who === key ? 'primary' : 'secondary'), flex: 1, minWidth: 0, padding: '0 10px',
+                fontSize: F.label,
+            }}>
+            {label}
+        </button>
+    );
+
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    Action History
-                </h4>
-                <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', fontFamily: "'Orbitron',monospace", background: 'rgba(34,197,94,0.1)', color: '#4ade80' }}>
-                    Pot: {(Number(potSize) || 0).toFixed(1)} BB
+        <div style={{ ...card, padding: S.md }}>
+            <div style={sectionHeader}>
+                <p style={sectionTitle}>Action line</p>
+                <span style={{ ...pill(state.facingBet ? 'warn' : 'success'), ...NUM }}>
+                    Pot {(Number(state.pot) || 0).toFixed(1)} BB
                 </span>
             </div>
-            {actions.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
-                    {actions.map((a, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '5px', fontSize: '10px', background: '#3A3B3C', color: '#E4E6EB' }}>
-                            <span style={{ fontWeight: '700', color: '#4599FF' }}>{a.position}</span>
-                            <span>{a.label}</span>
-                            <button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', padding: '0 2px' }}>x</button>
+
+            {/* Live node maths — pot odds and MDF are the whole point of the builder */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm, marginBottom: S.md }}>
+                {state.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To call {state.toCall} BB</span>}
+                {state.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot odds {state.potOdds}%</span>}
+                {state.mdf != null && <span style={{ ...pill('neutral'), ...NUM }}>MDF {state.mdf}%</span>}
+                {state.spr != null && <span style={{ ...pill('accent'), ...NUM }}>SPR {state.spr}</span>}
+            </div>
+
+            {grouped.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md, marginBottom: S.md }}>
+                    {grouped.map(group => (
+                        <div key={group.street}>
+                            <div style={{ fontSize: F.caption, fontWeight: 700, color: T.textDim, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+                                {group.street}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
+                                {group.items.map(({ a, i }) => (
+                                    <span key={i} style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 2, paddingLeft: 10,
+                                        borderRadius: R.pill, background: T.surface2, border: `1px solid ${T.borderHi}`,
+                                        color: T.text, fontSize: F.label, fontWeight: 600, minHeight: 44,
+                                    }}>
+                                        <span style={{ fontWeight: 700, color: a.isVillain ? T.warn : T.accent, marginRight: 4 }}>{a.position}</span>
+                                        {a.label}
+                                        <button type="button" className="pa-btn" onClick={() => onRemove?.(i)}
+                                            aria-label={`Remove ${a.position} ${a.label}`}
+                                            style={{ ...iconBtn({ transparent: true, color: T.danger }), width: 44, height: 44 }}>
+                                            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div style={{ color: '#65676B', fontSize: '11px', marginBottom: '8px', fontStyle: 'italic' }}>No actions -- build the betting line</div>
+                <p style={{ color: T.textMuted, fontSize: F.bodySm, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
+                    No actions yet — tap an action below to build the betting line.
+                </p>
             )}
-            {adding ? (
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <select value={newAction.position} onChange={e => setNewAction({ ...newAction, position: e.target.value })} style={sty}>
-                        {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select value={newAction.action} onChange={e => setNewAction({ ...newAction, action: e.target.value })} style={sty}>
-                        {BET_ACTIONS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
-                    </select>
-                    {newAction.action === 'custom' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 100%', marginTop: '4px' }}>
-                            <input type="range" min="10" max="200" step="5" value={customPct}
-                                onChange={e => setCustomPct(Number(e.target.value))}
-                                style={{ flex: 1, accentColor: '#8b5cf6' }} />
-                            <span style={{ color: '#c4b5fd', fontSize: '12px', fontWeight: '700', minWidth: '40px' }}>{customPct}%</span>
-                        </div>
-                    )}
-                    <button onClick={handleAdd}
-                        style={{ ...sty, background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', cursor: 'pointer', fontWeight: '600' }}>OK</button>
-                    <button onClick={() => setAdding(false)} style={{ ...sty, background: 'rgba(239,68,68,0.1)', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>X</button>
+
+            {state.terminal ? (
+                <div style={{ ...pill(state.terminal === 'fold' ? 'danger' : 'warn'), width: '100%', justifyContent: 'center', minHeight: 44 }}>
+                    {state.terminal === 'fold' ? 'Hand over — someone folded' : 'All-in — no more actions'}
                 </div>
             ) : (
-                <button onClick={() => setAdding(true)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '11px', background: '#3A3B3C', border: '1px dashed #4E4F50', color: '#B0B3B8', cursor: 'pointer', width: '100%' }}>
-                    + Add Action
-                </button>
+                <>
+                    <div style={{ display: 'flex', gap: S.sm, marginBottom: S.sm }}>
+                        {actorBtn('hero', `Hero (${heroPosition})`)}
+                        {actorBtn('villain', `Villain (${villainPosition})`)}
+                    </div>
+                    {outOfTurn && (
+                        <p style={{ fontSize: F.caption, color: T.warn, margin: `0 0 ${S.sm}px` }}>
+                            It is {turn === 'hero' ? 'the hero' : 'the villain'}&apos;s turn — adding out of turn.
+                        </p>
+                    )}
+                    <div
+                        style={{
+                            display: 'flex', gap: S.sm, overflowX: 'auto', paddingBottom: S.sm,
+                            scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+                        }}>
+                        {ACTION_CATALOG.filter(a => legal.includes(a.id)).map(a => (
+                            <button key={a.id} type="button" className="pa-btn" disabled={disabled}
+                                onClick={() => emit(a.id, a.label)}
+                                style={{
+                                    ...btn(a.tone === 'danger' ? 'danger' : a.tone === 'accent' ? 'secondary' : a.tone === 'warn' ? 'secondary' : 'success', { disabled }),
+                                    scrollSnapAlign: 'start', flexShrink: 0, padding: '0 14px', fontSize: F.label,
+                                }}>
+                                {a.label}
+                            </button>
+                        ))}
+                        {legal.some(id => id.startsWith('bet_')) && (
+                            <button type="button" className="pa-btn" onClick={() => setCustomOpen(o => !o)}
+                                aria-expanded={customOpen}
+                                style={{ ...btn('secondary'), scrollSnapAlign: 'start', flexShrink: 0, padding: '0 14px', fontSize: F.label }}>
+                                Custom
+                                {customOpen ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+                            </button>
+                        )}
+                    </div>
+                    {customOpen && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: S.md, marginTop: S.sm }}>
+                            <input type="range" min="10" max="200" step="5" value={customPct}
+                                aria-label="Custom bet size, percent of pot"
+                                onChange={e => setCustomPct(Number(e.target.value))}
+                                style={{ flex: 1, minWidth: 0, accentColor: T.purple, height: 44 }} />
+                            <span style={{ color: T.purple, fontSize: F.body, fontWeight: 700, minWidth: 52, ...NUM }}>{customPct}%</span>
+                            <button type="button" className="pa-btn" onClick={() => { emit(`bet_${customPct}`, `Bet ${customPct}%`); setCustomOpen(false); }}
+                                style={{ ...btn('primary'), padding: '0 14px' }}>Add</button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
@@ -396,11 +981,9 @@ export function SizingSensitivity({ results }) {
     if (betActions.length === 0) return null;
 
     return (
-        <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
-            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
-                Sizing Sensitivity
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SIZING_COLUMNS.length}, 1fr)`, gap: '4px' }}>
+        <div style={{ ...cardCompact, background: T.surface2, marginBottom: S.md }}>
+            <div style={sectionHeader}><p style={sectionTitle}>Sizing sensitivity</p></div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SIZING_COLUMNS.length}, minmax(0,1fr))`, gap: S.xs }}>
                 {SIZING_COLUMNS.map(({ label: size, pct }) => {
                     // Sum in case the solver returns two ids that normalize to
                     // the same sizing (e.g. `b100` and 'Bet Pot').
@@ -409,16 +992,15 @@ export function SizingSensitivity({ results }) {
                         return p != null && Math.abs(p - pct) < 0.5 ? sum + (Number(a.frequency) || 0) : sum;
                     }, 0));
                     return (
-                        <div key={size} style={{ textAlign: 'center' }}>
-                            <div style={{
-                                height: '40px', background: '#242526', borderRadius: '4px',
-                                position: 'relative', overflow: 'hidden',
-                            }}>
-                                <motion.div initial={{ height: 0 }} animate={{ height: `${freq}%` }}
-                                    style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: freq > 30 ? '#2374E1' : '#1a5db8', borderRadius: '4px' }} />
+                        <div key={size} style={{ textAlign: 'center', minWidth: 0 }}>
+                            <div style={{ height: 44, background: T.surface, borderRadius: R.sm, position: 'relative', overflow: 'hidden' }}>
+                                <div style={{
+                                    position: 'absolute', bottom: 0, left: 0, right: 0, height: `${freq}%`,
+                                    background: freq > 30 ? T.accent : T.accentPress, borderRadius: R.sm,
+                                }} />
                             </div>
-                            <div style={{ fontSize: '9px', color: '#B0B3B8', marginTop: '3px' }}>{size}</div>
-                            <div style={{ fontSize: '10px', color: '#E4E6EB', fontWeight: '600' }}>{freq}%</div>
+                            <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: 3 }}>{size}</div>
+                            <div style={{ fontSize: F.caption, color: T.text, fontWeight: 700, ...NUM }}>{freq}%</div>
                         </div>
                     );
                 })}
@@ -430,36 +1012,132 @@ export function SizingSensitivity({ results }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // TREE VISUALIZATION
 // ═══════════════════════════════════════════════════════════════════════════
-export function TreeVisualization({ actions }) {
-    if (!actions || actions.length === 0) return null;
+// Archetype response frequency tables — canonical copy shared by the decision
+// tree, the villain simulator in the page and the coach picker.
+export const VILLAIN_ACTION_TABLES = {
+    calling_station: { fold: 15, call: 70, raise: 5, check: 55, bet: 35 },
+    nit: { fold: 60, call: 30, raise: 10, check: 70, bet: 20 },
+    lag: { fold: 15, call: 30, raise: 45, check: 30, bet: 60 },
+    tag: { fold: 35, call: 40, raise: 25, check: 45, bet: 45 },
+    maniac: { fold: 5, call: 25, raise: 60, check: 20, bet: 70 },
+    fish: { fold: 20, call: 60, raise: 10, check: 55, bet: 30 },
+    gto_neutral: { fold: 35, call: 40, raise: 25, check: 50, bet: 40 },
+};
+
+export function pickWeighted(weights) {
+    const entries = Object.entries(weights || {}).filter(([, w]) => Number(w) > 0);
+    if (entries.length === 0) return null;
+    const total = entries.reduce((s, [, w]) => s + Number(w), 0);
+    let r = Math.random() * total;
+    for (const [k, w] of entries) { r -= Number(w); if (r <= 0) return k; }
+    return entries[entries.length - 1][0];
+}
+
+/** Normalised villain response distribution to a hero action id. */
+export function villainResponseDistribution(archetypeId, heroActionId, texture) {
+    const table = VILLAIN_ACTION_TABLES[archetypeId] || VILLAIN_ACTION_TABLES.gto_neutral;
+    const id = String(heroActionId || '');
+    const facingBet = /^(bet_|raise|allin)/.test(id);
+    let w;
+    if (facingBet) {
+        w = { fold: table.fold, call: table.call, raise: table.raise };
+        const pct = betSizePercent({ id }) ?? 100;
+        if (pct >= 75) { w.fold *= 1.3; w.call *= 0.85; }
+        if (pct <= 33) { w.fold *= 0.7; w.call *= 1.2; }
+    } else {
+        w = { check: table.check, bet_66: table.bet };
+    }
+    if (texture?.isWet || texture?.isMonotone || texture?.flushPossible) {
+        if (w.raise != null) w.raise *= 1.25;
+        if (w.bet_66 != null) w.bet_66 *= 1.2;
+    } else if (texture?.isDry) {
+        if (w.fold != null) w.fold *= 1.2;
+        if (w.check != null) w.check *= 1.15;
+    }
+    const total = Object.values(w).reduce((s, n) => s + n, 0) || 1;
+    return Object.entries(w).map(([id2, weight]) => ({
+        id: id2,
+        label: { fold: 'Fold', call: 'Call', raise: 'Raise', check: 'Check', bet_66: 'Bet 66%' }[id2] || id2,
+        pct: Math.round((weight / total) * 100),
+    })).sort((a, b) => b.pct - a.pct);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DECISION TREE — hero action -> simulated villain response, with the pot and
+// hero equity that result from each branch. Branches are tappable so a line can
+// be appended to the action history with two taps.
+// ═══════════════════════════════════════════════════════════════════════════
+export function TreeVisualization({ actions, archetypeId = 'gto_neutral', potSize = 0, heroEquity = null, boardTexture = null, onAppendLine }) {
+    const [open, setOpen] = useState(null);
+    const live = (actions || []).filter(a => Number(a.frequency) > 0);
+    if (live.length === 0) return null;
+    const pot = Number(potSize) || 0;
 
     return (
-        <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
-            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
-                Decision Tree
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {/* Root node */}
-                <div style={{
-                    padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
-                    background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', marginBottom: '8px',
-                }}>Hero Decision</div>
-                {/* Branches */}
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {actions.filter(a => a.frequency > 0).map((action, i) => (
-                        <div key={action.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ width: '1px', height: '16px', background: action.color || '#2374E1' }} />
-                            <div style={{
-                                padding: '5px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-                                background: `${action.color || '#2374E1'}22`, border: `1px solid ${action.color || '#2374E1'}44`,
-                                color: action.color || '#4599FF', textAlign: 'center', minWidth: '50px',
-                            }}>
-                                <div>{action.label}</div>
-                                <div style={{ fontSize: '11px', fontWeight: '700', marginTop: '2px' }}>{action.frequency}%</div>
-                            </div>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}>
+                <p style={sectionTitle}>Decision tree</p>
+                <span style={{ fontSize: F.caption, color: T.textDim }}>vs {archetypeId.replace(/_/g, ' ')}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                {live.map((action) => {
+                    const pct = betSizePercent(action);
+                    const betAmt = pct != null ? pot * (pct / 100) : 0;
+                    const responses = villainResponseDistribution(archetypeId, action.id || action.label, boardTexture);
+                    const isOpen = open === (action.id || action.label);
+                    return (
+                        <div key={action.id || action.label} style={{ borderRadius: R.sm, border: `1px solid ${T.border}`, background: T.surface2, overflow: 'hidden' }}>
+                            <button type="button" className="pa-btn" onClick={() => setOpen(isOpen ? null : (action.id || action.label))}
+                                aria-expanded={isOpen}
+                                style={{
+                                    width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', gap: S.sm,
+                                    padding: `0 ${S.md}px`, background: 'transparent', border: 'none', color: T.text,
+                                    fontSize: F.bodySm, fontWeight: 700, cursor: 'pointer', textAlign: 'left',
+                                }}>
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{action.label}</span>
+                                <span style={{ ...NUM, color: T.textMuted, fontSize: F.caption }}>{action.frequency}%</span>
+                                {isOpen ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+                            </button>
+                            {isOpen && (
+                                <div style={{ padding: `0 ${S.md}px ${S.md}px` }}>
+                                    <div style={{ fontSize: F.caption, color: T.textDim, margin: `0 0 ${S.sm}px` }}>
+                                        Villain responds{betAmt > 0 ? ` to ${betAmt.toFixed(1)} BB` : ''}:
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                                        {responses.map(r => {
+                                            const resultPot = r.id === 'fold' ? pot
+                                                : r.id === 'call' ? pot + betAmt * 2
+                                                    : r.id === 'raise' ? pot + betAmt * 4
+                                                        : pot + betAmt;
+                                            return (
+                                                <button key={r.id} type="button" className="pa-btn"
+                                                    onClick={() => onAppendLine?.(action, r)}
+                                                    disabled={!onAppendLine}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: S.sm, minHeight: 44,
+                                                        padding: `0 ${S.md}px`, borderRadius: R.sm, textAlign: 'left',
+                                                        background: T.surface, border: `1px solid ${T.border}`,
+                                                        color: T.text, cursor: onAppendLine ? 'pointer' : 'default', width: '100%',
+                                                    }}>
+                                                    <span style={{ fontSize: F.label, fontWeight: 700, flex: 1, minWidth: 0 }}>{r.label}</span>
+                                                    <span style={{ ...pill(r.id === 'fold' ? 'success' : r.id === 'raise' ? 'danger' : 'neutral'), ...NUM }}>{r.pct}%</span>
+                                                    <span style={{ fontSize: F.caption, color: T.textMuted, ...NUM }}>
+                                                        {r.id === 'fold' ? `+${pot.toFixed(1)} BB` : `pot ${resultPot.toFixed(1)}`}
+                                                    </span>
+                                                    {heroEquity != null && r.id !== 'fold' && (
+                                                        <span style={{ fontSize: F.caption, color: heroEquity >= 50 ? T.success : T.warn, ...NUM }}>
+                                                            {Math.round(heroEquity)}% eq
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -469,34 +1147,61 @@ export function TreeVisualization({ actions }) {
 // ONBOARDING TOUR
 // ═══════════════════════════════════════════════════════════════════════════
 const TOUR_STEPS = [
-    { target: 'hero-setup', title: 'Hero Setup', text: 'Select your hole cards, position, and stack size. Click cards directly from the visual deck below.' },
-    { target: 'board-builder', title: 'Board Builder', text: 'Add flop, turn, and river cards. Use presets for common textures or click "Random" for exploration.' },
-    { target: 'action-history', title: 'Action History', text: 'Build the betting line step by step. The pot calculates dynamically as you add actions.' },
-    { target: 'run-analysis', title: 'Run Analysis', text: 'Generates GTO-optimal frequencies from PIO solver data. Results show per-action frequencies and EV.' },
-    { target: 'results-panel', title: 'Results Panel', text: 'View frequency bars, EV analysis, and the range heatmap. Green badge = real solver data, purple = AI approximation.' },
+    { target: 'sandbox-table', title: 'The table', text: 'Tap the dashed slots to pick your hole cards and the board. Swipe left across the felt to deal the next street, right to take the last card back.' },
+    { target: 'sandbox-setup', title: 'Setup sheet', text: 'Position, stack, game type, villain archetype and felt live in this sheet. Set them once per session and get on with playing.' },
+    { target: 'action-history', title: 'Action line', text: 'Build the betting line one tap at a time. Only legal actions are offered, and pot odds, MDF and SPR update as you go.' },
+    { target: 'run-analysis', title: 'Analyze', text: 'The bottom bar is thumb-reachable: undo, deal, and the big Analyze button. In Coach Mode it asks for your action first.' },
+    { target: 'results-panel', title: 'Results', text: 'Verdict, Deep Dive and Share tabs. The green badge means real solver data, purple means an AI approximation.' },
 ];
 
 export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
+    const reduce = usePrefersReducedMotion();
     const current = TOUR_STEPS[step] || null;
     const targetId = current?.target || null;
     const [rect, setRect] = useState(null);
+    const [viewportH, setViewportH] = useState(0);
+    const rafRef = useRef(null);
+    const lastRectRef = useRef(null);
+    useEscapeKey(isVisible, onClose);
 
     // Spotlight: scroll the referenced element into view and track its box so the
-    // highlight ring stays glued to it. Falls back to a centered modal when the
-    // target is not on the page.
+    // highlight ring stays glued to it. Measurement is rAF-throttled and bails
+    // when nothing moved — a raw scroll listener calling setState per frame drops
+    // frames badly on a mid-range phone.
+    useEffect(() => {
+        if (!isVisible || typeof window === 'undefined') return undefined;
+        const onResize = () => setViewportH(window.innerHeight);
+        onResize();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+        return () => {
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('orientationchange', onResize);
+        };
+    }, [isVisible]);
+
     useEffect(() => {
         if (!isVisible || !targetId || typeof document === 'undefined') { setRect(null); return undefined; }
         const el = document.getElementById(targetId);
         if (!el) { setRect(null); return undefined; }
 
-        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        try { el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         let cancelled = false;
-        const measure = () => {
+        const apply = () => {
+            rafRef.current = null;
             if (cancelled) return;
             const r = el.getBoundingClientRect();
             if (!r || (r.width === 0 && r.height === 0)) { setRect(null); return; }
-            setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+            const next = { top: Math.round(r.top), left: Math.round(r.left), width: Math.round(r.width), height: Math.round(r.height) };
+            const prev = lastRectRef.current;
+            if (prev && prev.top === next.top && prev.left === next.left && prev.width === next.width && prev.height === next.height) return;
+            lastRectRef.current = next;
+            setRect(next);
+        };
+        const measure = () => {
+            if (rafRef.current) return;
+            rafRef.current = requestAnimationFrame(apply);
         };
         measure();
         const settle = setTimeout(measure, 350); // after the smooth scroll lands
@@ -505,12 +1210,13 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
         return () => {
             cancelled = true;
             clearTimeout(settle);
+            if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+            lastRectRef.current = null;
             window.removeEventListener('resize', measure);
             window.removeEventListener('scroll', measure, true);
         };
-    }, [isVisible, targetId, step]);
+    }, [isVisible, targetId, step, reduce]);
 
-    const viewportH = typeof window !== 'undefined' ? window.innerHeight : 0;
     const placeBelow = !rect || (rect.top + rect.height + 220 < viewportH) || rect.top < 240;
     const cardStyle = rect
         ? {
@@ -521,61 +1227,70 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
         }
         : {};
 
+    // Four dim panels instead of a `0 0 0 9999px` box-shadow — far cheaper to
+    // composite while scrolling on a phone.
+    const scrim = 'rgba(0,0,0,0.7)';
+    const panels = rect ? [
+        { top: 0, left: 0, right: 0, height: Math.max(0, rect.top - 6) },
+        { top: Math.max(0, rect.top - 6), left: 0, width: Math.max(0, rect.left - 6), height: rect.height + 12 },
+        { top: Math.max(0, rect.top - 6), left: rect.left + rect.width + 6, right: 0, height: rect.height + 12 },
+        { top: rect.top + rect.height + 6, left: 0, right: 0, bottom: 0 },
+    ] : [];
+
     return (
         <AnimatePresence>
             {isVisible && current && (
                 <motion.div
                     key="sandbox-tour"
+                    role="dialog" aria-modal="true" aria-label={`Tour step ${step + 1}: ${current.title}`}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={reduce ? { duration: 0 } : undefined}
                     style={{
-                        position: 'fixed', inset: 0, zIndex: 9999,
-                        // When spotlighting, the scrim comes from the ring's huge
-                        // box-shadow so the target itself stays un-dimmed.
-                        background: rect ? 'transparent' : 'rgba(0,0,0,0.7)',
+                        position: 'fixed', inset: 0, zIndex: Z.popover,
+                        background: rect ? 'transparent' : scrim,
                         display: rect ? 'block' : 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
-                    {/* Spotlight ring around the referenced element */}
+                    {panels.map((p, i) => (
+                        <div key={i} onClick={onClose} style={{ position: 'absolute', background: scrim, ...p }} />
+                    ))}
                     {rect && (
-                        <motion.div
-                            layout
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        <div
+                            aria-hidden="true"
                             style={{
                                 position: 'absolute',
                                 top: rect.top - 6, left: rect.left - 6,
                                 width: rect.width + 12, height: rect.height + 12,
-                                borderRadius: '12px', pointerEvents: 'none',
-                                border: '2px solid #4599FF',
-                                boxShadow: '0 0 0 9999px rgba(0,0,0,0.7), 0 0 24px rgba(69,153,255,0.55)',
+                                borderRadius: R.md, pointerEvents: 'none',
+                                border: `2px solid ${T.accent}`,
+                                boxShadow: '0 0 24px rgba(69,153,255,0.55)',
                             }}
                         />
                     )}
                     <motion.div
-                        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+                        initial={reduce ? { opacity: 0 } : { scale: 0.95, y: 20 }}
+                        animate={reduce ? { opacity: 1 } : { scale: 1, y: 0 }}
+                        exit={reduce ? { opacity: 0 } : { scale: 0.95, opacity: 0 }}
+                        transition={reduce ? { duration: 0 } : undefined}
                         style={{
-                            background: '#242526', border: '1px solid #3A3B3C',
-                            borderRadius: '16px', padding: '24px', maxWidth: '380px', width: '90%',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                            ...cardStyle,
+                            ...card, borderRadius: R.lg, padding: S.xl,
+                            maxWidth: 380, width: 'calc(100% - 32px)',
+                            boxShadow: E.raised, ...cardStyle,
                         }}
                     >
-                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', marginBottom: '8px', fontFamily: "'Orbitron',sans-serif" }}>
+                        <div style={{ fontSize: F.h3, fontWeight: 800, color: T.text, marginBottom: S.sm }}>
                             {current.title}
                         </div>
-                        <p style={{ color: '#B0B3B8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px' }}>
+                        <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
                             {current.text}
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#65676B', fontSize: '11px' }}>{step + 1} of {TOUR_STEPS.length}</span>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button onClick={onClose} style={{
-                                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
-                                    background: 'none', border: '1px solid #3A3B3C', color: '#B0B3B8', cursor: 'pointer',
-                                }}>Skip</button>
-                                <button onClick={() => step < TOUR_STEPS.length - 1 ? onNext() : onClose()} style={{
-                                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
-                                    background: 'linear-gradient(135deg, #2374E1, #4599FF)', border: 'none', color: '#fff', cursor: 'pointer',
-                                }}>{step < TOUR_STEPS.length - 1 ? 'Next' : 'Get Started'}</button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm }}>
+                            <span style={{ color: T.textDim, fontSize: F.caption, fontWeight: 700 }}>{step + 1} of {TOUR_STEPS.length}</span>
+                            <div style={{ display: 'flex', gap: S.sm }}>
+                                <button type="button" className="pa-btn" onClick={onClose} style={btn('secondary')}>Skip</button>
+                                <button type="button" className="pa-btn" onClick={() => (step < TOUR_STEPS.length - 1 ? onNext() : onClose())} style={btn('primary')}>
+                                    {step < TOUR_STEPS.length - 1 ? 'Next' : 'Get started'}
+                                </button>
                             </div>
                         </div>
                     </motion.div>
@@ -656,43 +1371,31 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     };
 
     const channels = [
-        { label: isPosting ? '...' : 'Smarter.Poker', onClick: handleInternalPost },
-        { label: 'Copy', onClick: handleCopy },
-        { label: 'Share', onClick: handleNativeShare },
+        { label: isPosting ? 'Posting…' : 'Post to Smarter.Poker', onClick: handleInternalPost },
+        { label: 'Copy text', onClick: handleCopy },
+        { label: 'Share sheet', onClick: handleNativeShare },
         { label: 'Twitter', onClick: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank') },
         { label: 'Facebook', onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`, '_blank') },
     ];
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{
-            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} style={{
-                background: '#242526', border: '1px solid #3A3B3C',
-                borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '90%',
+        <BottomSheet isOpen={isOpen} onClose={onClose} title="Share analysis" labelledBy="pa-share-analysis-title">
+            <div style={{
+                background: T.surface2, borderRadius: R.sm, padding: S.md, marginBottom: S.lg,
+                fontSize: F.bodySm, color: T.text, whiteSpace: 'pre-line', lineHeight: 1.45,
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#E4E6EB' }}>Share Analysis</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '18px' }}>×</button>
-                </div>
-                <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: '#E4E6EB', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
-                    {shareText}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {channels.map((ch, idx) => (
-                        <button key={ch.label} onClick={ch.onClick} disabled={isPosting && idx === 0} style={{
-                            padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '600',
-                            background: idx === 0 ? 'linear-gradient(135deg, #2374E1, #4599FF)' : '#3A3B3C',
-                            border: idx === 0 ? 'none' : '1px solid #4E4F50',
-                            color: '#E4E6EB', cursor: isPosting && idx === 0 ? 'wait' : 'pointer',
-                            opacity: isPosting && idx === 0 ? 0.7 : 1,
-                            gridColumn: idx === 0 ? '1 / -1' : 'auto'
+                {shareText}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.sm }}>
+                {channels.map((ch, idx) => (
+                    <button key={ch.label} type="button" className="pa-btn" onClick={ch.onClick} disabled={isPosting && idx === 0}
+                        style={{
+                            ...btn(idx === 0 ? 'primary' : 'secondary', { disabled: isPosting && idx === 0 }),
+                            gridColumn: idx === 0 ? '1 / -1' : 'auto', padding: '0 10px',
                         }}>{ch.label}</button>
-                    ))}
-                </div>
-            </motion.div>
-        </motion.div>
+                ))}
+            </div>
+        </BottomSheet>
     );
 }
 
@@ -716,7 +1419,10 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
 
     const streets = ['Flop', 'Turn', 'River'];
     return (
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: '#242526', borderRadius: '10px', padding: '6px' }}>
+        <div style={{
+            display: 'flex', gap: S.sm, marginBottom: S.md, background: T.surface, borderRadius: R.sm,
+            padding: 6, overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+        }}>
             {streetHistory.map((entry, i) => {
                 const isActive = activeStreet === i;
                 // Label from the data, not the index — an imported scenario can
@@ -725,21 +1431,23 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
                     ? String(entry.street).charAt(0).toUpperCase() + String(entry.street).slice(1)
                     : (streets[i] || `Street ${i + 1}`);
                 return (
-                    <button key={i} onClick={() => onSelectStreet(i)} style={{
-                        flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none',
-                        background: isActive ? 'rgba(35,116,225,0.2)' : 'transparent',
-                        cursor: 'pointer', textAlign: 'center',
-                        borderBottom: isActive ? '2px solid #2374E1' : '2px solid transparent',
-                    }}>
-                        <div style={{ fontSize: '10px', fontWeight: '700', color: isActive ? '#4599FF' : '#65676B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <button key={i} type="button" className="pa-btn" onClick={() => onSelectStreet(i)}
+                        aria-pressed={isActive} aria-label={`Show ${streetLabel} analysis`}
+                        style={{
+                            flex: '1 0 88px', minWidth: 88, minHeight: 56, padding: `${S.sm}px 6px`, borderRadius: R.sm,
+                            border: 'none', scrollSnapAlign: 'start', cursor: 'pointer', textAlign: 'center',
+                            background: isActive ? T.accentSoft : 'transparent',
+                            borderBottom: isActive ? `2px solid ${T.accentPress}` : '2px solid transparent',
+                        }}>
+                        <div style={{ fontSize: F.caption, fontWeight: 700, color: isActive ? T.accent : T.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                             {streetLabel}
                         </div>
                         {entry.results && (
                             <>
-                                <div style={{ fontSize: '11px', fontWeight: '600', color: isActive ? '#E4E6EB' : '#B0B3B8', marginTop: '2px' }}>
+                                <div style={{ fontSize: F.caption, fontWeight: 600, color: isActive ? T.text : T.textMuted, marginTop: 2 }}>
                                     {entry.results.optimalAction?.label || '--'}
                                 </div>
-                                <div style={{ fontSize: '9px', color: entry.results.ev?.hero >= 0 ? '#4ade80' : '#f87171', marginTop: '1px' }}>
+                                <div style={{ fontSize: F.caption, color: entry.results.ev?.hero >= 0 ? T.success : T.danger, marginTop: 1, ...NUM }}>
                                     {entry.results.ev?.heroDisplay || ''}
                                 </div>
                             </>
@@ -748,9 +1456,9 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
                 );
             })}
             {streetHistory.length < 3 && (
-                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px dashed #4E4F50' }}>
-                    <div style={{ fontSize: '10px', color: '#65676B' }}>{nextStreetLabel(streetHistory, streets)}</div>
-                    <div style={{ fontSize: '9px', color: '#65676B', marginTop: '2px' }}>Deal to unlock</div>
+                <div style={{ flex: '1 0 88px', minWidth: 88, minHeight: 56, padding: S.sm, borderRadius: R.sm, textAlign: 'center', border: `1px dashed ${T.borderHi}`, scrollSnapAlign: 'start' }}>
+                    <div style={{ fontSize: F.caption, color: T.textMuted, fontWeight: 700 }}>{nextStreetLabel(streetHistory, streets)}</div>
+                    <div style={{ fontSize: F.caption, color: T.textDim, marginTop: 2 }}>Deal to unlock</div>
                 </div>
             )}
         </div>
@@ -761,31 +1469,20 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
 // ANALYSIS SKELETON — Loading animation during analysis
 // ═══════════════════════════════════════════════════════════════════════════
 export function AnalysisSkeleton() {
-    const pulseStyle = {
-        background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)',
-        backgroundSize: '200% 100%',
-        animation: 'shimmer 1.5s infinite',
-        borderRadius: '6px',
-    };
-
+    const block = { background: T.surface2, borderRadius: R.sm };
     return (
-        <div style={{ padding: '16px' }}>
-            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
-            {/* Action bar skeleton */}
-            <div style={{ ...pulseStyle, height: '28px', marginBottom: '12px', width: '60%' }} />
-            {/* Frequency bars */}
+        <div style={{ ...card, padding: S.lg }} aria-busy="true" aria-live="polite">
+            <div className="pa-skel" style={{ ...block, height: 28, marginBottom: S.md, width: '60%' }} />
             {[1, 0.7, 0.4, 0.2].map((w, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ ...pulseStyle, height: '14px', width: '50px' }} />
-                    <div style={{ ...pulseStyle, height: '14px', flex: 1, maxWidth: `${w * 100}%` }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.sm }}>
+                    <div className="pa-skel" style={{ ...block, height: 14, width: 50, flexShrink: 0 }} />
+                    <div className="pa-skel" style={{ ...block, height: 14, flex: 1, maxWidth: `${w * 100}%` }} />
                 </div>
             ))}
-            {/* EV display skeleton */}
-            <div style={{ ...pulseStyle, height: '40px', marginTop: '16px', width: '80%' }} />
-            {/* Heatmap skeleton */}
-            <div style={{ ...pulseStyle, height: '120px', marginTop: '12px' }} />
-            <div style={{ textAlign: 'center', color: '#65676B', fontSize: '11px', marginTop: '12px' }}>
-                Analyzing hand...
+            <div className="pa-skel" style={{ ...block, height: 40, marginTop: S.lg, width: '80%' }} />
+            <div className="pa-skel" style={{ ...block, height: 120, marginTop: S.md }} />
+            <div style={{ textAlign: 'center', color: T.textMuted, fontSize: F.caption, marginTop: S.md }}>
+                Analyzing hand…
             </div>
         </div>
     );
@@ -795,7 +1492,8 @@ export function AnalysisSkeleton() {
 // PREFLOP CHART OVERLAY — Phase 2.1
 // Compact 13x13 range grid with position-specific GTO colors
 // ═══════════════════════════════════════════════════════════════════════════
-export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercent, onChangeScenario }) {
+export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercent, onChangeScenario, onPickHand }) {
+    const [picked, setPicked] = useState(null);
     if (!rangeGrid) return null;
 
     // 'check' is emitted for BB RFI (the BB is never first-in — an unopened pot
@@ -804,42 +1502,58 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
     const actionColors = { raise: '#22c55e', '3bet': '#ef4444', call: '#3b82f6', check: '#6b7280', fold: 'transparent' };
     const CELL_FALLBACK = '#3A3B3C';
     const cellColor = (action) => actionColors[action] || CELL_FALLBACK;
-    const hasCheck = rangeGrid.flat().some(c => c && c.action === 'check');
+    const cells = rangeGrid.flat();
+    const hasCheck = cells.some(c => c && c.action === 'check');
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    Preflop Range -- {position} ({rangePercent}% of hands{hasCheck ? ', checked through' : ''})
-                </h4>
-                <div style={{ display: 'flex', gap: '4px' }}>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}>
+                <p style={sectionTitle}>
+                    {position} range — {rangePercent}%{hasCheck ? ' (checked through)' : ''}
+                </p>
+                <div style={{ display: 'flex', gap: S.sm }}>
                     {['rfi', '3bet'].map(s => (
-                        <button key={s} onClick={() => onChangeScenario(s)} style={{
-                            padding: '3px 8px', borderRadius: '5px', fontSize: '9px', fontWeight: '600',
-                            background: scenario === s ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                            border: scenario === s ? '1px solid rgba(35,116,225,0.3)' : '1px solid #4E4F50',
-                            color: scenario === s ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
-                        }}>{s === 'rfi' ? 'Open Raise' : '3-Bet'}</button>
+                        <button key={s} type="button" className="pa-btn" onClick={() => onChangeScenario(s)} aria-pressed={scenario === s}
+                            style={{ ...btn(scenario === s ? 'primary' : 'secondary'), padding: '0 12px', fontSize: F.caption }}>
+                            {s === 'rfi' ? 'Open' : '3-Bet'}
+                        </button>
                     ))}
                 </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px', fontSize: '7px' }}>
-                {rangeGrid.flat().map((cell, i) => (
-                    <div key={i} style={{
-                        padding: '2px 1px', textAlign: 'center', borderRadius: '2px',
-                        background: cell.inRange ? cellColor(cell.action) + '33' : '#242526',
-                        border: cell.inRange ? `1px solid ${cellColor(cell.action)}44` : '1px solid transparent',
-                        color: cell.inRange ? '#E4E6EB' : '#4E4F50',
-                        fontWeight: cell.inRange ? '600' : '400',
-                    }}>{cell.hand}</div>
-                ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, fontSize: F.caption }}>
+                {cells.map((cell, i) => {
+                    // getRangeGrid can emit sparse rows — a null cell used to crash
+                    // the whole preflop panel on `cell.inRange`.
+                    if (!cell) return <div key={i} aria-hidden="true" style={{ aspectRatio: '1' }} />;
+                    const isPicked = picked === cell.hand;
+                    return (
+                        <button key={i} type="button" onClick={() => { setPicked(cell.hand); onPickHand?.(cell.hand); }}
+                            aria-label={`${cell.hand}: ${cell.inRange ? cell.action || 'in range' : 'fold'}`}
+                            style={{
+                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: 0, borderRadius: 2, cursor: 'pointer', overflow: 'hidden',
+                                letterSpacing: -0.6, fontSize: F.caption,
+                                background: cell.inRange ? cellColor(cell.action) + '33' : T.surface,
+                                border: isPicked ? `1px solid ${T.text}` : cell.inRange ? `1px solid ${cellColor(cell.action)}44` : '1px solid transparent',
+                                color: cell.inRange ? T.text : T.surface3,
+                                fontWeight: cell.inRange ? 700 : 400,
+                                touchAction: 'manipulation',
+                            }}>{cell.hand}</button>
+                    );
+                })}
             </div>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '9px' }}>
+            <div style={{ display: 'flex', gap: S.md, marginTop: S.sm, fontSize: F.caption, flexWrap: 'wrap', fontWeight: 700 }}>
                 <span style={{ color: actionColors.raise }}>Raise</span>
                 <span style={{ color: actionColors['3bet'] }}>3-Bet</span>
                 <span style={{ color: actionColors.call }}>Call</span>
                 {hasCheck && <span style={{ color: actionColors.check }}>Check</span>}
-                <span style={{ color: '#4E4F50' }}>Fold</span>
+                <span style={{ color: T.textDim }}>Fold</span>
             </div>
+            {picked && (
+                <p style={{ fontSize: F.caption, color: T.textMuted, margin: `${S.sm}px 0 0` }}>
+                    Selected <strong style={{ color: T.text }}>{picked}</strong>
+                    {onPickHand ? ' — loaded into the hero hand.' : '.'}
+                </p>
+            )}
         </div>
     );
 }
@@ -851,41 +1565,36 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
 export function RunoutChart({ runoutData }) {
     if (!runoutData || !runoutData.bestCards || runoutData.bestCards.length === 0) return null;
 
+    const stat = (value, label, color) => (
+        <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: F.h2, fontWeight: 800, color, ...NUM }}>{value}%</div>
+            <div style={{ fontSize: F.caption, color: T.textMuted }}>{label}</div>
+        </div>
+    );
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
-            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px', fontWeight: '700' }}>
-                Runout Simulator
-            </h4>
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '8px' }}>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#22c55e', fontFamily: "'Orbitron',monospace" }}>{runoutData.improveRate}%</div>
-                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Cards improve</div>
-                </div>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#ef4444', fontFamily: "'Orbitron',monospace" }}>{runoutData.worsenRate}%</div>
-                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Cards worsen</div>
-                </div>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#fbbf24', fontFamily: "'Orbitron',monospace" }}>{runoutData.avgEquity}%</div>
-                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Avg equity</div>
-                </div>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}><p style={sectionTitle}>Runout simulator</p></div>
+            <div style={{ display: 'flex', gap: S.md, marginBottom: S.md }}>
+                {stat(runoutData.improveRate, 'Improve', T.success)}
+                {stat(runoutData.worsenRate, 'Worsen', T.danger)}
+                {stat(runoutData.avgEquity, 'Avg equity', T.warn)}
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '9px', color: '#22c55e', fontWeight: '600', marginBottom: '4px' }}>Best Cards</div>
+            <div style={{ display: 'flex', gap: S.md }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: F.caption, color: T.success, fontWeight: 700, marginBottom: S.xs }}>Best cards</div>
                     {runoutData.bestCards.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '10px' }}>
-                            <span style={{ color: '#E4E6EB', fontWeight: '600' }}>{c.card}</span>
-                            <span style={{ color: '#22c55e' }}>{c.equity}%</span>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
+                            <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
+                            <span style={{ color: T.success, ...NUM }}>{c.equity}%</span>
                         </div>
                     ))}
                 </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: '600', marginBottom: '4px' }}>Worst Cards</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: F.caption, color: T.danger, fontWeight: 700, marginBottom: S.xs }}>Worst cards</div>
                     {runoutData.worstCards.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '10px' }}>
-                            <span style={{ color: '#E4E6EB', fontWeight: '600' }}>{c.card}</span>
-                            <span style={{ color: '#ef4444' }}>{c.equity}%</span>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
+                            <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
+                            <span style={{ color: T.danger, ...NUM }}>{c.equity}%</span>
                         </div>
                     ))}
                 </div>
@@ -899,22 +1608,19 @@ export function RunoutChart({ runoutData }) {
 // Toggle between GTO and Exploitative recommendations
 // ═══════════════════════════════════════════════════════════════════════════
 export function ExploitToggle({ mode, onToggle, exploitTip }) {
+    const isGto = mode === 'gto';
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.md, flexWrap: 'wrap' }}>
             <button
-                onClick={() => onToggle(mode === 'gto' ? 'exploit' : 'gto')}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: '700',
-                    background: mode === 'gto' ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)',
-                    border: `1px solid ${mode === 'gto' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.3)'}`,
-                    color: mode === 'gto' ? '#4ade80' : '#fde68a',
-                    cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px',
-                }}>
-                {mode === 'gto' ? 'GTO' : 'Exploit'}
+                type="button" className="pa-btn"
+                aria-pressed={!isGto}
+                aria-label={isGto ? 'Switch to exploitative mode' : 'Switch to GTO mode'}
+                onClick={() => onToggle(isGto ? 'exploit' : 'gto')}
+                style={{ ...btn(isGto ? 'success' : 'secondary'), borderRadius: R.pill, padding: '0 16px', color: isGto ? T.success : T.warn }}>
+                {isGto ? 'GTO' : 'Exploit'}
             </button>
-            {mode === 'exploit' && exploitTip && (
-                <span style={{ fontSize: '10px', color: '#fde68a', fontStyle: 'italic' }}>{exploitTip}</span>
+            {!isGto && exploitTip && (
+                <span style={{ fontSize: F.caption, color: T.warn, flex: '1 1 160px', minWidth: 0, lineHeight: 1.45 }}>{exploitTip}</span>
             )}
         </div>
     );
@@ -924,46 +1630,61 @@ export function ExploitToggle({ mode, onToggle, exploitTip }) {
 // QUIZ PANEL — Phase 3.1
 // "What Would You Do?" — pick an action before seeing the GTO answer
 // ═══════════════════════════════════════════════════════════════════════════
-export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }) {
+export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score, prompt }) {
     // Every size bucket the grader knows about must be reachable, otherwise a
-    // pot-sized GTO answer would be impossible to get right.
-    const actions = ['Fold', 'Check', 'Call', 'Raise', 'Bet Small', 'Bet Medium', 'Bet Large', 'Bet Pot', 'All-In'];
+    // pot-sized GTO answer would be impossible to get right. Short labels keep
+    // the 3x3 decision matrix readable at 375px; the full name is the aria-label.
+    const [pending, setPending] = useState(null);
+    const actions = [
+        { label: 'Fold', short: 'Fold', group: 'passive' },
+        { label: 'Check', short: 'Check', group: 'passive' },
+        { label: 'Call', short: 'Call', group: 'passive' },
+        { label: 'Bet Small', short: 'Bet S', group: 'aggro' },
+        { label: 'Bet Medium', short: 'Bet M', group: 'aggro' },
+        { label: 'Bet Large', short: 'Bet L', group: 'aggro' },
+        { label: 'Bet Pot', short: 'Pot', group: 'aggro' },
+        { label: 'Raise', short: 'Raise', group: 'aggro' },
+        { label: 'All-In', short: 'All-In', group: 'aggro' },
+    ];
 
     if (revealed) {
         const isCorrect = !!(userGuess && correctAction) && gradeAction(userGuess, correctAction);
         return (
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            <div
                 style={{
-                    padding: '12px', borderRadius: '12px', marginBottom: '12px',
-                    background: isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                    border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                    padding: S.md, borderRadius: R.md, marginBottom: S.md,
+                    background: isCorrect ? T.successSoft : T.dangerSoft,
+                    border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
                 }}>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: isCorrect ? '#4ade80' : '#fca5a5', marginBottom: '4px' }}>
+                <div style={{ fontSize: F.h3, fontWeight: 800, color: isCorrect ? T.success : T.danger, marginBottom: S.xs, display: 'flex', alignItems: 'center', gap: S.sm }}>
+                    {isCorrect ? <Check size={18} strokeWidth={3} aria-hidden="true" /> : <XIcon size={18} strokeWidth={3} aria-hidden="true" />}
                     {isCorrect ? 'Correct' : 'Incorrect'}
                 </div>
-                <div style={{ fontSize: '11px', color: '#B0B3B8' }}>
-                    You chose: <strong style={{ color: '#E4E6EB' }}>{userGuess}</strong> | GTO: <strong style={{ color: '#4599FF' }}>{correctAction}</strong>
+                <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
+                    You chose <strong style={{ color: T.text }}>{userGuess}</strong> — GTO: <strong style={{ color: T.accent }}>{correctAction}</strong>
                 </div>
                 {score && (
-                    <div style={{ fontSize: '10px', color: '#B0B3B8', marginTop: '4px' }}>
-                        Score: {score.correct}/{score.total} ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%) | Streak: {score.streak}
+                    <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...NUM }}>
+                        Score {score.correct}/{score.total} ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%) · Streak {score.streak}
                     </div>
                 )}
-            </motion.div>
+            </div>
         );
     }
 
     return (
-        <div style={{ padding: '12px', borderRadius: '12px', marginBottom: '12px', background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.2)' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: '#4599FF', marginBottom: '8px' }}>What Would You Do?</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+        <div style={{ padding: S.md, borderRadius: R.md, marginBottom: S.md, background: T.accentSoft, border: `1px solid rgba(69,153,255,0.35)` }}>
+            <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.accent, marginBottom: S.sm }}>What would you do?</div>
+            {prompt && <p style={{ fontSize: F.bodySm, color: T.text, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>{prompt}</p>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: S.sm }}>
                 {actions.map(a => (
-                    <button key={a} onClick={() => onGuess(a)} style={{
-                        padding: '6px 4px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-                        background: '#242526', border: '1px solid #3A3B3C', color: '#E4E6EB',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                    }}>{a}</button>
+                    <button key={a.label} type="button" className="pa-btn" aria-label={a.label}
+                        onClick={() => { setPending(a.label); onGuess(a.label); }}
+                        style={{
+                            ...btn(a.group === 'passive' ? 'secondary' : 'success'),
+                            minHeight: 48, padding: '0 6px', fontSize: F.label, width: '100%',
+                            outline: pending === a.label ? `2px solid ${T.accent}` : 'none', outlineOffset: 2,
+                        }}>{a.short}</button>
                 ))}
             </div>
         </div>
@@ -978,22 +1699,22 @@ export function StudyReplayCard({ session, index, total, onNext, onPrev }) {
     if (!session) return null;
 
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px', border: '1px solid #3A3B3C' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    Study Card {index + 1} of {total}
-                </h4>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                    <button onClick={onPrev} disabled={index === 0} style={{ padding: '4px 8px', borderRadius: '5px', fontSize: '11px', background: '#3A3B3C', border: 'none', color: index === 0 ? '#65676B' : '#E4E6EB', cursor: index === 0 ? 'default' : 'pointer' }}>Prev</button>
-                    <button onClick={onNext} disabled={index >= total - 1} style={{ padding: '4px 8px', borderRadius: '5px', fontSize: '11px', background: '#3A3B3C', border: 'none', color: index >= total - 1 ? '#65676B' : '#E4E6EB', cursor: index >= total - 1 ? 'default' : 'pointer' }}>Next</button>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}>
+                <p style={sectionTitle}>Study card {index + 1} of {total}</p>
+                <div style={{ display: 'flex', gap: S.sm }}>
+                    <button type="button" className="pa-btn" onClick={onPrev} disabled={index === 0} aria-label="Previous study card"
+                        style={{ ...btn('secondary', { disabled: index === 0 }), padding: '0 12px', fontSize: F.caption }}>Prev</button>
+                    <button type="button" className="pa-btn" onClick={onNext} disabled={index >= total - 1} aria-label="Next study card"
+                        style={{ ...btn('secondary', { disabled: index >= total - 1 }), padding: '0 12px', fontSize: F.caption }}>Next</button>
                 </div>
             </div>
-            <div style={{ fontSize: '11px', color: '#E4E6EB', marginBottom: '4px' }}>
-                {session.label || session.hero_position + ' ' + (session.hero_hand || 'Unknown')}
+            <div style={{ fontSize: F.bodySm, color: T.text, marginBottom: S.xs }}>
+                {session.label || `${session.hero_position || ''} ${session.hero_hand || 'Unknown'}`}
             </div>
             {session.full_analysis && (
-                <div style={{ fontSize: '10px', color: '#B0B3B8' }}>
-                    Optimal: <strong style={{ color: '#4ade80' }}>{session.full_analysis?.optimalAction?.label || 'N/A'}</strong>
+                <div style={{ fontSize: F.caption, color: T.textMuted }}>
+                    Optimal: <strong style={{ color: T.success }}>{session.full_analysis?.optimalAction?.label || 'N/A'}</strong>
                 </div>
             )}
         </div>
@@ -1018,17 +1739,46 @@ export function AccuracyBadge({ stats }) {
         ? Math.round(Number(stats.accuracy))
         : Math.round((correct / total) * 100);
     const streak = Number(stats.streak) || 0;
+    const tone = accuracy >= 70 ? 'success' : accuracy >= 50 ? 'warn' : 'danger';
 
     return (
+        <span style={{ ...pill(tone), ...NUM }} aria-label={`Quiz accuracy ${accuracy} percent, streak ${streak}`}>
+            <Target size={12} strokeWidth={2} aria-hidden="true" />
+            {accuracy}%
+            {streak > 0 && <span style={{ color: T.warn, marginLeft: 4 }}>{streak}x</span>}
+        </span>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATUS STRIP — always-visible progress loop (accuracy, coach streak, pot,
+// equity). This is the cheapest motivation loop available and every number in
+// it is already computed elsewhere in the page.
+// ═══════════════════════════════════════════════════════════════════════════
+export function StatusStrip({ quizScore, coachStreak = 0, equity = null, pot = null, spr = null, handClass = null, dueCount = 0, onDue }) {
+    return (
         <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '4px 10px', borderRadius: '16px', fontSize: '10px', fontWeight: '700',
-            background: accuracy >= 70 ? 'rgba(34,197,94,0.1)' : accuracy >= 50 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
-            border: `1px solid ${accuracy >= 70 ? 'rgba(34,197,94,0.2)' : accuracy >= 50 ? 'rgba(251,191,36,0.2)' : 'rgba(239,68,68,0.2)'}`,
-            color: accuracy >= 70 ? '#4ade80' : accuracy >= 50 ? '#fde68a' : '#fca5a5',
+            display: 'flex', alignItems: 'center', gap: S.sm, overflowX: 'auto', padding: `${S.sm}px 0`,
+            WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', minHeight: 44,
         }}>
-            <span>{accuracy}% Accuracy</span>
-            {streak > 0 && <span style={{ color: '#fbbf24' }}>{streak} Streak</span>}
+            {handClass && <span style={{ ...pill('accent'), flexShrink: 0 }}>{handClass}</span>}
+            {equity != null && Number.isFinite(Number(equity)) && (
+                <span style={{ ...pill(Number(equity) >= 50 ? 'success' : 'warn'), ...NUM, flexShrink: 0 }}>{Number(equity).toFixed(1)}% eq</span>
+            )}
+            {pot != null && <span style={{ ...pill('neutral'), ...NUM, flexShrink: 0 }}>Pot {Number(pot).toFixed(1)} BB</span>}
+            {spr != null && <span style={{ ...pill('neutral'), ...NUM, flexShrink: 0 }}>SPR {spr}</span>}
+            <AccuracyBadge stats={quizScore} />
+            {coachStreak > 0 && (
+                <span style={{ ...pill('warn'), flexShrink: 0 }} aria-label={`Coach streak ${coachStreak}`}>
+                    <Flame size={12} strokeWidth={2} aria-hidden="true" />{coachStreak}
+                </span>
+            )}
+            {dueCount > 0 && (
+                <button type="button" className="pa-btn" onClick={onDue}
+                    style={{ ...btn('purple'), borderRadius: R.pill, padding: '0 14px', fontSize: F.caption, flexShrink: 0 }}>
+                    Due today ({dueCount})
+                </button>
+            )}
         </div>
     );
 }
@@ -1041,19 +1791,17 @@ export function LeaderboardCard({ entries }) {
     if (!entries || entries.length === 0) return null;
 
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px', border: '1px solid #3A3B3C' }}>
-            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px', fontWeight: '700' }}>
-                Leaderboard
-            </h4>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}><p style={sectionTitle}>Leaderboard</p></div>
             {entries.map((e, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '11px', borderBottom: i < entries.length - 1 ? '1px solid #3A3B3C' : 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: i < 3 ? '#fbbf24' : '#B0B3B8', fontWeight: '700' }}>#{i + 1}</span>
-                        <span style={{ color: '#E4E6EB' }}>{e.name || 'Anonymous'}</span>
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: S.sm, padding: '6px 0', fontSize: F.bodySm, borderBottom: i < entries.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <span style={{ color: i < 3 ? T.warn : T.textMuted, fontWeight: 700, ...NUM }}>#{i + 1}</span>
+                        <span style={{ color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name || 'Anonymous'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: e.accuracy >= 70 ? '#4ade80' : '#fde68a', fontWeight: '600' }}>{e.accuracy}%</span>
-                        {e.streak > 0 && <span style={{ color: '#fbbf24', fontSize: '10px' }}>{e.streak} Streak</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexShrink: 0 }}>
+                        <span style={{ color: e.accuracy >= 70 ? T.success : T.warn, fontWeight: 700, ...NUM }}>{e.accuracy}%</span>
+                        {e.streak > 0 && <span style={{ color: T.warn, fontSize: F.caption, ...NUM }}>{e.streak}x</span>}
                     </div>
                 </div>
             ))}
@@ -1069,7 +1817,7 @@ export function LeaderboardCard({ entries }) {
 const STREET_SHORT = { preflop: 'Pre', flop: 'Flop', turn: 'Turn', river: 'River' };
 const STREET_SHORT_SEQ = ['Pre', 'Flop', 'Turn', 'River'];
 
-export function EquityGraph({ streetHistory, currentEquity, currentStreet }) {
+export function EquityGraph({ streetHistory, currentEquity, currentStreet, onSelectStreet, verdicts }) {
     const points = useMemo(() => {
         const pts = [];
         // Archived streets come FIRST (oldest -> newest), labelled from their own
@@ -1093,7 +1841,7 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet }) {
                     ? (STREET_SHORT_SEQ[Math.min(lastIdx + 1, STREET_SHORT_SEQ.length - 1)])
                     : (STREET_SHORT_SEQ[Math.min(streetHistory?.length || 0, STREET_SHORT_SEQ.length - 1)] || 'Now');
             }
-            pts.push({ street: liveLabel, equity: Number(currentEquity) });
+            pts.push({ street: liveLabel, equity: Number(currentEquity), live: true });
         }
         return pts.filter(p => Number.isFinite(p.equity));
     }, [streetHistory, currentEquity, currentStreet]);
@@ -1109,15 +1857,14 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet }) {
     const color = lastEquity >= 50 ? '#22c55e' : '#ef4444';
 
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
-            <div style={{ fontSize: '10px', fontWeight: '700', color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-                Equity Progression
-            </div>
-            <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block', overflow: 'visible' }}>
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}><p style={sectionTitle}>Equity progression</p></div>
+            <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
+                aria-label={`Equity by street: ${points.map(p => `${p.street} ${Math.round(p.equity)} percent`).join(', ')}`}
+                style={{ display: 'block', overflow: 'visible' }}>
                 {[25, 50, 75].map(v => (
-                    <line key={v} x1={PAD} y1={yScale(v)} x2={W - PAD} y2={yScale(v)} stroke="#3A3B3C" strokeWidth="1" strokeDasharray="3,3" />
+                    <line key={v} x1={PAD} y1={yScale(v)} x2={W - PAD} y2={yScale(v)} stroke={T.surface2} strokeWidth="1" strokeDasharray="3,3" />
                 ))}
-                <text x={W - PAD + 2} y={yScale(50) + 4} fontSize="8" fill="#65676B">50%</text>
                 <defs>
                     <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -1126,16 +1873,31 @@ export function EquityGraph({ streetHistory, currentEquity, currentStreet }) {
                 </defs>
                 <path d={areaD} fill="url(#eqGrad)" />
                 <path d={lineD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                {points.map((p, i) => (
-                    <g key={i}>
-                        <circle cx={PAD + i * xStep} cy={yScale(p.equity)} r="3" fill={color} />
-                        <text x={PAD + i * xStep} y={H - 2} textAnchor="middle" fontSize="8" fill="#65676B">{p.street}</text>
-                        <text x={PAD + i * xStep} y={yScale(p.equity) - 6} textAnchor="middle" fontSize="8" fill={color} fontWeight="700">
-                            {Math.round(p.equity)}%
-                        </text>
-                    </g>
-                ))}
+                {points.map((p, i) => {
+                    const verdict = verdicts?.[i];
+                    const dot = verdict == null ? color : verdict ? T.success : T.danger;
+                    return (
+                        <g key={i}>
+                            <circle cx={PAD + i * xStep} cy={yScale(p.equity)} r="4" fill={dot} />
+                            <text x={PAD + i * xStep} y={H - 2} textAnchor="middle" fontSize="10" fill={T.textMuted}>{p.street}</text>
+                            <text x={PAD + i * xStep} y={yScale(p.equity) - 8} textAnchor="middle" fontSize="10" fill={color} fontWeight="700">
+                                {Math.round(p.equity)}%
+                            </text>
+                        </g>
+                    );
+                })}
             </svg>
+            {onSelectStreet && points.length > 1 && (
+                <div style={{ display: 'flex', gap: S.sm, marginTop: S.sm, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    {points.map((p, i) => (
+                        <button key={i} type="button" className="pa-btn" onClick={() => onSelectStreet(i)}
+                            aria-label={`Show ${p.street} analysis`}
+                            style={{ ...btn('secondary'), flexShrink: 0, padding: '0 12px', fontSize: F.caption }}>
+                            {p.street} {Math.round(p.equity)}%
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -1172,121 +1934,239 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
         onClearSession?.();
     }, [confirmClear, clearConfirmTimer, onClearSession]);
 
-    if (!isOpen) return null;
+    // Filters + paging keep a 200-hand journal from rendering 200 shadowed rows
+    // on a mid-range phone (and turn the dump into a study tool).
+    const [filter, setFilter] = useState('all');
+    const [limit, setLimit] = useState(24);
+    useEffect(() => { if (isOpen) { setLimit(24); setFilter('all'); } }, [isOpen]);
+
+    const ordered = useMemo(() => {
+        const list = Array.isArray(sessionLog) ? [...sessionLog].reverse() : [];
+        if (filter === 'correct') return list.filter(e => e.isCorrect === true);
+        if (filter === 'incorrect') return list.filter(e => e.isCorrect === false);
+        if (filter === 'preflop' || filter === 'flop' || filter === 'turn' || filter === 'river') {
+            return list.filter(e => String(e.street || '').toLowerCase() === filter);
+        }
+        return list;
+    }, [sessionLog, filter]);
+
+    const visible = useMemo(() => ordered.slice(0, limit), [ordered, limit]);
     const ACTION_COLORS = SESSION_ACTION_COLORS;
 
+    const FILTERS = [
+        ['all', 'All'], ['correct', 'Correct'], ['incorrect', 'Missed'],
+        ['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River'],
+    ];
+
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{
-            position: 'fixed', inset: 0, zIndex: 9990, background: 'rgba(0,0,0,0.75)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-        }} onClick={onClose}>
-            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} onClick={e => e.stopPropagation()} style={{
-                background: '#18191A', borderRadius: '20px 20px 0 0', border: '1px solid #3A3B3C',
-                width: '100%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            }}>
-                <div style={{ padding: '16px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#E4E6EB' }}>
-                        Session Log <span style={{ fontSize: '12px', color: '#65676B', fontWeight: '600' }}>({sessionLog?.length || 0} hands)</span>
-                    </h3>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {(sessionLog?.length > 0) && (
-                            <button onClick={handleClearClick}
-                                style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: confirmClear ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.1)', border: `1px solid ${confirmClear ? 'rgba(239,68,68,0.5)' : 'rgba(239,68,68,0.2)'}`, color: confirmClear ? '#ef4444' : '#fca5a5', cursor: 'pointer' }}>
-                                {confirmClear ? 'Confirm clear?' : 'Clear'}
-                            </button>
-                        )}
-                        <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                    </div>
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-                    {!sessionLog?.length ? (
-                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#65676B', fontSize: '13px' }}>
-                            No hands yet. Run an analysis to start tracking.
-                        </div>
-                    ) : [...sessionLog].reverse().map((entry, i) => {
+        <BottomSheet
+            isOpen={isOpen} onClose={onClose}
+            title="Session log"
+            subtitle={`${sessionLog?.length || 0} hands`}
+            labelledBy="pa-session-log-title"
+            headerRight={(sessionLog?.length > 0) ? (
+                <button type="button" className="pa-btn" onClick={handleClearClick}
+                    style={{ ...btn('danger'), padding: '0 12px', fontSize: F.caption }}>
+                    {confirmClear ? 'Confirm?' : 'Clear'}
+                </button>
+            ) : null}
+        >
+            <div style={{ display: 'flex', gap: S.sm, overflowX: 'auto', paddingBottom: S.sm, marginBottom: S.md, WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}>
+                {FILTERS.map(([id, label]) => (
+                    <button key={id} type="button" className="pa-btn" onClick={() => { setFilter(id); setLimit(24); }} aria-pressed={filter === id}
+                        style={{ ...btn(filter === id ? 'primary' : 'secondary'), borderRadius: R.pill, padding: '0 14px', fontSize: F.caption, flexShrink: 0, scrollSnapAlign: 'start' }}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {!sessionLog?.length ? (
+                <EmptyState
+                    icon={<Inbox size={24} strokeWidth={2} aria-hidden="true" />}
+                    title="No hands yet"
+                    body="Run an analysis and every hand you study lands here — filterable and replayable."
+                />
+            ) : ordered.length === 0 ? (
+                <EmptyState
+                    icon={<Filter size={24} strokeWidth={2} aria-hidden="true" />}
+                    title="Nothing matches"
+                    body="No hands match this filter yet."
+                    action={<button type="button" className="pa-btn" onClick={() => setFilter('all')} style={btn('secondary')}>Show all</button>}
+                />
+            ) : (
+                <>
+                    {visible.map((entry, i) => {
                         const actionKey = (entry.optimalAction || '').toLowerCase().split(' ')[0];
-                        const badgeColor = ACTION_COLORS[actionKey] || '#4599FF';
+                        const badgeColor = ACTION_COLORS[actionKey] || T.accent;
                         return (
-                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onLoadEntry(entry); onClose(); }}
-                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', background: '#242526', border: '1px solid #3A3B3C', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
-                                <div style={{ width: 36, height: 36, borderRadius: '10px', background: `${badgeColor}22`, border: `1px solid ${badgeColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', color: badgeColor, flexShrink: 0 }}>
-                                    {(entry.optimalAction || '??').substring(0, 4)}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#E4E6EB' }}>{entry.hand} — {entry.position}</div>
-                                    <div style={{ fontSize: '11px', color: '#B0B3B8', marginTop: '2px' }}>{entry.street} · {entry.board || 'Preflop'}{entry.equity != null ? ` · ${Math.round(entry.equity)}% eq` : ''}</div>
-                                </div>
-                                <div style={{ fontSize: '10px', color: '#65676B', flexShrink: 0 }}>↩</div>
+                            <button key={entry.id || i} type="button" className="pa-btn"
+                                onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onLoadEntry(entry); onClose(); }}
+                                style={{
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: S.md, padding: S.md,
+                                    marginBottom: S.sm, borderRadius: R.sm, minHeight: 60,
+                                    background: T.surface2, border: `1px solid ${T.borderHi}`, cursor: 'pointer',
+                                    textAlign: 'left', touchAction: 'manipulation',
+                                }}>
+                                <span style={{
+                                    width: 40, height: 40, borderRadius: R.sm, background: `${badgeColor}22`, border: `1px solid ${badgeColor}44`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: F.caption, fontWeight: 700,
+                                    color: badgeColor, flexShrink: 0,
+                                }}>
+                                    {(entry.optimalAction || '—').substring(0, 4)}
+                                </span>
+                                <span style={{ flex: 1, minWidth: 0 }}>
+                                    <span style={{ display: 'block', fontSize: F.bodySm, fontWeight: 700, color: T.text }}>{entry.hand} — {entry.position}</span>
+                                    <span style={{ display: 'block', fontSize: F.caption, color: T.textMuted, marginTop: 2, ...NUM }}>
+                                        {entry.street} · {entry.board || 'Preflop'}{entry.equity != null ? ` · ${Math.round(entry.equity)}% eq` : ''}
+                                    </span>
+                                </span>
+                                {entry.isCorrect === true && <Check size={18} strokeWidth={3} style={{ color: T.success, flexShrink: 0 }} aria-label="Correct" />}
+                                {entry.isCorrect === false && <XIcon size={18} strokeWidth={3} style={{ color: T.danger, flexShrink: 0 }} aria-label="Missed" />}
+                                <ChevronRight size={18} strokeWidth={2} style={{ color: T.textDim, flexShrink: 0 }} aria-hidden="true" />
                             </button>
                         );
                     })}
-                </div>
-            </motion.div>
-        </motion.div>
+                    {ordered.length > visible.length && (
+                        <button type="button" className="pa-btn" onClick={() => setLimit(l => l + 24)}
+                            style={{ ...btn('secondary', { block: true }), marginTop: S.sm }}>
+                            Load 24 more ({ordered.length - visible.length} left)
+                        </button>
+                    )}
+                </>
+            )}
+        </BottomSheet>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COACH ACTION PICKER — Wave 2 Feature 6 (Socratic Coach)
 // ═══════════════════════════════════════════════════════════════════════════
-export function CoachActionPicker({ isOpen, onPick, onSkip }) {
-    if (!isOpen) return null;
+/**
+ * The single most-used interaction in the trainer. It is a bottom sheet with a
+ * full scenario header (hand, board, pot, position, villain, pot odds / MDF) —
+ * the old centered dialog covered the table and asked the user to decide from
+ * memory, with no dismiss path other than "Skip".
+ */
+export function CoachActionPicker({
+    isOpen, onPick, onSkip,
+    heroHand, board, potSize, heroPosition, villain, handState, street, newCard,
+}) {
     const ACTIONS = [
-        { id: 'fold', label: 'Fold', color: '#ef4444' },
-        { id: 'check', label: 'Check', color: '#94a3b8' },
-        { id: 'call', label: 'Call', color: '#fbbf24' },
-        { id: 'bet_33', label: 'Bet 33%', color: '#4ade80' },
-        { id: 'bet_66', label: 'Bet 66%', color: '#22c55e' },
-        { id: 'bet_100', label: 'Bet Pot', color: '#16a34a' },
-        { id: 'raise', label: 'Raise', color: '#3b82f6' },
-        { id: 'allin', label: 'All-In', color: '#f97316' },
+        { id: 'fold', label: 'Fold', tone: 'danger' },
+        { id: 'check', label: 'Check', tone: 'secondary' },
+        { id: 'call', label: 'Call', tone: 'secondary' },
+        { id: 'bet_33', label: 'Bet 33%', tone: 'success' },
+        { id: 'bet_66', label: 'Bet 66%', tone: 'success' },
+        { id: 'bet_100', label: 'Bet Pot', tone: 'success' },
+        { id: 'raise', label: 'Raise', tone: 'secondary' },
+        { id: 'allin', label: 'All-In', tone: 'secondary' },
     ];
+    const legal = handState ? legalActionsFor(handState, 'hero') : null;
+    const ordered = legal
+        ? [...ACTIONS].sort((a, b) => (legal.includes(b.id) ? 1 : 0) - (legal.includes(a.id) ? 1 : 0))
+        : ACTIONS;
+
+    const boardCards = Array.isArray(board)
+        ? board.filter(Boolean)
+        : [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+    const handCards = [heroHand?.card1, heroHand?.card2].filter(Boolean);
+
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} style={{ background: '#18191A', border: '1px solid rgba(35,116,225,0.3)', borderRadius: '20px', padding: '24px', maxWidth: '360px', width: '100%', boxShadow: '0 0 60px rgba(35,116,225,0.18)' }}>
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                        <Brain size={28} strokeWidth={2} style={{ color: '#4599FF' }} aria-hidden="true" />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', fontFamily: "'Orbitron', sans-serif" }}>Coach Mode</div>
-                    <div style={{ fontSize: '13px', color: '#B0B3B8', marginTop: '4px' }}>What would you do in this spot?</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-                    {ACTIONS.map(a => (
-                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onPick(a.label); }}
-                            style={{ padding: '12px 8px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', background: `${a.color}15`, border: `1px solid ${a.color}40`, color: a.color, cursor: 'pointer', touchAction: 'manipulation' }}>
-                            {a.label}
-                        </button>
-                    ))}
-                </div>
-                <button onClick={onSkip} style={{ width: '100%', padding: '10px', borderRadius: '10px', fontSize: '12px', background: 'none', border: '1px solid #3A3B3C', color: '#65676B', cursor: 'pointer' }}>
+        <BottomSheet
+            isOpen={isOpen} onClose={onSkip}
+            title="What would you do?"
+            subtitle={`Coach mode · ${street || 'this spot'}`}
+            labelledBy="pa-coach-title"
+            footer={(
+                <button type="button" className="pa-btn" onClick={onSkip} style={btn('ghost', { block: true })}>
                     Skip — just show the answer
                 </button>
-            </motion.div>
-        </motion.div>
+            )}
+        >
+            <div style={{ ...cardCompact, background: T.surface2, marginBottom: S.lg }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.sm, flexWrap: 'wrap' }}>
+                    <Brain size={18} strokeWidth={2} style={{ color: T.accent, flexShrink: 0 }} aria-hidden="true" />
+                    <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
+                        {handCards.length ? handCards.join(' ') : 'No hand set'}
+                    </span>
+                    <span style={{ ...pill('accent') }}>{heroPosition || 'Hero'}</span>
+                    {villain?.archetype?.name && <span style={{ ...pill('warn') }}>vs {villain.archetype.name}</span>}
+                </div>
+                <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
+                    Board: <strong style={{ color: T.text }}>{boardCards.length ? boardCards.join(' ') : 'Preflop'}</strong>
+                    {newCard && <span style={{ color: T.success, fontWeight: 700 }}> (+{newCard})</span>}
+                </div>
+                <div style={{ display: 'flex', gap: S.sm, marginTop: S.sm, flexWrap: 'wrap' }}>
+                    <span style={{ ...pill('neutral'), ...NUM }}>Pot {(Number(potSize) || 0).toFixed(1)} BB</span>
+                    {handState?.facingBet && <span style={{ ...pill('warn'), ...NUM }}>To call {handState.toCall} BB</span>}
+                    {handState?.potOdds != null && <span style={{ ...pill('neutral'), ...NUM }}>Pot odds {handState.potOdds}%</span>}
+                    {handState?.mdf != null && <span style={{ ...pill('neutral'), ...NUM }}>MDF {handState.mdf}%</span>}
+                    {handState?.spr != null && <span style={{ ...pill('accent'), ...NUM }}>SPR {handState.spr}</span>}
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.sm }}>
+                {ordered.map(a => {
+                    const isLegal = !legal || legal.includes(a.id);
+                    return (
+                        <button key={a.id} type="button" className="pa-btn"
+                            disabled={!isLegal}
+                            aria-label={isLegal ? a.label : `${a.label} — not legal in this spot`}
+                            onClick={() => { try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onPick(a.label); }}
+                            style={{ ...btn(a.tone === 'danger' ? 'danger' : a.tone === 'success' ? 'success' : 'secondary', { disabled: !isLegal, block: true }), minHeight: 52, fontSize: F.body }}>
+                            {a.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </BottomSheet>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COACH VERDICT — Shows user pick vs GTO verdict
 // ═══════════════════════════════════════════════════════════════════════════
-export function CoachVerdict({ userPick, gtoAction, evDelta }) {
+export function CoachVerdict({ userPick, gtoAction, evDelta, evDeltaEstimated = false }) {
+    const reduce = usePrefersReducedMotion();
     if (!userPick || !gtoAction) return null;
     const isCorrect = gradeAction(userPick, gtoAction);
+    // The analyze API does not emit a per-action EV for every action, and the
+    // Grok fallback path returns ev.hero = 0. Rather than print "+0.00 EV" for a
+    // wrong answer we say the number is unavailable.
+    const showNumber = !evDeltaEstimated && evDelta != null && Number.isFinite(Number(evDelta));
     return (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            style={{ padding: '14px', borderRadius: '12px', marginBottom: '12px', background: isCorrect ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+        <motion.div
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={reduce ? { duration: 0 } : undefined}
+            style={{
+                padding: S.lg, borderRadius: R.md, marginBottom: S.md,
+                background: isCorrect ? T.successSoft : T.dangerSoft,
+                border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
+            }}
+            role="status"
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.xs }}>
                 {isCorrect
-                    ? <Check size={20} strokeWidth={3} style={{ color: '#4ade80', flexShrink: 0 }} aria-hidden="true" />
-                    : <XIcon size={20} strokeWidth={3} style={{ color: '#fca5a5', flexShrink: 0 }} aria-hidden="true" />}
-                <div style={{ fontSize: '14px', fontWeight: '800', color: isCorrect ? '#4ade80' : '#fca5a5' }}>{isCorrect ? 'Correct!' : 'Not optimal'}</div>
+                    ? <Check size={20} strokeWidth={3} style={{ color: T.success, flexShrink: 0 }} aria-hidden="true" />
+                    : <XIcon size={20} strokeWidth={3} style={{ color: T.danger, flexShrink: 0 }} aria-hidden="true" />}
+                <span style={{ fontSize: F.h3, fontWeight: 800, color: isCorrect ? T.success : T.danger }}>
+                    {isCorrect ? 'Correct' : 'Not optimal'}
+                </span>
+                {showNumber && (
+                    <span style={{ marginLeft: 'auto', ...pill(evDelta >= 0 ? 'success' : 'danger'), ...NUM }}>
+                        {evDelta >= 0 ? '+' : ''}{Number(evDelta).toFixed(2)} EV
+                    </span>
+                )}
             </div>
-            <div style={{ fontSize: '12px', color: '#B0B3B8' }}>
-                You: <strong style={{ color: '#E4E6EB' }}>{userPick}</strong>{' '}vs GTO: <strong style={{ color: '#4599FF' }}>{gtoAction}</strong>
-                {evDelta != null && <span style={{ marginLeft: 8, color: evDelta >= 0 ? '#4ade80' : '#fca5a5', fontWeight: '700' }}>({evDelta >= 0 ? '+' : ''}{evDelta.toFixed(2)} EV)</span>}
+            <div style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45 }}>
+                You: <strong style={{ color: T.text }}>{userPick}</strong> vs GTO: <strong style={{ color: T.accent }}>{gtoAction}</strong>
             </div>
+            {!showNumber && (
+                <div style={{ fontSize: F.caption, color: T.textDim, marginTop: S.xs, lineHeight: 1.45 }}>
+                    EV impact unavailable for this solve.
+                </div>
+            )}
         </motion.div>
     );
 }
@@ -1297,45 +2177,64 @@ export function CoachVerdict({ userPick, gtoAction, evDelta }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay }) {
     if (!actions || actions.length === 0) return null;
-    const COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
-    const getBubbleColor = (action) => COLORS[(action || '').toLowerCase().split('_')[0]] || '#2374E1';
+    const COLORS = { fold: T.danger, check: T.textMuted, call: T.warn, bet: T.success, raise: T.success, allin: '#F97316' };
+    const bubbleColor = (action) => COLORS[String(action || '').toLowerCase().split('_')[0]] || T.accent;
+    const replaying = replayIndex != null;
 
     return (
-        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ color: replayIndex != null ? '#4599FF' : '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
-                    {replayIndex != null ? '▶ Replay Mode' : 'Action History'}
-                </h4>
-                {replayIndex != null && (
-                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onExitReplay(); }}
-                        style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
-                        Exit
+        <div style={{ ...card, padding: S.md, marginBottom: S.md }}>
+            <div style={sectionHeader}>
+                <p style={{ ...sectionTitle, color: replaying ? T.accent : T.textDim, margin: 0 }}>
+                    {replaying ? 'Replay mode' : 'Action history'}
+                </p>
+                {replaying && (
+                    <button
+                        type="button" className="pa-btn"
+                        onClick={() => { try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onExitReplay(); }}
+                        style={{ ...btn('danger'), minHeight: 44, padding: '0 14px', fontSize: F.caption }}
+                    >
+                        Exit replay
                     </button>
                 )}
             </div>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: replayIndex == null ? '#4599FF' : '#3A3B3C', border: '2px solid #2374E1', flexShrink: 0 }} />
+
+            {/* Horizontal scroll-snap strip — 44px bubbles, never a wrapped grid
+                of 34px targets crammed into a side rail. */}
+            <div style={{
+                display: 'flex', gap: S.sm, overflowX: 'auto', paddingBottom: S.sm,
+                scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+            }}>
                 {actions.map((a, i) => {
-                    const color = getBubbleColor(a.action);
+                    const colour = bubbleColor(a.action);
                     const isActive = replayIndex === i;
-                    const isPast = replayIndex != null && i <= replayIndex;
+                    const isPast = replaying && i <= replayIndex;
                     return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <div style={{ width: 14, height: 2, background: isPast ? color : '#3A3B3C', transition: 'background 0.2s' }} />
-                            <button
-                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReplayTo(isActive ? null : i); }}
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '700', background: isActive ? `${color}30` : isPast ? `${color}15` : '#3A3B3C', border: `1px solid ${isActive ? color : isPast ? color + '55' : '#4E4F50'}`, color: isActive ? color : isPast ? color + 'cc' : '#B0B3B8', cursor: 'pointer', minWidth: 34, boxShadow: isActive ? `0 0 8px ${color}40` : 'none', touchAction: 'manipulation' }}>
-                                <span style={{ color: isPast ? '#4599FF' : '#65676B', fontSize: '8px' }}>{a.position}</span>
-                                <span>{a.label}</span>
-                            </button>
-                        </div>
+                        <button
+                            key={i} type="button" className="pa-btn"
+                            aria-pressed={isActive}
+                            aria-label={`${isActive ? 'Leave replay at' : 'Replay to'} ${a.position} ${a.label}`}
+                            onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReplayTo(isActive ? null : i); }}
+                            style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                gap: 1, minHeight: 44, minWidth: 68, padding: `0 ${S.md}px`, borderRadius: R.sm,
+                                flexShrink: 0, scrollSnapAlign: 'start', cursor: 'pointer',
+                                background: isActive ? `${colour}30` : isPast ? `${colour}15` : T.surface2,
+                                border: `1px solid ${isActive ? colour : isPast ? `${colour}55` : T.borderHi}`,
+                                color: isActive || isPast ? colour : T.textMuted,
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            <span style={{ fontSize: F.caption, color: isPast ? T.accent : T.textDim, fontWeight: 700 }}>{a.position}</span>
+                            <span style={{ fontSize: F.caption, fontWeight: 700 }}>{a.label}</span>
+                        </button>
                     );
                 })}
             </div>
-            {replayIndex != null && (
-                <div style={{ marginTop: '8px', fontSize: '10px', color: '#4599FF', textAlign: 'center' }}>
-                    Rewound to: <strong>{actions[replayIndex]?.position} {actions[replayIndex]?.label}</strong>
-                </div>
+
+            {replaying && (
+                <p style={{ marginTop: S.sm, fontSize: F.caption, color: T.accent, textAlign: 'center', margin: `${S.sm}px 0 0` }}>
+                    Rewound to <strong>{actions[replayIndex]?.position} {actions[replayIndex]?.label}</strong>
+                </p>
             )}
         </div>
     );
@@ -1345,7 +2244,9 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
 // SHARE HAND MODAL — Wave 2 Feature 7
 // Download PNG + Post to Smarter.Poker profile + Native share sheet
 // ═══════════════════════════════════════════════════════════════════════════
-export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board, cardRef }) {
+// `cardRef` is still accepted for call-site compatibility but is no longer
+// read: the card is drawn onto a canvas rather than screenshotted from the DOM.
+export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board }) {
     const [isPosting, setIsPosting] = useState(false);
     const [capturedUrl, setCapturedUrl] = useState(null);
     const closeTimerRef = useRef(null);
@@ -1359,11 +2260,37 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
 
     if (!isOpen || !results) return null;
 
-    const captureCanvas = async () => {
-        if (!cardRef?.current) return null;
+    const shareBoardStr = (() => {
+        const fullBoard = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+        return fullBoard.length ? fullBoard.join(' ') : 'Preflop';
+    })();
+
+    /**
+     * Render the branded card natively. This used to `await import('html2canvas')`
+     * — a package that is NOT a dependency of this project — so the import always
+     * rejected, `handleDownload` always ended at "Could not render image", and
+     * every profile post went out without an image. It now uses the same
+     * canvas renderer ExportCard/SessionReport use.
+     */
+    const buildCanvas = async () => {
         try {
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(cardRef.current, { backgroundColor: '#18191a', scale: 2, useCORS: true });
+            const { drawAnalysisCard } = await import('./ExportCard');
+            return drawAnalysisCard(results, {
+                position: scenario?.position,
+                hand: heroHand?.card1 ? `${heroHand.card1}${heroHand.card2 || ''}` : (scenario?.hand || '??'),
+                board: shareBoardStr,
+            });
+        } catch (e) {
+            console.warn('[ShareHandModal] Card render failed:', e?.message || e);
+            return null;
+        }
+    };
+
+    /** Data URL used for the feed-post upload (not for the user download path). */
+    const captureCanvas = async () => {
+        try {
+            const canvas = await buildCanvas();
+            if (!canvas) return null;
             const url = canvas.toDataURL('image/png');
             setCapturedUrl(url);
             return url;
@@ -1396,12 +2323,21 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
 
     const handleDownload = async () => {
         try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        const url = capturedUrl || await captureCanvas();
-        if (!url) { toast.error('Could not render image'); return; }
-        const link = document.createElement('a');
-        link.download = `smarter-poker-hand-${Date.now()}.png`;
-        link.href = url;
-        link.click();
+        try {
+            const canvas = await buildCanvas();
+            if (!canvas) { toast.error('Could not render image'); return; }
+            // `<a download>` on a data: URL is a silent no-op on iOS Safari —
+            // exportCanvas routes through the share sheet / a blob URL instead.
+            const { exportCanvas } = await import('../../lib/sandbox/exportCanvas');
+            const result = await exportCanvas(canvas, `smarter-poker-hand-${Date.now()}.png`, {
+                title: 'GTO Hand Analysis',
+                text: `${heroHand?.card1 || '??'}${heroHand?.card2 || ''} — ${results.optimalAction?.label || 'analysis'}`,
+            });
+            if (result?.hint) toast.success(result.hint);
+        } catch (e) {
+            console.warn('[ShareHandModal] Download failed:', e?.message || e);
+            toast.error('Could not render image');
+        }
     };
 
     const handlePostToProfile = async () => {
@@ -1415,8 +2351,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) { toast.error('Session expired. Please log in again.'); setIsPosting(false); return; }
             const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2 || ''}` : '??';
-            const fullBoard = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
-            const boardStr = fullBoard.length ? fullBoard.join(' ') : 'Preflop';
+            const boardStr = shareBoardStr;
             const content = `Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
 
             // Attach the rendered hand image when we can produce/host one
@@ -1479,37 +2414,43 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     ];
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9995, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <motion.div initial={{ y: 80 }} animate={{ y: 0 }} onClick={e => e.stopPropagation()} style={{ background: '#18191A', borderRadius: '20px 20px 0 0', border: '1px solid #3A3B3C', width: '100%', maxWidth: 500, padding: '24px', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#E4E6EB' }}>Share Hand</h3>
-                    <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        <BottomSheet isOpen={isOpen} onClose={onClose} title="Share hand" subtitle="Image, feed post or a link" labelledBy="pa-share-hand-title">
+            <div style={{ ...cardCompact, background: T.surface2, marginBottom: S.lg }}>
+                <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
+                    {heroHand?.card1 || '??'}{heroHand?.card2 || '??'} — {scenario?.position || 'BTN'}
                 </div>
-                <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#E4E6EB' }}>
-                        {heroHand?.card1 || '??'}{heroHand?.card2 || '??'} — {scenario?.position || 'BTN'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#B0B3B8', marginTop: '4px' }}>
-                        GTO: <span style={{ color: '#22c55e', fontWeight: '600' }}>{results.optimalAction?.label}</span> ({results.optimalAction?.frequency}%)
-                    </div>
+                <div style={{ fontSize: F.caption, color: T.textMuted, marginTop: S.xs, ...NUM }}>
+                    GTO: <span style={{ color: T.success, fontWeight: 700 }}>{results.optimalAction?.label}</span> ({results.optimalAction?.frequency}%)
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {actions.map(a => (
-                        <button key={a.label} onClick={a.onClick} disabled={isPosting && a.primary}
-                            style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '14px', cursor: isPosting && a.primary ? 'wait' : 'pointer', background: a.primary ? `${a.color}15` : '#242526', border: `1px solid ${a.primary ? a.color + '30' : '#3A3B3C'}`, opacity: isPosting && a.primary ? 0.7 : 1, touchAction: 'manipulation' }}>
-                            <span style={{ minWidth: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <a.Icon size={24} strokeWidth={2} style={{ color: a.color }} aria-hidden="true" />
-                            </span>
-                            <div style={{ textAlign: 'left', flex: 1 }}>
-                                <div style={{ fontSize: '14px', fontWeight: '700', color: a.primary ? a.color : '#E4E6EB' }}>{a.label}</div>
-                                <div style={{ fontSize: '11px', color: '#65676B', marginTop: '2px' }}>{a.sub}</div>
-                            </div>
-                            <span style={{ color: '#65676B' }}>›</span>
-                        </button>
-                    ))}
-                </div>
-            </motion.div>
-        </motion.div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                {actions.map(a => (
+                    <button
+                        key={a.label} type="button" className="pa-btn"
+                        onClick={a.onClick}
+                        disabled={isPosting && a.primary}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: S.md, width: '100%',
+                            minHeight: 60, padding: S.md, borderRadius: R.sm, textAlign: 'left',
+                            cursor: isPosting && a.primary ? 'wait' : 'pointer',
+                            background: a.primary ? `${a.color}18` : T.surface2,
+                            border: `1px solid ${a.primary ? `${a.color}55` : T.borderHi}`,
+                            opacity: isPosting && a.primary ? 0.7 : 1,
+                            touchAction: 'manipulation',
+                        }}
+                    >
+                        <span style={{ width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <a.Icon size={22} strokeWidth={2} style={{ color: a.color }} aria-hidden="true" />
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: F.bodySm, fontWeight: 700, color: a.primary ? a.color : T.text }}>{a.label}</span>
+                            <span style={{ display: 'block', fontSize: F.caption, color: T.textDim, marginTop: 2 }}>{a.sub}</span>
+                        </span>
+                        <ChevronRight size={18} strokeWidth={2} style={{ color: T.textDim, flexShrink: 0 }} aria-hidden="true" />
+                    </button>
+                ))}
+            </div>
+        </BottomSheet>
     );
 }
 
@@ -1537,20 +2478,23 @@ export function VillainReadCard({ villain }) {
     return (
         <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>
             <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 13, fontWeight: 700 }}>
+                className="pa-btn" type="button" aria-expanded={open}
+                style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: S.sm, padding: `0 ${S.md}px`, background: 'none', border: 'none', cursor: 'pointer', color: T.purple, fontSize: F.label, fontWeight: 700, textAlign: 'left' }}>
                 <Spade size={14} strokeWidth={2} style={{ color: '#a78bfa', flexShrink: 0 }} aria-hidden="true" />
                 Villain Intel — {villain.archetype.name || archetypeId}
-                <span style={{ marginLeft: 'auto', fontSize: 10, color: '#65676B' }}>{open ? '▲' : '▼'}</span>
+                <span style={{ marginLeft: 'auto', display: 'inline-flex', color: T.textDim }} aria-hidden="true">
+                    {open ? <ChevronUp size={18} strokeWidth={2} /> : <ChevronDown size={18} strokeWidth={2} />}
+                </span>
             </button>
             {open && (
                 <div style={{ padding: '0 14px 12px' }}>
                     {vpipValue != null && (
                         <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                            <span style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>VPIP</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color }}>{vpipValue}%</span>
+                            <span style={{ fontSize: F.caption, color: T.textMuted, fontWeight: 700 }}>VPIP</span>
+                            <span style={{ fontSize: F.bodySm, fontWeight: 800, color, ...NUM }}>{vpipValue}%</span>
                         </div>
                     )}
-                    <ul style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'disc', color: '#B0B3B8', fontSize: 11, lineHeight: 1.6 }}>
+                    <ul style={{ margin: 0, padding: '0 0 0 18px', listStyle: 'disc', color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.6 }}>
                         {tips.map((tip, i) => <li key={i}>{tip}</li>)}
                     </ul>
                 </div>
@@ -1561,29 +2505,29 @@ export function VillainReadCard({ villain }) {
 
 // ── Wave 3: ShortcutLegend (W3-6) ──────────────────────────────────────────
 export function ShortcutLegend({ isOpen, onClose }) {
-    if (!isOpen) return null;
     const shortcuts = [
         ['A', 'Analyze hand'],
-        ['R', 'Reset all'],
+        ['R', 'Reset (tap twice)'],
         ['U', 'Undo last change'],
         ['S', 'Save bookmark'],
         ['C', 'Toggle Coach Mode'],
-        ['Esc', 'Close results panel'],
+        ['Esc', 'Close the results sheet'],
         ['?', 'Toggle this legend'],
     ];
     return (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', top: 80, right: 16, zIndex: 9990, background: '#242526', border: '1px solid #4E4F50', borderRadius: 12, padding: '14px 16px', minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#E4E6EB', textTransform: 'uppercase', letterSpacing: 1 }}>Keyboard Shortcuts</span>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', cursor: 'pointer', fontSize: 16, padding: 0 }}>✕</button>
-            </div>
+        <BottomSheet isOpen={isOpen} onClose={onClose} title="Keyboard shortcuts" subtitle="Desktop power mode" labelledBy="pa-shortcuts-title">
             {shortcuts.map(([key, label]) => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                    <span style={{ fontSize: 11, color: '#B0B3B8' }}>{label}</span>
-                    <kbd style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 4, padding: '2px 6px', fontFamily: 'monospace' }}>{key}</kbd>
+                <div key={key} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    gap: S.md, minHeight: 44, borderBottom: `1px solid ${T.border}`,
+                }}>
+                    <span style={{ fontSize: F.bodySm, color: T.textMuted }}>{label}</span>
+                    <kbd style={{
+                        fontSize: F.caption, fontWeight: 700, color: T.text, background: T.surface2,
+                        border: `1px solid ${T.borderHi}`, borderRadius: R.sm, padding: '4px 10px', fontFamily: 'monospace',
+                    }}>{key}</kbd>
                 </div>
             ))}
-        </motion.div>
+        </BottomSheet>
     );
 }

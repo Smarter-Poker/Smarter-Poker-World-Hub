@@ -87,6 +87,9 @@ function toSessionLogEntry(row) {
         evDelta: null,
         userPick: null,
         createdAt: row.created_at || null,
+        // Explicit provenance — the client must not infer "archived" from the
+        // presence of a timestamp, because locally-created rows carry one too.
+        source: 'server',
     };
 }
 
