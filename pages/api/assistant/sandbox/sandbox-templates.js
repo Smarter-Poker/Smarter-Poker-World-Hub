@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Sandbox Templates API
  * GET:    List user's saved templates
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
 
         const user = authData?.user;
-        if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
         if (req.method === 'GET') {
             const { data, error } = await getSupabase()

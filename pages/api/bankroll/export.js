@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * BANKROLL EXPORT API
  * Generate CSV or JSON export of ledger data (on-demand, user-initiated only)

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🗑️ DELETE MESSAGE API - Service Role
  *

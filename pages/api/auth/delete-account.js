@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DELETE ACCOUNT API
  * DELETE /api/auth/delete-account
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
       const user = authData?.user;
 
-      if (authError || !user) {
+      if (authErr || !user) {
           return res.status(401).json({ error: 'Invalid or expired session' });
       }
 

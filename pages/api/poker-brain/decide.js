@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Poker Brain HUD — Horse Brain Decision API
  * POST /api/poker-brain/decide

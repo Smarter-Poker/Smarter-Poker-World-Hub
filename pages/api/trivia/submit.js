@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 /**
  * TRIVIA SUBMIT API - Save Quiz Results
  * ═══════════════════════════════════════════════════════════════════════════

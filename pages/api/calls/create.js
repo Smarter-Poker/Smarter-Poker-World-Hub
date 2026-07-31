@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 // API to create a pending call (for offline users)
 // POST /api/calls/create
 

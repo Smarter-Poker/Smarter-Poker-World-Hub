@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Employee Venues API — GET /api/employee/venues
  * Returns all venues where the authenticated user is linked as staff

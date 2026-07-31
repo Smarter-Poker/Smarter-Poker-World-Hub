@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Tournament Alerts API
  * Manages user tournament alert preferences (localStorage primary, Supabase sync optional).

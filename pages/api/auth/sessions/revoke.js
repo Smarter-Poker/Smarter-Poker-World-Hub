@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    SESSION REVOKE API - Revoke a Specific Session
    POST /api/auth/sessions/revoke

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * GET /api/notifications/list — Fetch user's social notifications (service role, bypasses RLS)
  */

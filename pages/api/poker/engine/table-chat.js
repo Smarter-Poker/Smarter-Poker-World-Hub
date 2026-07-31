@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Table Chat API — Auth-Hardened
  * POST /api/poker/engine/table-chat

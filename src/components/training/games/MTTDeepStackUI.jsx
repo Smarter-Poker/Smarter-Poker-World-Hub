@@ -49,18 +49,7 @@ function getCardPath(card) {
     return `/cards/${suitName}_${rank}.png`;
 }
 
-// 3D Illustrated avatar images
-const AVATARS = [
-    '/avatars/table/free_fox.png',          // Hero
-    '/avatars/table/vip_viking_warrior.png',// V1
-    '/avatars/table/free_wizard.png',       // V2
-    '/avatars/table/free_ninja.png',        // V3
-    '/avatars/table/vip_wolf.png',          // V4
-    '/avatars/table/vip_spartan.png',       // V5
-    '/avatars/table/vip_pharaoh.png',       // V6
-    '/avatars/table/vip_pirate.png',        // V7
-    '/avatars/table/free_cowboy.png',       // V8
-];
+import { dealSeatAvatars } from '../../../lib/avatarHelpers';
 
 export default function MTTDeepStackUI({
     question,
@@ -72,6 +61,11 @@ export default function MTTDeepStackUI({
     explanation,
 }) {
     const [timeLeft, setTimeLeft] = React.useState(30);
+
+    // Generate stable dynamic avatars based on the question text
+    const avatars = React.useMemo(() => {
+        return dealSeatAvatars(question?.id || question?.text || 'default', 9);
+    }, [question?.id, question?.text]);
 
     // Parse question data
     const questionText = question?.question || question?.text || 'Loading question...';
@@ -155,7 +149,7 @@ export default function MTTDeepStackUI({
                             >
                                 {/* Avatar */}
                                 <img
-                                    src={AVATARS[index]}
+                                    src={avatars[index]}
                                     alt={isHero ? 'Hero' : `Villain ${villainNumber}`}
                                     style={styles.avatar}
                                 />

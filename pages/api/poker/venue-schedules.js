@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Venue Game Schedules API
  * Manages per-day cash game schedules for poker venues.

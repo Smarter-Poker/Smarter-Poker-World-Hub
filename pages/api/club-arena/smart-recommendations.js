@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Smart Table Recommendations API — AI-driven table suggestions
  * ═══════════════════════════════════════════════════════════════

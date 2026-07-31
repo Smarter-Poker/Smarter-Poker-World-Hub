@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * GET /api/assistant/leaks
  * Returns user's detected leaks

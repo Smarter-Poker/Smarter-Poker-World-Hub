@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
     // Auth
     const { user, error: authError } = await getServerUserWithFallback(req, res);
-    if (authError || !user) {
+    if (authErr || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 

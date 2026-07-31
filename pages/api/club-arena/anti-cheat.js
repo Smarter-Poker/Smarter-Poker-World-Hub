@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/anti-cheat | ORB-7 AUDITED
  * 

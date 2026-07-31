@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 // API to get pending calls for a user
 // GET /api/calls/pending?userId=xxx
 

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    ONESIGNAL — LINK USER ID API
    POST /api/notifications/link-user

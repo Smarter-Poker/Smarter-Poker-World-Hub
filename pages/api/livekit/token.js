@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * LiveKit Token Generation API — Messenger 1:1 Video Calls
  *

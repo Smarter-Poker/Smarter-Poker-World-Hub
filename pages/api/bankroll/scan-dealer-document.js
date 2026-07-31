@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DEALER DOCUMENT SCANNER API
  * OCR for gaming licenses, paystubs, and tax documents
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (authError || !user) {
+      if (authErr || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 

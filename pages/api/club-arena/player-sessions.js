@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Player Session Tracker API — Real-time view of player activity
  * ═══════════════════════════════════════════════════════════════

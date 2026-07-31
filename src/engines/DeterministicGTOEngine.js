@@ -4874,10 +4874,14 @@ export class DeterministicGTOEngine {
      * Phase 75: Update session stats after a question is answered.
      * Called externally by the training arena.
      */
-    updateSessionDifficulty(isCorrect) {
+    updateSessionDifficulty(isCorrect, spotDetails = null) {
         if (!this._sessionStats) {
-            this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
+            this._sessionStats = { correct: 0, total: 0, recentWindow: [], history: [] };
         }
+        if (!this._sessionStats.history) {
+            this._sessionStats.history = [];
+        }
+        
         this._sessionStats.total++;
         if (isCorrect) this._sessionStats.correct++;
         this._sessionStats.recentWindow.push(isCorrect);
@@ -4885,10 +4889,19 @@ export class DeterministicGTOEngine {
         if (this._sessionStats.recentWindow.length > 20) {
             this._sessionStats.recentWindow.shift();
         }
+
+        // Record full hand detail if provided to unlock analysis methods
+        if (spotDetails) {
+            this._sessionStats.history.push({
+                correct: isCorrect,
+                ...spotDetails,
+                timestamp: Date.now()
+            });
+        }
     }
 
     resetSessionDifficulty() {
-        this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
+        this._sessionStats = { correct: 0, total: 0, recentWindow: [], history: [] };
     }
 
     getStreetForLevel(level) {

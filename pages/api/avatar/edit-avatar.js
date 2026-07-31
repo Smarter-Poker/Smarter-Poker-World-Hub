@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * 🎨 AI AVATAR EDIT - IMAGE EDITING
  * Uses Grok Vision to analyze existing avatar + grok-2-image-1212 to regenerate with edits
@@ -112,11 +113,12 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
+          // BUGFIX: this previously referenced undeclared `_authErr`, which threw a
+          // ReferenceError on EVERY authenticated request and turned all avatar
+          // edits into 500s. Use the destructured values directly.
           const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const _authUser = authData?.user;
-          if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-          if (req.body) req.body.userId = _authUser.id;
+          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          if (req.body) req.body.userId = authUser.id;
       }
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });

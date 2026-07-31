@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Video Analysis API - Fetches YouTube transcript and generates AI analysis
  * Uses Jarvis (Grok) to create:

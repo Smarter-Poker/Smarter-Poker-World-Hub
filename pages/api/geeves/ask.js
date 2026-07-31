@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    GEEVES API v2.0 — Smart Caching + Grok-powered poker strategy expert
    - First checks cache for existing answers
@@ -297,7 +298,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (authError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ error: 'Invalid token' });
           }
 

@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * POST /api/assistant/sandbox/analyze
  * ═══════════════════════════════════════════════════════════════════════════

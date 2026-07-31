@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * Employee Schedule API — GET /api/employee/schedule
  * Returns the published shift schedule for a linked staff member

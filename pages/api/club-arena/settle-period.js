@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
     user = authData?.user;
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 
   // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)

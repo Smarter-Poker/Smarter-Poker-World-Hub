@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    SCREENSHOT ANALYSIS API — Analyze poker table screenshots using Grok Vision
    ═══════════════════════════════════════════════════════════════════════════ */

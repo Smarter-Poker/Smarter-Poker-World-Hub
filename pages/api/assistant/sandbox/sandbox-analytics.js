@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /**
  * Sandbox Analytics API — Personal Leak Tracker
  * POST: Log analyzed spot (position, street, action, outcome)
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
 
         const user = authData?.user;
-        if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
         if (req.method === 'POST') {
             const { position, street, gameType, action, isCorrect, handStrength } = req.body || {};

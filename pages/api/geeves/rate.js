@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
    RATE GEEVES ANSWER — User feedback on cached answers
    Updates cache ratings for quality tracking
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (authError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ success: false, error: 'Invalid token' });
           }
 

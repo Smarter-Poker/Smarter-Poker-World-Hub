@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      if (authErr || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify Admin Role
       const { data: profile } = await getSupabase()

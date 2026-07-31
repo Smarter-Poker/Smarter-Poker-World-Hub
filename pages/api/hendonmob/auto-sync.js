@@ -1,3 +1,4 @@
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * HENDONMOB AUTO-SYNC via MANUS AI
  * 
