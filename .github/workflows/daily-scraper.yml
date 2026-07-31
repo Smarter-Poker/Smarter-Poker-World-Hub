@@ -92,6 +92,51 @@ jobs:
           echo ""
           node scripts/run-full-pipeline.js --scrape-only
 
+      # ─────────────────────────────────────────────────────────────────────
+      # Bravo Poker Live + CardPlayer — TOURNAMENT sources, on the daily cron.
+      #
+      # Both of these previously existed ONLY inside the
+      # `workflow_dispatch && mode == 'full'` step below, so the 06:00 UTC
+      # schedule never ran either one. Whatever they contribute to
+      # poker_venues / venue_daily_tournaments only landed when a human
+      # manually dispatched the workflow with mode=full.
+      #
+      # NOTE: scripts/scrape-cardplayer.js (tournaments -> venue_daily_tournaments)
+      # is a DIFFERENT source from scripts/scrape-cardplayer.py (news ->
+      # poker_news, run by the scrape-cardplayer-news job). Both are wanted;
+      # they are not substitutes for each other.
+      #
+      # `continue-on-error` keeps one flaky third-party source from killing the
+      # whole nightly run, but the step still goes red so the outage is visible
+      # instead of being swallowed by the old `|| echo "(non-fatal)"`.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Run Bravo + CardPlayer Tournament Scrapers (Scheduled)
+        if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -o pipefail
+          rc=0
+
+          echo "Source 2: Bravo Poker Live"
+          if [ -f scripts/scrape-bravo-poker.js ]; then
+            node scripts/scrape-bravo-poker.js || rc=$?
+          else
+            echo "::warning::scripts/scrape-bravo-poker.js missing - Bravo source skipped"
+          fi
+
+          echo ""
+          echo "Source 3: CardPlayer (tournaments)"
+          if [ -f scripts/scrape-cardplayer.js ]; then
+            node scripts/scrape-cardplayer.js || rc=$?
+          else
+            echo "::warning::scripts/scrape-cardplayer.js missing - CardPlayer tournament source skipped"
+          fi
+
+          exit $rc
+
       - name: Run PokerAtlas Daily Scraper (Manual)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'pokeratlas-daily' }}
         env:
@@ -129,12 +174,16 @@ jobs:
           else
             echo "::warning::scripts/scrape-bravo-poker.js is not present — Bravo Poker Live source skipped"
           fi
-          # CardPlayer used to be a third `node scripts/scrape-cardplayer.js || echo`
-          # line here, reachable only from a manual workflow_dispatch with mode=full,
-          # so the 06:00 UTC cron never touched that source. It now runs in the
-          # dedicated `scrape-cardplayer-news` job below
-          # (scripts/scrape-cardplayer.py) on every scheduled run as well as on
-          # mode=full, which is why it is not invoked a second time here.
+          echo ""
+          echo "Source 3: CardPlayer (tournaments)"
+          # scrape-cardplayer.js writes venue_daily_tournaments; the .py variant
+          # in the scrape-cardplayer-news job writes poker_news. Different
+          # sources, both wanted - do not collapse them into one.
+          if [ -f scripts/scrape-cardplayer.js ]; then
+            node scripts/scrape-cardplayer.js
+          else
+            echo "::warning::scripts/scrape-cardplayer.js missing - CardPlayer tournament source skipped"
+          fi
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
