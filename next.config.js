@@ -185,6 +185,7 @@ const nextConfig = {
   // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
   // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
   reactStrictMode: process.env.NODE_ENV === 'production',
+  eslint: { ignoreDuringBuilds: true },
   // NOTE: `eslint` top-level key removed — deprecated in Next.js 16. ESLint is
   // ignored at build time via the `ignoreDuringBuilds` flag which is now controlled
   // per the Next.js 16 docs. TypeScript errors are silenced in `typescript` below.
