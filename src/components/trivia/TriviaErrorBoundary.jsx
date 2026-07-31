@@ -6,7 +6,7 @@
  * retry and lobby navigation options.
  *
  * Usage:
- *   import TriviaErrorBoundary from '../../src/components/trivia/TriviaErrorBoundary';
+
  *   <TriviaErrorBoundary pageName="Endless Mode">
  *     <ActualPageContent />
  *   </TriviaErrorBoundary>
