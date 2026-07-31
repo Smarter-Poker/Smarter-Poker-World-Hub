@@ -1,88 +1,214 @@
 /**
  * CUSTOM DRILL BUILDER (W6-3)
- * Allows users to configure exact parameters (Street, Position) for QuickSpotDrill.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Configures the street / position / length of a QuickSpotDrill run.
+ *
+ * The filters are probed live against /api/sandbox/custom-drill so the user is
+ * never dropped into an empty drill: the sheet reports how many spots match,
+ * disables Launch at zero and offers a one-tap "widen to any position".
+ *
+ * NOTE: the API clamps `limit` to 20, so 20 is the largest honest option here.
  */
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-
-const M = {
-    bg: 'rgba(11,13,17,0.95)',
-    card: '#242526',
-    text: '#E4E6EB',
-    sub: '#B0B3B8',
-    border: '#3E4042',
-    accent: '#4599FF',
-    green: '#00E676',
-};
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Zap, Search, AlertTriangle } from 'lucide-react';
+import { T, F, S, R, btn, pill, numeric } from './paTokens';
+import { BottomSheet, PAStyles, Segmented, Skeleton } from './paKit';
 
 const STREETS = ['Any', 'Preflop', 'Flop', 'Turn', 'River'];
 // Canonical position vocabulary (matches sandbox.js POSITIONS, LeakHeatmap and
 // the stored metadata->>hero_position values — 'EP' matches nothing).
 const POSITIONS = ['Any', 'UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+// The custom-drill route clamps limit to 20 — offering 50 silently delivered 20.
+const HAND_COUNTS = [5, 10, 20];
+const PROBE_LIMIT = 20;
 
 export default function CustomDrillBuilder({ onClose, onStartDrill }) {
     const [street, setStreet] = useState('Any');
     const [position, setPosition] = useState('Any');
     const [handCount, setHandCount] = useState(10);
 
+    // Live match probe: 'idle' | 'loading' | 'ok' | 'error'
+    const [probe, setProbe] = useState({ state: 'loading', count: null, capped: false });
+    const abortRef = useRef(null);
+    const timerRef = useRef(null);
+
+    const runProbe = useCallback((nextStreet, nextPosition) => {
+        try { abortRef.current?.abort(); } catch (e) { /* noop */ }
+        const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        abortRef.current = ctrl;
+        setProbe(p => ({ ...p, state: 'loading' }));
+
+        const params = new URLSearchParams({
+            street: nextStreet, position: nextPosition, limit: String(PROBE_LIMIT),
+        });
+        fetch(`/api/sandbox/custom-drill?${params.toString()}`, ctrl ? { signal: ctrl.signal } : undefined)
+            .then(res => res.json().catch(() => null))
+            .then(json => {
+                if (!json || json.success === false) throw new Error('probe failed');
+                const pool = Array.isArray(json.pool) ? json.pool : (Array.isArray(json.questions) ? json.questions : []);
+                setProbe({ state: 'ok', count: pool.length, capped: pool.length >= PROBE_LIMIT });
+            })
+            .catch(err => {
+                if (err?.name === 'AbortError') return;
+                console.warn('[CustomDrillBuilder] probe error:', err?.message || err);
+                setProbe({ state: 'error', count: null, capped: false });
+            });
+    }, []);
+
+    // Debounced so rapid chip taps do not fan out a request per tap.
+    useEffect(() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => runProbe(street, position), 280);
+        return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    }, [street, position, runProbe]);
+
+    useEffect(() => () => { try { abortRef.current?.abort(); } catch (e) { /* noop */ } }, []);
+
+    const noMatches = probe.state === 'ok' && probe.count === 0;
+    const effectiveCount = probe.state === 'ok' && probe.count != null
+        ? Math.min(handCount, probe.capped ? handCount : probe.count)
+        : handCount;
+
+    const launch = useCallback(() => {
+        if (noMatches) return;
+        onStartDrill?.({ street, position, limit: handCount });
+    }, [noMatches, onStartDrill, street, position, handCount]);
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100003, padding: 16 }}
-            onClick={onClose}
+        <BottomSheet
+            open
+            onClose={onClose}
+            title="Custom drill"
+            titleIcon={<Zap size={18} strokeWidth={2} color={T.accent} />}
+            subtitle="Pick the exact spots you want to practise."
+            ariaLabel="Custom drill builder"
+            footer={(
+                <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={launch}
+                    disabled={noMatches}
+                    style={{ ...btn('primary', { block: true, disabled: noMatches }) }}
+                >
+                    {noMatches ? 'No spots match these filters' : `Launch ${effectiveCount} spot${effectiveCount === 1 ? '' : 's'}`}
+                </button>
+            )}
         >
-            <motion.div
-                initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
-                onClick={e => e.stopPropagation()}
-                style={{ background: M.card, borderRadius: 16, width: '100%', maxWidth: 460, border: `1px solid ${M.border}`, boxShadow: '0 12px 48px rgba(0,0,0,0.6)', overflow: 'hidden' }}
-            >
-                <div style={{ padding: '20px', borderBottom: `1px solid ${M.border}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: M.text }}>{'⚡ Custom Drill Builder'}</div>
-                        <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
-                    </div>
-                    <div style={{ fontSize: 13, color: M.sub, marginTop: 4 }}>Configure hyper-specific spots to practice.</div>
+            <PAStyles />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
+                <Segmented
+                    label="Target street"
+                    idPrefix="cdb-street"
+                    value={street}
+                    onChange={setStreet}
+                    options={STREETS}
+                />
+
+                <Segmented
+                    label="Hero position"
+                    idPrefix="cdb-pos"
+                    tone="purple"
+                    value={position}
+                    onChange={setPosition}
+                    options={POSITIONS}
+                />
+
+                <Segmented
+                    label="Number of hands"
+                    idPrefix="cdb-count"
+                    tone="success"
+                    columns={3}
+                    value={handCount}
+                    onChange={setHandCount}
+                    options={HAND_COUNTS.map(c => ({ value: c, label: String(c) }))}
+                />
+
+                {/* Live match count — loading / ok / empty / error, never silent */}
+                <div
+                    aria-live="polite"
+                    style={{
+                        background: T.surface2, border: `1px solid ${noMatches ? 'rgba(251,191,36,0.4)' : T.border}`,
+                        borderRadius: R.sm, padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
+                    }}
+                >
+                    {probe.state === 'loading' && (
+                        <>
+                            <Skeleton h={14} w="60%" />
+                            <Skeleton h={12} w="40%" />
+                        </>
+                    )}
+
+                    {probe.state === 'ok' && !noMatches && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
+                            <Search size={18} strokeWidth={2} color={T.success} />
+                            <span style={{ fontSize: F.bodySm, color: T.text, ...numeric }}>
+                                {probe.capped ? `${PROBE_LIMIT}+ spots match` : `${probe.count} spot${probe.count === 1 ? '' : 's'} match`}
+                            </span>
+                            <span style={pill('success')}>Ready</span>
+                        </div>
+                    )}
+
+                    {noMatches && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
+                                <AlertTriangle size={18} strokeWidth={2} color={T.warn} />
+                                <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn }}>
+                                    No spots match yet
+                                </span>
+                            </div>
+                            <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
+                                Nothing in the question pool covers {street === 'Any' ? 'any street' : street.toLowerCase()}
+                                {position === 'Any' ? '' : ` from ${position}`}. Widen a filter to continue.
+                            </p>
+                            <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+                                {position !== 'Any' && (
+                                    <button
+                                        type="button"
+                                        className="pa-btn"
+                                        onClick={() => setPosition('Any')}
+                                        style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
+                                    >
+                                        Any position
+                                    </button>
+                                )}
+                                {street !== 'Any' && (
+                                    <button
+                                        type="button"
+                                        className="pa-btn"
+                                        onClick={() => setStreet('Any')}
+                                        style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px' }}
+                                    >
+                                        Any street
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {probe.state === 'error' && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
+                                <AlertTriangle size={18} strokeWidth={2} color={T.danger} />
+                                <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
+                                    Could not check the pool
+                                </span>
+                            </div>
+                            <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
+                                You can still launch — the drill will tell you if nothing matches.
+                            </p>
+                            <button
+                                type="button"
+                                className="pa-btn"
+                                onClick={() => runProbe(street, position)}
+                                style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px', alignSelf: 'flex-start' }}
+                            >
+                                Retry
+                            </button>
+                        </>
+                    )}
                 </div>
-
-                <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    {/* Street */}
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: M.text, marginBottom: 8 }}>Target Street</div>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {STREETS.map(s => (
-                                <button key={s} onClick={() => setStreet(s)} style={{ padding: '8px 12px', background: street === s ? M.accent : 'rgba(255,255,255,0.05)', color: street === s ? '#fff' : M.sub, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{s}</button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Position */}
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: M.text, marginBottom: 8 }}>Hero Position</div>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {POSITIONS.map(p => (
-                                <button key={p} onClick={() => setPosition(p)} style={{ padding: '8px 12px', background: position === p ? '#a78bfa' : 'rgba(255,255,255,0.05)', color: position === p ? '#fff' : M.sub, border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{p}</button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Hand Count */}
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: M.text, marginBottom: 8 }}>Number of Hands</div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                            {[5, 10, 20, 50].map(c => (
-                                <button key={c} onClick={() => setHandCount(c)} style={{ flex: 1, padding: '10px 0', background: handCount === c ? M.green : 'rgba(255,255,255,0.05)', color: handCount === c ? '#000' : M.sub, border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{c}</button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={() => onStartDrill({ street, position, limit: handCount })}
-                        style={{ width: '100%', padding: '16px', background: M.accent, color: '#fff', fontSize: 16, fontWeight: 800, border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 8 }}
-                    >
-                        Launch Drill
-                    </button>
-                </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </BottomSheet>
     );
 }

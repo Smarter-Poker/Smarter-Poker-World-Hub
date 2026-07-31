@@ -1,122 +1,287 @@
 /**
- * RangeHeatGrid — 13×13 opponent range visualizer
- * Shows how each combo in villain's range performs against the current board
+ * RangeHeatGrid — 13x13 opponent-range heat map
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Grades every starting hand against the current board and, when the villain's
+ * range is supplied, dims everything outside it so the map answers the question
+ * its title asks ("Opponent Range vs Board") instead of grading all 169 combos
+ * regardless of what the opponent actually holds.
+ *
+ * Strength is normalised against the best achievable score for the current
+ * board, so AA reads "Strong" instead of the old raw score that topped out at
+ * ~54 and painted pocket aces yellow.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Flame } from 'lucide-react';
+import { T, F, S, R, btn, pill, numeric } from './paTokens';
+import { BottomSheet, PAStyles, Segmented } from './paKit';
+import { RANKS, parseRange, cellLabel, comboWeight, countCombos } from './RangeExplorer';
 
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const ORDER = 'AKQJT98765432';
 
-// Pre-calculate simple hand strength from rank order
-function getComboStrength(r1, r2, isSuited, boardRanks = []) {
-    const order = 'AKQJT98765432';
-    const i1 = order.indexOf(r1), i2 = order.indexOf(r2);
+/** Raw heuristic score for a starting hand against the board. */
+function rawStrength(r1, r2, isSuited, boardRanks = []) {
+    const i1 = ORDER.indexOf(r1);
+    const i2 = ORDER.indexOf(r2);
     let score = 0;
 
-    // Base score from card ranks
     score += (13 - i1) * 2 + (13 - i2);
-
-    // Pair bonus
     if (r1 === r2) score += 15;
-
-    // Suited bonus
     if (isSuited) score += 4;
 
-    // Connectivity bonus
     const gap = Math.abs(i1 - i2);
     if (gap === 1) score += 3;
     else if (gap === 2) score += 1;
 
-    // Board interaction
     if (boardRanks.length > 0) {
-        // Top pair
         if (boardRanks.includes(r1) || boardRanks.includes(r2)) score += 12;
-        // Overpair
-        if (r1 === r2 && i1 < Math.min(...boardRanks.map(r => order.indexOf(r)))) score += 10;
+        const topBoard = Math.min(...boardRanks.map(r => ORDER.indexOf(r)).filter(v => v >= 0));
+        if (r1 === r2 && Number.isFinite(topBoard) && i1 < topBoard) score += 10;
     }
-
-    return Math.min(100, Math.max(0, score));
+    return score;
 }
 
-function getHeatColor(strength) {
-    // 0=cold(fold), 50=neutral, 100=hot(strong)
-    if (strength >= 80) return { bg: 'rgba(34,197,94,0.35)', border: '#22c55e', text: '#4ade80' };
-    if (strength >= 60) return { bg: 'rgba(59,130,246,0.3)', border: '#3b82f6', text: '#93c5fd' };
-    if (strength >= 40) return { bg: 'rgba(251,191,36,0.25)', border: '#fbbf24', text: '#fde68a' };
-    if (strength >= 20) return { bg: 'rgba(249,115,22,0.25)', border: '#f97316', text: '#fdba74' };
-    return { bg: 'rgba(239,68,68,0.2)', border: '#ef4444', text: '#fca5a5' };
+const TIERS = [
+    { min: 80, label: 'Strong', colour: T.success },
+    { min: 60, label: 'Good', colour: T.accent },
+    { min: 40, label: 'Marginal', colour: T.warn },
+    { min: 20, label: 'Weak', colour: '#F97316' },
+    { min: 0, label: 'Trash', colour: T.danger },
+];
+
+function tierFor(strength) {
+    return TIERS.find(t => strength >= t.min) || TIERS[TIERS.length - 1];
 }
 
-export default function RangeHeatGrid({ boardCards = [], isOpen, onClose }) {
-    const boardRanks = useMemo(() => boardCards.map(c => c?.[0]).filter(Boolean), [boardCards]);
+export default function RangeHeatGrid({
+    boardCards = [],
+    isOpen,
+    onClose,
+    /** Optional villain range string — cells outside it are dimmed. */
+    villainRange = '',
+    villainLabel = 'Villain',
+}) {
+    const [selected, setSelected] = useState(null);
+    // Escape hatch for the 13x13 grid: on a 375px viewport each cell is ~25px,
+    // far under the 44px tap bar. These 44px rank strips + suit toggle can
+    // address every one of the 169 cells without precision tapping.
+    const [pickHigh, setPickHigh] = useState(null);
+    const [pickLow, setPickLow] = useState(null);
+    const [pickSuit, setPickSuit] = useState('s');
+
+    const boardRanks = useMemo(
+        () => (Array.isArray(boardCards) ? boardCards : []).map(c => c?.[0]).filter(Boolean),
+        [boardCards],
+    );
+
+    const rangeCells = useMemo(() => parseRange(villainRange || ''), [villainRange]);
+    const hasRange = useMemo(() => Object.keys(rangeCells).some(k => rangeCells[k]), [rangeCells]);
+    const rangeCombos = useMemo(() => countCombos(rangeCells), [rangeCells]);
 
     const grid = useMemo(() => {
-        return RANKS.map((r1, i) =>
-            RANKS.map((r2, j) => {
-                const isSuited = i < j;
-                const isPair = i === j;
-                const label = isPair ? `${r1}${r2}` : isSuited ? `${r1}${r2}s` : `${r2}${r1}o`;
-                const strength = getComboStrength(r1, r2, isSuited, boardRanks);
-                return { label, strength, isSuited, isPair };
-            })
-        );
-    }, [boardRanks]);
+        // Normalise against the strongest hand for THIS board so the tiers map
+        // onto the real distribution instead of an unreachable 0-100 scale.
+        let max = 1;
+        const raw = RANKS.map((r1, i) => RANKS.map((r2, j) => {
+            const value = rawStrength(r1, r2, i < j, boardRanks);
+            if (value > max) max = value;
+            return value;
+        }));
+        return raw.map((row, i) => row.map((value, j) => ({
+            i,
+            j,
+            label: cellLabel(i, j),
+            strength: Math.round((100 * value) / max),
+            inRange: !hasRange || !!rangeCells[`${i},${j}`],
+        })));
+    }, [boardRanks, rangeCells, hasRange]);
+
+    const boardLabel = boardRanks.length > 0
+        ? (Array.isArray(boardCards) ? boardCards.filter(Boolean).join(' ') : '')
+        : 'Preflop (no board)';
 
     if (!isOpen) return null;
 
-    return (
-        <>
-            <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 69, background: 'rgba(0,0,0,0.5)' }} />
-            <div style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 70,
-                background: '#1a1a2e', borderRadius: '16px 16px 0 0',
-                padding: '12px 6px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-                boxShadow: '0 -8px 30px rgba(0,0,0,0.6)',
-                maxHeight: '70vh', overflowY: 'auto',
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                    <div style={{ width: 40, height: 4, borderRadius: 2, background: '#4E4F50' }} />
-                </div>
-                <div style={{ textAlign: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Opponent Range vs Board
-                    </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(13, 1fr)`, gap: 1 }}>
-                    {grid.flat().map((cell, idx) => {
-                        const colors = getHeatColor(cell.strength);
-                        return (
-                            <div key={idx} style={{
-                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 6, fontWeight: 700, borderRadius: 2,
-                                background: colors.bg, border: `1px solid ${colors.border}44`,
-                                color: colors.text, lineHeight: 1,
-                            }}>
-                                {cell.label}
-                            </div>
-                        );
-                    })}
-                </div>
-                {/* Legend */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8 }}>
-                    {[
-                        { label: 'Strong', color: '#22c55e' },
-                        { label: 'Good', color: '#3b82f6' },
-                        { label: 'Marginal', color: '#fbbf24' },
-                        { label: 'Weak', color: '#f97316' },
-                        { label: 'Fold', color: '#ef4444' },
-                    ].map(l => (
-                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-                            <span style={{ fontSize: 8, color: '#B0B3B8' }}>{l.label}</span>
-                        </div>
-                    ))}
-                </div>
-                <button onClick={onClose} style={{
-                    marginTop: 8, width: '100%', padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.2)',
-                    color: '#4599FF', cursor: 'pointer',
-                }}>Close</button>
+    const selectedCell = selected ? grid[selected.i]?.[selected.j] : null;
+    const selectedTier = selectedCell ? tierFor(selectedCell.strength) : null;
+
+    /**
+     * Resolve the two picked ranks (+ suit) onto a grid cell.
+     * Suited hands live above the diagonal (i < j), offsuit below.
+     */
+    const applyPick = (high, low, suit) => {
+        if (high == null || low == null) return;
+        const a = Math.min(high, low);
+        const b = Math.max(high, low);
+        if (a === b) { setSelected({ i: a, j: b }); return; }
+        setSelected(suit === 's' ? { i: a, j: b } : { i: b, j: a });
+    };
+
+    const rankStrip = (label, value, onPick) => (
+        <div>
+            <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>{label}</div>
+            <div
+                role="group"
+                aria-label={label}
+                data-hscroll="true"
+                style={{
+                    display: 'flex', gap: S.sm, overflowX: 'auto', paddingBottom: S.xs,
+                    scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+                }}
+            >
+                {RANKS.map((r, idx) => {
+                    const on = value === idx;
+                    return (
+                        <button
+                            key={`${label}-${r}`}
+                            type="button"
+                            className="pa-btn"
+                            onClick={() => onPick(idx)}
+                            aria-pressed={on}
+                            aria-label={`${label}: ${r}`}
+                            style={{
+                                ...btn('secondary'),
+                                minWidth: 44, width: 44, padding: 0, flexShrink: 0,
+                                scrollSnapAlign: 'start', fontSize: F.bodySm, ...numeric,
+                                background: on ? T.accentSoft : T.surface2,
+                                color: on ? T.accent : T.text,
+                                borderColor: on ? 'rgba(69,153,255,0.45)' : T.border,
+                            }}
+                        >
+                            {r}
+                        </button>
+                    );
+                })}
             </div>
-        </>
+        </div>
+    );
+
+    return (
+        <BottomSheet
+            open
+            onClose={onClose}
+            title="Range heat map"
+            titleIcon={<Flame size={18} strokeWidth={2} color={T.warn} />}
+            subtitle={hasRange
+                ? `${villainLabel} · ${rangeCombos} combos (${((rangeCombos / 1326) * 100).toFixed(1)}%) vs ${boardLabel}`
+                : `All 169 hands vs ${boardLabel}`}
+            ariaLabel="Opponent range heat map"
+        >
+            <PAStyles />
+
+            {!hasRange && (
+                <div style={{
+                    fontSize: F.caption, color: T.textMuted, lineHeight: 1.45,
+                    background: T.surface2, border: `1px solid ${T.border}`,
+                    borderRadius: R.sm, padding: S.md, marginBottom: S.md,
+                }}>
+                    No villain range is set, so every starting hand is graded. Set a range in the Range
+                    Explorer to grey out the hands this opponent would never hold.
+                </div>
+            )}
+
+            {/* Precision-free hand picker — every cell is reachable with 44px targets */}
+            <div style={{
+                display: 'flex', flexDirection: 'column', gap: S.sm, marginBottom: S.md,
+                background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
+            }}>
+                {rankStrip('First rank', pickHigh, (idx) => { setPickHigh(idx); applyPick(idx, pickLow, pickSuit); })}
+                {rankStrip('Second rank', pickLow, (idx) => { setPickLow(idx); applyPick(pickHigh, idx, pickSuit); })}
+                <Segmented
+                    idPrefix="rhg-suit"
+                    label="Suit"
+                    value={pickSuit}
+                    onChange={(v) => { setPickSuit(v); applyPick(pickHigh, pickLow, v); }}
+                    options={[
+                        { value: 's', label: 'Suited' },
+                        { value: 'o', label: 'Offsuit' },
+                    ]}
+                />
+                {pickHigh != null && pickLow != null && pickHigh === pickLow && (
+                    <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
+                        Same rank twice selects the pocket pair — the suit toggle does not apply.
+                    </p>
+                )}
+            </div>
+
+            {/* Persistent detail row — tap-to-select, never hover-only */}
+            <div
+                aria-live="polite"
+                style={{
+                    minHeight: 44, display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap',
+                    padding: `${S.sm}px ${S.md}px`, background: T.surface2, borderRadius: R.sm,
+                    border: `1px solid ${T.border}`, marginBottom: S.md,
+                }}
+            >
+                {selectedCell && selectedTier ? (
+                    <>
+                        <span style={{ fontSize: F.bodySm, fontWeight: 800, color: T.text, ...numeric }}>
+                            {selectedCell.label}
+                        </span>
+                        <span style={{
+                            ...pill('neutral'),
+                            color: selectedTier.colour,
+                            background: `${selectedTier.colour}26`,
+                            borderColor: `${selectedTier.colour}55`,
+                        }}>
+                            {selectedTier.label} · {selectedCell.strength}
+                        </span>
+                        <span style={{ fontSize: F.caption, color: T.textMuted }}>
+                            {comboWeight(selectedCell.i, selectedCell.j)} combos
+                        </span>
+                        {!selectedCell.inRange && (
+                            <span style={{ fontSize: F.caption, color: T.textDim }}>Outside {villainLabel}&apos;s range</span>
+                        )}
+                    </>
+                ) : (
+                    <span style={{ fontSize: F.caption, color: T.textMuted }}>
+                        Pick two ranks above, or tap any cell, for its tier and combo count.
+                    </span>
+                )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(0,1fr))', gap: 1, marginBottom: S.md }}>
+                {grid.flat().map(cell => {
+                    const tier = tierFor(cell.strength);
+                    const on = selected && selected.i === cell.i && selected.j === cell.j;
+                    return (
+                        <button
+                            key={`${cell.i},${cell.j}`}
+                            type="button"
+                            onClick={() => {
+                                setSelected({ i: cell.i, j: cell.j });
+                                // Keep the 44px picker in sync with a direct tap.
+                                setPickHigh(Math.min(cell.i, cell.j));
+                                setPickLow(Math.max(cell.i, cell.j));
+                                if (cell.i !== cell.j) setPickSuit(cell.i < cell.j ? 's' : 'o');
+                            }}
+                            aria-label={`${cell.label}, ${tier.label}${cell.inRange ? '' : ', outside range'}`}
+                            aria-pressed={!!on}
+                            style={{
+                                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: F.caption, fontWeight: 700, lineHeight: 1, borderRadius: 4, padding: 0,
+                                background: cell.inRange ? `${tier.colour}3D` : T.surface2,
+                                border: `1px solid ${on ? T.text : cell.inRange ? `${tier.colour}66` : T.border}`,
+                                color: cell.inRange ? T.text : T.textDim,
+                                opacity: cell.inRange ? 1 : 0.35,
+                                cursor: 'pointer', touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                            }}
+                        >
+                            {RANKS[Math.min(cell.i, cell.j)]}{RANKS[Math.max(cell.i, cell.j)]}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Legend — text tier labels, never colour alone */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: S.sm }}>
+                {TIERS.map(t => (
+                    <span key={t.label} style={{ display: 'inline-flex', alignItems: 'center', gap: S.xs }}>
+                        <span style={{ width: 12, height: 12, borderRadius: 3, background: `${t.colour}66`, border: `1px solid ${t.colour}` }} />
+                        <span style={{ fontSize: F.caption, color: T.textMuted }}>{t.label}</span>
+                    </span>
+                ))}
+            </div>
+        </BottomSheet>
     );
 }

@@ -6,23 +6,62 @@
  * A leak requires: repetition + same situation class + measurable EV loss.
  *
  * INTEGRITY BADGE: Not Live Play - Post-Session Review Only
+ *
+ * PA_DESIGN_SPEC v1 ("Neon Slate"), mobile-first at 375x667:
+ *  - single column, full-width cards, everything reachable one-handed
+ *  - leak detail is a BOTTOM SHEET (paKit <BottomSheet/>), never a side rail
+ *  - heavy analytics live behind an "Insights" tab and are code-split
+ *  - every render path is wrapped in an error boundary (this route white-screened
+ *    in production when trend_data arrived as a JSON string)
  */
 
 import { useRouter } from 'next/router';
-import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import {
+  Activity, AlertTriangle, BarChart3, CheckCircle2, ChevronDown, ChevronRight,
+  Dumbbell, GraduationCap, Inbox, Link2, Lock, RefreshCw, RotateCcw, Search,
+  Sparkles, Target, TrendingDown, TrendingUp, X, Zap,
+} from 'lucide-react';
+
+import SEOHead from '../../../src/components/seo/SEOHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
-
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
-import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
-import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
-import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import {
+  T, F, S, R, Z, FONT, card, cardCompact, btn, iconBtn, pill, numeric,
+} from '../../../src/components/sandbox/paTokens';
+import {
+  PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
+  safeStorage, usePrefersReducedMotion,
+} from '../../../src/components/sandbox/paKit';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CODE-SPLIT ANALYTICS (Insights tab only — keeps them off the critical path)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SessionAnalytics = dynamic(
+  () => import('../../../src/components/sandbox/SessionAnalytics'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading session analytics" /> },
+);
+const CoachLeaderboard = dynamic(
+  () => import('../../../src/components/sandbox/CoachLeaderboard'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading leaderboard" /> },
+);
+const MacroLeakDetector = dynamic(
+  () => import('../../../src/components/sandbox/MacroLeakDetector'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading macro leak detector" /> },
+);
+const LeakHeatmap = dynamic(
+  () => import('../../../src/components/sandbox/LeakHeatmap'),
+  { ssr: false, loading: () => <PanelSkeleton label="Loading leak heatmap" /> },
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -36,645 +75,872 @@ function isDemoLeakId(id) {
 }
 
 function fmtCards(cards) {
-  if (Array.isArray(cards)) return cards.join(' ');
-  return cards || '—';
+  if (Array.isArray(cards)) return cards.filter(Boolean).join(' ') || '—';
+  if (typeof cards === 'string' && cards.trim()) return cards.trim();
+  return '—';
+}
+
+function num(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** formatLeakTitle() is lossy, but reversible enough to recover the slug. */
+function slugFromTitle(title) {
+  if (!title || typeof title !== 'string') return null;
+  return title.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+/** Total BB bled by a leak = per-occurrence EV loss x occurrences. */
+function totalBleed(leak) {
+  return Math.abs(num(leak?.evLossBB)) * Math.max(0, num(leak?.occurrenceCount));
+}
+
+function relativeDate(value) {
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  if (!Number.isFinite(t)) return null;
+  const diff = Date.now() - t;
+  if (diff < 0) return 'just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** 'YYYY-MM' (the format detect.js writes) -> 'May' ; anything else passes through. */
+function shortPointLabel(raw) {
+  const s = String(raw ?? '');
+  const m = s.match(/^(\d{4})-(\d{2})$/);
+  if (m) {
+    const idx = Number(m[2]) - 1;
+    return MONTHS[idx] || s;
+  }
+  if (s.length > 7) return s.slice(0, 7);
+  return s || '—';
+}
+
+/**
+ * trend_data can arrive as an array, as a JSON string (text column / proxy
+ * serialization) or as junk. Anything that is not a finite {value} row is
+ * dropped. This is the guard whose absence white-screened the route.
+ */
+function coerceTrendPoints(data) {
+  let raw = data;
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(d => d && typeof d === 'object' && Number.isFinite(Number(d.value)))
+    .map((d, i) => ({ date: String(d.date ?? d.label ?? `#${i + 1}`), value: Number(d.value) }));
+}
+
+function friendlyDetectionError(err) {
+  const msg = String(err || '').trim();
+  if (!msg) return 'Leak detection failed. Please try again.';
+  if (/unexpected token|<!doctype|json|syntaxerror/i.test(msg)) return 'The server is busy right now. Please try again in a moment.';
+  if (/429|too many|rate.?limit/i.test(msg)) return 'You have run detection too many times. Try again in a few minutes.';
+  if (/not logged in|unauthor|401|expired|invalid token/i.test(msg)) return 'Your session expired — sign in again to run detection.';
+  if (/failed to fetch|network|offline/i.test(msg)) return 'You appear to be offline. Reconnect and try again.';
+  return msg;
+}
+
+function friendlyLoadError(err) {
+  const msg = String(err || '').trim();
+  if (/401|unauthor|expired|invalid token/i.test(msg)) return 'Your session expired — sign in again to see your leaks.';
+  if (/failed to fetch|network|offline/i.test(msg)) return 'No connection. Check your network and retry.';
+  return msg || 'Unknown error';
+}
+
+const STATUS_META = {
+  persistent: { label: 'Persistent', color: T.danger, soft: T.dangerSoft, Icon: AlertTriangle, tone: 'danger' },
+  emerging: { label: 'Emerging', color: T.warn, soft: T.warnSoft, Icon: TrendingUp, tone: 'warn' },
+  improving: { label: 'Improving', color: T.success, soft: T.successSoft, Icon: TrendingDown, tone: 'success' },
+  resolved: { label: 'Resolved', color: T.textMuted, soft: 'rgba(176,179,184,0.14)', Icon: CheckCircle2, tone: 'neutral' },
+};
+
+function statusMeta(status) {
+  return STATUS_META[status] || STATUS_META.emerging;
+}
+
+const CONFIDENCE_META = {
+  high: { label: 'High', color: T.accent, level: 3 },
+  medium: { label: 'Medium', color: T.warn, level: 2 },
+  low: { label: 'Low', color: T.danger, level: 1 },
+};
+
+function confidenceMeta(confidence) {
+  return CONFIDENCE_META[confidence] || CONFIDENCE_META.medium;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LEAK STATUS BADGE
+// ERROR BOUNDARY — a recoverable panel instead of a blank route
+// ═══════════════════════════════════════════════════════════════════════════
+
+class LeakErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { err: null };
+    this.reset = this.reset.bind(this);
+  }
+
+  static getDerivedStateFromError(err) {
+    return { err };
+  }
+
+  componentDidCatch(err, info) {
+    console.warn('[LeakFinder] render error', err, info);
+  }
+
+  reset() {
+    this.setState({ err: null });
+  }
+
+  render() {
+    if (!this.state.err) return this.props.children;
+    if (typeof this.props.fallback === 'function') return this.props.fallback(this.state.err, this.reset);
+    return <PanelCrash label={this.props.label} error={this.state.err} onRetry={this.reset} />;
+  }
+}
+
+function PanelCrash({ label, error, onRetry }) {
+  return (
+    <div style={{ ...card, borderColor: 'rgba(239,68,68,0.4)', background: T.dangerSoft }} role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.sm }}>
+        <AlertTriangle size={18} strokeWidth={2} color={T.danger} aria-hidden="true" />
+        <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger }}>
+          {label || 'This panel'} could not be displayed
+        </span>
+      </div>
+      <p style={{ fontSize: F.caption, color: T.textMuted, margin: `0 0 ${S.md}px`, lineHeight: 1.45 }}>
+        {String(error?.message || error || 'Unexpected error')}
+      </p>
+      <button type="button" className="pa-btn" style={btn('secondary')} onClick={onRetry}>
+        <RefreshCw size={18} strokeWidth={2} aria-hidden="true" />
+        Retry
+      </button>
+    </div>
+  );
+}
+
+function PanelSkeleton({ label = 'Loading' }) {
+  return (
+    <div style={card} aria-busy="true" aria-label={label}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+        <Skeleton h={16} w="45%" />
+        <Skeleton h={44} />
+        <Skeleton h={32} w="78%" />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BADGES
 // ═══════════════════════════════════════════════════════════════════════════
 
 function LeakStatusBadge({ status }) {
-  const config = {
-    persistent: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', label: 'Persistent', icon: '\u25B2' },
-    emerging: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', label: 'Emerging', icon: '\u25B2' },
-    improving: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', label: 'Improving', icon: '\u25B2' },
-    resolved: { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)', label: 'Resolved', icon: '\u2713' },
-  };
-
-  const c = config[status] || config.emerging;
-
+  const meta = statusMeta(status);
+  const Icon = meta.Icon;
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      padding: '4px 10px',
-      background: c.bg,
-      borderRadius: 4,
-      fontSize: 11,
-      fontWeight: 600,
-      color: c.color,
-    }}>
-      <span>{c.icon}</span>
-      {c.label}
+    <span style={pill(meta.tone)}>
+      <Icon size={12} strokeWidth={2} aria-hidden="true" />
+      {meta.label}
     </span>
   );
 }
 
 function ConfidenceBadge({ confidence }) {
-  const colors = {
-    high: '#64b5f6',
-    medium: '#f59e0b',
-    low: '#ef4444',
-  };
-
+  const meta = confidenceMeta(confidence);
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      padding: '4px 10px',
-      background: 'rgba(255, 255, 255, 0.05)',
-      border: `1px solid ${colors[confidence] || colors.medium}`,
-      borderRadius: 4,
-      fontSize: 11,
-      color: colors[confidence] || colors.medium,
-    }}>
-      {confidence === 'high' ? 'High Confidence' : confidence === 'medium' ? 'Medium' : 'Low'}
+    <span
+      style={{ ...pill('neutral'), color: meta.color, border: `1px solid ${meta.color}55`, background: 'rgba(255,255,255,0.05)' }}
+      aria-label={`${meta.label} confidence`}
+    >
+      <span aria-hidden="true" style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: i < meta.level ? meta.color : 'rgba(255,255,255,0.18)',
+            }}
+          />
+        ))}
+      </span>
+      {meta.label} Confidence
     </span>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SOURCE BADGE
-// ═══════════════════════════════════════════════════════════════════════════
 
 function SourceBadge({ source }) {
   const isTraining = source === 'training_arena';
-  const c = isTraining
-    ? { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)', label: 'Training Arena', icon: '\u25CE' }
-    : { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)', label: 'Live Play', icon: '\u2660' };
-
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      padding: '4px 10px',
-      background: c.bg,
-      border: `1px solid ${c.color}40`,
-      borderRadius: 4,
-      fontSize: 11,
-      fontWeight: 600,
-      color: c.color,
-    }}>
-      <span style={{ fontSize: 10 }}>{c.icon}</span>
-      {c.label}
+    <span style={pill(isTraining ? 'accent' : 'purple')}>
+      {isTraining
+        ? <GraduationCap size={12} strokeWidth={2} aria-hidden="true" />
+        : <Zap size={12} strokeWidth={2} aria-hidden="true" />}
+      {isTraining ? 'Training Arena' : 'Live Play'}
     </span>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TREND CHART (Simple SVG)
+// TREND CHART — responsive SVG, no fixed pixel width, tap-to-read points
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TrendChart({ data, optimal, current, status }) {
-  if (!data || data.length < 2) return null;
-
-  const width = 400;
-  const height = 140;
-  const padding = { top: 20, right: 60, bottom: 30, left: 40 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-
-  const optimalVal = Number(optimal) || 0;
-  const currentVal = Number(current) || 0;
-
-  const values = data.map(d => Number(d.value) || 0);
-  const minVal = Math.min(...values, optimalVal) - 5;
-  const maxVal = Math.max(...values, optimalVal) + 5;
-  const range = (maxVal - minVal) || 1;
-
-  const getY = (val) => padding.top + chartHeight - (((Number(val) || 0) - minVal) / range) * chartHeight;
-  const getX = (index) => padding.left + (index / (data.length - 1)) * chartWidth;
-
-  // Create path
-  const pathPoints = data.map((d, i) => `${getX(i)},${getY(d.value)}`).join(' L ');
-  const linePath = `M ${pathPoints}`;
-
-  // Area fill
-  const areaPath = `M ${getX(0)},${getY(data[0].value)} L ${pathPoints} L ${getX(data.length - 1)},${height - padding.bottom} L ${getX(0)},${height - padding.bottom} Z`;
-
-  const lineColor = status === 'improving' ? '#22c55e' : status === 'persistent' ? '#ef4444' : '#f59e0b';
-  const difference = currentVal - optimalVal;
-
+function TrendStatTiles({ current, optimal, color }) {
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Responsive: viewBox + fluid width so the chart fits a 375px viewport */}
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', width: '100%', height: 'auto', maxWidth: width }}>
-        {/* Grid lines */}
-        {[0, 25, 50, 75].map(pct => {
-          const y = padding.top + (pct / 100) * chartHeight;
-          return (
-            <line
-              key={pct}
-              x1={padding.left}
-              y1={y}
-              x2={width - padding.right}
-              y2={y}
-              stroke="rgba(255, 255, 255, 0.1)"
-              strokeDasharray="2,2"
-            />
-          );
-        })}
-
-        {/* Optimal line */}
-        <line
-          x1={padding.left}
-          y1={getY(optimalVal)}
-          x2={width - padding.right}
-          y2={getY(optimalVal)}
-          stroke="#22c55e"
-          strokeWidth="2"
-          strokeDasharray="6,4"
-        />
-
-        {/* Area fill */}
-        <path
-          d={areaPath}
-          fill={`${lineColor}15`}
-        />
-
-        {/* Trend line */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke={lineColor}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Data points */}
-        {data.map((d, i) => (
-          <circle
-            key={i}
-            cx={getX(i)}
-            cy={getY(d.value)}
-            r="5"
-            fill={lineColor}
-            stroke="#0a1628"
-            strokeWidth="2"
-          />
-        ))}
-
-        {/* Y-axis labels */}
-        <text x={padding.left - 8} y={padding.top + 4} fill="rgba(255,255,255,0.5)" fontSize="10" textAnchor="end">
-          {maxVal.toFixed(0)}%
-        </text>
-        <text x={padding.left - 8} y={height - padding.bottom} fill="rgba(255,255,255,0.5)" fontSize="10" textAnchor="end">
-          {minVal.toFixed(0)}%
-        </text>
-
-        {/* X-axis labels */}
-        {data.length > 0 && (
-          <>
-            <text x={padding.left} y={height - 8} fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="start">
-              {data[0].date}
-            </text>
-            <text x={width - padding.right} y={height - 8} fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="end">
-              {data[data.length - 1].date}
-            </text>
-          </>
-        )}
-      </svg>
-
-      {/* Difference annotation */}
-      <div style={{
-        position: 'absolute',
-        top: padding.top,
-        right: 0,
-        padding: '6px 12px',
-        background: difference > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-        borderRadius: 6,
-        fontSize: 13,
-        fontWeight: 600,
-        color: difference > 0 ? '#ef4444' : '#22c55e',
-      }}>
-        {difference > 0 ? '+' : ''}{difference.toFixed(1)}% {difference > 0 ? 'Above' : 'Below'} Optimal
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: S.sm }}>
+      <div style={styles.miniTile}>
+        <span style={styles.miniTileLabel}>You</span>
+        <span style={{ ...styles.miniTileValue, color }}>{Number.isFinite(current) ? `${current.toFixed(0)}%` : '—'}</span>
+      </div>
+      <div style={styles.miniTile}>
+        <span style={styles.miniTileLabel}>Optimal</span>
+        <span style={{ ...styles.miniTileValue, color: T.success }}>{Number.isFinite(optimal) ? `${optimal.toFixed(0)}%` : '—'}</span>
       </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LEAK DETAIL VIEW
-// ═══════════════════════════════════════════════════════════════════════════
+function TrendChart({ data, optimal, current, status }) {
+  const points = useMemo(() => coerceTrendPoints(data), [data]);
+  const [activeIdx, setActiveIdx] = useState(null);
 
-function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills, onMarkResolved, isResolving }) {
-  const isDemoLeak = leak ? isDemoLeakId(leak.id) : false;
+  const meta = statusMeta(status);
+  const lineColor = meta.color;
+  const optimalVal = Number.isFinite(Number(optimal)) ? Number(optimal) : null;
+  const currentVal = Number.isFinite(Number(current)) ? Number(current) : null;
 
-  // Only fetch example hands for real user_leaks rows (demo/sim ids don't exist in DB)
-  const { examples, isLoading: examplesLoading } = useLeakHandExamples(leak && !isDemoLeak ? leak.id : null);
+  const deltaPts = (currentVal !== null && optimalVal !== null) ? currentVal - optimalVal : null;
 
-  // Auto guidance: persisted preference; when ON, the top suggested fix is highlighted
-  const [autoGuidance, setAutoGuidance] = useState(false);
-  useEffect(() => {
-    try {
-      setAutoGuidance(localStorage.getItem('pa-auto-guidance') === 'true');
-    } catch (e) { /* localStorage unavailable */ }
-  }, []);
-  const toggleAutoGuidance = (e) => {
-    const next = e.target.checked;
-    setAutoGuidance(next);
-    try { localStorage.setItem('pa-auto-guidance', String(next)); } catch (err) { /* noop */ }
-  };
+  const header = (
+    <div style={styles.trendHeader}>
+      <span style={styles.trendHeaderLabel}>Frequency vs optimal</span>
+      {deltaPts !== null && (
+        <span style={{ ...pill(meta.tone), ...numeric }}>
+          {Math.abs(deltaPts).toFixed(1)} pts {deltaPts >= 0 ? 'above' : 'below'} optimal
+        </span>
+      )}
+    </div>
+  );
 
-  if (!leak) {
+  if (points.length === 0) {
     return (
-      <div style={detailStyles.placeholder}>
-        <p>Select A Leak From The Index To View Details.</p>
+      <div>
+        {header}
+        <div style={styles.trendEmpty}>
+          <p style={styles.trendEmptyText}>
+            Not enough history yet — this leak needs at least two detection runs to plot a trend.
+          </p>
+          <TrendStatTiles current={currentVal} optimal={optimalVal} color={lineColor} />
+        </div>
       </div>
     );
   }
 
-  const drill = leak.recommendedDrill || leak.recommended_drill || null;
+  // ── geometry (viewBox units; the SVG itself is fluid width) ──────────────
+  const width = 320;
+  const height = 130;
+  const padding = { top: 16, right: 14, bottom: 16, left: 14 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
 
-  // Guard against optimalFrequency of 0/undefined producing NaN/Infinity
-  const deviation = leak.optimalFrequency
-    ? (((leak.currentFrequency ?? 0) - leak.optimalFrequency) / leak.optimalFrequency * 100).toFixed(0)
+  const values = points.map(p => p.value);
+  const bounds = optimalVal === null ? values : values.concat([optimalVal]);
+  const minVal = Math.min(...bounds) - 5;
+  const maxVal = Math.max(...bounds) + 5;
+  const range = (maxVal - minVal) || 1;
+
+  const getY = (val) => padding.top + chartHeight - ((num(val) - minVal) / range) * chartHeight;
+  const getX = (index) => (points.length < 2
+    ? padding.left + chartWidth / 2
+    : padding.left + (index / (points.length - 1)) * chartWidth);
+
+  const coords = points.map((p, i) => `${getX(i).toFixed(2)},${getY(p.value).toFixed(2)}`);
+  const linePath = points.length >= 2 ? `M ${coords.join(' L ')}` : null;
+  const areaPath = points.length >= 2
+    ? `M ${getX(0).toFixed(2)},${(height - padding.bottom).toFixed(2)} L ${coords.join(' L ')} L ${getX(points.length - 1).toFixed(2)},${(height - padding.bottom).toFixed(2)} Z`
     : null;
 
-  const situation = leak.situationClass || 'these';
-  const sandboxCopy = drill
-    ? `Practice ${situation} spots in a controlled environment. I'll set up a virtual sandbox drill — "${drill}" — targeting this exact leak.`
-    : `Practice ${situation} spots in a controlled environment. I'll set up a virtual sandbox scenario targeting this exact leak.`;
-  const trainingCopy = drill
-    ? `Focus on fixing "${leak.title}" with targeted exercises. The "${drill}" drill emphasizes the key decisions behind ${situation} spots.`
-    : `Focus on fixing "${leak.title}" with targeted exercises built around ${situation} spots.`;
-
-  const resolveDisabled = isResolving || isDemoLeak || leak.status === 'resolved';
+  const active = activeIdx !== null && points[activeIdx] ? points[activeIdx] : null;
 
   return (
-    <div style={detailStyles.container}>
-      {/* Header */}
-      <div style={detailStyles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-          <h2 style={{ ...detailStyles.title, marginBottom: 0 }}>{leak.title}</h2>
-          {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
-          <button
-            style={{
-              ...detailStyles.resolveBtn,
-              ...(resolveDisabled ? detailStyles.resolveBtnDisabled : {}),
-            }}
-            onClick={() => onMarkResolved && onMarkResolved(leak)}
-            disabled={resolveDisabled}
-            title={isDemoLeak
-              ? 'Sample leaks cannot be resolved — run detection on your own hands first'
-              : leak.status === 'resolved'
-                ? 'This leak is already resolved'
-                : 'Mark this leak as resolved'}
-          >
-            {isResolving ? 'Saving...' : leak.status === 'resolved' ? '\u2713 Resolved' : 'Mark Resolved'}
-          </button>
-        </div>
-        <div style={detailStyles.badges}>
-          <LeakStatusBadge status={leak.status} />
-          <ConfidenceBadge confidence={leak.confidence} />
-          <span style={detailStyles.situationTag}>{leak.situationClass}</span>
-        </div>
-        {/* What you're doing: general explanation (only when we also have the tailored EV text, to avoid duplication) */}
-        {leak.whyLeakingEv && leak.explanation && leak.whyLeakingEv !== leak.explanation && (
-          <p style={detailStyles.headerSummary}>{leak.explanation}</p>
+    <div>
+      {header}
+
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ display: 'block', width: '100%', height: 'auto', maxWidth: '100%' }}
+        role="img"
+        aria-label={`Frequency trend from ${points[0].date} to ${points[points.length - 1].date}. Latest ${points[points.length - 1].value} percent.`}
+      >
+        {[0, 25, 50, 75, 100].map(pct => {
+          const y = padding.top + (pct / 100) * chartHeight;
+          return (
+            <line
+              key={pct}
+              x1={padding.left} y1={y} x2={width - padding.right} y2={y}
+              stroke="rgba(255,255,255,0.08)" strokeDasharray="2,3"
+            />
+          );
+        })}
+
+        {optimalVal !== null && (
+          <line
+            x1={padding.left} y1={getY(optimalVal)} x2={width - padding.right} y2={getY(optimalVal)}
+            stroke={T.success} strokeWidth="2" strokeDasharray="6,4"
+          />
+        )}
+
+        {areaPath && <path d={areaPath} fill={`${lineColor}22`} />}
+        {linePath && (
+          <path d={linePath} fill="none" stroke={lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+
+        {points.map((p, i) => (
+          <circle
+            key={`${p.date}-${i}`}
+            cx={getX(i)} cy={getY(p.value)}
+            r={activeIdx === i ? 7 : 5}
+            fill={activeIdx === i ? '#FFFFFF' : lineColor}
+            stroke={lineColor}
+            strokeWidth="2"
+          />
+        ))}
+      </svg>
+
+      {/* Axis + scale info as HTML so font sizes stay in CSS pixels */}
+      <div style={styles.trendScaleRow}>
+        <span style={styles.trendScaleText}>
+          Range {minVal.toFixed(0)}%–{maxVal.toFixed(0)}%
+        </span>
+        {optimalVal !== null && (
+          <span style={styles.trendScaleText}>
+            <span aria-hidden="true" style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${T.success}`, marginRight: 6, verticalAlign: 'middle' }} />
+            Optimal {optimalVal.toFixed(0)}%
+          </span>
         )}
       </div>
 
-      {/* Trend Chart */}
-      <div style={detailStyles.chartSection}>
-        <h3 style={detailStyles.chartTitle}>
-          Occurrences: {leak.occurrenceCount ?? 0}{deviation !== null ? ` — ${deviation}% vs optimal` : ''}
-        </h3>
-        <TrendChart
-          data={leak.trendData}
-          optimal={leak.optimalFrequency}
-          current={leak.currentFrequency}
-          status={leak.status}
-        />
+      {/* Tap-to-read points (no hover-only information) */}
+      <div style={styles.trendPointRow} data-hscroll="true" role="group" aria-label="Trend data points">
+        {points.map((p, i) => (
+          <button
+            key={`btn-${p.date}-${i}`}
+            type="button"
+            className="pa-btn"
+            aria-pressed={activeIdx === i}
+            onClick={() => setActiveIdx(activeIdx === i ? null : i)}
+            style={{
+              ...styles.trendPointBtn,
+              borderColor: activeIdx === i ? lineColor : T.border,
+              background: activeIdx === i ? `${lineColor}22` : T.surface2,
+            }}
+          >
+            <span style={styles.trendPointValue}>{p.value.toFixed(0)}%</span>
+            <span style={styles.trendPointDate}>{shortPointLabel(p.date)}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Why It's Leaking */}
-      <div style={detailStyles.explanationSection}>
-        <h3 style={detailStyles.sectionTitle}>Why It's Leaking EV</h3>
-        <p style={detailStyles.explanationText}>{leak.whyLeakingEv || leak.explanation}</p>
-      </div>
-
-      {/* Recent Example Hands (real leaks only — populated by leak detection) */}
-      {!isDemoLeak && (
-        <div style={detailStyles.explanationSection}>
-          <h3 style={detailStyles.sectionTitle}>Recent Example Hands</h3>
-          {examplesLoading ? (
-            <p style={detailStyles.explanationText}>Loading example hands...</p>
-          ) : examples.length === 0 ? (
-            <p style={detailStyles.explanationText}>
-              No example hands recorded for this leak yet. Run leak detection after your next sessions to collect concrete examples.
-            </p>
-          ) : (
-            <div style={detailStyles.examplesList}>
-              {examples.map((ex) => (
-                <div key={ex.id} style={detailStyles.exampleRow}>
-                  <span style={detailStyles.exampleCards}>{fmtCards(ex.snapshot?.hero_cards)}</span>
-                  <span style={detailStyles.exampleBoard}>Board: {fmtCards(ex.snapshot?.board)}</span>
-                  <span style={detailStyles.exampleStreet}>{(ex.snapshot?.street || '?').toUpperCase()}</span>
-                  <span style={detailStyles.exampleEv}>
-                    {typeof ex.evLoss === 'number' ? `-${Math.abs(ex.evLoss).toFixed(2)} BB` : '—'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Suggested Fixes */}
-      <div style={detailStyles.fixesSection}>
-        <div style={detailStyles.fixesGrid}>
-          {/* Sandbox Practice */}
-          <div style={{
-            ...detailStyles.fixCard,
-            ...(autoGuidance ? detailStyles.fixCardRecommended : {}),
-          }}>
-            <h4 style={detailStyles.fixTitle}>
-              Suggested Fixes
-              {autoGuidance && <span style={detailStyles.recommendedChip}>Recommended</span>}
-            </h4>
-            <div style={detailStyles.fixIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#64b5f6" strokeWidth="2" fill="none" />
-              </svg>
-            </div>
-            <h5 style={detailStyles.fixSubtitle}>Practice In Sandbox</h5>
-            <p style={detailStyles.fixText}>{sandboxCopy}</p>
-            <button style={detailStyles.fixButton} onClick={onPracticeSandbox}>
-              Practice Leak in Sandbox
-            </button>
-          </div>
-
-          {/* Focused Training */}
-          <div style={detailStyles.fixCard}>
-            <h4 style={detailStyles.fixTitle}>Specialized Training</h4>
-            <div style={detailStyles.fixIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2" fill="none" />
-                <path d="M12 6v6l4 2" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <h5 style={detailStyles.fixSubtitle}>Specialized Training</h5>
-            <p style={detailStyles.fixText}>{trainingCopy}</p>
-            <button style={{ ...detailStyles.fixButton, background: 'linear-gradient(135deg, #f59e0b, #d97706)' }} onClick={onTrainDrills}>
-              Train with Focused Drills
-            </button>
-          </div>
-        </div>
-
-        {/* Auto-guidance toggle */}
-        <div style={detailStyles.autoGuidance}>
-          <input
-            type="checkbox"
-            id="autoGuidance"
-            style={detailStyles.checkbox}
-            checked={autoGuidance}
-            onChange={toggleAutoGuidance}
-          />
-          <label htmlFor="autoGuidance" style={detailStyles.autoGuidanceLabel}>
-            Auto guidance {autoGuidance ? 'ON' : 'OFF'}:{' '}
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {autoGuidance ? 'Highlighting The Top Suggested Fix Automatically.' : 'Suggesting One Fix At A Time.'}
-            </span>
-          </label>
-        </div>
-      </div>
+      <p style={styles.trendCaption} aria-live="polite">
+        {active
+          ? `${active.date}: you played this spot at ${active.value.toFixed(1)}%${optimalVal !== null ? ` (optimal ${optimalVal.toFixed(0)}%)` : ''}.`
+          : points.length < 2
+            ? 'Only one detection run so far — run detection again to see a trend line.'
+            : 'Tap a point to read that period.'}
+      </p>
     </div>
   );
 }
 
-const detailStyles = {
-  container: {
-    flex: 1,
-    padding: 24,
-    overflowY: 'auto',
-  },
-  placeholder: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'rgba(255, 255, 255, 0.4)',
-    padding: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  headerSummary: {
-    marginTop: 12,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    lineHeight: 1.6,
-  },
-  badges: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-  },
-  situationTag: {
-    padding: '4px 10px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 4,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  resolveBtn: {
-    marginLeft: 'auto',
-    padding: '8px 14px',
-    background: 'rgba(34, 197, 94, 0.15)',
-    border: '1px solid rgba(34, 197, 94, 0.5)',
-    borderRadius: 8,
-    color: '#22c55e',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  resolveBtnDisabled: {
-    opacity: 0.45,
-    cursor: 'not-allowed',
-  },
-  chartSection: {
-    marginBottom: 24,
-    padding: 20,
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 12,
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-  },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 16,
-  },
-  explanationSection: {
-    marginBottom: 24,
-    padding: 20,
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 12,
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  explanationText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 1.6,
-  },
-  examplesList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  exampleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-    padding: '10px 12px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 8,
-    fontSize: 12,
-  },
-  exampleCards: {
-    fontWeight: 700,
-    color: '#fff',
-  },
-  exampleBoard: {
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  exampleStreet: {
-    padding: '2px 8px',
-    background: 'rgba(100, 181, 246, 0.15)',
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#64b5f6',
-  },
-  exampleEv: {
-    marginLeft: 'auto',
-    fontWeight: 600,
-    color: '#ef4444',
-  },
-  fixesSection: {},
-  fixesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: 16,
-    marginBottom: 16,
-  },
-  fixCard: {
-    padding: 20,
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 12,
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-  },
-  fixCardRecommended: {
-    borderColor: '#64b5f6',
-    background: 'rgba(100, 181, 246, 0.06)',
-  },
-  recommendedChip: {
-    marginLeft: 8,
-    padding: '2px 8px',
-    background: 'rgba(100, 181, 246, 0.2)',
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: 700,
-    color: '#64b5f6',
-    textTransform: 'none',
-  },
-  fixTitle: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  fixIcon: {
-    marginBottom: 12,
-  },
-  fixSubtitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 8,
-  },
-  fixText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    lineHeight: 1.5,
-    marginBottom: 16,
-  },
-  fixButton: {
-    width: '100%',
-    padding: '12px 20px',
-    background: 'linear-gradient(135deg, #1565c0, #0d47a1)',
-    border: 'none',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  autoGuidance: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '12px 16px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 8,
-  },
-  checkbox: {
-    accentColor: '#64b5f6',
-  },
-  autoGuidanceLabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-};
+// ═══════════════════════════════════════════════════════════════════════════
+// BLEED SUMMARY — EV-ranked headline + stacked attribution bar
+// ═══════════════════════════════════════════════════════════════════════════
+
+function BleedSummary({ leaks, isDemo }) {
+  const items = useMemo(() => (
+    leaks
+      .map(l => ({ id: l.id, title: l.title, bb: totalBleed(l), status: l.status }))
+      .filter(i => i.bb > 0)
+      .sort((a, b) => b.bb - a.bb)
+  ), [leaks]);
+
+  const total = items.reduce((s, i) => s + i.bb, 0);
+  if (!total) return null;
+
+  const top = items.slice(0, 4);
+  const restBb = total - top.reduce((s, i) => s + i.bb, 0);
+
+  return (
+    <section style={{ ...card, marginBottom: S.md }} aria-label="EV bleed summary">
+      <h2 style={styles.bleedHeadline}>
+        {isDemo ? 'Sample data: ' : 'You are bleeding '}
+        <span style={{ ...numeric, color: T.danger, fontWeight: 800 }}>~{total.toFixed(1)} BB</span>
+        {' '}across {leaks.length} active leak{leaks.length === 1 ? '' : 's'}
+      </h2>
+      <p style={styles.bleedSub}>Ranked by total EV lost (per-occurrence loss x occurrences).</p>
+
+      <div style={styles.bleedBar} aria-hidden="true">
+        {top.map(i => (
+          <div
+            key={i.id}
+            style={{
+              width: `${Math.max(4, (i.bb / total) * 100)}%`,
+              background: statusMeta(i.status).color,
+              height: '100%',
+            }}
+          />
+        ))}
+        {restBb > 0.001 && (
+          <div style={{ flex: 1, background: T.surface3, height: '100%' }} />
+        )}
+      </div>
+
+      <ul style={styles.bleedLegend}>
+        {top.slice(0, 3).map(i => (
+          <li key={i.id} style={styles.bleedLegendRow}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: statusMeta(i.status).color, flexShrink: 0 }} />
+            <span style={styles.bleedLegendTitle}>{i.title}</span>
+            <span style={styles.bleedLegendValue}>{((i.bb / total) * 100).toFixed(0)}%</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEAK CARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function LeakCard({ leak, onOpen, onPractice, selected, demo }) {
+  const ev = Math.abs(num(leak.evLossBB));
+  const occ = Math.max(0, num(leak.occurrenceCount));
+  const total = ev * occ;
+  const meta = statusMeta(leak.status);
+  const lowConfidence = leak.confidence === 'low';
+
+  return (
+    <li
+      role="listitem"
+      style={{
+        ...styles.leakCard,
+        ...(selected ? styles.leakCardSelected : null),
+        ...(demo ? styles.leakCardDemo : null),
+      }}
+    >
+      <button
+        type="button"
+        className="leak-card pa-btn"
+        onClick={() => onOpen(leak)}
+        aria-label={`${leak.title}. ${meta.label}. ${ev.toFixed(2)} BB lost per occurrence over ${occ} spots. Open details.`}
+        style={styles.leakCardBody}
+      >
+        <span style={styles.leakCardHeader}>
+          <span style={styles.leakCardTitle}>{leak.title}</span>
+          <ChevronRight size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, flexShrink: 0 }} />
+        </span>
+
+        <span style={styles.leakCardMetrics}>
+          <span style={styles.leakCardEv}>-{ev.toFixed(2)} BB</span>
+          <span style={styles.leakCardMetricDim}>per spot</span>
+          <span style={styles.leakCardMetricDim}>{occ} spot{occ === 1 ? '' : 's'}</span>
+          <span style={styles.leakCardMetricStrong}>~{total.toFixed(1)} BB total</span>
+        </span>
+
+        <span style={styles.leakCardBadges}>
+          <LeakStatusBadge status={leak.status} />
+          {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
+          <ConfidenceBadge confidence={leak.confidence} />
+        </span>
+
+        <span style={styles.leakCardSituation}>
+          Situation: {leak.situationClass || 'Not specified'}
+        </span>
+
+        {lowConfidence && (
+          <span style={styles.leakCardHint}>
+            <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" />
+            Small sample — needs more hands before this is conclusive.
+          </span>
+        )}
+      </button>
+
+      {onPractice && (
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => onPractice(leak)}
+          style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(69,153,255,0.45)' }}
+        >
+          <Target size={18} strokeWidth={2} aria-hidden="true" />
+          Practise this leak
+        </button>
+      )}
+    </li>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEAK DETAIL (rendered inside the bottom sheet)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatTile({ label, value, tone }) {
+  return (
+    <div style={styles.statTile}>
+      <span style={styles.statTileLabel}>{label}</span>
+      <span style={{ ...styles.statTileValue, color: tone || T.text }}>{value}</span>
+    </div>
+  );
+}
+
+function AutoGuidanceToggle({ value, onChange }) {
+  return (
+    <button
+      type="button"
+      className="pa-btn"
+      role="switch"
+      aria-checked={value}
+      onClick={() => onChange(!value)}
+      style={styles.guidanceRow}
+    >
+      <span style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
+        <span style={styles.guidanceTitle}>Auto guidance {value ? 'ON' : 'OFF'}</span>
+        <span style={styles.guidanceBody}>
+          {value ? 'Highlighting the top suggested fix automatically.' : 'Suggesting one fix at a time.'}
+        </span>
+      </span>
+      <span aria-hidden="true" style={{ ...styles.switchTrack, background: value ? T.accent : T.surface3 }}>
+        <span style={{ ...styles.switchKnob, transform: value ? 'translateX(18px)' : 'translateX(0)' }} />
+      </span>
+    </button>
+  );
+}
+
+function LeakDetail({
+  leak, onPracticeSandbox, onPracticeExample, onTrainDrills,
+  onMarkResolved, onReopen, isResolving,
+}) {
+  const isDemoLeak = isDemoLeakId(leak?.id);
+  const {
+    examples: rawExamples,
+    isLoading: examplesLoading,
+    error: examplesError,
+    refetch: refetchExamples,
+  } = useLeakHandExamples(leak && !isDemoLeak ? leak.id : null);
+
+  const examples = Array.isArray(rawExamples) ? rawExamples : [];
+
+  const [autoGuidance, setAutoGuidance] = useState(false);
+  useEffect(() => {
+    setAutoGuidance(safeStorage.get('pa-auto-guidance') === 'true');
+  }, []);
+  const toggleAutoGuidance = useCallback((next) => {
+    setAutoGuidance(next);
+    safeStorage.set('pa-auto-guidance', String(next));
+  }, []);
+
+  if (!leak) return null;
+
+  const drill = leak.recommendedDrill || null;
+  const situation = leak.situationClass || 'these';
+  const ev = Math.abs(num(leak.evLossBB));
+  const occ = Math.max(0, num(leak.occurrenceCount));
+
+  const sandboxCopy = drill
+    ? `Practice ${situation} spots in a controlled environment. The sandbox opens on the "${drill}" drill targeting this exact leak.`
+    : `Practice ${situation} spots in a controlled environment with coach mode focused on this leak.`;
+  const trainingCopy = drill
+    ? `Focus on fixing "${leak.title}" with targeted exercises. The "${drill}" drill emphasises the key decisions behind ${situation} spots.`
+    : `Open the Training Arena filtered to ${situation} spots so you can drill the decision repeatedly.`;
+
+  const resolvedWhen = relativeDate(leak.resolvedAt);
+  const trackingSince = relativeDate(leak.firstDetected);
+
+  return (
+    <div>
+      {/* Badges */}
+      <div style={styles.detailBadges}>
+        <LeakStatusBadge status={leak.status} />
+        {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
+        <ConfidenceBadge confidence={leak.confidence} />
+      </div>
+
+      {(trackingSince || resolvedWhen) && (
+        <p style={styles.detailMetaLine}>
+          {leak.status === 'resolved' && resolvedWhen ? `Resolved ${resolvedWhen}` : null}
+          {leak.status === 'resolved' && resolvedWhen && trackingSince ? ' · ' : null}
+          {trackingSince ? `Tracking since ${trackingSince}` : null}
+        </p>
+      )}
+
+      {/* Stat tiles */}
+      <div style={styles.statTileGrid}>
+        <StatTile label="EV / spot" value={`-${ev.toFixed(2)}`} tone={T.danger} />
+        <StatTile label="Occurrences" value={String(occ)} />
+        <StatTile label="Total BB lost" value={`~${(ev * occ).toFixed(1)}`} tone={T.danger} />
+      </div>
+
+      {/* Trend */}
+      <section style={styles.detailSection} aria-label="Trend">
+        <h3 style={styles.detailSectionTitle}>Trend</h3>
+        <LeakErrorBoundary label="The trend chart">
+          <TrendChart
+            data={leak.trendData}
+            optimal={leak.optimalFrequency}
+            current={leak.currentFrequency}
+            status={leak.status}
+          />
+        </LeakErrorBoundary>
+        {leak.frequencyIsEstimated && (
+          <p style={styles.detailNote}>Frequency is estimated from training repetitions, not a measured sample.</p>
+        )}
+      </section>
+
+      {/* How to fix it — the Grok-generated suggestion detect.js persists */}
+      <section style={styles.detailSection} aria-label="How to fix it">
+        <h3 style={styles.detailSectionTitle}>
+          <Sparkles size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.purple, marginRight: 6, verticalAlign: '-2px' }} />
+          How To Fix It
+        </h3>
+        <p style={styles.detailBody}>
+          {leak.suggestedFix
+            || 'No personalised fix has been generated for this leak yet. Run detection again — the engine writes tailored fixes for your highest-impact leaks.'}
+        </p>
+      </section>
+
+      {/* Why it's leaking EV */}
+      <section style={styles.detailSection} aria-label="Why it is leaking EV">
+        <h3 style={styles.detailSectionTitle}>Why It{"'"}s Leaking EV</h3>
+        <p style={styles.detailBody}>{leak.whyLeakingEv || leak.explanation || 'No explanation recorded for this leak.'}</p>
+        {leak.explanation && leak.whyLeakingEv && leak.explanation !== leak.whyLeakingEv && (
+          <p style={{ ...styles.detailBody, color: T.textMuted, marginTop: S.sm }}>{leak.explanation}</p>
+        )}
+      </section>
+
+      {/* Example hands — one tap into the exact spot */}
+      {!isDemoLeak && (
+        <section style={styles.detailSection} aria-label="Recent example hands">
+          <h3 style={styles.detailSectionTitle}>Recent Example Hands</h3>
+          {examplesLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
+              <Skeleton h={56} />
+              <Skeleton h={56} />
+            </div>
+          ) : examplesError ? (
+            <ErrorState
+              title="Could not load example hands"
+              body={String(examplesError)}
+              onRetry={refetchExamples}
+            />
+          ) : examples.length === 0 ? (
+            <p style={styles.detailBody}>
+              No example hands recorded for this leak yet. Run leak detection after your next sessions to collect concrete examples.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+              {examples.map((ex) => {
+                const snap = ex?.snapshot || {};
+                return (
+                  <button
+                    key={ex.id}
+                    type="button"
+                    className="leak-card pa-btn"
+                    onClick={() => onPracticeExample(leak, ex)}
+                    style={styles.exampleRow}
+                    aria-label={`Practice this hand: ${fmtCards(snap.hero_cards)} on ${fmtCards(snap.board)}`}
+                  >
+                    <span style={styles.exampleLine1}>
+                      <span style={styles.exampleCards}>{fmtCards(snap.hero_cards)}</span>
+                      <span style={styles.exampleEv}>
+                        {Number.isFinite(Number(ex.evLoss)) ? `-${Math.abs(Number(ex.evLoss)).toFixed(2)} BB` : '—'}
+                      </span>
+                    </span>
+                    <span style={styles.exampleLine2}>
+                      <span style={styles.exampleBoard}>Board: {fmtCards(snap.board)}</span>
+                      <span style={pill('accent')}>{String(snap.street || '?').toUpperCase()}</span>
+                      <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Suggested fixes */}
+      <section aria-label="Suggested fixes">
+        <h3 style={styles.detailSectionTitle}>Suggested Fixes</h3>
+        <div style={styles.fixGrid}>
+          <div style={{ ...styles.fixCard, ...(autoGuidance ? styles.fixCardRecommended : null) }}>
+            <div style={styles.fixHead}>
+              <Target size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.accent }} />
+              <h4 style={styles.fixTitle}>Practice In Sandbox</h4>
+              {autoGuidance && <span style={pill('accent')}>Recommended</span>}
+            </div>
+            <p style={styles.fixText}>{sandboxCopy}</p>
+            <button type="button" className="pa-btn" style={btn('primary', { block: true })} onClick={() => onPracticeSandbox(leak)}>
+              Practice Leak in Sandbox
+            </button>
+          </div>
+
+          <div style={styles.fixCard}>
+            <div style={styles.fixHead}>
+              <Dumbbell size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.warn }} />
+              <h4 style={styles.fixTitle}>Specialised Training</h4>
+            </div>
+            <p style={styles.fixText}>{trainingCopy}</p>
+            <button
+              type="button"
+              className="pa-btn"
+              style={{ ...btn('secondary', { block: true }), color: T.warn, borderColor: 'rgba(251,191,36,0.45)' }}
+              onClick={() => onTrainDrills(leak)}
+            >
+              {drill ? 'Train with Focused Drills' : 'Open Training Arena'}
+            </button>
+          </div>
+        </div>
+
+        <AutoGuidanceToggle value={autoGuidance} onChange={toggleAutoGuidance} />
+      </section>
+
+      {/* Resolve / reopen */}
+      <section style={{ marginTop: S.lg }} aria-label="Leak status">
+        {leak.status === 'resolved' ? (
+          <>
+            <button
+              type="button"
+              className="pa-btn"
+              style={btn('secondary', { block: true, disabled: isResolving || isDemoLeak })}
+              onClick={() => onReopen(leak)}
+              disabled={isResolving || isDemoLeak}
+              aria-describedby={isDemoLeak ? 'leak-resolve-help' : undefined}
+            >
+              <RotateCcw size={18} strokeWidth={2} aria-hidden="true" />
+              {isResolving ? 'Saving…' : 'Reopen Leak'}
+            </button>
+            {isDemoLeak && (
+              <p id="leak-resolve-help" style={styles.helperText}>
+                Sample leaks cannot be changed — run detection on your own hands first.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="pa-btn"
+              style={btn('success', { block: true, disabled: isResolving || isDemoLeak })}
+              onClick={() => onMarkResolved(leak)}
+              disabled={isResolving || isDemoLeak}
+              aria-describedby={isDemoLeak ? 'leak-resolve-help' : undefined}
+            >
+              <CheckCircle2 size={18} strokeWidth={2} aria-hidden="true" />
+              {isResolving ? 'Saving…' : 'Mark Resolved'}
+            </button>
+            {isDemoLeak && (
+              <p id="leak-resolve-help" style={styles.helperText}>
+                Sample leaks cannot be resolved — run detection on your own hands first.
+              </p>
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEAK NORMALISATION
+// ═══════════════════════════════════════════════════════════════════════════
+// The enrichment columns (leak_type, leak_category, recommended_drill,
+// suggested_fix, resolved_at, last_detected_at, frequency_is_estimated) now
+// come straight out of formatLeak() in useAssistant.js. This page used to issue
+// a SECOND GET /api/assistant/leaks on mount and again on every
+// `pa-data-updated` event just to recover them — the same request useLeaks()
+// already makes and already re-issues on that same event.
+//
+// This only fills the derived defaults the UI needs; a column missing from the
+// database simply stays null.
+
+function normaliseLeak(leak) {
+  return {
+    ...leak,
+    leakType: leak.leakType || slugFromTitle(leak.title),
+    leakCategory: leak.leakCategory || null,
+    recommendedDrill: leak.recommendedDrill || leak.recommended_drill || null,
+    suggestedFix: leak.suggestedFix || null,
+    resolvedAt: leak.resolvedAt || null,
+    lastDetected: leak.lastDetected || leak.firstDetected || null,
+    frequencyIsEstimated: !!leak.frequencyIsEstimated,
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN LEAK FINDER PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
+const DETECT_STEPS = [
+  'Reading your hand history…',
+  'Matching leak patterns…',
+  'Scoring EV impact…',
+  'Generating personalised fixes…',
+];
+
+const PAGE_SIZE = 15;
+
 export default function LeakFinderPage() {
   const router = useRouter();
+  const reduceMotion = usePrefersReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState(null);
 
-  // Get auth user for FeatureGate
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
-    const user = getAuthUser();
-    if (user) setUserId(user.id);
+    try {
+      const user = getAuthUser();
+      if (user?.id) setUserId(user.id);
+    } catch (e) {
+      console.warn('[LeakFinder] auth read failed:', e?.message || e);
+    }
   }, []);
 
-  // ═══ ACTION GATE: Users can explore leaks, but practice/training is gated ═══
+  // ═══ ACTION GATE: exploring leaks is free, practice/training is gated ═══
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
-  const [selectedLeak, setSelectedLeak] = useState(null);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
+
+  const [tab, setTab] = useState('leaks');
+  const [showMenu, setShowMenu] = useState(false);
+  const [selectedLeakId, setSelectedLeakId] = useState(null);
   const [resolvingLeakId, setResolvingLeakId] = useState(null);
   const [detectionSummary, setDetectionSummary] = useState(null);
+  const [detectStep, setDetectStep] = useState(0);
+  const [detectSlow, setDetectSlow] = useState(false);
 
-  // Use real hooks for data (isDemo flags may be undefined until the hook propagates them — handled below)
+  const [sortMode, setSortMode] = useState('impact');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [pastOpen, setPastOpen] = useState(false);
+
   const {
     leaks: fetchedLeaks,
     demoLeaks: onboardingLeaks,
@@ -685,138 +951,379 @@ export default function LeakFinderPage() {
     isDemo: leaksDemoFlag,
   } = useLeaks();
   const { stats: fetchedStats, isLoading: statsLoading, isDemo: statsDemoFlag } = useAssistantStats();
-
-  // Leak detection engine trigger (POST /api/assistant/leaks/detect)
   const { runDetection, isDetecting } = useLeakDetection();
 
-  // ─── Wave 3: Coach Accuracy from Sandbox Coach Mode ────────────────────────
-  const [coachAccuracy, setCoachAccuracy] = useState(null);
-  const fetchCoachAccuracy = async () => {
-    try {
-      const accessToken = getAccessToken();
-      if (!accessToken) return;
-      const res = await fetch('/api/sandbox/coach-accuracy', {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          // Keep the full payload: accuracy summary + the user's 5 worst wrong picks
-          setCoachAccuracy({ ...json.accuracy, topLeaks: json.topLeaks || [] });
-        }
-      }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-  };
+  const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
+  const leaks = useMemo(
+    () => safeLeaks.filter(Boolean).map(normaliseLeak),
+    [safeLeaks],
+  );
 
-  useEffect(() => {
-    fetchCoachAccuracy();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const activeLeaks = useMemo(() => leaks.filter(l => l.status !== 'resolved'), [leaks]);
+  const pastLeaks = useMemo(() => leaks.filter(l => l.status === 'resolved'), [leaks]);
 
-  // Separate active and past leaks (memoized so identities are stable across renders)
-  const activeLeaks = useMemo(() => fetchedLeaks.filter(l => l.status !== 'resolved'), [fetchedLeaks]);
-  const pastLeaks = useMemo(() => fetchedLeaks.filter(l => l.status === 'resolved'), [fetchedLeaks]);
-
-  // Demo detection: prefer the hook's isDemo flag; fall back to demo/sim leak ids
-  const leaksAreDemo = !!leaksDemoFlag || (fetchedLeaks.length > 0 && fetchedLeaks.every(l => isDemoLeakId(l.id)));
+  // Demo detection scoped to what is actually demo (a missing stats row must not
+  // stamp "Sample Data" over genuinely detected leaks and vice versa)
+  const leaksAreDemo = !!leaksDemoFlag || (leaks.length > 0 && leaks.every(l => isDemoLeakId(l.id)));
   const statsAreDemo = !!statsDemoFlag || !!fetchedStats?.isDemo;
-  const showSampleBadge = leaksAreDemo || statsAreDemo;
 
-  // Avg EV loss: use the API value when real, otherwise compute from actual leaks; 0 = no data
   const avgEvLoss = useMemo(() => {
-    if (typeof fetchedStats.avgEvLoss === 'number' && fetchedStats.avgEvLoss !== 0 && !statsAreDemo) {
+    if (typeof fetchedStats?.avgEvLoss === 'number' && fetchedStats.avgEvLoss !== 0 && !statsAreDemo) {
       return fetchedStats.avgEvLoss;
     }
     if (activeLeaks.length > 0) {
-      return -(activeLeaks.reduce((s, l) => s + (l.evLossBB || 0), 0) / activeLeaks.length);
+      return -(activeLeaks.reduce((s, l) => s + Math.abs(num(l.evLossBB)), 0) / activeLeaks.length);
     }
     return 0;
-  }, [fetchedStats.avgEvLoss, statsAreDemo, activeLeaks]);
+  }, [fetchedStats, statsAreDemo, activeLeaks]);
 
-  // Use fetched stats or defaults (using ?? to allow 0 instead of falling back on falsy check)
   const stats = {
-    sessionsReviewed: fetchedStats.sessionsReviewed ?? 0,
-    handsAnalyzed: fetchedStats.handsAnalyzed ?? 0,
+    sessionsReviewed: fetchedStats?.sessionsReviewed ?? 0,
+    handsAnalyzed: fetchedStats?.handsAnalyzed ?? 0,
     leaksFound: activeLeaks.length,
     avgEvLoss,
   };
 
-  useEffect(() => {
-    setMounted(true);
+  // ─── Coach accuracy (sandbox coach mode) ─────────────────────────────────
+  const [coachAccuracy, setCoachAccuracy] = useState(null);
+  const [coachLoading, setCoachLoading] = useState(true);
+  const [coachError, setCoachError] = useState(null);
+
+  const fetchCoachAccuracy = useCallback(async () => {
+    setCoachLoading(true);
+    setCoachError(null);
+    try {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        setCoachAccuracy(null);
+        return;
+      }
+      const res = await fetch('/api/sandbox/coach-accuracy', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok || !ct.includes('application/json')) {
+        setCoachError(`Coach stats unavailable (HTTP ${res.status})`);
+        return;
+      }
+      const json = await res.json();
+      if (json?.success) {
+        setCoachAccuracy({ ...(json.accuracy || {}), topLeaks: Array.isArray(json.topLeaks) ? json.topLeaks : [] });
+      } else {
+        setCoachError(json?.error || 'Coach stats unavailable');
+      }
+    } catch (e) {
+      console.warn('[LeakFinder] coach accuracy failed:', e?.message || e);
+      setCoachError('Coach stats unavailable');
+    } finally {
+      setCoachLoading(false);
+    }
   }, []);
 
-  // Auto-select first leak when data loads; re-sync a stale selection after a refetch
   useEffect(() => {
-    if (selectedLeak) {
-      const fresh = activeLeaks.find(l => l.id === selectedLeak.id);
-      if (fresh && fresh !== selectedLeak) setSelectedLeak(fresh);
-    } else if (activeLeaks.length > 0) {
-      setSelectedLeak(activeLeaks[0]);
-    }
-  }, [activeLeaks, selectedLeak]);
+    fetchCoachAccuracy();
+    if (typeof window === 'undefined') return undefined;
+    const onUpdate = () => fetchCoachAccuracy();
+    window.addEventListener('pa-data-updated', onUpdate);
+    return () => window.removeEventListener('pa-data-updated', onUpdate);
+  }, [fetchCoachAccuracy, userId]);
 
-  const handleRunDetection = async () => {
+  // ─── Selection (id-based so a refetch can never leave a phantom) ─────────
+  // The pool includes the onboarding samples so an example card can open too.
+  const selectablePool = useMemo(() => {
+    const onboarding = Array.isArray(onboardingLeaks) ? onboardingLeaks : [];
+    return leaks.concat(onboarding.filter(Boolean).map(normaliseLeak));
+  }, [leaks, onboardingLeaks]);
+
+  const selectedLeak = useMemo(
+    () => (selectedLeakId == null
+      ? null
+      : selectablePool.find(l => String(l.id) === String(selectedLeakId)) || null),
+    [selectablePool, selectedLeakId],
+  );
+
+  useEffect(() => {
+    if (selectedLeakId == null || leaksLoading) return;
+    if (!selectablePool.some(l => String(l.id) === String(selectedLeakId))) setSelectedLeakId(null);
+  }, [selectedLeakId, selectablePool, leaksLoading]);
+
+  // Deep link: /hub/personal-assistant/leaks?leak=<id>
+  const deepLinkedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkedRef.current || !router.isReady || leaksLoading) return;
+    const raw = router.query?.leak;
+    const target = Array.isArray(raw) ? raw[0] : raw;
+    if (!target) { deepLinkedRef.current = true; return; }
+    const match = selectablePool.find(l => String(l.id) === String(target));
+    if (match) {
+      setSelectedLeakId(match.id);
+      deepLinkedRef.current = true;
+    } else if (selectablePool.length > 0) {
+      deepLinkedRef.current = true;
+    }
+  }, [router.isReady, router.query, selectablePool, leaksLoading]);
+
+  // ─── Detection progress copy ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isDetecting) { setDetectStep(0); setDetectSlow(false); return undefined; }
+    const stepTimer = setInterval(() => setDetectStep(s => (s + 1) % DETECT_STEPS.length), 3500);
+    const slowTimer = setTimeout(() => setDetectSlow(true), 25000);
+    return () => { clearInterval(stepTimer); clearTimeout(slowTimer); };
+  }, [isDetecting]);
+
+  // Auto-clear non-error banners so a stale result cannot outlive its context
+  useEffect(() => {
+    if (!detectionSummary || detectionSummary.type === 'error') return undefined;
+    const t = setTimeout(() => setDetectionSummary(null), 12000);
+    return () => clearTimeout(t);
+  }, [detectionSummary]);
+
+  const handleRunDetection = useCallback(async () => {
     setDetectionSummary(null);
-    const result = await runDetection();
+    let result;
+    try {
+      result = await runDetection();
+    } catch (e) {
+      setDetectionSummary({ type: 'error', text: friendlyDetectionError(e?.message || e) });
+      return;
+    }
     if (result?.success) {
       if (result.message) {
-        // e.g. "Need more hands to detect leaks (minimum 100)"
         setDetectionSummary({ type: 'info', text: result.message });
-      } else {
-        const found = result.leaksDetected ?? 0;
-        setDetectionSummary({
-          type: 'success',
-          text: `Analyzed ${(result.handsAnalyzed ?? 0).toLocaleString()} hands, found ${found} leak${found === 1 ? '' : 's'}.`,
-        });
+        return;
       }
+      const found = result.leaksDetected ?? 0;
+      if (result.persisted === false) {
+        setDetectionSummary({
+          type: 'error',
+          text: `Found ${found} leak${found === 1 ? '' : 's'} but could not save them. Please try again.`,
+        });
+        return;
+      }
+      setDetectionSummary({
+        type: 'success',
+        text: `Analysed ${num(result.handsAnalyzed).toLocaleString()} hands · ${found} leak${found === 1 ? '' : 's'} found.`,
+      });
     } else {
-      setDetectionSummary({ type: 'error', text: result?.error || 'Leak detection failed. Please try again.' });
+      setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
     }
-  };
+  }, [runDetection]);
 
-  const handleMarkResolved = async (leak) => {
+  const celebrate = useCallback(async () => {
+    if (reduceMotion) return;
+    try {
+      const mod = await import('canvas-confetti');
+      const confetti = mod?.default || mod;
+      confetti({ particleCount: 60, spread: 65, startVelocity: 32, origin: { y: 0.75 }, disableForReducedMotion: true });
+    } catch (e) {
+      /* confetti is decorative — never fatal */
+    }
+  }, [reduceMotion]);
+
+  const handleMarkResolved = useCallback(async (leak) => {
     if (!leak || isDemoLeakId(leak.id)) return;
     setResolvingLeakId(leak.id);
     try {
       const result = await updateLeakStatus(leak.id, 'resolved');
       if (result?.success) {
         toast.success('Leak marked as resolved');
-        setSelectedLeak(null);
+        celebrate();
+        setSelectedLeakId(null);
       } else {
         toast.error(result?.error || 'Could not update leak status');
       }
+    } catch (e) {
+      toast.error('Could not update leak status');
     } finally {
       setResolvingLeakId(null);
     }
-  };
+  }, [updateLeakStatus, celebrate]);
 
-  const handlePracticeSandbox = () => {
-    // ═══ ACTION GATE: Practice requires access ═══
+  const handleReopen = useCallback(async (leak) => {
+    if (!leak || isDemoLeakId(leak.id)) return;
+    setResolvingLeakId(leak.id);
+    try {
+      const result = await updateLeakStatus(leak.id, 'persistent');
+      if (result?.success) {
+        toast.success('Leak reopened');
+      } else {
+        toast.error(result?.error || 'Could not reopen this leak');
+      }
+    } catch (e) {
+      toast.error('Could not reopen this leak');
+    } finally {
+      setResolvingLeakId(null);
+    }
+  }, [updateLeakStatus]);
+
+  const buildPracticeQuery = useCallback((leak) => {
+    const q = {};
+    if (leak?.id != null) q.leak = leak.id;
+    const slug = leak?.leakType || slugFromTitle(leak?.title);
+    if (slug) q.leakType = slug;
+    if (leak?.recommendedDrill) q.drill = leak.recommendedDrill;
+    else if (leak?.leakCategory) q.drill = leak.leakCategory;
+    return q;
+  }, []);
+
+  const handlePracticeSandbox = useCallback((leak) => {
     if (!guardAction()) return;
-    const query = {};
-    if (selectedLeak?.id != null) query.leak = selectedLeak.id;
-    if (selectedLeak?.title) query.leakType = selectedLeak.title;
-    const drill = selectedLeak?.recommendedDrill || selectedLeak?.recommended_drill;
-    if (drill) query.drill = drill;
-    router.push({ pathname: '/hub/personal-assistant/sandbox', query });
-  };
+    const target = leak || selectedLeak;
+    if (!target) return;
+    router.push({ pathname: '/hub/personal-assistant/sandbox', query: buildPracticeQuery(target) });
+  }, [guardAction, router, selectedLeak, buildPracticeQuery]);
 
-  const handleTrainDrills = () => {
-    // ═══ ACTION GATE: Training requires access ═══
+  /** One-tap drill-through into the exact spot the example hand recorded. */
+  const handlePracticeExample = useCallback((leak, ex) => {
     if (!guardAction()) return;
-    const query = {};
-    const drill = selectedLeak?.recommendedDrill || selectedLeak?.recommended_drill;
-    if (drill) query.focus = drill;
-    router.push({ pathname: '/hub/training', query });
-  };
+    const snap = ex?.snapshot || {};
+    const q = buildPracticeQuery(leak);
 
+    const heroRaw = Array.isArray(snap.hero_cards)
+      ? snap.hero_cards.join('')
+      : (typeof snap.hero_cards === 'string' ? snap.hero_cards : '');
+    const hero = String(heroRaw).replace(/[\s,]/g, '');
+    if (hero.length >= 4) q.h = hero.slice(0, 4);
+
+    const board = Array.isArray(snap.board)
+      ? snap.board.filter(Boolean).join(',')
+      : (typeof snap.board === 'string' ? snap.board : '');
+    if (board) q.b = board;
+
+    if (Number.isFinite(Number(snap.pot_size))) q.pot = Number(snap.pot_size);
+    // Only fall back to the street when the leak has no named drill
+    if (!q.drill && snap.street) q.drill = String(snap.street);
+
+    router.push({ pathname: '/hub/personal-assistant/sandbox', query: q });
+  }, [guardAction, router, buildPracticeQuery]);
+
+  const handleTrainDrills = useCallback((leak) => {
+    if (!guardAction()) return;
+    const target = leak || selectedLeak;
+    const q = { from: 'leaks' };
+    const focus = target?.recommendedDrill || target?.leakType || slugFromTitle(target?.title);
+    if (focus) q.focus = focus;
+    if (target?.leakCategory) q.category = target.leakCategory;
+    router.push({ pathname: '/hub/training', query: q });
+  }, [guardAction, router, selectedLeak]);
+
+  const handleShareLeak = useCallback(async (leak) => {
+    if (!leak || typeof window === 'undefined') return;
+    const url = `${window.location.origin}/hub/personal-assistant/leaks?leak=${encodeURIComponent(leak.id)}`;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied');
+        return;
+      }
+    } catch (e) {
+      /* fall through to the share sheet */
+    }
+    try {
+      if (navigator?.share) {
+        await navigator.share({ title: leak.title, url });
+        return;
+      }
+    } catch (e) {
+      /* user dismissed */
+    }
+    toast('Copy this link: ' + url);
+  }, []);
+
+  // ─── Filter / sort / paginate ────────────────────────────────────────────
+  const visibleLeaks = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    let list = activeLeaks;
+    if (statusFilter !== 'all') list = list.filter(l => l.status === statusFilter);
+    if (needle) {
+      list = list.filter(l =>
+        String(l.title || '').toLowerCase().includes(needle)
+        || String(l.situationClass || '').toLowerCase().includes(needle));
+    }
+    const confRank = { high: 3, medium: 2, low: 1 };
+    const sorted = [...list];
+    if (sortMode === 'impact') {
+      sorted.sort((a, b) => totalBleed(b) - totalBleed(a));
+    } else if (sortMode === 'recent') {
+      sorted.sort((a, b) => new Date(b.lastDetected || b.firstDetected || 0) - new Date(a.lastDetected || a.firstDetected || 0));
+    } else {
+      sorted.sort((a, b) => (confRank[b.confidence] || 0) - (confRank[a.confidence] || 0) || totalBleed(b) - totalBleed(a));
+    }
+    return sorted;
+  }, [activeLeaks, statusFilter, query, sortMode]);
+
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [statusFilter, query, sortMode]);
+
+  const shownLeaks = visibleLeaks.slice(0, visibleCount);
+  const remaining = Math.max(0, visibleLeaks.length - shownLeaks.length);
+
+  // ═══ HAMBURGER MENU ═══
+  // Single-page surface, so the menu's "Views" rows switch tab and scroll to a
+  // section. Every handler below has a real implementation — the config omits
+  // any row whose handler is absent, so no dead rows can render.
+  // The drawer closes on activation and locks body scroll while open, so the
+  // scroll has to run after React has committed the close AND the tab switch.
+  const jumpTo = useCallback((id) => {
+    if (typeof window === 'undefined') return;
+    const behavior = reduceMotion ? 'auto' : 'smooth';
+    setTimeout(() => {
+      const node = id ? document.getElementById(id) : null;
+      if (node) node.scrollIntoView({ behavior, block: 'start' });
+      else window.scrollTo({ top: 0, behavior });
+    }, 160);
+  }, [reduceMotion]);
+
+  const menuHandlers = useMemo(() => ({
+    onViewOverview: () => { setTab('leaks'); jumpTo(null); },
+    onViewLeaks: () => { setTab('leaks'); jumpTo('leak-list'); },
+    onViewAnalytics: () => { setTab('insights'); jumpTo('leak-insights'); },
+    onRescan: () => { if (!isDetecting) handleRunDetection(); },
+    onPracticeWorst: () => {
+      const worst = visibleLeaks[0] || activeLeaks[0];
+      if (!worst) { setTab('leaks'); jumpTo('leak-list'); return; }
+      handlePracticeSandbox(worst);
+    },
+    // Toggles keep the drawer open, so this only changes state — no scroll.
+    onToggleResolved: (next) => { setTab('leaks'); setPastOpen(!!next); },
+  }), [jumpTo, isDetecting, handleRunDetection, visibleLeaks, activeLeaks, handlePracticeSandbox]);
+
+  const menuConfig = useMemo(() => getMenuConfig('leaks', null, {
+    leakCount: activeLeaks.length,
+    isDetecting,
+    showResolved: pastOpen,
+  }, menuHandlers), [activeLeaks.length, isDetecting, pastOpen, menuHandlers]);
+
+  // ═══ PRE-MOUNT: real chrome + skeletons, never a bare flash ═══
   if (!mounted) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>Loading Leak Finder...</div>
+      <div style={styles.page}>
+        <PAStyles />
+        <div style={styles.shell} aria-busy="true">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+            <Skeleton h={28} w="55%" />
+            <div style={styles.statGrid}>
+              {[0, 1, 2, 3].map(i => <Skeleton key={i} h={70} />)}
+            </div>
+            <Skeleton h={44} />
+            {[0, 1, 2].map(i => <Skeleton key={i} h={132} />)}
+          </div>
+        </div>
       </div>
     );
   }
+
+  const detectButton = (block = true) => (
+    <button
+      type="button"
+      className="pa-btn"
+      style={btn('primary', { block, disabled: isDetecting })}
+      onClick={handleRunDetection}
+      disabled={isDetecting}
+    >
+      <Activity size={18} strokeWidth={2} aria-hidden="true" />
+      {isDetecting ? 'Analysing…' : 'Run Leak Detection'}
+    </button>
+  );
 
   return (
     <PageTransition>
@@ -824,315 +1331,466 @@ export default function LeakFinderPage() {
         title="Leak Finder — Fix Your Game"
         description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
         canonical="/hub/personal-assistant/leaks"
-      >
+      />
 
-      </SEOHead>
+      <div className="leaks-page" style={styles.page}>
+        <PAStyles />
+        <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(true)} />
 
-      <div className="leaks-page" style={styles.container}>
-        <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} />
+        <HamburgerMenu
+          isOpen={showMenu}
+          onClose={() => setShowMenu(false)}
+          direction="left"
+          theme="pa"
+          user={null}
+          showProfile={false}
+          menuItems={menuConfig.menuItems}
+          bottomLinks={menuConfig.bottomLinks}
+        />
 
-          {/* Top Bar */}
-          <div style={styles.topBar}>
-            <div style={styles.topBarLeft}>
-              <span style={styles.brandText}>Smarter.Poker</span>
-              <span style={styles.divider}>|</span>
-              <span style={styles.pageLabel}>Personal Assistant</span>
-              <span style={styles.pageSublabel}>Leak Finder & Improvement Hub</span>
+        <main id="leak-finder-main" className="leaks-shell" style={styles.shell}>
+          {/* ── Page header ── */}
+          <header style={styles.pageHeader}>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={styles.pageTitle}>Leak Finder</h1>
+              <p style={styles.pageSub}>Post-session analysis — repeated, measurable EV leaks.</p>
             </div>
-            <div style={styles.topBarRight}>
-              <div style={styles.integrityBadge}>
-                <span style={styles.lockIcon}>&#128274;</span>
-                Not Live Play - Post-Session Review Only
+            <span style={styles.integrityBadge}>
+              <Lock size={12} strokeWidth={2} aria-hidden="true" />
+              Not Live Play — Post-Session Review Only
+            </span>
+          </header>
+
+          {/* ── Sample-data disclosure ── */}
+          {leaksAreDemo && !leaksLoading && (
+            <section style={styles.demoBanner} aria-label="Sample data notice">
+              <p style={styles.demoBannerText}>
+                You are viewing sample data. Sign in and run detection to analyse your own hands.
+              </p>
+              <a className="pa-btn" href="/auth" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
+                Sign in to analyse my hands
+              </a>
+            </section>
+          )}
+
+          {/* ── Stats ── */}
+          <section style={styles.statGrid} aria-label="Summary statistics">
+            <StatCell
+              label="Sessions reviewed"
+              value={statsLoading ? null : (statsAreDemo ? '—' : String(stats.sessionsReviewed))}
+            />
+            <StatCell
+              label="Hands analysed"
+              value={statsLoading ? null : (statsAreDemo ? '—' : stats.handsAnalyzed.toLocaleString())}
+            />
+            <StatCell
+              label="Active leaks"
+              value={leaksLoading ? null : (leaksAreDemo ? '—' : String(stats.leaksFound))}
+            />
+            <StatCell
+              label="Avg EV loss"
+              tone={T.danger}
+              value={leaksLoading ? null : (stats.avgEvLoss && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : '—')}
+            />
+            <StatCell
+              label="GTO accuracy"
+              icon={<GraduationCap size={14} strokeWidth={2} aria-hidden="true" />}
+              value={coachLoading
+                ? null
+                : coachError
+                  ? '—'
+                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${coachAccuracy.accuracy_pct ?? '—'}%` : '—')}
+              tone={coachAccuracy && num(coachAccuracy.accuracy_pct) >= 70
+                ? T.success
+                : coachAccuracy && num(coachAccuracy.accuracy_pct) >= 50 ? T.warn : T.text}
+              hint={coachError ? 'Coach stats unavailable' : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? `${num(coachAccuracy.correct_count)} / ${num(coachAccuracy.total_hands)} coach hands` : 'No coach hands yet')}
+              onRetry={coachError ? fetchCoachAccuracy : null}
+            />
+            {statsAreDemo && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={pill('warn')}>Sample stats — not your own data</span>
               </div>
-            </div>
+            )}
+          </section>
+
+          {/* ── Tabs ── */}
+          <div style={{ marginBottom: S.md }}>
+            <Segmented
+              idPrefix="leaks-tab"
+              label="View"
+              columns={2}
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: 'leaks', label: 'Leaks' },
+                { value: 'insights', label: 'Insights' },
+              ]}
+            />
           </div>
 
-          {/* Stats Bar */}
-          <div style={styles.statsBar}>
-            {showSampleBadge && (
-              <span
-                style={styles.sampleBadge}
-                title="These numbers are sample data, not your own analysis. Run leak detection on your own hands."
-              >
-                Sample Data
-              </span>
-            )}
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Sessions Reviewed:</span>
-              <span style={styles.statValue}>{statsLoading ? '…' : stats.sessionsReviewed}</span>
-            </div>
-            <div style={styles.statDivider}>|</div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Hands Analyzed:</span>
-              <span style={styles.statValue}>{statsLoading ? '…' : stats.handsAnalyzed.toLocaleString()}</span>
-            </div>
-            <div style={styles.statDivider}>|</div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Leaks Found:</span>
-              <span style={styles.statValue}>{leaksLoading ? '…' : stats.leaksFound}</span>
-            </div>
-            <div style={styles.statDivider}>|</div>
-            <div style={styles.statItem}>
-              <span style={styles.statLabel}>Avg EV Loss:</span>
-              <span style={{ ...styles.statValue, color: '#ef4444' }}>
-                {stats.avgEvLoss
-                  ? (
-                    <>
-                      <span style={styles.trendIcon}>~</span>
-                      {stats.avgEvLoss.toFixed(2)} BB/Occurrence
-                    </>
-                  )
-                  : '—'}
-              </span>
-            </div>
-            {/* Wave 3: Coach Mode Accuracy — live from sandbox_coach_results */}
-            {coachAccuracy && Number(coachAccuracy.total_hands) > 0 && (
-              <>
-                <div style={styles.statDivider}>|</div>
-                <div style={styles.statItem} title={`${coachAccuracy.correct_count} correct / ${coachAccuracy.total_hands} total hands in Coach Mode`}>
-                  <span style={styles.statLabel}>{'\u{1F393}'} GTO Accuracy:</span>
-                  <span style={{
-                    ...styles.statValue,
-                    color: Number(coachAccuracy.accuracy_pct) >= 70 ? '#22c55e' : Number(coachAccuracy.accuracy_pct) >= 50 ? '#fbbf24' : '#ef4444',
-                    fontWeight: 800,
-                  }}>
-                    {coachAccuracy.accuracy_pct ?? '—'}%
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Main Layout */}
-          <div className="leaks-main-layout" style={styles.mainLayout}>
-            {/* ══ WAVE 4/5: Sandbox Analytics & Leaderboard ══ */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#E4E6EB', marginBottom: 10, paddingLeft: 4 }}>
-                <span style={{ marginRight: 6 }}>{'\u{1F4CA}'}</span>Session Analytics
-              </div>
-              <SessionAnalytics userId={userId} />
-
-              {/* Worst Coach-Mode spots — real personal leak signal from coach mode */}
-              {Array.isArray(coachAccuracy?.topLeaks) && coachAccuracy.topLeaks.length > 0 && (
-                <div style={styles.coachSpotsCard}>
-                  <div style={styles.coachSpotsTitle}>Worst Coach-Mode Spots</div>
-                  {coachAccuracy.topLeaks.map((spot, i) => (
-                    <div
-                      key={i}
-                      style={styles.coachSpotRow}
-                      onClick={() => router.push('/hub/personal-assistant/sandbox')}
-                      title="Open the sandbox to practice this spot"
+          {tab === 'leaks' ? (
+            <section id="leak-list" aria-label="Your leaks">
+              {/* Detection */}
+              <div style={{ ...card, marginBottom: S.md }}>
+                {detectButton(true)}
+                {isDetecting && (
+                  <div style={{ marginTop: S.md }} aria-live="polite">
+                    <div className="leak-progress"><span /></div>
+                    <p style={styles.detectStepText}>
+                      {detectSlow
+                        ? 'Detection is taking longer than expected — it will finish in the background.'
+                        : DETECT_STEPS[detectStep]}
+                    </p>
+                  </div>
+                )}
+                {detectionSummary && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                      ...styles.detectionBanner,
+                      borderColor: detectionSummary.type === 'error'
+                        ? 'rgba(239,68,68,0.5)'
+                        : detectionSummary.type === 'success' ? 'rgba(34,197,94,0.5)' : 'rgba(251,191,36,0.5)',
+                      color: detectionSummary.type === 'error'
+                        ? T.danger
+                        : detectionSummary.type === 'success' ? T.success : T.warn,
+                    }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>{detectionSummary.text}</span>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      aria-label="Dismiss detection message"
+                      onClick={() => setDetectionSummary(null)}
+                      style={iconBtn({ transparent: true, color: T.textMuted })}
                     >
-                      <span style={styles.coachSpotStreet}>{(spot.street || '?').toUpperCase()}</span>
-                      <span style={styles.coachSpotBoard}>{fmtCards(spot.board)}</span>
-                      <span style={styles.coachSpotDetail}>
-                        you: {spot.user_pick || '?'} · GTO: {spot.gto_action || '?'} · EV {Number(spot.ev_delta ?? 0).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
+                      <X size={18} strokeWidth={2} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Load error (never replaces the empty state / detect button) */}
+              {leaksError && !leaksLoading && (
+                <div style={{ marginBottom: S.md }}>
+                  <ErrorState
+                    title="Could not load your leaks"
+                    body={friendlyLoadError(leaksError)}
+                    onRetry={() => refetchLeaks()}
+                  />
                 </div>
               )}
 
-              {/* Wave 5: Weekly Leaderboard */}
-              <div style={{ marginTop: 12 }}>
-                <CoachLeaderboard userId={userId} />
-              </div>
-
-              {/* Wave 6: Macro Leak Detector */}
-              <div style={{ marginTop: 12 }}>
-                <MacroLeakDetector />
-              </div>
-
-              {/* Wave 4: Leak Heatmap */}
-              <div style={{ marginTop: 12 }}>
-                <LeakHeatmap userId={userId} />
-              </div>
-            </div>
-            {/* Left Panel - Leak Index */}
-            <div
-              className="leaks-left-panel"
-              style={{ ...styles.leftPanel, ...(panelCollapsed ? styles.leftPanelCollapsed : {}) }}
-            >
-              {panelCollapsed ? (
-                <button
-                  style={styles.expandBtn}
-                  onClick={() => setPanelCollapsed(false)}
-                  title="Expand leak index"
-                >
-                  &#8250;
-                </button>
+              {leaksLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }} aria-busy="true">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="leak-skeleton" style={styles.skeletonCard} />
+                  ))}
+                </div>
+              ) : activeLeaks.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                  <EmptyState
+                    icon={<Inbox size={22} strokeWidth={2} />}
+                    title="No leaks detected yet"
+                    body="Run detection on your recent hands and the engine will rank every repeated, measurable EV leak."
+                    action={detectButton(false)}
+                  />
+                  {(onboardingLeaks || []).length > 0 && (
+                    <div>
+                      <h2 style={styles.sectionHeading}>Example leaks (not yours)</h2>
+                      <ul style={styles.leakList} role="list">
+                        {onboardingLeaks.slice(0, 3).map(leak => (
+                          <LeakCard
+                            key={`demo-${leak.id}`}
+                            leak={normaliseLeak(leak)}
+                            demo
+                            selected={String(selectedLeakId) === String(leak.id)}
+                            onOpen={(l) => setSelectedLeakId(l.id)}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
-                  <div style={styles.indexHeader}>
-                    <h3 style={styles.indexTitle}>Leak Index</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <button
-                        style={{ ...styles.detectBtn, ...(isDetecting ? styles.detectBtnDisabled : {}) }}
-                        onClick={handleRunDetection}
-                        disabled={isDetecting}
-                        title="Analyze your recent hands for statistical leaks"
-                      >
-                        {isDetecting ? 'Analyzing…' : 'Run Leak Detection'}
-                      </button>
-                      <button
-                        style={styles.expandBtn}
-                        onClick={() => setPanelCollapsed(true)}
-                        title="Collapse leak index"
-                      >
-                        &#8249;
-                      </button>
-                    </div>
-                  </div>
+                  <LeakErrorBoundary label="The bleed summary">
+                    <BleedSummary leaks={activeLeaks} isDemo={leaksAreDemo} />
+                  </LeakErrorBoundary>
 
-                  {/* Detection result / error summary */}
-                  {detectionSummary && (
-                    <div style={{
-                      ...styles.detectionBanner,
-                      borderColor: detectionSummary.type === 'error' ? 'rgba(239, 68, 68, 0.5)' : detectionSummary.type === 'success' ? 'rgba(34, 197, 94, 0.5)' : 'rgba(245, 158, 11, 0.5)',
-                      color: detectionSummary.type === 'error' ? '#ef4444' : detectionSummary.type === 'success' ? '#22c55e' : '#f59e0b',
-                    }}>
-                      {detectionSummary.text}
-                    </div>
-                  )}
-
-                  {/* Sample-data disclosure */}
-                  {leaksAreDemo && !leaksLoading && (
-                    <div style={styles.sampleBanner}>
-                      Sample Data — these are example leaks, not your own. Run detection on your own hands.
-                    </div>
-                  )}
-
-                  {/* Fetch error + retry */}
-                  {leaksError && !leaksLoading && (
-                    <div style={styles.errorRow}>
-                      <span>Could not load leaks.</span>
-                      <button style={styles.retryBtn} onClick={() => refetchLeaks()}>Retry</button>
-                    </div>
-                  )}
-
-                  {/* Active Leaks */}
-                  {leaksLoading ? (
-                    <div style={styles.leakList}>
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="leak-skeleton" style={styles.skeletonCard} />
-                      ))}
-                    </div>
-                  ) : activeLeaks.length === 0 && !leaksError ? (
-                    <div style={styles.emptyState}>
-                      <p style={{ margin: '0 0 12px' }}>
-                        No leaks detected yet — run detection on your recent hands to find EV leaks.
-                      </p>
-                      <button
-                        style={{ ...styles.detectBtn, ...(isDetecting ? styles.detectBtnDisabled : {}) }}
-                        onClick={handleRunDetection}
-                        disabled={isDetecting}
-                      >
-                        {isDetecting ? 'Analyzing…' : 'Run Leak Detection'}
-                      </button>
-                      {/* Onboarding preview — explicitly labeled as examples so
-                          it can never read as the user's own detected leaks. */}
-                      {(onboardingLeaks || []).length > 0 && (
-                        <div style={{ marginTop: 16, textAlign: 'left' }}>
-                          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: '#B0B3B8', fontWeight: 700, marginBottom: 8 }}>
-                            Example leaks (not yours)
-                          </div>
-                          {onboardingLeaks.slice(0, 3).map((leak) => (
-                            <div key={`demo-${leak.id}`} style={{ padding: '8px 10px', marginBottom: 6, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.12)' }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: '#E4E6EB' }}>{leak.title}</div>
-                              <div style={{ fontSize: 11, color: '#B0B3B8', marginTop: 2 }}>
-                                {leak.situationClass || 'Sample situation'}
-                                {typeof leak.evLossBB === 'number' ? ` — ${leak.evLossBB.toFixed(2)} bb/occurrence` : ''}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                  {/* Search + sort + filter */}
+                  <div style={{ ...cardCompact, marginBottom: S.md, display: 'flex', flexDirection: 'column', gap: S.md }}>
+                    <div style={styles.searchWrap}>
+                      <Search size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textDim, flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search leaks or situations"
+                        aria-label="Search leaks"
+                        style={styles.searchInput}
+                      />
+                      {query && (
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          aria-label="Clear search"
+                          onClick={() => setQuery('')}
+                          style={iconBtn({ transparent: true, color: T.textMuted })}
+                        >
+                          <X size={18} strokeWidth={2} />
+                        </button>
                       )}
                     </div>
-                  ) : (
-                    <div style={styles.leakList}>
-                      {activeLeaks.map((leak) => (
-                        <div
-                          key={leak.id}
-                          style={{
-                            ...styles.leakCard,
-                            ...(selectedLeak?.id === leak.id ? styles.leakCardSelected : {}),
-                          }}
-                          onClick={() => setSelectedLeak(leak)}
+
+                    <Segmented
+                      idPrefix="leak-sort"
+                      label="Sort by"
+                      value={sortMode}
+                      onChange={setSortMode}
+                      options={[
+                        { value: 'impact', label: 'Impact' },
+                        { value: 'recent', label: 'Recent' },
+                        { value: 'confidence', label: 'Confidence' },
+                      ]}
+                    />
+
+                    <Segmented
+                      idPrefix="leak-status"
+                      label="Status"
+                      tone="warn"
+                      columns={2}
+                      value={statusFilter}
+                      onChange={setStatusFilter}
+                      options={[
+                        { value: 'all', label: 'All' },
+                        { value: 'persistent', label: 'Persistent' },
+                        { value: 'emerging', label: 'Emerging' },
+                        { value: 'improving', label: 'Improving' },
+                      ]}
+                    />
+                  </div>
+
+                  {shownLeaks.length === 0 ? (
+                    <EmptyState
+                      compact
+                      icon={<Search size={22} strokeWidth={2} />}
+                      title="No matching leaks"
+                      body="No leak matches this filter. Clear the search or switch back to All."
+                      action={(
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          style={btn('secondary')}
+                          onClick={() => { setQuery(''); setStatusFilter('all'); }}
                         >
-                          <div style={styles.leakCardHeader}>
-                            <span style={styles.leakCardTitle}>{leak.title}</span>
-                            <span style={styles.leakCardArrow}>&#8250;</span>
-                          </div>
-                          <div style={styles.leakCardMeta}>
-                            <LeakStatusBadge status={leak.status} />
-                            {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
-                            <span style={styles.leakCardConfidence}>
-                              {'*'.repeat(leak.confidence === 'high' ? 3 : leak.confidence === 'medium' ? 2 : 1)}
-                              {leak.confidence === 'high' ? ' High' : leak.confidence === 'medium' ? ' Medium' : ' Low'}
-                            </span>
-                          </div>
-                          <div style={styles.leakCardSituation}>
-                            Period Analyzed:<br />
-                            {leak.situationClass}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          Reset filters
+                        </button>
+                      )}
+                    />
+                  ) : (
+                    <>
+                      <ul style={styles.leakList} role="list">
+                        {shownLeaks.map(leak => (
+                          <LeakCard
+                            key={leak.id}
+                            leak={leak}
+                            demo={leaksAreDemo || isDemoLeakId(leak.id)}
+                            selected={String(selectedLeakId) === String(leak.id)}
+                            onOpen={(l) => setSelectedLeakId(l.id)}
+                            onPractice={handlePracticeSandbox}
+                          />
+                        ))}
+                      </ul>
+                      {remaining > 0 && (
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          style={{ ...btn('secondary', { block: true }), marginTop: S.md }}
+                          onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                        >
+                          Show {Math.min(PAGE_SIZE, remaining)} more ({remaining} left)
+                        </button>
+                      )}
+                    </>
                   )}
 
-                  {/* Past Leaks */}
+                  {/* Past leaks — collapsed by default */}
                   {pastLeaks.length > 0 && (
-                    <div style={styles.pastLeaksSection}>
-                      <h4 style={styles.pastLeaksTitle}>Past Leaks</h4>
-                      {pastLeaks.map((leak) => (
-                        <div
-                          key={leak.id}
-                          style={{
-                            ...styles.pastLeakCard,
-                            ...(selectedLeak?.id === leak.id ? styles.leakCardSelected : {}),
-                          }}
-                          onClick={() => setSelectedLeak(leak)}
-                        >
-                          <div style={styles.pastLeakHeader}>
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <LeakStatusBadge status={leak.status} />
-                              {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
-                            </div>
-                            <span style={styles.pastLeakTitle}>{leak.title}</span>
-                            <span style={styles.pastLeakArrow}>&#8250;</span>
-                          </div>
-                          <div style={styles.pastLeakMeta}>
-                            Period Analyzed: {leak.situationClass}
-                          </div>
-                        </div>
-                      ))}
+                    <div style={{ marginTop: S.lg }}>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        aria-expanded={pastOpen}
+                        onClick={() => setPastOpen(o => !o)}
+                        style={styles.disclosureBtn}
+                      >
+                        <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>Past leaks ({pastLeaks.length})</span>
+                        {pastOpen
+                          ? <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />
+                          : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
+                      </button>
+                      {pastOpen && (
+                        <ul style={{ ...styles.leakList, marginTop: S.md }} role="list">
+                          {pastLeaks.map(leak => (
+                            <li key={leak.id} role="listitem" style={{ ...styles.leakCard, opacity: 0.86 }}>
+                              <button
+                                type="button"
+                                className="leak-card pa-btn"
+                                onClick={() => setSelectedLeakId(leak.id)}
+                                style={styles.leakCardBody}
+                                aria-label={`${leak.title}, resolved. Open details.`}
+                              >
+                                <span style={styles.leakCardHeader}>
+                                  <span style={styles.leakCardTitle}>{leak.title}</span>
+                                  <ChevronRight size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, flexShrink: 0 }} />
+                                </span>
+                                <span style={styles.leakCardBadges}>
+                                  <LeakStatusBadge status="resolved" />
+                                  {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
+                                </span>
+                                <span style={styles.leakCardSituation}>
+                                  Situation: {leak.situationClass || 'Not specified'}
+                                  {relativeDate(leak.resolvedAt) ? ` · Resolved ${relativeDate(leak.resolvedAt)}` : ''}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   )}
                 </>
               )}
-            </div>
+            </section>
+          ) : (
+            <section id="leak-insights" aria-label="Insights">
+              <h2 style={styles.sectionHeading}>
+                <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
+                Session analytics
+              </h2>
 
-            {/* Right Panel - Leak Detail */}
-            <LeakDetailView
-              leak={selectedLeak}
-              onPracticeSandbox={handlePracticeSandbox}
-              onTrainDrills={handleTrainDrills}
-              onMarkResolved={handleMarkResolved}
-              isResolving={resolvingLeakId !== null && resolvingLeakId === selectedLeak?.id}
-            />
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                <LeakErrorBoundary label="Session analytics">
+                  <SessionAnalytics userId={userId} />
+                </LeakErrorBoundary>
 
-        <style jsx>{`
-          @media (max-width: 768px) {
-            .leaks-main-layout {
-              flex-direction: column !important;
-            }
-            .leaks-left-panel {
-              width: 100% !important;
-              border-right: none !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            }
+                {/* Worst coach-mode spots */}
+                <div style={card}>
+                  <h3 style={styles.cardHeading}>Worst coach-mode spots</h3>
+                  {coachLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
+                      <Skeleton h={56} />
+                      <Skeleton h={56} />
+                    </div>
+                  ) : coachError ? (
+                    <ErrorState title="Coach stats unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
+                  ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
+                    <p style={styles.detailBody}>
+                      No coach-mode mistakes recorded yet. Turn on coach mode in the sandbox and your worst spots appear here.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                      {coachAccuracy.topLeaks.map((spot, i) => (
+                        <button
+                          key={`${spot?.street || 'x'}-${i}`}
+                          type="button"
+                          className="leak-card pa-btn"
+                          style={styles.exampleRow}
+                          onClick={() => {
+                            if (!guardAction()) return;
+                            const q = { from: 'leaks' };
+                            if (spot?.street) q.drill = String(spot.street);
+                            if (spot?.board) {
+                              const b = Array.isArray(spot.board) ? spot.board.filter(Boolean).join(',') : String(spot.board);
+                              if (b) q.b = b;
+                            }
+                            router.push({ pathname: '/hub/personal-assistant/sandbox', query: q });
+                          }}
+                          aria-label={`Practice this coach-mode spot on ${fmtCards(spot?.board)}`}
+                        >
+                          <span style={styles.exampleLine1}>
+                            <span style={styles.exampleCards}>{fmtCards(spot?.board)}</span>
+                            <span style={{ ...styles.exampleEv, ...numeric }}>EV {num(spot?.ev_delta).toFixed(2)}</span>
+                          </span>
+                          <span style={styles.exampleLine2}>
+                            <span style={pill('accent')}>{String(spot?.street || '?').toUpperCase()}</span>
+                            <span style={styles.exampleBoard}>
+                              You: {spot?.user_pick || '?'} · GTO: {spot?.gto_action || '?'}
+                            </span>
+                            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <LeakErrorBoundary label="The leaderboard">
+                  <CoachLeaderboard userId={userId} />
+                </LeakErrorBoundary>
+
+                <LeakErrorBoundary label="The macro leak detector">
+                  <MacroLeakDetector />
+                </LeakErrorBoundary>
+
+                <LeakErrorBoundary label="The leak heatmap">
+                  <LeakHeatmap userId={userId} />
+                </LeakErrorBoundary>
+              </div>
+            </section>
+          )}
+        </main>
+
+        {/* ── Detail sheet ── */}
+        <BottomSheet
+          open={!!selectedLeak}
+          onClose={() => setSelectedLeakId(null)}
+          title={selectedLeak?.title || 'Leak'}
+          subtitle={selectedLeak?.situationClass || undefined}
+          closeLabel="Close leak details"
+          ariaLabel={`Leak details: ${selectedLeak?.title || ''}`}
+          headerRight={selectedLeak ? (
+            <button
+              type="button"
+              className="pa-btn"
+              aria-label="Copy link to this leak"
+              onClick={() => handleShareLeak(selectedLeak)}
+              style={iconBtn({ color: T.textMuted })}
+            >
+              <Link2 size={18} strokeWidth={2} />
+            </button>
+          ) : null}
+        >
+          <LeakErrorBoundary label="Leak details">
+            {selectedLeak && (
+              <LeakDetail
+                leak={selectedLeak}
+                onPracticeSandbox={handlePracticeSandbox}
+                onPracticeExample={handlePracticeExample}
+                onTrainDrills={handleTrainDrills}
+                onMarkResolved={handleMarkResolved}
+                onReopen={handleReopen}
+                isResolving={resolvingLeakId != null && String(resolvingLeakId) === String(selectedLeak.id)}
+              />
+            )}
+          </LeakErrorBoundary>
+        </BottomSheet>
+
+        <style jsx global>{`
+          .leak-card {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: transform .12s ease, background .12s ease, border-color .12s ease;
+          }
+          .leak-card:active {
+            transform: scale(0.985);
+            background: rgba(255, 255, 255, 0.06);
+          }
+          .leak-card:focus-visible {
+            outline: 2px solid ${T.accent};
+            outline-offset: 2px;
           }
           .leak-skeleton {
             animation: leakSkeletonPulse 1.4s ease-in-out infinite;
@@ -1141,386 +1799,762 @@ export default function LeakFinderPage() {
             0%, 100% { opacity: 0.35; }
             50% { opacity: 0.7; }
           }
+          .leak-progress {
+            position: relative;
+            overflow: hidden;
+            height: 6px;
+            border-radius: ${R.pill}px;
+            background: ${T.surface2};
+          }
+          .leak-progress > span {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 40%;
+            border-radius: ${R.pill}px;
+            background: linear-gradient(90deg, ${T.accent}, ${T.accentPress});
+            animation: leakProgressSlide 1.2s ease-in-out infinite;
+          }
+          @keyframes leakProgressSlide {
+            0% { transform: translateX(-110%); }
+            100% { transform: translateX(300%); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .leak-skeleton { animation: none; opacity: 0.5; }
+            .leak-progress > span { animation: none; width: 100%; opacity: 0.5; }
+            .leak-card:active { transform: none; }
+            *, *::before, *::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+              scroll-behavior: auto !important;
+            }
+          }
+          /* The shell carries its padding as an inline style, which a plain
+             rule cannot override — hence !important on this one declaration. */
+          @media (min-width: 769px) {
+            .leaks-shell {
+              padding-left: max(24px, env(safe-area-inset-left, 0px)) !important;
+              padding-right: max(24px, env(safe-area-inset-right, 0px)) !important;
+            }
+          }
         `}</style>
       </div>
+
       {UpgradePopup}
-      <Toaster position="top-right" />
-          <BottomNavBar />
-    </PageTransition >
+      <Toaster
+        position="top-center"
+        containerStyle={{ top: 'calc(env(safe-area-inset-top, 0px) + 72px)', zIndex: Z.toast }}
+        toastOptions={{
+          style: {
+            maxWidth: 'calc(100vw - 32px)',
+            fontSize: F.bodySm,
+            background: T.surface,
+            color: T.text,
+            border: `1px solid ${T.border}`,
+          },
+          duration: 3500,
+        }}
+      />
+      <BottomNavBar />
+    </PageTransition>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES
+// STAT CELL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatCell({ label, value, tone, icon, hint, onRetry }) {
+  return (
+    <div style={styles.statCell}>
+      <span style={styles.statCellLabel}>
+        {icon}
+        {label}
+      </span>
+      {value === null ? (
+        <span className="leak-skeleton" style={{ ...styles.statSkeleton }} aria-label={`${label} loading`} />
+      ) : (
+        <span style={{ ...styles.statCellValue, color: tone || T.text }}>{value}</span>
+      )}
+      {hint && <span style={styles.statCellHint}>{hint}</span>}
+      {onRetry && (
+        <button type="button" className="pa-btn" onClick={onRetry} style={styles.statRetry}>
+          <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES (PA_DESIGN_SPEC tokens only)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
-  container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-    background: 'linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%)',
-    fontFamily: 'Inter, -apple-system, sans-serif',
+  page: {
+    minHeight: '100dvh',
+    width: '100%',
+    maxWidth: '100vw',
+    overflowX: 'hidden',
+    boxSizing: 'border-box',
+    background: T.bg,
+    fontFamily: FONT,
+    color: T.text,
     position: 'relative',
   },
-  bgGrid: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `
-      linear-gradient(rgba(100, 100, 100, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(100, 100, 100, 0.05) 1px, transparent 1px)
-    `,
-    backgroundSize: '30px 30px',
-    pointerEvents: 'none',
-  },
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#e8e8e8',
-  },
-  loadingText: {
-    color: 'rgba(0, 0, 0, 0.5)',
+  shell: {
+    width: '100%',
+    maxWidth: 760,
+    margin: '0 auto',
+    boxSizing: 'border-box',
+    padding: `${S.lg}px max(${S.lg}px, env(safe-area-inset-left, 0px))`,
+    paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
   },
 
-  // Top Bar
-  topBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    padding: '12px 20px',
-    background: '#fff',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-  },
-  topBarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  brandText: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#1a2a44',
-  },
-  divider: {
-    color: 'rgba(0, 0, 0, 0.2)',
-  },
-  pageLabel: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#1a2a44',
-  },
-  pageSublabel: {
-    fontSize: 13,
-    color: 'rgba(0, 0, 0, 0.5)',
-    marginLeft: 8,
-  },
-  topBarRight: {},
-  integrityBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 12px',
-    background: 'rgba(26, 42, 68, 0.05)',
-    border: '1px solid rgba(26, 42, 68, 0.2)',
-    borderRadius: 6,
-    fontSize: 12,
-    color: '#1a2a44',
-  },
-  lockIcon: {
-    fontSize: 12,
-  },
-
-  // Stats Bar
-  statsBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    flexWrap: 'wrap',
-    gap: 16,
-    padding: '12px 20px',
-    background: '#fff',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-  },
-  sampleBadge: {
-    padding: '4px 10px',
-    background: 'rgba(245, 158, 11, 0.15)',
-    border: '1px solid rgba(245, 158, 11, 0.5)',
-    borderRadius: 4,
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#b45309',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: 'rgba(0, 0, 0, 0.5)',
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#1a2a44',
-  },
-  statDivider: {
-    color: 'rgba(0, 0, 0, 0.2)',
-  },
-  trendIcon: {
-    marginRight: 2,
-  },
-
-  // Main Layout
-  mainLayout: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    minHeight: 'calc(100vh - 160px)',
-    background: '#0a1628',
-  },
-
-  // Coach-mode worst spots (Session Analytics block)
-  coachSpotsCard: {
-    marginTop: 12,
-    padding: 14,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 10,
-  },
-  coachSpotsTitle: {
-    fontSize: 12,
-    fontWeight: 800,
-    color: '#E4E6EB',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  coachSpotRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-    padding: '8px 10px',
-    marginBottom: 6,
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 8,
-    cursor: 'pointer',
-  },
-  coachSpotStreet: {
-    padding: '2px 8px',
-    background: 'rgba(100, 181, 246, 0.15)',
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: 700,
-    color: '#64b5f6',
-  },
-  coachSpotBoard: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  coachSpotDetail: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.55)',
-  },
-
-  // Left Panel
-  leftPanel: {
-    width: 280,
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-    padding: 16,
-    overflowY: 'auto',
-  },
-  leftPanelCollapsed: {
-    width: 48,
-    padding: 8,
-  },
-  indexHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  indexTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  expandBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 18,
-    cursor: 'pointer',
-  },
-  detectBtn: {
-    padding: '8px 12px',
-    background: 'linear-gradient(135deg, #1565c0, #0d47a1)',
-    border: 'none',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.2s ease',
-  },
-  detectBtnDisabled: {
-    opacity: 0.6,
-    cursor: 'wait',
-  },
-  detectionBanner: {
-    padding: '10px 12px',
-    marginBottom: 12,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid',
-    borderRadius: 8,
-    fontSize: 12,
-    lineHeight: 1.4,
-  },
-  sampleBanner: {
-    padding: '10px 12px',
-    marginBottom: 12,
-    background: 'rgba(245, 158, 11, 0.1)',
-    border: '1px solid rgba(245, 158, 11, 0.4)',
-    borderRadius: 8,
-    fontSize: 12,
-    lineHeight: 1.4,
-    color: '#f59e0b',
-  },
-  errorRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    padding: '10px 12px',
-    marginBottom: 12,
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.4)',
-    borderRadius: 8,
-    fontSize: 12,
-    color: '#ef4444',
-  },
-  retryBtn: {
-    padding: '4px 10px',
-    background: 'rgba(239, 68, 68, 0.15)',
-    border: '1px solid rgba(239, 68, 68, 0.5)',
-    borderRadius: 6,
-    color: '#ef4444',
-    fontSize: 11,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  skeletonCard: {
-    height: 96,
-    background: 'rgba(255, 255, 255, 0.06)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-  },
-  emptyState: {
-    padding: '20px 14px',
-    marginBottom: 24,
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px dashed rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    fontSize: 12,
-    lineHeight: 1.5,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-  },
-  leakList: {
+  pageHeader: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
-    marginBottom: 24,
+    gap: S.sm,
+    marginBottom: S.lg,
+  },
+  pageTitle: {
+    fontSize: F.h1,
+    fontWeight: 800,
+    color: T.text,
+    margin: 0,
+    lineHeight: 1.2,
+  },
+  pageSub: {
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    margin: '4px 0 0',
+    lineHeight: 1.45,
+  },
+  integrityBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: S.sm,
+    alignSelf: 'flex-start',
+    padding: '6px 12px',
+    borderRadius: R.pill,
+    background: T.surface2,
+    border: `1px solid ${T.borderHi}`,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.textMuted,
+    maxWidth: '100%',
+  },
+
+  demoBanner: {
+    ...card,
+    background: T.warnSoft,
+    borderColor: 'rgba(251,191,36,0.45)',
+    marginBottom: S.md,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.md,
+  },
+  demoBannerText: {
+    margin: 0,
+    fontSize: F.bodySm,
+    fontWeight: 700,
+    color: T.warn,
+    lineHeight: 1.45,
+  },
+
+  statGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: S.sm,
+    marginBottom: S.md,
+  },
+  statCell: {
+    ...cardCompact,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    minWidth: 0,
+  },
+  statCellLabel: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: S.xs,
+    fontSize: F.caption,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: T.textMuted,
+  },
+  statCellValue: {
+    ...numeric,
+    fontSize: 20,
+    fontWeight: 800,
+    color: T.text,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  statCellHint: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.4,
+  },
+  statSkeleton: {
+    display: 'block',
+    height: 20,
+    width: '60%',
+    borderRadius: R.sm,
+    background: T.surface2,
+  },
+  statRetry: {
+    ...btn('ghost'),
+    minHeight: 44,
+    padding: '0 8px',
+    marginTop: S.xs,
+    alignSelf: 'flex-start',
+    fontSize: F.caption,
+    color: T.accent,
+  },
+
+  sectionHeading: {
+    fontSize: F.label,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: T.textMuted,
+    margin: `0 0 ${S.md}px`,
+  },
+  cardHeading: {
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    margin: `0 0 ${S.md}px`,
+  },
+
+  detectStepText: {
+    margin: `${S.sm}px 0 0`,
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+  },
+  detectionBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    marginTop: S.md,
+    padding: `${S.sm}px ${S.sm}px ${S.sm}px ${S.md}px`,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid',
+    borderRadius: R.sm,
+    fontSize: F.bodySm,
+    fontWeight: 600,
+    lineHeight: 1.45,
+  },
+
+  skeletonCard: {
+    height: 132,
+    background: T.surface2,
+    border: `1px solid ${T.border}`,
+    borderRadius: R.md,
+  },
+
+  // Bleed summary
+  bleedHeadline: {
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    margin: 0,
+    lineHeight: 1.35,
+  },
+  bleedSub: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    margin: `${S.xs}px 0 ${S.md}px`,
+    lineHeight: 1.45,
+  },
+  bleedBar: {
+    display: 'flex',
+    width: '100%',
+    height: 10,
+    borderRadius: R.pill,
+    overflow: 'hidden',
+    background: T.surface2,
+  },
+  bleedLegend: {
+    listStyle: 'none',
+    margin: `${S.md}px 0 0`,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.sm,
+  },
+  bleedLegendRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    minWidth: 0,
+  },
+  bleedLegendTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: F.caption,
+    color: T.textMuted,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  bleedLegendValue: {
+    ...numeric,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.text,
+    flexShrink: 0,
+  },
+
+  // Search / filters
+  searchWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    padding: `0 ${S.sm}px 0 ${S.md}px`,
+    minHeight: 48,
+    background: T.surface2,
+    border: `1px solid ${T.borderHi}`,
+    borderRadius: R.sm,
+    boxSizing: 'border-box',
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    color: T.text,
+    fontSize: F.input,
+    fontFamily: 'inherit',
+    minHeight: 44,
+    padding: 0,
+  },
+
+  // Leak list
+  leakList: {
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.md,
   },
   leakCard: {
-    padding: 14,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 10,
+    ...card,
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.md,
+    padding: S.lg,
+  },
+  leakCardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.sm,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 44,
+    padding: 0,
+    background: 'transparent',
+    border: 'none',
+    borderRadius: R.sm,
+    textAlign: 'left',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
+    font: 'inherit',
+    color: T.text,
   },
   leakCardSelected: {
-    background: 'rgba(100, 181, 246, 0.1)',
-    borderColor: '#64b5f6',
+    borderColor: T.accent,
+    background: T.accentSoft,
+  },
+  leakCardDemo: {
+    borderStyle: 'dashed',
+    borderColor: 'rgba(251,191,36,0.45)',
   },
   leakCardHeader: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: S.sm,
+    width: '100%',
+    minWidth: 0,
   },
   leakCardTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
+    flex: 1,
+    minWidth: 0,
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    lineHeight: 1.3,
   },
-  leakCardArrow: {
-    color: 'rgba(255, 255, 255, 0.3)',
-    fontSize: 16,
+  leakCardMetrics: {
+    display: 'flex',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: S.sm,
+    minWidth: 0,
   },
-  leakCardMeta: {
+  leakCardEv: {
+    ...numeric,
+    fontSize: F.body,
+    fontWeight: 700,
+    color: T.danger,
+  },
+  leakCardMetricDim: {
+    fontSize: F.caption,
+    color: T.textMuted,
+  },
+  leakCardMetricStrong: {
+    ...numeric,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.textMuted,
+  },
+  leakCardBadges: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  leakCardConfidence: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
+    flexWrap: 'wrap',
+    gap: S.sm,
   },
   leakCardSituation: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+  },
+  leakCardHint: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: S.xs,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.warn,
     lineHeight: 1.4,
   },
-  pastLeaksSection: {
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-    paddingTop: 16,
+
+  disclosureBtn: {
+    ...btn('secondary', { block: true }),
+    justifyContent: 'space-between',
+    fontSize: F.bodySm,
   },
-  pastLeaksTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 12,
+
+  // Detail sheet
+  detailBadges: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: S.sm,
+    marginBottom: S.md,
   },
-  pastLeakCard: {
-    padding: 12,
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    marginBottom: 8,
-    cursor: 'pointer',
+  detailMetaLine: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    margin: `0 0 ${S.md}px`,
   },
-  pastLeakHeader: {
+  statTileGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: S.sm,
+    marginBottom: S.lg,
+  },
+  statTile: {
+    ...cardCompact,
+    background: T.surface2,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    minWidth: 0,
+  },
+  statTileLabel: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.textMuted,
+    lineHeight: 1.3,
+  },
+  statTileValue: {
+    ...numeric,
+    fontSize: 18,
+    fontWeight: 800,
+  },
+  detailSection: {
+    marginBottom: S.lg,
+  },
+  detailSectionTitle: {
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    margin: `0 0 ${S.sm}px`,
+  },
+  detailBody: {
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: 0,
+  },
+  detailNote: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: `${S.sm}px 0 0`,
+  },
+  helperText: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: `${S.sm}px 0 0`,
+  },
+
+  // Trend
+  trendHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    justifyContent: 'space-between',
+    gap: S.sm,
+    flexWrap: 'wrap',
+    marginBottom: S.sm,
   },
-  pastLeakTitle: {
-    flex: 1,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+  trendHeaderLabel: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: T.textMuted,
   },
-  pastLeakArrow: {
-    color: 'rgba(255, 255, 255, 0.3)',
+  trendEmpty: {
+    ...cardCompact,
+    background: 'transparent',
+    borderStyle: 'dashed',
+    borderColor: T.borderHi,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.md,
   },
-  pastLeakMeta: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
+  trendEmptyText: {
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: 0,
+  },
+  miniTile: {
+    ...cardCompact,
+    background: T.surface2,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    minWidth: 0,
+  },
+  miniTileLabel: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.textMuted,
+  },
+  miniTileValue: {
+    ...numeric,
+    fontSize: 20,
+    fontWeight: 800,
+  },
+  trendScaleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: S.sm,
+    flexWrap: 'wrap',
+    marginTop: S.xs,
+  },
+  trendScaleText: {
+    fontSize: F.caption,
+    color: T.textMuted,
+  },
+  // Deliberate horizontal snap carousel. One auto-column per point with no
+  // minimum squeezed 7 runs to ~36px and 12 runs to ~21px on a 375px viewport,
+  // which broke the 44x44 tap target and clipped the % / date labels.
+  trendPointRow: {
+    display: 'flex',
+    overflowX: 'auto',
+    scrollSnapType: 'x mandatory',
+    WebkitOverflowScrolling: 'touch',
+    gap: S.sm,
+    marginTop: S.md,
+    paddingBottom: S.xs,
+  },
+  trendPointBtn: {
+    display: 'flex',
+    flex: '0 0 auto',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    scrollSnapAlign: 'start',
+    gap: 2,
+    minHeight: 44,
+    minWidth: 60,
+    padding: '4px 8px',
+    borderRadius: R.sm,
+    border: `1px solid ${T.border}`,
+    background: T.surface2,
+    color: T.text,
+    cursor: 'pointer',
+    font: 'inherit',
+  },
+  trendPointValue: {
+    ...numeric,
+    fontSize: F.caption,
+    fontWeight: 800,
+    color: T.text,
+  },
+  trendPointDate: {
+    fontSize: F.caption,
+    color: T.textMuted,
+  },
+  trendCaption: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: `${S.sm}px 0 0`,
+  },
+
+  // Example rows
+  exampleRow: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.xs,
+    width: '100%',
+    minHeight: 56,
+    padding: `${S.md}px`,
+    background: T.surface2,
+    border: `1px solid ${T.border}`,
+    borderRadius: R.sm,
+    cursor: 'pointer',
+    textAlign: 'left',
+    font: 'inherit',
+    color: T.text,
+  },
+  exampleLine1: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: S.sm,
+    width: '100%',
+    minWidth: 0,
+  },
+  exampleLine2: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    width: '100%',
+    minWidth: 0,
+  },
+  exampleCards: {
+    fontSize: F.bodySm,
+    fontWeight: 700,
+    color: T.text,
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  exampleBoard: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  exampleEv: {
+    ...numeric,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.danger,
+    flexShrink: 0,
+  },
+
+  // Fix cards
+  fixGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: S.md,
+    marginBottom: S.md,
+  },
+  fixCard: {
+    ...cardCompact,
+    background: T.surface2,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.sm,
+  },
+  fixCardRecommended: {
+    borderColor: T.accent,
+    background: T.accentSoft,
+  },
+  fixHead: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    flexWrap: 'wrap',
+  },
+  fixTitle: {
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    margin: 0,
+    minWidth: 0,
+  },
+  fixText: {
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    margin: 0,
+  },
+
+  // Auto-guidance switch
+  guidanceRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.md,
+    width: '100%',
+    minHeight: 56,
+    padding: S.md,
+    background: T.surface2,
+    border: `1px solid ${T.border}`,
+    borderRadius: R.sm,
+    cursor: 'pointer',
+    font: 'inherit',
+    color: T.text,
+    textAlign: 'left',
+  },
+  guidanceTitle: {
+    display: 'block',
+    fontSize: F.bodySm,
+    fontWeight: 700,
+    color: T.text,
+  },
+  guidanceBody: {
+    display: 'block',
+    fontSize: F.caption,
+    color: T.textMuted,
+    lineHeight: 1.45,
+    marginTop: 2,
+  },
+  switchTrack: {
+    width: 44,
+    height: 26,
+    borderRadius: R.pill,
+    flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: 3,
+    boxSizing: 'border-box',
+    transition: 'background .12s ease',
+  },
+  switchKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: '50%',
+    background: '#FFFFFF',
+    transition: 'transform .12s ease',
   },
 };

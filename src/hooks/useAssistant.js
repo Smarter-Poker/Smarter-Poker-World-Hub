@@ -194,6 +194,19 @@ function formatLeak(leak) {
     explanation: leak.explanation,
     whyLeakingEv: leak.why_leaking_ev,
     sourceSystem: leak.source_system || (leak.leak_category === 'training' ? 'training_arena' : 'live_play'),
+
+    // Enrichment columns. The Leak Finder used to re-fetch this exact endpoint
+    // a SECOND time (useLeakExtras) purely to recover these, doubling the
+    // request and the parse on the page's hottest path. Every field is optional
+    // and defaults to null, so a missing DB column degrades gracefully.
+    leakType: leak.leak_type || null,
+    leakCategory: leak.leak_category || null,
+    recommendedDrill: leak.recommended_drill || null,
+    suggestedFix: leak.suggested_fix || null,
+    resolvedAt: leak.resolved_at || null,
+    lastDetected: leak.last_detected_at || null,
+    notes: leak.notes || null,
+    frequencyIsEstimated: !!leak.frequency_is_estimated,
   };
 }
 

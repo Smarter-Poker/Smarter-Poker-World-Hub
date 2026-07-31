@@ -1,19 +1,25 @@
 /**
- * EXTERNAL SOLVER IMPORT (W7-1)
- * Allows users to paste raw CSV or JSON data from GTO+ or PioSolver to hydrate the Sandbox state.
+ * SCENARIO IMPORT — JSON / CSV (W7-1)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Honest retitle: this parser accepts the sandbox's own scenario JSON or a
+ * four-field CSV line. It does NOT read native PioSolver or GTO+ exports, and
+ * the old label promising that produced "Unrecognised card code" for anyone who
+ * tried. The accepted schema is now shown inline above the input.
+ *
+ * The parse result is previewed (board, position, pot, stack, seats and any
+ * defaults that had to be applied) before anything overwrites the table.
  */
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-
-const M = {
-    bg: '#18191A', card: '#242526', border: '#3E4042',
-    accent: '#4599FF', green: '#00cc6a', text: '#E4E6EB', sub: '#B0B3B8',
-    purple: '#a78bfa', yellow: '#F5A623'
-};
+import React, { useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
+import { FileCode, Check, AlertTriangle } from 'lucide-react';
+import { T, F, S, R, btn, pill } from './paTokens';
+import { BottomSheet, PAStyles } from './paKit';
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/;
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const DEFAULT_ARCHETYPE = { id: 'gto_neutral', name: 'GTO Neutral' };
+
+const EXAMPLE = '{"board": ["Kh", "Jd", "3c"], "heroPosition": "CO", "potSize": 75, "effStack": 120, "villains": [{"position": "BB", "range": "AA,KK,QQ,AKs"}]}';
 
 /** Pulls up to 5 valid card codes out of an array or a concatenated string. */
 function parseCards(input) {
@@ -27,7 +33,7 @@ function parseCards(input) {
     for (const raw of tokens) {
         if (!raw) continue;
         const card = raw[0].toUpperCase() + raw.slice(1).toLowerCase();
-        if (!CARD_RE.test(card)) throw new Error(`Unrecognised card code: "${raw}"`);
+        if (!CARD_RE.test(card)) throw new Error(`Unrecognised card code: "${raw}". Use two characters like "Kh".`);
         if (cards.includes(card)) throw new Error(`Duplicate card: "${card}"`);
         cards.push(card);
         if (cards.length === 5) break;
@@ -43,7 +49,7 @@ function toBoardObject(board) {
         return { flop: flop.slice(0, 3), turn: rest[0] || null, river: rest[1] || null };
     }
     const cards = parseCards(board || []);
-    if (cards.length && cards.length < 3) throw new Error('A board needs at least 3 cards');
+    if (cards.length && cards.length < 3) throw new Error('A board needs at least 3 cards.');
     return { flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null };
 }
 
@@ -63,44 +69,55 @@ function toVillains(list) {
 export default function ExternalSolverImport({ onClose, onImport }) {
     const [rawInput, setRawInput] = useState('');
     const [error, setError] = useState(null);
+    const [preview, setPreview] = useState(null); // { state, defaults: string[] }
 
-    const handleParse = () => {
+    const handleParse = useCallback(() => {
+        setError(null);
         try {
-            if (!rawInput.trim()) throw new Error("Please paste your solver output");
+            if (!rawInput.trim()) throw new Error('Paste a scenario first.');
 
-            // Basic heuristic parsing for Pio/GTO+ JSON or simple CSV strings
-            // Expected mocked format: {"board": "AsKd7h", "pot": 100, "effStack": 150, "hero": "BTN", "villains": [{"position": "BB", "range": "..."}]}
+            const defaults = [];
             let raw = null;
 
             if (rawInput.trim().startsWith('{')) {
-                // Try JSON (GTO Wizard / HandHistory parsers)
                 try {
                     raw = JSON.parse(rawInput);
-                } catch (_e) {
-                    throw new Error('That JSON could not be parsed — check for a trailing comma or quote');
+                } catch (e) {
+                    throw new Error('That JSON could not be parsed — check for a trailing comma or a missing quote.');
                 }
             } else {
-                // Mock CSV or shorthand parse (e.g. AsKd7hQd2c, BTN, 100, 150)
-                const parts = rawInput.split(',').map(s => s.trim());
+                // CSV: Board, Position, Pot, Stack — stack is optional but the
+                // old code read parts[3] after only requiring three fields and
+                // silently substituted 100bb.
+                const parts = rawInput.split(',').map(s => s.trim()).filter(Boolean);
                 if (parts.length < 3) {
-                    throw new Error("Invalid CSV format. Use: Board, Position, Pot, Stack");
+                    throw new Error('CSV needs at least: Board, Position, Pot (Stack optional). Example: AsKd7h, BTN, 75, 120');
                 }
+                if (parts.length < 4) defaults.push('Effective stack defaulted to 100 BB');
                 raw = {
                     board: parts[0] || '',
                     heroPosition: parts[1] || 'BTN',
                     potSize: parseInt(parts[2], 10),
-                    effStack: parseInt(parts[3], 10),
+                    effStack: parts.length >= 4 ? parseInt(parts[3], 10) : NaN,
                     villains: [{ id: 1, position: 'BB' }],
                 };
             }
 
-            if (!raw || typeof raw !== 'object') throw new Error("Failed to parse solver data");
+            if (!raw || typeof raw !== 'object') throw new Error('That input did not contain a scenario object.');
 
             const heroPositionRaw = String(raw.heroPosition || raw.hero || 'BTN').toUpperCase();
-            const potSize = Number(raw.potSize ?? raw.pot);
-            const effStack = Number(raw.effStack ?? raw.stack);
+            if (!POSITIONS.includes(heroPositionRaw)) defaults.push('Hero position defaulted to BTN');
 
-            // Emit the exact sandbox state shape the page consumes.
+            const potSize = Number(raw.potSize ?? raw.pot);
+            if (!Number.isFinite(potSize) || potSize <= 0) defaults.push('Pot defaulted to 100');
+
+            const effStack = Number(raw.effStack ?? raw.stack);
+            if (!Number.isFinite(effStack) || effStack <= 0) {
+                if (!defaults.includes('Effective stack defaulted to 100 BB')) defaults.push('Effective stack defaulted to 100 BB');
+            }
+
+            if (!Array.isArray(raw.villains) || raw.villains.length === 0) defaults.push('One BB villain added');
+
             const state = {
                 board: toBoardObject(raw.board),
                 heroPosition: POSITIONS.includes(heroPositionRaw) ? heroPositionRaw : 'BTN',
@@ -109,63 +126,151 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                 villains: toVillains(raw.villains),
             };
 
-            onImport?.(state);
-            onClose?.();
+            setPreview({ state, defaults });
         } catch (err) {
-            console.warn('[ExternalSolverImport] Parsing error:', err);
-            setError(err.message || 'An unknown error occurred while parsing');
+            console.warn('[ScenarioImport] Parsing error:', err);
+            setPreview(null);
+            setError(err.message || 'That scenario could not be read.');
         }
-    };
+    }, [rawInput]);
+
+    const handleConfirm = useCallback(() => {
+        if (!preview?.state) return;
+        onImport?.(preview.state);
+        toast.success('Scenario loaded — use undo at the table to revert');
+        onClose?.();
+    }, [preview, onImport, onClose]);
+
+    const boardText = preview?.state?.board
+        ? [...(preview.state.board.flop || []), preview.state.board.turn, preview.state.board.river].filter(Boolean).join(' ') || 'Preflop'
+        : '';
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100004, padding: 16 }}
-            onClick={() => onClose?.()}
+        <BottomSheet
+            open
+            onClose={onClose}
+            title="Import scenario"
+            titleIcon={<FileCode size={18} strokeWidth={2} color={T.purple} />}
+            subtitle="Paste sandbox scenario JSON or a CSV line."
+            ariaLabel="Import scenario JSON or CSV"
+            footer={preview ? (
+                <>
+                    <button type="button" className="pa-btn" onClick={() => setPreview(null)} style={{ ...btn('secondary'), padding: '0 14px' }}>
+                        Back
+                    </button>
+                    <button type="button" className="pa-btn" onClick={handleConfirm} style={{ ...btn('primary'), flex: 1 }}>
+                        <Check size={18} strokeWidth={2} /> Load scenario
+                    </button>
+                </>
+            ) : (
+                <button type="button" className="pa-btn" onClick={handleParse} style={{ ...btn('primary', { block: true }) }}>
+                    Check scenario
+                </button>
+            )}
         >
-            <motion.div
-                initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
-                onClick={e => e.stopPropagation()}
-                style={{ background: M.card, borderRadius: 16, width: '100%', maxWidth: 500, border: `1px solid ${M.purple}`, boxShadow: '0 12px 48px rgba(167,139,250,0.3)', overflow: 'hidden' }}
-            >
-                <div style={{ padding: '20px', borderBottom: `1px solid ${M.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: M.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {'📥 Import Solver Data'}
-                        <span style={{ fontSize: 10, background: M.purple, color: '#fff', padding: '2px 6px', borderRadius: 4 }}>WAVE 7 PRO</span>
+            <PAStyles />
+
+            {preview ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                    <span style={pill('success')}><Check size={12} strokeWidth={3} /> Ready to load</span>
+                    <div style={{
+                        background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
+                        padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
+                    }}>
+                        {[
+                            ['Board', boardText],
+                            ['Hero position', preview.state.heroPosition],
+                            ['Pot', `${preview.state.potSize}`],
+                            ['Effective stack', `${preview.state.effStack}`],
+                            ['Villains', preview.state.villains.map(v => v.position).join(', ')],
+                        ].map(([label, value]) => (
+                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: S.md, fontSize: F.bodySm }}>
+                                <span style={{ color: T.textMuted }}>{label}</span>
+                                <span style={{ color: T.text, fontWeight: 700, textAlign: 'right', minWidth: 0 }}>{value}</span>
+                            </div>
+                        ))}
                     </div>
-                    <button onClick={() => onClose?.()} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
+
+                    {preview.defaults.length > 0 && (
+                        <div style={{
+                            background: T.warnSoft, border: '1px solid rgba(251,191,36,0.4)',
+                            borderRadius: R.sm, padding: S.md,
+                        }}>
+                            <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn, marginBottom: S.xs }}>
+                                Defaults applied
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: 18, color: T.textMuted, fontSize: F.caption, lineHeight: 1.5 }}>
+                                {preview.defaults.map(d => <li key={d}>{d}</li>)}
+                            </ul>
+                        </div>
+                    )}
+
+                    <p style={{ fontSize: F.caption, color: T.textDim, margin: 0, lineHeight: 1.45 }}>
+                        Loading replaces the board, hero position, pot, stack and every villain seat. The sandbox
+                        keeps an undo step.
+                    </p>
                 </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                    {error && (
+                        <div
+                            role="alert"
+                            style={{
+                                display: 'flex', gap: S.sm, alignItems: 'flex-start',
+                                background: T.dangerSoft, border: '1px solid rgba(239,68,68,0.4)',
+                                borderRadius: R.sm, padding: S.md,
+                            }}
+                        >
+                            <AlertTriangle size={18} strokeWidth={2} color={T.danger} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.danger, minWidth: 0 }}>{error}</span>
+                        </div>
+                    )}
 
-                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {error && <div style={{ color: '#ff4444', fontSize: 13, background: 'rgba(255,68,68,0.1)', padding: '10px 12px', borderRadius: 8 }}>{error}</div>}
+                    <div style={{
+                        background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm, padding: S.md,
+                    }}>
+                        <div style={{ fontSize: F.label, fontWeight: 700, color: T.textMuted, marginBottom: S.xs }}>
+                            Accepted formats
+                        </div>
+                        <pre style={{
+                            margin: 0, fontSize: F.caption, color: T.purple, lineHeight: 1.5,
+                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}>
+{`JSON  {"board":["Kh","Jd","3c"],"heroPosition":"CO",
+       "potSize":75,"effStack":120,
+       "villains":[{"position":"BB","range":"AA,KK"}]}
 
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: M.sub, marginBottom: 8 }}>Paste PioSolver, GTO+, or HandHistory JSON/CSV</div>
-                        <textarea
-                            value={rawInput}
-                            onChange={e => setRawInput(e.target.value)}
-                            placeholder='{"board": ["As", "Kd", "7h"], "heroPosition": "BTN", ... }  OR  AsKd7h, BTN, 100, 150'
-                            style={{ width: '100%', height: 160, padding: 12, background: 'rgba(0,0,0,0.3)', border: `1px solid ${M.border}`, borderRadius: 8, color: '#a78bfa', fontSize: 13, fontFamily: 'monospace', resize: 'none' }}
-                            spellCheck={false}
-                        />
+CSV   Board, Position, Pot, Stack
+      AsKd7h, BTN, 75, 120`}
+                        </pre>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        <button
-                            onClick={() => setRawInput('{"board": ["Kh", "Jd", "3c"], "heroPosition": "CO", "potSize": 75, "effStack": 120, "villains": [{"id": 1, "position": "BB", "range": "AA,KK,QQ,AKs"}]}')}
-                            style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', color: M.sub, fontSize: 13, fontWeight: 700, border: `1px solid ${M.border}`, borderRadius: 8, cursor: 'pointer' }}
-                        >
-                            Load Example
-                        </button>
-                        <button
-                            onClick={handleParse}
-                            style={{ flex: 2, padding: '12px', background: M.purple, color: '#fff', fontSize: 14, fontWeight: 800, border: 'none', borderRadius: 8, cursor: 'pointer' }}
-                        >
-                            Hydrate Sandbox Node
-                        </button>
-                    </div>
+                    <label htmlFor="esi-input" className="pa-vh">Scenario JSON or CSV</label>
+                    <textarea
+                        id="esi-input"
+                        value={rawInput}
+                        onChange={e => { setRawInput(e.target.value); setError(null); }}
+                        placeholder='{"board": ["As", "Kd", "7h"], "heroPosition": "BTN" … }  or  AsKd7h, BTN, 75, 120'
+                        spellCheck={false}
+                        style={{
+                            width: '100%', minHeight: 148, padding: S.md, boxSizing: 'border-box',
+                            background: T.bg, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                            color: T.text, fontSize: F.input, lineHeight: 1.45, resize: 'vertical',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}
+                    />
+
+                    <button
+                        type="button"
+                        className="pa-btn"
+                        onClick={() => { setRawInput(EXAMPLE); setError(null); }}
+                        style={{ ...btn('secondary'), fontSize: F.label, padding: '0 14px', alignSelf: 'flex-start' }}
+                    >
+                        Load example
+                    </button>
                 </div>
-            </motion.div>
-        </motion.div>
+            )}
+        </BottomSheet>
     );
 }

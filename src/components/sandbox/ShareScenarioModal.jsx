@@ -1,116 +1,230 @@
 /**
  * SHARE SCENARIO MODAL (W6-2)
- * Generates and displays a shareable short-link for the current Sandbox state.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Generates a public link to the current sandbox state.
+ *
+ * Mobile: the native share sheet is the primary action (clipboard access is
+ * undefined on insecure origins and inside several in-app webviews), copy is
+ * the secondary path, and a QR code covers "show it to the person next to me".
+ * Failures are mapped to human copy instead of raw fetch error text.
  */
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Link2, Copy, Check, Share2, QrCode, Info } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
-
-const M = {
-    bg: 'rgba(11,13,17,0.95)',
-    card: '#242526',
-    text: '#E4E6EB',
-    sub: '#B0B3B8',
-    border: '#3E4042',
-    accent: '#4599FF',
-    green: '#00E676',
-};
+import { T, F, S, R, btn } from './paTokens';
+import { BottomSheet, PAStyles, ErrorState, Skeleton } from './paKit';
 
 export default function ShareScenarioModal({ onClose, sandboxState }) {
     const [loading, setLoading] = useState(false);
     const [shareUrl, setShareUrl] = useState(null);
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState(null);
+    const [qrUrl, setQrUrl] = useState(null);
+    const [qrState, setQrState] = useState('idle'); // idle | loading | ready | unavailable
+    const copyTimer = useRef(null);
+
+    useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current); }, []);
 
     const generateLink = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const token = getAccessToken();
-            let headers = { 'Content-Type': 'application/json' };
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;
-            }
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
 
             const res = await fetch('/api/sandbox/create-share', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ state_json: sandboxState })
+                body: JSON.stringify({ state_json: sandboxState }),
             });
+            const json = await res.json().catch(() => null);
 
-            const json = await res.json();
-            if (json.success) {
+            if (res.status === 401) {
+                setError('Sign in to create a share link.');
+                return;
+            }
+            if (res.ok && json?.success && json.shareId) {
                 const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
                 setShareUrl(`${origin}/sandbox/${json.shareId}`);
-            } else {
-                setError(json.error || 'Failed to generate link');
+                return;
             }
+            setError('Could not create the link. Please try again.');
         } catch (err) {
-            setError(err.message);
+            console.warn('[ShareScenarioModal] create error:', err?.message || err);
+            setError('Could not create the link — check your connection.');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [sandboxState]);
 
-    const copyToClipboard = () => {
+    const handleNativeShare = useCallback(async () => {
         if (!shareUrl) return;
-        // navigator.clipboard is undefined on insecure origins / older webviews.
-        if (typeof navigator?.clipboard?.writeText === 'function') {
-            navigator.clipboard.writeText(shareUrl).catch(e => console.warn('[ShareScenarioModal] Copy failed:', e?.message || e));
-        } else {
-            setError('Copy is unavailable here — long-press the link to copy it.');
+        try {
+            await navigator.share({ title: 'GTO Sandbox spot', text: 'Take a look at this spot', url: shareUrl });
+        } catch (e) {
+            if (e?.name !== 'AbortError') console.warn('[ShareScenarioModal] share failed:', e?.message || e);
+        }
+    }, [shareUrl]);
+
+    const copyToClipboard = useCallback(async () => {
+        if (!shareUrl) return;
+        if (typeof navigator?.clipboard?.writeText !== 'function') {
+            setError('Copying is blocked here — long-press the link above to copy it.');
             return;
         }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setCopied(true);
+            if (copyTimer.current) clearTimeout(copyTimer.current);
+            copyTimer.current = setTimeout(() => setCopied(false), 2000);
+            try { navigator.vibrate?.(10); } catch (e) { /* noop */ }
+        } catch (e) {
+            console.warn('[ShareScenarioModal] copy failed:', e?.message || e);
+            setError('Copying is blocked here — long-press the link above to copy it.');
+        }
+    }, [shareUrl]);
+
+    const showQr = useCallback(async () => {
+        if (!shareUrl) return;
+        setQrState('loading');
+        try {
+            const mod = await import('qrcode');
+            const QRCode = mod?.default || mod;
+            const dataUrl = await QRCode.toDataURL(shareUrl, {
+                width: 320, margin: 1,
+                color: { dark: '#18191A', light: '#FFFFFF' },
+            });
+            setQrUrl(dataUrl);
+            setQrState('ready');
+        } catch (e) {
+            console.warn('[ShareScenarioModal] QR unavailable:', e?.message || e);
+            setQrState('unavailable');
+        }
+    }, [shareUrl]);
+
+    const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100002 }}
-            onClick={onClose}
+        <BottomSheet
+            open
+            onClose={onClose}
+            title="Share this spot"
+            titleIcon={<Link2 size={18} strokeWidth={2} color={T.accent} />}
+            subtitle="Anyone with the link can open this exact sandbox state."
+            ariaLabel="Share scenario"
+            footer={shareUrl ? (
+                <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('secondary', { block: true }) }}>
+                    Done
+                </button>
+            ) : (
+                <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={generateLink}
+                    disabled={loading}
+                    style={{ ...btn('primary', { block: true, disabled: loading }) }}
+                >
+                    {loading ? 'Creating link…' : 'Create share link'}
+                </button>
+            )}
         >
-            <motion.div
-                initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
-                onClick={e => e.stopPropagation()}
-                style={{ background: M.card, padding: 24, borderRadius: 16, width: '90%', maxWidth: 400, border: `1px solid ${M.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', position: 'relative', textAlign: 'center' }}
-            >
-                <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: M.sub, fontSize: 16, cursor: 'pointer' }}>✕</button>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>{'🔗'}</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: M.text, marginBottom: 8 }}>Share Scenario</div>
-                <div style={{ fontSize: 13, color: M.sub, marginBottom: 20, lineHeight: 1.5 }}>
-                    Generate a public link to share this exact sandbox state (ranges, board, and analysis) with friends or coaches.
-                </div>
+            <PAStyles />
 
-                {error && <div style={{ color: '#ff4444', fontSize: 12, background: 'rgba(255,68,68,0.1)', padding: '8px 12px', borderRadius: 8, marginBottom: 16 }}>{error}</div>}
-
-                {!shareUrl ? (
-                    <button
-                        onClick={generateLink}
-                        disabled={loading}
-                        style={{ width: '100%', padding: '14px', borderRadius: 8, background: loading ? M.border : M.accent, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                    >
-                        {loading ? 'Generating...' : 'Create Share Link'}
-                    </button>
-                ) : (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        <div onClick={copyToClipboard} style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', border: `1px solid ${M.border}`, borderRadius: 8, padding: '12px', cursor: 'pointer', marginBottom: 12 }}>
-                            <div style={{ flex: 1, fontSize: 13, color: M.text, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'left' }}>
-                                {shareUrl}
-                            </div>
-                            <div style={{ color: copied ? M.green : M.accent, fontSize: 14, fontWeight: 700, marginLeft: 12 }}>
-                                {copied ? 'Copied! ✓' : 'Copy'}
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            style={{ width: '100%', padding: '12px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', color: M.text, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}
-                        >
-                            Done
-                        </button>
-                    </motion.div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.lg }}>
+                {error && (
+                    <ErrorState
+                        title="Sharing failed"
+                        body={error}
+                        onRetry={shareUrl ? null : generateLink}
+                    />
                 )}
-            </motion.div>
-        </motion.div>
+
+                {loading && !shareUrl && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-hidden="true">
+                        <Skeleton h={48} />
+                        <Skeleton h={44} w="60%" />
+                    </div>
+                )}
+
+                {!shareUrl && !loading && (
+                    <p style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45, margin: 0 }}>
+                        The link captures the board, ranges, stacks and villain setup exactly as they are now.
+                        Later edits at the table do not change it.
+                    </p>
+                )}
+
+                {shareUrl && (
+                    <>
+                        <div
+                            style={{
+                                background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
+                                padding: S.md, fontSize: F.bodySm, color: T.text, wordBreak: 'break-all', lineHeight: 1.45,
+                            }}
+                        >
+                            {shareUrl}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+                            {canNativeShare && (
+                                <button
+                                    type="button"
+                                    className="pa-btn"
+                                    onClick={handleNativeShare}
+                                    style={{ ...btn('primary'), flex: '1 1 140px' }}
+                                >
+                                    <Share2 size={18} strokeWidth={2} /> Share
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                className="pa-btn"
+                                onClick={copyToClipboard}
+                                aria-label="Copy share link"
+                                style={{ ...btn('secondary'), flex: '1 1 120px', minHeight: 48 }}
+                            >
+                                {copied ? <Check size={18} strokeWidth={2} color={T.success} /> : <Copy size={18} strokeWidth={2} />}
+                                {copied ? 'Copied' : 'Copy link'}
+                            </button>
+                        </div>
+
+                        {qrState !== 'ready' && (
+                            <button
+                                type="button"
+                                className="pa-btn"
+                                onClick={showQr}
+                                disabled={qrState === 'loading' || qrState === 'unavailable'}
+                                style={{ ...btn('secondary', { block: true, disabled: qrState === 'unavailable' }) }}
+                            >
+                                <QrCode size={18} strokeWidth={2} />
+                                {qrState === 'loading' ? 'Building QR code…'
+                                    : qrState === 'unavailable' ? 'QR code unavailable here'
+                                        : 'Show QR code'}
+                            </button>
+                        )}
+
+                        {qrState === 'ready' && qrUrl && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                                src={qrUrl}
+                                alt="QR code for the share link"
+                                style={{
+                                    width: 220, height: 220, alignSelf: 'center', borderRadius: R.sm,
+                                    background: '#FFFFFF', padding: S.sm, boxSizing: 'border-box',
+                                }}
+                            />
+                        )}
+
+                        <div style={{ display: 'flex', gap: S.sm, alignItems: 'flex-start' }}>
+                            <Info size={18} strokeWidth={2} color={T.textDim} style={{ flexShrink: 0, marginTop: 1 }} />
+                            <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
+                                This link is public and cannot be revoked from here. Only share spots you are happy for
+                                anyone to open.
+                            </p>
+                        </div>
+                    </>
+                )}
+            </div>
+        </BottomSheet>
     );
 }
