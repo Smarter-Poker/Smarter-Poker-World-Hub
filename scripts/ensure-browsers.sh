@@ -18,20 +18,22 @@
 # Source this from every daemon launcher BEFORE exec'ing python.
 # Safe to call on every start: it probes first and only downloads when missing.
 #
-#   Usage:  source "$(dirname "$0")/ensure-browsers.sh"; ensure_browsers "$ROOT"
+#   Usage:  source "$(dirname "$0")/ensure-browsers.sh"; ensure_browsers "$ROOT" || exit 1
+#
+# RETURN CONTRACT (added 2026-07-31):
+#   0 = chromium is verifiably present (probed, not assumed)
+#   1 = chromium is still missing after the heal attempt
+# The heal used to `|| echo WARNING` and then return 0 unconditionally, so a
+# failed download (offline, proxy, disk full) still reported "heal attempt
+# complete" and every caller launched a daemon that died on ERROR_SESSION_DEAD.
+# Callers MUST check the status and refuse to start the daemon on failure.
 # ═══════════════════════════════════════════════════════════════════════════
 
-ensure_browsers() {
-    local root="${1:-$PWD}"
-    local py="$root/.venv/bin/python3"
-
-    if [ ! -x "$py" ]; then
-        echo "$(date) - [ensure-browsers] no venv at $py — skipping browser check"
-        return 0
-    fi
-
-    local ok
-    ok=$("$py" - <<'PYCHECK' 2>/dev/null
+# Probe: does a usable chromium executable exist for this venv?
+# Echoes "yes"/"no"; never fails the caller.
+_ensure_browsers_probe() {
+    local py="$1"
+    "$py" - <<'PYCHECK' 2>/dev/null || echo "no"
 import os
 try:
     from playwright.sync_api import sync_playwright
@@ -41,17 +43,37 @@ try:
 except Exception:
     print("no")
 PYCHECK
-)
+}
 
-    if [ "$ok" = "yes" ]; then
+ensure_browsers() {
+    local root="${1:-$PWD}"
+    local py="$root/.venv/bin/python3"
+
+    if [ ! -x "$py" ]; then
+        echo "$(date) - [ensure-browsers] no venv at $py — cannot verify browsers"
+        return 1
+    fi
+
+    if [ "$(_ensure_browsers_probe "$py")" = "yes" ]; then
         echo "$(date) - [ensure-browsers] chromium present"
         return 0
     fi
 
     echo "$(date) - [ensure-browsers] chromium MISSING — healing (playwright install chromium)"
-    "$py" -m playwright install chromium \
-        || echo "$(date) - [ensure-browsers] WARNING: playwright install failed (network?)"
-    "$py" -m camoufox fetch \
-        || echo "$(date) - [ensure-browsers] WARNING: camoufox fetch failed (non-fatal)"
-    echo "$(date) - [ensure-browsers] heal attempt complete"
+    if ! "$py" -m playwright install chromium; then
+        echo "$(date) - [ensure-browsers] playwright install chromium FAILED (network/proxy/disk?)"
+    fi
+    if ! "$py" -m camoufox fetch; then
+        echo "$(date) - [ensure-browsers] WARNING: camoufox fetch failed (non-fatal)"
+    fi
+
+    # Re-probe: the install is only a heal if chromium is actually there now.
+    if [ "$(_ensure_browsers_probe "$py")" = "yes" ]; then
+        echo "$(date) - [ensure-browsers] heal succeeded — chromium verified present"
+        return 0
+    fi
+
+    echo "$(date) - [ensure-browsers] HEAL FAILED — chromium still missing. Refusing to report success."
+    echo "$(date) - [ensure-browsers] Fix with: $py -m playwright install chromium"
+    return 1
 }

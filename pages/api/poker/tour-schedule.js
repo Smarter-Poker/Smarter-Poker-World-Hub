@@ -440,9 +440,18 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.warn('[tour-schedule] Error:', err);
-    // Fallback to registry data if DB fails
-    return returnRegistryFallback(tour_code?.toUpperCase(), stop, res);
+    // A DB failure is NOT the same as "this tour has not been scraped yet".
+    // Serving registry placeholders here made an outage look like a normal
+    // empty schedule, so nothing upstream ever noticed. Fail loudly instead;
+    // the registry fallback stays reserved for the genuinely-unscraped path.
+    console.warn('[tour-schedule] Database error:', err);
+    try { reportApiError(err, {}); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    return res.status(503).json({
+      success: false,
+      error: 'Schedule database unavailable',
+      tour_code: tour_code?.toUpperCase() || null,
+      data_source: 'error',
+    });
   }
 }
 
@@ -460,18 +469,27 @@ async function returnRegistryFallback(tour_code, stop, res) {
     const series = tour.series_2026 || [];
     const today = getTodayEastern();
 
+    // The registry lists a tour's series entries; it does NOT tie a series
+    // entry to a specific stop. Previously every event was stamped with
+    // stops_2026[0]'s venue/city/state, so for a traveling tour (WSOPC, MSPT,
+    // RGPS) every event was published at the wrong venue. A stop is only
+    // asserted when the tour has exactly one stop on record.
+    const soleStop = (tour.stops_2026 || []).length === 1 ? tour.stops_2026[0] : null;
+
     const events = series.map((s, idx) => {
       const buyin = s.buyin || null;
       return {
         id: `registry_${tour_code}_${idx}`,
         tour_code,
-        stop_name: (tour.stops_2026?.[0]?.name) || `${tour_code} 2026`,
-        stop_venue: tour.stops_2026?.[0]?.venue || null,
-        stop_city: tour.stops_2026?.[0]?.location?.split(',')[0]?.trim() || null,
-        stop_state: tour.stops_2026?.[0]?.location?.split(',')[1]?.trim() || null,
+        stop_name: soleStop?.name || `${tour_code} 2026`,
+        stop_venue: soleStop?.venue || null,
+        stop_city: soleStop?.location?.split(',')[0]?.trim() || null,
+        stop_state: soleStop?.location?.split(',')[1]?.trim() || null,
         stop_start_date: null,
         stop_end_date: null,
-        event_number: idx + 1,
+        // Not published by the source — the old idx+1 was an invented number
+        // that matched nothing in the official schedule.
+        event_number: null,
         event_name: s.name,
         game_type: normalizeGameType(s.game),
         game_type_raw: s.game,
@@ -508,6 +526,8 @@ async function returnRegistryFallback(tour_code, stop, res) {
       tour_code,
       data_source: 'registry_fallback',
       message: 'Live schedule not yet scraped — showing registry data',
+      // Stops are only attributed when the registry lists exactly one.
+      stop_attribution: soleStop ? 'single_stop' : 'unassigned',
       total_events: events.length,
       events,
     });

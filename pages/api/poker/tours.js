@@ -152,7 +152,11 @@ function getUpcomingSeries(tourCode, registryTours) {
         return d;
     }
 
-    // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9"
+    // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9".
+    // Returns { start, end, is_estimated } — is_estimated:true means the registry
+    // string carried NO year and the year was inferred by rollYearForward(). Such
+    // dates are guesses, not scraped facts, and must never be published as
+    // confirmed start_date/end_date.
     function parseInformalDate(dateStr) {
         if (!dateStr) return null;
         const parts = dateStr.split(/\s*[-–]\s*/);
@@ -188,7 +192,7 @@ function getUpcomingSeries(tourCode, registryTours) {
                 end.setFullYear(end.getFullYear() + 1);
             }
         }
-        return { start, end };
+        return { start, end, is_estimated: explicitYear === null };
     }
 
     const results = [];
@@ -206,21 +210,34 @@ function getUpcomingSeries(tourCode, registryTours) {
         for (const stop of allStops) {
             const dates = parseInformalDate(stop.dates);
             if (!dates) continue;
-            
+
             // Include if end date is today or later
             if (dates.end >= today) {
+                const startIso = dates.start.toISOString().split('T')[0];
+                const endIso = dates.end.toISOString().split('T')[0];
                 results.push({
                     ...stop,
                     tour: tour.tour_code,
-                    start_date: dates.start.toISOString().split('T')[0],
-                    end_date: dates.end.toISOString().split('T')[0],
+                    // PROVENANCE: the registry stores year-less strings. When no year
+                    // was present, the year is INFERRED — publish it only as an
+                    // estimate and keep the confirmed date fields null so consumers
+                    // cannot mistake a guess for a scraped schedule.
+                    is_estimated: dates.is_estimated,
+                    date_text: stop.dates || null,
+                    date_source: 'tour-source-registry.json',
+                    start_date: dates.is_estimated ? null : startIso,
+                    end_date: dates.is_estimated ? null : endIso,
+                    estimated_start_date: dates.is_estimated ? startIso : null,
+                    estimated_end_date: dates.is_estimated ? endIso : null,
+                    _sortKey: startIso,
                     short_name: stop.name || stop.venue || 'Tour Stop',
                 });
             }
         }
     }
 
-    return results.sort((a, b) => a.start_date.localeCompare(b.start_date));
+    results.sort((a, b) => (a._sortKey || '').localeCompare(b._sortKey || ''));
+    return results.map(({ _sortKey, ...s }) => s);
 }
 
 // ─── Fallback city coordinates for common poker tour locations ───
@@ -363,6 +380,9 @@ export async function getMergedToursData(excludeStationary = false) {
 
     let tours = [];
     let source = 'registry';
+    // A DB failure must not look like a healthy registry-only response.
+    let degraded = false;
+    let dbError = null;
     try {
         const { data, error } = await getSupabase()
             .from('tour_source_registry')
@@ -370,6 +390,17 @@ export async function getMergedToursData(excludeStationary = false) {
             .eq('is_active', true)
             .order('tour_type', { ascending: true })
             .limit(100);
+
+        if (error) {
+            degraded = true;
+            dbError = error.message || String(error);
+            console.warn('[Tours] tour_source_registry query failed:', dbError);
+            try { reportApiError(error instanceof Error ? error : new Error(`tour_source_registry query failed: ${dbError}`)); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        } else if (!data || data.length === 0) {
+            degraded = true;
+            dbError = 'tour_source_registry returned zero active rows';
+            console.warn('[Tours]', dbError);
+        }
 
         if (!error && data && data.length > 0) {
             const mergedFromDb = data
@@ -382,10 +413,15 @@ export async function getMergedToursData(excludeStationary = false) {
             tours = [...mergedFromDb, ...registryOnly];
             source = 'merged';
         }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (e) {
+        degraded = true;
+        dbError = e?.message || String(e);
+        console.warn('[Tours] tour_source_registry lookup threw:', dbError);
+        try { reportApiError(e instanceof Error ? e : new Error(String(e))); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    }
 
     if (tours.length === 0) tours = registryTours;
-    return { tours, registryTours, source };
+    return { tours, registryTours, source, degraded, db_error: dbError };
 }
 
 export async function getAllToursForSSR() {
@@ -433,7 +469,7 @@ export default async function handler(req, res) {
 
           // Try to get DB tours
           // eslint-disable-next-line prefer-const
-          let { tours: toursRaw, registryTours, source } = await getMergedToursData(excludeStationary);
+          let { tours: toursRaw, registryTours, source, degraded, db_error: dbError } = await getMergedToursData(excludeStationary);
           let tours = toursRaw;
 
           // Calculate distance if coordinates provided
@@ -550,36 +586,57 @@ export default async function handler(req, res) {
               }));
           }
 
-          // Get summary stats
+          // Get summary stats.
+          // upcoming_series_count counts only stops with a CONFIRMED (explicitly
+          // dated) schedule. Year-inferred registry stops are counted separately
+          // so a stale registry can never inflate a "confirmed upcoming" figure.
           const seriesCountByTour = {};
-          allUpcoming.forEach(s => {
+          const confirmedUpcoming = allUpcoming.filter(s => !s.is_estimated);
+          const estimatedUpcoming = allUpcoming.filter(s => s.is_estimated);
+          confirmedUpcoming.forEach(s => {
               seriesCountByTour[s.tour] = (seriesCountByTour[s.tour] || 0) + 1;
           });
 
           return res.status(200).json({
-              success: true,
+              success: !degraded,
+              degraded: Boolean(degraded),
               data: tours.slice(0, Math.min(parseInt(limit, 10) || 50, 100)),
               total: tours.length,
               summary: {
                   total_tours: tours.length,
                   by_type: countByField(tours, 'tour_type'),
-                  upcoming_series_count: allUpcoming.length,
+                  upcoming_series_count: confirmedUpcoming.length,
+                  upcoming_series_estimated_count: estimatedUpcoming.length,
                   series_by_tour: seriesCountByTour,
               },
               metadata: {
                   source,
-                  last_updated: tourRegistry.metadata?.created || '2026-01-26',
+                  data_source: degraded ? 'registry-fallback' : source,
+                  // Registry file date — describes the checked-in JSON, NOT a scrape time.
+                  registry_file_date: tourRegistry.metadata?.created || null,
+                  last_updated: tourRegistry.metadata?.created || null,
+                  error: degraded ? (dbError || 'tour_source_registry unavailable') : undefined,
               },
           });
 
       } catch (error) {
           console.warn('Tours API error:', error);
+          try { reportApiError(error instanceof Error ? error : new Error(String(error)), req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
           const tours = getToursFromRegistry();
+          // Fallback data is still returned so the page renders, but the response
+          // must not claim success — a permanently broken DB used to look healthy.
           return res.status(200).json({
-              success: true,
+              success: false,
+              degraded: true,
               data: tours,
               total: tours.length,
-              error: 'Tours query error — showing cached data',
+              metadata: {
+                  source: 'registry',
+                  data_source: 'registry-fallback',
+                  registry_file_date: tourRegistry.metadata?.created || null,
+                  last_updated: tourRegistry.metadata?.created || null,
+              },
+              error: 'Tours query error — showing cached registry data',
           });
       }
 

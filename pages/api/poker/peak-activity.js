@@ -58,6 +58,52 @@ function getLocalParts(value, timeZone) {
   return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
 }
 
+/**
+ * Resolve a numeric venue_id to its poker_venues row.
+ * The `venue_id` param was matched against bravo_slug ('pa-bellagio'), so a
+ * numeric id matched neither .eq nor .ilike and every id-based lookup returned
+ * "not enough historical data" instead of the venue's heatmap.
+ *
+ * Returns { row, error }. `error` set means the LOOKUP itself failed — the
+ * caller must not report that as "no such venue" (a 404 for a database outage
+ * tells the client to stop retrying a venue that actually exists).
+ */
+async function resolveVenueById(supabase, venueId) {
+  const idNum = parseInt(venueId, 10);
+  if (isNaN(idNum) || idNum < 1 || !/^\d+$/.test(String(venueId))) return { row: null, error: null };
+  try {
+    const { data, error } = await supabase
+      .from('poker_venues')
+      .select('id, name, state')
+      .eq('id', idNum)
+      .maybeSingle();
+    if (error) {
+      console.warn('peak-activity: venue lookup failed:', error.message);
+      return { row: null, error: error.message || 'venue lookup failed' };
+    }
+    return { row: data || null, error: null };
+  } catch (lookupErr) {
+    console.warn('peak-activity: venue lookup threw:', lookupErr.message);
+    return { row: null, error: lookupErr.message || 'venue lookup threw' };
+  }
+}
+
+// Supabase caps a query at 1000 rows regardless of .limit(); page with .range().
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 10;
+async function fetchAllPages(buildQuery) {
+  let rows = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data, error } = await buildQuery().range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (error) return { rows, error, truncated: false };
+    if (!data || data.length === 0) return { rows, error: null, truncated: false };
+    rows = rows.concat(data);
+    if (data.length < PAGE_SIZE) return { rows, error: null, truncated: false };
+  }
+  console.warn(`peak-activity: history page ceiling (${MAX_PAGES * PAGE_SIZE}) reached — heatmap is partial`);
+  return { rows, error: null, truncated: true };
+}
+
 /** Best-effort venue timezone from poker_venues.state; defaults to Eastern. */
 async function resolveVenueTimezone(supabase, venueName) {
   if (!venueName) return 'America/New_York';
@@ -95,26 +141,64 @@ export default async function handler(req, res) {
     // Get last 14 days of history
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     
-    let data, error;
-    
+    let data, error, truncated = false;
+
+    // Resolve a numeric venue_id to a real venue before querying history.
+    const numericVenueId = safeVenueId && /^\d+$/.test(safeVenueId);
+    const venueLookup = numericVenueId
+      ? await resolveVenueById(supabase, safeVenueId)
+      : { row: null, error: null };
+    if (numericVenueId && venueLookup.error) {
+      // The venue may well exist — the lookup broke. Never answer 404 for that.
+      try { reportApiError(new Error(`peak-activity venue lookup failed: ${venueLookup.error}`), req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(503).json({
+        success: false,
+        degraded: true,
+        error: 'Venue lookup failed',
+        details: venueLookup.error,
+        heatmap: [],
+        peak_hours: [],
+        peak_days: [],
+      });
+    }
+    const venueRow = venueLookup.row;
+    if (numericVenueId && !venueRow) {
+      // Distinguish "unknown venue id" from "venue exists but has no history".
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(404).json({
+        success: false,
+        error: `No venue found for venue_id ${safeVenueId}`,
+        heatmap: [],
+        peak_hours: [],
+        peak_days: [],
+      });
+    }
+    const resolvedVenueName = venueRow?.name || null;
+    const applyVenueFilter = (q) => {
+      if (resolvedVenueName) {
+        const safeName = String(resolvedVenueName).replace(/[%_]/g, '\\$&').slice(0, 120);
+        return q.ilike('venue_name', `%${safeName}%`);
+      }
+      if (safeVenueId) {
+        // Non-numeric id: it really is a bravo_slug.
+        return q.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
+      }
+      if (safeVenue) return q.ilike('venue_name', `%${safeVenue}%`);
+      return q;
+    };
+
     // If game_type is specified, use game_live_history for per-game heatmaps
     if (game_type) {
-      let query = supabase
+      const result = await fetchAllPages(() => applyVenueFilter(supabase
         .from('game_live_history')
         .select('venue_name, game_type, tables, snapshot_time')
         .gte('snapshot_time', twoWeeksAgo)
-        .order('snapshot_time', { ascending: true });
-      
-      if (safeVenueId) {
-        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-      } else if (safeVenue) {
-        query = query.ilike('venue_name', `%${safeVenue}%`);
-      }
-      
-      const result = await query.limit(5000);
-      data = result.data;
+        .order('snapshot_time', { ascending: true })));
+      data = result.rows;
       error = result.error;
-      
+      truncated = result.truncated;
+
       // Filter by the canonical game type and map columns to match expected shape
       if (data) {
         data = data
@@ -127,45 +211,44 @@ export default async function handler(req, res) {
       }
     } else {
       // Default: use venue_live_history (aggregate venue-level data)
-      let query = supabase
+      const result = await fetchAllPages(() => applyVenueFilter(supabase
         .from('venue_live_history')
         .select('venue_name, total_tables, snapshot_time')
         .gte('snapshot_time', twoWeeksAgo)
-        .order('snapshot_time', { ascending: true });
-      
-      if (safeVenueId) {
-        // venue_live_history is keyed on bravo_slug — it has no venue_id column,
-        // so the old .eq('venue_id', parseInt(...)) always errored (and NaN'd on slugs).
-        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-      } else if (safeVenue) {
-        query = query.ilike('venue_name', `%${safeVenue}%`);
-      }
-      
-      const result = await query.limit(5000);
-      data = result.data;
+        .order('snapshot_time', { ascending: true })));
+      data = result.rows;
       error = result.error;
+      truncated = result.truncated;
     }
-    
+
     if (error) {
-      // Handle missing table gracefully
+      // Handle a not-yet-created table gracefully — that genuinely is "populating".
       if (error.code === '42P01' || error.code === '42703') {
         console.warn('Peak activity: table not ready yet:', error.message);
-        return res.status(200).json({ 
+        return res.status(200).json({
           message: 'Historical data not available yet.',
           heatmap: [],
           peak_hours: [],
           peak_days: [],
         });
       }
+      // ANY other error (bad column, RLS denial, timeout, outage) is a real
+      // failure. It used to be reported as "still populating" and CDN-cached for
+      // 300s, so outages were invisible to users and to monitors alike.
       console.warn('Peak activity query failed:', error.message);
-      return res.status(200).json({ 
-        message: 'Historical data not available yet.',
+      try { reportApiError(error instanceof Error ? error : new Error(`peak-activity query failed: ${error.message}`), req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(500).json({
+        success: false,
+        degraded: true,
+        error: 'Peak activity query failed',
+        details: error.message,
         heatmap: [],
         peak_hours: [],
         peak_days: [],
       });
     }
-    
+
     if (!data || data.length === 0) {
       return res.status(200).json({ 
         message: 'Not enough historical data yet. Heatmap will populate within 24-48 hours.',
@@ -181,7 +264,8 @@ export default async function handler(req, res) {
     const heatmap = {};     // { "day-hour": { totalTables, count } }
     
     // Bucket in venue-local time (falls back to Eastern for multi-venue queries)
-    const venueTz = await resolveVenueTimezone(supabase, safeVenue || data[0]?.venue_name);
+    const venueTz = (venueRow && IANA_TZ[(venueRow.state || '').toUpperCase()])
+      || await resolveVenueTimezone(supabase, resolvedVenueName || safeVenue || data[0]?.venue_name);
 
     data.forEach(row => {
       const parts = getLocalParts(row.snapshot_time, venueTz);
@@ -254,9 +338,11 @@ export default async function handler(req, res) {
     
     res.status(200).json({
       venue_filter: safeVenue || safeVenueId || 'all',
+      venue_name: resolvedVenueName,
       data_points: data.length,
       period: '14 days',
       timezone: venueTz,
+      truncated,
       peak_hours: peakHours.slice(0, 6),
       peak_days: peakDays,
       heatmap: heatmapGrid,

@@ -1,5 +1,5 @@
 # Venue Intelligence Scraper — Automated Schedule
-# Runs every 3 days (Mon/Thu at midnight EST) 
+# Runs every 3 days (Mon/Thu at midnight EST)
 # Uses Manus AI (OpenClaw) + Scrapling for venue data extraction
 #
 # Priority:
@@ -17,27 +17,148 @@ on:
 jobs:
   scrape-venues:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The cursor loop below makes up to 20 requests at --max-time 330 plus a 5s
+    # pause each, so the worst case is ~112 minutes. At the old 30-minute ceiling
+    # a paginated run died on an opaque job timeout instead of reaching its own
+    # "cursor exhausted" diagnostic.
+    timeout-minutes: 120
 
     steps:
       - name: Trigger Venue Scraper
+        env:
+          VENUE_SCRAPER_SECRET: ${{ secrets.VENUE_SCRAPER_SECRET }}
         run: |
-          echo "🏪 Triggering venue scraper at $(date)"
-          
-          RESPONSE=$(curl -s --max-time 120 \
-            "https://smarter.poker/api/venue-scraper/trigger?key=${{ secrets.VENUE_SCRAPER_SECRET }}")
-          
-          echo "Response: $RESPONSE"
-          
-          # Check for success
-          if echo "$RESPONSE" | grep -q '"success":true'; then
-            echo "✅ Venue scraper triggered successfully"
-          else
-            echo "❌ Venue scraper trigger failed"
+          set -euo pipefail
+
+          if [ -z "${VENUE_SCRAPER_SECRET:-}" ]; then
+            echo "VENUE_SCRAPER_SECRET is not configured — cannot trigger the venue scraper."
             exit 1
           fi
+
+          ENDPOINT="https://smarter.poker/api/venue-scraper/trigger"
+          OFFSET=0
+          PAGE=0
+          MAX_PAGES=20
+          TOTAL_CREATED=0
+          TOTAL_ERRORS=0
+          FAILED=0
+          HAS_MORE="false"
+          REASON=""
+
+          echo "Triggering venue scraper at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          while [ "$PAGE" -lt "$MAX_PAGES" ]; do
+            PAGE=$(( PAGE + 1 ))
+            echo "--- Request $PAGE (offset=$OFFSET) ---"
+
+            BODY_FILE="$(mktemp)"
+
+            # The shared secret travels in the x-venue-scraper-key header, never
+            # in the query string: query strings are recorded verbatim in Vercel
+            # and CDN access logs, proxy logs and Referer headers, so the old
+            # `?key=...` form wrote a long-lived credential to logs twice a week.
+            # trigger.js accepts either form (pages/api/venue-scraper/trigger.js).
+            #
+            # --max-time must exceed the endpoint's own maxDuration (300s), or
+            # curl aborts a request that is still legitimately creating tasks and
+            # the workflow reports a failure for a run that actually succeeded.
+            HTTP_CODE="$(curl -s --max-time 330 \
+              -w '%{http_code}' -o "$BODY_FILE" \
+              -H "x-venue-scraper-key: ${VENUE_SCRAPER_SECRET}" \
+              "${ENDPOINT}?offset=${OFFSET}")" || HTTP_CODE="000"
+
+            RESPONSE="$(cat "$BODY_FILE")"
+            rm -f "$BODY_FILE"
+
+            echo "HTTP $HTTP_CODE"
+            echo "Response: $RESPONSE"
+
+            if [ "$HTTP_CODE" != "200" ]; then
+              REASON="endpoint returned HTTP $HTTP_CODE (expected 200)"
+              FAILED=1
+              break
+            fi
+
+            if ! printf '%s' "$RESPONSE" | jq -e . >/dev/null 2>&1; then
+              REASON="response body is not valid JSON"
+              FAILED=1
+              break
+            fi
+
+            # An early-return body such as {"success":true,"message":"No venues
+            # found"} carries no summary block. That is a broken run, not a
+            # successful one, so it must not pass the health gate.
+            if ! printf '%s' "$RESPONSE" | jq -e 'has("summary")' >/dev/null 2>&1; then
+              REASON="response has no summary block — the endpoint dispatched nothing"
+              FAILED=1
+              break
+            fi
+
+            OK="$(printf '%s' "$RESPONSE" | jq -r '.success // false')"
+            CREATED="$(printf '%s' "$RESPONSE" | jq -r '.summary.tasks_created // 0')"
+            DISPATCHED="$(printf '%s' "$RESPONSE" | jq -r '.summary.tasks_dispatched // 0')"
+            ERRS="$(printf '%s' "$RESPONSE" | jq -r '.summary.errors // 0')"
+            HAS_MORE="$(printf '%s' "$RESPONSE" | jq -r '.summary.has_more // false')"
+            NEXT="$(printf '%s' "$RESPONSE" | jq -r '.summary.next_offset // empty')"
+
+            case "$CREATED$ERRS$DISPATCHED" in
+              ''|*[!0-9]*) REASON="non-numeric counters in response"; FAILED=1; break ;;
+            esac
+
+            TOTAL_CREATED=$(( TOTAL_CREATED + CREATED ))
+            TOTAL_ERRORS=$(( TOTAL_ERRORS + ERRS ))
+
+            echo "success=$OK dispatched=$DISPATCHED created=$CREATED errors=$ERRS has_more=$HAS_MORE"
+
+            # `success:true` alone is not a health signal — assert that tasks were
+            # actually created and that no dispatch threw. A run where every Manus
+            # dispatch failed used to print a green checkmark here.
+            if [ "$OK" != "true" ] || [ "$CREATED" -le 0 ] || [ "$ERRS" -ne 0 ]; then
+              REASON="request $PAGE unhealthy (success=$OK, tasks_created=$CREATED, errors=$ERRS)"
+              FAILED=1
+              break
+            fi
+
+            if [ "$HAS_MORE" != "true" ] || [ -z "$NEXT" ]; then
+              HAS_MORE="false"
+              break
+            fi
+
+            case "$NEXT" in
+              ''|*[!0-9]*) REASON="invalid next_offset '$NEXT'"; FAILED=1; break ;;
+            esac
+
+            # The endpoint chunks large runs behind next_offset/has_more. Without
+            # this loop every venue batch past the first page was silently dropped.
+            OFFSET="$NEXT"
+            sleep 5
+          done
+
+          if [ "$FAILED" -eq 0 ] && [ "$HAS_MORE" = "true" ]; then
+            REASON="stopped after $MAX_PAGES requests with has_more still true — venue batches were left undispatched"
+            FAILED=1
+          fi
+
+          {
+            echo "### Venue scraper trigger"
+            echo ""
+            echo "- Requests made: $PAGE"
+            echo "- Manus tasks created: $TOTAL_CREATED"
+            echo "- Dispatch errors: $TOTAL_ERRORS"
+            if [ -n "$REASON" ]; then
+              echo "- Failure: $REASON"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAILED" -ne 0 ] || [ "$TOTAL_CREATED" -le 0 ]; then
+            echo "Venue scraper trigger FAILED: ${REASON:-no tasks were created}"
+            echo "  tasks_created=$TOTAL_CREATED dispatch_errors=$TOTAL_ERRORS"
+            exit 1
+          fi
+
+          echo "Venue scraper triggered: $TOTAL_CREATED tasks created across $PAGE request(s)"
 
       - name: Log Summary
         if: always()
         run: |
-          echo "🏁 Venue scraper workflow completed at $(date)"
+          echo "Venue scraper workflow completed at $(date -u +%Y-%m-%dT%H:%M:%SZ) with status: ${{ job.status }}"

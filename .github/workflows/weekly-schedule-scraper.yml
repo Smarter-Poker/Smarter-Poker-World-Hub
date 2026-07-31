@@ -1,20 +1,33 @@
 name: Weekly Tournament Schedule Scraper (Every 3 Days)
-# Scrapes full tournament schedules for all 694 has_tournaments venues.
-# 694 venues ÷ 25 per batch = 28 batches total.
-# Split into 4 parallel jobs (7 batches each) to stay within 6-hour limit.
-# Sources: saved_url → venue website → PokerAtlas → Bravo
+# Scrapes full tournament schedules for every active has_tournaments venue.
+#
+# The batch count is NO LONGER hardcoded. It used to be a static 4 jobs x 7
+# batches = 28 batches of 25 venues, sized to the 694 venues that existed when
+# this file was written, so venue #701 onward simply had no batch and was never
+# scraped. The `plan` job below reads the live venue count from Supabase and
+# splits the resulting batches across the same four parallel jobs.
+#
+# Sources: saved_url -> venue website -> PokerAtlas -> Bravo
 # No date ceiling — scrapes all published events.
 
 on:
   schedule:
-    # Every 3 days at 04:00 UTC (11 PM CST)
-    - cron: '0 4 */3 * *'
+    # Daily at 04:00 UTC (11 PM CST) — the `plan` job enforces the real cadence.
+    #
+    # This used to be '0 4 */3 * *'. Day-of-month step syntax fires on days
+    # 1,4,7,...,28,31 and does NOT roll over between months, so "every 3 days"
+    # was really anywhere from 1 to 4 days: the 31st -> 1st boundary launched two
+    # full scrapes within 24h against the same venues (and with
+    # cancel-in-progress:false those could overlap), while a 30-day month left a
+    # 4-day gap. A daily cron plus the >=72h guard in `plan` gives a real 3-day
+    # cadence that does not reset at month boundaries.
+    - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       batches:
-        description: 'Batch range to run (e.g. "1-7" or "1-28" for all)'
+        description: 'Batch range to run (e.g. "1-7"). Empty or "all" = every batch.'
         required: false
-        default: '1-28'
+        default: ''
       state:
         description: 'Filter by state (optional, e.g. TX, NV, FL)'
         required: false
@@ -28,10 +41,229 @@ concurrency:
   group: weekly-tournament-scraper
   cancel-in-progress: false  # Don't cancel mid-scrape
 
+permissions:
+  contents: read
+  actions: read   # the cadence guard reads this workflow's own run history
+
 jobs:
-  # ── Job 1: Batches 1–7 (venues 1–175) ─────────────────────────────────────
+  # ── Plan: cadence guard + live batch count ────────────────────────────────
+  plan:
+    name: "Plan batches"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should_run:    ${{ steps.guard.outputs.should_run }}
+      total_venues:  ${{ steps.batches.outputs.total_venues }}
+      total_batches: ${{ steps.batches.outputs.total_batches }}
+      start1: ${{ steps.batches.outputs.start1 }}
+      end1:   ${{ steps.batches.outputs.end1 }}
+      start2: ${{ steps.batches.outputs.start2 }}
+      end2:   ${{ steps.batches.outputs.end2 }}
+      start3: ${{ steps.batches.outputs.start3 }}
+      end3:   ${{ steps.batches.outputs.end3 }}
+      start4: ${{ steps.batches.outputs.start4 }}
+      end4:   ${{ steps.batches.outputs.end4 }}
+    steps:
+      - name: Cadence guard (72h minimum between scheduled scrapes)
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          # GitHub invokes `run:` steps as `bash -e {0}`, so errexit is already on
+          # and `set -uo pipefail` does NOT clear it. Without this `set +e` every
+          # `gh api` hiccup below aborts the step, the plan job goes red and all
+          # four shards are skipped — the opposite of the fail-open behaviour the
+          # empty-history branches were written for.
+          set +e
+
+          MIN_INTERVAL_HOURS=72
+          # Scheduled runs start minutes-to-hours late on GitHub's queue, so a
+          # strict >=72h test rejects the day-3 run by a few minutes and pushes the
+          # next attempt to day 4 — reintroducing the 4-day gap this change set out
+          # to remove. Allow a 2h tolerance on the comparison.
+          THRESHOLD_H=$(( MIN_INTERVAL_HOURS - 2 ))
+
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Manual run — cadence guard does not apply."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Find the most recent scheduled run that actually SCRAPED, not the most
+          # recent run that finished. A run skipped by this guard still ends as
+          # "success", so gating on run conclusion would make the guard suppress
+          # every later run forever. Instead inspect each recent run's jobs and take
+          # the newest whose "Batches ..." jobs were not skipped.
+          RUNS="$(gh api \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/weekly-schedule-scraper.yml/runs?event=schedule&per_page=15" \
+            --jq '.workflow_runs[] | "\(.id) \(.created_at)"' 2>/dev/null)"
+
+          if [ -z "$RUNS" ]; then
+            echo "No readable scheduled-run history — failing open and running."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_START=""
+          while read -r RID RCREATED; do
+            if [ -z "${RID:-}" ]; then continue; fi
+            if [ "$RID" = "${GITHUB_RUN_ID}" ]; then continue; fi
+            SCRAPED="$(gh api \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${RID}/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("Batches")) | select(.conclusion != null and .conclusion != "skipped")] | length' \
+              2>/dev/null)"
+            case "${SCRAPED:-0}" in
+              ''|*[!0-9]*) SCRAPED=0 ;;
+            esac
+            if [ "$SCRAPED" -gt 0 ]; then
+              LAST_START="$RCREATED"
+              echo "Most recent scheduled run that scraped: $RID at $RCREATED"
+              break
+            fi
+          done <<< "$RUNS"
+
+          if [ -z "$LAST_START" ]; then
+            echo "No recent scheduled run has scraped — running now."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_EPOCH="$(date -u -d "$LAST_START" +%s 2>/dev/null || echo 0)"
+          NOW_EPOCH="$(date -u +%s)"
+          if [ "$LAST_EPOCH" -le 0 ]; then
+            echo "Could not parse timestamp '$LAST_START' — failing open and running."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          AGE_H=$(( (NOW_EPOCH - LAST_EPOCH) / 3600 ))
+          if [ "$AGE_H" -lt "$THRESHOLD_H" ]; then
+            echo "Last scrape started ${AGE_H}h ago (minimum ${MIN_INTERVAL_HOURS}h) — skipping this run."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Weekly schedule scraper — skipped"
+              echo ""
+              echo "Last scrape started ${AGE_H}h ago; minimum interval is ${MIN_INTERVAL_HOURS}h."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Last scrape started ${AGE_H}h ago — running."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute batch count from the live venue list
+        id: batches
+        if: ${{ steps.guard.outputs.should_run == 'true' }}
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BATCHES_INPUT: ${{ github.event.inputs.batches }}
+        run: |
+          set -euo pipefail
+          BATCH_SIZE=25   # must match BATCH_SIZE in scripts/scrape_weekly_schedules.py
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Supabase credentials are not configured."
+            echo "Refusing to run with a guessed venue count."
+            exit 1
+          fi
+
+          # Exact count via PostgREST's Content-Range header. Filters mirror
+          # load_venues() in scrape_weekly_schedules.py. That function additionally
+          # drops charity/series/tour venue types and name patterns, which this
+          # count cannot express, so the batch total is a small OVER-estimate: a
+          # trailing batch may slice past the end and print "No venues to process"
+          # (a fast no-op). Over-estimating is deliberate — it guarantees no venue
+          # falls off the end of the schedule, which is what the hardcoded 28 did.
+          HDRS="$(curl -s -D - -o /dev/null --max-time 30 \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Range: 0-0" \
+            -H "Prefer: count=exact" \
+            "${SUPABASE_URL}/rest/v1/poker_venues?select=id&is_active=eq.true&has_tournaments=eq.true")" \
+            || { echo "Venue count query failed."; exit 1; }
+
+          TOTAL_VENUES="$(printf '%s' "$HDRS" | tr -d '\r' \
+            | awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}' | tail -1)"
+
+          case "${TOTAL_VENUES:-}" in
+            ''|*[!0-9]*)
+              echo "Could not read an exact venue count from Supabase (got: '${TOTAL_VENUES:-}')."
+              echo "Refusing to run with a guessed count."
+              exit 1
+              ;;
+          esac
+
+          if [ "$TOTAL_VENUES" -lt 1 ]; then
+            echo "Supabase reports 0 active has_tournaments venues — nothing to scrape."
+            exit 1
+          fi
+
+          TOTAL_BATCHES=$(( (TOTAL_VENUES + BATCH_SIZE - 1) / BATCH_SIZE ))
+          echo "Live venue count: $TOTAL_VENUES  ->  $TOTAL_BATCHES batches of $BATCH_SIZE"
+
+          FIRST=1
+          LAST="$TOTAL_BATCHES"
+          if [ -n "${BATCHES_INPUT:-}" ] && [ "${BATCHES_INPUT}" != "all" ]; then
+            case "$BATCHES_INPUT" in
+              *-*) FIRST="${BATCHES_INPUT%%-*}"; LAST="${BATCHES_INPUT##*-}" ;;
+              *)   FIRST="$BATCHES_INPUT";       LAST="$BATCHES_INPUT" ;;
+            esac
+            # Validate each end separately. Concatenating them let "-5" (FIRST
+            # empty) and "7-" (LAST empty) pass as digit-only, which then produced
+            # empty start/end outputs and four shard jobs that ran `seq "" ""` —
+            # i.e. silently scraped nothing while reporting success.
+            case "${FIRST}" in
+              ''|*[!0-9]*) echo "Invalid 'batches' input: '$BATCHES_INPUT'"; exit 1 ;;
+            esac
+            case "${LAST}" in
+              ''|*[!0-9]*) echo "Invalid 'batches' input: '$BATCHES_INPUT'"; exit 1 ;;
+            esac
+            if [ "$FIRST" -lt 1 ]; then FIRST=1; fi
+            if [ "$LAST" -gt "$TOTAL_BATCHES" ]; then LAST="$TOTAL_BATCHES"; fi
+            if [ "$FIRST" -gt "$LAST" ]; then
+              echo "Invalid 'batches' range: $FIRST-$LAST"
+              exit 1
+            fi
+            echo "Manual batch range requested: $FIRST-$LAST"
+          fi
+
+          # Split FIRST..LAST into four contiguous shards, one per parallel job.
+          COUNT=$(( LAST - FIRST + 1 ))
+          PER=$(( (COUNT + 3) / 4 ))
+          S="$FIRST"
+          for i in 1 2 3 4; do
+            if [ "$S" -gt "$LAST" ]; then
+              # Empty shard: `seq 0 -1` yields nothing, so that job runs no batches.
+              echo "start${i}=0"  >> "$GITHUB_OUTPUT"
+              echo "end${i}=-1"   >> "$GITHUB_OUTPUT"
+              echo "  shard $i: (empty)"
+            else
+              E=$(( S + PER - 1 ))
+              if [ "$E" -gt "$LAST" ]; then E="$LAST"; fi
+              echo "start${i}=$S" >> "$GITHUB_OUTPUT"
+              echo "end${i}=$E"   >> "$GITHUB_OUTPUT"
+              echo "  shard $i: batches $S-$E"
+              S=$(( E + 1 ))
+            fi
+          done
+
+          echo "total_venues=$TOTAL_VENUES"   >> "$GITHUB_OUTPUT"
+          echo "total_batches=$TOTAL_BATCHES" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Weekly schedule scraper — plan"
+            echo ""
+            echo "- Live venues (is_active, has_tournaments): $TOTAL_VENUES"
+            echo "- Batches of $BATCH_SIZE: $TOTAL_BATCHES"
+            echo "- Batch range this run: $FIRST-$LAST"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Shard 1 of 4 ────────────────────────────────────────────
   scrape-batches-1-7:
-    name: "Batches 1–7 (Venues 1–175)"
+    name: "Batches shard 1 of 4"   # prefix "Batches" is load-bearing: the cadence guard matches on it
+    needs: plan
+    if: ${{ needs.plan.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -45,122 +277,532 @@ jobs:
 
       - name: Install Scrapling + dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install "scrapling[all]" camoufox
           scrapling install
           python -m camoufox fetch
-
-      - name: Install Smarter.Poker Python deps
-        run: |
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
 
-      - name: Run Batches 1–7
+      - name: Run shard 1
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SHARD_LABEL: "Shard 1 of 4"
+          BATCH_START: ${{ needs.plan.outputs.start1 }}
+          BATCH_END: ${{ needs.plan.outputs.end1 }}
+          TOTAL_BATCHES: ${{ needs.plan.outputs.total_batches }}
+          STATE_FILTER: ${{ github.event.inputs.state }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          for batch in $(seq 1 7); do
-            echo "▶ Batch $batch / 28"
-            python scripts/scrape_weekly_schedules.py \
-              --batch $batch \
-              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
-              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
-              || echo "⚠️ Batch $batch failed — continuing"
+          set -uo pipefail
+          set +e   # batch failures are counted and reported, not fatal on the spot
+
+          # Inputs arrive as env vars, never as GitHub expression interpolation
+          # inside the shell body: the `state` input is attacker-controllable text
+          # and used to be spliced straight into this command line.
+          ARGS=()
+          if [ -n "${STATE_FILTER:-}" ]; then ARGS+=(--state "$STATE_FILTER"); fi
+          if [ "${DRY_RUN:-false}" = "true" ]; then ARGS+=(--dry-run); fi
+
+          RAN=0
+          FAILED=0
+          EMPTY_BATCHES=0
+          WROTE_TOTAL=0
+          ROWS=""
+
+          for batch in $(seq "${BATCH_START}" "${BATCH_END}"); do
+            echo "::group::Batch $batch / ${TOTAL_BATCHES}"
+            LOG="$(mktemp)"
+            python scripts/scrape_weekly_schedules.py --batch "$batch" "${ARGS[@]}" 2>&1 | tee "$LOG"
+            STATUS=${PIPESTATUS[0]}
+            UPSERTED="$(awk -F: '/Total upserted:/ {gsub(/[^0-9]/, "", $2); print $2}' "$LOG" | tail -1)"
+
+            # The plan job's batch total is a deliberate over-estimate — it cannot
+            # express load_venues()'s charity/series/tour exclusions — and a manual
+            # --state run narrows the venue list much further, so trailing batch
+            # indexes hold no venues at all. scrape_weekly_schedules.py prints
+            # "No venues to process." and exits 0 without touching the DB.
+            # That is a no-op, not a run: counting it towards RAN made the
+            # "ran but wrote nothing" check below fail every shard whose batches
+            # all sat past the end of the list (guaranteed for shards 2-4 of any
+            # --state run).
+            EMPTY=0
+            if [ "$STATUS" -eq 0 ] && grep -qF 'No venues to process.' "$LOG"; then
+              EMPTY=1
+            fi
+            rm -f "$LOG"
+            echo "::endgroup::"
+
+            case "${UPSERTED:-}" in
+              ''|*[!0-9]*) UPSERTED=0 ;;
+            esac
+
+            if [ "$EMPTY" -eq 1 ]; then
+              EMPTY_BATCHES=$(( EMPTY_BATCHES + 1 ))
+              echo "Batch $batch — no venues in range (no-op)"
+              ROWS="${ROWS}| $batch | empty (no venues) | - |"$'\n'
+            elif [ "$STATUS" -ne 0 ]; then
+              RAN=$(( RAN + 1 ))
+              FAILED=$(( FAILED + 1 ))
+              echo "Batch $batch FAILED (exit $STATUS)"
+              ROWS="${ROWS}| $batch | failed (exit $STATUS) | - |"$'\n'
+            else
+              RAN=$(( RAN + 1 ))
+              WROTE_TOTAL=$(( WROTE_TOTAL + UPSERTED ))
+              echo "Batch $batch ok — $UPSERTED records upserted"
+              ROWS="${ROWS}| $batch | ok | $UPSERTED |"$'\n'
+            fi
             sleep 20
           done
 
-  # ── Job 2: Batches 8–14 (venues 176–350) ──────────────────────────────────
+          {
+            echo "### ${SHARD_LABEL} — batches ${BATCH_START}-${BATCH_END}"
+            echo ""
+            if [ "$(( RAN + EMPTY_BATCHES ))" -eq 0 ]; then
+              echo "No batches assigned to this shard."
+            else
+              echo "| Batch | Status | Records upserted |"
+              echo "|---|---|---|"
+              printf '%s' "$ROWS"
+              echo ""
+              echo "Batches run: $RAN — empty (past end of venue list): $EMPTY_BATCHES — failures: $FAILED — records upserted: $WROTE_TOTAL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$RAN" -eq 0 ]; then
+            echo "No batches with venues in this shard ($EMPTY_BATCHES empty) — nothing to do."
+            exit 0
+          fi
+
+          # Every batch used to end in `|| echo "Batch N failed — continuing"`, so a
+          # shard where all batches died still exited 0 and the workflow went green.
+          # Fail the job once roughly a third of the shard has failed (>2 of 7 at the
+          # historical shard size).
+          THRESHOLD=$(( (RAN + 2) / 3 ))
+          if [ "$THRESHOLD" -lt 1 ]; then THRESHOLD=1; fi
+
+          if [ "$FAILED" -ge "$THRESHOLD" ]; then
+            echo "$FAILED of $RAN batches failed (threshold: $THRESHOLD) — failing the job."
+            exit 1
+          fi
+
+          # "Ran but wrote nothing" is the failure mode that hid the chromium
+          # outage for weeks: every batch exits 0 while writing no rows.
+          if [ "${DRY_RUN:-false}" != "true" ] && [ "$WROTE_TOTAL" -eq 0 ]; then
+            echo "All $RAN batches exited 0 but upserted 0 records — treating this as a failed run."
+            exit 1
+          fi
+
+          echo "Shard complete: $RAN batches, $FAILED failures, $WROTE_TOTAL records upserted."
+
+  # ── Shard 2 of 4 ────────────────────────────────────────────
   scrape-batches-8-14:
-    name: "Batches 8–14 (Venues 176–350)"
+    name: "Batches shard 2 of 4"   # prefix "Batches" is load-bearing: the cadence guard matches on it
+    needs: plan
+    if: ${{ needs.plan.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: |
+
+      - name: Install Scrapling + dependencies
+        run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install "scrapling[all]" camoufox
           scrapling install
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-      - name: Run Batches 8–14
+
+      - name: Run shard 2
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SHARD_LABEL: "Shard 2 of 4"
+          BATCH_START: ${{ needs.plan.outputs.start2 }}
+          BATCH_END: ${{ needs.plan.outputs.end2 }}
+          TOTAL_BATCHES: ${{ needs.plan.outputs.total_batches }}
+          STATE_FILTER: ${{ github.event.inputs.state }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          for batch in $(seq 8 14); do
-            echo "▶ Batch $batch / 28"
-            python scripts/scrape_weekly_schedules.py \
-              --batch $batch \
-              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
-              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
-              || echo "⚠️ Batch $batch failed — continuing"
+          set -uo pipefail
+          set +e   # batch failures are counted and reported, not fatal on the spot
+
+          # Inputs arrive as env vars, never as GitHub expression interpolation
+          # inside the shell body: the `state` input is attacker-controllable text
+          # and used to be spliced straight into this command line.
+          ARGS=()
+          if [ -n "${STATE_FILTER:-}" ]; then ARGS+=(--state "$STATE_FILTER"); fi
+          if [ "${DRY_RUN:-false}" = "true" ]; then ARGS+=(--dry-run); fi
+
+          RAN=0
+          FAILED=0
+          EMPTY_BATCHES=0
+          WROTE_TOTAL=0
+          ROWS=""
+
+          for batch in $(seq "${BATCH_START}" "${BATCH_END}"); do
+            echo "::group::Batch $batch / ${TOTAL_BATCHES}"
+            LOG="$(mktemp)"
+            python scripts/scrape_weekly_schedules.py --batch "$batch" "${ARGS[@]}" 2>&1 | tee "$LOG"
+            STATUS=${PIPESTATUS[0]}
+            UPSERTED="$(awk -F: '/Total upserted:/ {gsub(/[^0-9]/, "", $2); print $2}' "$LOG" | tail -1)"
+
+            # The plan job's batch total is a deliberate over-estimate — it cannot
+            # express load_venues()'s charity/series/tour exclusions — and a manual
+            # --state run narrows the venue list much further, so trailing batch
+            # indexes hold no venues at all. scrape_weekly_schedules.py prints
+            # "No venues to process." and exits 0 without touching the DB.
+            # That is a no-op, not a run: counting it towards RAN made the
+            # "ran but wrote nothing" check below fail every shard whose batches
+            # all sat past the end of the list (guaranteed for shards 2-4 of any
+            # --state run).
+            EMPTY=0
+            if [ "$STATUS" -eq 0 ] && grep -qF 'No venues to process.' "$LOG"; then
+              EMPTY=1
+            fi
+            rm -f "$LOG"
+            echo "::endgroup::"
+
+            case "${UPSERTED:-}" in
+              ''|*[!0-9]*) UPSERTED=0 ;;
+            esac
+
+            if [ "$EMPTY" -eq 1 ]; then
+              EMPTY_BATCHES=$(( EMPTY_BATCHES + 1 ))
+              echo "Batch $batch — no venues in range (no-op)"
+              ROWS="${ROWS}| $batch | empty (no venues) | - |"$'\n'
+            elif [ "$STATUS" -ne 0 ]; then
+              RAN=$(( RAN + 1 ))
+              FAILED=$(( FAILED + 1 ))
+              echo "Batch $batch FAILED (exit $STATUS)"
+              ROWS="${ROWS}| $batch | failed (exit $STATUS) | - |"$'\n'
+            else
+              RAN=$(( RAN + 1 ))
+              WROTE_TOTAL=$(( WROTE_TOTAL + UPSERTED ))
+              echo "Batch $batch ok — $UPSERTED records upserted"
+              ROWS="${ROWS}| $batch | ok | $UPSERTED |"$'\n'
+            fi
             sleep 20
           done
 
-  # ── Job 3: Batches 15–21 (venues 351–525) ─────────────────────────────────
+          {
+            echo "### ${SHARD_LABEL} — batches ${BATCH_START}-${BATCH_END}"
+            echo ""
+            if [ "$(( RAN + EMPTY_BATCHES ))" -eq 0 ]; then
+              echo "No batches assigned to this shard."
+            else
+              echo "| Batch | Status | Records upserted |"
+              echo "|---|---|---|"
+              printf '%s' "$ROWS"
+              echo ""
+              echo "Batches run: $RAN — empty (past end of venue list): $EMPTY_BATCHES — failures: $FAILED — records upserted: $WROTE_TOTAL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$RAN" -eq 0 ]; then
+            echo "No batches with venues in this shard ($EMPTY_BATCHES empty) — nothing to do."
+            exit 0
+          fi
+
+          # Every batch used to end in `|| echo "Batch N failed — continuing"`, so a
+          # shard where all batches died still exited 0 and the workflow went green.
+          # Fail the job once roughly a third of the shard has failed (>2 of 7 at the
+          # historical shard size).
+          THRESHOLD=$(( (RAN + 2) / 3 ))
+          if [ "$THRESHOLD" -lt 1 ]; then THRESHOLD=1; fi
+
+          if [ "$FAILED" -ge "$THRESHOLD" ]; then
+            echo "$FAILED of $RAN batches failed (threshold: $THRESHOLD) — failing the job."
+            exit 1
+          fi
+
+          # "Ran but wrote nothing" is the failure mode that hid the chromium
+          # outage for weeks: every batch exits 0 while writing no rows.
+          if [ "${DRY_RUN:-false}" != "true" ] && [ "$WROTE_TOTAL" -eq 0 ]; then
+            echo "All $RAN batches exited 0 but upserted 0 records — treating this as a failed run."
+            exit 1
+          fi
+
+          echo "Shard complete: $RAN batches, $FAILED failures, $WROTE_TOTAL records upserted."
+
+  # ── Shard 3 of 4 ────────────────────────────────────────────
   scrape-batches-15-21:
-    name: "Batches 15–21 (Venues 351–525)"
+    name: "Batches shard 3 of 4"   # prefix "Batches" is load-bearing: the cadence guard matches on it
+    needs: plan
+    if: ${{ needs.plan.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: |
+
+      - name: Install Scrapling + dependencies
+        run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install "scrapling[all]" camoufox
           scrapling install
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-      - name: Run Batches 15–21
+
+      - name: Run shard 3
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SHARD_LABEL: "Shard 3 of 4"
+          BATCH_START: ${{ needs.plan.outputs.start3 }}
+          BATCH_END: ${{ needs.plan.outputs.end3 }}
+          TOTAL_BATCHES: ${{ needs.plan.outputs.total_batches }}
+          STATE_FILTER: ${{ github.event.inputs.state }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          for batch in $(seq 15 21); do
-            echo "▶ Batch $batch / 28"
-            python scripts/scrape_weekly_schedules.py \
-              --batch $batch \
-              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
-              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
-              || echo "⚠️ Batch $batch failed — continuing"
+          set -uo pipefail
+          set +e   # batch failures are counted and reported, not fatal on the spot
+
+          # Inputs arrive as env vars, never as GitHub expression interpolation
+          # inside the shell body: the `state` input is attacker-controllable text
+          # and used to be spliced straight into this command line.
+          ARGS=()
+          if [ -n "${STATE_FILTER:-}" ]; then ARGS+=(--state "$STATE_FILTER"); fi
+          if [ "${DRY_RUN:-false}" = "true" ]; then ARGS+=(--dry-run); fi
+
+          RAN=0
+          FAILED=0
+          EMPTY_BATCHES=0
+          WROTE_TOTAL=0
+          ROWS=""
+
+          for batch in $(seq "${BATCH_START}" "${BATCH_END}"); do
+            echo "::group::Batch $batch / ${TOTAL_BATCHES}"
+            LOG="$(mktemp)"
+            python scripts/scrape_weekly_schedules.py --batch "$batch" "${ARGS[@]}" 2>&1 | tee "$LOG"
+            STATUS=${PIPESTATUS[0]}
+            UPSERTED="$(awk -F: '/Total upserted:/ {gsub(/[^0-9]/, "", $2); print $2}' "$LOG" | tail -1)"
+
+            # The plan job's batch total is a deliberate over-estimate — it cannot
+            # express load_venues()'s charity/series/tour exclusions — and a manual
+            # --state run narrows the venue list much further, so trailing batch
+            # indexes hold no venues at all. scrape_weekly_schedules.py prints
+            # "No venues to process." and exits 0 without touching the DB.
+            # That is a no-op, not a run: counting it towards RAN made the
+            # "ran but wrote nothing" check below fail every shard whose batches
+            # all sat past the end of the list (guaranteed for shards 2-4 of any
+            # --state run).
+            EMPTY=0
+            if [ "$STATUS" -eq 0 ] && grep -qF 'No venues to process.' "$LOG"; then
+              EMPTY=1
+            fi
+            rm -f "$LOG"
+            echo "::endgroup::"
+
+            case "${UPSERTED:-}" in
+              ''|*[!0-9]*) UPSERTED=0 ;;
+            esac
+
+            if [ "$EMPTY" -eq 1 ]; then
+              EMPTY_BATCHES=$(( EMPTY_BATCHES + 1 ))
+              echo "Batch $batch — no venues in range (no-op)"
+              ROWS="${ROWS}| $batch | empty (no venues) | - |"$'\n'
+            elif [ "$STATUS" -ne 0 ]; then
+              RAN=$(( RAN + 1 ))
+              FAILED=$(( FAILED + 1 ))
+              echo "Batch $batch FAILED (exit $STATUS)"
+              ROWS="${ROWS}| $batch | failed (exit $STATUS) | - |"$'\n'
+            else
+              RAN=$(( RAN + 1 ))
+              WROTE_TOTAL=$(( WROTE_TOTAL + UPSERTED ))
+              echo "Batch $batch ok — $UPSERTED records upserted"
+              ROWS="${ROWS}| $batch | ok | $UPSERTED |"$'\n'
+            fi
             sleep 20
           done
 
-  # ── Job 4: Batches 22–28 (venues 526–694) ─────────────────────────────────
+          {
+            echo "### ${SHARD_LABEL} — batches ${BATCH_START}-${BATCH_END}"
+            echo ""
+            if [ "$(( RAN + EMPTY_BATCHES ))" -eq 0 ]; then
+              echo "No batches assigned to this shard."
+            else
+              echo "| Batch | Status | Records upserted |"
+              echo "|---|---|---|"
+              printf '%s' "$ROWS"
+              echo ""
+              echo "Batches run: $RAN — empty (past end of venue list): $EMPTY_BATCHES — failures: $FAILED — records upserted: $WROTE_TOTAL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$RAN" -eq 0 ]; then
+            echo "No batches with venues in this shard ($EMPTY_BATCHES empty) — nothing to do."
+            exit 0
+          fi
+
+          # Every batch used to end in `|| echo "Batch N failed — continuing"`, so a
+          # shard where all batches died still exited 0 and the workflow went green.
+          # Fail the job once roughly a third of the shard has failed (>2 of 7 at the
+          # historical shard size).
+          THRESHOLD=$(( (RAN + 2) / 3 ))
+          if [ "$THRESHOLD" -lt 1 ]; then THRESHOLD=1; fi
+
+          if [ "$FAILED" -ge "$THRESHOLD" ]; then
+            echo "$FAILED of $RAN batches failed (threshold: $THRESHOLD) — failing the job."
+            exit 1
+          fi
+
+          # "Ran but wrote nothing" is the failure mode that hid the chromium
+          # outage for weeks: every batch exits 0 while writing no rows.
+          if [ "${DRY_RUN:-false}" != "true" ] && [ "$WROTE_TOTAL" -eq 0 ]; then
+            echo "All $RAN batches exited 0 but upserted 0 records — treating this as a failed run."
+            exit 1
+          fi
+
+          echo "Shard complete: $RAN batches, $FAILED failures, $WROTE_TOTAL records upserted."
+
+  # ── Shard 4 of 4 ────────────────────────────────────────────
   scrape-batches-22-28:
-    name: "Batches 22–28 (Venues 526–694)"
+    name: "Batches shard 4 of 4"   # prefix "Batches" is load-bearing: the cadence guard matches on it
+    needs: plan
+    if: ${{ needs.plan.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: |
+
+      - name: Install Scrapling + dependencies
+        run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install "scrapling[all]" camoufox
           scrapling install
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-      - name: Run Batches 22–28
+
+      - name: Run shard 4
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SHARD_LABEL: "Shard 4 of 4"
+          BATCH_START: ${{ needs.plan.outputs.start4 }}
+          BATCH_END: ${{ needs.plan.outputs.end4 }}
+          TOTAL_BATCHES: ${{ needs.plan.outputs.total_batches }}
+          STATE_FILTER: ${{ github.event.inputs.state }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          for batch in $(seq 22 28); do
-            echo "▶ Batch $batch / 28"
-            python scripts/scrape_weekly_schedules.py \
-              --batch $batch \
-              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
-              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
-              || echo "⚠️ Batch $batch failed — continuing"
+          set -uo pipefail
+          set +e   # batch failures are counted and reported, not fatal on the spot
+
+          # Inputs arrive as env vars, never as GitHub expression interpolation
+          # inside the shell body: the `state` input is attacker-controllable text
+          # and used to be spliced straight into this command line.
+          ARGS=()
+          if [ -n "${STATE_FILTER:-}" ]; then ARGS+=(--state "$STATE_FILTER"); fi
+          if [ "${DRY_RUN:-false}" = "true" ]; then ARGS+=(--dry-run); fi
+
+          RAN=0
+          FAILED=0
+          EMPTY_BATCHES=0
+          WROTE_TOTAL=0
+          ROWS=""
+
+          for batch in $(seq "${BATCH_START}" "${BATCH_END}"); do
+            echo "::group::Batch $batch / ${TOTAL_BATCHES}"
+            LOG="$(mktemp)"
+            python scripts/scrape_weekly_schedules.py --batch "$batch" "${ARGS[@]}" 2>&1 | tee "$LOG"
+            STATUS=${PIPESTATUS[0]}
+            UPSERTED="$(awk -F: '/Total upserted:/ {gsub(/[^0-9]/, "", $2); print $2}' "$LOG" | tail -1)"
+
+            # The plan job's batch total is a deliberate over-estimate — it cannot
+            # express load_venues()'s charity/series/tour exclusions — and a manual
+            # --state run narrows the venue list much further, so trailing batch
+            # indexes hold no venues at all. scrape_weekly_schedules.py prints
+            # "No venues to process." and exits 0 without touching the DB.
+            # That is a no-op, not a run: counting it towards RAN made the
+            # "ran but wrote nothing" check below fail every shard whose batches
+            # all sat past the end of the list (guaranteed for shards 2-4 of any
+            # --state run).
+            EMPTY=0
+            if [ "$STATUS" -eq 0 ] && grep -qF 'No venues to process.' "$LOG"; then
+              EMPTY=1
+            fi
+            rm -f "$LOG"
+            echo "::endgroup::"
+
+            case "${UPSERTED:-}" in
+              ''|*[!0-9]*) UPSERTED=0 ;;
+            esac
+
+            if [ "$EMPTY" -eq 1 ]; then
+              EMPTY_BATCHES=$(( EMPTY_BATCHES + 1 ))
+              echo "Batch $batch — no venues in range (no-op)"
+              ROWS="${ROWS}| $batch | empty (no venues) | - |"$'\n'
+            elif [ "$STATUS" -ne 0 ]; then
+              RAN=$(( RAN + 1 ))
+              FAILED=$(( FAILED + 1 ))
+              echo "Batch $batch FAILED (exit $STATUS)"
+              ROWS="${ROWS}| $batch | failed (exit $STATUS) | - |"$'\n'
+            else
+              RAN=$(( RAN + 1 ))
+              WROTE_TOTAL=$(( WROTE_TOTAL + UPSERTED ))
+              echo "Batch $batch ok — $UPSERTED records upserted"
+              ROWS="${ROWS}| $batch | ok | $UPSERTED |"$'\n'
+            fi
             sleep 20
           done
+
+          {
+            echo "### ${SHARD_LABEL} — batches ${BATCH_START}-${BATCH_END}"
+            echo ""
+            if [ "$(( RAN + EMPTY_BATCHES ))" -eq 0 ]; then
+              echo "No batches assigned to this shard."
+            else
+              echo "| Batch | Status | Records upserted |"
+              echo "|---|---|---|"
+              printf '%s' "$ROWS"
+              echo ""
+              echo "Batches run: $RAN — empty (past end of venue list): $EMPTY_BATCHES — failures: $FAILED — records upserted: $WROTE_TOTAL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$RAN" -eq 0 ]; then
+            echo "No batches with venues in this shard ($EMPTY_BATCHES empty) — nothing to do."
+            exit 0
+          fi
+
+          # Every batch used to end in `|| echo "Batch N failed — continuing"`, so a
+          # shard where all batches died still exited 0 and the workflow went green.
+          # Fail the job once roughly a third of the shard has failed (>2 of 7 at the
+          # historical shard size).
+          THRESHOLD=$(( (RAN + 2) / 3 ))
+          if [ "$THRESHOLD" -lt 1 ]; then THRESHOLD=1; fi
+
+          if [ "$FAILED" -ge "$THRESHOLD" ]; then
+            echo "$FAILED of $RAN batches failed (threshold: $THRESHOLD) — failing the job."
+            exit 1
+          fi
+
+          # "Ran but wrote nothing" is the failure mode that hid the chromium
+          # outage for weeks: every batch exits 0 while writing no rows.
+          if [ "${DRY_RUN:-false}" != "true" ] && [ "$WROTE_TOTAL" -eq 0 ]; then
+            echo "All $RAN batches exited 0 but upserted 0 records — treating this as a failed run."
+            exit 1
+          fi
+
+          echo "Shard complete: $RAN batches, $FAILED failures, $WROTE_TOTAL records upserted."

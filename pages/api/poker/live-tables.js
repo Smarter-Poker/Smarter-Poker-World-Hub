@@ -1,13 +1,20 @@
 /**
  * API: /api/poker/live-tables
  * Returns live table data from Smarter.Poker Intelligence.
- * Data is refreshed every 15 minutes by autonomous daemons.
+ * Refresh cadence is driven by the daemons: pokeratlas-live-daemon 15 min,
+ * bravo-live-daemon 30 min (SCRAPE_INTERVAL=1800). The response reports the
+ * ACTUAL age of the newest row rather than a hardcoded freshness promise.
  *
  * DEDUP LAYERS (v2.0 — Pipeline Remediation):
  *   Layer 1: Batch-aware — only latest scrape_batch_id per source wins
  *   Layer 2: Cross-source alias merge — Bravo "Bellagio" + PA "Bellagio Hotel & Casino" → single venue
  *   Layer 3: Bravo priority — real-time Bravo data always wins over PokerAtlas catalog estimates
  *   Layer 4: Game-name dedup — first occurrence per venue wins (ordered by timestamp desc)
+ *
+ * PROVENANCE: rows written by bravo-simulator-daemon.py carry
+ * scrape_batch_id LIKE 'sim-%'. They are MODELLED, not scraped. They are
+ * tagged is_simulated on every game, never counted as live tables, never
+ * allowed to purge real PokerAtlas rows, and counted separately in metadata.
  *
  * Query params:
  *   ?venue=slug       — Filter by specific bravo_slug
@@ -58,6 +65,43 @@ function getSupabase() {
     return _supabase;
 }
 
+// POLICY: Never drop data just because the scraper is down.
+// Retain rows up to 24 hours, but ALWAYS tell the client how old they are.
+const MAX_AGE_MS = 24 * 60 * 60 * 1000;          // 24 hours — last known data always shows
+const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000;   // 3 hours — after this, flagged is_stale
+
+// Supabase project-level cap is 1000 rows per query; .limit(n>1000) is
+// silently truncated. Paginate with .range() instead (same pattern as
+// events-calendar.js / daily-tournaments.js).
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 12; // 12,000-row ceiling
+
+// Rows written by bravo-simulator-daemon.py use scrape_batch_id 'sim-<uuid>'.
+// They are modelled estimates, NOT scraped observations.
+function isSimulatedRow(row) {
+    return typeof row?.scrape_batch_id === 'string' && row.scrape_batch_id.startsWith('sim-');
+}
+
+/**
+ * Fetch every row for a query by paging with .range().
+ * `buildQuery` must return a FRESH query builder on each call.
+ * Returns { rows, error, truncated } — truncated:true means the page
+ * ceiling was hit and the result set is incomplete (never silent).
+ */
+async function fetchAllPages(buildQuery) {
+    let rows = [];
+    for (let page = 0; page < MAX_PAGES; page++) {
+        const { data, error } = await buildQuery().range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (error) return { rows, error, truncated: false };
+        if (!data || data.length === 0) return { rows, error: null, truncated: false };
+        rows = rows.concat(data);
+        if (data.length < PAGE_SIZE) return { rows, error: null, truncated: false };
+    }
+    // Filled every page — more rows almost certainly exist beyond the ceiling.
+    console.warn(`[live-tables] Result set hit the ${MAX_PAGES * PAGE_SIZE}-row page ceiling; response is TRUNCATED`);
+    return { rows, error: null, truncated: true };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -74,46 +118,66 @@ export default async function handler(req, res) {
 
     // Mode 1: Return searchable venue list (name + slug only)
     if (list === 'true') {
-      const { data, error } = await supabase
+      // Apply the SAME retention window as Mode 2 so the dropdown cannot offer
+      // venues whose only rows are days old (selecting one returned an empty view).
+      const listCutoffIso = new Date(Date.now() - MAX_AGE_MS).toISOString();
+      const { rows, error, truncated } = await fetchAllPages(() => supabase
         .from('venue_live_tables')
-        .select('bravo_slug, venue_name')
-        .order('venue_name')
-        .limit(10000);
+        .select('bravo_slug, venue_name, scrape_timestamp, scrape_batch_id')
+        .gte('scrape_timestamp', listCutoffIso)
+        .order('venue_name'));
 
       if (error) {
         console.warn('Live tables list error:', error);
         return res.status(500).json({ error: 'Database query failed' });
       }
 
-      // Deduplicate by bravo_slug
-      const seen = new Set();
-      const venues = [];
-      for (const row of (data || [])) {
-        if (!seen.has(row.bravo_slug)) {
-          seen.add(row.bravo_slug);
-          venues.push({ slug: row.bravo_slug, name: resolveVenueName(cleanVenueName(row.venue_name)) });
+      // Deduplicate by bravo_slug; a venue is flagged simulated only when
+      // EVERY retained row for it came from the simulator.
+      const bySlug = new Map();
+      for (const row of rows) {
+        if (!row.bravo_slug) continue;
+        const sim = isSimulatedRow(row);
+        const existing = bySlug.get(row.bravo_slug);
+        if (!existing) {
+          bySlug.set(row.bravo_slug, {
+            slug: row.bravo_slug,
+            name: resolveVenueName(cleanVenueName(row.venue_name)),
+            is_simulated: sim,
+          });
+        } else if (!sim) {
+          existing.is_simulated = false;
         }
       }
+      const venues = Array.from(bySlug.values());
 
       res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-      return res.status(200).json({ venues });
+      return res.status(200).json({ venues, truncated, rows_scanned: rows.length });
     }
 
     // Mode 2: Get live games for specific venue(s)
-    let query = supabase
-      .from('venue_live_tables')
-      .select('*')
-      .order('scrape_timestamp', { ascending: false });
+    // Push the 24h retention window into the query so the page ceiling is spent
+    // on rows we will actually keep (previously the newest 1000 rows won and
+    // whole regions silently vanished).
+    const cutoffIso = new Date(Date.now() - MAX_AGE_MS).toISOString();
+    const buildQuery = () => {
+      let q = supabase
+        .from('venue_live_tables')
+        .select('*')
+        .gte('scrape_timestamp', cutoffIso)
+        .order('scrape_timestamp', { ascending: false });
 
-    if (venue) {
-      query = query.eq('bravo_slug', venue);
-    } else if (search) {
-      // Escape Postgres wildcard characters to prevent pattern injection
-      const safeSearch = String(search).replace(/[%_]/g, '\\$&').slice(0, 100);
-      query = query.ilike('venue_name', `%${safeSearch}%`);
-    }
+      if (venue) {
+        q = q.eq('bravo_slug', venue);
+      } else if (search) {
+        // Escape Postgres wildcard characters to prevent pattern injection
+        const safeSearch = String(search).replace(/[%_]/g, '\\$&').slice(0, 100);
+        q = q.ilike('venue_name', `%${safeSearch}%`);
+      }
+      return q;
+    };
 
-    const { data, error } = await query.limit(10000);
+    const { rows: data, error, truncated } = await fetchAllPages(buildQuery);
 
     if (error) {
       console.warn('Live tables query error:', error);
@@ -139,11 +203,6 @@ export default async function handler(req, res) {
     // Filter: only keep rows from the latest batch per venue + not too stale
     let dedupedRows = 0;
     let batchFilteredRows = 0;
-    // POLICY: Never drop data just because the scraper is down.
-    // Retain rows up to 24 hours. The frontend will show a staleness indicator
-    // for data older than 3 hours, but the data will ALWAYS be visible.
-    const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours — last known data always shows
-    const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000; // 3 hours — after this, flag as stale
 
     const batchFiltered = (data || []).filter(row => {
       const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
@@ -230,12 +289,15 @@ export default async function handler(req, res) {
       const resolvedSlug = resolveSlug(row);
       const gameName = row.game_name.trim();
       const src = row.source || 'bravo';
-      
+      const isSim = isSimulatedRow(row);
+      // Only genuinely scraped Bravo rows carry real-time authority.
+      const isRealBravo = src === 'bravo' && !isSim;
+
       // Track cross-source merges for diagnostics
       if (resolvedSlug !== row.bravo_slug) {
         crossSourceMerges++;
       }
-      
+
       if (!grouped[resolvedSlug]) {
         grouped[resolvedSlug] = {
           venue_name: resolveVenueName(cleanVenueName(row.venue_name)),
@@ -244,33 +306,37 @@ export default async function handler(req, res) {
           games: [],
           _latestOriginStamp: new Date(row.scrape_timestamp).getTime(),
           _seenGames: new Set(),
-          _hasBravoData: src === 'bravo',
-          _hasLiveIndicators: false, // true if any game has waitlist or is bravo-sourced
+          _hasBravoData: isRealBravo,
+          _hasLiveIndicators: false, // true if any game has waitlist or is real scraped bravo
+          _hasSimulatedData: false,
+          _hasRealData: false,
           _sources: new Set([src]),
         };
       }
-      
+
       const venueData = grouped[resolvedSlug];
       venueData._sources.add(src);
-      
-      // If this venue already has Bravo data, prefer Bravo's venue name
-      if (src === 'bravo' && !venueData._hasBravoData) {
+
+      // If this venue already has real Bravo data, prefer Bravo's venue name.
+      // Simulator rows must NEVER trigger this purge — they would delete genuine
+      // scraped PokerAtlas rows in favour of modelled ones.
+      if (isRealBravo && !venueData._hasBravoData) {
         venueData.venue_name = resolveVenueName(cleanVenueName(row.venue_name));
         venueData._hasBravoData = true;
-        // Bravo just arrived — purge all previous PokerAtlas catalog games
+        // Real Bravo just arrived — purge all previous PokerAtlas catalog games
         // (PA "tables" are catalog estimates, not actual live counts)
         dedupedRows += venueData.games.length; // count purged PA rows BEFORE clearing
         venueData.games = [];
         venueData._seenGames = new Set();
       }
-      
-      // If we already have Bravo data for this venue, skip PokerAtlas catalog rows 
+
+      // If we already have REAL Bravo data for this venue, skip PokerAtlas catalog rows
       // entirely — they only add noise (tables_running=0 estimates)
       if (venueData._hasBravoData && src === 'pokeratlas') {
         dedupedRows++;
         continue;
       }
-      
+
       // Timestamp-based staleness filter (within same batch)
       const stampDiff = venueData._latestOriginStamp - new Date(row.scrape_timestamp).getTime();
       if (stampDiff > 5 * 60 * 1000) {
@@ -281,6 +347,7 @@ export default async function handler(req, res) {
       // Game-name dedup: first occurrence wins (data ordered by timestamp desc)
       if (!venueData._seenGames.has(gameName)) {
         venueData._seenGames.add(gameName);
+        const rowStamp = new Date(row.scrape_timestamp).getTime();
         venueData.games.push({
           game: gameName,  // use sanitized variable, never raw row.game_name
           tables_running: row.tables_running || 0,
@@ -288,11 +355,22 @@ export default async function handler(req, res) {
           source: src,
           buyin: row.buyin_range || null,
           runs: row.runs_schedule || null,
-          data_quality: row.data_quality || null,
+          // PROVENANCE: simulator rows are modelled, not observed. The row's own
+          // data_quality says 'scraped_verified' — do not repeat that claim.
+          is_simulated: isSim,
+          data_quality: isSim ? 'modeled_estimate' : (row.data_quality || null),
+          scraped_at: row.scrape_timestamp || null,
+          age_minutes: Number.isFinite(rowStamp) ? Math.round((Date.now() - rowStamp) / 60000) : null,
         });
+        if (isSim) {
+          venueData._hasSimulatedData = true;
+        } else {
+          venueData._hasRealData = true;
+        }
         // Track if this venue has real live indicators:
-        // Bravo data is always real-time; PA data is only "live" if players are actually waiting
-        if (src === 'bravo' || (row.players_waiting && row.players_waiting > 0)) {
+        // Real scraped Bravo data is real-time; PA data is only "live" if players are
+        // actually waiting. Simulated rows are NEVER a live indicator.
+        if (!isSim && (src === 'bravo' || (row.players_waiting && row.players_waiting > 0))) {
           venueData._hasLiveIndicators = true;
         }
       } else {
@@ -302,39 +380,90 @@ export default async function handler(req, res) {
 
     // Separate venues with real-time live data vs catalog-only estimates
     const venuesWithMeta = Object.values(grouped || {});
-    const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _sources, ...v }) => v);
-    
+    const now = Date.now();
+
+    // STALENESS: emit a per-venue signal the frontend can actually key off.
+    // Previously STALE_THRESHOLD_MS was computed and never used, so a 20-hour-old
+    // row rendered identically to a 2-minute-old one.
+    let newestStamp = null;
+    let oldestStamp = null;
+    for (const vd of venuesWithMeta) {
+      const stamps = vd.games
+        .map(g => new Date(g.scraped_at).getTime())
+        .filter(t => Number.isFinite(t));
+      const venueNewest = stamps.length ? Math.max(...stamps) : new Date(vd.last_updated).getTime();
+      if (Number.isFinite(venueNewest)) {
+        vd.age_minutes = Math.round((now - venueNewest) / 60000);
+        vd.is_stale = (now - venueNewest) > STALE_THRESHOLD_MS;
+        if (newestStamp === null || venueNewest > newestStamp) newestStamp = venueNewest;
+        if (oldestStamp === null || venueNewest < oldestStamp) oldestStamp = venueNewest;
+      } else {
+        vd.age_minutes = null;
+        vd.is_stale = true;
+      }
+      vd.is_simulated = vd._hasSimulatedData && !vd._hasRealData;
+      vd.has_simulated_data = vd._hasSimulatedData;
+    }
+
+    const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _hasSimulatedData, _hasRealData, _sources, ...v }) => v);
+
     // LIVE tables: only count from venues with real-time indicators
-    // (Bravo-sourced data OR PokerAtlas venues with actual players waiting)
-    // This prevents catalog capacity estimates from inflating the "Live Tables" stat
+    // (real scraped Bravo data OR PokerAtlas venues with actual players waiting).
+    // Simulated tables are counted in their own bucket and NEVER as live.
     let totalLiveTables = 0;
     let totalCatalogTables = 0;
+    let totalSimulatedTables = 0;
+    let simulatedVenueCount = 0;
+    let staleVenueCount = 0;
     for (const vd of venuesWithMeta) {
-      const venueTables = vd.games.reduce((s, g) => s + (g.tables_running || 0), 0);
+      if (vd.is_stale) staleVenueCount++;
+      const simTables = vd.games.reduce((s, g) => s + (g.is_simulated ? (g.tables_running || 0) : 0), 0);
+      const realTables = vd.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.tables_running || 0)), 0);
+      totalSimulatedTables += simTables;
+      if (vd._hasSimulatedData) simulatedVenueCount++;
       if (vd._hasLiveIndicators) {
-        totalLiveTables += venueTables;
+        totalLiveTables += realTables;
       } else {
-        totalCatalogTables += venueTables;
+        totalCatalogTables += realTables;
       }
     }
-    // POLICY: Never show 0 tables. If no real-time Bravo data exists,
-    // fall back to catalog estimates so venues always have table info.
-    const totalTables = totalLiveTables > 0 ? totalLiveTables : totalCatalogTables;
-    const dataIsLive = totalLiveTables > 0; // true = real-time Bravo, false = catalog fallback
+
+    // Catalog capacity is how many tables a room HAS, not how many are dealing.
+    // It is reported in its own field; total_tables_running stays at 0 when there
+    // is no live data rather than publishing capacity as a live count.
+    const dataIsLive = totalLiveTables > 0;
     const totalPlayersWaiting = venues.reduce(
-      (sum, v) => sum + v.games.reduce((s, g) => s + (g.players_waiting || 0), 0), 0
+      (sum, v) => sum + v.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.players_waiting || 0)), 0), 0
     );
+
+    const dataAgeMinutes = newestStamp === null ? null : Math.round((now - newestStamp) / 60000);
+    const oldestDataAgeMinutes = oldestStamp === null ? null : Math.round((now - oldestStamp) / 60000);
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
     return res.status(200).json({
       metadata: {
         venues_with_live_data: venues.length,
-        total_tables_running: totalTables,
+        // Live = observed by a real scrape. Never back-filled with catalog capacity.
+        total_tables_running: totalLiveTables,
+        total_tables_catalog: totalCatalogTables,
+        total_tables_simulated: totalSimulatedTables,
         total_players_waiting: totalPlayersWaiting,
+        // Promoted out of dedup_stats: this qualifies the number above it.
+        data_is_live: dataIsLive,
+        simulated_venue_count: simulatedVenueCount,
+        stale_venue_count: staleVenueCount,
+        data_age_minutes: dataAgeMinutes,
+        oldest_data_age_minutes: oldestDataAgeMinutes,
+        stale: dataAgeMinutes === null ? true : (now - newestStamp) > STALE_THRESHOLD_MS,
+        stale_threshold_hours: STALE_THRESHOLD_MS / 3600000,
+        truncated,
         data_source: 'Smarter.Poker Intelligence',
-        refresh_interval: '15 minutes',
-        last_scrape: data?.[0]?.scrape_timestamp || null,
+        // Slowest feed in the pipeline: bravo-live-daemon SCRAPE_INTERVAL=1800s.
+        // (pokeratlas-live-daemon runs at 900s.) Was wrongly advertised as 15 minutes.
+        refresh_interval: '30 minutes',
+        // Derived from the actual newest row, not a hardcoded freshness promise.
+        last_scrape: newestStamp === null ? null : new Date(newestStamp).toISOString(),
         dedup_stats: {
           raw_rows: (data || []).length,
           batch_filtered: batchFilteredRows,
@@ -343,8 +472,10 @@ export default async function handler(req, res) {
           final_venues: venues.length,
           live_tables: totalLiveTables,
           catalog_estimate_tables: totalCatalogTables,
+          simulated_tables: totalSimulatedTables,
           data_is_live: dataIsLive,
-          stale_threshold_hours: 3,
+          truncated,
+          stale_threshold_hours: STALE_THRESHOLD_MS / 3600000,
         },
       },
       venues,

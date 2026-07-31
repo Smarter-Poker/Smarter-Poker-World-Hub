@@ -26,7 +26,17 @@ Troubleshooting Protocol:
   ERROR_LOGIN_FAILED  → Credentials rejected → retry 3x then alert
   ERROR_SESSION_DEAD  → Browser crashed → full restart
   ERROR_VENUE_403     → Single venue blocked → skip, retry next cycle
-  ERROR_SUPABASE      → DB write failed → queue for retry
+  ERROR_SUPABASE      → DB write failed → chunk re-queued once at end of
+                        cycle; if it still fails the stale-row cleanup is
+                        suppressed and the cycle is reported as degraded.
+
+Fetch strategy (single tier):
+  All venue HTML comes from the persistent, authenticated StealthySession
+  page. There is deliberately NO unauthenticated fallback fetcher: the
+  "Current Live Games" table is only rendered for logged-in sessions, so a
+  fallback fetch could never return live data. When the session dies the
+  cycle reconnects in-place (see MAX_IN_CYCLE_RECONNECTS) rather than
+  falling back.
 
 Usage:
   # Foreground:
@@ -50,12 +60,24 @@ import signal
 import logging
 import traceback
 import urllib.request
+import urllib.error
 import subprocess
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Dict, List, Optional
+
+import os as _bh_os, sys as _bh_sys
+_bh_sys.path.insert(0, _bh_os.path.dirname(_bh_os.path.abspath(__file__)))
+# Browser self-heal — launchd runs this daemon directly, so shell-level healing
+# in the launchers never fires. See scripts/browser_heal.py for the 2026-07-26
+# incident where a missing chromium revision kept this daemon down for days.
+try:
+    import browser_heal as _browser_heal
+except Exception:  # pragma: no cover - heal is best-effort
+    _browser_heal = None
+
 
 # Resolve the absolute path to the project root and load ALL env files.
 # CRITICAL: Load in REVERSE priority order (lowest first) so that higher-priority
@@ -148,7 +170,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_DIR / f'daemon_{datetime.now().strftime("%Y%m%d")}.log'),
+        logging.FileHandler(LOG_DIR / f'daemon_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log'),
     ]
 )
 log = logging.getLogger('bravo-daemon')
@@ -171,6 +193,25 @@ SB_HEADERS = {
     'Content-Type': 'application/json',
     'Prefer': 'return=minimal',
 }
+
+def _http_error_detail(e):
+    """Return a loggable description of an exception, including HTTP body.
+
+    urllib raises HTTPError for 4xx/5xx; its str() is just 'HTTP Error 401:
+    Unauthorized' which hides the PostgREST message (constraint violation,
+    missing column, RLS denial). Read the body so failures are diagnosable.
+    """
+    try:
+        if isinstance(e, urllib.error.HTTPError):
+            try:
+                body = e.read().decode('utf-8', errors='ignore')[:400]
+            except Exception:
+                body = ''
+            return f'HTTP {e.code} {e.reason}: {body}'
+    except Exception:
+        pass
+    return f'{type(e).__name__}: {e}'
+
 
 def sb_upsert(table, data):
     """UPSERT to Supabase REST API with chunked batches and retry."""
@@ -196,22 +237,32 @@ def sb_upsert(table, data):
                     log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({e})')
                     time.sleep(2 ** attempt)
                 else:
-                    log.error(f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} FAILED after 3 retries: {e}')
+                    log.error(
+                        f'{ERROR_SUPABASE}: {table} batch {i//BATCH_SIZE + 1} FAILED '
+                        f'after 3 retries: {_http_error_detail(e)}'
+                    )
         if not success:
             return False
     log.info(f'  Upserted {total_saved}/{len(data)} records in {(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches')
     return True
 
 def sb_delete(table, query):
-    """DELETE from Supabase REST API."""
+    """DELETE from Supabase REST API. Returns True only on a confirmed 2xx.
+
+    NOTE: a bare `except:` here used to swallow every failure (including
+    KeyboardInterrupt) and log nothing, so a permanently broken stale-cleanup
+    was invisible. Failures are now logged at ERROR and the caller acts on the
+    return value.
+    """
     req = urllib.request.Request(
         f'{SUPABASE_URL}/rest/v1/{table}?{query}',
         method='DELETE', headers=SB_HEADERS
     )
     try:
-        urllib.request.urlopen(req, timeout=15)
-        return True
-    except:
+        resp = urllib.request.urlopen(req, timeout=15)
+        return 200 <= resp.status < 300
+    except Exception as e:
+        log.error(f'{ERROR_SUPABASE}: DELETE {table}?{query[:120]} failed: {_http_error_detail(e)}')
         return False
 
 # ============================================================
@@ -227,17 +278,50 @@ NON_US_EXCLUDED = {
     'norwegian-cruise-lines-poker-challenge',     # Cruise ship
 }
 
-def load_bravo_slugs():
-    """Load venue slugs from locked-in registry (USA only)."""
-    registry_path = BASE_DIR / 'data' / 'bravo-room-registry.json'
-    if registry_path.exists():
-        with open(registry_path) as f:
+REGISTRY_PATH = BASE_DIR / 'data' / 'bravo-room-registry.json'
+REGISTRY_BACKUP_PATH = BASE_DIR / 'data' / 'bravo-room-registry.last-good.json'
+
+
+def _read_registry(path):
+    """Read a registry file, returning [] on any parse/IO problem."""
+    if not path.exists():
+        return []
+    try:
+        with open(path) as f:
             data = json.load(f)
-            return [v['slug'] for v in data.get('venues', []) if v['slug'] not in NON_US_EXCLUDED]
-    return []
+        return [
+            v['slug'] for v in data.get('venues', [])
+            if v.get('slug') and v['slug'] not in NON_US_EXCLUDED
+        ]
+    except Exception as e:
+        log.error(f'  Registry {path.name} unreadable: {type(e).__name__}: {e}')
+        return []
+
+
+def load_bravo_slugs():
+    """Load venue slugs from locked-in registry (USA only).
+
+    Never raises: a truncated/corrupt registry falls back to the last-good
+    copy rather than killing every subsequent cycle.
+    """
+    slugs = _read_registry(REGISTRY_PATH)
+    if slugs:
+        return slugs
+    backup = _read_registry(REGISTRY_BACKUP_PATH)
+    if backup:
+        log.error(f'  Falling back to last-good registry ({len(backup)} venues)')
+    return backup
+
 
 def discover_bravo_slugs(page):
-    """Extract venue slugs from Bravo homepage, filtering non-US venues."""
+    """Extract venue slugs from Bravo homepage, filtering non-US venues.
+
+    The registry is only overwritten when the discovery result looks sane
+    (non-empty AND >= 80% of the currently known venue count). A Cloudflare
+    interstitial or a logged-out homepage returns HTTP 200 with zero venue
+    links; persisting that would permanently empty the registry and silently
+    stop the scraper.
+    """
     page.goto('https://www.bravopokerlive.com/')
     page.wait_for_load_state('networkidle', timeout=15000)
     html = page.content()
@@ -245,9 +329,25 @@ def discover_bravo_slugs(page):
     slugs = [s for s in all_slugs if s not in NON_US_EXCLUDED]
     excluded = [s for s in all_slugs if s in NON_US_EXCLUDED]
     if excluded:
-        log.info(f'  🚫 Filtered {len(excluded)} non-US venues: {excluded}')
+        log.info(f'  Filtered {len(excluded)} non-US venues: {excluded}')
     log.info(f'Discovered {len(slugs)} USA venue slugs (from {len(all_slugs)} total)')
-    # Save for next time (only USA venues)
+
+    existing = load_bravo_slugs()
+    if not slugs:
+        log.error(
+            '  Discovery returned ZERO venue slugs (CF interstitial / logged-out page / '
+            f'markup change) — keeping existing registry of {len(existing)} venues'
+        )
+        return existing
+    if existing and len(slugs) < 0.8 * len(existing):
+        log.error(
+            f'  Discovery returned {len(slugs)} venues vs {len(existing)} known '
+            '(<80%) — refusing to overwrite registry'
+        )
+        return existing
+
+    # Save for next time (only USA venues) — atomic write so a crash mid-write
+    # cannot leave corrupt JSON behind.
     reg = {
         'metadata': {
             'generated': datetime.now(timezone.utc).isoformat(),
@@ -257,8 +357,17 @@ def discover_bravo_slugs(page):
         'venues': [{'slug': s, 'url': f'https://www.bravopokerlive.com/venues/{s}/'} for s in slugs]
     }
     (BASE_DIR / 'data').mkdir(exist_ok=True)
-    with open(BASE_DIR / 'data' / 'bravo-room-registry.json', 'w') as f:
-        json.dump(reg, f, indent=2)
+    try:
+        if REGISTRY_PATH.exists() and existing:
+            REGISTRY_BACKUP_PATH.write_text(REGISTRY_PATH.read_text())
+        tmp_path = REGISTRY_PATH.with_suffix('.json.tmp')
+        with open(tmp_path, 'w') as f:
+            json.dump(reg, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, REGISTRY_PATH)
+    except Exception as e:
+        log.error(f'  Registry write failed: {type(e).__name__}: {e}')
     return slugs
 
 # ============================================================
@@ -287,9 +396,24 @@ def extract_live_data(html, venue_slug):
         'phone': '',
     }
 
-    h1 = re.search(r'<h1>(.*?)</h1>', html)
+    # Venue name: tolerate attributes on the <h1> (`<h1 class="venue-title">`)
+    # and strip any nested markup. A bare `<h1>` regex silently produced an
+    # empty venue_name on any markup change, which was then written to the DB.
+    #
+    # A bare `<h1>` is tried FIRST so this stays byte-identical to the previous
+    # behaviour on today's markup: broadening the pattern to `<h1[^>]*>` alone
+    # would start matching an attributed site-header <h1> that appears BEFORE
+    # the venue's own bare <h1>, renaming every venue to the site title.
+    h1 = (
+        re.search(r'<h1>(.*?)</h1>', html, re.DOTALL)
+        or re.search(r'<h1[^>]*>(.*?)</h1>', html, re.DOTALL | re.IGNORECASE)
+    )
     if h1:
-        result['venue_name'] = h1.group(1).strip()
+        result['venue_name'] = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', h1.group(1))).strip()
+    if not result['venue_name']:
+        og = re.search(r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)', html, re.IGNORECASE)
+        if og:
+            result['venue_name'] = og.group(1).strip()
 
     addr = re.search(r'glyphicon-map-marker.*?</i>\s*(.*?)(?:\s*<br|\s*\n)', html, re.DOTALL)
     if addr:
@@ -315,11 +439,34 @@ def extract_live_data(html, venue_slug):
     live_table_content = None
     wait_table_content = None
 
+    # Two INDEPENDENT checks (not if/elif): Bravo may render both sections
+    # inside a single <table>, in which case an elif would silently drop the
+    # entire waitlist. First match wins — a later duplicate must not clobber it.
     for tbl in all_tables:
-        if re.search(r'Current\s+Live\s+Games', tbl, re.IGNORECASE):
+        if live_table_content is None and re.search(r'Current\s+Live\s+Games', tbl, re.IGNORECASE):
             live_table_content = tbl
-        elif re.search(r'Current\s+Waiting\s+List', tbl, re.IGNORECASE):
+        if wait_table_content is None and re.search(r'Current\s+Waiting\s+List', tbl, re.IGNORECASE):
             wait_table_content = tbl
+        if live_table_content is not None and wait_table_content is not None:
+            break
+
+    # A SINGLE table carrying BOTH headers matches both checks above and would
+    # otherwise be parsed twice — every waitlist row read as a live game (with
+    # players_waiting as its table count) and every live row read as a waitlist
+    # entry. Split it at the waiting-list header instead. The split lands
+    # mid-<tr>, which the row regex below simply ignores (no closing </tr> in
+    # the live half, no opening <tr> in the waiting half).
+    if (
+        live_table_content is not None
+        and wait_table_content is not None
+        and live_table_content == wait_table_content
+    ):
+        split = re.search(
+            r'(.*?)(Current\s+Waiting\s+List.*)', live_table_content,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if split:
+            live_table_content, wait_table_content = split.group(1), split.group(2)
 
     # Fallback: old Bravo format where header text is OUTSIDE/BEFORE the <table>
     if live_table_content is None:
@@ -331,6 +478,17 @@ def extract_live_data(html, venue_slug):
         m = re.search(r'Current\s+Waiting\s+List.*?<table[^>]*>(.*?)</table>', html, re.DOTALL | re.IGNORECASE)
         if m:
             wait_table_content = m.group(1)
+
+    # Distinguish "the section exists and is empty" from "we could not find the
+    # section at all" (markup change or logged-out page). Without this, both
+    # look identical downstream — a silent 'no live data'.
+    header_present = bool(re.search(r'Current\s+Live\s+Games', html, re.IGNORECASE))
+    result['live_section_found'] = live_table_content is not None
+    result['authenticated_markup'] = header_present
+    if header_present and live_table_content is None:
+        log.warning(f'  MARKUP: {venue_slug}: "Current Live Games" header present but no table matched')
+    elif not header_present:
+        log.debug(f'  {venue_slug}: no "Current Live Games" section on page (logged-out or venue offline?)')
 
     # Extract live games
     if live_table_content:
@@ -360,88 +518,44 @@ def extract_live_data(html, venue_slug):
 # HEARTBEAT WRITER
 # ============================================================
 def write_heartbeat(status, extra=None):
-    """Write a heartbeat file so external watchdog can detect stale daemons."""
+    """Write a heartbeat file so external watchdog can detect stale daemons.
+
+    `status` MUST be one of the values scripts/scraper-watchdog-local.sh treats
+    as healthy (running|ok|healthy|scraping|idle) whenever the daemon is in
+    fact working, otherwise the watchdog force-restarts it. Failure is
+    signalled through `consecutive_failures`, which is ALWAYS included so the
+    watchdog's failure-streak check can see it.
+    """
     try:
         hb = {
             'daemon': 'bravo',
             'status': status,
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'pid': os.getpid(),
+            'consecutive_failures': 0,
         }
         if extra:
             hb.update(extra)
         with open(HEARTBEAT_FILE, 'w') as f:
             json.dump(hb, f, indent=2)
-    except Exception:
-        pass  # Never crash on heartbeat write
+    except Exception as e:
+        # Never crash on heartbeat write — but never hide it either: a stale
+        # heartbeat makes the external watchdog restart us with no explanation.
+        log.warning(f'  Heartbeat write failed ({HEARTBEAT_FILE}): {type(e).__name__}: {e}')
 
 
 # ============================================================
-# FALLBACK FETCHER — TIER 2: PlayWrightFetcher
+# CF COOKIE CACHE (used by the fast-path reconnect in connect())
 # ============================================================
-def fallback_fetch_venue_playwright(slug):
-    """Tier 2 fallback: Use Scrapling's DynamicFetcher (non-stealth but faster reconnect).
-    Updated for Scrapling 0.4.x API: headless is configured via .configure() not __init__.
-    """
-    try:
-        from scrapling.fetchers import PlaywrightFetcher
-        fetcher = PlaywrightFetcher(headless=True)
-        url = BRAVO_VENUE_URL.format(slug=slug)
-        resp = fetcher.fetch(url)
-        if resp and resp.status == 200:
-            html = resp.html_content or ''
-            if not html:
-                html = str(resp.body or '')
-            if html and 'Current Live Games' in html:
-                log.info(f'  🔄 TIER-2 (PlaywrightFetcher) success for {slug}')
-                return html
-    except ImportError:
-        # PlaywrightFetcher not available — try DynamicFetcher
-        try:
-            from scrapling.fetchers import DynamicFetcher
-            fetcher = DynamicFetcher(headless=True)
-            url = BRAVO_VENUE_URL.format(slug=slug)
-            resp = fetcher.fetch(url)
-            if resp and resp.status == 200:
-                html = resp.html_content or ''
-                if html and 'Current Live Games' in html:
-                    log.info(f'  🔄 TIER-2 (DynamicFetcher) success for {slug}')
-                    return html
-        except Exception as e2:
-            log.debug(f'  Tier-2 DynamicFetcher also failed for {slug}: {e2}')
-    except Exception as e:
-        log.debug(f'  Tier-2 failed for {slug}: {e}')
-    return None
-
-
-def fallback_fetch_venue_urllib(slug):
-    """Tier 3 fallback: Use raw urllib with cached CF cookies (fastest, least reliable)."""
-    try:
-        if not COOKIE_CACHE_FILE.exists():
-            return None
-        with open(COOKIE_CACHE_FILE) as f:
-            cookies = json.load(f)
-        if not cookies.get('cf_clearance'):
-            return None
-
-        url = BRAVO_VENUE_URL.format(slug=slug)
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Cookie': f'cf_clearance={cookies["cf_clearance"]}; bravo_session={cookies.get("bravo_session", "")}',
-            'Accept': 'text/html,application/xhtml+xml',
-        })
-        resp = urllib.request.urlopen(req, timeout=10)
-        html = resp.read().decode('utf-8', errors='ignore')
-        if 'Current Live Games' in html:
-            log.info(f'  🔄 TIER-3 (urllib+cookies) success for {slug}')
-            return html
-    except Exception as e:
-        log.debug(f'  Tier-3 failed for {slug}: {e}')
-    return None
-
-
+# NOTE: the previous Tier-2 (PlaywrightFetcher) and Tier-3 (urllib + cached
+# cookies) venue fetchers were removed. They were never called from anywhere,
+# and they could not have worked: both fetch venue pages WITHOUT the
+# authenticated session, and Bravo only renders "Current Live Games" for
+# logged-in users. Keeping them implied a resilience that did not exist.
+# The cookie cache below is still live — connect() uses it to skip the
+# Turnstile solve on reconnect.
 def save_cookies_from_page(page):
-    """Extract CF cookies from browser context for Tier 3 fallback."""
+    """Extract CF cookies from browser context for the fast-path reconnect."""
     try:
         cookies = page.context.cookies()
         cache = {}
@@ -475,12 +589,30 @@ def _proxy_kwargs(session_id: str = ''):
         # URL format: http://USER:PASS@HOST:PORT
         import re as _re
         sid = session_id or uuid.uuid4().hex[:8]
-        proxy_url = _re.sub(
-            r'(http://)(geonode_[^:]+)(:)',
-            lambda m: f'{m.group(1)}{m.group(2)}-session-{sid}{m.group(3)}',
-            BRAVO_PROXY_BASE,
-        )
-        log.info(f'  📍 Sticky session ID: {sid} (same IP for entire cycle)')
+        # Accept http/https and any username shape, not just geonode_*.
+        # subn() so we can tell whether the injection actually happened —
+        # a silent no-op means every request goes out on a ROTATING IP while
+        # the log claims a sticky session, which shows up later as
+        # unexplained login failures and credential-pool burn.
+        if '@' in BRAVO_PROXY_BASE:
+            proxy_url, n_subs = _re.subn(
+                r'^(https?://)([^:/@]+)(:[^@]*@)',
+                lambda m: f'{m.group(1)}{m.group(2)}-session-{sid}{m.group(3)}',
+                BRAVO_PROXY_BASE,
+                count=1,
+            )
+        else:
+            # No credentials in the URL — there is no username to pin a
+            # session onto. Do not mangle the hostname.
+            proxy_url, n_subs = BRAVO_PROXY_BASE, 0
+        if n_subs == 0:
+            log.warning(
+                '  Sticky-session injection did NOT apply — BRAVO_PROXY_BASE does not match '
+                'scheme://user:pass@host:port. Falling back to the rotating proxy; '
+                'expect IP hops mid-cycle.'
+            )
+            return {'proxy': BRAVO_PROXY or BRAVO_PROXY_BASE}
+        log.info(f'  Sticky session ID: {sid} (same IP for entire cycle)')
         return {'proxy': proxy_url}
     if BRAVO_PROXY:
         return {'proxy': BRAVO_PROXY}
@@ -514,12 +646,11 @@ def _rotate_credentials_if_needed(mgr):
 # ============================================================
 class BravoSessionManager:
     """Manages a persistent Scrapling browser session with Bravo.
-    
-    Multi-tier fallback strategy:
-      Tier 1: StealthySession (primary — full CF bypass)
-      Tier 2: PlayWrightFetcher (no CF solve, but fast reconnect)
-      Tier 3: Raw urllib with cached CF cookies (fastest, needs valid cookies)
-    
+
+    Fetch strategy: StealthySession ONLY (full CF bypass + authenticated
+    page). There is no fallback fetcher — see the module docstring. When the
+    session dies mid-cycle, run_scrape_cycle reconnects in place.
+
     Only re-authenticates when:
       - Session is first created
       - Health check detects session death
@@ -540,7 +671,6 @@ class BravoSessionManager:
         self.last_login_time = None
         self._session_dead = False
         self._cred_failed = False  # Set by _login() to trigger credential rotation on next connect()
-        self.tier2_failures = 0  # Track Tier 2 failures to avoid wasting time
 
     def _fast_path_connect(self, watchdog_timer=None):
         """Attempt session restore using saved CF cookies (skips Turnstile solve).
@@ -552,6 +682,11 @@ class BravoSessionManager:
         Returns True on success, False if cookies are stale/rejected (caller
         should fall through to full Turnstile solve).
         """
+        # Self-heal a missing Playwright browser before launching a session.
+        # Cheap when present (a path probe); downloads only when genuinely absent.
+        if _browser_heal is not None:
+            _browser_heal.ensure_browser(log=log.warning)
+
         from scrapling.fetchers import StealthySession
         try:
             with open(COOKIE_CACHE_FILE) as f:
@@ -642,6 +777,11 @@ class BravoSessionManager:
         if not _network_available():
             log.warning('  ⚠️  Network unavailable — skipping browser launch')
             return False
+
+        # Self-heal a missing Playwright browser before launching a session.
+        # Placed after the network check because healing needs to download.
+        if _browser_heal is not None:
+            _browser_heal.ensure_browser(log=log.warning)
 
         # Rotate credentials from pool if previous account failed
         _rotate_credentials_if_needed(self)
@@ -807,36 +947,50 @@ class BravoSessionManager:
         return False
 
     def health_check(self):
-        """Check if the current session is still alive and authenticated."""
+        """Check if the current session is still alive AND authenticated.
+
+        A logged-out Bravo venue page still returns HTTP 200 with an <h1>, so
+        the old `'<h1>' in content` fallback passed a fully de-authenticated
+        session and the daemon then burned a whole cycle on pages that never
+        contain the "Current Live Games" table. We now require a POSITIVE
+        authenticated marker and explicitly fail on any login affordance.
+        """
         if not self.page or not self.session:
             return False
 
+        # Use a slug from the live registry rather than hardcoding 'bellagio',
+        # which silently breaks the health check if that venue is delisted.
+        slugs = load_bravo_slugs()
+        slug = slugs[0] if slugs else 'bellagio'
+
         try:
-            # Navigate to a known Bravo page
-            self.page.goto('https://www.bravopokerlive.com/venues/bellagio/')
+            self.page.goto(BRAVO_VENUE_URL.format(slug=slug))
             self.page.wait_for_load_state('networkidle', timeout=VENUE_TIMEOUT)
 
             content = self.page.content()
+            lowered = content.lower()
 
-            if 'Welcome back' in content:
-                log.info('  💚 Health check: authenticated')
-                return True
-            elif 'Just a moment' in content:
-                log.warning('  🟡 Health check: CF challenge — need re-auth')
+            if 'just a moment' in lowered or 'performing security' in lowered:
+                log.warning('  Health check: CF challenge — need re-auth')
                 return False
-            elif 'name="Email"' in content or 'loginmodal' in content.lower():
-                log.warning('  🟡 Health check: session expired — need re-auth')
+            login_prompt = ('name="Email"' in content) or ('loginmodal' in lowered)
+            authenticated_marker = (
+                'welcome back' in lowered
+                or 'current live games' in lowered
+                or '/logout' in lowered
+            )
+            if login_prompt or not authenticated_marker:
+                log.warning(
+                    f'  Health check: NOT authenticated on /venues/{slug}/ '
+                    f'(login_prompt={login_prompt}) — need re-auth'
+                )
                 return False
-            elif '<h1>' in content:
-                # Got venue content but no "Welcome back" text
-                log.info('  💚 Health check: page loaded (venue content present)')
-                return True
-            else:
-                log.warning('  🟡 Health check: unknown page state')
-                return False
+
+            log.info('  Health check: authenticated')
+            return True
 
         except Exception as e:
-            log.error(f'  🔴 Health check failed: {e}')
+            log.error(f'  Health check failed: {e}')
             return False
 
     def ensure_connected(self):
@@ -879,10 +1033,17 @@ class BravoSessionManager:
         """Navigate to a venue page using the persistent authenticated page.
 
         ARCHITECTURE (LOCKED IN — per Scrapling scraper law):
-          - Tier 1: self.page.goto() — uses the persistent logged-in page
+          - self.page.goto() ONLY — uses the persistent logged-in page.
             The page lives in the CF-cleared, authenticated browser context.
             Auth cookies from login persist for the entire session lifespan.
-          - Tier 2: PlaywrightFetcher — independent browser, last resort only
+            There is no unauthenticated fallback fetcher (it could not see
+            the logged-in "Current Live Games" table).
+
+        Return values:
+          html string        — page fetched successfully
+          '<BLOCKED_VENUE>'  — Cloudflare/HTTP block for this venue URL
+          '<SKIPPED_VENUE>'  — navigation interrupted, page reset, session ok
+          None               — navigation failed / session dead
 
         WHY page.goto() and NOT session.fetch():
           session.fetch() spins up a fresh fetch without persistent auth state.
@@ -922,11 +1083,12 @@ class BravoSessionManager:
                         self._session_dead = True
                         return None
 
-                # CF challenge on venue page — per-venue silent skip
-                # (session is still alive; CF blocked this specific venue URL)
+                # CF challenge on venue page — Bravo is BLOCKING us here.
+                # Reported separately from "venue has no live games": a wave of
+                # blocks used to be indistinguishable from a quiet night.
                 if 'Just a moment' in content or 'Performing security' in content:
-                    log.debug(f'  ⏭️  {slug}: CF challenge on venue page — skipping')
-                    return '<SKIPPED_VENUE>'
+                    log.warning(f'  BLOCKED: {slug}: Cloudflare challenge on venue page')
+                    return '<BLOCKED_VENUE>'
 
                 # Success — reset failure counter
                 self.consecutive_nav_failures = 0
@@ -939,16 +1101,16 @@ class BravoSessionManager:
                 # PER-VENUE HTTP ERROR: 4xx/5xx from Bravo server (venue disabled)
                 # NOT a browser crash — skip this venue, keep session alive
                 if 'ERR_HTTP_RESPONSE_CODE_FAILURE' in err_msg or 'ERR_ABORTED' in err_msg:
-                    log.debug(f'  ⏭️  {slug}: HTTP error (venue offline/removed) — skipping')
+                    log.warning(f'  BLOCKED: {slug}: {ERROR_VENUE_403} HTTP error (venue offline/removed/blocked)')
                     try:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
                         pass
-                    return '<SKIPPED_VENUE>'
+                    return '<BLOCKED_VENUE>'
 
                 # CHROME ERROR / BROWSER CRASH: page in bad state
                 if 'chrome-error' in err_msg or 'interrupted by another navigation' in err_msg:
-                    log.debug(f'  ⏭️  {slug}: Navigation interrupted — resetting page')
+                    log.warning(f'  {slug}: Navigation interrupted — resetting page')
                     try:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
@@ -1007,15 +1169,15 @@ class BravoSessionManager:
             if self.page:
                 try:
                     self.page.close()
-                except:
-                    pass
+                except Exception as e:
+                    log.debug(f'  page.close() failed: {type(e).__name__}: {e}')
             if self.session:
                 try:
                     self.session.close()
-                except:
-                    pass
-        except:
-            pass
+                except Exception as e:
+                    log.debug(f'  session.close() failed: {type(e).__name__}: {e}')
+        except Exception as e:
+            log.debug(f'  disconnect() error: {type(e).__name__}: {e}')
         finally:
             self.page = None
             self.context = None
@@ -1027,12 +1189,17 @@ class BravoSessionManager:
 # CLEANUP: EVIDENCE FILES (keep last 7 days)
 # ============================================================
 def cleanup_evidence_files():
-    """Delete evidence JSON files older than 7 days (any source)."""
+    """Delete THIS daemon's evidence JSON files older than 7 days.
+
+    Scoped to bravo_live_*.json (the naming used when writing evidence below).
+    data/scrape-evidence is shared with other scrapers — globbing '*.json' here
+    deleted their evidence too, including the liveness sweep's only record of
+    which venues it deactivated.
+    """
     try:
         cutoff = time.time() - (7 * 86400)
         count = 0
-        # Clean ALL evidence files, not just bravo's — prevents cross-daemon accumulation
-        for f in EVIDENCE_DIR.glob('*.json'):
+        for f in EVIDENCE_DIR.glob('bravo_live_*.json'):
             if f.stat().st_mtime < cutoff:
                 f.unlink()
                 count += 1
@@ -1077,37 +1244,51 @@ def cleanup_log_files():
 _last_bravo_discovery_date = None
 
 def daily_bravo_discovery(mgr):
-    """Once per day, scrape Bravo homepage to detect new venue slugs."""
+    """Once per day (UTC), scrape Bravo homepage to detect new venue slugs.
+
+    The once-per-day gate is keyed on the UTC date so it lines up with the
+    timestamps written to the database; it is only set AFTER a discovery that
+    actually returned venues, so a Cloudflare interstitial does not lock
+    discovery out until the next calendar day.
+    """
     global _last_bravo_discovery_date
-    today = datetime.now().strftime('%Y%m%d')
+    today = datetime.now(timezone.utc).strftime('%Y%m%d')
     if _last_bravo_discovery_date == today:
         return
-    _last_bravo_discovery_date = today
 
-    log.info('📡 Running daily Bravo venue discovery...')
+    log.info('Running daily Bravo venue discovery...')
     try:
         current_slugs = set(load_bravo_slugs())
         new_slugs = discover_bravo_slugs(mgr.page)
         new_set = set(new_slugs)
 
+        if not new_set:
+            log.error('  Daily discovery produced no venues — will retry next cycle')
+            return
+
         added = new_set - current_slugs
         removed = current_slugs - new_set
 
         if added:
-            log.info(f'  💡 NEW venues discovered: {sorted(added)}')
+            log.info(f'  NEW venues discovered: {sorted(added)}')
         if removed:
-            log.info(f'  🗑️  Venues no longer listed: {sorted(removed)}')
+            log.info(f'  Venues no longer listed: {sorted(removed)}')
         if not added and not removed:
-            log.info(f'  ✅ No venue changes (still {len(new_set)} venues)')
+            log.info(f'  No venue changes (still {len(new_set)} venues)')
+
+        _last_bravo_discovery_date = today
     except Exception as e:
-        log.warning(f'  ⚠️ Daily discovery failed: {e}')
+        log.warning(f'  Daily discovery failed: {e}')
 
 
 # ============================================================
 # HISTORICAL SNAPSHOT: Save per-cycle venue summary for trending
 # ============================================================
 def save_history_snapshot(batch_id, results):
-    """Insert a summary row per venue into venue_live_history for trending."""
+    """Insert a summary row per venue into venue_live_history for trending.
+
+    Returns True on success; the caller counts failures into the heartbeat.
+    """
     try:
         now = datetime.now(timezone.utc).isoformat()
         rows = []
@@ -1124,108 +1305,161 @@ def save_history_snapshot(batch_id, results):
                 'snapshot_time': now,
                 'batch_id': batch_id,
             })
-        if rows:
-            body = json.dumps(rows).encode()
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/venue_live_history',
-                data=body, method='POST',
-                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-            )
-            try:
-                urllib.request.urlopen(req, timeout=15)
-                log.info(f'  📊 Saved {len(rows)} history snapshots')
-            except Exception as e:
-                # Table may not exist yet — that's OK, don't crash
-                log.debug(f'  History snapshot insert skipped: {e}')
+        if not rows:
+            return True
+        body = json.dumps(rows).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/venue_live_history',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15)
+            log.info(f'  Saved {len(rows)} venue history snapshots')
+            return True
+        except Exception as e:
+            log.error(f'{ERROR_SUPABASE}: venue_live_history insert FAILED '
+                      f'({len(rows)} rows): {_http_error_detail(e)}')
+            return False
     except Exception as e:
-        log.debug(f'  History snapshot error: {e}')
+        log.error(f'  venue_live_history snapshot error: {type(e).__name__}: {e}')
+        return False
 
 
 # ============================================================
 # GAME-LEVEL HISTORICAL SNAPSHOT: Per-game rows for heatmaps/predictions
 # ============================================================
+_STAKES_RE = re.compile(
+    r'(\$\s?\d[\d,]*(?:\.\d+)?\s*(?:/|-|\\|and)\s*\$?\s?\d[\d,]*(?:\.\d+)?'
+    r'(?:\s*(?:/|-)\s*\$?\s?\d[\d,]*(?:\.\d+)?)*)'
+)
+
+
+def _parse_stakes(game_name):
+    """Extract the stakes portion of a Bravo game name, e.g. '$1/$3 NL Hold'em'.
+
+    Returns '' when no stakes pattern is present. (The column is written as ''
+    rather than NULL because the existing rows use '' and the column's
+    nullability is not guaranteed — do not change the shape of the write.)
+    """
+    m = _STAKES_RE.search(game_name or '')
+    return m.group(1).strip() if m else ''
+
+
+def _waiting_for_game(data, game_name):
+    """Players waiting for `game_name` at this venue, from the waitlist table.
+
+    Bravo publishes live games and the waiting list as two separate tables
+    keyed by the same game name, so the two must be joined case-insensitively.
+    Returns 0 only when the game genuinely has no waitlist entry.
+    """
+    target = (game_name or '').strip().lower()
+    for w in data.get('waitlist', []):
+        if w['game'].strip().lower() == target:
+            return w['players_waiting']
+    return 0
+
+
 def save_game_history_snapshot(batch_id, results):
     """Insert per-game rows into game_live_history for game-type heatmaps.
-    
-    This is ADDITIVE — it writes to a separate table (game_live_history)
-    and never touches venue_live_history. Safe to fail silently.
+
+    Writes to game_live_history only; never touches venue_live_history.
+    Returns True on success — the caller counts and reports failures, they are
+    NOT safe to swallow (game-predictions / peak-activity / heatmap APIs all
+    read this table).
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for data in results:
+            live_names = [g['game'].strip().lower() for g in data['live_games']]
             for game in data['live_games']:
                 rows.append({
                     'bravo_slug': data['venue_slug'],
                     'venue_name': data['venue_name'],
                     'game_type': game['game'],
-                    'stakes': '',
+                    'stakes': _parse_stakes(game['game']),
                     'tables': game['tables'],
-                    'waiting': 0,
+                    # Real per-game waiting count from the waitlist table.
+                    # This was hard-coded to 0, so every running game with a
+                    # queue was recorded as having nobody waiting.
+                    'waiting': _waiting_for_game(data, game['game']),
                     'source': 'bravo',
                     'snapshot_time': now,
                     'batch_id': batch_id,
                 })
             for w in data['waitlist']:
-                # Check if already covered by live_games
-                live_names = [g['game'].lower() for g in data['live_games']]
-                if w['game'].lower() not in live_names:
+                # Waitlist-only games (nobody seated yet)
+                if w['game'].strip().lower() not in live_names:
                     rows.append({
                         'bravo_slug': data['venue_slug'],
                         'venue_name': data['venue_name'],
                         'game_type': w['game'],
-                        'stakes': '',
+                        'stakes': _parse_stakes(w['game']),
                         'tables': 0,
                         'waiting': w['players_waiting'],
                         'source': 'bravo',
                         'snapshot_time': now,
                         'batch_id': batch_id,
                     })
-        if rows:
-            body = json.dumps(rows).encode()
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/game_live_history',
-                data=body, method='POST',
-                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-            )
-            try:
-                urllib.request.urlopen(req, timeout=15)
-                log.info(f'  📊 Saved {len(rows)} game history rows')
-            except Exception as e:
-                # Table may not exist yet — that's OK, don't crash
-                log.debug(f'  Game history insert skipped: {e}')
+        if not rows:
+            return True
+        body = json.dumps(rows).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/game_live_history',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15)
+            log.info(f'  Saved {len(rows)} game history rows')
+            return True
+        except Exception as e:
+            log.error(f'{ERROR_SUPABASE}: game_live_history insert FAILED '
+                      f'({len(rows)} rows): {_http_error_detail(e)}')
+            return False
     except Exception as e:
-        log.debug(f'  Game history snapshot error: {e}')
+        log.error(f'  game_live_history snapshot error: {type(e).__name__}: {e}')
+        return False
 
 
 # ============================================================
 # CHUNKED PUBLISH HELPER
 # ============================================================
 def build_payload_from_results(results, batch_id):
-    """Convert venue results into Supabase-ready payload records."""
+    """Convert venue results into Supabase-ready payload records.
+
+    Venues whose name could not be extracted are QUARANTINED (skipped) rather
+    than published with venue_name='': the live-tables API merges cross-source
+    venues on the normalised name, so a blank name can mis-merge unrelated
+    rooms onto a Bravo slug.
+    """
     payload = []
     for data in results:
+        if not (data.get('venue_name') or '').strip():
+            log.warning(
+                f'  QUARANTINE: {data["venue_slug"]} produced an empty venue_name '
+                '(markup change?) — not publishing this venue'
+            )
+            continue
         for game in data['live_games']:
             record = {
                 'bravo_slug': data['venue_slug'],
                 'venue_name': data['venue_name'],
                 'game_name': game['game'],
                 'tables_running': game['tables'],
-                'players_waiting': 0,
+                'players_waiting': _waiting_for_game(data, game['game']),
                 'scrape_timestamp': data['scrape_timestamp'],
                 'scrape_html_hash': data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
                 'data_quality': 'scraped_verified',
                 'source': 'bravo',
             }
-            for w in data['waitlist']:
-                if w['game'].lower() == game['game'].lower():
-                    record['players_waiting'] = w['players_waiting']
             payload.append(record)
 
-        live_names = [g['game'].lower() for g in data['live_games']]
+        live_names = [g['game'].strip().lower() for g in data['live_games']]
         for w in data['waitlist']:
-            if w['game'].lower() not in live_names:
+            if w['game'].strip().lower() not in live_names:
                 record = {
                     'bravo_slug': data['venue_slug'],
                     'venue_name': data['venue_name'],
@@ -1250,29 +1484,48 @@ def publish_chunk(chunk_results, batch_id, chunk_num):
     payload = build_payload_from_results(chunk_results, batch_id)
     if not payload:
         return 0, True
-    
+
     if sb_upsert('venue_live_tables', payload):
-        log.info(f'  📤 CHUNK {chunk_num} published: {len(payload)} records from {len(chunk_results)} venues')
+        log.info(f'  CHUNK {chunk_num} published: {len(payload)} records from {len(chunk_results)} venues')
         return len(payload), True
     else:
-        log.error(f'  ❌ CHUNK {chunk_num} publish FAILED')
+        log.error(
+            f'{ERROR_SUPABASE}: CHUNK {chunk_num} publish FAILED '
+            f'({len(payload)} records from {len(chunk_results)} venues) — re-queued for retry'
+        )
         return 0, False
 
 
 # ============================================================
 # MAIN SCRAPE CYCLE
 # ============================================================
+# Stale-cleanup safety gates. A cycle that did not see most of the registry
+# must NEVER be allowed to delete the previous batch's rows for the venues it
+# never reached — the live-tables API deliberately serves rows up to 24h old.
+MIN_COVERAGE_FOR_FULL_DELETE = 0.7   # fraction of registry that must be reached
+MAX_BLOCKED_RATIO_FOR_DELETE = 0.2   # abort full delete above this block rate
+DELETE_SLUG_BATCH = 40               # slugs per scoped DELETE (URL length cap)
+
+
 def run_scrape_cycle(mgr):
     """Run one full scrape cycle with chunked publish.
-    
+
     CHUNKED PUBLISH PATTERN:
     Instead of scraping all 156 venues then saving at the end (where a
     crash at venue #50 means zero data), we publish every CHUNK_SIZE
     venues. Users get partial data within minutes.
-    
+
     Flow:
       Scrape venues 1-25 → PUBLISH → Scrape 26-50 → PUBLISH → ...
-      At the very end, delete stale records from previous batches.
+      Retry any chunk whose publish failed.
+      Only then, and only if the cycle completed cleanly with sane coverage,
+      delete stale records from previous batches (otherwise the delete is
+      scoped to just the slugs re-scraped this cycle).
+
+    Returns (records_saved, cycle_ok) where cycle_ok is False whenever the
+    cycle was aborted, publishes failed, or venues were scraped but nothing
+    reached the database. main() uses records_saved/cycle_ok to decide whether
+    the in-process watchdog clock may be reset.
     """
     batch_id = str(uuid.uuid4())
     cycle_start = datetime.now(timezone.utc)
@@ -1286,6 +1539,14 @@ def run_scrape_cycle(mgr):
 
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
 
+    # Fresh heartbeat BEFORE the (slow) connect, so the external watchdog does
+    # not see a stale file while a legitimate connect/CF solve is in progress.
+    write_heartbeat('scraping', {
+        'cycle': mgr.total_cycles + 1,
+        'phase': 'connecting',
+        'consecutive_failures': mgr.consecutive_failures,
+    })
+
     # Ensure connected
     if not mgr.ensure_connected():
         mgr.consecutive_failures += 1
@@ -1296,9 +1557,9 @@ def run_scrape_cycle(mgr):
         idx = min(max(0, mgr.consecutive_failures - 1), len(base_delays) - 1)
         backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
         
-        log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
+        log.error(f'{mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
         time.sleep(backoff)
-        return 0
+        return 0, False
 
     # Daily discovery pass (once per day)
     daily_bravo_discovery(mgr)
@@ -1308,14 +1569,30 @@ def run_scrape_cycle(mgr):
     if not slugs:
         log.info('No registry found, discovering slugs...')
         slugs = discover_bravo_slugs(mgr.page)
+    if not slugs:
+        # Nothing to scrape is a FAILURE, not a quiet cycle — otherwise an
+        # emptied/corrupt registry looks healthy forever.
+        mgr.consecutive_failures += 1
+        log.error('No venue slugs available (registry empty and discovery failed) — nothing to scrape')
+        write_heartbeat('idle', {
+            'cycle': mgr.total_cycles,
+            'records_saved': 0,
+            'cycle_ok': False,
+            'reason': 'empty_registry',
+            'consecutive_failures': mgr.consecutive_failures,
+        })
+        return 0, False
     log.info(f'Scraping {len(slugs)} venues (chunked publish every {CHUNK_SIZE})...')
 
     # Scrape each venue — CHUNKED PUBLISH
     all_results = []        # All results for evidence/history
     chunk_results = []      # Current chunk buffer
+    pending_publish = []    # Venues whose chunk publish FAILED — retried at end
     total_saved = 0
     total_errors = 0
-    total_skipped = 0
+    total_blocked = 0       # CF/HTTP blocks — Bravo refusing us
+    total_no_data = 0       # Page loaded fine, venue simply has no live games
+    publish_failures = 0
     chunk_num = 0
 
     consecutive_venue_failures = 0
@@ -1327,9 +1604,8 @@ def run_scrape_cycle(mgr):
     for i, slug in enumerate(slugs):
         # CIRCUIT BREAKER: If too many consecutive venues fail, abort and reconnect
         if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
-            log.error(f'🔴 CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
+            log.error(f'CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
             mgr._session_dead = True
-            mgr.tier2_failures = 0
             cycle_aborted = True
             break
 
@@ -1337,20 +1613,23 @@ def run_scrape_cycle(mgr):
         # immediately instead of wasting venues on doomed Tier 2/3 attempts.
         # This recovers ~130 venues per cycle that were previously lost.
         if mgr._session_dead and in_cycle_reconnects < MAX_IN_CYCLE_RECONNECTS:
-            log.info(f'🔄 In-cycle reconnect #{in_cycle_reconnects + 1} (session died at venue {i})...')
+            log.info(f'In-cycle reconnect #{in_cycle_reconnects + 1} (session died at venue {i})...')
             # Flush any accumulated results before reconnect
             if chunk_results:
                 chunk_num += 1
                 saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
                 total_saved += saved
+                if not ok:
+                    publish_failures += 1
+                    pending_publish.extend(chunk_results)
                 chunk_results = []
 
             if mgr.connect():
                 in_cycle_reconnects += 1
                 consecutive_venue_failures = 0
-                log.info(f'  ✅ In-cycle reconnect succeeded — resuming at venue {i+1}/{len(slugs)}')
+                log.info(f'  In-cycle reconnect succeeded — resuming at venue {i+1}/{len(slugs)}')
             else:
-                log.error(f'  ❌ In-cycle reconnect failed — aborting cycle')
+                log.error('  In-cycle reconnect failed — aborting cycle')
                 cycle_aborted = True
                 break
 
@@ -1359,8 +1638,11 @@ def run_scrape_cycle(mgr):
             mgr.recycle_page()
 
         html = mgr.navigate_venue(slug)
-        if html == '<SKIPPED_VENUE>':
-            total_skipped += 1
+        if html in ('<SKIPPED_VENUE>', '<BLOCKED_VENUE>'):
+            # Blocked/erroring venues are counted SEPARATELY from venues that
+            # loaded fine but have no live games. Conflating them hid mass
+            # Cloudflare blocks behind a benign-looking 'skipped' number.
+            total_blocked += 1
             # Do NOT increment consecutive_venue_failures or total_errors
             # Just move to the next venue
             continue
@@ -1381,13 +1663,13 @@ def run_scrape_cycle(mgr):
             chunk_results.append(data)
             all_results.append(data)
             log.info(
-                f'  [{i+1}/{len(slugs)}] ✅ {data["venue_name"][:28]:28} | '
+                f'  [{i+1}/{len(slugs)}] OK {(data["venue_name"] or slug)[:28]:28} | '
                 f'{total_tables} tables | {total_waiting} waiting'
             )
         else:
-            total_skipped += 1
-            if total_skipped <= 3 or total_skipped % 10 == 0:
-                log.info(f'  [{i+1}/{len(slugs)}] ⏭️  {slug[:28]:28} | no live data')
+            total_no_data += 1
+            if total_no_data <= 3 or total_no_data % 10 == 0:
+                log.info(f'  [{i+1}/{len(slugs)}] {slug[:28]:28} | no live data')
 
         # Human-like delay with jitter
         import random as _random
@@ -1398,6 +1680,12 @@ def run_scrape_cycle(mgr):
             chunk_num += 1
             saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
             total_saved += saved
+            if not ok:
+                # Do NOT discard the scraped rows — re-queue them for one
+                # retry at the end of the cycle (the docstring's
+                # "ERROR_SUPABASE -> queue for retry" contract).
+                publish_failures += 1
+                pending_publish.extend(chunk_results)
             chunk_results = []  # Reset buffer
 
             # Update heartbeat after each chunk so watchdog sees activity
@@ -1406,6 +1694,9 @@ def run_scrape_cycle(mgr):
                 'progress': f'{i+1}/{len(slugs)}',
                 'records_saved': total_saved,
                 'chunk': chunk_num,
+                'publish_failures': publish_failures,
+                'venues_blocked': total_blocked,
+                'consecutive_failures': mgr.consecutive_failures,
             })
 
     # ── Flush remaining venues in the last partial chunk ──
@@ -1413,13 +1704,98 @@ def run_scrape_cycle(mgr):
         chunk_num += 1
         saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
         total_saved += saved
+        if not ok:
+            publish_failures += 1
+            pending_publish.extend(chunk_results)
+        chunk_results = []
 
-    # ── Stale record cleanup (only AFTER all chunks published) ──
+    # ── RETRY: re-publish everything whose chunk failed ──
+    unpublished_venues = 0
+    if pending_publish:
+        log.warning(f'Retrying publish for {len(pending_publish)} venues from {publish_failures} failed chunk(s)...')
+        chunk_num += 1
+        saved, ok = publish_chunk(pending_publish, batch_id, chunk_num)
+        total_saved += saved
+        if ok:
+            log.info(f'  Retry succeeded — {saved} records recovered')
+            pending_publish = []
+        else:
+            unpublished_venues = len(pending_publish)
+            log.error(
+                f'{ERROR_SUPABASE}: retry FAILED — {unpublished_venues} venues were scraped '
+                'but never persisted this cycle'
+            )
+
+    # ── Stale record cleanup ──
+    # A partial/aborted cycle must never wipe the previous batch's rows for
+    # venues it did not reach: the live-tables API intentionally serves rows
+    # up to 24h old, and deleting them makes those venues vanish from the site.
+    venues_reached = len(all_results) + total_no_data
+    coverage = (venues_reached / len(slugs)) if slugs else 0.0
+    blocked_ratio = (total_blocked / len(slugs)) if slugs else 0.0
+    delete_ok = False
+    delete_scope = 'none'
+
+    if total_saved > 0 and not pending_publish:
+        full_delete_safe = (
+            not cycle_aborted
+            and unpublished_venues == 0
+            and coverage >= MIN_COVERAGE_FOR_FULL_DELETE
+            and blocked_ratio <= MAX_BLOCKED_RATIO_FOR_DELETE
+        )
+        if full_delete_safe:
+            delete_scope = 'full'
+            delete_ok = sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
+        else:
+            # Degraded cycle: only retire stale rows for the slugs we actually
+            # re-scraped, leaving untouched venues' previous rows in place.
+            published_slugs = sorted({
+                d['venue_slug'] for d in all_results if (d.get('venue_name') or '').strip()
+            })
+            # ENFORCE the charset the in.() filter below assumes, rather than
+            # trusting it: slugs are re-read from a JSON file on disk, and a
+            # slug containing ',' or ')' would silently widen the DELETE to
+            # venues this cycle never republished — wiping them from the site.
+            unsafe = [s for s in published_slugs if not re.fullmatch(r'[a-z0-9-]+', s)]
+            if unsafe:
+                log.error(
+                    f'  Refusing to include {len(unsafe)} slug(s) with unexpected characters '
+                    f'in the scoped DELETE: {unsafe[:5]}'
+                )
+                published_slugs = [s for s in published_slugs if s not in set(unsafe)]
+            log.warning(
+                f'Degraded cycle (aborted={cycle_aborted}, coverage={coverage:.0%}, '
+                f'blocked={blocked_ratio:.0%}, publish_failures={publish_failures}) — '
+                f'scoping stale cleanup to {len(published_slugs)} re-scraped venues only'
+            )
+            delete_scope = 'scoped'
+            delete_ok = True
+            for j in range(0, len(published_slugs), DELETE_SLUG_BATCH):
+                batch_slugs = published_slugs[j:j + DELETE_SLUG_BATCH]
+                # Slugs are [a-z0-9-] only (see the discovery regex), so they
+                # need no quoting/escaping inside the PostgREST in.() list.
+                slug_filter = ','.join(batch_slugs)
+                if not sb_delete(
+                    'venue_live_tables',
+                    f'bravo_slug=in.({slug_filter})&scrape_batch_id=neq.{batch_id}&source=eq.bravo'
+                ):
+                    delete_ok = False
+        if not delete_ok:
+            log.error(f'{ERROR_SUPABASE}: stale cleanup ({delete_scope}) failed — '
+                      'venue_live_tables may contain duplicate/stale rows')
+    else:
+        log.warning('Skipping stale cleanup: nothing was persisted this cycle')
+
+    # ── Historical snapshots (only for data that actually reached the DB) ──
+    history_write_failures = 0
     if total_saved > 0:
-        sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
-        # Save historical snapshots
-        save_history_snapshot(batch_id, all_results)
-        save_game_history_snapshot(batch_id, all_results)
+        # Same quarantine rule as build_payload_from_results: never write
+        # rows for a venue whose name failed to extract.
+        history_results = [d for d in all_results if (d.get('venue_name') or '').strip()]
+        if not save_history_snapshot(batch_id, history_results):
+            history_write_failures += 1
+        if not save_game_history_snapshot(batch_id, history_results):
+            history_write_failures += 1
 
     # Save evidence
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
@@ -1428,9 +1804,18 @@ def run_scrape_cycle(mgr):
         'scrape_timestamp': cycle_start.isoformat(),
         'venues_scraped': len(slugs),
         'venues_with_data': len(all_results),
-        'venues_skipped': total_skipped,
+        'venues_no_data': total_no_data,
+        'venues_blocked': total_blocked,
+        'venues_reached': venues_reached,
+        'coverage': round(coverage, 4),
+        'blocked_ratio': round(blocked_ratio, 4),
         'total_records_saved': total_saved,
         'errors': total_errors,
+        'publish_failures': publish_failures,
+        'unpublished_venues': unpublished_venues,
+        'history_write_failures': history_write_failures,
+        'stale_delete_scope': delete_scope,
+        'stale_delete_ok': delete_ok,
         'chunks_published': chunk_num,
         'cycle_aborted': cycle_aborted,
         'duration_seconds': duration,
@@ -1460,9 +1845,10 @@ def run_scrape_cycle(mgr):
             headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
         )
         urllib.request.urlopen(req, timeout=10)
-        log.debug('  📈 Scraper metrics recorded')
+        log.info('  Scraper metrics recorded')
     except Exception as e:
-        log.debug(f'  Metrics insert skipped: {e}')
+        history_write_failures += 1
+        log.error(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED: {_http_error_detail(e)}')
 
     with open(BASE_DIR / 'data' / 'bravo-live-snapshot.json', 'w') as f:
         json.dump({
@@ -1471,25 +1857,61 @@ def run_scrape_cycle(mgr):
         }, f, indent=2, default=str)
 
     mgr.total_cycles += 1
-    # Only reset consecutive_failures when we actually saved data
-    if total_saved > 0:
-        mgr.consecutive_failures = 0
 
-    # Write heartbeat for external watchdog
-    write_heartbeat('ok' if total_saved > 0 else 'empty', {
+    # ── Was this cycle actually OK? ──
+    # A cycle is degraded when it was aborted, when a publish never landed, or
+    # when venues WERE scraped but nothing reached the database (total DB
+    # outage). A genuinely quiet cycle — every venue loaded, none had games —
+    # is NOT a failure.
+    # A chunk that failed but was recovered by the end-of-cycle retry is NOT a
+    # degraded cycle (all rows landed); it is still counted in the heartbeat's
+    # publish_failures so intermittent DB trouble stays visible.
+    cycle_ok = (
+        not cycle_aborted
+        and unpublished_venues == 0
+        and not (all_results and total_saved == 0)
+        and blocked_ratio <= MAX_BLOCKED_RATIO_FOR_DELETE
+    )
+
+    if cycle_ok and total_saved > 0:
+        mgr.consecutive_failures = 0
+    elif not cycle_ok:
+        # Surface the streak to the external watchdog via the heartbeat.
+        mgr.consecutive_failures += 1
+
+    # Write heartbeat for external watchdog.
+    # Status stays within the watchdog's healthy vocabulary
+    # (running|ok|healthy|scraping|idle) so a legitimately quiet cycle is not
+    # force-restarted; degradation is reported through consecutive_failures
+    # and the counters below.
+    write_heartbeat('ok' if total_saved > 0 else 'idle', {
         'cycle': mgr.total_cycles,
         'records_saved': total_saved,
         'venues_with_data': len(all_results),
+        'venues_no_data': total_no_data,
+        'venues_blocked': total_blocked,
+        'coverage': round(coverage, 4),
         'errors': total_errors,
+        'publish_failures': publish_failures,
+        'unpublished_venues': unpublished_venues,
+        'history_write_failures': history_write_failures,
+        'stale_delete_scope': delete_scope,
+        'stale_delete_ok': delete_ok,
+        'cycle_ok': cycle_ok,
+        'cycle_aborted': cycle_aborted,
         'chunks_published': chunk_num,
         'duration_seconds': round(duration),
+        'consecutive_failures': mgr.consecutive_failures,
     })
 
     log.info(
-        f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(all_results)}/{len(slugs)} venues | '
-        f'{total_saved} records in {chunk_num} chunks | {duration:.0f}s | Errors: {total_errors} ==='
+        f'=== CYCLE #{mgr.total_cycles} {"COMPLETE" if cycle_ok else "DEGRADED"} | '
+        f'{len(all_results)}/{len(slugs)} venues with data | coverage {coverage:.0%} | '
+        f'{total_saved} records in {chunk_num} chunks | {duration:.0f}s | '
+        f'errors: {total_errors} | blocked: {total_blocked} | '
+        f'publish failures: {publish_failures} ==='
     )
-    return len(all_results)
+    return total_saved, cycle_ok
 
 # ============================================================
 # DAEMON LOOP
@@ -1507,12 +1929,14 @@ signal.signal(signal.SIGTERM, signal_handler)
 # ============================================================
 # LOG ROTATION HELPER
 # ============================================================
-_last_log_date = datetime.now().strftime('%Y%m%d')
+# UTC so the daemon's notion of "day" matches every timestamp it writes to
+# the database (and the UTC-stamped evidence files).
+_last_log_date = datetime.now(timezone.utc).strftime('%Y%m%d')
 
 def _maybe_rotate_log():
-    """Rotate log file handler when date changes (midnight crossing)."""
+    """Rotate log file handler when the UTC date changes (midnight crossing)."""
     global _last_log_date
-    today = datetime.now().strftime('%Y%m%d')
+    today = datetime.now(timezone.utc).strftime('%Y%m%d')
     if today != _last_log_date:
         _last_log_date = today
         new_path = LOG_DIR / f'daemon_{today}.log'
@@ -1648,7 +2072,10 @@ def main():
     # Write our own PID
     try:
         PID_FILE.write_text(str(os.getpid()))
-        write_heartbeat('starting')
+        # 'running', not 'starting': scraper-watchdog-local.sh only accepts
+        # running|ok|healthy|scraping|idle and force-restarts anything else,
+        # and the first cycle takes longer than one watchdog interval.
+        write_heartbeat('running')
     except Exception as e:
         log.warning(f'  Could not write PID file: {e}')  # Non-fatal
 
@@ -1675,17 +2102,21 @@ def main():
             sys.exit(1)
 
         try:
-            count = run_scrape_cycle(mgr)
-            if count > 0:
+            records_saved, cycle_ok = run_scrape_cycle(mgr)
+            # The watchdog clock is reset ONLY on a cycle that actually
+            # persisted records, or a clean cycle that legitimately had none.
+            # Resetting it on "venues parsed" made a total database outage
+            # look healthy forever.
+            if records_saved > 0 or cycle_ok:
                 last_successful_save = time.time()
-                log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
+                log.info(f'Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
                 # Shorter backoff with exponential multiplier & ±10% Jitter
                 import random
                 base_delays = [5, 15, 45, 120, 300]
                 idx = min(mgr.consecutive_failures, len(base_delays) - 1)
                 backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
-                log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
+                log.warning(f'Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
                 for _ in range(backoff):
                     if not running:
                         break

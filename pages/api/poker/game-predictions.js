@@ -68,6 +68,36 @@ function getLocalParts(value, timeZone) {
   return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
 }
 
+/**
+ * Resolve a numeric venue_id to its poker_venues row.
+ * The documented `venue_id` param is numeric, but the history filter matched it
+ * against bravo_slug ('pa-bellagio'), so id-based lookups never matched anything
+ * and users saw "not enough historical data" instead of their venue.
+ *
+ * Returns { row, error }. `error` set means the LOOKUP itself failed — the
+ * caller must not report that as "no such venue" (a 404 for a database outage
+ * tells the client to stop retrying a venue that actually exists).
+ */
+async function resolveVenueById(supabase, venueId) {
+  const idNum = parseInt(venueId, 10);
+  if (isNaN(idNum) || idNum < 1 || !/^\d+$/.test(String(venueId))) return { row: null, error: null };
+  try {
+    const { data, error } = await supabase
+      .from('poker_venues')
+      .select('id, name, state')
+      .eq('id', idNum)
+      .maybeSingle();
+    if (error) {
+      console.warn('game-predictions: venue lookup failed:', error.message);
+      return { row: null, error: error.message || 'venue lookup failed' };
+    }
+    return { row: data || null, error: null };
+  } catch (lookupErr) {
+    console.warn('game-predictions: venue lookup threw:', lookupErr.message);
+    return { row: null, error: lookupErr.message || 'venue lookup threw' };
+  }
+}
+
 /** Best-effort venue timezone from poker_venues.state; defaults to Eastern. */
 async function resolveVenueTimezone(supabase, venueId, venueName) {
   try {
@@ -119,21 +149,74 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Query per-game history from game_live_history (the additive table)
-    let query = supabase
-      .from('game_live_history')
-      .select('venue_name, game_type, stakes, tables, waiting, snapshot_time')
-      .gte('snapshot_time', fourWeeksAgo)
-      .order('snapshot_time', { ascending: true });
-
-    if (safeVenueId) {
-      // Match by bravo_slug pattern for venue_id
-      query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-    } else if (safeVenue) {
-      query = query.ilike('venue_name', `%${safeVenue}%`);
+    // Resolve a numeric venue_id to a real venue before querying history.
+    const numericVenueId = safeVenueId && /^\d+$/.test(safeVenueId);
+    const venueLookup = numericVenueId
+      ? await resolveVenueById(supabase, safeVenueId)
+      : { row: null, error: null };
+    if (numericVenueId && venueLookup.error) {
+      // The venue may well exist — the lookup broke. Never answer 404 for that.
+      try { reportApiError(new Error(`game-predictions venue lookup failed: ${venueLookup.error}`), req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(503).json({
+        success: false,
+        degraded: true,
+        error: 'Venue lookup failed',
+        details: venueLookup.error,
+        predictions: [],
+        summary: null,
+      });
+    }
+    const venueRow = venueLookup.row;
+    if (numericVenueId && !venueRow) {
+      // Distinguish "unknown venue id" from "venue exists but has no history".
+      return res.status(404).json({
+        success: false,
+        error: `No venue found for venue_id ${safeVenueId}`,
+        predictions: [],
+        summary: null,
+      });
     }
 
-    const { data, error } = await query.limit(5000);
+    // Query per-game history from game_live_history (the additive table).
+    // Supabase caps a query at 1000 rows regardless of .limit(), so page with .range().
+    const buildQuery = () => {
+      let q = supabase
+        .from('game_live_history')
+        .select('venue_name, game_type, stakes, tables, waiting, snapshot_time')
+        .gte('snapshot_time', fourWeeksAgo)
+        .order('snapshot_time', { ascending: true });
+
+      if (venueRow?.name) {
+        // Numeric venue_id resolved to a real venue — join on its name.
+        const safeName = String(venueRow.name).replace(/[%_]/g, '\\$&').slice(0, 120);
+        q = q.ilike('venue_name', `%${safeName}%`);
+      } else if (safeVenueId) {
+        // Non-numeric id: treat it as a bravo_slug, which is what it actually is.
+        q = q.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
+      } else if (safeVenue) {
+        q = q.ilike('venue_name', `%${safeVenue}%`);
+      }
+      return q;
+    };
+
+    const HISTORY_PAGE_SIZE = 1000;
+    const HISTORY_MAX_PAGES = 10;
+    let data = [];
+    let error = null;
+    let historyTruncated = false;
+    for (let page = 0; page < HISTORY_MAX_PAGES; page++) {
+      const { data: pageRows, error: pageErr } = await buildQuery()
+        .range(page * HISTORY_PAGE_SIZE, (page + 1) * HISTORY_PAGE_SIZE - 1);
+      if (pageErr) { error = pageErr; break; }
+      if (!pageRows || pageRows.length === 0) break;
+      data = data.concat(pageRows);
+      if (pageRows.length < HISTORY_PAGE_SIZE) break;
+      if (page === HISTORY_MAX_PAGES - 1) {
+        historyTruncated = true;
+        console.warn(`game-predictions: history page ceiling (${HISTORY_MAX_PAGES * HISTORY_PAGE_SIZE}) reached — analysis is partial`);
+      }
+    }
     if (error) {
       if (error.code === '42P01' || error.code === '42703') {
         // Table or column doesn't exist yet — graceful empty state
@@ -154,7 +237,8 @@ export default async function handler(req, res) {
 
     // Group by game type (bucketed in the venue's local time, not UTC)
     const gameTypeBuckets = {};
-    const venueTz = await resolveVenueTimezone(supabase, safeVenueId, safeVenue || data[0]?.venue_name);
+    const venueTz = (venueRow && IANA_TZ[(venueRow.state || '').toUpperCase()])
+      || await resolveVenueTimezone(supabase, safeVenueId, safeVenue || data[0]?.venue_name);
 
     data.forEach(row => {
       const parts = getLocalParts(row.snapshot_time, venueTz);
@@ -251,9 +335,11 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       venue_id: safeVenueId || null,
+      venue_name: venueRow?.name || null,
       venue_filter: safeVenue || null,
       period: '28 days',
       timezone: venueTz,
+      truncated: historyTruncated,
       data_points: totalDataPoints,
       predictions,
       summary,

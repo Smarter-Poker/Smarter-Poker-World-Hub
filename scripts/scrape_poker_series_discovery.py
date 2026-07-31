@@ -138,6 +138,18 @@ def normalize_key(name: str) -> str:
     s = re.sub(r"\s+\d{4}$", "", s)       # strip trailing year
     return s
 
+def dedup_key(name: str) -> str:
+    """Dedup key for the master-list merge — KEEPS the trailing year.
+
+    normalize_key() strips it, so 'Spring Classic 2026' and 'Spring Classic 2025'
+    collapsed into one group and the older edition was deleted.
+    """
+    s = name.lower().strip()
+    s = re.sub(r"[\u2018\u2019'`]", "", s)
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def is_legit_series(name: str) -> bool:
     """
     Strict 3-layer legitimacy gate for poker series names.
@@ -274,14 +286,20 @@ def is_usa(text: str) -> bool:
     return any(sn.lower() in text.lower() for sn in USA_NAMES)
 
 def network_available() -> bool:
+    """False when EVERY probe fails.
+
+    This used to `return True  # Assume OK`, so a total network outage reported
+    healthy and connect() sailed past its guard — disagreeing with
+    poker_series_scraper.network_ok(), which correctly returns False.
+    """
     for url in ["https://www.google.com", "https://www.apple.com"]:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             urllib.request.urlopen(req, timeout=8)
             return True
-        except:
+        except Exception:
             continue
-    return True  # Assume OK — StealthySession will error if truly down
+    return False
 
 def _hard_kill_on_hang(reason: str):
     log.error(f"💀 WATCHDOG KILL: {reason}")
@@ -345,17 +363,28 @@ def sb_upsert(table: str, records: list, on_conflict: str = "name") -> int:
                     log.error(f"  [UPSERT FAIL] {table}: {err}")
     return total
 
-def sb_delete_by_id(table: str, record_id: int) -> bool:
+def sb_deactivate_by_id(table: str, record_id: int) -> bool:
+    """Soft-delete: mark the row inactive instead of destroying it.
+
+    This replaces a hard DELETE that permanently removed rows judged duplicate
+    by a lossy normalized key — with no dry-run guard and no backup, so
+    'Spring Classic 2025' was destroyed by 'Spring Classic 2026'.
+    """
+    payload = json.dumps({"is_active": False}).encode()
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/{table}?id=eq.{record_id}",
-        method="DELETE",
+        data=payload,
+        method="PATCH",
         headers=SB_HEADERS,
     )
     try:
-        urllib.request.urlopen(req, timeout=15)
+        with urllib.request.urlopen(req, timeout=15) as r:
+            if r.status not in (200, 201, 204):
+                log.warning(f"  Deactivate failed id={record_id}: HTTP {r.status}")
+                return False
         return True
     except Exception as e:
-        log.warning(f"  DELETE failed id={record_id}: {e}")
+        log.warning(f"  Deactivate failed id={record_id}: {e}")
         return False
 
 def save_evidence(source: str, url: str, body: bytes, records: list):
@@ -375,19 +404,32 @@ def save_evidence(source: str, url: str, body: bytes, records: list):
     fname.write_text(json.dumps(ev, indent=2))
     log.info(f"  📁 Evidence → {fname.name}")
 
-def log_audit(inserted: int, deduped: int, found: int):
+def log_audit(inserted: int, deduped: int, found: int) -> bool:
+    """Write the run's audit row.
+
+    Column names now match poker_series_scraper.sb_audit() — the two writers
+    targeted the same table with DIFFERENT column sets
+    (records_inserted/records_found/scrape_timestamp vs
+    records_affected/notes/created_at), so at most one could be right and both
+    swallowed the resulting error, leaving the audit trail silently empty.
+    """
     try:
-        sb_upsert("data_audit_log", [{
+        n = sb_upsert("data_audit_log", [{
             "table_name": "poker_venues",
             "action": "series_discovery_v3",
             "batch_id": BATCH_ID,
             "agent_id": SCRIPT,
-            "records_inserted": inserted,
-            "records_found": found,
-            "scrape_timestamp": STARTED,
+            "records_affected": inserted,
+            "notes": f"found={found},inserted={inserted},deduped={deduped}",
+            "created_at": STARTED,
         }], on_conflict=None)
+        if not n:
+            log.error("  ❌ Audit log write returned 0 rows")
+            return False
+        return True
     except Exception as e:
-        log.warning(f"  Audit log failed (non-fatal): {e}")
+        log.error(f"  ❌ Audit log failed: {e}")
+        return False
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -717,7 +759,11 @@ def scrape_pokeratlas(mgr: SeriesSessionManager, known_keys: set) -> list:
 # ──────────────────────────────────────────────────────────────────────────────
 def scrape_hendonmob(mgr: SeriesSessionManager, known_keys: set) -> list:
     log.info("\n── Source 2: HendonMob ─────────────────────────────────────────")
-    url = "https://pokerdb.thehendonmob.com/event.php?a=l&d=01&m=01&y=2026&weeks=52&buyin_cur=USD&location=country&c=USA"
+    # Year derived from the clock — was pinned to y=2026, so from 2027 the source
+    # would return a stale window and discovery would quietly find nothing new.
+    _yr = datetime.now(timezone.utc).year
+    url = (f"https://pokerdb.thehendonmob.com/event.php?a=l&d=01&m=01&y={_yr}"
+           f"&weeks=52&buyin_cur=USD&location=country&c=USA")
     mgr.ensure_connected()
     html = mgr.fetch(url)
     time.sleep(RATE_LIMIT_DELAY)
@@ -896,7 +942,8 @@ def insert_new_series(items: list) -> int:
 # ──────────────────────────────────────────────────────────────────────────────
 # MASTER LIST BUILDER + DB DEDUP SWEEP
 # ──────────────────────────────────────────────────────────────────────────────
-def build_master_list_and_dedup(db_records: list, new_records: list) -> dict:
+def build_master_list_and_dedup(db_records: list, new_records: list,
+                                do_dedup: bool = False) -> dict:
     """
     1. Combine all DB records + newly inserted records
     2. Find duplicates by normalize_key()
@@ -914,10 +961,11 @@ def build_master_list_and_dedup(db_records: list, new_records: list) -> dict:
                             "source_url": nr.get("source_url", ""),
                             "scrape_source": nr.get("scrape_source", "")})
 
-    # Group by normalized key
+    # Group by dedup key — dedup_key() KEEPS the trailing year so different
+    # editions of the same series are not collapsed into one another.
     key_to_records: dict = {}
     for rec in all_records:
-        key = normalize_key(rec["name"])
+        key = dedup_key(rec["name"])
         if not key:
             continue
         key_to_records.setdefault(key, []).append(rec)
@@ -949,14 +997,22 @@ def build_master_list_and_dedup(db_records: list, new_records: list) -> dict:
     # Sort master list alphabetically
     master.sort(key=lambda r: r["name"].lower())
 
-    # Only delete if they're real DB dupes (not just cross-table name matches)
+    # Soft-delete duplicates, and ONLY when explicitly asked for via --dedup.
+    # This path used to hard-DELETE rows from poker_venues on every single run.
     deleted = 0
-    if duplicates_to_delete:
-        log.info(f"  🗑️  Found {len(duplicates_to_delete)} DB duplicates — removing…")
+    if duplicates_to_delete and not do_dedup:
+        log.info(f"  ℹ️  {len(duplicates_to_delete)} candidate duplicate(s) detected — "
+                 f"NOT modified (pass --dedup to deactivate them)")
+        for dup in duplicates_to_delete[:20]:
+            log.info(f"    would deactivate: {dup['name']} (id={dup.get('id')} "
+                     f"from {dup.get('table')})")
+    elif duplicates_to_delete:
+        log.info(f"  🗄️  Deactivating {len(duplicates_to_delete)} DB duplicates "
+                 f"(soft-delete, rows are preserved)…")
         for dup in duplicates_to_delete:
             if dup.get("id") and isinstance(dup["id"], int):
-                if sb_delete_by_id(dup["table"], dup["id"]):
-                    log.info(f"    Deleted: {dup['name']} (id={dup['id']} from {dup['table']})")
+                if sb_deactivate_by_id(dup["table"], dup["id"]):
+                    log.info(f"    Deactivated: {dup['name']} (id={dup['id']} from {dup['table']})")
                     deleted += 1
 
     # Export master list JSON
@@ -981,6 +1037,9 @@ def build_master_list_and_dedup(db_records: list, new_records: list) -> dict:
 def main():
     args = sys.argv[1:]
     dry_run = "--dry-run" in args
+    # Deactivating duplicate venue rows is now opt-in — it used to run on every
+    # single invocation and hard-DELETE the rows it judged duplicate.
+    do_dedup = "--dedup" in args
 
     log.info("=" * 70)
     log.info("POKER SERIES DISCOVERY SCRAPER v3.0")
@@ -993,7 +1052,9 @@ def main():
 
     # Network
     log.info("\n🌐 Network check…")
-    network_available()
+    if not network_available():
+        log.error("  ❌ Network unavailable — aborting (pre-check failed)")
+        sys.exit(1)
     log.info("  ✅ Network OK")
 
     # Step 0: Pull live DB known series
@@ -1054,19 +1115,26 @@ def main():
         db_records2 = db_records
 
     # Step 6: Build master list + dedup DB
-    result = build_master_list_and_dedup(db_records2, clean if dry_run else [])
+    result = build_master_list_and_dedup(db_records2, clean if dry_run else [],
+                                        do_dedup=do_dedup and not dry_run)
 
     # Step 7: Audit log
+    audit_ok = True
     if not dry_run:
-        log_audit(inserted, result["duplicates_removed"], len(all_new))
+        audit_ok = log_audit(inserted, result["duplicates_removed"], len(all_new))
 
     log.info("\n" + "=" * 70)
     log.info(f"COMPLETE")
     log.info(f"  New series added:       {inserted}")
-    log.info(f"  DB duplicates removed:  {result['duplicates_removed']}")
+    log.info(f"  DB duplicates deactivated: {result['duplicates_removed']}"
+             f"{'' if do_dedup else ' (--dedup not passed)'}")
     log.info(f"  Master list total:      {result['total_series']}")
     log.info(f"  Master list file:       {MASTER_LIST}")
     log.info("=" * 70)
+
+    # An unwritten audit trail is a real failure — let the exit code say so.
+    if not audit_ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

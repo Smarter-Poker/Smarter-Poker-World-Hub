@@ -55,10 +55,110 @@ discord_alert() {
   local message="$1"
   if [ -n "$DISCORD_WEBHOOK" ]; then
     curl -s -H "Content-Type: application/json" \
-      -d "{\"content\":\"🔧 **Scraper Watchdog** — ${message}\"}" \
+      -d "{\"content\":\"**Scraper Watchdog** — ${message}\"}" \
       "$DISCORD_WEBHOOK" > /dev/null 2>&1
     log "  Discord alert sent: ${message}"
   fi
+}
+
+# Non-zero when any recovery attempt in this run did not take. Surfaced as the
+# script's exit status so launchd/logs show a failing watchdog.
+RECOVERY_FAILURES=0
+
+# Jobs already restarted during this run. Without this, a stale-heartbeat
+# restart was immediately followed by check_pid_alive reading the OLD pid out of
+# the not-yet-rewritten heartbeat, declaring it dead and stopping the daemon
+# that had just come up.
+RESTARTED_JOBS=""
+
+already_restarted() {
+  case " ${RESTARTED_JOBS} " in
+    *" $1 "*) return 0 ;;
+    *)        return 1 ;;
+  esac
+}
+
+plist_file_for() {
+  echo "/Users/smarter.poker/Library/LaunchAgents/${1}.plist"
+}
+
+# Is the job known to launchd at all?
+job_loaded() {
+  launchctl list "$1" >/dev/null 2>&1
+}
+
+# PID launchd currently has for the job ("-" / missing => not running).
+job_pid() {
+  launchctl list "$1" 2>/dev/null \
+    | awk -F' = ' '/"PID"/ { gsub(/[^0-9]/, "", $2); print $2; exit }'
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# restart_daemon <name> <plist-label> <reason>
+#
+# Every recovery path used to be `launchctl stop/start "$plist" 2>/dev/null`
+# followed by an unconditional "Restart issued" log + Discord alert. But
+# `launchctl start` FAILS when the job is not loaded — exactly the state after
+# launchd throttles a crash-looping daemon, or after a reboot where the plist
+# was never loaded — and that failure went to /dev/null. A permanently dead
+# daemon therefore produced a reassuring alert every 5 minutes.
+#
+# Now: capture the status, fall back to load/bootstrap, verify a live PID, and
+# only claim a restart when one actually happened.
+# Returns 0 on verified restart, 1 otherwise.
+# ─────────────────────────────────────────────────────────────────────────────
+restart_daemon() {
+  local name="$1"
+  local plist="$2"
+  local reason="$3"
+  local plist_path
+  plist_path="$(plist_file_for "$plist")"
+
+  RESTARTED_JOBS="${RESTARTED_JOBS} ${plist}"
+  log "  ${name}: restart requested — ${reason}"
+
+  launchctl stop "$plist" >/dev/null 2>&1 || true
+  sleep 2
+
+  if ! launchctl start "$plist" >/dev/null 2>&1; then
+    log "  ${name}: launchctl start failed (job not loaded or throttled) — loading plist"
+    if [ -f "$plist_path" ]; then
+      if ! launchctl load "$plist_path" >/dev/null 2>&1; then
+        launchctl bootstrap "gui/$(id -u)" "$plist_path" >/dev/null 2>&1 || true
+      fi
+      sleep 2
+      launchctl start "$plist" >/dev/null 2>&1 || true
+    else
+      log "  ${name}: RESTART FAILED — plist file not found at ${plist_path}"
+      RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
+      discord_alert "${name}: RESTART FAILED — plist missing at ${plist_path} (${reason})"
+      return 1
+    fi
+  fi
+
+  # Verify: loaded AND holding a live PID. A job that starts and dies instantly
+  # is not a recovery.
+  sleep 5
+  if ! job_loaded "$plist"; then
+    log "  ${name}: RESTART FAILED — job still not loaded in launchd"
+    RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
+    discord_alert "${name}: RESTART FAILED — job not loaded in launchd (${reason})"
+    return 1
+  fi
+
+  local new_pid
+  new_pid="$(job_pid "$plist")"
+  if [ -z "$new_pid" ] || [ "$new_pid" -eq 0 ] 2>/dev/null; then
+    log "  ${name}: RESTART FAILED — job loaded but no running PID (crash loop / throttled?)"
+    RECOVERY_FAILURES=$((RECOVERY_FAILURES + 1))
+    discord_alert "${name}: RESTART FAILED — no running PID after start (${reason})"
+    return 1
+  fi
+
+  log "  ${name}: restart verified — running as PID ${new_pid}"
+  notify "${name}: restarted (${reason})"
+  discord_alert "${name}: restarted, now PID ${new_pid} (${reason})"
+  return 0
 }
 
 # Check heartbeat freshness
@@ -71,16 +171,18 @@ check_heartbeat() {
   if [ ! -f "$heartbeat_file" ]; then
     log "  ${name}: No heartbeat file — daemon may not be running"
 
-    # Check if the daemon process exists
-    if ! launchctl list | grep -q "$plist"; then
+    # Check if the daemon process exists. `launchctl load` alone was reported as
+    # success without ever checking that the job came up.
+    if ! job_loaded "$plist"; then
       log "  ${name}: NOT loaded in launchd — attempting to load"
-      local plist_file="/Users/smarter.poker/Library/LaunchAgents/${plist}.plist"
-      if [ -f "$plist_file" ]; then
-        launchctl load "$plist_file" 2>/dev/null
-        log "  ${name}: Loaded plist"
-        notify "${name} daemon loaded"
+      restart_daemon "$name" "$plist" "no heartbeat file, job not loaded"
+    else
+      local hb_pid
+      hb_pid="$(job_pid "$plist")"
+      if [ -z "$hb_pid" ] || [ "$hb_pid" -eq 0 ] 2>/dev/null; then
+        restart_daemon "$name" "$plist" "no heartbeat file, job loaded but not running"
       else
-        log "  ${name}: Plist file not found at ${plist_file}"
+        log "  ${name}: loaded and running as PID ${hb_pid} — waiting for first heartbeat"
       fi
     fi
     return
@@ -94,16 +196,7 @@ check_heartbeat() {
   if [ "$age" -gt "$MAX_HEARTBEAT_AGE" ]; then
     local age_min=$((age / 60))
     log "  ${name}: STALE heartbeat (${age_min}min old > ${MAX_HEARTBEAT_AGE}s threshold)"
-    log "  ${name}: Auto-restarting daemon..."
-
-    # Unload and reload the daemon
-    launchctl stop "$plist" 2>/dev/null
-    sleep 2
-    launchctl start "$plist" 2>/dev/null
-
-    log "  ${name}: Restart issued (launchctl stop/start)"
-    notify "${name}: Auto-restarted (heartbeat was ${age_min}min stale)"
-    discord_alert "${name}: Auto-restarted (heartbeat was ${age_min}min stale)"
+    restart_daemon "$name" "$plist" "heartbeat was ${age_min}min stale"
   else
     local age_min=$((age / 60))
     # Read status + failure streak from the heartbeat file.
@@ -121,12 +214,8 @@ check_heartbeat() {
     case "$status" in
       running|ok|healthy|scraping|idle) : ;;
       *)
-        log "  ${name}: UNHEALTHY status='${status}' (${fails} consecutive failures) — restarting"
-        launchctl stop "$plist" 2>/dev/null
-        sleep 2
-        launchctl start "$plist" 2>/dev/null
-        notify "${name}: Restarted (status=${status}, ${fails} failures)"
-        discord_alert "${name}: Restarted — status=${status} after ${fails} consecutive failures"
+        log "  ${name}: UNHEALTHY status='${status}' (${fails} consecutive failures)"
+        restart_daemon "$name" "$plist" "status=${status} after ${fails} consecutive failures"
         return
         ;;
     esac
@@ -134,12 +223,8 @@ check_heartbeat() {
     # Healthy status but a climbing failure streak still means it is not
     # producing data; restart before the streak becomes permanent.
     if [ "$fails" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
-      log "  ${name}: ${fails} consecutive failures (>= ${MAX_CONSECUTIVE_FAILURES}) — restarting"
-      launchctl stop "$plist" 2>/dev/null
-      sleep 2
-      launchctl start "$plist" 2>/dev/null
-      notify "${name}: Restarted (${fails} consecutive failures)"
-      discord_alert "${name}: Restarted — ${fails} consecutive failures"
+      log "  ${name}: ${fails} consecutive failures (>= ${MAX_CONSECUTIVE_FAILURES})"
+      restart_daemon "$name" "$plist" "${fails} consecutive failures"
       return
     fi
 
@@ -157,16 +242,17 @@ check_pid_alive() {
     return
   fi
 
+  # Already restarted this run: the heartbeat still holds the pre-restart PID.
+  if already_restarted "$plist"; then
+    log "  ${name}: skipping PID check — already restarted this run"
+    return
+  fi
+
   local pid=$(python3 -c "import json; print(json.load(open('$heartbeat_file')).get('pid', 0))" 2>/dev/null || echo 0)
-  if [ "$pid" -gt 0 ]; then
+  if [ "$pid" -gt 0 ] 2>/dev/null; then
     if ! kill -0 "$pid" 2>/dev/null; then
-      log "  ${name}: PID ${pid} from heartbeat is NOT running — restarting"
-      launchctl stop "$plist" 2>/dev/null
-      sleep 2
-      launchctl start "$plist" 2>/dev/null
-      log "  ${name}: Restart issued for dead PID"
-      notify "${name}: Restarted (PID ${pid} was dead)"
-      discord_alert "${name}: Restarted (PID ${pid} was dead)"
+      log "  ${name}: PID ${pid} from heartbeat is NOT running"
+      restart_daemon "$name" "$plist" "heartbeat PID ${pid} was dead"
     fi
   fi
 }
@@ -179,5 +265,10 @@ check_pid_alive "Bravo" "$BRAVO_HEARTBEAT" "$BRAVO_PLIST"
 
 check_heartbeat "PokerAtlas" "$PA_HEARTBEAT" "$PA_PLIST"
 check_pid_alive "PokerAtlas" "$PA_HEARTBEAT" "$PA_PLIST"
+
+if [ "$RECOVERY_FAILURES" -gt 0 ]; then
+  log "Watchdog check complete — ${RECOVERY_FAILURES} recovery attempt(s) FAILED."
+  exit 1
+fi
 
 log "Watchdog check complete."

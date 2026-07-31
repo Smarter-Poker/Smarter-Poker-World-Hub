@@ -46,6 +46,17 @@ if sys.version_info >= (3, 14):
     sys.exit(1)
 from dotenv import load_dotenv
 
+import os as _bh_os, sys as _bh_sys
+_bh_sys.path.insert(0, _bh_os.path.dirname(_bh_os.path.abspath(__file__)))
+# Browser self-heal — launchd runs this daemon directly, so shell-level healing
+# in the launchers never fires. See scripts/browser_heal.py for the 2026-07-26
+# incident where a missing chromium revision kept this daemon down for days.
+try:
+    import browser_heal as _browser_heal
+except Exception:  # pragma: no cover - heal is best-effort
+    _browser_heal = None
+
+
 # Resolve the absolute path to the project root and load ALL env files.
 # CRITICAL: Load in REVERSE priority order (lowest first) so that higher-priority
 # files override lower-priority ones via override=True. This mirrors Next.js env
@@ -176,7 +187,8 @@ def sb_delete(table, query):
     try:
         urllib.request.urlopen(req, timeout=15)
         return True
-    except:
+    except Exception as e:
+        log.error(f'{ERROR_SUPABASE}: DELETE {table}?{query} FAILED: {e}')
         return False
 
 # ============================================================
@@ -275,13 +287,19 @@ def load_pa_regions():
 # ============================================================
 # DATA EXTRACTION
 # ============================================================
-def extract_games_from_region(html, region_slug, fallback_venue_name=None):
-    """Extract cash game data from a PokerAtlas region cash-games page.
+def extract_games_from_region(html, region_slug, fallback_venue_name=None, source_url=None):
+    """Extract cash game CATALOG data from a PokerAtlas region cash-games page.
 
     Returns data in the SAME structure as Bravo's extract_live_data():
-      - live_games: games with tables actively running
-      - waitlist: games with players waiting but no tables yet
+      - live_games: catalog entries for each game a venue spreads
+      - waitlist: games with a published players-waiting count
     This ensures both daemons feed identical schemas into venue_live_tables.
+
+    IMPORTANT — PokerAtlas publishes NO live table count on these pages. The
+    'Runs:' descriptor is a prose schedule string ('Always', 'Daily',
+    'Weekends'), NOT a count of tables currently running. Every game therefore
+    carries tables=None (unknown), which is written to the DB as NULL. Only the
+    'Players Waiting' figure is an observed real-time value.
 
     HTML structure (from production analysis):
     <li class="cash-games-list-item cds-item">
@@ -378,15 +396,13 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
         if waiting_match:
             players_waiting = int(waiting_match.group(1))
 
-        # Convert "runs" to a table estimate
-        tables_estimate = runs_to_tables(runs)
-
         # Group by venue — using Bravo-compatible live_games + waitlist structure
         if venue_name not in venues:
             venues[venue_name] = {
                 'venue_name': venue_name,
                 'venue_slug': re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-'),
                 'region_slug': region_slug,
+                'source_url': source_url or f'https://www.pokeratlas.com/poker-cash-games/{region_slug}',
                 'scrape_timestamp': now,
                 'scrape_html_hash': rhash,
                 'live_games': [],
@@ -400,27 +416,21 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
             continue
         venues[venue_name]['_seen_games'].add(game_key)
 
-        # Classify into live_games vs waitlist (matching Bravo's structure)
-        if tables_estimate > 0:
-            venues[venue_name]['live_games'].append({
-                'game': game_name,
-                'tables': tables_estimate,
-                'buyin': buyin,
-                'runs': runs,
-            })
-        # If players are waiting OR the game is listed with no tables, add to waitlist
+        # CATALOG ENTRY: the page tells us the venue spreads this game and on
+        # what schedule ('runs'), but NOT how many tables are running right now.
+        # tables=None means "unknown" and is persisted as NULL — never guessed.
+        venues[venue_name]['live_games'].append({
+            'game': game_name,
+            'tables': None,
+            'buyin': buyin,
+            'runs': runs,
+        })
+
+        # Players Waiting IS an observed real-time value when present.
         if players_waiting > 0:
             venues[venue_name]['waitlist'].append({
                 'game': game_name,
                 'players_waiting': players_waiting,
-            })
-        elif tables_estimate == 0:
-            # Game listed but not currently running — catalog entry
-            venues[venue_name]['live_games'].append({
-                'game': game_name,
-                'tables': 0,
-                'buyin': buyin,
-                'runs': runs,
             })
 
     # Clean up internal state before returning
@@ -432,36 +442,11 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
     return result, rhash, now
 
 
-def runs_to_tables(runs_text):
-    """Convert PokerAtlas 'Runs' description to estimated table count.
-
-    Examples:
-    - 'Always' → 3 (multiple tables always running)
-    - 'One or two tables' → 1
-    - 'Daily' → 2
-    - 'Multiple tables' → 3
-    - '' → 1 (default)
-    """
-    if not runs_text:
-        return 1
-
-    r = runs_text.lower()
-    if 'always' in r:
-        return 3
-    elif 'multiple' in r:
-        return 3
-    elif 'two' in r or '2' in r:
-        return 2
-    elif 'one' in r or '1' in r:
-        return 1
-    elif 'daily' in r:
-        return 2
-    elif 'weekday' in r or 'weekend' in r:
-        return 1
-    elif 'occasionally' in r or 'rare' in r:
-        return 0  # Not currently running
-    else:
-        return 1  # Default
+# NOTE: runs_to_tables() was deleted. It converted the prose 'Runs:' schedule
+# descriptor into an invented table count ('Always' -> 3, unknown -> 1) which
+# was then published as a live count alongside Bravo's genuine real-time data.
+# PokerAtlas region pages do not publish live table counts; there is nothing to
+# derive one from. Do not reintroduce it.
 
 
 # ============================================================
@@ -474,11 +459,22 @@ def build_payload_from_results(venue_results, batch_id):
     data structure in venue_live_tables across both sources.
 
     Logic:
-      1. For each live_game, check waitlist for matching game names
-         and attach players_waiting count.
-      2. Waitlist-only games (not in live_games) get separate records
-         with tables_running=0.
+      1. For each catalog game, check waitlist for matching game names
+         and attach the observed players_waiting count.
+      2. Waitlist-only games (not in live_games) get separate records.
       3. Dedup by game name within each venue.
+
+    PROVENANCE NOTES:
+      - tables_running is ALWAYS NULL for source='pokeratlas'. These rows are a
+        game catalog (game, buy-in range, run schedule), not a live count.
+        Consumers must treat NULL as "unknown", never as zero tables.
+      - data_quality stays 'scraped_verified' only because venue_live_tables
+        has a DB CHECK constraint that rejects other values (see
+        bravo-simulator-daemon.py). A 'catalog_unverified' label needs a
+        migration to that constraint and is deliberately NOT attempted here.
+      - The source page URL is not written to the row: venue_live_tables has no
+        source_url column and this script must not invent one. It is recorded
+        in the per-cycle evidence + snapshot JSON instead.
     """
     payload = []
     for venue_data in venue_results:
@@ -493,7 +489,9 @@ def build_payload_from_results(venue_results, batch_id):
 
         seen_games = set()
 
-        # 1. Live games (tables > 0) — merge waitlist counts
+        # 1. Catalog games — merge observed waitlist counts.
+        #    tables_running is written as NULL: PokerAtlas publishes no live
+        #    table count, so any number here would be fabricated.
         for game in venue_data.get('live_games', []):
             game_key = game['game'].lower().strip()
             if game_key in seen_games:
@@ -504,7 +502,7 @@ def build_payload_from_results(venue_results, batch_id):
             payload.append({
                 'venue_name': venue_name,
                 'game_name': game['game'],
-                'tables_running': game.get('tables', 0),
+                'tables_running': None,
                 'players_waiting': players_waiting,
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],
@@ -532,7 +530,7 @@ def build_payload_from_results(venue_results, batch_id):
             payload.append({
                 'venue_name': venue_name,
                 'game_name': original_name,
-                'tables_running': 0,
+                'tables_running': None,
                 'players_waiting': players_waiting,
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],
@@ -563,8 +561,9 @@ def write_heartbeat(status, extra=None):
             hb.update(extra)
         with open(HEARTBEAT_FILE, 'w') as f:
             json.dump(hb, f, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        # The watchdog reads this file — a silent failure here blinds it.
+        log.error(f'Heartbeat write FAILED ({HEARTBEAT_FILE}): {e}')
 
 
 # ============================================================
@@ -632,6 +631,10 @@ class PokerAtlasSessionManager:
         self.session = None
         self.total_cycles = 0
         self.consecutive_failures = 0
+        # Cycles that completed but published nothing. NOT reset by cycle
+        # completion — drives the retry backoff so a parser break backs off
+        # instead of hammering PokerAtlas every few seconds.
+        self.empty_cycle_streak = 0
         self.consecutive_fetch_failures = 0
         self.last_connect_time = None
         self._session_dead = False
@@ -644,6 +647,11 @@ class PokerAtlasSessionManager:
         zombie states when StealthySession.start() hangs.
         Includes network pre-check to avoid wasting browser startup when offline.
         """
+        # Self-heal a missing Playwright browser before launching a session.
+        # Cheap when present (a path probe); downloads only when genuinely absent.
+        if _browser_heal is not None:
+            _browser_heal.ensure_browser(log=log.warning)
+
         from scrapling.fetchers import StealthySession
 
         self.disconnect()
@@ -890,38 +898,48 @@ def cleanup_log_files():
 # HISTORICAL SNAPSHOT: Save per-cycle venue summary for trending
 # ============================================================
 def save_history_snapshot(batch_id, all_venues):
-    """Insert a summary row per venue into venue_live_history for trending."""
+    """Insert a summary row per venue into venue_live_history for trending.
+
+    Returns True on success, False on failure. Failures are logged at ERROR —
+    this table feeds /api/poker/peak-activity and /api/poker/game-trends, so a
+    silent loss here quietly empties those surfaces.
+
+    total_tables is NULL for PokerAtlas: the source has no live table count.
+    """
     try:
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for vdata in all_venues:
-            total_tables = sum(g['tables'] for g in vdata['live_games'])
             total_waiting = sum(w['players_waiting'] for w in vdata['waitlist'])
             venue_slug = vdata.get('venue_slug') or re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
             rows.append({
                 'bravo_slug': f'pa-{venue_slug}',
                 'venue_name': vdata['venue_name'],
-                'total_tables': total_tables,
+                'total_tables': None,
                 'total_waiting': total_waiting,
                 'game_count': len(vdata['live_games']),
                 'source': 'pokeratlas',
                 'snapshot_time': now,
                 'batch_id': batch_id,
             })
-        if rows:
-            body = json.dumps(rows).encode()
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/venue_live_history',
-                data=body, method='POST',
-                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-            )
-            try:
-                urllib.request.urlopen(req, timeout=15)
-                log.info(f'  \U0001f4ca Saved {len(rows)} history snapshots')
-            except Exception as e:
-                log.debug(f'  History snapshot insert skipped: {e}')
+        if not rows:
+            return True
+        body = json.dumps(rows).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/venue_live_history',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15)
+            log.info(f'  \U0001f4ca Saved {len(rows)} history snapshots')
+            return True
+        except Exception as e:
+            log.error(f'{ERROR_SUPABASE}: venue_live_history insert FAILED ({len(rows)} rows lost): {e}')
+            return False
     except Exception as e:
-        log.debug(f'  History snapshot error: {e}')
+        log.error(f'History snapshot error (rows lost): {e}')
+        return False
 
 
 # ============================================================
@@ -931,55 +949,70 @@ def save_game_history_snapshot(batch_id, all_venues):
     """Insert per-game rows into game_live_history for game-type heatmaps.
     
     This is ADDITIVE — writes to a separate table (game_live_history)
-    and never touches venue_live_history. Safe to fail silently.
+    and never touches venue_live_history.
     Uses same live_games + waitlist structure as Bravo.
+
+    Returns True on success, False on failure (logged at ERROR — this table
+    feeds the heatmap/prediction endpoints).
+
+    tables is NULL for PokerAtlas: the source publishes no live table count.
+    waiting is taken from the venue's waitlist map so running games no longer
+    record a hardcoded 0.
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for vdata in all_venues:
             venue_slug = vdata.get('venue_slug') or re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
+            # Same waitlist map build as build_payload_from_results()
+            waitlist_map = {}
+            for w in vdata.get('waitlist', []):
+                waitlist_map[w['game'].lower().strip()] = w.get('players_waiting', 0)
             for game in vdata['live_games']:
                 rows.append({
                     'bravo_slug': f'pa-{venue_slug}',
                     'venue_name': vdata['venue_name'],
                     'game_type': game['game'],
                     'stakes': game.get('buyin', ''),
-                    'tables': game.get('tables', 0),
-                    'waiting': 0,
+                    'tables': None,
+                    'waiting': waitlist_map.get(game['game'].lower().strip(), 0),
                     'source': 'pokeratlas',
                     'snapshot_time': now,
                     'batch_id': batch_id,
                 })
             # Include waitlist-only games (not already in live_games)
-            live_names = [g['game'].lower() for g in vdata['live_games']]
+            live_names = [g['game'].lower().strip() for g in vdata['live_games']]
             for w in vdata['waitlist']:
-                if w['game'].lower() not in live_names:
+                if w['game'].lower().strip() not in live_names:
                     rows.append({
                         'bravo_slug': f'pa-{venue_slug}',
                         'venue_name': vdata['venue_name'],
                         'game_type': w['game'],
                         'stakes': '',
-                        'tables': 0,
+                        'tables': None,
                         'waiting': w['players_waiting'],
                         'source': 'pokeratlas',
                         'snapshot_time': now,
                         'batch_id': batch_id,
                     })
-        if rows:
-            body = json.dumps(rows).encode()
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/game_live_history',
-                data=body, method='POST',
-                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
-            )
-            try:
-                urllib.request.urlopen(req, timeout=15)
-                log.info(f'  📊 Saved {len(rows)} game history rows')
-            except Exception as e:
-                log.debug(f'  Game history insert skipped: {e}')
+        if not rows:
+            return True
+        body = json.dumps(rows).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/game_live_history',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15)
+            log.info(f'  📊 Saved {len(rows)} game history rows')
+            return True
+        except Exception as e:
+            log.error(f'{ERROR_SUPABASE}: game_live_history insert FAILED ({len(rows)} rows lost): {e}')
+            return False
     except Exception as e:
-        log.debug(f'  Game history snapshot error: {e}')
+        log.error(f'Game history snapshot error (rows lost): {e}')
+        return False
 
 
 # ============================================================
@@ -995,39 +1028,44 @@ def discover_regions(mgr):
     MAX_DISCOVERY_FAILS consecutive failures to prevent 30+ doomed iterations.
     """
     global _last_discovery_date
-    today = datetime.now().strftime('%Y%m%d')
-    
-    # Only run once per day
+    # UTC day key so the discovery boundary matches the data timestamps.
+    today = datetime.now(timezone.utc).strftime('%Y%m%d')
+
+    # Only run once per day. The marker is set AFTER a pass completes, so an
+    # aborted pass is retried on the next cycle instead of being skipped
+    # until tomorrow.
     if _last_discovery_date == today:
         return
-    _last_discovery_date = today
-    
+
     log.info('\U0001f4e1 Running daily discovery pass (all regions)...')
     new_valid = []
+    aborted = False
     consecutive_discovery_fails = 0
     MAX_DISCOVERY_FAILS = 3  # Abort discovery after this many consecutive failures
-    
+
     for slug in PA_ALL_REGION_SLUGS:
         if slug in PA_VALIDATED_REGIONS:
             continue  # Already in primary list
-        
+
         # ABORT GUARD: Stop wasting cycles on a dead session
         if consecutive_discovery_fails >= MAX_DISCOVERY_FAILS:
             log.warning(f'  ⚠️  Discovery aborted: {consecutive_discovery_fails} consecutive failures')
+            aborted = True
             break
-        
+
         # SESSION RECOVERY: Reconnect if session died during discovery
         if mgr._session_dead or not mgr.session:
             log.info('  🔄 Session dead during discovery — reconnecting...')
             if not mgr.connect():
                 log.warning('  ⚠️  Discovery aborted: session reconnect failed')
+                aborted = True
                 break
-        
+
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
         html = mgr.fetch_with_fallback(url, expected_slug=slug)
-        
+
         if html and html != 'REDIRECT':
-            venues, _, _ = extract_games_from_region(html, slug)
+            venues, _, _ = extract_games_from_region(html, slug, source_url=url)
             if venues:
                 new_valid.append(slug)
                 log.info(f'  \U0001f4a1 NEW valid region: {slug} ({len(venues)} venues)')
@@ -1036,20 +1074,34 @@ def discover_regions(mgr):
             consecutive_discovery_fails += 1
         else:
             consecutive_discovery_fails = 0  # REDIRECT is a valid response
-        
+
         time.sleep(RATE_LIMIT_DELAY)
-    
+
+    if not aborted:
+        _last_discovery_date = today
+
     if new_valid:
         log.info(f'  Discovered {len(new_valid)} new valid regions: {new_valid}')
         discovery_file = BASE_DIR / 'data' / 'pokeratlas-discovered-regions.json'
+        # MERGE with previously discovered regions — a partial pass must never
+        # drop regions that an earlier pass validated.
+        previous = []
+        try:
+            if discovery_file.exists():
+                with open(discovery_file) as f:
+                    previous = json.load(f).get('extra_validated', []) or []
+        except Exception as e:
+            log.warning(f'  Could not read existing discovery cache (starting from new results only): {e}')
+        merged = list(dict.fromkeys(list(previous) + new_valid))
         try:
             with open(discovery_file, 'w') as f:
                 json.dump({
                     'discovered': today,
-                    'extra_validated': new_valid,
+                    'partial': aborted,
+                    'extra_validated': merged,
                 }, f, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            log.error(f'  Discovery cache write FAILED — new regions {new_valid} not persisted: {e}')
     else:
         log.info('  No new regions discovered.')
 
@@ -1087,6 +1139,15 @@ def run_scrape_cycle(mgr):
         time.sleep(backoff)
         return 0
 
+    # Connected — publish a watchdog-healthy status so a slow boot (browser
+    # launch + 11 region fetches) is not mistaken for a hung 'starting' daemon
+    # and restarted mid-cycle.
+    write_heartbeat('running', {
+        'cycle': mgr.total_cycles + 1,
+        'phase': 'scraping',
+        'consecutive_failures': mgr.consecutive_failures,
+    })
+
     # Load validated region slugs (fast — only ~27 regions)
     regions = load_pa_regions()
     log.info(f'Scraping {len(regions)} validated regions...')
@@ -1097,6 +1158,8 @@ def run_scrape_cycle(mgr):
     all_venues = []
     errors = 0
     skipped = 0
+    fetch_ok = 0          # pages that returned usable HTML (incl. REDIRECT)
+    parsed_empty = 0      # pages that returned 200 HTML but yielded zero items
 
     consecutive_region_failures = 0
     for i, slug in enumerate(regions):
@@ -1125,6 +1188,7 @@ def run_scrape_cycle(mgr):
         # REDIRECT is a valid "no data" response — NOT a session failure
         if html == 'REDIRECT':
             skipped += 1
+            fetch_ok += 1
             continue
 
         if html is None:
@@ -1135,8 +1199,9 @@ def run_scrape_cycle(mgr):
             continue
 
         consecutive_region_failures = 0  # Reset on success
+        fetch_ok += 1
 
-        venues, rhash, now = extract_games_from_region(html, slug)
+        venues, rhash, now = extract_games_from_region(html, slug, source_url=url)
 
         if venues:
             total_games = sum(len(v['live_games']) for v in venues)
@@ -1148,8 +1213,20 @@ def run_scrape_cycle(mgr):
             all_venues.extend(venues)
         else:
             skipped += 1
-            if skipped <= 5 or skipped % 10 == 0:
-                log.info(f'  [{i+1}/{len(regions)}] ⏭️  {slug[:30]:30} | no data')
+            # A 200 page that parses to nothing is the signature of a markup
+            # change — surface it instead of logging it as routine "no data".
+            if 'cash-games-list-item' not in html:
+                parsed_empty += 1
+                log.error(
+                    f'  [{i+1}/{len(regions)}] 🧨 PARSE ALERT {slug[:30]:30} | '
+                    f'200 OK but no "cash-games-list-item" markup found '
+                    f'({len(html)} bytes) — PokerAtlas layout may have changed'
+                )
+            elif skipped <= 5 or skipped % 10 == 0:
+                log.warning(
+                    f'  [{i+1}/{len(regions)}] ⏭️  {slug[:30]:30} | '
+                    f'items present but zero venues parsed'
+                )
 
         time.sleep(RATE_LIMIT_DELAY)
 
@@ -1164,7 +1241,10 @@ def run_scrape_cycle(mgr):
         html = mgr.fetch_with_fallback(url, expected_slug=orphan['slug'])
         
         if html and html != 'REDIRECT':
-            venues, rhash, now = extract_games_from_region(html, orphan['region'], fallback_venue_name=orphan['name'])
+            fetch_ok += 1
+            venues, rhash, now = extract_games_from_region(
+                html, orphan['region'], fallback_venue_name=orphan['name'], source_url=url
+            )
             if venues:
                 total_games = sum(len(v['live_games']) for v in venues)
                 log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ✅ {orphan['name'][:30]:30} | {total_games} games")
@@ -1186,25 +1266,48 @@ def run_scrape_cycle(mgr):
     bravo_names = set()
     bravo_names_normalized = set()
     bravo_slug_wordsets = []  # List of (slug, frozenset_of_words)
+    dedup_index_ok = False
     try:
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name,bravo_slug&limit=5000',
-            headers=SB_HEADERS,
-        )
-        resp = urllib.request.urlopen(req, timeout=15)
-        bravo_data = json.loads(resp.read())
-        for r in bravo_data:
-            name = r.get('venue_name', '')
-            slug = r.get('bravo_slug', '')
+        # PAGINATE to exhaustion. venue_live_tables holds one row per
+        # venue+game, so a flat limit=5000 truncated the index to a few hundred
+        # venues and silently degraded dedup coverage.
+        PAGE = 1000
+        MAX_PAGES = 50
+        bravo_rows = []
+        for page in range(MAX_PAGES):
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/venue_live_tables'
+                f'?source=eq.bravo&select=venue_name,bravo_slug'
+                f'&order=bravo_slug.asc&limit={PAGE}&offset={page * PAGE}',
+                headers=SB_HEADERS,
+            )
+            resp = urllib.request.urlopen(req, timeout=20)
+            chunk = json.loads(resp.read())
+            bravo_rows.extend(chunk)
+            if len(chunk) < PAGE:
+                break
+        else:
+            log.warning(f'  Dedup: hit {MAX_PAGES * PAGE}-row page ceiling — index may be partial')
+
+        for r in bravo_rows:
+            name = r.get('venue_name', '') or ''
+            slug = r.get('bravo_slug', '') or ''
             bravo_names.add(name)
             bravo_names_normalized.add(re.sub(r'[^a-z0-9]', '', name.lower()))
             if slug:
                 words = frozenset(w for w in slug.replace('-', ' ').split() if len(w) > 2)
                 if words:
                     bravo_slug_wordsets.append(words)
-        log.info(f'  Dedup: {len(bravo_names)} Bravo venues loaded (3-tier match active)')
+        dedup_index_ok = True
+        log.info(
+            f'  Dedup: {len(bravo_names)} Bravo venues loaded from {len(bravo_rows)} rows '
+            f'(3-tier match active)'
+        )
     except Exception as e:
-        log.warning(f'  Dedup: Could not load Bravo venues: {e}')
+        # FAIL CLOSED: with an empty index every PokerAtlas venue looks unique,
+        # so venues Bravo already covers get published twice and merge into
+        # double-counted games downstream. Abort the write instead.
+        log.error(f'{ERROR_SUPABASE}: Dedup index load FAILED — skipping upsert this cycle: {e}')
 
     # Tier 2.5 preparation: Build suffix-stripped variants for each Bravo name
     # PA often appends "Casino", "Resort", "Hotel" to names Bravo keeps short
@@ -1263,25 +1366,78 @@ def run_scrape_cycle(mgr):
     payload = build_payload_from_results(filtered_venues, batch_id)
 
     saved = 0
-    if payload:
+    write_blocked = False       # True when we must not touch published rows
+    history_failures = 0
+    metrics_failed = False
+    stale_cleanup_ok = None
+
+    if not dedup_index_ok:
+        # Publishing without the Bravo index would duplicate venues that Bravo
+        # already covers with real table counts.
+        log.error(
+            f'{ERROR_SUPABASE}: Skipping venue_live_tables write — Bravo dedup index '
+            f'unavailable ({len(all_venues)} venues held back this cycle)'
+        )
+        write_blocked = True
+    elif payload:
         # Atomic Batch Insert — only delete PokerAtlas records
         if sb_upsert('venue_live_tables', payload):
             saved = len(payload)
-            sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
             # Save historical snapshot for trend analysis
-            save_history_snapshot(batch_id, filtered_venues)
+            if not save_history_snapshot(batch_id, filtered_venues):
+                history_failures += 1
             # Save per-game history for game-type heatmaps
-            save_game_history_snapshot(batch_id, filtered_venues)
+            if not save_game_history_snapshot(batch_id, filtered_venues):
+                history_failures += 1
+        else:
+            log.error(
+                f'{ERROR_SUPABASE}: venue_live_tables upsert FAILED — '
+                f'{len(payload)} records NOT saved; leaving previous batch in place'
+            )
+            write_blocked = True
+    else:
+        log.error(
+            f'🧨 EMPTY PAYLOAD: {len(all_venues)} venues parsed, {len(filtered_venues)} after dedup, '
+            f'0 records to publish (fetch_ok={fetch_ok}, parse_alerts={parsed_empty}). '
+            f'Stale PokerAtlas rows will be cleared so they are not served as current.'
+        )
+
+    # ── STALE-ROW DEACTIVATION ────────────────────────────────────────────
+    # Runs on ANY cycle where pages were fetched successfully and the write
+    # path was not blocked — including cycles that parsed nothing. Previously
+    # this was nested inside `if payload:` + `if sb_upsert(...)`, so a parser
+    # break left the last good batch published for another 24 hours.
+    if write_blocked:
+        log.warning('  Stale cleanup skipped: write blocked this cycle (previous rows kept)')
+    elif fetch_ok == 0:
+        log.warning('  Stale cleanup skipped: zero successful fetches (cannot distinguish outage from empty)')
+    else:
+        stale_cleanup_ok = sb_delete(
+            'venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas'
+        )
+        if stale_cleanup_ok:
+            log.info('  🧹 Stale PokerAtlas rows cleared (previous batches)')
+        else:
+            log.error(
+                f'{ERROR_SUPABASE}: Stale-row cleanup FAILED — venue_live_tables may now '
+                f'serve duplicate/stale PokerAtlas rows for batch != {batch_id[:8]}'
+            )
 
     # Save evidence
     evidence = {
         'batch_id': batch_id,
         'scrape_timestamp': cycle_start.isoformat(),
         'source': 'pokeratlas',
+        'source_urls': sorted({v.get('source_url') for v in all_venues if v.get('source_url')}),
         'regions_scraped': len(regions),
         'venues_with_data': len(all_venues),
         'regions_skipped': skipped,
+        'fetch_ok': fetch_ok,
+        'parse_alerts': parsed_empty,
         'total_records_saved': saved,
+        'write_blocked': write_blocked,
+        'stale_cleanup_ok': stale_cleanup_ok,
+        'history_insert_failures': history_failures,
         'errors': errors,
         'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
     }
@@ -1306,9 +1462,10 @@ def run_scrape_cycle(mgr):
             headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
         )
         urllib.request.urlopen(req, timeout=10)
-        log.debug('  📈 Scraper metrics recorded')
+        log.info('  📈 Scraper metrics recorded')
     except Exception as e:
-        log.debug(f'  Metrics insert skipped: {e}')
+        metrics_failed = True
+        log.warning(f'{ERROR_SUPABASE}: scraper_metrics insert FAILED (monitoring blind this cycle): {e}')
 
     # Snapshot
     with open(BASE_DIR / 'data' / 'pokeratlas-live-snapshot.json', 'w') as f:
@@ -1317,6 +1474,7 @@ def run_scrape_cycle(mgr):
             'venues': [{
                 'venue_name': v['venue_name'],
                 'region': v['region_slug'],
+                'source_url': v.get('source_url'),
                 'live_games': v['live_games'],
                 'waitlist': v['waitlist'],
             } for v in all_venues],
@@ -1325,13 +1483,42 @@ def run_scrape_cycle(mgr):
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
     mgr.total_cycles += 1
     mgr.consecutive_failures = 0
+    # Empty cycles must NOT reset this — it drives the retry backoff so a
+    # broken parser cannot re-scrape every ~5 seconds forever.
+    if saved > 0:
+        mgr.empty_cycle_streak = 0
+    else:
+        mgr.empty_cycle_streak += 1
 
-    # Write heartbeat for external watchdog
-    write_heartbeat('ok' if saved > 0 else 'empty', {
+    # Heartbeat status contract with scraper-watchdog-local.sh:
+    #   'ok'          → healthy, data published
+    #   'idle'        → healthy-but-no-data; a restart CANNOT fix a parser
+    #                   break, so we deliberately avoid a status that makes the
+    #                   watchdog bounce the process every 5 minutes. The
+    #                   parser_alert/empty_cycle_streak fields carry the alarm.
+    #   'save_failed' → write path broken; needs attention (and a restart is
+    #                   at least harmless).
+    if write_blocked:
+        hb_status = 'save_failed'
+    elif saved > 0:
+        hb_status = 'ok'
+    else:
+        hb_status = 'idle'
+
+    write_heartbeat(hb_status, {
         'cycle': mgr.total_cycles,
         'records_saved': saved,
         'venues_with_data': len(all_venues),
         'errors': errors,
+        'consecutive_failures': mgr.consecutive_failures,
+        'empty_cycle_streak': mgr.empty_cycle_streak,
+        'parser_alert': parsed_empty > 0 or (fetch_ok > 0 and not all_venues),
+        'parse_alerts': parsed_empty,
+        'fetch_ok': fetch_ok,
+        'write_blocked': write_blocked,
+        'stale_cleanup_ok': stale_cleanup_ok,
+        'history_insert_failed': history_failures,
+        'metrics_insert_failed': metrics_failed,
         'duration_seconds': round(duration),
         'regions_scraped': len(regions),
     })
@@ -1341,11 +1528,16 @@ def run_scrape_cycle(mgr):
         f'{saved} records | {duration:.0f}s | Errors: {errors} ==='
     )
 
-    # Run daily discovery AFTER validated scrape (so real data gets published first)
-    if saved > 0:
+    # Run daily discovery AFTER validated scrape (so real data gets published first).
+    # Gated on a successful publish OR a clean-but-empty cycle, so discovery is
+    # not permanently blocked while a region set legitimately yields nothing.
+    if saved > 0 or (not write_blocked and fetch_ok > 0):
         discover_regions(mgr)
 
-    return len(all_venues)
+    # Return records actually WRITTEN, not venues parsed. main() treats the
+    # return value as "successful save" for the staleness watchdog; returning
+    # the parse count meant a total Supabase outage never tripped it.
+    return saved
 
 # ============================================================
 # DAEMON LOOP
@@ -1517,17 +1709,23 @@ def main():
             continue
 
         try:
-            count = run_scrape_cycle(mgr)
-            if count > 0:
+            # run_scrape_cycle returns records actually SAVED to Supabase.
+            saved_records = run_scrape_cycle(mgr)
+            if saved_records > 0:
                 last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
-                # Shorter backoff with exponential multiplier & ±10% Jitter
+                # Exponential backoff keyed off the EMPTY-cycle streak (which
+                # cycle completion does not reset). A markup change used to sit
+                # at index 0 forever and re-scrape every ~5s.
                 import random
-                base_delays = [5, 15, 45, 120, 300]
-                idx = min(mgr.consecutive_failures, len(base_delays) - 1)
+                base_delays = [60, 300, 900, 1800, 3600]
+                idx = min(max(0, mgr.empty_cycle_streak - 1), len(base_delays) - 1)
                 backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
-                log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
+                log.warning(
+                    f'⏰ No records saved — retrying in {backoff}s '
+                    f'(empty cycle streak #{mgr.empty_cycle_streak})...'
+                )
                 for _ in range(backoff):
                     if not running:
                         break

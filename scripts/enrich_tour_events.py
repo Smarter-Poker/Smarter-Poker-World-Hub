@@ -30,18 +30,10 @@ load_dotenv(Path(__file__).parent.parent / ".env.local")
 import psycopg2
 import psycopg2.extras
 
-# Helper to extract starting stack (chips) from schedule HTML pages.
-def extract_chips_from_html(html: str) -> dict:
-    """Parse schedule HTML to find event titles and their starting stack.
-    Looks for patterns like "Event Name – $500" or "Event Name – 500".
-    Returns a dict mapping lower‑cased title fragments to chip amounts.
-    """
-    chips = {}
-    for m in re.finditer(r"(?P<title>[\w\s'&]+?)\s*[-–—]\s*\$?(?P<amount>\d{1,5})", html, re.IGNORECASE):
-        title = m.group('title').strip().lower()
-        amount = int(m.group('amount'))
-        chips[title] = amount
-    return chips
+# NOTE: a second, shadowing definition of extract_chips_from_html() used to sit
+# here. It matched "Title – $500" (a buy-in pattern, not a chip count) and was
+# silently overridden by the "<n> chips" parser defined further down, so the
+# caller never used it. Removed — there is now exactly one parser.
 from scrapling.fetchers import Fetcher
 from supabase import create_client
 
@@ -64,10 +56,14 @@ DRY  = False
 RATE = 1.5  # seconds between external HTTP requests
 
 # ── Completeness Scoring ──────────────────────────────────────────────────────
+# payout_levels, late_registration and bounty_amount were removed from the
+# score: they were previously filled with literals/derived guesses for every
+# row, so the completeness metric rewarded fabrication instead of coverage.
+# They still get written when a real source value is parsed (WSOP/WSOPC API).
 RICH_FIELDS = [
-    "starting_stack", "level_duration_minutes", "rebuy_addon", "late_registration",
-    "guaranteed", "format", "max_entries", "bounty_amount", "structure_sheet_url",
-    "payout_levels", "age_requirement", "timezone", "tournament_name",
+    "starting_stack", "level_duration_minutes", "rebuy_addon",
+    "guaranteed", "format", "max_entries", "structure_sheet_url",
+    "age_requirement", "timezone", "tournament_name",
 ]
 BASE_FIELDS = ["buy_in", "game_type", "start_time", "series_name", "event_name"]
 
@@ -116,7 +112,10 @@ TOUR_CONF = {
 }
 
 # ── Format Inference ──────────────────────────────────────────────────────────
-def infer_format(title: str) -> str:
+def infer_format(title: str):
+    """Return a format inferred from the event title, or None when the title
+    says nothing about it. Never guess 'Freezeout' — an unmatched title simply
+    means the format is unknown and the column stays as-is."""
     t = (title or "").lower()
     if "super high roller" in t:                return "Super High Roller"
     if "high roller" in t:                      return "High Roller"
@@ -130,19 +129,26 @@ def infer_format(title: str) -> str:
     if "heads up" in t or "heads-up" in t:      return "Heads Up"
     if "short deck" in t:                       return "Short Deck"
     if "freezeout" in t:                        return "Freezeout"
-    return "Freezeout"   # safe default for tour events
+    return None   # unknown — do not invent a format
 
 def infer_is_special(name: str) -> bool:
     t = (name or "").lower()
     return any(x in t for x in ["main event","championship","super high roller","heads up","final"])
 
 def tz_from_series(series: str, default: str) -> str:
-    """Extract state from series name tail and look up timezone."""
+    """Infer a timezone from the series name.
+
+    City/venue keywords are checked FIRST. A bare two-letter uppercase token is
+    only accepted when it is written as a state suffix (", TX" / ending the
+    string), because common words and poker jargon collide with state codes:
+    "Showdown IN Tunica" previously resolved to America/Indiana/Indianapolis
+    for a Mississippi event. Anything less certain falls back to the tour
+    default.
+    """
     s = series or ""
-    m = re.search(r'\b([A-Z]{2})\b', s[-25:])
-    if m and m.group(1) in STATE_TZ:
-        return STATE_TZ[m.group(1)]
-    # Common city/venue keywords
+    low = s.lower()
+
+    # 1. Explicit city/venue keywords — highest confidence
     for kw, tz in [
         ("las vegas","America/Los_Angeles"),("nevada","America/Los_Angeles"),
         ("atlantic city","America/New_York"),("new york","America/New_York"),
@@ -150,8 +156,14 @@ def tz_from_series(series: str, default: str) -> str:
         ("florida","America/New_York"),("california","America/Los_Angeles"),
         ("tunica","America/Chicago"),("hammond","America/Chicago"),
     ]:
-        if kw in s.lower():
+        if kw in low:
             return tz
+
+    # 2. State code only in ", XX" form or as the final token
+    m = re.search(r',\s*([A-Z]{2})\s*$', s) or re.search(r'\b([A-Z]{2})\s*$', s)
+    if m and m.group(1) in STATE_TZ:
+        return STATE_TZ[m.group(1)]
+
     return default
 
 # ── Write helper ──────────────────────────────────────────────────────────────
@@ -165,7 +177,13 @@ def write_row(row_id: str, data: dict) -> bool:
         print(f"    [DRY] score={score} fmt={fmt} tz={tz} chips={cs}")
         return True
     try:
-        SB.table("tour_event_details").update(clean).eq("id", row_id).execute()
+        resp = SB.table("tour_event_details").update(clean).eq("id", row_id).execute()
+        # A PATCH matching zero rows (deleted id, RLS filter, type mismatch)
+        # is otherwise indistinguishable from a successful update.
+        rows = getattr(resp, "data", None)
+        if isinstance(rows, list) and len(rows) == 0:
+            print(f"    [WRITE MISS] no row matched id={row_id} — nothing updated")
+            return False
         return True
     except Exception as e:
         print(f"    [WRITE ERR] {e}")
@@ -176,15 +194,48 @@ def extract_chips_from_html(html: str) -> dict:
     """Parse simple "<number> chips" patterns and map them to event titles.
     Returns a dict mapping lower‑cased event name fragments to an int chip count.
     This is a heuristic; if no match is found the event will keep None.
+
+    Deliberately conservative — the caller substring-matches these fragments
+    against real event names and writes the result to `starting_stack`, so a
+    loose fragment fabricates a stack size:
+      * the captured fragment is tag-stripped first, otherwise it carries
+        markup ('<p>rebuy tournament,') and can never match an event name;
+      * fragments shorter than MIN_FRAGMENT chars ('stack', 'the') would match
+        far too many unrelated events and are dropped;
+      * fragments with no letters (bare punctuation/numbers) are dropped;
+      * values below MIN_CHIPS are not tournament starting stacks — they come
+        from prose like '12 chips stacks' — and are dropped.
+    Thousands separators are accepted so '30,000 chips' is not silently missed.
     """
+    MIN_FRAGMENT = 8      # chars — shorter fragments match indiscriminately
+    MIN_CHIPS = 1000      # a tour starting stack is never 3 digits
+
     mapping = {}
-    # Look for patterns like "Event Name – 100 chips" or "100 chips" near a title
-    # Simplify: capture "<title>...<number> chips" where title is up to 80 chars before the number.
-    pattern = re.compile(r"(?P<title>.{0,80}?)\s+(?P<chips>\d{1,4})\s+chips", re.IGNORECASE)
+    # Look for patterns like "Event Name – 20,000 chips" or "25000 chips".
+    # Capture up to 80 chars of the preceding text as the title fragment.
+    pattern = re.compile(
+        r"(?P<title>.{0,80}?)\s+(?P<chips>\d{1,3}(?:,\d{3})+|\d{4,7})\s+chips",
+        re.IGNORECASE,
+    )
     for m in pattern.finditer(html):
-        title = m.group("title").strip().lower()
-        chips = int(m.group("chips"))
-        if title and title not in mapping:
+        try:
+            chips = int(m.group("chips").replace(",", ""))
+        except ValueError:
+            continue
+        if chips < MIN_CHIPS:
+            continue
+
+        title = m.group("title")
+        title = re.sub(r"<[^>]*>", " ", title)   # drop whole tags
+        if ">" in title:                          # started mid-tag — keep the tail
+            title = title.rsplit(">", 1)[1]
+        title = re.sub(r"\s+", " ", title).replace("<", " ").strip().lower()
+
+        if len(title) < MIN_FRAGMENT:
+            continue
+        if not re.search(r"[a-z]", title):
+            continue
+        if title not in mapping:
             mapping[title] = chips
     return mapping
 
@@ -233,13 +284,61 @@ def print_score_summary(tour_code: str):
 # TOUR-SPECIFIC ENRICHERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def resolve_wsop_api_url() -> str:
+    """Resolve the CURRENT WSOP series endpoint from the wsop.com index.
+
+    The configured URL hardcodes a year-specific slug; once WSOP publishes the
+    next series that URL 404s and every WSOP event silently stops being
+    enriched. Look the slug up instead, falling back to the configured literal.
+    """
+    fallback = TOUR_CONF["WSOP"]["api"]
+    index_url = TOUR_CONF["WSOPC"]["schedule_api"]
+    try:
+        r = Fetcher.get(index_url, stealthy_headers=True, follow_redirects=True)
+        if r.status != 200:
+            print(f"  [WARN] WSOP index HTTP {r.status} — using configured slug")
+            return fallback
+        entries = json.loads(r.body)
+        time.sleep(RATE)
+        year = datetime.now(timezone.utc).year
+        candidates = []
+        for t in entries if isinstance(entries, list) else []:
+            title = (t.get("competition", {}) or {}).get("title", "") or t.get("title", "") or ""
+            slug = t.get("slug", "")
+            start = str(t.get("start_date", "") or "")
+            if not slug:
+                continue
+            up = title.upper()
+            if "CIRCUIT" in up or "ONLINE" in up:
+                continue
+            if "WORLD SERIES OF POKER" not in up:
+                continue
+            if start[:4] not in (str(year), str(year + 1)):
+                continue
+            candidates.append((start, slug))
+        if candidates:
+            # Most recent series that has already started, else the next one up.
+            started = [c for c in candidates if c[0][:10] <= datetime.now(timezone.utc).date().isoformat()]
+            chosen = max(started)[1] if started else min(candidates)[1]
+            resolved = f"{index_url}/{chosen}"
+            print(f"  Resolved WSOP series slug: {chosen}")
+            return resolved
+        print("  [WARN] No current WSOP series found in index — using configured slug")
+    except Exception as e:
+        print(f"  [WARN] WSOP index lookup failed ({e}) — using configured slug")
+    return fallback
+
+
 def enrich_wsop(events: list) -> int:
     """WSOP: use wsop.com structured API — best data quality."""
-    url = TOUR_CONF["WSOP"]["api"]
+    url = resolve_wsop_api_url()
     print(f"  Fetching WSOP API: {url}")
     try:
         r = Fetcher.get(url, stealthy_headers=True, follow_redirects=True)
-        assert r.status == 200
+        # Explicit check, not assert — asserts are stripped under `python -O`
+        # and json.loads would then parse an error page.
+        if r.status != 200:
+            raise RuntimeError(f"HTTP {r.status} for {url}")
         api_data = json.loads(r.body)
     except Exception as e:
         print(f"  [FAIL] {e}")
@@ -279,12 +378,14 @@ def enrich_wsop(events: list) -> int:
             rebuy   = fmt_raw if fmt_raw and fmt_raw.lower() not in ("","n/a","freezeout") else None
 
         fmt    = infer_format(ev_name)
-        bounty = None
-        if "bounty" in ev_name.lower() or "pko" in ev_name.lower():
-            buyin  = db.get("buy_in",0) or 0
-            bounty = max(100, buyin // 2) if buyin else None
-        sat_to = "WSOP Main Event — $10,000 NLH Championship" \
-            if ("satellite" in ev_name.lower() or "mega sat" in ev_name.lower()) else None
+        # bounty_amount / satellite_to are only written when the source states
+        # them. A title containing "bounty" does not tell us the bounty size,
+        # and a satellite's target event is not knowable from the title.
+        bounty = api_ev.get("bounty_amount") if api_ev else None
+        try:
+            bounty = int(bounty) if bounty not in (None, "", 0) else None
+        except (TypeError, ValueError):
+            bounty = None
 
         enriched = {
             "tournament_name":        ev_name or None,
@@ -295,7 +396,6 @@ def enrich_wsop(events: list) -> int:
             "late_registration":      late_r,
             "rebuy_addon":            rebuy,
             "bounty_amount":          bounty,
-            "satellite_to":           sat_to,
             "is_special_event":       infer_is_special(ev_name),
             "is_recurring":           False,
             "timezone":               TOUR_CONF["WSOP"]["tz"],
@@ -320,7 +420,8 @@ def enrich_wsopc(events: list) -> int:
     try:
         r = Fetcher.get("https://www.wsop.com/api/tournaments",
                         stealthy_headers=True, follow_redirects=True)
-        assert r.status == 200
+        if r.status != 200:
+            raise RuntimeError(f"HTTP {r.status} for wsop.com/api/tournaments")
         all_t = json.loads(r.body)
     except Exception as e:
         print(f"  [FAIL] {e}")
@@ -395,10 +496,12 @@ def enrich_wsopc(events: list) -> int:
             fmt_raw = str(api_ev.get("format","") or "") if api_ev else ""
             rebuy   = fmt_raw if fmt_raw and fmt_raw.lower() not in ("","n/a","freezeout") else None
 
-            bounty = None
-            if "bounty" in ev_name.lower():
-                buyin  = db.get("buy_in",0) or 0
-                bounty = max(100, buyin // 2) if buyin else None
+            # Only from the source — never derived from the event title.
+            bounty = api_ev.get("bounty_amount") if api_ev else None
+            try:
+                bounty = int(bounty) if bounty not in (None, "", 0) else None
+            except (TypeError, ValueError):
+                bounty = None
 
             enriched = {
                 "tournament_name":        ev_name or None,
@@ -428,9 +531,14 @@ def enrich_wsopc(events: list) -> int:
 
 def enrich_generic(tour_code: str, events: list) -> int:
     """
-    For tours without a structured API — use inferred data + known constants.
-    Guarantees: format, timezone, age_requirement, is_special_event,
-    bounty_amount (where applicable), satellite_to, tournament_name, data_quality.
+    For tours without a structured API.
+
+    This path has NO per-event source document, so it writes only what can be
+    read off the event name itself (format, is_special_event) plus tour-level
+    constants (timezone, age). Fields that would have to be invented —
+    payout_levels, late_registration, bounty_amount, satellite_to — are left
+    untouched, and rows are labelled 'inferred_unverified' rather than
+    'scraped_verified'.
     """
     conf = TOUR_CONF.get(tour_code, {})
     base_tz  = conf.get("tz", "America/Chicago")
@@ -439,11 +547,20 @@ def enrich_generic(tour_code: str, events: list) -> int:
 
     # Try to fetch PDF structure URL from schedule page (one fetch per tour)
     struct_url = None
+    chips_map = {}          # initialised BEFORE the fetch, not after it
+    fetch_ok = False        # only then may source_url point at this page
+    html_hash = None
     if sched_url:
         try:
             r = Fetcher.get(sched_url, stealthy_headers=True, follow_redirects=True)
             if r and r.status == 200:
-                html = (r.body or b"").decode("utf-8","replace")
+                fetch_ok = True
+                raw = r.body or b""
+                html_hash = hashlib.sha256(raw).hexdigest()
+                html = raw.decode("utf-8","replace")
+                chips_map = extract_chips_from_html(html)
+                if chips_map:
+                    print(f"  Extracted chip info for {len(chips_map)} events")
                 pdf_m = re.findall(
                     r'href=["\']([^"\']*(?:structure|blind|levels|schedule)[^"\']*\.pdf)["\']',
                     html, re.IGNORECASE
@@ -454,28 +571,21 @@ def enrich_generic(tour_code: str, events: list) -> int:
                         domain = re.match(r"https?://[^/]+", sched_url)
                         if domain: struct_url = domain.group() + struct_url
                     print(f"  Found structure PDF: {struct_url}")
-                    chips_map = extract_chips_from_html(html)
-                    if chips_map:
-                        print(f"  Extracted chip info for {len(chips_map)} events")
+            else:
+                status = getattr(r, "status", "no response")
+                print(f"  [FETCH FAIL] {sched_url}: HTTP {status} — no source_url will be recorded")
         except Exception as e:
-            print(f"  [FETCH SKIP] {sched_url}: {e.__class__.__name__}")
+            print(f"  [FETCH FAIL] {sched_url}: {e.__class__.__name__} — no source_url will be recorded")
         time.sleep(RATE)
 
-    chips_map = {}
     ok = 0
     for db in events:
         ev_name = db.get("event_name","") or ""
         series  = db.get("series_name","") or ""
-        buyin   = db.get("buy_in",0) or 0
         gtd     = db.get("guaranteed")  # already in DB from scraper
 
         # Timezone — try to infer from series name
         ev_tz = tz_from_series(series, base_tz) if base_tz == "varies" else base_tz
-
-        # Bounty
-        bounty = None
-        if any(x in ev_name.lower() for x in ["bounty","pko","knockout"]):
-            bounty = max(50, buyin // 2) if buyin else None
 
         # Starting stack – heuristic match from extracted chips map
         chips = None
@@ -485,35 +595,24 @@ def enrich_generic(tour_code: str, events: list) -> int:
                 chips = val
                 break
 
-        # Satellite
-        sat_to = f"{tour_code} Main Event" if "satellite" in ev_name.lower() else None
-
-        # Payout levels — standard tour is top 15%
-        payout = "Top 15% of field paid"
-
-        # Late registration — standard for tour events
-        late_r = db.get("late_registration") or "Through level 6"
-
         event_struct_url = db.get("structure_sheet_url") or struct_url
-        
+
         enriched = {
             "tournament_name":     ev_name or None,
             "format":              infer_format(ev_name),
             "starting_stack":      chips,
-            "bounty_amount":       bounty,
-            "satellite_to":        sat_to,
-            "payout_levels":       payout,
-            "late_registration":   late_r,
             "is_special_event":    infer_is_special(ev_name),
             "is_recurring":        False,
             "timezone":            ev_tz,
             "age_requirement":     age,
             "structure_sheet_url": event_struct_url,
-            "source_url":          sched_url or None,
-            "best_scrape_url":     sched_url or None,
+            # Provenance only when the schedule page was actually retrieved.
+            "source_url":          sched_url if fetch_ok else None,
+            "best_scrape_url":     sched_url if fetch_ok else None,
+            "scrape_html_hash":    html_hash,
             "scrape_timestamp":    NOW,
-            "data_quality":        "scraped_verified",
-            "scrape_fail_count":   0,
+            # Nothing here was read off a per-event source document.
+            "data_quality":        "inferred_unverified",
             "flags":               json.dumps([]),
         }
         # guaranteed already in DB — keep it in the scoring calc
@@ -547,8 +646,10 @@ def main():
 
     events = fetch_all_events(tour)
     if not events:
-        print("  No events found.")
-        return
+        # Nothing to enrich is a failure for a tour that is configured to have
+        # events — surface it to the scheduler instead of exiting 0.
+        print(f"  [FAIL] No {tour} events found in tour_event_details.")
+        sys.exit(1)
 
     if tour == "WSOP":
         ok = enrich_wsop(events)
@@ -557,10 +658,16 @@ def main():
     else:
         ok = enrich_generic(tour, events)
 
-    print(f"\n  ✅ {ok}/{len(events)} rows enriched")
+    print(f"\n  {ok}/{len(events)} rows enriched")
     if not DRY:
         print_score_summary(tour)
     print(f"\n{'='*55}\n")
+
+    if ok == 0:
+        # Source 404, auth failure, RLS filter or a parser break all land here.
+        # Exit non-zero so a scheduler/CI step fails loudly.
+        print(f"  [FAIL] 0/{len(events)} {tour} rows enriched — treating run as failed.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

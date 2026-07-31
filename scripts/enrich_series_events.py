@@ -45,34 +45,79 @@ SB_HDRS = {
 }
 
 # ── Stealth session ───────────────────────────────────────────────────────
+# Uses the SAME StealthySession start()/close() lifecycle as
+# poker_series_scraper.py. This module previously used
+# `StealthyFetcher(auto_match=..., google_search=...)` + `.kill()`, an API the
+# rest of the suite doesn't use — if any of those signatures didn't match the
+# installed Scrapling, every fetch returned (None, 0) and the script printed a
+# clean "ENRICHMENT COMPLETE / PDFs found: 0" for a total no-op.
 _session = None
 _session_count = 0
 
+class FetcherUnavailable(RuntimeError):
+    """Scrapling is missing or its API doesn't match — fatal, never a page error."""
+
+
 def create_session():
-    from scrapling import StealthyFetcher
-    s = StealthyFetcher(auto_match=True, google_search=True)
+    try:
+        from scrapling.fetchers import StealthySession
+    except ImportError as e:
+        raise FetcherUnavailable(f"scrapling.fetchers.StealthySession unavailable: {e}")
+    try:
+        s = StealthySession(headless=True, solve_cloudflare=True)
+        s.start()
+    except TypeError as e:
+        raise FetcherUnavailable(f"StealthySession API mismatch: {e}")
     return s
+
 
 def get_session():
     global _session, _session_count
     if _session is None or _session_count >= 40:
         if _session:
-            try: _session.kill()
-            except: pass
+            try: _session.close()
+            except Exception: pass
+            _session = None
         _session = create_session()
         _session_count = 0
     _session_count += 1
     return _session
 
+
+def close_session():
+    global _session
+    if _session:
+        try: _session.close()
+        except Exception: pass
+        _session = None
+
+
 def fetch_url(url):
-    """Fetch URL via stealth session, return (html, status_code)"""
+    """Fetch URL via stealth session, return (html, status_code).
+
+    A fetcher/API problem is FATAL and propagates (aborting the run loudly);
+    only a per-page failure returns (None, 0) and lets the loop continue.
+    """
+    session = get_session()
     try:
-        session = get_session()
-        resp = session.fetch(url)
-        return str(resp.text), resp.status
+        resp = session.fetch(url, timeout=45000)
+    except FetcherUnavailable:
+        raise
+    except AttributeError as e:
+        # session.fetch missing / wrong signature — an API mismatch, not a page error.
+        raise FetcherUnavailable(f"StealthySession.fetch API mismatch: {e}")
     except Exception as e:
-        print(f"    [FETCH ERROR] {e}")
+        print(f"    [FETCH ERROR] {type(e).__name__}: {str(e)[:200]}")
         return None, 0
+    try:
+        body = resp.body
+        if isinstance(body, bytes):
+            html = body.decode("utf-8", "ignore")
+        else:
+            html = str(resp.text) if body is None else str(body)
+        return html, resp.status
+    except AttributeError as e:
+        raise FetcherUnavailable(f"Scrapling response API mismatch: {e}")
 
 # ── PDF extraction ────────────────────────────────────────────────────────
 def find_pdf_links(html, base_url):
@@ -116,19 +161,24 @@ def download_pdf(url, series_uid):
         return None
 
 def extract_pdf_structure(pdf_path):
-    """Extract tournament structure data from PDF using pdfplumber"""
+    """Extract tournament structure data from PDF.
+
+    Returns (fields, all_text). The text is needed to attribute the sheet to the
+    specific event it describes — these values must NOT be fanned out across a
+    whole series.
+    """
     if not PDF_OK:
-        return {}
-    
+        return {}, ""
+
     result = {}
+    all_text = ""
     try:
         with pdfplumber.open(pdf_path) as pdf:
-            all_text = ""
             for page in pdf.pages[:5]:  # First 5 pages max
                 all_text += (page.extract_text() or "") + "\n"
-            
+
             if not all_text.strip():
-                return {}
+                return {}, ""
             
             # Starting stack / chips
             m = re.search(r'(?:starting|initial)\s*(?:stack|chips)[:\s]*([0-9,]+)', all_text, re.I)
@@ -167,8 +217,55 @@ def extract_pdf_structure(pdf_path):
     
     except Exception as e:
         print(f"    [PDF PARSE ERROR] {e}")
-    
-    return result
+
+    return result, all_text
+
+# ── Attribute a structure sheet to the ONE event it describes ─────────────
+def match_pdf_to_event(pdf_url, pdf_text, events):
+    """Return the single event this structure sheet belongs to, or None.
+
+    A structure sheet describes ONE tournament. Applying its starting_stack /
+    level_duration / late_reg / bounty to every event in the series gave a $200
+    turbo the main event's 50,000 stack and presented it as scraped fact.
+    Attribution is deliberately strict: ambiguous means "do not write".
+    """
+    haystack = f"{pdf_url}\n{(pdf_text or '')[:4000]}"
+
+    # 1. Explicit event number ("Event #12", "event-12-structure.pdf")
+    nums = set()
+    for m in re.finditer(r'event[\s#_\-]*(\d{1,3})\b', haystack, re.I):
+        nums.add(int(m.group(1)))
+    if len(nums) == 1:
+        want = nums.pop()
+        hits = [e for e in events
+                if str(e.get('event_number') or '').strip().lstrip('#') == str(want)]
+        if len(hits) == 1:
+            return hits[0]
+
+    # 2. Explicit buy-in ("$1,100", "1100-main-event.pdf")
+    buyins = set()
+    for m in re.finditer(r'\$\s*([\d,]{2,9})', haystack):
+        try: buyins.add(int(m.group(1).replace(',', '')))
+        except ValueError: pass
+    for m in re.finditer(r'(?:^|[/_\-])(\d{3,6})(?:[/_\-]|\.pdf)', pdf_url, re.I):
+        try: buyins.add(int(m.group(1)))
+        except ValueError: pass
+    for b in list(buyins):
+        hits = [e for e in events if e.get('buy_in') and int(e['buy_in']) == b]
+        if len(hits) == 1:
+            return hits[0]
+
+    # 3. Distinctive event name appearing in the sheet
+    name_hits = []
+    for e in events:
+        name = (e.get('event_name') or '').strip()
+        if len(name) >= 12 and name.lower() in haystack.lower():
+            name_hits.append(e)
+    if len(name_hits) == 1:
+        return name_hits[0]
+
+    return None
+
 
 # ── Event detail page extraction ──────────────────────────────────────────
 def extract_event_detail_fields(html):
@@ -251,64 +348,97 @@ def completeness_score(evt):
     return min(100, int((r / 13) * 70 + (b / 5) * 30))
 
 # ── DB helpers ────────────────────────────────────────────────────────────
-def get_all_events():
-    events = []
-    offset = 0
+def _sb_get_paged(table, select='*'):
+    """Page a table until a short page comes back. Timeouts + error handling on
+    every request — an untimed urlopen used to hang the job until the CI limit,
+    and any HTTP error crashed the script before a single series was enriched."""
+    rows, offset, PAGE = [], 0, 1000
     while True:
         req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/poker_events?select=*&limit=1000&offset={offset}',
+            f'{SUPABASE_URL}/rest/v1/{table}?select={select}&limit={PAGE}&offset={offset}',
             headers={'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
         )
-        with urllib.request.urlopen(req) as r:
-            chunk = json.loads(r.read())
-            events.extend(chunk)
-            if len(chunk) < 1000: break
-            offset += 1000
-    return events
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                chunk = json.loads(r.read()) or []
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8', 'ignore')[:300]
+            print(f"    [DB READ ERROR] {table} offset={offset}: HTTP {e.code}: {body}")
+            raise
+        except Exception as e:
+            print(f"    [DB READ ERROR] {table} offset={offset}: {type(e).__name__}: {e}")
+            raise
+        rows.extend(chunk)
+        if len(chunk) < PAGE:
+            break
+        offset += PAGE
+    return rows
+
+
+def get_all_events():
+    return _sb_get_paged('poker_events')
+
 
 def get_all_series():
-    req = urllib.request.Request(
-        f'{SUPABASE_URL}/rest/v1/poker_series?select=*&limit=1000',
-        headers={'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
-    )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read())
+    # Paginated — the old hard limit=1000 silently dropped series 1001+, whose
+    # events were then enriched against an empty parent record.
+    return _sb_get_paged('poker_series')
 
-def patch_events(series_uid, patch):
-    """PATCH all events for a series_uid"""
+# NOTE: patch_events(series_uid, ...) — which PATCHed EVERY event in a series
+# with fields regex-scraped from one PDF / the series landing page — has been
+# removed. It fabricated per-event structure data. Structure fields now go
+# through patch_event() against the one event they were attributed to.
+
+DB_ERRORS = {"patch_failed": 0}
+
+
+def _patch(url, patch, label):
     body = json.dumps(patch).encode()
-    url = f'{SUPABASE_URL}/rest/v1/poker_events?series_uid=eq.{urllib.parse.quote(series_uid)}'
     req = urllib.request.Request(url, data=body, headers=SB_HDRS, method='PATCH')
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return True
-    except Exception as e:
-        print(f"    [DB ERROR] {e}")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            if r.status not in (200, 201, 204):
+                print(f"    [DB ERROR] {label}: HTTP {r.status}")
+                DB_ERRORS["patch_failed"] += 1
+                return False
+        return True
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode('utf-8', 'ignore')[:300]
+        print(f"    [DB ERROR] {label}: HTTP {e.code}: {detail}")
+        DB_ERRORS["patch_failed"] += 1
         return False
+    except Exception as e:
+        print(f"    [DB ERROR] {label}: {type(e).__name__}: {e}")
+        DB_ERRORS["patch_failed"] += 1
+        return False
+
 
 def patch_event(event_uid, patch):
     """PATCH a single event by event_uid"""
-    body = json.dumps(patch).encode()
     url = f'{SUPABASE_URL}/rest/v1/poker_events?event_uid=eq.{urllib.parse.quote(event_uid)}'
-    req = urllib.request.Request(url, data=body, headers=SB_HDRS, method='PATCH')
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return True
-    except Exception as e:
-        print(f"    [DB ERROR] {e}")
-        return False
+    return _patch(url, patch, f'patch_event {event_uid[:40]}')
+
+
+def patch_events_by_uids(event_uids, patch):
+    """PATCH a specific, explicit list of events (used for batched score writes)."""
+    if not event_uids:
+        return True
+    ok = True
+    for i in range(0, len(event_uids), 50):
+        chunk = event_uids[i:i + 50]
+        # Quote each uid so commas/spaces inside an id can't break the filter.
+        quoted = ['"' + u.replace('"', '') + '"' for u in chunk]
+        uid_filter = urllib.parse.quote(",".join(quoted), safe=',"')
+        url = (SUPABASE_URL + '/rest/v1/poker_events'
+               + '?event_uid=in.(' + uid_filter + ')')
+        ok = _patch(url, patch, f'patch {len(chunk)} events') and ok
+    return ok
+
 
 def patch_series(series_uid, patch):
     """PATCH poker_series record"""
-    body = json.dumps(patch).encode()
     url = f'{SUPABASE_URL}/rest/v1/poker_series?series_uid=eq.{urllib.parse.quote(series_uid)}'
-    req = urllib.request.Request(url, data=body, headers=SB_HDRS, method='PATCH')
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return True
-    except Exception as e:
-        print(f"    [DB ERROR] {e}")
-        return False
+    return _patch(url, patch, f'patch_series {series_uid[:40]}')
 
 # ── Main ──────────────────────────────────────────────────────────────────
 def main():
@@ -367,30 +497,48 @@ def main():
         print(f"  Events: {len(events)} | Avg score: {avg_score:.0f} | URL: {scrape_url[:60]}")
         
         # ── Step 1: Fetch series page for PDFs ──
+        # `html` MUST be reset per iteration. It used to be a function-local that
+        # persisted across the loop, so a series whose Step-1 block was skipped
+        # parsed the PREVIOUS series' page and wrote series A's stacks/bounties
+        # onto series B's events (and raised UnboundLocalError under --skip-pdf).
+        html = None
         series_patch = {}
         if scrape_url and not args.skip_pdf:
             print(f"  Fetching series page for PDFs...")
             html, status = fetch_url(scrape_url)
-            
-            if html and status == 200:
+            if not (html and status == 200):
+                html = None   # never let a failed fetch leave stale HTML behind
+
+            if html:
                 pdf_links = find_pdf_links(html, scrape_url)
                 if pdf_links:
                     print(f"  Found {len(pdf_links)} PDF(s)")
                     total_pdfs_found += len(pdf_links)
-                    
+
                     for pdf_url in pdf_links:
                         print(f"    Downloading: {pdf_url[:70]}...")
                         local = download_pdf(pdf_url, sid)
                         if local:
                             print(f"    Parsing: {local}")
-                            fields = extract_pdf_structure(local)
+                            fields, pdf_text = extract_pdf_structure(local)
                             if fields:
-                                print(f"    Extracted {len(fields)} fields: {list(fields.keys())}")
-                                # Apply PDF fields to ALL events in this series
-                                patch_events(sid, fields)
-                                total_fields_enriched += len(fields) * len(events)
-                            
-                            # Save PDF URL to series
+                                # A structure sheet describes ONE tournament.
+                                # Write it only to the event it can be attributed
+                                # to; skip (loudly) when attribution is ambiguous.
+                                target = match_pdf_to_event(pdf_url, pdf_text, events)
+                                if target:
+                                    fields['structure_sheet_url'] = pdf_url[:300]
+                                    if patch_event(target['event_uid'], fields):
+                                        print(f"    Applied {len(fields)} fields to "
+                                              f"'{(target.get('event_name') or '')[:50]}'")
+                                        total_fields_enriched += len(fields)
+                                        total_events_enriched += 1
+                                else:
+                                    print(f"    ⚠ Could not attribute this PDF to a single "
+                                          f"event ({len(events)} in series) — NOT applied "
+                                          f"(would have fabricated per-event structure data)")
+
+                            # Save PDF URL to the SERIES record (genuinely series-level)
                             fname = os.path.basename(local).lower()
                             if 'structure' in fname or 'blind' in fname:
                                 series_patch['structure_pdf_url'] = pdf_url
@@ -398,23 +546,21 @@ def main():
                                 series_patch['schedule_pdf_url'] = pdf_url
                 else:
                     print(f"  No PDFs found on series page")
-                
-                # Also extract any structure info directly from the series page HTML
+
+                # Structure info scraped off the series LANDING page is not
+                # per-event data either — it is whichever event the page happened
+                # to describe first. It is no longer fanned out across the series.
                 page_fields = extract_event_detail_fields(html)
                 if page_fields:
-                    # Apply broadly applicable fields (structure info) to all events
-                    broad_fields = {k: v for k, v in page_fields.items() 
-                                   if k in ('starting_stack', 'level_duration_minutes', 'late_reg_levels',
-                                           'rebuy_addon', 'structure_sheet_url')}
-                    if broad_fields:
-                        print(f"  Extracted {len(broad_fields)} broad fields from page: {list(broad_fields.keys())}")
-                        patch_events(sid, broad_fields)
-                        total_fields_enriched += len(broad_fields) * len(events)
-            
+                    print(f"  {len(page_fields)} structure field(s) on the series page "
+                          f"({list(page_fields.keys())}) — not applied per-event "
+                          f"(unattributable to a specific tournament)")
+
             time.sleep(1)  # Polite delay between series
         
-        # ── Step 2: Individual event detail pages (sample 5 per series) ──
-        if not args.skip_detail and scrape_url:
+        # ── Step 2: Per-event fields from the series page __NEXT_DATA__ ──
+        # Requires a SUCCESSFUL fetch for THIS series (html is None otherwise).
+        if not args.skip_detail and scrape_url and html:
             # Only fetch detail pages for events with low scores
             low_score_events = [e for e in events if e.get('scrape_completeness_score', 0) < 60]
             sample_size = min(5, len(low_score_events))
@@ -458,33 +604,46 @@ def main():
                 f'{SUPABASE_URL}/rest/v1/poker_events?select=*&series_uid=eq.{urllib.parse.quote(sid)}&limit=500',
                 headers={'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
             )
-            with urllib.request.urlopen(req) as r:
+            with urllib.request.urlopen(req, timeout=60) as r:
                 enriched_events = json.loads(r.read())
-        except:
-            pass
+        except Exception as e:
+            print(f"    [DB READ ERROR] reload {sid[:40]}: {type(e).__name__}: {e}")
         
         if enriched_events:
             new_avg = sum(completeness_score(e) for e in enriched_events) / len(enriched_events)
             if new_avg != avg_score:
-                # Batch update scores
+                # Group by score and issue ONE PATCH per distinct score value
+                # instead of one HTTP round trip per changed event.
+                by_score = {}
                 for e in enriched_events:
                     new_score = completeness_score(e)
                     if new_score != e.get('scrape_completeness_score', 0):
-                        patch_event(e['event_uid'], {'scrape_completeness_score': new_score})
-                print(f"  Score: {avg_score:.0f} → {new_avg:.0f}")
+                        by_score.setdefault(new_score, []).append(e['event_uid'])
+                for new_score, uids in by_score.items():
+                    patch_events_by_uids(uids, {'scrape_completeness_score': new_score})
+                print(f"  Score: {avg_score:.0f} → {new_avg:.0f} "
+                      f"({sum(len(v) for v in by_score.values())} events, "
+                      f"{len(by_score)} requests)")
         
         # Progress report every 10 series
         if idx % 10 == 0:
             print(f"\n  === PROGRESS: {idx}/{len(target_series)} series, "
                   f"{total_pdfs_found} PDFs, {total_fields_enriched} fields enriched ===\n")
     
+    close_session()
+
     print(f"\n{'='*70}")
     print(f"ENRICHMENT COMPLETE")
     print(f"  Series processed:   {len(target_series)}")
     print(f"  PDFs found:         {total_pdfs_found}")
     print(f"  Fields enriched:    {total_fields_enriched}")
     print(f"  Events enriched:    {total_events_enriched}")
+    print(f"  DB write failures:  {DB_ERRORS['patch_failed']}")
     print(f"{'='*70}")
+
+    if DB_ERRORS['patch_failed']:
+        # A run that could not write must not look like a success.
+        raise SystemExit(1)
 
 
 def _walk_next_data_for_enrichment(nd, events):
@@ -579,4 +738,14 @@ def _walk_next_data_for_enrichment(nd, events):
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except FetcherUnavailable as e:
+        # Fatal: Scrapling is missing or its API changed. Abort loudly instead of
+        # printing "PDFs found: 0" and exiting 0 after doing nothing at all.
+        print(f"\n[FATAL] Stealth fetcher unavailable — aborting: {e}")
+        close_session()
+        raise SystemExit(2)
+    except Exception:
+        close_session()
+        raise

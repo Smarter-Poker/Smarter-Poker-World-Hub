@@ -19,12 +19,18 @@ def categorize_article(title):
     return 'news'
 
 def parse_date(date_text):
+    """Return the article's published date, or None when it cannot be parsed.
+
+    NEVER fall back to 'now'. Doing so stamped archived articles with the
+    scrape time, so old stories surfaced as breaking news ahead of genuinely
+    new ones whenever CardPlayer changed its date markup.
+    """
     if not date_text:
-        return datetime.utcnow().isoformat() + "Z"
-    
+        return None
+
     # Strip "Published:" prefix
     clean = re.sub(r'(?i)Published:\s*', '', date_text).strip()
-    
+
     # Try parsing different date formats
     formats = [
         "%B %d, %Y",  # May 16, 2026
@@ -37,9 +43,9 @@ def parse_date(date_text):
             return dt.isoformat() + "Z"
         except ValueError:
             continue
-            
-    print(f"⚠️ Could not parse date text: '{date_text}', defaulting to current time.")
-    return datetime.utcnow().isoformat() + "Z"
+
+    print(f"⚠️ Could not parse date text: '{date_text}' — leaving published_at NULL.")
+    return None
 
 def main():
     print("🚀 Starting CardPlayer News Scraper (Scrapling)...")
@@ -67,7 +73,10 @@ def main():
     
     inserted_count = 0
     skipped_count = 0
-    
+    error_count = 0
+    date_missing_count = 0
+    fatal_error = None
+
     try:
         # Step 1: Fetch CardPlayer News landing page
         landing_url = "https://www.cardplayer.com/poker-news"
@@ -80,7 +89,15 @@ def main():
             
         news_items = resp.css('.newsitem')
         print(f"✅ Found {len(news_items)} news items on CardPlayer.")
-        
+
+        if not news_items:
+            # 200 OK with zero matches means the '.newsitem' selector no longer
+            # matches the markup (or we were served a block page).
+            raise RuntimeError(
+                "Landing page returned 200 but zero '.newsitem' elements — "
+                "selector break or bot block"
+            )
+
         # Step 2: Iterate over news items
         # Limit to 15 latest articles
         for idx, item in enumerate(news_items[:15]):
@@ -118,9 +135,12 @@ def main():
                     if not image_url or 'lazy' in image_url or '1x1' in image_url:
                         image_url = img_tag[0].attrib.get('data-lazy-src', '').strip()
                 
+                # No stock-photo substitute: a generic Unsplash image presented
+                # as the article's own is fabricated imagery. Leave it NULL and
+                # let the frontend render its own placeholder.
                 if not image_url:
-                    image_url = "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80"
-                    
+                    image_url = None
+
                 # Fetch excerpt/summary
                 p_tag = item.css('.newsinfo p')
                 summary = ""
@@ -133,17 +153,21 @@ def main():
                 print(f"🔍 Fetching article detail: {source_url}")
                 detail_resp = session.fetch(source_url)
                 published_at_str = None
-                
+
                 if detail_resp.status == 200:
                     post_date_span = detail_resp.css('span.cp-post-date')
                     if post_date_span:
                         date_text = post_date_span[0].text.strip()
                         print(f"📅 Post date text: '{date_text}'")
                         published_at_str = parse_date(date_text)
-                        
+
+                # published_at stays NULL when the source date is missing or
+                # unparseable — the UI can order by scraped_at instead. It is
+                # never back-filled with the scrape time.
                 if not published_at_str:
-                    published_at_str = datetime.utcnow().isoformat() + "Z"
-                    
+                    date_missing_count += 1
+                    print("⚠️ No usable publication date — storing published_at as NULL.")
+
                 # Step 4: Insert new article
                 new_article = {
                     "title": title,
@@ -163,21 +187,51 @@ def main():
                     "is_archived": False
                 }
                 
-                supabase.table("poker_news").insert(new_article).execute()
+                result = supabase.table("poker_news").insert(new_article).execute()
+                # Confirm the insert actually produced a row before counting it.
+                rows = getattr(result, "data", None)
+                if isinstance(rows, list) and len(rows) == 0:
+                    error_count += 1
+                    print(f"❌ Insert returned no row for: {title}")
+                    continue
                 inserted_count += 1
                 print(f"✅ Successfully inserted article: {title}")
-                
+
             except Exception as item_err:
+                error_count += 1
                 print(f"⚠️ Error processing news item {idx+1}: {item_err}")
-                
+
     except Exception as e:
+        fatal_error = e
         print(f"❌ Scraper error: {e}")
     finally:
         session.close()
-        
-    print(f"\n🎉 CARDPLAYER SCRAPER RUN COMPLETED:")
+
+    processed = inserted_count + skipped_count
+    print(f"\nCARDPLAYER SCRAPER RUN SUMMARY:")
     print(f"   Inserted: {inserted_count} new articles")
-    print(f"   Skipped: {skipped_count} existing articles")
+    print(f"   Skipped:  {skipped_count} existing articles")
+    print(f"   Errors:   {error_count} item failures")
+    print(f"   No date:  {date_missing_count} articles stored without published_at")
+
+    # ── EXIT STATUS ───────────────────────────────────────────────────────
+    # A blocked fetch, a dead session or a selector change must NOT look like
+    # a successful run to the scheduler.
+    if fatal_error is not None:
+        print(f"❌ RUN FAILED: {fatal_error}")
+        sys.exit(1)
+
+    if processed == 0:
+        print("❌ RUN FAILED: no articles were inserted or matched as existing.")
+        sys.exit(1)
+
+    # Every item we attempted blew up — treat as a failure even if some
+    # articles were already known.
+    if error_count and inserted_count == 0 and error_count >= 3:
+        print(f"❌ RUN FAILED: {error_count} item errors and 0 inserts.")
+        sys.exit(1)
+
+    print("RUN COMPLETED OK")
 
 if __name__ == "__main__":
     main()

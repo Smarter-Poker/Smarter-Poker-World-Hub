@@ -32,6 +32,17 @@ import argparse, hashlib, io, json, os, re, sys, time, uuid, urllib.request, url
 from datetime import datetime, timezone, timedelta, date as date_cls
 from pathlib import Path
 
+import os as _bh_os, sys as _bh_sys
+_bh_sys.path.insert(0, _bh_os.path.dirname(_bh_os.path.abspath(__file__)))
+# Browser self-heal — launchd runs this daemon directly, so shell-level healing
+# in the launchers never fires. See scripts/browser_heal.py for the 2026-07-26
+# incident where a missing chromium revision kept this daemon down for days.
+try:
+    import browser_heal as _browser_heal
+except Exception:  # pragma: no cover - heal is best-effort
+    _browser_heal = None
+
+
 try:
     import pdfplumber
     PDF_OK = True
@@ -58,7 +69,52 @@ SB_HDRS = {
     "Prefer": "resolution=merge-duplicates,return=minimal",
 }
 
+# Upsert needs the written rows back so we can verify the DB actually accepted
+# every record — `return=minimal` makes partial rejections invisible.
+SB_UPSERT_HDRS = {
+    **SB_HDRS,
+    "Prefer": "resolution=merge-duplicates,return=representation",
+}
+
 EVENT_ON_CONFLICT = "event_uid"
+
+# Run-level error counters — a run that lost rows must NOT exit 0.
+RUN_ERRORS = {"upsert_failed": 0, "rows_lost": 0, "patch_failed": 0, "series_errors": 0}
+
+# Extraction-path → (data_quality, scrape_confidence).
+# Structured JSON is trustworthy; regex scraped off raw HTML/PDF is not, and must
+# never be stamped 'scraped_verified'/'high' alongside it.
+SOURCE_QUALITY = {
+    "pokeratlas":      ("scraped_verified", "high"),
+    "hendonmob":       ("scraped_partial",  "medium"),
+    "cardplayer":      ("scraped_partial",  "medium"),
+    "pokeratlas_html": ("scraped_inferred", "low"),
+    "html_fallback":   ("scraped_inferred", "low"),
+    "source_url":      ("scraped_inferred", "low"),
+    "pdf_fallback":    ("scraped_inferred", "low"),
+    "bravo_venue":     ("scraped_inferred", "low"),
+    "venue_website":   ("scraped_inferred", "low"),
+    "venue_subpage":   ("scraped_inferred", "low"),
+}
+
+# Programming defects must never be swallowed as "this source had no events" —
+# that is how a NameError silently killed the entire HendonMob source.
+CODE_DEFECTS = (NameError, TypeError, AttributeError, IndexError, KeyError,
+                ImportError, UnboundLocalError)
+
+def quality_for(source: str) -> tuple:
+    return SOURCE_QUALITY.get(source or "", ("scraped_inferred", "low"))
+
+def stamp_source(records: list, source: str) -> list:
+    """Set source AND the matching provenance markers on every record.
+    Callers that re-label a batch (e.g. html_fallback rows fetched from Bravo)
+    must go through here so data_quality never drifts from the real path."""
+    dq, conf = quality_for(source)
+    for r in records:
+        r["source"] = source
+        r["data_quality"] = dq
+        r["scrape_confidence"] = conf
+    return records
 
 CHUNK_SIZE    = 10
 SERIES_RATE_S = 3.0
@@ -66,6 +122,7 @@ PAGE_RECYCLE  = 25
 SESSION_MAX   = 21600
 CIRCUIT_MAX   = 5
 ENRICH_FAIL_MAX = 5  # after 5 fails, flag as permanently_ungettable
+REFRESH_AFTER_HOURS = 24   # re-scrape a series whose last_scraped is older than this
 
 # State → timezone map
 STATE_TZ = {
@@ -105,6 +162,25 @@ def sha256h(raw: bytes) -> str:
 
 def slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[''`]", "", s).lower()).strip("-")
+
+def stable_event_uid(series_uid: str, event_name, start_date, buy_in,
+                     prefix: str = "e", start_time=None) -> str:
+    """Deterministic event_uid built from stable CONTENT only.
+
+    The upsert conflicts on event_uid, so the id must be reproducible across
+    re-scrapes — anything derived from parse ordering (a running match counter)
+    turns every re-scrape into a duplicate INSERT instead of an UPDATE.
+
+    start_time is part of the seed because a venue routinely runs the SAME
+    name/date/buy-in tournament twice in one day (noon + evening). Without it
+    both rows hash to one uid, and two identical conflict targets inside a single
+    PostgREST batch make Postgres raise 21000 ("ON CONFLICT DO UPDATE command
+    cannot affect row a second time"), which rejects the whole 100-row chunk.
+    """
+    norm_name = re.sub(r"\s+", " ", str(event_name or "").strip().lower())[:80]
+    seed = (f"{series_uid}|{norm_name}|{start_date or ''}|{buy_in or ''}"
+            f"|{start_time or ''}")
+    return f"{series_uid}_{prefix}_{hashlib.md5(seed.encode()).hexdigest()[:12]}"
 
 # ── Scrapling Fetcher for non-Cloudflare sites (MANDATORY per Data Integrity) ──
 def scrapling_fetch(url: str, timeout: int = 15) -> tuple:
@@ -274,6 +350,13 @@ def game_from_pa(text: str) -> str:
     if "LIMIT HOLD" in u and "NO LIMIT" not in u: return "Limit Holdem"
     return text[:50] if text else "NL Holdem"
 
+# The normalized values game_from_pa() is allowed to produce. Anything else is
+# its pass-through branch echoing raw source text, which must never be written
+# into game_type when the input was a whole table cell rather than a game label.
+KNOWN_GAME_TYPES = frozenset({
+    "NL Holdem", "PLO", "Omaha Hi-Lo", "Mixed", "Stud", "Razz", "Limit Holdem",
+})
+
 def fmt_from(text: str) -> Optional[str]:
     for f,pat in [
         ("Mystery Bounty","mystery.?bounty"),("Progressive KO","progressive|PKO"),
@@ -333,21 +416,32 @@ def has_tourn(html: str) -> bool:
 # ── Anti-hallucination guard ───────────────────────────────────────────────────
 def anti_hallucination_ok(records: list) -> bool:
     """Reject suspicious AI-generated patterns."""
-    if len(records) < 3: return True
+    if len(records) < 2: return True
     buyins = [r["buy_in"] for r in records if r.get("buy_in")]
-    
-    # Red flag 1: >95% buy-ins are round $100 multiples
-    is_round = False
-    if len(buyins) >= 5 and sum(1 for b in buyins if b%100==0)/len(buyins) > 0.95:
-        is_round = True
-        
-    # Red flag 2: all slots have identical date-time-buyin (copy-paste ghost)
+
+    # Red flag 1: >95% buy-ins are round $100 multiples.
+    # NOT a rejection on its own — real series buy-ins ($200/$400/$1,100/$10,000)
+    # are legitimately all $100 multiples. Logged so it shows up in the run log.
+    if len(buyins) >= 5 and sum(1 for b in buyins if b % 100 == 0) / len(buyins) > 0.95:
+        log("      ⚠️  [ANTI-HALLU] every buy-in is a round $100 multiple — review batch")
+
+    # Red flag 2: slots have identical date-time-buyin (copy-paste ghost).
+    # Threshold stays at >5. This check IGNORES the event name, and a real
+    # 3-4 event mini-series legitimately shares one date and one buy-in (three
+    # $200 flights on a Saturday, times unparsed => start_time None for all).
+    # Dropping those would discard the whole series and mark it failed.
+    # Genuinely fabricated small batches are caught by red flag 3 below, which
+    # also requires the NAME to be identical.
     slots = [f"{r.get('start_date')}-{r.get('start_time')}-{r.get('buy_in')}" for r in records]
-    is_identical = len(slots) > 5 and len(set(slots)) == 1
-    
-    # Reject if both flags are present, or just identical slots (which is the main indicator of hallucination)
-    if is_identical: return False
-    
+    if len(slots) > 5 and len(set(slots)) == 1:
+        return False
+
+    # Red flag 3: every record identical on name+date+buy-in (regex re-matched one
+    # block N times). Distinct from flag 2 which ignores the name.
+    full = [f"{r.get('event_name')}|{r.get('start_date')}|{r.get('buy_in')}" for r in records]
+    if len(full) >= 3 and len(set(full)) == 1:
+        return False
+
     return True
 
 # ── Supabase REST helpers (via PostgREST — triggers fire) ──────────────────────
@@ -370,32 +464,74 @@ def sb_get_paged(path: str, base_params: str, limit: int = 1000) -> list:
     return all_rows
 
 def sb_upsert_events(records: list) -> int:
-    """Upsert event records to poker_events table via PostgREST (triggers fire)."""
+    """Upsert event records to poker_events via PostgREST (triggers fire).
+
+    Returns the number of rows the DB actually CONFIRMED writing (from the
+    representation payload) — not the number we optimistically sent. A batch
+    rejected for an unknown column used to be reported as a success.
+    """
     if not records: return 0
     try:
         url = f"{SUPABASE_URL}/rest/v1/poker_events?on_conflict={EVENT_ON_CONFLICT}"
         req = urllib.request.Request(
-            url, data=json.dumps(records).encode(), method="POST", headers=SB_HDRS
+            url, data=json.dumps(records).encode(), method="POST", headers=SB_UPSERT_HDRS
         )
-        with urllib.request.urlopen(req, timeout=40) as r:
-            return len(records) if r.status in (200,201) else 0
+        with urllib.request.urlopen(req, timeout=60) as r:
+            if r.status not in (200, 201):
+                log(f"  [UPSERT ERR] unexpected HTTP {r.status}")
+                RUN_ERRORS["upsert_failed"] += 1
+                RUN_ERRORS["rows_lost"] += len(records)
+                return 0
+            try:
+                returned = json.loads(r.read() or b"[]")
+            except Exception:
+                returned = []
+            written = len(returned) if isinstance(returned, list) else 0
+            if written != len(records):
+                lost = len(records) - written
+                log(f"  [UPSERT WARN] sent {len(records)} rows, DB confirmed {written} "
+                    f"— {lost} row(s) NOT written")
+                RUN_ERRORS["rows_lost"] += max(0, lost)
+            return written
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8","ignore")[:400]
-        log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
+        log(f"  [UPSERT ERR] HTTP {e.code}: {body}")
+        RUN_ERRORS["upsert_failed"] += 1
+        RUN_ERRORS["rows_lost"] += len(records)
+        return 0
     except Exception as e:
-        log(f"  [UPSERT ERR] {e}"); return 0
+        log(f"  [UPSERT ERR] {e}")
+        RUN_ERRORS["upsert_failed"] += 1
+        RUN_ERRORS["rows_lost"] += len(records)
+        return 0
 
-def sb_patch_series(series_uid: str, patch: dict):
-    """Update poker_series metadata after scraping events."""
+def sb_patch_series(series_uid: str, patch: dict) -> bool:
+    """Update poker_series metadata after scraping events. Returns True on success.
+
+    A rejected patch used to be completely invisible; it now logs the response
+    body and increments the run-level failure counter that drives the exit code.
+    """
     try:
         encoded_uid = urllib.parse.quote(series_uid, safe='')
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/poker_series?series_uid=eq.{encoded_uid}",
             data=json.dumps(patch).encode(), method="PATCH", headers=SB_HDRS
         )
-        urllib.request.urlopen(req, timeout=20)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            if r.status not in (200, 201, 204):
+                log(f"  [PATCH ERR] poker_series {series_uid[:40]}: HTTP {r.status}")
+                RUN_ERRORS["patch_failed"] += 1
+                return False
+        return True
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "ignore")[:300]
+        log(f"  [PATCH ERR] poker_series {series_uid[:40]}: HTTP {e.code}: {body}")
+        RUN_ERRORS["patch_failed"] += 1
+        return False
     except Exception as e:
         log(f"  [PATCH ERR] poker_series {series_uid[:40]}: {e}")
+        RUN_ERRORS["patch_failed"] += 1
+        return False
 
 def sb_audit(batch_id: str, series_count: int, records: int, notes: str = ""):
     """Layer 6: Audit trail — every batch gets a log entry."""
@@ -428,6 +564,10 @@ def create_session():
     """Create a new StealthySession with network pre-check."""
     if not network_ok():
         raise ConnectionError("Network unavailable — cannot start StealthySession")
+    # Self-heal a missing Playwright browser before launching a session.
+    if _browser_heal is not None:
+        _browser_heal.ensure_browser()
+
     from scrapling.fetchers import StealthySession
     session = StealthySession(headless=True, solve_cloudflare=True)
     session.start()
@@ -477,16 +617,40 @@ def find_pdfs(html: str, base_url: str) -> list:
         if KW.search(ctx) or KW.search(href): found.append(href)
     return found[:5]
 
+PDF_MAX_BYTES = 10 * 1024 * 1024   # 10MB — a structure book bigger than this is not a schedule
+PDF_MAX_PAGES = 15                  # matches enrich_series_events.py's page cap philosophy
+
 def extract_pdf(pdf_url: str) -> str:
+    """Download + parse a PDF with hard size and page caps.
+
+    Previously read the whole response and parsed EVERY page, so one large casino
+    structure book could exhaust runner memory or burn the job's time budget.
+    """
     if not PDF_OK: return ""
     try:
         req = urllib.request.Request(pdf_url, headers={"User-Agent":"Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=25) as r: raw = r.read()
+        with urllib.request.urlopen(req, timeout=25) as r:
+            try:
+                declared = int(r.headers.get("Content-Length") or 0)
+            except (TypeError, ValueError):
+                declared = 0
+            if declared and declared > PDF_MAX_BYTES:
+                log(f"      [PDF SKIP] {declared} bytes > {PDF_MAX_BYTES} cap: {pdf_url[:60]}")
+                return ""
+            # Read one byte past the cap so an oversized body with no/lying
+            # Content-Length is detected rather than buffered in full.
+            raw = r.read(PDF_MAX_BYTES + 1)
+        if len(raw) > PDF_MAX_BYTES:
+            log(f"      [PDF SKIP] body exceeds {PDF_MAX_BYTES} byte cap: {pdf_url[:60]}")
+            return ""
         if raw[:4] != b"%PDF": return ""
         with pdfplumber.open(io.BytesIO(raw)) as pdf:
-            return "\n".join(p.extract_text() or "" for p in pdf.pages)
+            pages = pdf.pages[:PDF_MAX_PAGES]
+            if len(pdf.pages) > PDF_MAX_PAGES:
+                log(f"      [PDF] {len(pdf.pages)} pages — parsing first {PDF_MAX_PAGES}")
+            return "\n".join(p.extract_text() or "" for p in pages)
     except Exception as e:
-        log(f"      [PDF ERR] {str(e)[:60]}"); return ""
+        log(f"      [PDF ERR] {str(e)[:120]}"); return ""
 
 # ── Record factory — maps to poker_events DB columns ──────────────────────────
 def make_event_rec(series_uid, series_name, batch_id, event_uid,
@@ -497,8 +661,14 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
                    re_entry, re_entry_limit, unlimited_re_entry,
                    venue_name, city, state, source, source_url,
                    html_hash, notes=None, event_type=None) -> dict:
-    """Build a record matching the poker_events DB schema exactly."""
+    """Build a record matching the poker_events DB schema exactly.
+
+    data_quality / scrape_confidence are DERIVED from `source` (the extraction
+    path) — they used to be hardcoded 'scraped_verified'/'high' on every record
+    regardless of whether it came from structured JSON or a regex guess.
+    """
     ts = datetime.now(timezone.utc).isoformat()
+    dq, conf = quality_for(source)
     return {
         "event_uid":          event_uid,
         "series_uid":         series_uid,
@@ -528,10 +698,10 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
         "state":              state or "",
         "source":             source,
         "notes":              notes,
-        "data_quality":       "scraped_verified",
+        "data_quality":       dq,
         "scrape_html_hash":   html_hash,
         "scrape_timestamp":   ts,
-        "scrape_confidence":  "high",
+        "scrape_confidence":  conf,
         "scrape_batch_id":    batch_id,
     }
 
@@ -751,13 +921,23 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
             desc = re.match(r'(\$[\d,K]+[^\n|$]{3,60})', txt)
             if desc: tname = desc.group(1).strip()[:150]
         # GTD: match "$50K Gtd" / "$100K GTD" / "Guaranteed: $10,000" patterns
+        # A guarantee MUST carry an explicit currency symbol or K/M suffix.
+        # A bare number after "Guaranteed" matched things like "Guaranteed 5000
+        # chips" / "guaranteed seating 2026" and invented prize pools.
         gtd = None
-        gtd_m = re.search(r"\$(\d+)[Kk]\s*(?:GTD|Gtd|Guaranteed)", txt)
+        gtd_m = re.search(r"\$\s*(\d+(?:\.\d+)?)\s*([KkMm])\s*(?:GTD|Gtd|Guaranteed)", txt)
         if gtd_m:
-            gtd = int(gtd_m.group(1)) * 1000
+            gtd = int(float(gtd_m.group(1)) * (1000 if gtd_m.group(2).lower() == "k" else 1000000))
         else:
-            gtd_m2 = re.search(r"(?:GTD|Gtd|Guaranteed)[:\s]*\$?([\d,]+)", txt, re.I)
-            if gtd_m2: gtd = int(gtd_m2.group(1).replace(",",""))
+            gtd_m2 = re.search(r"(?:GTD|Gtd|Guaranteed)[:\s]*\$\s*([\d,]+)", txt, re.I)
+            if not gtd_m2:
+                gtd_m2 = re.search(r"\$\s*([\d,]+)\s*(?:GTD|Gtd|Guaranteed)", txt, re.I)
+            if gtd_m2:
+                try: gtd = int(gtd_m2.group(1).replace(",", ""))
+                except ValueError: gtd = None
+        # Plausibility: a guarantee below the buy-in (or below $1,000) is noise.
+        if gtd is not None and (gtd < 1000 or gtd < buyin):
+            gtd = None
         # Stack: require "X,XXX chips" pattern (not "15 min levels")
         stack = None
         stk_m = re.search(r"([\d,]+)\s*chips\b", txt, re.I)
@@ -769,14 +949,17 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         if lm: blvl = int(lm.group(1))
         bounty = safe_int_text(txt, r"(?:bounty|knockout)[:\s]*\$?([\d,]+)")
 
-        event_counter += 1
-        uid_seed = f"{series_uid}_{tname}_{ed}_{buyin}_{event_counter}"
-        uid_hash = hashlib.md5(uid_seed.encode()).hexdigest()[:8]
-        event_uid = f"{series_uid}_html_e{event_counter}_{uid_hash}"
-
         dk = f"{ed}-{st}-{buyin}-{(tname or '')[:30]}"
         if dk in seen: return
         seen.add(dk)
+
+        event_counter += 1
+        # event_uid MUST be derived from stable content only. It previously folded
+        # in event_counter (a running count of matched blocks), so any page change
+        # or ad rotation shifted the id and the upsert INSERTed a duplicate row
+        # instead of updating the existing one.
+        event_uid = stable_event_uid(series_uid, tname, ed, buyin, prefix="html",
+                                     start_time=st)
 
         notes_parts = []
         if bounty: notes_parts.append(f"Bounty: ${bounty}")
@@ -805,10 +988,12 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         if "<th" in row.lower(): continue
         rt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", row)).strip()
         if "$" in rt: try_block(rt)
-    # Line-by-line scan — matches daily_venue_scraper lines 545-547
-    for line in html.split("\n"):
-        line = line.strip()
-        if len(line) >= 12 and "$" in line: try_block(line)
+    # REMOVED: the raw line-by-line "any line containing $" scan.
+    # It had no length cap, so on minified single-line HTML the whole document
+    # became one "event" (buy-in from a banner ad, date from an unrelated block),
+    # and on pretty-printed HTML promo copy / hotel rates / gift-card blurbs
+    # became tournaments. The block splitter and table/list-row passes above
+    # already cover every real schedule layout.
     return results
 
 # ── SOURCE 4 HELPER: Bravo Poker venue tournament schedule ─────────────────────
@@ -884,8 +1069,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
             if b_status == 200 and b_html and has_tourn(b_html):
                 events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash)
                 if events:
-                    for e in events:
-                        e['source'] = 'bravo_venue'
+                    stamp_source(events, 'bravo_venue')
                     log(f"        [Bravo] {len(events)} events extracted")
         except Exception as ex:
             log(f"        [Bravo] Error: {str(ex)[:60]}")
@@ -899,8 +1083,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
                 if has_tourn(v_html):
                     events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash)
                     if events:
-                        for e in events:
-                            e['source'] = 'venue_website'
+                        stamp_source(events, 'venue_website')
                         log(f"        [Venue Web] {len(events)} events extracted")
 
                 # Try linked tournament/poker subpages
@@ -916,8 +1099,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
                             if s_status == 200 and s_html and has_tourn(s_html):
                                 events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash)
                                 if events:
-                                    for e in events:
-                                        e['source'] = 'venue_subpage'
+                                    stamp_source(events, 'venue_subpage')
                                     log(f"        [Venue Subpage] {len(events)} events from {sub_url[:50]}")
                                     break
                         except Exception:
@@ -935,8 +1117,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
             if cp_status == 200 and cp_html and has_tourn(cp_html):
                 events = extract_html_events(cp_html, series_uid, series_name, batch_id, cp_url, cp_hash)
                 if events:
-                    for e in events:
-                        e['source'] = 'cardplayer'
+                    stamp_source(events, 'cardplayer')
                     log(f"        [CardPlayer] {len(events)} events extracted")
         except Exception as ex:
             log(f"        [CardPlayer] Error: {str(ex)[:60]}")
@@ -1016,11 +1197,12 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
                             if gtd_m:
                                 events[i]['guarantee'] = int(re.sub(r'[^\d]', '', gtd_m.group(1)))
 
-                for e in events:
-                    e['source'] = 'cardplayer'
+                stamp_source(events, 'cardplayer')
                 log(f"        [CardPlayer] {len(events)} events extracted")
+    except CODE_DEFECTS:
+        raise
     except Exception as ex:
-        log(f"        [CardPlayer] Error: {str(ex)[:60]}")
+        log(f"        [CardPlayer] Fetch/parse error: {type(ex).__name__}: {str(ex)[:200]}")
     return events
 
 # ── SOURCE 4 HELPER: HendonMob event-level search ─────────────────────────────
@@ -1065,7 +1247,9 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                 date_str = ''
                 event_name = ''
                 buyin = 0
-                game_type = 'NLH'
+                # Parsed from the row below — NEVER defaulted to NLH. PLO/HORSE/
+                # Stud/mixed events were all being stored as No-Limit Hold'em.
+                game_type = None
                 event_url = None
                 
                 # Check for event detail link inside the row
@@ -1095,15 +1279,33 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         buyin = int(bi_m.group(1).replace(',', ''))
                         continue
                         
-                    # Event Name detection
-                    if len(cell) > 10 and not re.match(r'^\d', cell) and 'NLH' not in cell.upper() and 'HOLD' not in cell.upper():
+                    # Game type detection — read it off the row instead of
+                    # assuming NLH. Left as None when the row says nothing.
+                    if game_type is None and re.search(
+                            r'\b(NLH|NL\s*Hold|No.?Limit|PLO|Omaha|HORSE|Stud|Razz|Mixed|Limit\s*Hold|2-7|Badugi)\b',
+                            cell, re.I):
+                        # game_from_pa() echoes its input when it recognises
+                        # nothing (e.g. a "2-7 Triple Draw" cell), which would
+                        # dump a whole table cell into game_type. Only accept a
+                        # normalized value; otherwise leave it NULL.
+                        _gt = game_from_pa(cell)
+                        game_type = _gt if _gt in KNOWN_GAME_TYPES else None
+
+                    # Event Name detection. The old guard dropped any cell
+                    # containing 'NLH'/'HOLD' — i.e. exactly the cells holding the
+                    # real event names ("Event #4 NLH Deepstack").
+                    if len(cell) > 10 and not re.match(r'^\d', cell):
                         if not event_name:
                             event_name = cell.strip()
 
                 if date_str and event_name:
                     event_counter += 1
-                    event_uid = generate_consistent_id("hm", series_uid, str(event_counter))
-                    
+                    # Deterministic, content-derived uid (the old
+                    # generate_consistent_id() was never defined anywhere, so this
+                    # whole source raised NameError and silently returned []).
+                    event_uid = stable_event_uid(series_uid, event_name, date_str,
+                                                 buyin, prefix="hm")
+                    hm_dq, hm_conf = quality_for('hendonmob')
                     e_dict = {
                         "event_uid": event_uid,
                         "series_uid": series_uid,
@@ -1111,9 +1313,10 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         "event_number": str(event_counter),
                         "buy_in": buyin if buyin else None,
                         "start_date": date_str,
-                        "game_type": 'NLH',
+                        "game_type": game_type,
                         "source": 'hendonmob',
-                        "data_quality": "scraped_verified",
+                        "data_quality": hm_dq,
+                        "scrape_confidence": hm_conf,
                         "scrape_batch_id": batch_id,
                         "scrape_html_hash": hm_hash,
                         "scrape_timestamp": datetime.now(timezone.utc).isoformat()
@@ -1148,8 +1351,12 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
 
             log(f"        [HendonMob] {len(events)} events extracted")
 
+    except CODE_DEFECTS:
+        # Re-raise: a bug in this parser must surface, not masquerade as
+        # "HendonMob had nothing".
+        raise
     except Exception as ex:
-        log(f"        [HendonMob] Error: {str(ex)[:60]}")
+        log(f"        [HendonMob] Fetch/parse error: {type(ex).__name__}: {str(ex)[:200]}")
     return events
 
 # ── Core per-series scraper ────────────────────────────────────────────────────
@@ -1180,6 +1387,10 @@ def scrape_series(series: dict, session, batch_id: str,
     result = dict(
         series_uid=series_uid, series_name=series_name,
         found=False, events=[], primary_url=pa_url, source="",
+        # resolved_url = the URL of the source that ACTUALLY produced the events.
+        # primary_url is only the PokerAtlas guess and is "" for numeric-ID series,
+        # so writing it to poker_series.source_url wiped working URLs.
+        resolved_url="", skipped=False,
         scrape_fail_count=0, flags=[],
     )
 
@@ -1202,6 +1413,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = events
             result["found"] = True
             result["source"] = "pokeratlas"
+            result["resolved_url"] = pa_url
 
         # Fallback: HTML parsing
         if not events:
@@ -1211,6 +1423,7 @@ def scrape_series(series: dict, session, batch_id: str,
                 result["events"] = events
                 result["found"] = True
                 result["source"] = "pokeratlas_html"
+                result["resolved_url"] = pa_url
 
         # PDF discovery on the page
         for pdf_url in find_pdfs(html, pa_url):
@@ -1242,6 +1455,7 @@ def scrape_series(series: dict, session, batch_id: str,
                 result["events"] = events2
                 result["found"] = True
                 result["source"] = "source_url"
+                result["resolved_url"] = db_source_url
                 log(f"        [Source URL] {len(events2)} events")
         elif status2 != 200:
             log(f"        HTTP {status2} — skipped")
@@ -1253,6 +1467,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = cp_events
             result["found"] = True
             result["source"] = "cardplayer"
+            result["resolved_url"] = db_source_url or pa_url
             
     # ── SOURCE 4: HendonMob / SummerInVegas ─────────────────────────────────
     if not result["found"]:
@@ -1261,6 +1476,7 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = hm_events
             result["found"] = True
             result["source"] = "hendonmob"
+            result["resolved_url"] = db_source_url or pa_url
 
     # ── SOURCE 5: Venue Web / Bravo ─────────────────────────────────────────
     if not result["found"]:
@@ -1269,107 +1485,35 @@ def scrape_series(series: dict, session, batch_id: str,
             result["events"] = v_events
             result["found"] = True
             result["source"] = v_events[0].get("source", "venue")
+            result["resolved_url"] = db_source_url or pa_url
 
-    # ── Multi-source enrichment (Payouts, GTDs, etc) ────────────────────────
-    # These sources were validated to provide payout_levels, structure_sheet_url,
-    # rebuy_addon, bounty_amount, and late_reg_levels during enrichment passes.
+    # ── Series-level completeness log ───────────────────────────────────────
+    # REMOVED: the "multi-source enrichment" block that used to live here.
+    # It regex-scraped ONE payout_levels / late_reg_levels / rebuy_addon /
+    # bounty_amount / structure_sheet_url value off a CardPlayer search page and
+    # the venue homepage, then fanned that single value out onto EVERY event in
+    # the series — so a $200 turbo, a $600 deep stack and a $10,000 main event
+    # all ended up with the main event's bounty and late-reg, stamped as scraped
+    # fact. It also used plain urllib (violating this file's Scrapling mandate)
+    # and wrote columns make_event_rec never produces, risking a PGRST204 that
+    # rejects the whole 100-record batch.
+    # Per-event structure data is the job of the PokerAtlas __NEXT_DATA__ walk
+    # above and of enrich_series_events.py, both of which match values to the
+    # specific event they belong to.
     if result["found"] and result["events"]:
-        enrichment = {}
-        # Try to pull supplemental details from Venue Web logic if available
-        if result["source"] == "pokeratlas" and args.enrich:
-            v_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
-            if v_events:
-                # Merge logic...
-                pass
-        
-        # Finally compute completeness
         cmp = compute_completeness(result["events"][0])
         log(f"      → Final events: {len(result['events'])}, Completeness score: {cmp}")
-        # 3a: CardPlayer.com — reliable for payout structure info
-        try:
-            cp_search = urllib.parse.quote(series_name.replace("'", ""))
-            cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
-            cp_req = urllib.request.Request(cp_url, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-            })
-            with urllib.request.urlopen(cp_req, timeout=10) as cp_resp:
-                cp_html = cp_resp.read().decode('utf-8', errors='replace')
-                cp_text = re.sub(r'<[^>]+>', ' ', cp_html)
-                # Payout structure
-                m = re.search(r'(?:payout|prize|pay)\s*(?:structure|schedule|table|out)?[:\s]*([^\n]{5,60})', cp_text, re.I)
-                if m: enrichment['payout_levels'] = m.group(1).strip()[:100]
-                # Structure sheet PDF
-                for pm in re.finditer(r'href="([^"]*\.pdf[^"]*(?:structure|blind)[^"]*)', cp_html, re.I):
-                    enrichment['structure_sheet_url'] = pm.group(1)[:300]
-                    break
-        except Exception:
-            pass
 
-        # 3b: Venue website — reliable for structure PDFs and rebuy/late reg
-        venue_web = series.get("website") or ""
-        if not venue_web:
-            try:
-                with open(PROJECT_ROOT / 'data' / 'all-venues.json') as _vf:
-                    _venues_raw = json.load(_vf)
-                _venues = _venues_raw if isinstance(_venues_raw, list) else _venues_raw.get('venues', [])
-                _vname = series.get('venue_name', '').lower()
-                for _v in _venues:
-                    if _v.get('name', '').lower() == _vname:
-                        venue_web = _v.get('website') or _v.get('url') or ''
-                        break
-            except Exception:
-                pass
-        if venue_web:
-            try:
-                v_req = urllib.request.Request(venue_web, headers={
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-                })
-                with urllib.request.urlopen(v_req, timeout=10) as v_resp:
-                    v_html = v_resp.read().decode('utf-8', errors='replace')
-                    v_text = re.sub(r'<[^>]+>', ' ', v_html)
-                    # Late registration
-                    m = re.search(r'(?:late\s*reg(?:istration)?)[:\s]*(?:through|until|end\s*of|thru)?\s*(?:level\s*)?(\d+)', v_text, re.I)
-                    if m: enrichment.setdefault('late_reg_levels', m.group(1).strip()[:50])
-                    # Rebuy / addon
-                    m = re.search(r'(?:re[\-\s]?entry|rebuy|add[\-\s]?on)[:\s]*([^\n.]{5,80})', v_text, re.I)
-                    if m: enrichment.setdefault('rebuy_addon', m.group(1).strip()[:100])
-                    # Bounty
-                    m = re.search(r'(?:bounty|knockout|ko)[:\s]*\$?(\d[\d,]*)', v_text, re.I)
-                    if m: enrichment.setdefault('bounty_amount', int(m.group(1).replace(',', '')))
-                    # Structure PDF links from venue poker subpages
-                    for pm in re.finditer(r'href="([^"]*\.pdf[^"]*)', v_html, re.I):
-                        purl = pm.group(1)
-                        if purl.startswith('/'): purl = urllib.parse.urljoin(venue_web, purl)
-                        enrichment.setdefault('structure_sheet_url', purl[:300])
-                        break
-            except Exception:
-                pass
+    # NOTE: the duplicated Bravo + HendonMob block that used to live here was
+    # removed. Sources 3-5 already ran above; the duplicate HendonMob call was
+    # missing the `session` argument (TypeError -> whole series reported as
+    # "no events"), and the duplicate Bravo call doubled network cost per series.
 
-        # Apply enrichment to all extracted events (fill-only, don't overwrite)
-        if enrichment:
-            log(f"      [Src 3: Multi-source] +{len(enrichment)} fields: {list(enrichment.keys())}")
-            for rec in result["events"]:
-                for k, v in enrichment.items():
-                    if not rec.get(k):
-                        rec[k] = v
-
-    # ── SOURCE 4: Bravo Poker venue tournament schedule ─────────────────────
-    if not result["found"]:
-        bravo_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
-        if bravo_events:
-            result["events"] = bravo_events
-            result["found"] = True
-            result["source"] = "bravo_venue"
-            log(f"      [Src 4: Bravo] {len(bravo_events)} events from venue page")
-
-    # ── SOURCE 5: HendonMob event search ───────────────────────────────────
-    if not result["found"]:
-        hm_events = _try_hendonmob(series_uid, series_name, batch_id)
-        if hm_events:
-            result["events"] = hm_events
-            result["found"] = True
-            result["source"] = "hendonmob"
-            log(f"      [Src 5: HendonMob] {len(hm_events)} events")
+    # No fetchable primary URL and nothing found via search sources — this is a
+    # SKIP, not a failure, and must not trip the circuit breaker.
+    if not result["found"] and not pa_url and not db_source_url:
+        result["skipped"] = True
+        result["flags"].append("no_source_url")
 
     # ── Anti-hallucination guard ────────────────────────────────────────────
     if result["events"] and not anti_hallucination_ok(result["events"]):
@@ -1422,9 +1566,12 @@ def scrape_series(series: dict, session, batch_id: str,
     epath = save_evidence(series_uid, evidence)
     log(f"      Evidence: {Path(epath).name}")
 
-    # Clean internal _completeness before DB upsert
+    # Promote the internal score to the real DB column instead of discarding it.
+    # scrape_completeness_score was never written by the scraper, so the
+    # --min-score enrichment filters were reading a column that only existed if
+    # a different script happened to run first.
     for rec in result["events"]:
-        rec.pop("_completeness", None)
+        rec["scrape_completeness_score"] = rec.pop("_completeness", None)
 
     return result
 
@@ -1437,6 +1584,18 @@ def flush_chunk(chunk_results: list, batch_id: str, dry_run: bool) -> int:
 
     if not all_events:
         log("  [FLUSH] 0 events — nothing to upsert"); return 0
+
+    # Collapse duplicate event_uids BEFORE the upsert. Two rows with the same
+    # conflict target in one PostgREST request make Postgres raise 21000 and the
+    # ENTIRE 100-row chunk is rejected, so one bad pair would silently lose 99
+    # good events. Last occurrence wins (later sources are the enriched ones).
+    deduped = {}
+    for rec in all_events:
+        deduped[rec.get("event_uid")] = rec
+    if len(deduped) != len(all_events):
+        log(f"  [FLUSH] collapsed {len(all_events) - len(deduped)} duplicate "
+            f"event_uid(s) before upsert")
+        all_events = list(deduped.values())
 
     if dry_run:
         log(f"  [DRY RUN] Would upsert {len(all_events)} events from {len(chunk_results)} series")
@@ -1461,9 +1620,15 @@ def flush_chunk(chunk_results: list, batch_id: str, dry_run: bool) -> int:
             "scrape_status":    "events_scraped",
             "scrape_batch_id":  batch_id,
             "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
-            "scrape_url":       sr.get("primary_url", ""),
-            "source_url":       sr.get("primary_url", ""),
         }
+        # Only record a URL when one actually produced these events, and record
+        # the URL of the source that SUCCEEDED. Unconditionally writing
+        # primary_url overwrote working CardPlayer/HendonMob/Bravo URLs with the
+        # empty PokerAtlas guess, which then disabled both downstream enrichers.
+        resolved = sr.get("resolved_url") or ""
+        if resolved:
+            patch["scrape_url"] = resolved
+            patch["source_url"] = resolved
         if buyins:
             patch["buy_in_min"] = min(buyins)
             patch["buy_in_max"] = max(buyins)
@@ -1471,14 +1636,17 @@ def flush_chunk(chunk_results: list, batch_id: str, dry_run: bool) -> int:
             patch["start_date"] = min(dates)
             patch["end_date"]   = max(dates)
 
-        sb_patch_series(sr["series_uid"], patch)
+        if not sb_patch_series(sr["series_uid"], patch):
+            log(f"  [FLUSH] series patch FAILED for {sr['series_uid'][:50]}")
 
     found_count = sum(1 for sr in chunk_results if sr.get("found"))
     avg_score = 0
     if all_events:
         avg_score = int(sum(compute_completeness(r) for r in all_events) / len(all_events))
+    if total < len(all_events):
+        log(f"  [FLUSH] ⛔ {len(all_events) - total} event row(s) were NOT written by the DB")
     log(f"  [FLUSH] {len(chunk_results)} series → {found_count} with events → "
-        f"{total}/{len(all_events)} events ✅ avg_completeness={avg_score}")
+        f"{total}/{len(all_events)} events confirmed written, avg_completeness={avg_score}")
     return total
 
 # ── Load series list (missing mode vs enrich mode) ─────────────────────────────
@@ -1529,7 +1697,8 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
 
     # Get DB state for filtering
     db_series = sb_get_paged("poker_series",
-        "?select=series_uid,state,events_scraped,events_count,scrape_url,source_url")
+        "?select=series_uid,state,events_scraped,events_count,scrape_url,source_url,"
+        "last_scraped,start_date,end_date")
     db_map = {r["series_uid"]: r for r in db_series}
 
     # Enrich master list with DB data (state, source_url, scrape_url)
@@ -1547,13 +1716,39 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
                       if s.get("_db_state", "").upper() == filter_state.upper()]
         log(f"  After state filter ({filter_state}): {len(all_series)} series")
 
-    # Skip already-scraped (unless --force)
+    # Skip already-scraped (unless --force).
+    # A series is only skipped when it was scraped RECENTLY *and* has already
+    # ended. Previously any series scraped once was skipped forever, so added
+    # events, moved dates, changed guarantees and cancellations were never
+    # picked up and daemon mode immediately reported "all done" every cycle.
     if not force:
-        scraped_uids = {r["series_uid"] for r in db_series
-                        if r.get("events_scraped") and (r.get("events_count") or 0) > 0}
+        now = datetime.now(timezone.utc)
+        today = now.date().isoformat()
+        cutoff = now - timedelta(hours=REFRESH_AFTER_HOURS)
+
+        def _is_fresh(r: dict) -> bool:
+            if not (r.get("events_scraped") and (r.get("events_count") or 0) > 0):
+                return False                      # never successfully scraped
+            end_date = str(r.get("end_date") or "")[:10]
+            if end_date and end_date < today:
+                return True                       # series already ended — done forever
+            last = r.get("last_scraped") or ""
+            if not last:
+                return False                      # no timestamp — refresh once
+            try:
+                last_dt = datetime.fromisoformat(str(last).replace("Z", "+00:00"))
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return False
+            # Ongoing / future series: refresh once the staleness window expires.
+            return last_dt >= cutoff
+
+        scraped_uids = {r["series_uid"] for r in db_series if _is_fresh(r)}
         before = len(all_series)
         all_series = [s for s in all_series if str(s.get("id","")) not in scraped_uids]
-        log(f"  Skipping {before - len(all_series)} already-scraped → {len(all_series)} remaining")
+        log(f"  Skipping {before - len(all_series)} fresh (<{REFRESH_AFTER_HOURS}h) "
+            f"→ {len(all_series)} to scrape/refresh")
 
     if limit > 0:
         all_series = all_series[:limit]
@@ -1652,7 +1847,15 @@ def main():
                    help="Enrich series with avg completeness below this (default 60)")
     p.add_argument("--pass-limit", type=int, default=3, help="Max enrichment passes")
     p.add_argument("--daemon",     action="store_true", help="Run continuously as a 6-hour daemon")
+    p.add_argument("--max-minutes", type=int, default=0,
+                   help="Wall-clock budget. Flush and exit cleanly before this many "
+                        "minutes elapse so a CI runner never kills the job mid-chunk "
+                        "and loses the unflushed buffer. 0 = unlimited.")
+    p.add_argument("--series-timeout", type=int, default=600,
+                   help="Soft per-series time cap in seconds (default 600)")
     args = p.parse_args()
+
+    deadline = (time.time() + args.max_minutes * 60) if args.max_minutes > 0 else None
 
     from scrapling.fetchers import StealthySession
 
@@ -1706,7 +1909,17 @@ def main():
         pass_found = 0
         wall_start = time.time()
 
+        budget_exhausted = False
         for i, series in enumerate(series_list):
+            # Wall-clock budget — flush what we have and stop cleanly rather than
+            # letting the CI runner kill the job mid-chunk and lose chunk_buf.
+            if deadline and time.time() >= deadline:
+                log(f"  ⏱  Wall-clock budget ({args.max_minutes}m) reached at series "
+                    f"{i+1}/{len(series_list)} — flushing and stopping cleanly. "
+                    f"Unscraped series resume on the next run.")
+                budget_exhausted = True
+                break
+
             series_name = series.get("name", "Unknown")
             series_uid  = str(series.get("id", "?"))
             score_info = ""
@@ -1745,6 +1958,7 @@ def main():
                 wall_start = time.time()
                 consecutive_fails = 0
 
+            series_started = time.time()
             try:
                 sr = scrape_series(series, session, batch_id, args.enrich)
                 chunk_buf.append(sr)
@@ -1753,9 +1967,9 @@ def main():
                     consecutive_fails = 0
                     log(f"      ✅ {len(sr['events'])} events — score={compute_completeness(sr['events'][0]) if sr['events'] else 0}")
                 elif sr.get("skipped"):
-                    # Explicitly skipped series (e.g. numeric PA IDs) shouldn't trip breaker
+                    # Explicitly skipped series (no fetchable URL) shouldn't trip breaker
                     consecutive_fails = 0
-                    log(f"      ❌ Skipped")
+                    log(f"      ⏭  Skipped — no source URL")
                 else:
                     consecutive_fails += 1
                     log(f"      ❌ No events found")
@@ -1765,11 +1979,34 @@ def main():
                             "scrape_status": "failed",
                             "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
                         })
-            except Exception as e:
-                log(f"    ❌ {e}")
+            except CODE_DEFECTS as e:
+                # A bug in the scraper is NOT "this series had no events".
+                # Log loudly with a traceback, count it, and keep the run's exit
+                # code non-zero so CI/launchd actually notice.
+                import traceback
+                log(f"    ⛔ CODE DEFECT scraping {series_uid[:50]}: "
+                    f"{type(e).__name__}: {e}")
+                log(traceback.format_exc())
+                RUN_ERRORS["series_errors"] += 1
                 chunk_buf.append({"series_uid":series_uid,"series_name":series_name,
                                   "found":False,"events":[]})
                 consecutive_fails += 1
+            except Exception as e:
+                log(f"    ❌ {type(e).__name__}: {str(e)[:200]}")
+                RUN_ERRORS["series_errors"] += 1
+                chunk_buf.append({"series_uid":series_uid,"series_name":series_name,
+                                  "found":False,"events":[]})
+                consecutive_fails += 1
+
+            elapsed = time.time() - series_started
+            if args.series_timeout and elapsed > args.series_timeout:
+                log(f"      ⏱  Series took {elapsed:.0f}s (> {args.series_timeout}s cap) "
+                    f"— recycling session to keep the pass on schedule")
+                try: session.close()
+                except Exception: pass
+                session = create_session()
+                session_start = time.time()
+                consecutive_fails = 0
 
             # Flush chunk when full
             if len(chunk_buf) >= CHUNK_SIZE:
@@ -1807,6 +2044,10 @@ def main():
         log(f"\n{'='*70}")
         log(f"PASS {pass_num} DONE — {pass_found}/{len(series_list)} resolved, {total_events} events total")
 
+        if budget_exhausted:
+            log("⏱  Stopping after this pass — wall-clock budget reached.")
+            break
+
         # For missing mode: check if there are still unscraped series
         if not args.enrich:
             if args.series: break  # single series mode, one pass
@@ -1820,7 +2061,14 @@ def main():
 
     log(f"\n{'='*70}")
     log(f"DONE — {pass_num} passes, {total_found} series resolved, {total_events} events")
+    log(f"  Errors: upsert_failed={RUN_ERRORS['upsert_failed']} "
+        f"rows_lost={RUN_ERRORS['rows_lost']} "
+        f"patch_failed={RUN_ERRORS['patch_failed']} "
+        f"series_errors={RUN_ERRORS['series_errors']}")
     log(f"Log: {log_path}")
+    # Return the number of rows the DB CONFIRMED writing so callers (daemon
+    # watchdog, CI) can tell a productive run from a clean-looking no-op.
+    return total_events
 
 if __name__ == "__main__":
     if "--daemon" in sys.argv:
@@ -1846,8 +2094,17 @@ if __name__ == "__main__":
                 log(f"🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes. Exiting so launchd can cleanly restart process.")
                 os._exit(1)
             try:
-                main()
-                last_successful_save = time.time()
+                rows_written = main()
+                # Only reset the staleness clock when the cycle ACTUALLY wrote
+                # rows. Resetting on every return meant a daemon producing zero
+                # rows for weeks still looked healthy and the watchdog never
+                # tripped.
+                if rows_written and rows_written > 0:
+                    last_successful_save = time.time()
+                else:
+                    stale = (time.time() - last_successful_save) / 60
+                    log(f"⚠️  Cycle wrote 0 rows — staleness clock NOT reset "
+                        f"({stale:.0f} min since last successful save)")
             except Exception as e:
                 log(f"\n❌ Daemon cycle crashed: {e}")
                 import traceback
@@ -1855,11 +2112,26 @@ if __name__ == "__main__":
             
             sleep_hours = 6
             log(f"\n💤 Daemon sleeping for {sleep_hours} hours...")
-            for _ in range(3600 * sleep_hours):
+            for _tick in range(3600 * sleep_hours):
                 if not running:
                     break
                 time.sleep(1)
+                # Evaluate staleness DURING the sleep, not only at loop top —
+                # otherwise the watchdog can't fire inside a 6-hour window.
+                if _tick % 300 == 0:
+                    stale_minutes = (time.time() - last_successful_save) / 60
+                    if stale_minutes > WATCHDOG_MAX_STALE_MINUTES:
+                        log(f"🚨 WATCHDOG: No successful data save in "
+                            f"{stale_minutes:.0f} minutes. Exiting so launchd can "
+                            f"cleanly restart process.")
+                        os._exit(1)
                 
         log("🛑 Daemon strictly stopped.")
     else:
         main()
+        # Make failures visible to CI / launchd. A run that lost rows, failed a
+        # series patch, or hit a code defect must NOT exit 0.
+        if (RUN_ERRORS["upsert_failed"] or RUN_ERRORS["rows_lost"]
+                or RUN_ERRORS["patch_failed"] or RUN_ERRORS["series_errors"]):
+            log(f"❌ Run completed WITH ERRORS: {RUN_ERRORS} — exiting 1")
+            sys.exit(1)

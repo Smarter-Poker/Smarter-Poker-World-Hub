@@ -160,17 +160,98 @@ def next_n_dates(day_of_week: str, n: int = 10) -> list:
     return dates
 
 # ── Fetch Helpers ─────────────────────────────────────────────────────────────
-def safe_fetch(url: str) -> tuple[str | None, str | None, str | None]:
-    """Returns (html_body, sha256_hash, final_url) or (None, None, None)."""
+# A block (Cloudflare 403/429) is NOT the same as "this venue has no
+# tournaments". Every non-200 used to be discarded silently, so a blocked
+# PokerAtlas call looked like an empty venue and, after 5 rounds, flagged a
+# perfectly scrapable room 'permanently_ungettable'.
+BLOCKED_STATUSES = {401, 403, 405, 407, 409, 429, 503}
+
+# Per-venue counter: reset before a venue is scraped, checked before the
+# fail-count is incremented.
+FETCH_BLOCKED = {"count": 0}
+
+_STEALTH = {"session": None, "unavailable": False}
+
+def _as_bytes(body) -> bytes:
+    if body is None:
+        return b""
+    return body if isinstance(body, bytes) else str(body).encode("utf-8", "ignore")
+
+def _stealth_session():
+    """Lazily start the same StealthySession the sibling scrapers use.
+
+    Returns None (and never retries) if the browser stack is unavailable, so a
+    missing browser degrades to 'blocked' rather than crashing the pass.
+    """
+    if _STEALTH["unavailable"]:
+        return None
+    if _STEALTH["session"] is None:
+        try:
+            from scrapling.fetchers import StealthySession
+            s = StealthySession(headless=True, solve_cloudflare=True)
+            s.start()
+            _STEALTH["session"] = s
+        except Exception as e:
+            print(f"    [STEALTH UNAVAILABLE] {e.__class__.__name__}: {str(e)[:80]}")
+            _STEALTH["unavailable"] = True
+            return None
+    return _STEALTH["session"]
+
+def close_stealth_session():
+    s = _STEALTH.get("session")
+    if s is not None:
+        try:
+            s.close()
+        except Exception:
+            pass
+        _STEALTH["session"] = None
+
+def _stealth_fetch(url: str) -> tuple[str | None, str | None, str | None]:
+    """Retry a blocked URL through the stealth browser."""
+    s = _stealth_session()
+    if s is None:
+        FETCH_BLOCKED["count"] += 1
+        return None, None, None
+    try:
+        r = s.fetch(url, timeout=25000, wait_until="domcontentloaded")
+        status = getattr(r, "status", 0) if r else 0
+        if r is not None and status == 200:
+            body = _as_bytes(r.body)
+            print(f"    [FETCH 200 via stealth] {url}")
+            return body.decode("utf-8", "replace"), hashlib.sha256(body).hexdigest(), url
+        print(f"    [FETCH {status} via stealth] {url} — still blocked")
+    except Exception as e:
+        print(f"    [STEALTH ERR] {url}: {e.__class__.__name__}: {str(e)[:80]}")
+    FETCH_BLOCKED["count"] += 1
+    return None, None, None
+
+def safe_fetch(url: str, allow_stealth: bool = True) -> tuple[str | None, str | None, str | None]:
+    """Returns (html_body, sha256_hash, final_url) or (None, None, None).
+
+    Logs the status and a body prefix on every non-200 and distinguishes
+    'blocked' (403/429 — retried through the stealth browser, never counted as
+    a venue failure) from 404 (genuinely absent).
+    """
     try:
         r = Fetcher.get(url, stealthy_headers=True, follow_redirects=True)
-        if r and r.status == 200:
-            body = r.body or b""
+        status = getattr(r, "status", 0) if r is not None else 0
+        if r is not None and status == 200:
+            body = _as_bytes(r.body)
             h = hashlib.sha256(body).hexdigest()
-            html = body.decode("utf-8", "replace")
-            return html, h, url
+            return body.decode("utf-8", "replace"), h, url
+        prefix = ""
+        try:
+            prefix = _as_bytes(getattr(r, "body", b"")).decode("utf-8", "replace")[:120].replace("\n", " ")
+        except Exception:
+            pass
+        print(f"    [FETCH {status}] {url} :: {prefix}")
+        if status in BLOCKED_STATUSES:
+            if allow_stealth:
+                return _stealth_fetch(url)
+            FETCH_BLOCKED["count"] += 1
     except Exception as e:
-        print(f"    [FETCH ERR] {url}: {e.__class__.__name__}")
+        print(f"    [FETCH ERR] {url}: {e.__class__.__name__}: {str(e)[:80]}")
+        FETCH_BLOCKED["count"] += 1
     return None, None, None
 
 # ── Format / Game Type Inference ──────────────────────────────────────────────
@@ -197,13 +278,25 @@ def infer_game_type(text: str) -> str:
     return "NLH"
 
 def infer_age(text: str, state: str = "") -> int | None:
-    t = text.lower()
+    """Age minimum ONLY when the text states it explicitly.
+
+    This used to return 18 for 'tribal' states and 21 for everything else when
+    the page said nothing, and the guess was stored with
+    data_quality='scraped_verified' — publishing 21+ for rooms whose real
+    minimum is 18 (and counting as a filled field in completeness_score).
+    """
+    t = (text or "").lower()
     if "must be 18" in t or "18+" in t or "18 or older" in t: return 18
     if "must be 21" in t or "21+" in t or "21 or older" in t: return 21
-    # Default by state
-    tribal = ["OK", "WI", "MN", "ND", "SD", "MT", "WA", "CA"]
-    if state in tribal: return 18
-    return 21  # most commercial casinos
+    m = re.search(r"must be (?:at least )?(\d{2})\b", t)
+    if m:
+        v = int(m.group(1))
+        if 18 <= v <= 21: return v
+    return None
+
+def tz_for_state(state: str) -> str | None:
+    """Timezone for a state — NULL when unknown (never a silent Eastern default)."""
+    return STATE_TZ.get((state or "").strip().upper()) or None
 
 # ── PokerAtlas Extractor ──────────────────────────────────────────────────────
 def extract_from_pokeratlas(venue_id: str, venue_name: str, state: str = "") -> list:
@@ -259,8 +352,8 @@ def extract_from_pokeratlas(venue_id: str, venue_name: str, state: str = "") -> 
         sat_to  = t.get("satelliteTo") or t.get("satellite_target")
         struct_url = t.get("structureUrl") or t.get("structure_sheet_url")
         payout  = t.get("payoutSchedule") or t.get("payout_levels")
-        age     = t.get("ageRequirement") or infer_age(name, state)
-        tz      = STATE_TZ.get(state, "America/New_York")
+        age     = t.get("ageRequirement") or infer_age(name)
+        tz      = tz_for_state(state)
 
         if not name or not buy_in:
             continue
@@ -283,7 +376,9 @@ def extract_from_pokeratlas(venue_id: str, venue_name: str, state: str = "") -> 
             "rebuy_addon": str(rebuy) if rebuy else None,
             "max_entries": int(max_e) if max_e else None,
             "payout_levels": str(payout)[:200] if payout else None,
-            "age_requirement": int(age) if age else 21,
+            # NULL when the source never stated an age — 21 used to be invented
+            # here and published as scraped fact.
+            "age_requirement": int(age) if age else None,
             "timezone": tz,
             "is_recurring": bool(dow),
             "is_special_event": False,
@@ -339,7 +434,7 @@ def _fallback_html_extract(html: str, venue_name: str, state: str, html_hash: st
         r"(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Daily)\s+(\d{1,2}(?::\d{2})?\s*[AP]M?)\s+\$(\d+(?:,\d+)?)\s+([A-Za-z]+)",
     ]
 
-    tz = STATE_TZ.get(state, "America/New_York")
+    tz = tz_for_state(state)
     seen = set()
     for pat in patterns:
         for m in re.finditer(pat, text, re.IGNORECASE):
@@ -369,7 +464,9 @@ def _fallback_html_extract(html: str, venue_name: str, state: str, html_hash: st
                     "tournament_name": f"{venue_name} — {name}"[:200] if name else f"{venue_name} — ${buy_in} {game}",
                     "buy_in": buy_in, "game_type": game, "format": fmt,
                     "day_of_week": dow, "start_time": stime,
-                    "age_requirement": infer_age(text, state), "timezone": tz,
+                    # Age only from THIS tournament's own matched text, not from
+                    # an "18+" anywhere on the page.
+                    "age_requirement": infer_age(m.group()), "timezone": tz,
                     "is_recurring": True, "is_special_event": False,
                     "source_url": src, "scrape_html_hash": html_hash,
                     "scrape_timestamp": NOW, "best_scrape_url": src,
@@ -384,17 +481,26 @@ def _fallback_html_extract(html: str, venue_name: str, state: str, html_hash: st
 # ── Bravo Poker Live Extractor ─────────────────────────────────────────────────
 def extract_from_bravo(venue_name: str, state: str = "") -> list:
     """Scrape Bravo Poker Live for tournament schedules."""
+    # The old URL was https://www.bravopoker.com/app/#/{slug}/tournaments — wrong
+    # host, and everything after '#' is never sent to the server, so this source
+    # returned the empty SPA shell (i.e. no data) every single time. Match the
+    # host and slug variants the sibling scrapers use.
     slug = re.sub(r"[^a-z0-9]+", "-", venue_name.lower()).strip("-")
-    url  = f"https://www.bravopoker.com/app/#/{slug}/tournaments"
-    html, html_hash, src = safe_fetch(url)
+    short = re.sub(r"-(casino|poker|room|club|house|gaming|resort)$", "", slug)
+    html = html_hash = src = None
+    for candidate in [f"https://www.bravopokerlive.com/poker-rooms/{slug}/",
+                      f"https://www.bravopokerlive.com/poker-rooms/{short}/"]:
+        html, html_hash, src = safe_fetch(candidate)
+        time.sleep(RATE_LIMIT)
+        if html:
+            break
     if not html:
         return []
-    time.sleep(RATE_LIMIT)
 
     # Bravo is a React SPA — tournament data often in JSON state
     json_matches = re.findall(r'(\{[^{}]{50,2000}\})', html)
     results = []
-    tz = STATE_TZ.get(state, "America/New_York")
+    tz = tz_for_state(state)
 
     for chunk in json_matches:
         try:
@@ -415,7 +521,9 @@ def extract_from_bravo(venue_name: str, state: str = "") -> list:
                     "source_url": src, "scrape_html_hash": html_hash,
                     "scrape_timestamp": NOW, "best_scrape_url": src,
                     "scrape_fail_count": 0, "flags": ["bravo_source"],
-                    "human_verified": False, "data_quality": "scraped_verified",
+                    # JSON chunks regexed out of raw HTML are a heuristic, not a
+                    # verified structured feed.
+                    "human_verified": False, "data_quality": "scraped_inferred",
                 }
                 row["scrape_completeness_score"] = completeness_score(row)
                 results.append(row)
@@ -441,11 +549,15 @@ def extract_from_venue_website(venue_website: str, venue_name: str, state: str =
         base,
     ]
 
-    tz = STATE_TZ.get(state, "America/New_York")
+    tz = tz_for_state(state)
     results = []
 
     for url in paths_to_try:
-        html, html_hash, src = safe_fetch(url)
+        # No stealth retry here: this loop tries up to 6 speculative paths per
+        # venue, and a browser round-trip on each 403 would dominate the pass.
+        # A block still registers in FETCH_BLOCKED so it is not miscounted as
+        # "this venue has no tournaments".
+        html, html_hash, src = safe_fetch(url, allow_stealth=False)
         if not html:
             continue
         time.sleep(RATE_LIMIT)
@@ -517,13 +629,16 @@ def extract_from_venue_website(venue_website: str, venue_name: str, state: str =
                 "starting_stack": stack,
                 "level_duration_minutes": level_d,
                 "late_registration": late_r,
-                "age_requirement": infer_age(text, state),
+                # Age from this tournament's own context block only — running it
+                # over the whole page stamped one room-wide "21+" onto every row.
+                "age_requirement": infer_age(ctx),
                 "timezone": tz, "is_recurring": True,
                 "structure_sheet_url": struct_url,
                 "source_url": url, "scrape_html_hash": html_hash,
                 "scrape_timestamp": NOW, "best_scrape_url": url,
                 "scrape_fail_count": 0, "flags": ["venue_website"],
-                "human_verified": False, "data_quality": "scraped_verified",
+                # Day/time/$ regex over de-tagged page text is a heuristic.
+                "human_verified": False, "data_quality": "scraped_inferred",
             }
             row["scrape_completeness_score"] = completeness_score(row)
             results.append(row)
@@ -579,6 +694,21 @@ def upsert_tournament(venue_id: str, venue_name: str, row: dict, dry: bool = Fal
         return True
     except Exception as e:
         print(f"    [DB ERR] {e}")
+        return False
+
+def deactivate_row(row_id, dry: bool = False) -> bool:
+    """Retire a single row (used for expanded recurring templates)."""
+    if not row_id:
+        return False
+    if dry:
+        print(f"    [DRY] would deactivate template row {row_id}")
+        return True
+    try:
+        SB.table("venue_daily_tournaments").update({"is_active": False}) \
+            .eq("id", row_id).execute()
+        return True
+    except Exception as e:
+        print(f"    [DEACTIVATE ERR] {row_id}: {e}")
         return False
 
 def increment_fail_count(venue_id: str, venue_name: str):
@@ -649,12 +779,15 @@ def run_enrichment_pass(limit: int = 50, dry: bool = False):
             print(f"\n  [{i+1}/{len(venues)}] {vname} (score={score})")
 
         records = []
+        FETCH_BLOCKED["count"] = 0
 
         # Try PokerAtlas first
         if pa_id:
             records = extract_from_pokeratlas(pa_id, vname, state)
             if records:
                 print(f"    [PA] {len(records)} records found")
+        else:
+            print(f"    [PA] skipped — no pokeratlas_slug on the venue row")
 
         # Try Bravo
         if not records:
@@ -669,8 +802,15 @@ def run_enrichment_pass(limit: int = 50, dry: bool = False):
                 print(f"    [VENUE] {len(records)} records found")
 
         if not records:
-            print(f"    [FAIL] No data — incrementing fail count")
-            increment_fail_count(vid, vname)
+            # A blocked fetch is not evidence that the venue has no tournaments —
+            # counting it used to flag real, scrapable rooms 'permanently_ungettable'
+            # after 5 rounds and exclude them from all future enrichment.
+            if FETCH_BLOCKED["count"]:
+                print(f"    [BLOCKED] {FETCH_BLOCKED['count']} fetch(es) blocked — "
+                      f"not counting as a scrape failure")
+            else:
+                print(f"    [FAIL] No data — incrementing fail count")
+                increment_fail_count(vid, vname)
             continue
 
         # Expand dates and upsert
@@ -693,9 +833,12 @@ def run_date_expansion(limit: int = 200, dry: bool = False):
     """
     print(f"\n📅 DATE EXPANSION PASS — recurring tournaments without event_date")
 
+    # Match BOTH undated conventions: NULL, and the 1970-01-01 sentinel the
+    # sibling scrapers write (a NULL breaks the upsert key).
     r = SB.table("venue_daily_tournaments") \
         .select("*") \
-        .is_("event_date", "null") \
+        .or_("event_date.is.null,event_date.eq.1970-01-01") \
+        .eq("is_active", True) \
         .not_.contains("flags", '["permanently_ungettable"]') \
         .limit(limit) \
         .execute()
@@ -704,6 +847,7 @@ def run_date_expansion(limit: int = 200, dry: bool = False):
     print(f"  {len(rows)} tournament templates need date expansion")
 
     ok = 0
+    retired = 0
     seen_parents = {}
 
     for row in rows:
@@ -713,6 +857,7 @@ def run_date_expansion(limit: int = 200, dry: bool = False):
 
         vid   = row.get("venue_id", "")
         vname = row.get("venue_name", "")
+        template_id = row.get("id")
 
         # Generate or reuse parent_tournament_id
         key = (vid, dow, row.get("start_time"), row.get("buy_in"), row.get("game_type"))
@@ -723,6 +868,7 @@ def run_date_expansion(limit: int = 200, dry: bool = False):
             seen_parents[key] = parent_id
 
         dates = next_n_dates(dow, 10)
+        written = 0
         for d in dates:
             new_row = dict(row)
             new_row.pop("id", None)  # Let DB assign new ID
@@ -730,11 +876,19 @@ def run_date_expansion(limit: int = 200, dry: bool = False):
             new_row["is_recurring"] = True
             new_row["parent_tournament_id"] = parent_id
             new_row["scrape_timestamp"] = NOW
+            new_row["is_active"] = True
 
             if upsert_tournament(vid, vname, new_row, dry):
                 ok += 1
+                written += 1
 
-    print(f"✅ Date expansion complete — {ok} dated rows created")
+        # Retire the undated template ONLY once its dated copies landed, so the
+        # calendar stops rendering the same tournament as a recurring row AND as
+        # each of its 10 dated copies.
+        if written and deactivate_row(template_id, dry):
+            retired += 1
+
+    print(f"✅ Date expansion complete — {ok} dated rows created, {retired} templates retired")
 
 # ── Full Scrape of a Specific Venue ─────────────────────────────────────────--
 def scrape_venue(venue_id: str, dry: bool = False):
@@ -748,15 +902,27 @@ def scrape_venue(venue_id: str, dry: bool = False):
     vname = v.get("name", "")
     state = v.get("state", "")
     site  = v.get("website", "")
-    pa_id = v.get("pokeratlas_id", "")
+    # 'pokeratlas_id' is not a column anyone selects — .select('*') simply omitted
+    # it, so pa_id was always '' and PokerAtlas was skipped in --venue-id mode.
+    pa_id = v.get("pokeratlas_slug") or ""
+    if not pa_id:
+        for fld in ("pokeratlas_url", "poker_atlas_url", "schedule_scrape_url", "scrape_url"):
+            u = v.get(fld) or ""
+            if "pokeratlas.com/poker-room/" in u:
+                pa_id = u.split("/poker-room/")[-1].strip("/").split("/")[0]
+                if pa_id:
+                    break
 
     print(f"\n🎯 Scraping: {vname} ({state})")
 
     records = []
+    FETCH_BLOCKED["count"] = 0
 
     if pa_id:
         records = extract_from_pokeratlas(pa_id, vname, state)
         if records: print(f"  [PA] {len(records)} records")
+    else:
+        print(f"  [PA] skipped — no PokerAtlas slug/URL on this venue row")
 
     if not records:
         records = extract_from_bravo(vname, state)
@@ -767,8 +933,12 @@ def scrape_venue(venue_id: str, dry: bool = False):
         if records: print(f"  [VENUE] {len(records)} records")
 
     if not records:
-        print(f"  [FAIL] No data found for {vname}")
-        increment_fail_count(venue_id, vname)
+        if FETCH_BLOCKED["count"]:
+            print(f"  [BLOCKED] {FETCH_BLOCKED['count']} fetch(es) blocked for {vname} — "
+                  f"not counting as a scrape failure")
+        else:
+            print(f"  [FAIL] No data found for {vname}")
+            increment_fail_count(venue_id, vname)
         return
 
     ok = 0
@@ -860,14 +1030,17 @@ if __name__ == "__main__":
     if DRY:
         print("🔴 DRY RUN — no DB writes")
 
-    if args.venue_id:
-        scrape_venue(args.venue_id, DRY)
-    elif args.expand_dates:
-        run_date_expansion(args.limit, DRY)
-    elif args.enrich:
-        run_enrichment_pass(args.limit, DRY)
-    else:
-        # Default: enrichment pass + date expansion
-        print("🚀 Full enrichment cycle")
-        run_enrichment_pass(args.limit, DRY)
-        run_date_expansion(args.limit, DRY)
+    try:
+        if args.venue_id:
+            scrape_venue(args.venue_id, DRY)
+        elif args.expand_dates:
+            run_date_expansion(args.limit, DRY)
+        elif args.enrich:
+            run_enrichment_pass(args.limit, DRY)
+        else:
+            # Default: enrichment pass + date expansion
+            print("🚀 Full enrichment cycle")
+            run_enrichment_pass(args.limit, DRY)
+            run_date_expansion(args.limit, DRY)
+    finally:
+        close_stealth_session()

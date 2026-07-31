@@ -324,8 +324,15 @@ POST body format:
             offset: taskOffset,
             next_offset: hasMore ? nextOffset : null,
         };
+        // A dispatch round that created ZERO tasks is a failed run, not a partial one.
+        const dispatchAttempted = dispatchTasks.length > 0;
+        const totalDispatchFailure = dispatchAttempted && tasksCreated === 0;
+        const runSucceeded = errors.length === 0 && (!dispatchAttempted || tasksCreated > 0);
+        if (totalDispatchFailure) {
+            console.warn(`[Venue Scraper] TOTAL DISPATCH FAILURE: 0/${dispatchTasks.length} Manus tasks created`);
+        }
         try {
-            const finalStatus = errors.length === 0 ? 'success' : 'partial';
+            const finalStatus = totalDispatchFailure ? 'failed' : (errors.length === 0 ? 'success' : 'partial');
             const supabase = getSupabase();
             const { error: err_scraper_runs_w7wdm } = runLogId
                 ? await supabase
@@ -351,8 +358,13 @@ POST body format:
             console.warn('[Venue Scraper] Failed to log run:', logErr.message);
         }
 
-        return res.status(200).json({
-            success: true,
+        // The CI workflow gates on "success":true. It must therefore mean
+        // "tasks were actually dispatched", not "the handler reached the end".
+        // 0 tasks created out of N attempted answers 502 so the run goes red.
+        return res.status(totalDispatchFailure ? 502 : 200).json({
+            success: runSucceeded,
+            status: totalDispatchFailure ? 'failed' : (errors.length === 0 ? 'success' : 'partial'),
+            tasks_created: tasksCreated,
             summary: {
                 tier1_venues: tier1.length,
                 tier2_venues: tier2.length,

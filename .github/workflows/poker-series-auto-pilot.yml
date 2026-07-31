@@ -1,12 +1,14 @@
-name: 3-Day Poker Series Auto-Pilot
+name: Daily Poker Series Auto-Pilot
 
-# Fully automated background cycle running every 3 days.
+# Fully automated background cycle running DAILY.
 # It discovers, scrapes, parses PDFs, and pushes all structural data.
 
 on:
   schedule:
-    # 05:00 UTC (Around midnight EST) every 3 days.
-    - cron: '0 5 */3 * *'
+    # 05:00 UTC (around midnight EST) EVERY DAY.
+    # Was '0 5 */3 * *': only every 3 days, and */3 in day-of-month restarts at 1
+    # each month, so the real gap between runs was irregular at month boundaries.
+    - cron: '0 5 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 concurrency:
@@ -17,7 +19,10 @@ jobs:
   run-auto-pilot:
     name: "Crawl, Scrape, and Enrich Poker Series"
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # Usually finishes within 1-2 hours depending on Cloudflare
+    # The scraper now enforces its own wall-clock budget (--max-minutes) and
+    # exits cleanly after flushing, so the job finishes inside this window
+    # instead of being killed mid-chunk with the buffer unflushed.
+    timeout-minutes: 330
 
     env:
       SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -35,7 +40,9 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "scrapling[all]" camoufox bs4 pdfplumber
+          # python-dateutil is a hard import of scripts/enrich_series_dates.py
+          # (step 2b). Without it that step dies at import with ModuleNotFoundError.
+          pip install "scrapling[all]" camoufox bs4 pdfplumber python-dateutil
           scrapling install
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
@@ -54,7 +61,7 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: "+17086775221"
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: python3 scripts/utils/send_sms_alert.py "Step 1 (Discovery Sweep) Crash"
 
       # ---------------------------------------------------------
@@ -62,8 +69,13 @@ jobs:
       # ---------------------------------------------------------
       - name: Core Information Scrape
         id: scrape
+        # --pass-limit 1: a single pass per scheduled run. The run is resumable —
+        # load_missing_series() picks up whatever is still unscraped or stale, so
+        # tomorrow's run continues where this one stopped.
+        # --max-minutes 150: flush and stop cleanly well inside the job timeout.
+        timeout-minutes: 165
         run: |
-          python3 scripts/poker_series_scraper.py
+          python3 scripts/poker_series_scraper.py --pass-limit 1 --max-minutes 150
 
       - name: Alert Human (Core Scraper Failed)
         if: failure() && steps.scrape.outcome == 'failure'
@@ -71,8 +83,47 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: "+17086775221"
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: python3 scripts/utils/send_sms_alert.py "Step 2 (Core Series Scraper) Crash"
+
+      # ---------------------------------------------------------
+      # STEP 2b: Series date backfill (the only producer of start/end dates
+      # for the dateless "empty shell" series — was never scheduled anywhere)
+      # ---------------------------------------------------------
+      - name: Series Date Enrichment
+        id: series_dates
+        timeout-minutes: 45
+        run: |
+          python3 scripts/enrich_series_dates.py
+
+      - name: Alert Human (Series Date Enrichment Failed)
+        if: failure() && steps.series_dates.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 2b (Series Date Enrichment) Crash"
+
+      # ---------------------------------------------------------
+      # STEP 2c: Per-event structure data from series pages + PDFs
+      # (the only producer of starting_stack / late_reg / structure_sheet_url
+      # from PDFs — also previously unscheduled)
+      # ---------------------------------------------------------
+      - name: Series Event Structure Enrichment
+        id: series_events
+        timeout-minutes: 60
+        run: |
+          python3 scripts/enrich_series_events.py
+
+      - name: Alert Human (Series Event Enrichment Failed)
+        if: failure() && steps.series_events.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 2c (Series Event Enrichment) Crash"
 
       # ---------------------------------------------------------
       # STEP 3: Venue/Event Native Data Extraction (Stacks/Late Reg)
@@ -88,7 +139,7 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: "+17086775221"
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: python3 scripts/utils/send_sms_alert.py "Step 3 (Venue Enrichment) Crash"
 
       # ---------------------------------------------------------
@@ -105,5 +156,5 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: "+17086775221"
+          MY_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: python3 scripts/utils/send_sms_alert.py "Step 4 (PDF Rules Extraction) Crash"

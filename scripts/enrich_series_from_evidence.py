@@ -54,6 +54,23 @@ def sb_get(table, params=""):
         return []
 
 
+def sb_get_paged(table, base_params="?select=*", page=1000):
+    """Page a table until a short page is returned — no silent row ceiling."""
+    rows, offset = [], 0
+    while True:
+        chunk = sb_get(table, f"{base_params}&limit={page}&offset={offset}")
+        if not chunk:
+            break
+        rows.extend(chunk)
+        if len(chunk) < page:
+            break
+        offset += page
+        if offset >= 200000:                  # runaway guard, loudly reported
+            log(f"  [WARN] {table}: stopped paging at {offset} rows (runaway guard)")
+            break
+    return rows
+
+
 def sb_patch_events(event_uids, patch):
     """Patch multiple events by event_uid list."""
     if not event_uids:
@@ -75,8 +92,18 @@ def sb_patch_events(event_uids, patch):
     return total
 
 
+SB_UPSERT_HDRS = {**SB_HDRS, "Prefer": "resolution=merge-duplicates,return=representation"}
+
+WRITE_ERRORS = {"upsert_failed": 0, "rows_lost": 0}
+
+
 def sb_upsert_events(records):
-    """Upsert event records to poker_events."""
+    """Upsert event records to poker_events.
+
+    Returns rows the DB CONFIRMED writing (via the representation payload), not
+    the count we optimistically sent — a rejected batch used to be counted as a
+    success.
+    """
     if not records:
         return 0
     total = 0
@@ -84,16 +111,27 @@ def sb_upsert_events(records):
         chunk = records[i:i+50]
         url = f"{SUPABASE_URL}/rest/v1/poker_events?on_conflict=event_uid"
         data = json.dumps(chunk).encode()
-        req = urllib.request.Request(url, data=data, method="POST", headers=SB_HDRS)
+        req = urllib.request.Request(url, data=data, method="POST", headers=SB_UPSERT_HDRS)
         try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                r.read()
-            total += len(chunk)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                try:
+                    returned = json.loads(r.read() or b"[]")
+                except Exception:
+                    returned = []
+                written = len(returned) if isinstance(returned, list) else 0
+                if written != len(chunk):
+                    log(f"  [UPSERT WARN] sent {len(chunk)}, DB confirmed {written}")
+                    WRITE_ERRORS["rows_lost"] += max(0, len(chunk) - written)
+                total += written
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "ignore")[:300]
             log(f"  [UPSERT ERR] HTTP {e.code}: {body}")
+            WRITE_ERRORS["upsert_failed"] += 1
+            WRITE_ERRORS["rows_lost"] += len(chunk)
         except Exception as e:
-            log(f"  [UPSERT ERR] {e}")
+            log(f"  [UPSERT ERR] {type(e).__name__}: {e}")
+            WRITE_ERRORS["upsert_failed"] += 1
+            WRITE_ERRORS["rows_lost"] += len(chunk)
     return total
 
 
@@ -112,25 +150,44 @@ def compute_completeness(rec):
 
 
 # ── Guarantee extraction from event name ──────────────────────────────────────
-def extract_guarantee(text):
-    """Extract guarantee from text patterns like '$50K GTD', '$100,000 Guaranteed'."""
+def extract_guarantee(text, buy_in=None):
+    """Extract a guaranteed prize pool from text.
+
+    A guarantee MUST carry an explicit currency symbol or a K/M suffix. The old
+    bare-number pattern `(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)` matched
+    "Guaranteed 5000 chips", "guaranteed seating 2026" and URL fragments like
+    ".../guaranteed-100000.pdf", inventing prize pools out of unrelated digits.
+    """
     if not text:
         return None
-    # $XXK GTD / $XXK Gtd / $XXK Guaranteed
-    m = re.search(r"\$(\d+)[Kk]\s*(?:GTD|Gtd|Guaranteed)", text)
+    val = None
+    # $XXK / $XXM GTD
+    m = re.search(r"\$\s*(\d+(?:\.\d+)?)\s*([KkMm])\s*(?:GTD|Gtd|Guaranteed)", text)
     if m:
-        return int(m.group(1)) * 1000
-    # $XX,XXX GTD
-    m2 = re.search(r"\$([\d,]+)\s*(?:GTD|Gtd|Guaranteed)", text, re.I)
-    if m2:
-        return int(m2.group(1).replace(",", ""))
-    # Guaranteed: $XX,XXX
-    m3 = re.search(r"(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)", text, re.I)
-    if m3:
-        val = int(m3.group(1).replace(",", ""))
-        if val >= 1000:
-            return val
-    return None
+        val = int(float(m.group(1)) * (1000 if m.group(2).lower() == "k" else 1000000))
+    if val is None:
+        # $XX,XXX GTD  — dollar sign REQUIRED
+        m2 = re.search(r"\$\s*([\d,]+)\s*(?:GTD|Gtd|Guaranteed)", text, re.I)
+        if m2:
+            try: val = int(m2.group(1).replace(",", ""))
+            except ValueError: val = None
+    if val is None:
+        # Guaranteed: $XX,XXX — dollar sign REQUIRED
+        m3 = re.search(r"(?:GTD|Guaranteed)[:\s]*\$\s*([\d,]+)", text, re.I)
+        if m3:
+            try: val = int(m3.group(1).replace(",", ""))
+            except ValueError: val = None
+    if val is None:
+        return None
+    # Plausibility: guarantees are >= $1,000 and are never below the buy-in.
+    if val < 1000:
+        return None
+    try:
+        if buy_in and val < int(buy_in):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return val
 
 
 # ── Format extraction from event name ─────────────────────────────────────────
@@ -160,13 +217,35 @@ def extract_format(text):
 
 # ── Fix date rollover (2027 → 2026) ──────────────────────────────────────────
 def fix_date_rollover(event, series_start, series_end):
-    """If event date is 2027 but series is 2026, fix it."""
-    if not event.get("start_date"):
+    """Correct a year that the scraper rolled forward, using the PARENT SERIES
+    WINDOW — never hardcoded years.
+
+    The old version rewrote any 2027- date to 2026- whenever the series started
+    in 2026, with no window check. A New Year's series running Dec 28 2026 –
+    Jan 4 2027 had all its January events silently moved back a full year onto
+    dates that had already passed; and being year-literal, it stopped doing
+    anything at all from 2027 onward.
+
+    A correction is applied ONLY when the original date falls OUTSIDE the
+    series window and the year-shifted date falls INSIDE it.
+    """
+    sd = event.get("start_date")
+    if not sd or len(sd) < 10 or not series_start or not series_end:
         return None
-    sd = event["start_date"]
-    if sd.startswith("2027-") and series_start and series_start.startswith("2026-"):
-        fixed = "2026-" + sd[5:]
-        return fixed
+    start, end = str(series_start)[:10], str(series_end)[:10]
+    if not (len(start) == 10 and len(end) == 10) or end < start:
+        return None
+    sd = str(sd)[:10]
+    if start <= sd <= end:
+        return None                      # already inside the window — leave alone
+    try:
+        year = int(sd[:4])
+    except ValueError:
+        return None
+    for candidate_year in (year - 1, year + 1):
+        candidate = f"{candidate_year:04d}{sd[4:]}"
+        if start <= candidate <= end:
+            return candidate
     return None
 
 
@@ -180,7 +259,12 @@ def main():
 
     # ── Step 1: Load all 44 parent series records ────────────────────────────
     log("\n1. Loading parent poker_series records...")
-    series_rows = sb_get("poker_series", "?select=series_uid,series_name,venue_name,city,state,start_date,end_date,total_guaranteed&events_scraped=eq.true&limit=100")
+    # Paginated — the old hard limit=100 meant events belonging to series 101+
+    # found no parent and never got venue/city/state backfilled at all.
+    series_rows = sb_get_paged(
+        "poker_series",
+        "?select=series_uid,series_name,venue_name,city,state,start_date,end_date,"
+        "total_guaranteed&events_scraped=eq.true")
     log(f"   Found {len(series_rows)} series with events_scraped=true")
 
     series_lookup = {}
@@ -191,14 +275,9 @@ def main():
 
     # ── Step 2: Load all events ──────────────────────────────────────────────
     log("\n2. Loading all poker_events...")
-    all_events = []
-    for offset in range(0, 5000, 1000):
-        chunk = sb_get("poker_events", f"?select=*&limit=1000&offset={offset}")
-        if not chunk:
-            break
-        all_events.extend(chunk)
-        if len(chunk) < 1000:
-            break
+    # Paginated to exhaustion — the old `range(0, 5000, 1000)` ceiling silently
+    # dropped event 5,001 onward from enrichment AND from the reported averages.
+    all_events = sb_get_paged("poker_events", "?select=*")
     log(f"   Loaded {len(all_events)} events")
 
     # ── Step 3: Enrich each event ────────────────────────────────────────────
@@ -231,12 +310,17 @@ def main():
             patch["state"] = parent["state"]
             changed = True
 
-        # 3b: Extract guarantee from event_name
+        # 3b: Extract guarantee from event_name ONLY.
+        # `notes` is a blob the scraper builds from bounty amounts, payout strings
+        # and structure-sheet URLs — running guarantee extraction over it turned
+        # unrelated dollar figures into guaranteed prize pools.
+        inferred = []
         if not evt.get("guarantee"):
-            gtd = extract_guarantee(evt.get("event_name", "") + " " + (evt.get("notes") or ""))
+            gtd = extract_guarantee(evt.get("event_name", ""), evt.get("buy_in"))
             if gtd:
                 patch["guarantee"] = gtd
                 changed = True
+                inferred.append("guarantee")
                 stats["guarantee_filled"] += 1
 
         # 3c: Extract format from event_name
@@ -245,7 +329,20 @@ def main():
             if fmt:
                 patch["format"] = fmt
                 changed = True
+                inferred.append("format")
                 stats["format_filled"] += 1
+
+        # Provenance: these values were INFERRED from the event name, not scraped
+        # from a source. Record that in notes and stop calling the row
+        # 'scraped_verified' once a money figure has been inferred.
+        if inferred:
+            marker = "Inferred from event name: " + ", ".join(inferred)
+            existing_notes = evt.get("notes") or ""
+            if marker not in existing_notes:
+                patch["notes"] = (existing_notes + " | " + marker).strip(" |")[:500]
+            if "guarantee" in inferred and evt.get("data_quality") == "scraped_verified":
+                patch["data_quality"] = "scraped_partial"
+                patch["scrape_confidence"] = "medium"
 
         # 3d: Fix 2027 → 2026 date rollover
         fixed_date = fix_date_rollover(evt, parent.get("start_date"), parent.get("end_date"))
@@ -293,7 +390,9 @@ def main():
     if updates and not dry_run:
         log(f"\n4. Upserting {len(updates)} enriched events...")
         ok = sb_upsert_events(updates)
-        log(f"   ✅ Upserted {ok} events")
+        log(f"   Upserted {ok}/{len(updates)} events (DB-confirmed)")
+        if ok < len(updates):
+            log(f"   ⛔ {len(updates) - ok} row(s) were NOT written")
     elif dry_run:
         log(f"\n4. [DRY RUN] Would upsert {len(updates)} enriched events")
         # Show sample
@@ -307,14 +406,7 @@ def main():
     # ── Step 5: Post-check ───────────────────────────────────────────────────
     if not dry_run and updates:
         log("\n5. Post-enrichment score check...")
-        post_events = []
-        for offset in range(0, 5000, 1000):
-            chunk = sb_get("poker_events", f"?select=scrape_completeness_score&limit=1000&offset={offset}")
-            if not chunk:
-                break
-            post_events.extend(chunk)
-            if len(chunk) < 1000:
-                break
+        post_events = sb_get_paged("poker_events", "?select=scrape_completeness_score")
 
         scores = [e.get("scrape_completeness_score", 0) for e in post_events if e.get("scrape_completeness_score") is not None]
         if scores:
@@ -328,7 +420,14 @@ def main():
 
     log("\n" + "=" * 70)
     log("ENRICHMENT DONE")
+    log(f"  Write errors: upsert_failed={WRITE_ERRORS['upsert_failed']} "
+        f"rows_lost={WRITE_ERRORS['rows_lost']}")
     log("=" * 70)
+
+    # A run that lost rows must not exit 0 — run_series_pipeline.sh and the
+    # workflow both key off this exit code.
+    if WRITE_ERRORS["upsert_failed"] or WRITE_ERRORS["rows_lost"]:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

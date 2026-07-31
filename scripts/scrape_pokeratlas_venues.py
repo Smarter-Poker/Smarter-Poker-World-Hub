@@ -9,7 +9,7 @@ Usage:
   .venv/bin/python3 scripts/scrape_pokeratlas_venues.py --batch 10
 """
 import json, hashlib, sys, os, re, time, uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from scrapling.fetchers import Fetcher
 
 # Configuration
@@ -51,6 +51,49 @@ def is_venue_suppressed(venue_id):
     except Exception:
         pass
     return False
+
+
+def _extract_tel_link(html, venue_name=''):
+    """Return the venue's own phone number from a tel: link, or None.
+
+    Scoped two ways:
+      1. Only <a href="tel:..."> markup counts — never a loose digit run.
+      2. Only tel: links appearing AFTER the venue's own name in the document
+         are considered, so a "nearby poker rooms" sidebar rendered above the
+         detail block cannot win.
+
+    An anchor is REQUIRED. When the JSON-LD name is missing we fall back to the
+    page's own <h1>; if neither is available (or neither can be located in the
+    markup) this returns None. Scanning the whole document unanchored would put
+    the first tel: link on the page — frequently a sidebar listing for a
+    different room — into this venue's `phone` column.
+    """
+    anchor = venue_name or ''
+    if not anchor:
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', html, re.DOTALL | re.IGNORECASE)
+        if h1:
+            anchor = re.sub(r'<[^>]+>', '', h1.group(1)).strip()
+
+    if not anchor:
+        # No way to tell this venue's block apart from the rest of the page.
+        return None
+
+    idx = html.find(anchor)
+    if idx < 0:
+        # Name is present but HTML-escaped/reformatted — refuse to guess.
+        return None
+    scoped = html[idx:]
+
+    m = re.search(r'href=["\']tel:([^"\']+)["\']', scoped, re.IGNORECASE)
+    if not m:
+        return None
+
+    digits = re.sub(r'\D', '', m.group(1))
+    if len(digits) == 11 and digits.startswith('1'):
+        digits = digits[1:]
+    if len(digits) != 10:
+        return None
+    return f'({digits[0:3]}) {digits[3:6]}-{digits[6:]}'
 
 
 def scrape_venue_page(url):
@@ -115,11 +158,18 @@ def scrape_venue_page(url):
         except json.JSONDecodeError:
             continue
     
-    # Also try regex fallback for phone if not in JSON-LD
+    # Phone fallback — ONLY from an explicit tel: link, and only when it sits
+    # inside this venue's own detail block.
+    #
+    # The previous fallback ran an unanchored 10-digit regex across the entire
+    # raw HTML and took the first hit, which routinely picked up a "nearby
+    # poker rooms" sidebar number, an analytics id or a script constant, and
+    # published it as verified contact info for THIS venue.
     if not venue_data.get('phone'):
-        phone_matches = re.findall(r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', html)
-        if phone_matches:
-            venue_data['phone'] = phone_matches[0]
+        phone = _extract_tel_link(html, venue_data.get('name_from_source') or '')
+        if phone:
+            venue_data['phone'] = phone
+        # If there is no tel: link we leave phone unset rather than guessing.
     
     # Extract page title
     title_match = re.search(r'<title>(.*?)</title>', html)
@@ -224,19 +274,38 @@ def main():
     if '--all' in args:
         batch_size = 999
     
+    # ── SELECTION: age-based, not one-and-done ────────────────────────────
+    # The old filter was data_quality=neq.scraped_verified, so a venue could
+    # only ever be scraped ONCE: its address, phone, website and coordinates
+    # were frozen forever while still labelled verified with an ever-ageing
+    # scrape_timestamp. Select the least-recently-verified venues instead so
+    # the batch continuously refreshes the stalest data.
+    stale_days = 30
+    if '--stale-days' in args:
+        stale_days = int(args[args.index('--stale-days') + 1])
+    cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+    # ZULU, NOT isoformat(). supabase_fetch() pastes this straight into a query
+    # string with no percent-encoding, and isoformat() emits a '+00:00' offset.
+    # '+' decodes to a SPACE on the server, so PostgREST would have received
+    # 'scrape_timestamp.lt.2026-07-01T22:35:30.541377 00:00' — an invalid
+    # timestamptz literal that 400s the whole request and aborts every run.
+    cutoff_iso = cutoff.strftime('%Y-%m-%dT%H:%M:%SZ')
+
     venues = supabase_fetch(
-        f'poker_venues?select=id,name,pokeratlas_url,data_quality'
+        f'poker_venues?select=id,name,pokeratlas_url,data_quality,scrape_timestamp'
         f'&pokeratlas_url=not.is.null'
-        f'&data_quality=neq.scraped_verified'
+        f'&or=(scrape_timestamp.is.null,scrape_timestamp.lt.{cutoff_iso})'
         f'&is_suppressed=eq.false'   # ── NEVER re-process suppressed venues
         f'&is_active=eq.true'        # ── NEVER re-process inactive venues
+        f'&order=scrape_timestamp.asc.nullsfirst'
         f'&limit={batch_size}'
     )
-    
+
     print(f'='*60)
     print(f'POKERATLAS VENUE SCRAPER — Batch {BATCH_ID[:8]}')
     print(f'='*60)
-    print(f'Venues to process: {len(venues)}')
+    print(f'Refresh threshold: older than {stale_days} days ({cutoff_iso})')
+    print(f'Venues to process: {len(venues)} (oldest verified first)')
     
     success = 0
     fail = 0

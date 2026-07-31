@@ -117,10 +117,24 @@ jobs:
           node scripts/run-full-pipeline.js --scrape-only
           echo ""
           echo "Source 2: Bravo Poker Live"
-          node scripts/scrape-bravo-poker.js || echo "Bravo scraper had errors (non-fatal)"
-          echo ""
-          echo "Source 3: CardPlayer"
-          node scripts/scrape-cardplayer.js || echo "CardPlayer scraper had errors (non-fatal)"
+          # This used to be `node scripts/scrape-bravo-poker.js || echo "... (non-fatal)"`.
+          # The `|| echo` swallowed every exit code, including a MODULE_NOT_FOUND
+          # crash, so the step reported success whether or not Bravo contributed a
+          # single row. The call itself stays — it is the only Bravo coverage in
+          # this pipeline — but the outcome is now visible: a present script that
+          # fails fails the step, and a missing script is announced instead of
+          # being hidden behind a green check.
+          if [ -f scripts/scrape-bravo-poker.js ]; then
+            node scripts/scrape-bravo-poker.js
+          else
+            echo "::warning::scripts/scrape-bravo-poker.js is not present — Bravo Poker Live source skipped"
+          fi
+          # CardPlayer used to be a third `node scripts/scrape-cardplayer.js || echo`
+          # line here, reachable only from a manual workflow_dispatch with mode=full,
+          # so the 06:00 UTC cron never touched that source. It now runs in the
+          # dedicated `scrape-cardplayer-news` job below
+          # (scripts/scrape-cardplayer.py) on every scheduled run as well as on
+          # mode=full, which is why it is not invoked a second time here.
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
@@ -188,3 +202,84 @@ jobs:
           echo "State Filter: ${{ github.event.inputs.state || 'all' }}"
           echo "Completed at: $(date -u)"
           echo "═══════════════════════════════════════════════════════════"
+
+  # ── CardPlayer poker-news scraper ────────────────────────────────────────
+  # Runs on every scheduled execution and on manual mode=full.
+  #
+  # This source was previously invoked as `node scripts/scrape-cardplayer.js`
+  # (a file that does not exist) inside a step gated on
+  # `workflow_dispatch && mode == 'full'`, with the failure swallowed by
+  # `|| echo`. The result: the scraper never ran on any schedule, poker_news
+  # received nothing from CardPlayer, and CI stayed green throughout.
+  #
+  # It lives in its own job so a CardPlayer outage cannot mask or block the
+  # PokerAtlas venue-tournament pipeline above, and so its failures are visible
+  # as a distinct red check rather than a line in a scroll of logs.
+  scrape-cardplayer-news:
+    name: "CardPlayer News Scraper"
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.mode == 'full' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Scrapling + Supabase client
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          # Exactly the packages scripts/scrape-cardplayer.py already imports
+          # (scrapling.fetchers.StealthySession, supabase, dotenv). Same install
+          # sequence as weekly-schedule-scraper.yml.
+          pip install "scrapling[all]" camoufox python-dotenv supabase
+          scrapling install
+          python -m camoufox fetch
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+
+      - name: Provide .env.local placeholder
+        run: |
+          set -euo pipefail
+          # scripts/scrape-cardplayer.py hard-codes an absolute macOS path for
+          # .env.local and exits 1 when that path is missing, before it ever looks
+          # at the process environment. The file only has to exist, so it is left
+          # empty: no credential is written to disk, load_dotenv() finds nothing to
+          # load, and the real values come from the `env:` block on the run step
+          # below (load_dotenv does not override variables that are already set).
+          # Delete this step once scrape-cardplayer.py reads its config from the
+          # environment directly.
+          ENV_DIR="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub"
+          sudo mkdir -p "$ENV_DIR"
+          sudo touch "$ENV_DIR/.env.local"
+          sudo chmod a+r "$ENV_DIR/.env.local"
+
+      - name: Run CardPlayer scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Supabase credentials are not configured — refusing to run the CardPlayer scraper."
+            exit 1
+          fi
+          # No `|| echo` guard: a non-zero exit must fail this job.
+          python scripts/scrape-cardplayer.py
+
+      - name: CardPlayer Summary
+        if: always()
+        run: |
+          {
+            echo "### CardPlayer news scraper"
+            echo ""
+            echo "- Completed at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "- Status: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
