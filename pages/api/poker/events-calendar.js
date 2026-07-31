@@ -150,78 +150,9 @@ function formatMoney(amount) {
   return '$' + amount.toLocaleString();
 }
 
-/**
- * Parse a start_time to minutes-since-midnight, or null when unparseable.
- * Unlike parseTimeMinutes (which defaults to 720 = noon) this never invents a
- * time — the time-floor guard must not suppress rows whose time it cannot read.
- */
-function parseTimeMinutesStrict(timeStr) {
-  if (!timeStr) return null;
-  const t = String(timeStr).trim();
-  const toMinutes = (hStr, mStr, pStr) => {
-    let h = parseInt(hStr, 10);
-    const mn = parseInt(mStr || '0', 10);
-    const p = (pStr || '').toUpperCase();
-    if (p === 'PM' && h !== 12) h += 12;
-    if (p === 'AM' && h === 12) h = 0;
-    return h * 60 + mn;
-  };
-  // HH:MM:SS optional AM/PM
-  let m = t.match(/^(\d{1,2}):(\d{2}):\d{2}\s*([AP]M)?$/i);
-  if (m) return toMinutes(m[1], m[2], m[3]);
-  // HH:MM optional AM/PM
-  m = t.match(/^(\d{1,2}):(\d{2})\s*([AP]M)?$/i);
-  if (m) return toMinutes(m[1], m[2], m[3]);
-  // Bare hour with AM/PM: "7PM", "10 AM", "1 PM"
-  m = t.match(/^(\d{1,2})\s*([AP]M)$/i);
-  if (m) return toMinutes(m[1], '0', m[2]);
-  return null;
-}
-
-// Must match daily-tournaments.js SUSPICIOUS_TIME_FLOOR_MINUTES. Both public
-// surfaces read venue_daily_tournaments; when only one applied the guard, rows
-// deliberately hidden as scraper artifacts on one page appeared on the other.
-const SUSPICIOUS_TIME_FLOOR_MINUTES = 600; // 10:00 AM
-// Must match the data_quality allowlist daily-tournaments.js gates on.
-const ALLOWED_DATA_QUALITY = 'scraped_verified';
-
 // In-memory cache to massively speed up page loads for identical non-realtime queries
 const routeCache = new Map();
 const CACHE_TTL_MS = 60000; // 60 seconds
-const CACHE_MAX_ENTRIES = 50;
-
-/**
- * Build a cache key from a NORMALIZED subset of params.
- * JSON.stringify(req.query) keyed on raw query order and full-precision GPS,
- * so every distinct lat/lng pair pinned another full payload in memory.
- */
-function buildCacheKey(query) {
-  const pick = (k) => {
-    const v = Array.isArray(query[k]) ? query[k][0] : query[k];
-    return v === undefined || v === null ? '' : String(v);
-  };
-  const round = (k) => {
-    const n = parseFloat(pick(k));
-    return isNaN(n) ? '' : n.toFixed(2); // ~1km buckets
-  };
-  return [
-    'day', 'date', 'dateRange', 'state', 'city', 'radius', 'minBuyin', 'maxBuyin',
-    'gameType', 'eventType', 'search', 'sort', 'offset', 'limit', 'calMonth',
-  ].map(pick).concat([round('lat'), round('lng')]).join('|');
-}
-
-/** Drop expired entries, then trim to the size cap (oldest first). */
-function pruneRouteCache() {
-  const now = Date.now();
-  for (const [key, entry] of routeCache) {
-    if (now - entry.time >= CACHE_TTL_MS) routeCache.delete(key);
-  }
-  while (routeCache.size > CACHE_MAX_ENTRIES) {
-    const oldestKey = routeCache.keys().next().value;
-    if (oldestKey === undefined) break;
-    routeCache.delete(oldestKey);
-  }
-}
 
 async function handler(req, res) {
     try {
@@ -236,7 +167,7 @@ async function handler(req, res) {
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         
         // Memory Cache Check
-        const cacheKey = buildCacheKey(req.query);
+        const cacheKey = JSON.stringify(req.query);
         if (routeCache.has(cacheKey)) {
           const cached = routeCache.get(cacheKey);
           if (Date.now() - cached.time < CACHE_TTL_MS) {
@@ -425,17 +356,11 @@ async function handler(req, res) {
     // SOURCE 1: Daily Tournaments (recurring + dated)
     // ──────────────────────────────────────────────────────────────
     let dailyEvents = [];
-    let suppressedPre10am = 0;
     if (eventType === 'all' || eventType === 'daily') {
       try {
-        // Same gates daily-tournaments.js applies. Without the data_quality
-        // allowlist, rows the stale sweep demoted (data_quality='stale') but left
-        // is_active=true were published here as real events, so the two public
-        // surfaces disagreed about the same row.
         let dq = sb.from('venue_daily_tournaments')
-          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, is_recurring, data_quality, last_scraped')
+          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, is_recurring')
           .eq('is_active', true)
-          .eq('data_quality', ALLOWED_DATA_QUALITY)
           .or('is_suppressed.is.null,is_suppressed.eq.false');
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
@@ -465,15 +390,6 @@ async function handler(req, res) {
           for (const t of dtRows) {
             const tName = t.tournament_name || '';
             if (tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
-
-            // TIME FLOOR GUARD (mirrors daily-tournaments.js): a start_time before
-            // 10:00 AM is a scraper parse artifact (12 AM / 1 AM / 2 AM). Rows whose
-            // time cannot be parsed at all are kept, exactly as on the other surface.
-            const startMins = parseTimeMinutesStrict(t.start_time);
-            if (startMins !== null && startMins < SUSPICIOUS_TIME_FLOOR_MINUTES) {
-              suppressedPre10am++;
-              continue;
-            }
 
             const venueInfo = getVenueInfo(t.venue_id, t.venue_name);
 
@@ -796,10 +712,6 @@ async function handler(req, res) {
       dateCounts: dateCountMap,
       stats: {
         sources: sourceCounts,
-        // Rows hidden by the shared pre-10AM scraper-artifact guard, so the loss
-        // is visible rather than only appearing as a smaller total.
-        suppressed_pre10am: suppressedPre10am,
-        data_quality_filter: ALLOWED_DATA_QUALITY,
         totalBeforeDedup: dailyEvents.length + seriesEvents.length + tourEvents.length,
         avgBuyin: buyIns.length > 0 ? Math.round(buyIns.reduce((s, b) => s + b, 0) / buyIns.length) : 0,
         minBuyin: buyIns.length > 0 ? Math.min(...buyIns) : 0,
@@ -810,13 +722,14 @@ async function handler(req, res) {
 
     // Store in node-memory cache if not explicitly avoiding it
     if (!req.query._rt) {
-      const cacheKey = buildCacheKey(req.query);
+      const cacheKey = JSON.stringify(req.query);
       routeCache.set(cacheKey, { time: Date.now(), data: responsePayload });
-      // Evict expired entries every insert and hold a hard size cap. The old
-      // code removed exactly ONE entry above 200, so ~200 full payloads (up to
-      // 1000 events each) stayed resident per serverless instance and TTL
-      // expiry never freed anything.
-      pruneRouteCache();
+      
+      // Cleanup cache if it grows too large (prevent memory leak)
+      if (routeCache.size > 200) {
+        const oldestKey = routeCache.keys().next().value;
+        routeCache.delete(oldestKey);
+      }
     }
 
     return res.status(200).json(responsePayload);

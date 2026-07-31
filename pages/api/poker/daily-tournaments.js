@@ -689,52 +689,11 @@ async function handler(req, res) {
           // Group by time slot
           const byTimeSlot = groupByTimeSlot(tournaments);
 
-          // ═══════════════════════════════════════════════════════════
-          // DATA FRESHNESS: derive from the rows actually being served.
-          // `lastUpdated` used to come from the checked-in data/tournament-venues.json
-          // metadata, so months-old schedules were stamped with a date that had
-          // nothing to do with when the data was gathered.
-          // ═══════════════════════════════════════════════════════════
-          const scrapeStamps = tournaments
-              .map(t => (t.last_scraped ? new Date(t.last_scraped).getTime() : NaN))
-              .filter(ms => Number.isFinite(ms));
-          const newestScrapeMs = scrapeStamps.length ? Math.max(...scrapeStamps) : null;
-          const oldestScrapeMs = scrapeStamps.length ? Math.min(...scrapeStamps) : null;
-          const scrapeAgeHours = newestScrapeMs === null
-              ? null
-              : Math.round((Date.now() - newestScrapeMs) / 3600000);
-          // tournament-schedule-daemon runs on a 72h cycle; 2x that is a dead pipeline.
-          const SCRAPE_CYCLE_HOURS = 72;
-          const dataStale = scrapeAgeHours === null ? true : scrapeAgeHours > SCRAPE_CYCLE_HOURS * 2;
-          if (dataStale) {
-              console.warn(`[daily-tournaments] STALE DATA: newest last_scraped is ${scrapeAgeHours === null ? 'unknown' : scrapeAgeHours + 'h'} old (cycle ${SCRAPE_CYCLE_HOURS}h) across ${tournaments.length} rows`);
-          }
-
           return res.status(200).json({
               success: true,
               day: targetDay,
               totalVenues: tournamentVenues.metadata.totalVenues,
-              // Derived from MAX(last_scraped) of the served rows; falls back to the
-              // static registry date only when no row carries a scrape timestamp.
-              lastUpdated: newestScrapeMs !== null
-                  ? new Date(newestScrapeMs).toISOString()
-                  : (tournamentVenues.metadata.lastUpdated || null),
-              data_freshness: {
-                  newest_scrape: newestScrapeMs === null ? null : new Date(newestScrapeMs).toISOString(),
-                  oldest_scrape: oldestScrapeMs === null ? null : new Date(oldestScrapeMs).toISOString(),
-                  age_hours: scrapeAgeHours,
-                  scrape_cycle_hours: SCRAPE_CYCLE_HOURS,
-                  stale: dataStale,
-                  rows_with_scrape_timestamp: scrapeStamps.length,
-                  rows_total: tournaments.length,
-                  venue_registry_date: tournamentVenues.metadata.lastUpdated || null,
-              },
-              // Rows hidden by the pre-10AM scraper-artifact guard. Previously only a
-              // console.warn, so nothing outside the server log could see the loss.
-              suppressed: {
-                  pre_10am_count: suspiciousCount,
-                  pre_10am_reason: 'start_time before 10:00 is treated as a scraper parse artifact and hidden from this surface',
-              },
+              lastUpdated: tournamentVenues.metadata.lastUpdated,
               tournaments: tournaments.slice(0, parsedLimit),
               byTimeSlot,
               byState: groupByState(tournaments),
