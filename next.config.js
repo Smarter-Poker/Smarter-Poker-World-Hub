@@ -178,6 +178,27 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     ],
   },
   buildExcludes: [/middleware-manifest\.json$/],
+  // ─── Workbox precache scope (build-time cost + PWA correctness) ──────────────
+  // The PWA plugin is active ONLY on Vercel (`disable: !process.env.VERCEL`
+  // above), which is why local `next build` is fast and the Vercel build is not:
+  // workbox globs and MD5-hashes every file under public/ to build the precache
+  // manifest. public/ is currently ~682 MB across ~2,141 files, and none of it
+  // needs to be precached — these are large media and a vendored club-arena
+  // bundle that are fetched on demand.
+  //
+  // Precaching that volume is also wrong at runtime: browsers cap per-origin
+  // storage well below 682 MB, so the service worker would evict or fail rather
+  // than serve it. Excluding these directories keeps the precache to the small
+  // set of shell assets that actually benefit from it.
+  publicExcludes: [
+    '!images/**/*',
+    '!avatars/**/*',
+    '!videos/**/*',
+    '!cards/**/*',
+    '!hub/club-arena/**/*',
+    '!gto-panels/**/*',
+    '!assets/**/*',
+  ],
 });
 
 const nextConfig = {
