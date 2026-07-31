@@ -113,7 +113,7 @@ jobs:
         if: always()
         run: |
           echo "═══════════════════════════════════════════════════════════"
-          echo "📬 NEWS DIGEST WORKFLOW COMPLETED"
+          echo "NEWS DIGEST WORKFLOW COMPLETED"
           echo "═══════════════════════════════════════════════════════════"
           echo "Trigger: ${{ github.event_name }}"
           echo "Dry run: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run }}"
