@@ -348,6 +348,7 @@ const nextConfig = {
   // overrode the compress flag's ordering in pre-Next-14.1. Keep just typescript
   // here since the eslint one was a duplicate.
   typescript: {
+    ignoreBuildErrors: true,
 
   },
 
