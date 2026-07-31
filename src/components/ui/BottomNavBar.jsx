@@ -6,7 +6,7 @@
  * Includes env(safe-area-inset-*) for iPhone notch/home-indicator safety.
  *
  * USAGE: Import and render at the bottom of any hub page:
- *   import BottomNavBar, { BottomNavSpacer, BOTTOM_NAV_CLEARANCE } from '../../src/components/ui/BottomNavBar';
+ *   
  *   // ... inside return:
  *   <BottomNavBar />
  *

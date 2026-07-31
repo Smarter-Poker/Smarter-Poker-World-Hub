@@ -17,6 +17,8 @@
  * Response: { ok, session_id, started_at, already_open }
  */
 import { createClient } from "../../../../src/lib/supabaseServerClient";
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
+
 import { rateLimit } from "../../../../src/lib/apiRateLimit";
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
@@ -54,10 +56,7 @@ export default async function handler(req, res) {
     try {
         const token = authHeader.replace("Bearer ", "");
         const supabase = getSupabase();
-        const {
-            data: { user },
-            error: authError
-        } = await supabase.auth.getUser(token);
+        const { user, error: authError } = await getServerUserWithFallback(req, supabase);
         if (authError || !user) {
             return res.status(401).json({ error: "Invalid or expired session" });
         }

@@ -18,7 +18,7 @@
  *
  * Auth pattern note (vs calls/* pilot):
  *   These handlers use `getServerUserWithFallback(req, supabase)` instead of
- *   direct `supabase.auth.getUser(token)`. The fallback path does local HMAC
+ *   direct `getServerUserWithFallback(req, supabase)`. The fallback path does local HMAC
  *   verify before falling back to GoTrue network call, matching the post-4.1d
  *   ESM-clean pattern.
  */
