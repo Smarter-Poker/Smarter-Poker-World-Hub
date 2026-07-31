@@ -13,16 +13,47 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { busEmit } from '../../engine/EventBus';
-import { ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX, Skull } from 'lucide-react';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 import * as audio from '../../lib/trivia/triviaAudio';
 import useVIP from '../../hooks/useVIP';
+import useTriviaTimer from '../../hooks/useTriviaTimer';
 
 
 // ══ Escalating stake values per question ══
 const STAKE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // 55 total possible
+
+/** Sentinels stored in answers[] for questions the player never answered. */
+const SKIP_SENTINELS = new Set([-1, -2]);
+
+/**
+ * Score an answers array against the question list.
+ *
+ * Skipped questions (bought with the Skip hint) are NEUTRAL: excluded from
+ * both the numerator and the denominator. Previously a paid skip recorded -1,
+ * which the completion filter compared against correct_index and counted as
+ * WRONG — the player paid 10 diamonds to get a strictly worse result than
+ * guessing at random.
+ */
+function scoreAnswers(answers, questions) {
+    let correct = 0;
+    let skipped = 0;
+    (answers || []).forEach((a, i) => {
+        if (SKIP_SENTINELS.has(a)) { skipped += 1; return; }
+        if (a === questions[i]?.correct_index) correct += 1;
+    });
+    const total = Math.max(1, (questions?.length || 0) - skipped);
+    return { correct, skipped, total };
+}
+
+/** True when the OS asks for reduced motion (SSR-safe). */
+function prefersReducedMotion() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch { return false; }
+}
 
 export default function TriviaGame({
     questions,
@@ -36,14 +67,18 @@ export default function TriviaGame({
     enableStakes = false,     // Escalating diamond stakes
     enableGhostOpponent = true, // Show ghost opponent
     ghostAccuracy = null,        // Community accuracy for ghost opponent (0-1 or null)
+    // Optional: called with the hint the player could not afford, so the page
+    // can open its own out-of-diamonds / store modal instead of leaving
+    // HintButtons' inline toast as the only feedback.
+    onNeedDiamonds = null,
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [showExplanation, setShowExplanation] = useState(false);
     const [answers, setAnswers] = useState([]);
-    const [timeRemaining, setTimeRemaining] = useState(timeLimit);
     const [isLocked, setIsLocked] = useState(false);
     const { isVip } = useVIP();
+    const [reduceMotion] = useState(prefersReducedMotion);
 
     // Hint system state
     const [hintsUsed, setHintsUsed] = useState({ fifty_fifty: false, skip: false, extra_time: false });
@@ -73,7 +108,6 @@ export default function TriviaGame({
     // ══ NEW: Audio mute ══
     const [muted, setMuted] = useState(audio.isMuted());
 
-    const timerRef = useRef(null);
     const startTimeRef = useRef(Date.now());
     const gameContainerRef = useRef(null);
     const opponentDataRef = useRef({ score: null, name: null });
@@ -118,7 +152,6 @@ export default function TriviaGame({
     };
 
     const currentQuestion = questions[currentIndex];
-    const isCorrect = selectedAnswer === currentQuestion?.correct_index;
     const isArcadeMode = mode === 'arcade';
 
     // ── Multiplier from streak ──
@@ -129,30 +162,57 @@ export default function TriviaGame({
         return 1;
     };
 
-    // Timer
+    // ══ TIMER ══
+    // Was a hand-rolled setInterval that (a) decremented by 1 per >=1000ms
+    // tick, so a "180 second" clock ran measurably long and paid an arcade
+    // time bonus for time that never existed, and (b) called side effects
+    // (audio, setIsGameActive) from INSIDE a setState updater, which React 18
+    // may invoke twice. The shared hook is deadline-anchored and keeps its
+    // updater pure. pauseOnHide:false — arcade is a paid, leaderboarded mode,
+    // so hiding the tab must not stop the clock.
+    const {
+        timeLeft: timeRemaining,
+        setTimeLeft: setTimeRemaining,
+        setIsTimerRunning,
+        resetTimer,
+        getPreciseTimeLeft,
+    } = useTriviaTimer({
+        initialTime: timeLimit || 0,
+        showResult: false,
+        gameState: 'playing',
+        playingState: 'playing',
+        pauseOnHide: false,
+        onTimeout: () => {
+            // Expiry is detected in the hook and reported here exactly once;
+            // the auto-complete effect below does the scoring.
+            setIsGameActive(false);
+        },
+    });
+
+    // Start the clock once on mount for timed modes.
     useEffect(() => {
-        if (!timeLimit) return;
-        timerRef.current = setInterval(() => {
-            setTimeRemaining(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    // Timer expired — useEffect below will auto-complete the game
-                    setIsGameActive(false);
-                    return 0;
-                }
-                // Sound effects for countdown
-                if (prev <= 5) audio.countdownBeep(prev);
-                if (prev <= 10) audio.timerTick();
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timerRef.current);
+        if (timeLimit) resetTimer(timeLimit);
+        else setIsTimerRunning(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeLimit]);
 
-    // Warn user before leaving during active game
+    // Countdown audio, driven by the displayed value rather than from inside
+    // the updater. Guarded so it cannot fire after the game ends.
+    const lastBeepRef = useRef(null);
+    useEffect(() => {
+        if (!timeLimit || !isGameActive || timeRemaining <= 0) return;
+        if (lastBeepRef.current === timeRemaining) return;
+        lastBeepRef.current = timeRemaining;
+        if (timeRemaining <= 5) audio.countdownBeep(timeRemaining);
+        if (timeRemaining <= 10) audio.timerTick();
+    }, [timeRemaining, isGameActive, timeLimit]);
+
+    // Warn user before leaving during active game.
+    // currentIndex > 0 alone skipped question 1 — a stakes player who answered
+    // the first question already has real diamonds on the table.
     useEffect(() => {
         const handler = (e) => {
-            if (isGameActive && currentIndex > 0) {
+            if (isGameActive && (currentIndex > 0 || stakePotRef.current > 0)) {
                 e.preventDefault();
                 e.returnValue = '';
             }
@@ -160,6 +220,17 @@ export default function TriviaGame({
         window.addEventListener('beforeunload', handler);
         return () => window.removeEventListener('beforeunload', handler);
     }, [isGameActive, currentIndex]);
+
+    // Keep the local diamond copy in sync with the parent's authoritative
+    // balance. Previously seeded once at mount and then only decremented
+    // locally, so hint affordability checks drifted from the real balance.
+    useEffect(() => {
+        setDiamonds(userDiamonds);
+    }, [userDiamonds]);
+
+    // Mute is global state in triviaAudio; subscribe so a toggle in another
+    // component (or another tab) keeps this icon truthful.
+    useEffect(() => audio.onMuteChange(setMuted), []);
 
     // Keep refs in sync with state (for auto-complete closure)
     useEffect(() => { answersRef.current = answers; }, [answers]);
@@ -179,9 +250,10 @@ export default function TriviaGame({
         audio.bustDrop();
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const a = answersRef.current;
-        const cc = a.filter((ans, i) => ans === questions[i]?.correct_index).length;
+        const { correct, skipped, total } = scoreAnswers(a, questions);
         onComplete({
-            answers: a, correctCount: cc, totalQuestions: questions.length,
+            answers: a, correctCount: correct, totalQuestions: total,
+            skippedCount: skipped,
             timeSpent, timeRemaining: 0,
             stakePot: enableStakes ? stakePotRef.current : undefined,
             streak: streakRef.current,
@@ -299,22 +371,33 @@ export default function TriviaGame({
     };
 
     // ══ ADVANCE ══
+    // advancedForIndexRef: two rapid clicks on Next both ran
+    // setCurrentIndex(prev => prev + 1), skipping a question. The skipped
+    // question never got an answer appended, so from that point answers[i]
+    // was scored against questions[i+1] — corrupted score AND reward.
+    const advancedForIndexRef = useRef(-1);
     const advanceQuestion = (currentAnswers = answers) => {
+        if (advancedForIndexRef.current === currentIndex) return;
+        advancedForIndexRef.current = currentIndex;
+
         if (currentIndex >= questions.length - 1) {
             // Phase 67: guard against the timer-expiry useEffect ALSO firing
             // onComplete in the same tick when the user finishes the last
             // question right as time hits 0 in arcade mode.
             if (completedRef.current) return;
             completedRef.current = true;
-            clearInterval(timerRef.current);
+            setIsTimerRunning(false);
             setIsGameActive(false);
             const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            const cc = currentAnswers.filter((a, i) => a === questions[i]?.correct_index).length;
-            if (cc === questions.length) audio.victoryFanfare();
+            const { correct, skipped, total } = scoreAnswers(currentAnswers, questions);
+            if (correct === total) audio.victoryFanfare();
             onComplete({
-                answers: currentAnswers, correctCount: cc,
-                totalQuestions: questions.length, timeSpent,
-                timeRemaining: timeRemaining || 0,
+                answers: currentAnswers, correctCount: correct,
+                totalQuestions: total, skippedCount: skipped, timeSpent,
+                // Read the live clock, not the value captured when the
+                // 800ms arcade auto-advance closure was created (up to ~1s
+                // stale, which inflated the arcade time bonus).
+                timeRemaining: timeLimit ? Math.floor(getPreciseTimeLeft()) : 0,
                 stakePot: enableStakes ? stakePotRef.current : undefined,
                 streak: streakRef.current,
                 opponentScore: opponentDataRef.current.score,
@@ -341,25 +424,28 @@ export default function TriviaGame({
         audio.cashOutKaChing();
         setCashedOut(true);
         setIsGameActive(false);
-        clearInterval(timerRef.current);
+        setIsTimerRunning(false);
 
         // Do NOT call onDiamondsChange here — handleComplete in [mode].js handles the award
 
         fireConfetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
-            colors: ['#fbbf24', '#2374e1', '#31a24c']
+            colors: ['#fbbf24', '#2374e1', '#31a24c'],
+            disableForReducedMotion: true,
         });
 
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         // Capture ref-based values NOW to avoid stale closure in 2s setTimeout
         const cashOutAnswers = [...answersRef.current];
-        const cashOutCC = cashOutAnswers.filter((a, i) => a === questions[i]?.correct_index).length;
+        const { correct: cashOutCC, skipped: cashOutSkipped, total: cashOutTotal } =
+            scoreAnswers(cashOutAnswers, questions);
         const cashOutStreak = streakRef.current;
         const cashOutStakePot = stakePotRef.current;
-        const cashOutTimeRemaining = timeRemaining || 0;
+        const cashOutTimeRemaining = timeLimit ? Math.floor(getPreciseTimeLeft()) : 0;
         safeSetTimeout(() => {
             onComplete({
-                answers: cashOutAnswers, correctCount: cashOutCC, totalQuestions: questions.length,
+                answers: cashOutAnswers, correctCount: cashOutCC, totalQuestions: cashOutTotal,
+                skippedCount: cashOutSkipped,
                 timeSpent, timeRemaining: cashOutTimeRemaining,
                 stakePot: cashOutStakePot, cashedOut: true, streak: cashOutStreak,
                 opponentScore: opponentDataRef.current.score,
@@ -367,6 +453,49 @@ export default function TriviaGame({
             });
         }, 2000);
     };
+
+    // ══ KEYBOARD CONTROLS ══
+    // 1-4 / A-D pick an answer, Enter advances, Esc moves focus to Cash Out
+    // (focus, never an instant cash-out — a stray Esc must not move diamonds).
+    const cashOutBtnRef = useRef(null);
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const target = e.target;
+            const tag = (target?.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+
+            const key = e.key;
+
+            // Answer selection
+            if (selectedAnswer === null && !isLocked && currentQuestion) {
+                let idx = -1;
+                if (/^[1-9]$/.test(key)) idx = parseInt(key, 10) - 1;
+                else if (/^[a-jA-J]$/.test(key)) idx = key.toLowerCase().charCodeAt(0) - 97;
+                if (idx >= 0 && idx < (currentQuestion.options?.length || 0) && !eliminatedOptions.includes(idx)) {
+                    e.preventDefault();
+                    selectAnswer(idx);
+                    return;
+                }
+            }
+
+            // Advance (non-arcade advances manually). Buttons already handle
+            // Enter/Space themselves, so don't double-fire on a focused one.
+            if ((key === 'Enter' || key === ' ') && !isArcadeMode && selectedAnswer !== null && tag !== 'button' && tag !== 'a') {
+                e.preventDefault();
+                advanceQuestion();
+                return;
+            }
+
+            if (key === 'Escape' && cashOutBtnRef.current) {
+                e.preventDefault();
+                cashOutBtnRef.current.focus();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedAnswer, isLocked, currentQuestion, eliminatedOptions, isArcadeMode, currentIndex, answers]);
 
     const getDifficultyColor = (difficulty) => {
         switch (difficulty) {
@@ -397,9 +526,15 @@ export default function TriviaGame({
             className={`trivia-game ${isFireMode ? 'fire-mode' : ''} ${showWrongShake ? 'screen-shake' : ''} ${showCorrectFlash ? 'correct-flash' : ''}`}
             ref={gameContainerRef}
         >
+            {/* Screen-reader running commentary: score and time pressure are
+                otherwise conveyed only by colour and animation. */}
+            <div className="sr-only" role="status" aria-live="polite">
+                {`Question ${currentIndex + 1} of ${questions.length}. ${correctCount} correct so far.`}
+            </div>
+
             {/* ════ Fire Mode Background Particles ════ */}
-            {isFireMode && (
-                <div className="fire-particles">
+            {isFireMode && !reduceMotion && (
+                <div className="fire-particles" aria-hidden>
                     {[...Array(20)].map((_, i) => (
                         <div key={i} className="ember" style={{
                             left: `${Math.random() * 100}%`,
@@ -411,8 +546,15 @@ export default function TriviaGame({
             )}
 
             {/* ════ Mute Toggle ════ */}
-            <button className="mute-toggle" onClick={() => { const m = audio.toggleMute(); setMuted(m); }}>
-                {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            <button
+                type="button"
+                className="mute-toggle"
+                onClick={() => { audio.toggleMute(); }}
+                aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+                aria-pressed={muted}
+                title={muted ? 'Unmute sounds' : 'Mute sounds'}
+            >
+                {muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}
             </button>
 
             {/* ════ Ghost Opponent ════ */}
@@ -423,6 +565,9 @@ export default function TriviaGame({
                     playerCorrectCount={correctCount}
                     isGameActive={isGameActive}
                     realAccuracy={ghostAccuracy}
+                    // Ghost "thinking" time scales with question difficulty —
+                    // without this it always used the flat 1-4s fallback.
+                    questionDifficulty={currentQuestion?.difficulty}
                     onOpponentResult={(score, name) => {
                         opponentDataRef.current = { score, name };
                     }}
@@ -444,8 +589,14 @@ export default function TriviaGame({
                         </div>
                     )}
                     {canCashOut && (
-                        <button className="cash-out-btn" onClick={handleCashOut}>
-                            CASH OUT <Gem size={14} /> {stakePot}
+                        <button
+                            type="button"
+                            className="cash-out-btn"
+                            onClick={handleCashOut}
+                            ref={cashOutBtnRef}
+                            aria-label={`Cash out ${stakePot} diamonds and end the game`}
+                        >
+                            CASH OUT <Gem size={14} aria-hidden /> {stakePot}
                         </button>
                     )}
                 </div>
@@ -481,8 +632,22 @@ export default function TriviaGame({
                         initial={{ opacity: 0, scale: 2, rotateZ: -5 }}
                         animate={{ opacity: 1, scale: 1, rotateZ: 0 }}
                         exit={{ opacity: 0, y: 50 }}
+                        role="alert"
                     >
-                        💀 BUSTED!
+                        <Skull size={30} aria-hidden />
+                        <span>BUSTED!</span>
+                    </motion.div>
+                )}
+                {cashedOut && (
+                    <motion.div
+                        className="cashout-popup"
+                        initial={{ opacity: 0, scale: 1.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        role="status"
+                    >
+                        <Gem size={26} aria-hidden />
+                        <span>CASHED OUT +{stakePotRef.current}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -502,8 +667,8 @@ export default function TriviaGame({
                 </div>
 
                 {timeLimit && (
-                    <div className={`timer-ring-container ${timeRemaining <= 5 ? 'heartbeat' : ''}`}>
-                        <svg viewBox="0 0 60 60" className="timer-ring">
+                    <div className={`timer-ring-container ${timeRemaining <= 5 && !reduceMotion ? 'heartbeat' : ''}`}>
+                        <svg viewBox="0 0 60 60" className="timer-ring" aria-hidden>
                             <circle cx="30" cy="30" r="26" className="timer-ring-bg" />
                             <circle
                                 cx="30" cy="30" r="26"
@@ -517,6 +682,14 @@ export default function TriviaGame({
                         </svg>
                         <span className={`timer-text ${timeRemaining <= 5 ? 'critical' : ''}`}>
                             {timeRemaining}
+                        </span>
+                        {/* Time pressure was purely visual. Announce at the
+                            10s and 5s marks (and only then) so screen-reader
+                            users are not spammed once per second. */}
+                        <span className="sr-only" role="timer" aria-live="assertive">
+                            {timeRemaining === 10 || timeRemaining === 5
+                                ? `${timeRemaining} seconds remaining`
+                                : ''}
                         </span>
                     </div>
                 )}
@@ -559,30 +732,52 @@ export default function TriviaGame({
                                 else if (index === selectedAnswer) optionClass += ' incorrect';
                             }
 
+                            const letter = String.fromCharCode(65 + index);
+                            const label = toTitleCase(option);
+                            const revealed = selectedAnswer !== null;
+
                             return (
                                 <motion.button
                                     key={index}
+                                    type="button"
                                     className={optionClass}
                                     onClick={() => selectAnswer(index)}
                                     disabled={isLocked || isEliminated}
-                                    whileHover={!isLocked ? { scale: 1.02, borderColor: 'rgba(14, 165, 233, 0.5)' } : {}}
-                                    whileTap={!isLocked ? { scale: 0.98 } : {}}
+                                    // Mirrors the shared TriviaAnswerOption contract so the
+                                    // hand-rolled markup here exposes the same semantics.
+                                    data-trivia-answer
+                                    aria-pressed={selectedAnswer === index}
+                                    aria-label={isEliminated
+                                        ? `Answer ${letter}: ${label} — eliminated by 50/50`
+                                        : `Answer ${letter}: ${label}`}
+                                    whileHover={!isLocked && !reduceMotion ? { scale: 1.02, borderColor: 'rgba(14, 165, 233, 0.5)' } : {}}
+                                    whileTap={!isLocked && !reduceMotion ? { scale: 0.98 } : {}}
                                     animate={
-                                        selectedAnswer === index && index !== currentQuestion.correct_index
-                                            ? { x: [0, -4, 4, -4, 4, 0] }
-                                            : selectedAnswer === index && index === currentQuestion.correct_index
-                                                ? { scale: [1, 1.05, 1] }
-                                                : {}
+                                        reduceMotion
+                                            ? {}
+                                            : selectedAnswer === index && index !== currentQuestion.correct_index
+                                                ? { x: [0, -4, 4, -4, 4, 0] }
+                                                : selectedAnswer === index && index === currentQuestion.correct_index
+                                                    ? { scale: [1, 1.05, 1] }
+                                                    : {}
                                     }
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                                    <span className="option-text">{isEliminated ? '---' : toTitleCase(option)}</span>
-                                    {selectedAnswer !== null && index === currentQuestion.correct_index && (
-                                        <CheckCircle size={20} className="result-icon correct" />
+                                    <span className="option-letter" aria-hidden>{letter}</span>
+                                    <span className="option-text" aria-hidden={isEliminated || undefined}>
+                                        {isEliminated ? '---' : label}
+                                    </span>
+                                    {revealed && index === currentQuestion.correct_index && (
+                                        <>
+                                            <CheckCircle size={20} className="result-icon correct" aria-hidden />
+                                            <span className="sr-only">Correct answer</span>
+                                        </>
                                     )}
-                                    {selectedAnswer !== null && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                        <XCircle size={20} className="result-icon incorrect" />
+                                    {revealed && index === selectedAnswer && index !== currentQuestion.correct_index && (
+                                        <>
+                                            <XCircle size={20} className="result-icon incorrect" aria-hidden />
+                                            <span className="sr-only">Your answer, incorrect</span>
+                                        </>
                                     )}
                                 </motion.button>
                             );
@@ -594,9 +789,28 @@ export default function TriviaGame({
                         <div className="hints-section">
                             <HintButtons
                                 userDiamonds={diamonds}
-                                disabledHints={Object.entries(hintsUsed || {}).filter(([, used]) => used).map(([id]) => id)}
+                                // Only the +30s hint depends on a clock. HintButtons
+                                // used to disable ALL THREE when hasTimeLimit was
+                                // false, which killed the entire diamond-sink in every
+                                // mode without a clock (daily/history/rules/pro all
+                                // have timeLimit: null). It now gates per-hint, so the
+                                // truthful value is passed here AND extra_time is
+                                // listed as disabled — belt and braces, since paying
+                                // for +30s with no timer must never be possible.
                                 hasTimeLimit={!!timeLimit}
+                                // Let the page surface its own out-of-diamonds
+                                // modal; HintButtons falls back to its inline
+                                // notice when no handler is supplied.
+                                onNeedDiamonds={onNeedDiamonds}
+                                questionId={currentQuestion?.id}
+                                disabledHints={[
+                                    ...Object.entries(hintsUsed || {}).filter(([, used]) => used).map(([id]) => id),
+                                    ...(timeLimit ? [] : ['extra_time']),
+                                ]}
                                 onUseHint={(hint) => {
+                                    // Defence in depth: never charge for +30s when
+                                    // there is no clock to add it to.
+                                    if (hint.id === 'extra_time' && !timeLimit) return;
                                     const result = applyHint(hint.id, currentQuestion, { eliminatedOptions, timeRemaining });
                                     if (result.hiddenOptions) setEliminatedOptions(result.hiddenOptions);
                                     if (result.addTime) setTimeRemaining(prev => (prev || 0) + result.addTime);
@@ -647,10 +861,11 @@ export default function TriviaGame({
                     {/* Next Button */}
                     {!isArcadeMode && selectedAnswer !== null && (
                         <motion.button
+                            type="button"
                             className="next-button"
                             onClick={() => advanceQuestion()}
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={reduceMotion ? {} : { y: -2 }}
+                            whileTap={reduceMotion ? {} : { scale: 0.98 }}
                         >
                             {currentIndex >= questions.length - 1 ? 'See Results' : 'Next Question'}
                             <ChevronRight size={20} />
@@ -748,12 +963,31 @@ export default function TriviaGame({
                     100% { transform: translateY(-500px) scale(0.3) translateX(30px); opacity: 0; }
                 }
 
+                /* ═══ SCREEN-READER ONLY ═══ */
+                .sr-only {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0 0 0 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
+
                 /* ═══ MUTE TOGGLE ═══ */
                 .mute-toggle {
                     position: absolute;
                     top: 8px;
                     right: 8px;
                     z-index: 10;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    /* 44px minimum tap target (was a 28px icon+padding box) */
+                    width: 44px;
+                    height: 44px;
                     background: rgba(255, 255, 255, 0.08);
                     border: 1px solid rgba(255, 255, 255, 0.1);
                     border-radius: 8px;
@@ -889,6 +1123,9 @@ export default function TriviaGame({
                     left: 50%;
                     transform: translate(-50%, -50%);
                     z-index: 25;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
                     padding: 20px 40px;
                     background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 0, 0, 0.95));
                     border: 2px solid rgba(239, 68, 68, 0.6);
@@ -899,6 +1136,31 @@ export default function TriviaGame({
                     letter-spacing: 3px;
                     text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
                     pointer-events: none;
+                    white-space: nowrap;
+                }
+
+                /* Cash-out confirmation during the 2s hand-off to the results
+                   screen — the board used to just freeze with no feedback. */
+                .cashout-popup {
+                    position: absolute;
+                    top: 45%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 26;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 20px 36px;
+                    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 30, 12, 0.95));
+                    border: 2px solid rgba(49, 162, 76, 0.6);
+                    border-radius: 16px;
+                    color: #31a24c;
+                    font-size: 26px;
+                    font-weight: 900;
+                    letter-spacing: 2px;
+                    text-shadow: 0 0 20px rgba(49, 162, 76, 0.45);
+                    pointer-events: none;
+                    white-space: nowrap;
                 }
 
                 /* ═══ FLOATING DIAMONDS ═══ */
@@ -1163,6 +1425,56 @@ export default function TriviaGame({
                 }
                 .next-button:hover {
                     box-shadow: 0 4px 20px rgba(35, 116, 225, 0.4);
+                }
+
+                /* ═══ FOCUS VISIBILITY (keyboard play) ═══ */
+                .option:focus-visible,
+                .next-button:focus-visible,
+                .cash-out-btn:focus-visible,
+                .mute-toggle:focus-visible,
+                .explanation-toggle:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 2px;
+                }
+
+                /* ═══ REDUCED MOTION ═══
+                   Screen shake, heartbeat, ember rise and the timer pulse are
+                   exactly the effects prefers-reduced-motion exists to stop. */
+                @media (prefers-reduced-motion: reduce) {
+                    .trivia-game.screen-shake,
+                    .trivia-game.correct-flash .question-card,
+                    .timer-ring-container.heartbeat,
+                    .timer-text.critical,
+                    .combo-flame,
+                    .cash-out-btn,
+                    .ember {
+                        animation: none !important;
+                    }
+                    .ember { display: none; }
+                    .timer-ring-fill,
+                    .progress-fill {
+                        transition: none !important;
+                    }
+                }
+
+                /* ═══ MOBILE ═══ (component previously shipped zero responsive rules) */
+                @media (max-width: 480px) {
+                    .trivia-game { padding: 12px; }
+                    .question-card { padding: 20px; border-radius: 12px; }
+                    .question-text { font-size: 18px; margin-bottom: 20px; }
+                    .option {
+                        padding: 14px 16px;
+                        gap: 12px;
+                        font-size: 15px;
+                        min-height: 48px;
+                    }
+                    .option-letter { width: 28px; height: 28px; font-size: 13px; }
+                    .game-header { gap: 12px; margin-bottom: 16px; }
+                    .timer-ring-container { width: 48px; height: 48px; }
+                    .bust-popup { font-size: 24px; padding: 16px 24px; letter-spacing: 2px; }
+                    .cashout-popup { font-size: 20px; padding: 16px 22px; }
+                    .combo-popup { font-size: 17px; padding: 10px 18px; }
+                    .next-button { padding: 16px 20px; }
                 }
             `}</style>
         </div>

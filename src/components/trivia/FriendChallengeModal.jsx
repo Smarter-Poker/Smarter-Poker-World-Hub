@@ -1,9 +1,9 @@
 /**
  * FRIEND CHALLENGE MODAL — Send trivia challenges to friends
- * Stakes: 5-50💎, winner takes all
+ * Stakes: 5-50 diamonds, winner takes all
  *
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ║ NOT CURRENTLY WIRED — presentational only                                ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
  * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. Friend          ║
  * ║ challenge functionality is currently not wired up in production —        ║
@@ -37,18 +37,29 @@ export default function FriendChallengeModal({
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
 
-    const filteredFriends = friends.filter(f =>
-        f.username.toLowerCase().includes(searchQuery.toLowerCase())
+    // Null-safe: a friend row with a null username used to throw here and blank
+    // the whole modal.
+    const q = String(searchQuery || '').toLowerCase();
+    const filteredFriends = (Array.isArray(friends) ? friends : []).filter(f =>
+        String(f?.username || '').toLowerCase().includes(q)
     );
 
     const handleSend = async () => {
         if (!selectedFriend || userDiamonds < selectedStake) return;
 
         setSending(true);
-        await onSendChallenge?.({
-            friendId: selectedFriend.id,
-            stake: selectedStake
-        });
+        try {
+            // The caller is responsible for server-side escrow of the stake.
+            await onSendChallenge?.({
+                friendId: selectedFriend.id,
+                stake: selectedStake
+            });
+        } catch (e) {
+            // Without this the button stayed stuck on "Sending..." forever.
+            console.warn('[FriendChallengeModal] Send failed:', e?.message || e);
+            setSending(false);
+            return;
+        }
         setSending(false);
         setSent(true);
 
@@ -107,7 +118,7 @@ export default function FriendChallengeModal({
                                                         <User size={20} />
                                                     )}
                                                 </div>
-                                                <span className="friend-name">{friend.username}</span>
+                                                <span className="friend-name">{friend?.username || 'Player'}</span>
                                                 {selectedFriend?.id === friend.id && (
                                                     <Check size={18} className="check-icon" />
                                                 )}
@@ -146,11 +157,11 @@ export default function FriendChallengeModal({
                             {selectedFriend && (
                                 <div className="challenge-summary">
                                     <p>
-                                        Challenge <strong>{selectedFriend.username}</strong> for{' '}
-                                        <strong>{selectedStake} 💎</strong>
+                                        Challenge <strong>{selectedFriend?.username || 'this player'}</strong> for{' '}
+                                        <strong>{selectedStake.toLocaleString()} diamonds</strong>
                                     </p>
                                     <p className="win-text">
-                                        Winner takes <strong>{selectedStake * 2} 💎</strong>
+                                        Winner takes <strong>{(selectedStake * 2).toLocaleString()} diamonds</strong>
                                     </p>
                                 </div>
                             )}
@@ -159,7 +170,7 @@ export default function FriendChallengeModal({
                             <div className="modal-footer">
                                 <div className="balance">
                                     <Gem size={14} />
-                                    <span>Balance: {userDiamonds}</span>
+                                    <span>Balance: {Number(userDiamonds || 0).toLocaleString()}</span>
                                 </div>
                                 <HexButton
                                     label={sending ? 'Sending...' : 'Send Challenge'}

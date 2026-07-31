@@ -1,305 +1,65 @@
 /**
- * AI TRIVIA GENERATOR - Daily Cron Job
+ * ARCHIVED — SUPERSEDED BY pages/api/cron/generate-trivia.js
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates 10 unique poker trivia questions daily using Grok
- * Runs at 11:59 PM CST via Vercel Cron (5:59 AM UTC)
- * All dates are in CST (Central Standard Time / America/Chicago)
+ * DO NOT REVIVE THIS FILE. The live daily generation job is:
  *
- * Categories:
- * - poker_history: The legends and milestones of poker
- * - famous_hands: Iconic hands that made history
- * - gto_theory: Game theory optimal concepts
- * - player_profiles: Know the pros and legends
- * - tournament_facts: Major tournament knowledge
- * - rule_knowledge: Official rules and table manners
+ *     pages/api/cron/generate-trivia.js
+ *     scheduled in vercel.json as { "path": "/api/cron/generate-trivia",
+ *                                   "schedule": "5 5 * * *" }
+ *
+ * The previous contents of this file were dangerous to resurrect and are kept
+ * only as this record of what was wrong with them:
+ *
+ *  1. AUTH BYPASS (critical). The gate was
+ *       if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+ *           if (NODE_ENV === 'production' && req.method !== 'POST') return 401;
+ *       }
+ *     so ANY unauthenticated POST in production ran the job — 10 paid grok-3
+ *     calls plus service-role inserts, repeatable by anyone. The replacement
+ *     uses requireAdminSecret() from src/lib/trivia/adminAuth.js: fail-closed,
+ *     constant-time, header-only, with no method or NODE_ENV exception.
+ *
+ *  2. RLS-SILENT WRITES. getSupabase() fell back to NEXT_PUBLIC_SUPABASE_ANON_KEY
+ *     when SUPABASE_SERVICE_ROLE_KEY was absent, so every insert was rejected by
+ *     RLS while the handler still reported success. The replacement throws.
+ *
+ *  3. COVERAGE. It generated 10 questions/day across only the 6 fact categories.
+ *     The four strategy categories (mtt_situations, cash_game_situations,
+ *     icm_chip_ev, gto_scenarios) were never generated at all, and 10 rows could
+ *     never satisfy pages/hub/trivia/[mode].js STEP 1, which needs >= 20 matching
+ *     daily rows per mode. The replacement generates across all 10 categories and
+ *     tags a 20-question daily roster PER CATEGORY.
+ *
+ *  4. TIMEZONE. It ran at 05:59 UTC and called a locally duplicated getTodayCST().
+ *     During CST that timestamp is 23:59 the PREVIOUS Chicago day, so half the
+ *     year the roster was dated for a day that ended one minute later. The
+ *     replacement imports src/lib/trivia/getTodayCST.js and tags the Chicago day
+ *     in effect 90 minutes ahead, which is correct in both CST and CDT.
+ *
+ *  5. RELIABILITY. Ten sequential grok-3 calls plus 500ms sleeps under
+ *     maxDuration:60, with a single all-or-nothing insert at the very end: a
+ *     timeout lost the whole day. The replacement batches one call per
+ *     (category, difficulty), inserts incrementally, runs under maxDuration 300
+ *     with an internal wall-clock budget, and returns a resumable cursor.
+ *
+ *  6. BROKEN IMPORTS. From archive/cron/ the '../../../src/lib/...' specifiers
+ *     resolve ABOVE the repo root (they were written for pages/api/cron/), so
+ *     this module could not even be loaded.
+ *
+ *  7. WEAK DEDUP. Duplicate avoidance was a prompt hint listing 50 recent
+ *     question texts, with no membership check before insert. The replacement
+ *     checks a normalized-text Set per category in code and passes it to
+ *     validateBatch({ existingTexts }).
+ *
+ * This module intentionally exports nothing runnable.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getGrokClient } from '../../../src/lib/grokClient';
-import { validateBatch } from '../../../src/lib/triviaValidator';
+export const SUPERSEDED_BY = 'pages/api/cron/generate-trivia.js';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+export default function archivedTriviaGenerator() {
+    throw new Error(
+        'archive/cron/generate-trivia.js is archived and unsafe to run. ' +
+        'Use pages/api/cron/generate-trivia.js (scheduled in vercel.json).'
+    );
 }
-
-
-
-
-const grok = getGrokClient();
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CATEGORY CONFIGURATION
-// ═══════════════════════════════════════════════════════════════════════════
-
-const CATEGORIES = [
-    {
-        id: 'poker_history',
-        name: 'Poker History',
-        prompt: 'Create a trivia question about poker history - the evolution of the game, historical milestones, origins of different poker variants, or important dates in poker history.'
-    },
-    {
-        id: 'famous_hands',
-        name: 'Famous Hands',
-        prompt: 'Create a trivia question about a famous poker hand - memorable hands from WSOP, televised cash games, iconic bluffs, or legendary showdowns between pros.'
-    },
-    {
-        id: 'gto_theory',
-        name: 'GTO Theory',
-        prompt: 'Create a trivia question about Game Theory Optimal (GTO) poker concepts - balanced ranges, minimum defense frequency, equity realization, polarization, or solver-based strategies.'
-    },
-    {
-        id: 'player_profiles',
-        name: 'Player Profiles',
-        prompt: 'Create a trivia question about famous poker players - their achievements, playing styles, nicknames, notable wins, or career milestones. Include players like Phil Hellmuth, Daniel Negreanu, Phil Ivey, Doyle Brunson, etc.'
-    },
-    {
-        id: 'tournament_facts',
-        name: 'Tournament Facts',
-        prompt: 'Create a trivia question about major poker tournaments - WSOP, WPT, EPT, record prize pools, field sizes, format changes, or notable tournament moments.'
-    },
-    {
-        id: 'rule_knowledge',
-        name: 'Rules & Etiquette',
-        prompt: 'Create a trivia question about official poker rules or table etiquette - hand rankings edge cases, betting rules, tournament procedures, or proper poker conduct.'
-    }
-];
-
-const DIFFICULTIES = ['easy', 'medium', 'hard'];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TIMEZONE HELPER - All trivia dates are in CST
-// ═══════════════════════════════════════════════════════════════════════════
-
-function getTodayCST() {
-    // Get current date in CST (Central Standard Time / America/Chicago)
-    const now = new Date();
-    const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const year = cstDate.getFullYear();
-    const month = String(cstDate.getMonth() + 1).padStart(2, '0');
-    const day = String(cstDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// QUESTION GENERATOR
-// ═══════════════════════════════════════════════════════════════════════════
-
-async function generateQuestion(category, difficulty, existingQuestions = []) {
-    const existingQuestionsText = existingQuestions.length > 0
-        ? `\n\nAVOID THESE TOPICS (already used recently):\n${existingQuestions.map(q => `- ${q}`).join('\n')}`
-        : '';
-
-    const systemPrompt = `You are a poker trivia expert creating questions for an educational poker app.
-Your questions should be:
-- Accurate and fact-checked
-- Educational and interesting
-- Appropriate for the specified difficulty level
-- Have exactly 4 answer options with only ONE correct answer
-
-Difficulty guidelines:
-- Easy: Common knowledge any casual poker player would know
-- Medium: Requires some poker knowledge or history awareness
-- Hard: Requires deep knowledge of poker strategy, history, or professional scene
-
-IMPORTANT: Return ONLY valid JSON, no additional text.`;
-
-    const userPrompt = `${category.prompt}
-
-Difficulty: ${difficulty.toUpperCase()}
-${existingQuestionsText}
-
-Return a JSON object with this EXACT structure:
-{
-    "question": "The trivia question text",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_index": 0,
-    "explanation": "A brief explanation of why this is the correct answer (2-3 sentences)"
-}
-
-Remember: correct_index is 0-based (0, 1, 2, or 3).`;
-
-    try {
-        const response = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            max_tokens: 500,
-            temperature: 0.8,
-            response_format: { type: 'json_object' }
-        });
-
-        const content = response.choices[0].message.content;
-        const parsed = JSON.parse(content);
-
-        // Validate the response
-        if (!parsed.question || !parsed.options || parsed.options.length !== 4 ||
-            typeof parsed.correct_index !== 'number' || !parsed.explanation) {
-            throw new Error('Invalid question format');
-        }
-
-        return {
-            category: category.id,
-            difficulty,
-            question: parsed.question,
-            options: parsed.options,
-            correct_index: parsed.correct_index,
-            explanation: parsed.explanation
-        };
-    } catch (error) {
-        console.error(`Error generating question for ${category.id}:`, error);
-        return null;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DAILY GENERATION
-// ═══════════════════════════════════════════════════════════════════════════
-
-async function generateDailyQuestions() {
-    const supabase = getSupabase();
-    const today = getTodayCST();
-
-    // Check if we already have questions for today
-    const { data: existing } = await supabase
-        .from('trivia_questions')
-        .select('id')
-        .eq('daily_date', today)
-        .limit(1);
-
-    if (existing && existing.length > 0) {
-        return { skipped: true, date: today };
-    }
-
-    // Get recent questions to avoid repetition
-    const { data: recentQuestions } = await supabase
-        .from('trivia_questions')
-        .select('question')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-    const recentQuestionTexts = recentQuestions?.map(q => q.question) || [];
-
-
-    const questions = [];
-    const questionsPerCategory = {};
-
-    // Distribute questions across categories (at least 1 per category, 10 total)
-    // 6 categories, so we'll have 1 each + 4 extra distributed
-    const categoryDistribution = [
-        ...CATEGORIES.map(c => c.id),
-        'poker_history', 'famous_hands', 'tournament_facts', 'player_profiles'
-    ];
-
-    for (let i = 0; i < 10; i++) {
-        const categoryId = categoryDistribution[i];
-        const category = CATEGORIES.find(c => c.id === categoryId);
-
-        // Rotate through difficulties
-        const difficulty = DIFFICULTIES[i % 3];
-
-        const question = await generateQuestion(category, difficulty, recentQuestionTexts);
-
-        if (question) {
-            questions.push({
-                ...question,
-                daily_date: today,
-                order_index: i,
-                created_at: new Date().toISOString()
-            });
-            recentQuestionTexts.push(question.question);
-        }
-
-        // Small delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
-    let insertedCount = 0;
-    if (questions.length > 0) {
-        const { valid: validQuestions, rejected } = validateBatch(questions);
-        if (rejected.length > 0) {
-            rejected.forEach(r => {
-                r.errors.forEach(e => console.log(`  → ${e}`));
-            });
-        }
-
-        if (validQuestions.length > 0) {
-            const { error } = await supabase
-                .from('trivia_questions')
-                .insert(validQuestions);
-
-            if (error) {
-                console.error('[Trivia] Insert error:', error);
-                return { success: false, error: error.message };
-            }
-            insertedCount = validQuestions.length;
-        }
-    }
-
-
-    return {
-        success: true,
-        date: today,
-        count: insertedCount,
-        categories: [...new Set(questions.map(q => q.category))]
-    };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// API HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
-
-export default async function handler(req, res) {
-  try {
-      // Verify cron secret for Vercel Cron jobs
-      const authHeader = req.headers.authorization;
-      if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-          // Allow manual triggers in development or with POST
-          if (process.env.NODE_ENV === 'production' && req.method !== 'POST') {
-              return res.status(401).json({ error: 'Unauthorized' });
-          }
-      }
-
-      try {
-
-          const result = await generateDailyQuestions();
-
-          if (result.skipped) {
-              return res.status(200).json({
-                  success: true,
-                  message: 'Questions already exist for today',
-                  ...result
-              });
-          }
-
-          return res.status(200).json({
-              success: true,
-              message: 'Daily trivia generated successfully',
-              ...result,
-              timestamp: new Date().toISOString()
-          });
-
-      } catch (error) {
-          console.error('[Trivia Generator] Error:', error);
-          return res.status(500).json({ success: false, error: error.message });
-      }
-
-  } catch (err) {
-    console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
-  }
-}
-
-// Vercel Cron config - runs at 11:59 PM CST (5:59 AM UTC)
-export const config = {
-    maxDuration: 60
-};

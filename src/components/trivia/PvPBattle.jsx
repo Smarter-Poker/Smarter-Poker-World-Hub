@@ -1,27 +1,31 @@
 /**
- * PVP BATTLE — Real-time 1v1 trivia battle
- * Same questions, fastest correct answer wins each round
+ * PVP BATTLE — Real-time 1v1 trivia battle (presentational)
+ * Same questions, fastest correct answer wins each round.
  *
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
- * ╠══════════════════════════════════════════════════════════════════════════╣
- * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The simulated   ║
- * ║ opponent logic below (lines 78-86: Math.random() < 0.4 to fake an        ║
- * ║ opponent's answer) is a leftover prototype. The real production PvP      ║
- * ║ battle runs inline in pages/hub/trivia/pvp.js, which uses Supabase       ║
- * ║ realtime to receive the actual opponent's score. Importing this          ║
- * ║ component would silently substitute fake opponents into the user's      ║
- * ║ stake-bearing battles — money bug.                                       ║
+ * ║ NOT CURRENTLY WIRED — production PvP runs inline in                      ║
+ * ║ pages/hub/trivia/pvp.js. This component is kept as the reusable          ║
+ * ║ presentation layer, but it is now SAFE by construction:                  ║
  * ║                                                                          ║
- * ║ If you need the PvP UI, edit pages/hub/trivia/pvp.js. If you want to     ║
- * ║ delete this file, verify with grep -rn 'PvPBattle' first; safe as of    ║
- * ║ Phase 69.                                                                ║
+ * ║  * The Math.random() fake-opponent simulation is GONE. It used to invent ║
+ * ║    an opponent's answers (60% accuracy) and then settle a real stake     ║
+ * ║    against that phantom — a money bug waiting for someone to import it.  ║
+ * ║    Opponent results must now be fed in from the server via the           ║
+ * ║    `opponentAnswer` / `opponentAnsweredAt` props. With no feed the       ║
+ * ║    component refuses to run and says so, instead of silently faking one. ║
+ * ║  * handleGameEnd no longer emits diamond events. Nothing here writes to  ║
+ * ║    the database, so emitting diamondsEarned/diamondsSpent moved the HUD  ║
+ * ║    balance with no backing transaction. Settlement is the caller's       ║
+ * ║    server-side job; this component only reports the result via           ║
+ * ║    onComplete.                                                           ║
+ * ║  * The round timer no longer captures stale state (it read playerAnswered║
+ * ║    and opponentAnswer from the effect's frozen closure).                 ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Gem, Check, X, Crown, Clock, User } from 'lucide-react';
+import { Swords, Gem, Check, X, Crown, Clock, User, AlertTriangle } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import { busEmit } from '../../engine/EventBus';
@@ -35,30 +39,120 @@ export default function PvPBattle({
     opponent = {},
     stakeAmount = 10,
     onComplete,
-    onOpponentAnswer // Called when opponent answers (for real-time)
+    onAnswer,               // (roundIndex, answerIndex, elapsedMs) => void — report to server
+    opponentAnswer = null,  // opponent's selected index for the CURRENT round, from the server
+    opponentAnsweredAt = null, // epoch ms the server recorded for that answer
+    onOpponentAnswer        // legacy no-op passthrough, kept for prop compatibility
 }) {
     const [currentRound, setCurrentRound] = useState(0);
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [opponentAnswer, setOpponentAnswer] = useState(null);
     const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
     const [roundResult, setRoundResult] = useState(null); // 'player', 'opponent', 'tie'
     const [gameOver, setGameOver] = useState(false);
     const [playerAnswered, setPlayerAnswered] = useState(false);
     const answerTimeRef = useRef(null);
+    const roundStartRef = useRef(Date.now());
+    const resolvedRef = useRef(false);
+    const settledRef = useRef(false);
 
     const currentQuestion = questions[currentRound];
     const totalRounds = Math.min(questions.length, QUESTIONS_PER_BATTLE);
 
-    // Timer
+    // Live mirrors so timers and async callbacks never read a stale closure.
+    const playerAnsweredRef = useRef(false);
+    const roundResultRef = useRef(null);
+    const selectedAnswerRef = useRef(null);
+    const opponentAnswerRef = useRef(null);
+    const opponentAnsweredAtRef = useRef(null);
+    useEffect(() => { playerAnsweredRef.current = playerAnswered; }, [playerAnswered]);
+    useEffect(() => { roundResultRef.current = roundResult; }, [roundResult]);
+    useEffect(() => { selectedAnswerRef.current = selectedAnswer; }, [selectedAnswer]);
+    useEffect(() => { opponentAnswerRef.current = opponentAnswer; }, [opponentAnswer]);
+    useEffect(() => { opponentAnsweredAtRef.current = opponentAnsweredAt; }, [opponentAnsweredAt]);
+
+    const nextRound = useCallback(() => {
+        setCurrentRound(prev => {
+            if (prev >= totalRounds - 1) {
+                setGameOver(true);
+                return prev;
+            }
+            return prev + 1;
+        });
+    }, [totalRounds]);
+
+    // Reset per-round state whenever the round index changes.
+    useEffect(() => {
+        resolvedRef.current = false;
+        roundStartRef.current = Date.now();
+        answerTimeRef.current = null;
+        setSelectedAnswer(null);
+        setRoundResult(null);
+        setPlayerAnswered(false);
+        setTimeLeft(TIME_PER_QUESTION);
+    }, [currentRound]);
+
+    /**
+     * Settle a round. Runs at most once per round (resolvedRef), and only ever
+     * from real inputs: the player's answer, the SERVER's opponent answer, or
+     * the clock running out.
+     */
+    const resolveRound = useCallback(
+        (playerIdx, oppIdx, playerMs, oppMs) => {
+            if (resolvedRef.current) return;
+            resolvedRef.current = true;
+
+            const correct = currentQuestion?.correct_index;
+            const playerCorrect = playerIdx != null && playerIdx === correct;
+            const opponentCorrect = oppIdx != null && oppIdx === correct;
+
+            let result;
+            if (playerCorrect && !opponentCorrect) result = 'player';
+            else if (!playerCorrect && opponentCorrect) result = 'opponent';
+            else if (playerCorrect && opponentCorrect) {
+                const pt = Number.isFinite(playerMs) ? playerMs : Number.MAX_SAFE_INTEGER;
+                const ot = Number.isFinite(oppMs) ? oppMs : Number.MAX_SAFE_INTEGER;
+                if (pt === ot) result = 'tie';
+                else result = pt < ot ? 'player' : 'opponent';
+            } else result = 'tie';
+
+            setRoundResult(result);
+            if (result === 'player') {
+                setPlayerScore(prev => {
+                    busEmit.decisionCorrect(prev + 1);
+                    return prev + 1;
+                });
+            } else if (result === 'opponent') {
+                setOpponentScore(prev => prev + 1);
+                busEmit.decisionIncorrect(playerScore);
+                busEmit.screenShake('light');
+            }
+
+            setTimeout(nextRound, 2000);
+        },
+        [currentQuestion, nextRound, playerScore]
+    );
+
+    // Timer — reads live refs, so it can no longer act on a frozen snapshot of
+    // playerAnswered / opponentAnswer from the render that created it.
     useEffect(() => {
         if (gameOver || roundResult) return;
 
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
-                    handleTimeout();
+                    clearInterval(timer);
+                    if (!roundResultRef.current) {
+                        resolveRound(
+                            playerAnsweredRef.current ? selectedAnswerRef.current : null,
+                            opponentAnswerRef.current,
+                            answerTimeRef.current ? answerTimeRef.current - roundStartRef.current : null,
+                            opponentAnsweredAtRef.current
+                                ? opponentAnsweredAtRef.current - roundStartRef.current
+                                : null
+                        );
+                    }
                     return 0;
                 }
                 return prev - 1;
@@ -66,98 +160,47 @@ export default function PvPBattle({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [currentRound, gameOver, roundResult]);
+    }, [currentRound, gameOver, roundResult, resolveRound]);
 
-    const handleTimeout = () => {
-        if (!playerAnswered) {
-            // Player didn't answer - opponent wins round if they did
-            if (opponentAnswer !== null) {
-                setRoundResult('opponent');
-                setOpponentScore(prev => prev + 1);
-            } else {
-                setRoundResult('tie');
-            }
-        }
-        setTimeout(nextRound, 2000);
-    };
+    // Settle as soon as BOTH real answers are in.
+    useEffect(() => {
+        if (gameOver || roundResult || resolvedRef.current) return;
+        if (!playerAnswered || opponentAnswer == null) return;
+        resolveRound(
+            selectedAnswer,
+            opponentAnswer,
+            answerTimeRef.current ? answerTimeRef.current - roundStartRef.current : null,
+            opponentAnsweredAt ? opponentAnsweredAt - roundStartRef.current : null
+        );
+    }, [playerAnswered, opponentAnswer, opponentAnsweredAt, selectedAnswer, gameOver, roundResult, resolveRound]);
 
     const handleAnswer = (answerIndex) => {
         if (playerAnswered || roundResult) return;
 
         setSelectedAnswer(answerIndex);
+        selectedAnswerRef.current = answerIndex;
         setPlayerAnswered(true);
+        playerAnsweredRef.current = true;
         answerTimeRef.current = Date.now();
 
-        const isCorrect = answerIndex === currentQuestion.correct_index;
-
-        // Simulate opponent answer (in real implementation, this comes from server)
-        const opponentTime = Math.random() * 3000 + 500;
-        setTimeout(() => {
-            const oppCorrect = Math.random() > 0.4; // 60% chance correct
-            setOpponentAnswer(oppCorrect ? currentQuestion.correct_index :
-                currentQuestion.options.findIndex((_, i) => i !== currentQuestion.correct_index));
-
-            // Determine round winner
-            determineRoundWinner(isCorrect, oppCorrect, answerTimeRef.current, Date.now());
-        }, opponentTime);
-    };
-
-    const determineRoundWinner = (playerCorrect, opponentCorrect, playerTime, opponentTime) => {
-        setTimeout(() => {
-            if (playerCorrect && !opponentCorrect) {
-                setRoundResult('player');
-                setPlayerScore(prev => prev + 1);
-                busEmit.decisionCorrect(playerScore + 1);
-            } else if (!playerCorrect && opponentCorrect) {
-                setRoundResult('opponent');
-                setOpponentScore(prev => prev + 1);
-                busEmit.decisionIncorrect(playerScore);
-                busEmit.screenShake('light');
-            } else if (playerCorrect && opponentCorrect) {
-                // Both correct - faster wins
-                if (playerTime < opponentTime) {
-                    setRoundResult('player');
-                    setPlayerScore(prev => prev + 1);
-                    busEmit.decisionCorrect(playerScore + 1);
-                } else {
-                    setRoundResult('opponent');
-                    setOpponentScore(prev => prev + 1);
-                    busEmit.decisionIncorrect(playerScore);
-                }
-            } else {
-                setRoundResult('tie');
-            }
-
-            // Move to next round after delay
-            setTimeout(nextRound, 2000);
-        }, 500);
-    };
-
-    const nextRound = () => {
-        if (currentRound >= totalRounds - 1) {
-            setGameOver(true);
-            return;
-        }
-
-        setCurrentRound(prev => prev + 1);
-        setSelectedAnswer(null);
-        setOpponentAnswer(null);
-        setRoundResult(null);
-        setPlayerAnswered(false);
-        setTimeLeft(TIME_PER_QUESTION);
+        // Report upward so the caller can persist it and relay to the opponent.
+        // NOTHING here invents what the opponent did.
+        onAnswer?.(currentRound, answerIndex, answerTimeRef.current - roundStartRef.current);
+        onOpponentAnswer?.(currentRound, answerIndex);
     };
 
     const handleGameEnd = () => {
+        if (settledRef.current) return;
+        settledRef.current = true;
+
         const playerWon = playerScore > opponentScore;
         const rakeAmount = Math.floor(stakeAmount * 2 * 0.1);
-        const winnings = playerWon ? (stakeAmount * 2 - rakeAmount) : 0;
+        const winnings = playerWon ? stakeAmount * 2 - rakeAmount : 0;
 
-        if (playerWon) {
-            busEmit.diamondsEarned(winnings, 'PvP Battle Victory');
-            busEmit.celebration('confetti');
-        } else {
-            busEmit.diamondsSpent(stakeAmount, 'PvP Battle Loss');
-        }
+        // Celebration only. No diamond events: this component performs no
+        // database write, so emitting them moved the HUD balance against a
+        // transaction that never happened. The caller settles server-side.
+        if (playerWon) busEmit.celebration('confetti');
 
         onComplete?.({
             won: playerWon,
@@ -165,9 +208,35 @@ export default function PvPBattle({
             opponentScore,
             stake: stakeAmount,
             winnings,
-            opponent: opponent
+            opponent
         });
     };
+
+    // Hard stop: without a real opponent feed this component must not be used
+    // for a stake-bearing battle. Previously it would have quietly simulated one.
+    const hasOpponentFeed = typeof onAnswer === 'function' || opponentAnswer != null;
+    if (!hasOpponentFeed && !gameOver) {
+        return (
+            <div className="pvp-battle">
+                <MetalFrame padding="24px" showBolts={true}>
+                    <div className="no-feed">
+                        <AlertTriangle size={28} />
+                        <h3>Battle Unavailable</h3>
+                        <p>
+                            No live opponent connection. This battle cannot start until the
+                            server is relaying your opponent&apos;s answers.
+                        </p>
+                    </div>
+                </MetalFrame>
+                <style>{`
+                    .pvp-battle { padding: 20px; max-width: 600px; margin: 0 auto; }
+                    .no-feed { text-align: center; color: #fbbf24; }
+                    .no-feed h3 { margin: 12px 0 8px; color: #fff; font-size: 18px; }
+                    .no-feed p { margin: 0; color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; }
+                `}</style>
+            </div>
+        );
+    }
 
     if (!currentQuestion && !gameOver) {
         return <div className="loading">Loading Battle...</div>;

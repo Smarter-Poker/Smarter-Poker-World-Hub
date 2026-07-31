@@ -15,10 +15,13 @@
 import React from 'react';
 import Link from 'next/link';
 
+/** After this many failed retries the retry button is hidden. */
+const MAX_RETRIES = 2;
+
 class TriviaErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false, error: null };
+        this.state = { hasError: false, error: null, retryCount: 0 };
     }
 
     static getDerivedStateFromError(error) {
@@ -26,16 +29,49 @@ class TriviaErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.warn(`[TriviaErrorBoundary] ${this.props.pageName || 'Trivia'} crashed:`, error, errorInfo);
+        const pageName = this.props.pageName || 'Trivia';
+        // console.warn alone made every production trivia crash invisible.
+        // console.error surfaces in the browser's error channel, and the
+        // best-effort beacon lands the stack in the existing client-error
+        // endpoint. Both are fire-and-forget: reporting must never be able to
+        // throw out of an error boundary and re-crash the page.
+        console.error(`[TriviaErrorBoundary] ${pageName} crashed:`, error, errorInfo);
+        try {
+            if (typeof window !== 'undefined' && typeof fetch === 'function') {
+                fetch('/api/auth/log-client-error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    keepalive: true,
+                    body: JSON.stringify({
+                        source: 'trivia-error-boundary',
+                        page: pageName,
+                        path: window.location?.pathname || null,
+                        message: error?.message || String(error),
+                        stack: (error?.stack || '').slice(0, 4000),
+                        componentStack: (errorInfo?.componentStack || '').slice(0, 4000),
+                        retryCount: this.state.retryCount,
+                        userAgent: navigator?.userAgent || null,
+                        at: new Date().toISOString(),
+                    }),
+                }).catch(() => { });
+            }
+        } catch (e) {
+            console.warn('[TriviaErrorBoundary] error report failed:', e?.message || e);
+        }
     }
 
     handleRetry = () => {
-        this.setState({ hasError: false, error: null });
+        // Retrying re-renders the SAME children. For a deterministic data
+        // error that re-crashes instantly, so the retry count is tracked and
+        // the button disappears after MAX_RETRIES rather than offering an
+        // infinite loop of the same failure.
+        this.setState(prev => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
     };
 
     render() {
         if (this.state.hasError) {
             const pageName = this.props.pageName || 'Trivia';
+            const canRetry = this.state.retryCount < MAX_RETRIES;
 
             return (
                 <div style={{
@@ -88,7 +124,9 @@ class TriviaErrorBoundary extends React.Component {
                             lineHeight: 1.6,
                             margin: '0 0 24px',
                         }}>
-                            Something went wrong. Your progress up to this point is safe. Try again or return to the lobby.
+                            {canRetry
+                                ? 'Something went wrong. Your progress up to this point is safe. Try again or return to the lobby.'
+                                : 'This keeps failing, so retrying will not help. Head back to the lobby and pick another mode — your diamonds and progress are safe.'}
                         </p>
 
                         {/* Action buttons */}
@@ -98,22 +136,25 @@ class TriviaErrorBoundary extends React.Component {
                             justifyContent: 'center',
                             flexWrap: 'wrap',
                         }}>
-                            <button
-                                onClick={this.handleRetry}
-                                style={{
-                                    padding: '12px 28px',
-                                    borderRadius: 10,
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                                    color: '#ffffff',
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    transition: 'opacity 0.2s',
-                                }}
-                            >
-                                Try Again
-                            </button>
+                            {canRetry && (
+                                <button
+                                    onClick={this.handleRetry}
+                                    style={{
+                                        padding: '12px 28px',
+                                        borderRadius: 10,
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                                        color: '#ffffff',
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        transition: 'opacity 0.2s',
+                                        minHeight: 44,
+                                    }}
+                                >
+                                    Try Again
+                                </button>
+                            )}
                             <Link
                                 href="/hub/trivia"
                                 style={{

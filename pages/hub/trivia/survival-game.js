@@ -31,14 +31,21 @@ import { getRecentlySeenIds, filterAndShuffle, fetchRandomQuestionPool } from '.
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
+import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
+import { getAccessToken } from '../../../src/lib/authUtils';
+import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
-const DAILY_DIAMOND_CAP = 10;
+// Daily cap comes from triviaEngine so the lobby and the payout agree. The
+// local literal was 10 — the same as one entry fee, making a full run
+// net-negative by construction.
+const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.survival) ? DAILY_DIAMOND_CAPS.survival : 80;
 
 // Level configuration: 10 levels, starting at 85%, +2% per level
 const LEVEL_CONFIG = [
@@ -69,6 +76,8 @@ export default function SurvivalGamePage() {
     const [correctCount, setCorrectCount] = useState(0);
     const [incorrectCount, setIncorrectCount] = useState(0);
     const [totalDiamondsEarned, setTotalDiamondsEarned] = useState(0);
+    // True once the daily cap has clipped an award during this run.
+    const [capReachedThisRun, setCapReachedThisRun] = useState(false);
 
     // TRAIN-WIRE-TRIVIA-HOOK-5 — selectedAnswer/showResult managed by shared hook
     const currentQuestion = questions[currentQuestionIndex];
@@ -116,8 +125,19 @@ export default function SurvivalGamePage() {
 
     // Speed Bonus State
     const [speedBonus, setSpeedBonus] = useState(0);      // Bonus diamonds from fast answers
-    const [lastAnswerTime, setLastAnswerTime] = useState(null); // Track answer speed
     const [showSpeedBonus, setShowSpeedBonus] = useState(false); // Show bonus animation
+    // Accumulated speed-bonus diamonds for the CURRENT level. These were shown
+    // in the HUD/level-complete totals but never actually awarded — saveProgress
+    // only credited currentLevel*2. Now they are folded into the award (still
+    // clamped by the daily cap), so the displayed number is the credited number.
+    const levelSpeedBonusRef = useRef(0);
+    // Settings panel visibility is component state, never persisted. It used to
+    // be stored inside the `settings` object, which is written to localStorage
+    // 'trivia_settings' — so leaving with the panel open made it auto-open over
+    // the board forever, here and in endless.js (shared storage key).
+    const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+    const [accessToken, setAccessToken] = useState(null);
+    const [lifelineError, setLifelineError] = useState(null);
 
     // User state
     const [userId, setUserId] = useState(null);
@@ -125,11 +145,36 @@ export default function SurvivalGamePage() {
     const [userProgress, setUserProgress] = useState({ highestLevel: 0 });
     const [isVip, setIsVip] = useState(false);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
+    const [levelLoadError, setLevelLoadError] = useState(null);
+    const [showReview, setShowReview] = useState(false);
+
+    // VIP members get lifelines free, so the balance check must not lock their
+    // buttons (previously it did — VIPs were both charged and gated).
+    // NOTE: must stay BELOW the `isVip` useState above. It was originally
+    // declared next to LIFELINE_COST (~line 106), which read `isVip` from its
+    // temporal dead zone and threw "Cannot access 'isVip' before
+    // initialization" on every single render of this page.
+    const lifelineLocked = lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL
+        || (!isVip && userDiamonds < LIFELINE_COST);
 
     const startTimeRef = useRef(null);
     const answersRef = useRef([]); // Track per-question correctness
     const answerTimeoutRef = useRef(null); // Cleanup on unmount
     const isStartingRef = useRef(false); // Prevent double-click race
+    // Every question id served in THIS run — a hard exclusion so level 4 can
+    // never re-serve a question the player already saw on level 1.
+    const sessionServedIdsRef = useRef(new Set());
+
+    // ── SOUND: one switch, globally ────────────────────────────────────
+    // triviaAudio owns the mute flag for the whole trivia system; this page's
+    // `settings.audio` is now a read-only mirror of !triviaAudio.isMuted().
+    // It used to be an independent third switch, so muting here left
+    // TriviaGame and endless.js loud.
+    useEffect(() => {
+        const sync = (m) => setSettings(prev => (prev.audio === !m ? prev : { ...prev, audio: !m }));
+        sync(triviaAudio.isMuted());
+        return triviaAudio.onMuteChange(sync);
+    }, []);
 
     // Initialize
     useEffect(() => {
@@ -137,6 +182,7 @@ export default function SurvivalGamePage() {
         const user = avatarUser || getAuthUser();
         if (user) {
             setUserId(user.id);
+            try { setAccessToken(getAccessToken()); } catch (e) { /* anonymous report still allowed */ }
             loadUserProgress(user.id);
             loadUserDiamonds(user.id);
             // Check VIP status
@@ -146,11 +192,17 @@ export default function SurvivalGamePage() {
                 setIsVip(v);
             })();
         }
-        // Load settings from localStorage
+        // Load settings from the shared 'trivia_settings' store that
+        // /hub/trivia/settings now writes to (one settings system).
         try {
             const savedSettings = localStorage.getItem('trivia_settings');
             if (savedSettings) {
-                setSettings(JSON.parse(savedSettings));
+                const parsed = JSON.parse(savedSettings) || {};
+                delete parsed.showPanel;
+                // `audio` is owned by triviaAudio (mirror effect above) — a
+                // stale copy in this blob would silently un-mute the player.
+                delete parsed.audio;
+                setSettings(prev => ({ ...prev, ...parsed }));
             }
         } catch (e) { console.warn("[survival-game.js]", e); }
     }, [avatarUser?.id, authLoading]);
@@ -172,12 +224,29 @@ export default function SurvivalGamePage() {
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    // Save settings to localStorage when changed
+    // Save settings to localStorage when changed. Merged so this page never
+    // clobbers keys owned by the settings page (difficulty / timerEnabled / ...).
     useEffect(() => {
         try {
-            localStorage.setItem('trivia_settings', JSON.stringify(settings));
+            let existing = {};
+            try { existing = JSON.parse(localStorage.getItem('trivia_settings') || '{}') || {}; } catch (e) { existing = {}; }
+            const { showPanel: _drop, ...persistable } = settings;
+            localStorage.setItem('trivia_settings', JSON.stringify({ ...existing, ...persistable }));
         } catch (e) { console.warn("[survival-game.js]", e); }
     }, [settings]);
+
+    // Unmount-only cleanup for the question-advance timeout.
+    //
+    // This used to live in the per-tick side-effect cleanup below. That effect
+    // re-runs on every timer tick / showResult flip, so its PREVIOUS cleanup
+    // cancelled the 1200ms/1500ms advance timeout that selectAnswer/handleTimeOut
+    // had just scheduled — the level froze on the revealed answer and never
+    // advanced or evaluated. Clearing it only on unmount fixes the soft-lock.
+    useEffect(() => {
+        return () => {
+            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+        };
+    }, []);
 
     // Visibility-based timer pause (when user leaves app/tab)
     // Hook stops the countdown; page only sets isPaused so resume overlay appears.
@@ -224,8 +293,10 @@ export default function SurvivalGamePage() {
         }
 
         return () => {
+            // NOTE: do NOT clear answerTimeoutRef here — this effect re-runs on
+            // every tick and would cancel the just-scheduled advance timeout.
+            // Unmount cleanup for it lives in its own effect above.
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         };
     }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
 
@@ -287,9 +358,12 @@ export default function SurvivalGamePage() {
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
+    /** Loads (and sets) the question set for a level. Returns the array so
+     *  startLevel can verify a non-empty set before charging into 'playing'. */
     async function loadQuestionsForLevel(level) {
         setIsLoading(true);
         const config = LEVEL_CONFIG[level - 1];
+        let loaded = [];
 
         try {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
@@ -304,11 +378,18 @@ export default function SurvivalGamePage() {
             const data = await fetchRandomQuestionPool(supabase, { difficulty, pageSize: 200 });
             if (data && data.length > 0) {
                 // Filter out recently seen questions and shuffle using shared utility (unbiased)
-                const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL, { minQualityScore: 6 }); // Phase 51: drop low-quality
+                // sessionExcludeIds is a HARD exclusion: a question served
+                // earlier in THIS run must not come back on a later level, not
+                // even via filterAndShuffle's seen/quality degradation tiers.
+                const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL, {
+                    minQualityScore: 6, // Phase 51: drop low-quality
+                    sessionExcludeIds: sessionServedIdsRef.current
+                });
                 
                 if (available.length >= QUESTIONS_PER_LEVEL) {
                     // Take exactly what we need
-                    setQuestions(shuffleOptions(available.slice(0, QUESTIONS_PER_LEVEL)));
+                    loaded = shuffleOptions(available.slice(0, QUESTIONS_PER_LEVEL));
+                    setQuestions(loaded);
                 } else {
                     // Ultimate fallback: get any questions.
                     // Phase 58: was bypassing the quality floor (filterAndShuffle
@@ -323,32 +404,33 @@ export default function SurvivalGamePage() {
                         .limit(QUESTIONS_PER_LEVEL);
 
                     if (fallbackData) {
-                        const fallbackAvailable = filterAndShuffle(fallbackData, [], 0, { minQualityScore: 6 });
-                        setQuestions(shuffleOptions(fallbackAvailable.slice(0, QUESTIONS_PER_LEVEL)));
+                        const fallbackAvailable = filterAndShuffle(fallbackData, [], 0, {
+                            minQualityScore: 6,
+                            sessionExcludeIds: sessionServedIdsRef.current
+                        });
+                        loaded = shuffleOptions(fallbackAvailable.slice(0, QUESTIONS_PER_LEVEL));
+                        setQuestions(loaded);
                     }
                 }
             }
         } catch (e) {
             console.warn('Failed to load questions:', e);
         }
+        for (const q of loaded) { if (q?.id) sessionServedIdsRef.current.add(q.id); }
         setIsLoading(false);
+        return loaded;
     }
 
     async function startLevel(level) {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // Check if already paid via TriviaLobby (defense-in-depth)
-        const alreadyPaid = level === 1
-            && sessionStorage.getItem('trivia_paid') === 'true'
-            && sessionStorage.getItem('trivia_mode') === 'survival';
-        if (alreadyPaid) {
-            sessionStorage.removeItem('trivia_paid');
-            sessionStorage.removeItem('trivia_mode');
-        }
+        // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
+        // writes that flag any more, so all it could still do is let a stale
+        // flag from an old session buy a free run. Always charge on level 1.
 
         // Per-game diamond gate (VIP bypass) — only charge on level 1 (start of a new run)
-        if (!alreadyPaid && level === 1 && !isVip && userId) {
+        if (level === 1 && !isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             let freshBalance = userDiamonds;
             try {
@@ -385,17 +467,81 @@ export default function SurvivalGamePage() {
         trivia.reset();
         answersRef.current = []; // Reset per-question tracking for new level
         idempotencyRefs.current = {}; // Reset idempotency keys for new level
+        savePhaseRef.current = 0;     // Fresh save pipeline for this level
+        levelSpeedBonusRef.current = 0;
         setFiftyFiftyUsedFree(false);
         setEliminatedOptions([]);
+        setDoubleChanceActive(false);
+        setDoubleChanceUsedThisQuestion(false);
+        setFirstAttemptWrong(null);
+        setSkipUsedThisQuestion(false);
         setLifelinesUsedThisLevel(0); // Reset lifeline counter
-        // Reset and start shot clock
-        timer.resetTimer();
         setScreenShake(false);
-        loadQuestionsForLevel(level);
+
+        // Load the level's questions BEFORE entering 'playing' and starting the
+        // shot clock. Previously loadQuestionsForLevel was fired without await
+        // while the timer already ran, so (a) players lost seconds off Q1 during
+        // the fetch and (b) when continuing to the next level the PREVIOUS
+        // level's questions rendered until the new set swapped in mid-question,
+        // invalidating an in-flight answer.
+        setQuestions([]);
+        setGameState('loading_level');
+        const loaded = await loadQuestionsForLevel(level);
+        if (!loaded || loaded.length === 0) {
+            setLevelLoadError('We could not load questions for this level. Please check your connection and try again.');
+            setGameState('lobby');
+            return;
+        }
+        setLevelLoadError(null);
         setGameState('playing');
+        timer.resetTimer();
         startTimeRef.current = Date.now();
         } finally {
             isStartingRef.current = false;
+        }
+    }
+
+    /**
+     * Charge a lifeline. Returns true when the player may use it.
+     *
+     * Two fixes over the previous inline blocks:
+     *  - VIP members are never charged (parity with HintButtons.jsx).
+     *  - Every purchase gets its own reference_id. The old key was derived from
+     *    (level, questionIndex), so buying the same lifeline twice on the same
+     *    question across two attempts of a level was de-duplicated by the DB and
+     *    handed out free.
+     */
+    async function chargeLifeline(cost, kind, label) {
+        if (isVip) return true;
+        if (!userId) return true;
+        if (userDiamonds < cost) {
+            setShowOutOfDiamonds(true);
+            return false;
+        }
+        try {
+            const { data, error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -cost,
+                p_type: 'survival_lifeline',
+                p_description: `Survival ${label} — ${cost} diamonds`,
+                p_reference_id: newPurchaseRef(kind)
+            });
+            if (rpcErr) throw rpcErr;
+            // The RPC returns { success:false } WITHOUT an error on insufficient
+            // balance or reference dedup — treat that as a failed purchase.
+            if (data && typeof data === 'object' && data.success === false) {
+                setShowOutOfDiamonds(true);
+                return false;
+            }
+            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+            busEmit.diamondsSpent(cost, label);
+            return true;
+        } catch (e) {
+            console.warn('[Survival] Lifeline deduction failed:', e);
+            setLifelineError('Could not purchase that lifeline. Please try again.');
+            setTimeout(() => setLifelineError(null), 3000);
+            return false;
         }
     }
 
@@ -406,34 +552,16 @@ export default function SurvivalGamePage() {
         const currentQuestion = questions[currentQuestionIndex];
         if (!currentQuestion) return;
 
-        // Check if we need to pay diamonds
-        const needsToPay = fiftyFiftyUsedFree;
+        // VIP members never pay for lifelines (parity with HintButtons.jsx).
+        const needsToPay = fiftyFiftyUsedFree && !isVip;
 
         if (needsToPay) {
-            // Check if user has enough diamonds
-            if (userDiamonds < 5) {
-                setShowOutOfDiamonds(true);
-                return;
-            }
-            // Deduct diamonds via audit-safe RPC
-            if (userId) {
-                try {
-                    const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: -5,
-                        p_type: 'survival_lifeline',
-                        p_description: 'Survival 50/50 lifeline — 5💎',
-                        p_reference_id: getIdempotencyKey(`fifty_fifty_${currentLevel}_${currentQuestionIndex}`)
-                    });
-                    if (rpcErr) { console.warn('[Survival] 50/50 deduct RPC error:', rpcErr.message); return; }
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                    if (profile) setUserDiamonds(profile.diamonds || 0);
-                    busEmit.diamondsSpent(5, '50/50 Lifeline');
-                } catch (e) {
-                    console.warn('Failed to deduct diamonds:', e);
-                    return;
-                }
-            }
+            // Paid 50/50 now counts against the per-level lifeline cap, like
+            // Skip and Double Chance. It previously bypassed the cap entirely.
+            if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) return;
+            const paid = await chargeLifeline(LIFELINE_COST, 'fifty_fifty', '50/50 Lifeline');
+            if (!paid) return;
+            setLifelinesUsedThisLevel(prev => prev + 1);
         } else {
             // Mark free use as consumed
             setFiftyFiftyUsedFree(true);
@@ -457,40 +585,27 @@ export default function SurvivalGamePage() {
         setEliminatedOptions(toEliminate);
     }
 
-    // Skip Question Function (costs 5💎)
+    // Skip Question Function (costs 5 diamonds, free for VIP)
     async function useSkipQuestion() {
         if (trivia.showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
             // Lifeline limit reached — silently prevent
             return;
         }
-        if (userDiamonds < LIFELINE_COST) {
-            setShowOutOfDiamonds(true);
-            return;
-        }
 
-        if (userId) {
-            try {
-                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: -LIFELINE_COST,
-                    p_type: 'survival_lifeline',
-                    p_description: `Survival skip question — ${LIFELINE_COST}💎`,
-                    p_reference_id: getIdempotencyKey(`skip_${currentLevel}_${currentQuestionIndex}`)
-                });
-                if (rpcErr) { console.warn('[Survival] Skip deduct RPC error:', rpcErr.message); return; }
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
-                setLifelinesUsedThisLevel(prev => prev + 1);
-            } catch (e) {
-                console.warn('Failed to deduct diamonds:', e);
-                return;
-            }
-        }
+        const paid = await chargeLifeline(LIFELINE_COST, 'skip', 'Skip Question');
+        if (!paid) return;
+        setLifelinesUsedThisLevel(prev => prev + 1);
 
         setSkipUsedThisQuestion(true);
         timer.setIsTimerRunning(false);
+
+        // Push a null placeholder so answersRef stays index-aligned with
+        // `questions`. Without it, every question after a skip was credited /
+        // blamed against the WRONG question id in trivia_user_question_history
+        // (saveProgress slices questions by answersRef.length). Nulls are
+        // filtered out of the history batch.
+        answersRef.current.push(null);
 
         if (currentQuestionIndex < QUESTIONS_PER_LEVEL - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
@@ -501,6 +616,11 @@ export default function SurvivalGamePage() {
             setDoubleChanceUsedThisQuestion(false);
             setFirstAttemptWrong(null);
             timer.resetTimer();
+        } else {
+            // Skipping the LAST question used to charge the player, stop the
+            // clock and then do nothing at all — they sat on a dead board
+            // having paid for it. Evaluate the level instead.
+            evaluateLevelResult(correctCount);
         }
     }
 
@@ -510,30 +630,10 @@ export default function SurvivalGamePage() {
             // Lifeline limit reached — silently prevent
             return;
         }
-        if (userDiamonds < LIFELINE_COST) {
-            setShowOutOfDiamonds(true);
-            return;
-        }
 
-        if (userId) {
-            try {
-                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: -LIFELINE_COST,
-                    p_type: 'survival_lifeline',
-                    p_description: `Survival double chance — ${LIFELINE_COST}💎`,
-                    p_reference_id: getIdempotencyKey(`double_${currentLevel}_${currentQuestionIndex}`)
-                });
-                if (rpcErr) { console.warn('[Survival] Double chance deduct RPC error:', rpcErr.message); return; }
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
-                setLifelinesUsedThisLevel(prev => prev + 1);
-            } catch (e) {
-                console.warn('Failed to deduct diamonds:', e);
-                return;
-            }
-        }
+        const paid = await chargeLifeline(LIFELINE_COST, 'double', 'Double Chance');
+        if (!paid) return;
+        setLifelinesUsedThisLevel(prev => prev + 1);
 
         setDoubleChanceActive(true);
         setDoubleChanceUsedThisQuestion(true);
@@ -553,8 +653,11 @@ export default function SurvivalGamePage() {
             const isCorrect = index === currentQuestion?.correct_index;
 
             if (!isCorrect) {
-                // First wrong attempt - allow second try, reset timer
+                // First wrong attempt - allow second try, reset timer. Strike
+                // the wrong option out so a double-tap can't burn the paid
+                // second chance on the same answer.
                 setFirstAttemptWrong(index);
+                setEliminatedOptions(prev => (prev.includes(index) ? prev : [...prev, index]));
                 timer.resetTimer();
                 return;
             }
@@ -571,15 +674,17 @@ export default function SurvivalGamePage() {
             answersRef.current.push(true);
             busEmit.decisionCorrect(correctCount + 1);
 
-            // Speed bonus for fast answers (under 10 seconds)
+            // Speed bonus for fast answers (under 10 seconds):
+            // 3 for <=3s, 2 for <=5s, 1 for <10s.
             if (answerTime < 10) {
-                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1; // 3💎 for ≤3s, 2💎 for ≤5s, 1💎 for <10s
+                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1;
                 setSpeedBonus(bonus);
                 setShowSpeedBonus(true);
                 setTotalDiamondsEarned(prev => prev + bonus);
+                // Track separately so evaluateLevelResult can actually AWARD it.
+                levelSpeedBonusRef.current += bonus;
                 setTimeout(() => setShowSpeedBonus(false), 1500);
             }
-            setLastAnswerTime(answerTime);
         } else {
             setIncorrectCount(prev => prev + 1);
             answersRef.current.push(false);
@@ -615,21 +720,37 @@ export default function SurvivalGamePage() {
     const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=progress, 3=history
 
     const idempotencyRefs = useRef({});
+    const randomToken = () => {
+        try {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        } catch (e) { /* fall through */ }
+        return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    };
+    /** Stable-per-action key: reused across Retry Save so retries are idempotent. */
     const getIdempotencyKey = (actionType) => {
         if (!idempotencyRefs.current[actionType]) {
-            idempotencyRefs.current[actionType] = `survival_${actionType}_${crypto.randomUUID()}`;
+            idempotencyRefs.current[actionType] = `survival_${actionType}_${randomToken()}`;
         }
         return idempotencyRefs.current[actionType];
     };
+    /** Fresh-per-call key: one-shot purchases that must never be de-duplicated. */
+    const newPurchaseRef = (kind) => `survival_${kind}_${userId || 'anon'}_${randomToken()}`;
 
     function evaluateLevelResult(finalCorrect) {
         const config = LEVEL_CONFIG[currentLevel - 1];
         const passed = finalCorrect >= config.minCorrect;
 
         if (passed) {
-            // Award diamonds for this level ONLY (not cumulative)
-            const levelDiamonds = currentLevel * 2; // 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 per level
-            setTotalDiamondsEarned(prev => prev + levelDiamonds);
+            // Award diamonds for this level ONLY (not cumulative).
+            // Speed bonuses accumulated during the level are now INCLUDED — they
+            // were displayed as earned in the HUD and level-complete totals but
+            // never actually credited (saveProgress only sent currentLevel*2).
+            const levelDiamonds = currentLevel * 2 + levelSpeedBonusRef.current;
+            // The running total is now advanced by saveProgress with the amount
+            // the daily cap ACTUALLY credited. The optimistic `currentLevel * 2`
+            // here was wrong twice over: it dropped the speed bonus that IS
+            // awarded, and it ignored the cap, so a capped player was shown
+            // diamonds that never reached their balance.
 
             setGameState('saving_progress'); // Show skeleton
             if (currentLevel >= 10) {
@@ -639,7 +760,74 @@ export default function SurvivalGamePage() {
                 saveProgress(currentLevel, levelDiamonds, 'levelComplete');
             }
         } else {
-            setGameState('gameOver');
+            // A failed level used to save NOTHING — no trivia_scores row and no
+            // question history — so every question from a failed run went
+            // straight back into the player's pool, breaking the 60-day
+            // non-repeat guarantee for the most-played path in the mode.
+            // Record the partial run (no diamonds awarded for a failure).
+            setGameState('saving_progress');
+            saveFailedRun();
+        }
+    }
+
+    /**
+     * Persist a FAILED level: question history + a trivia_scores row, no reward.
+     * Never blocks the player — any failure here just warns and shows gameOver.
+     */
+    async function saveFailedRun() {
+        try {
+            if (userId) {
+                await recordQuestionHistory();
+                const levelCorrect = answersRef.current.filter(a => a === true).length;
+                const answered = answersRef.current.length;
+                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    username: avatarUser?.username || avatarUser?.display_name || null,
+                    mode: 'survival',
+                    score: levelCorrect * 100,
+                    correct_count: levelCorrect,
+                    total_questions: answered > 0 ? answered : QUESTIONS_PER_LEVEL,
+                    diamonds_earned: 0,
+                    play_date: getTodayCST()
+                });
+                if (scoreErr) console.warn('[Survival] Failed-run score insert failed (non-fatal):', scoreErr.message);
+            }
+        } catch (e) {
+            console.warn('[Survival] Failed-run save error (non-fatal):', e);
+        }
+        setGameState('gameOver');
+    }
+
+    /**
+     * Upsert this level's question history.
+     * `answersRef` may contain nulls (skipped questions) — those are dropped so
+     * a skip never mis-attributes correctness, while the index alignment with
+     * `questions` is preserved.
+     */
+    async function recordQuestionHistory() {
+        if (!userId || !questions || questions.length === 0) return;
+        if (answersRef.current.length === 0) return;
+        const answeredQuestions = questions.slice(0, answersRef.current.length);
+        const historyRecords = answeredQuestions
+            .map((q, idx) => ({ q, outcome: answersRef.current[idx] }))
+            .filter(({ q, outcome }) => q && q.id != null && outcome != null)
+            .map(({ q, outcome }) => ({
+                user_id: userId,
+                question_id: q.id,
+                was_correct: outcome === true,
+                seen_at: new Date().toISOString(),
+                mode: 'survival'
+            }));
+        if (historyRecords.length === 0) return;
+        // ignoreDuplicates:true => ON CONFLICT DO NOTHING. trivia_user_question_history
+        // has SELECT + INSERT RLS policies but NO UPDATE policy, so the previous
+        // ignoreDuplicates:false failed the ENTIRE batch whenever any question had
+        // been seen before — silently dropping the whole run's history.
+        const { error: historyErr } = await supabase
+            .from('trivia_user_question_history')
+            .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: true });
+        if (historyErr) {
+            console.warn('[Survival] History upsert failed (non-fatal):', historyErr.message);
         }
     }
 
@@ -654,7 +842,7 @@ export default function SurvivalGamePage() {
                 const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
                 const cappedDiamonds = clampToCap(earnedToday, diamonds, DAILY_DIAMOND_CAP);
                 if (cappedDiamonds > 0) {
-                    const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    const { data: rpcData, error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: cappedDiamonds,
                         p_type: 'survival_reward',
@@ -667,12 +855,19 @@ export default function SurvivalGamePage() {
                     // the catch block surfaces a Retry UI; idempotency key is
                     // stable across retries so the second attempt is safe.
                     if (rpcErr) throw rpcErr;
+                    // The RPC can return { success:false } without an error.
+                    if (rpcData && typeof rpcData === 'object' && rpcData.success === false) {
+                        throw new Error(rpcData.error || 'Diamond award was rejected');
+                    }
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, `Survival Level ${level}`);
                     busEmit.celebration('confetti');
                     actualAwarded = cappedDiamonds;
                 }
+                // Render the CLAMPED value, never the raw per-level formula.
+                setTotalDiamondsEarned(prev => prev + cappedDiamonds);
+                if (cappedDiamonds < diamonds) setCapReachedThisRun(true);
                 savePhaseRef.current = 1;
             }
 
@@ -688,7 +883,13 @@ export default function SurvivalGamePage() {
                         highest_level: Math.max(level, userProgress.highestLevel),
                         last_played: new Date().toISOString()
                     }, { onConflict: 'user_id' });
-                if (progressErr) throw progressErr;
+                // Non-fatal: `survival_progress` is created by no migration in
+                // this repo. Throwing here trapped players who had ALREADY been
+                // awarded diamonds in phase 1 inside a Retry loop that could
+                // never succeed if the table is missing/mis-permissioned.
+                if (progressErr) {
+                    console.warn('[Survival] Progress upsert failed (non-fatal):', progressErr.message);
+                }
 
                 setUserProgress(prev => ({
                     ...prev,
@@ -697,39 +898,10 @@ export default function SurvivalGamePage() {
                 savePhaseRef.current = 2;
             }
 
-            // Phase 3: Record question history (only if not already recorded)
+            // Phase 3: Record question history (only if not already recorded).
+            // Shared with the failed-run path so both record identically.
             if (savePhaseRef.current < 3) {
-                if (questions && questions.length > 0 && answersRef.current.length > 0) {
-                    const answeredQuestions = questions.slice(0, answersRef.current.length);
-                    const historyRecords = answeredQuestions
-                        .filter(q => q && q.id != null) // skip rows with no id (would FK-violate)
-                        .map((q, idx) => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: answersRef.current[idx] || false,
-                            seen_at: new Date().toISOString(),
-                            mode: 'survival'
-                        }));
-
-                    if (historyRecords.length > 0) {
-                        // Phase 58: capture upsert error — silently swallowed
-                        // history failures meant the 60-day no-repeat exclusion
-                        // could miss this run, putting the same Qs back into
-                        // the user's pool tomorrow. Non-critical per-run, but
-                        // surfaces real DB outages.
-                        const { error: historyErr } = await supabase
-                            .from('trivia_user_question_history')
-                            .upsert(historyRecords, {
-                                onConflict: 'user_id,question_id',
-                                ignoreDuplicates: false
-                            });
-                        if (historyErr) {
-                            console.warn('[Survival] History upsert failed (non-fatal):', historyErr.message);
-                            // Don't throw — history is non-critical. Phase 4
-                            // still records score so the run isn't lost.
-                        }
-                    }
-                }
+                await recordQuestionHistory();
                 savePhaseRef.current = 3;
             }
 
@@ -740,7 +912,7 @@ export default function SurvivalGamePage() {
                 // queries by CST today) finds same-day rows. Was UTC date —
                 // 6pm-midnight CST scores were attributed to next day.
                 const today = getTodayCST();
-                const levelCorrect = answersRef.current.filter(Boolean).length;
+                const levelCorrect = answersRef.current.filter(a => a === true).length;
                 const { error: scoreErr } = await supabase.from('trivia_scores').insert({
                     user_id: userId,
                     username: avatarUser?.username || avatarUser?.display_name || null,
@@ -780,6 +952,7 @@ export default function SurvivalGamePage() {
 
     function restartFromLevel(level) {
         setTotalDiamondsEarned(0);
+        setCapReachedThisRun(false);
         startLevel(level);
     }
 
@@ -789,6 +962,18 @@ export default function SurvivalGamePage() {
 
     const config = LEVEL_CONFIG[currentLevel - 1];
     const progressPercent = ((currentQuestionIndex + 1) / QUESTIONS_PER_LEVEL) * 100;
+
+    // Questions the player got wrong this level, with the right answer, for the
+    // post-run review panel on the game-over screen.
+    const reviewMissed = questions
+        .slice(0, answersRef.current.length)
+        .map((q, idx) => ({ q, outcome: answersRef.current[idx] }))
+        .filter(({ q, outcome }) => q && outcome === false)
+        .map(({ q }, i) => ({
+            id: q.id ?? `missed-${i}`,
+            question: q.question,
+            correctOption: Array.isArray(q.options) ? q.options[q.correct_index] : ''
+        }));
 
     return (
         <TriviaErrorBoundary pageName="Survival Mode">
@@ -857,6 +1042,20 @@ export default function SurvivalGamePage() {
                         {/* Lobby State - Level Select */}
                         {gameState === 'lobby' && (
                             <div>
+                                {levelLoadError && (
+                                    <div role="alert" style={{
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                                        borderRadius: '12px',
+                                        padding: '14px 16px',
+                                        marginBottom: '16px',
+                                        color: '#fecaca',
+                                        fontSize: '14px',
+                                        textAlign: 'center'
+                                    }}>
+                                        {levelLoadError}
+                                    </div>
+                                )}
                                 {/* Lobby Image */}
                                 <div style={{
                                     borderRadius: '16px',
@@ -959,6 +1158,16 @@ export default function SurvivalGamePage() {
                         {/* Saving State (TriviaSkeleton) */}
                         {gameState === 'saving_progress' && (
                             <TriviaSkeleton />
+                        )}
+
+                        {/* Loading the level's question set (shot clock not started yet) */}
+                        {gameState === 'loading_level' && (
+                            <div>
+                                <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '16px' }}>
+                                    Dealing Level {currentLevel}...
+                                </div>
+                                <TriviaSkeleton />
+                            </div>
                         )}
 
                         {/* Saving Error State (Retry UI) */}
@@ -1077,6 +1286,22 @@ export default function SurvivalGamePage() {
                                     </div>
                                 )}
 
+                                {/* Lifeline purchase failure (was a console.warn only) */}
+                                {lifelineError && (
+                                    <div role="alert" style={{
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                                        borderRadius: '10px',
+                                        padding: '10px 14px',
+                                        marginBottom: '12px',
+                                        color: '#fecaca',
+                                        fontSize: '13px',
+                                        textAlign: 'center'
+                                    }}>
+                                        {lifelineError}
+                                    </div>
+                                )}
+
                                 {/* Shot Clock Timer */}
                                 <div style={{
                                     display: 'flex',
@@ -1087,7 +1312,9 @@ export default function SurvivalGamePage() {
                                 }}>
                                     {/* Settings Button */}
                                     <button
-                                        onClick={() => setSettings(prev => ({ ...prev, showPanel: !prev.showPanel }))}
+                                        onClick={() => setShowSettingsPanel(prev => !prev)}
+                                        aria-label="Game Settings"
+                                        aria-expanded={showSettingsPanel}
                                         style={{
                                             width: '36px',
                                             height: '36px',
@@ -1098,14 +1325,19 @@ export default function SurvivalGamePage() {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            fontSize: '16px'
+                                            color: '#fff'
                                         }}
                                     >
-                                        ⚙️
+                                        <SettingsIcon size={16} />
                                     </button>
 
-                                    {/* Timer Display */}
+                                    {/* Timer Display.
+                                        Honours the "Timer" preference from /hub/trivia/settings
+                                        (shared 'trivia_settings' store). The shot clock itself
+                                        always runs — hiding it is a display choice, not a way to
+                                        remove the time pressure that the mode is built on. */}
                                     <div style={{
+                                        visibility: settings.timerEnabled === false ? 'hidden' : 'visible',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '10px',
@@ -1117,7 +1349,7 @@ export default function SurvivalGamePage() {
                                             timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF'}`,
                                         borderRadius: '50px'
                                     }}>
-                                        <span style={{ fontSize: '18px' }}>⏱️</span>
+                                        <TimerIcon size={18} color={timer.timeLeft <= 3 ? '#ef4444' : timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF'} />
                                         <span style={{
                                             fontSize: '28px',
                                             fontWeight: 'bold',
@@ -1131,11 +1363,15 @@ export default function SurvivalGamePage() {
                                         </span>
                                         {lifelinesUsedThisLevel > 0 && (
                                             <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
                                                 fontSize: '11px',
                                                 color: 'rgba(255,255,255,0.6)',
                                                 marginLeft: '8px'
                                             }}>
-                                                ⚡{lifelinesUsedThisLevel}/{MAX_LIFELINES_PER_LEVEL}
+                                                <ZapIcon size={11} />
+                                                {lifelinesUsedThisLevel}/{MAX_LIFELINES_PER_LEVEL}
                                             </span>
                                         )}
                                     </div>
@@ -1145,7 +1381,7 @@ export default function SurvivalGamePage() {
                                 </div>
 
                                 {/* Settings Panel */}
-                                {settings.showPanel && (
+                                {showSettingsPanel && (
                                     <div style={{
                                         background: 'rgba(0,0,0,0.8)',
                                         border: '1px solid rgba(255,255,255,0.2)',
@@ -1156,7 +1392,7 @@ export default function SurvivalGamePage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                             <span style={{ color: 'white' }}>🔊 Sound Effects</span>
                                             <button
-                                                onClick={() => setSettings(prev => ({ ...prev, audio: !prev.audio }))}
+                                                onClick={() => triviaAudio.setMuted(settings.audio)}
                                                 style={{
                                                     padding: '4px 12px',
                                                     background: settings.audio ? '#22c55e' : '#666',
@@ -1386,8 +1622,8 @@ export default function SurvivalGamePage() {
                                                 <span>50/50</span>
                                                 {eliminatedOptions.length > 0 ? (
                                                     <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
-                                                ) : fiftyFiftyUsedFree ? (
-                                                    <span style={{ fontSize: '11px', color: '#00D4FF' }}>5💎</span>
+                                                ) : (fiftyFiftyUsedFree && !isVip) ? (
+                                                    <span style={{ fontSize: '11px', color: '#00D4FF' }}>{LIFELINE_COST} DIAMONDS</span>
                                                 ) : (
                                                     <span style={{ fontSize: '11px', color: '#22c55e' }}>FREE</span>
                                                 )}
@@ -1396,7 +1632,7 @@ export default function SurvivalGamePage() {
                                             {/* Skip Question Button */}
                                             <button
                                                 onClick={useSkipQuestion}
-                                                disabled={userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL}
+                                                disabled={lifelineLocked}
                                                 style={{
                                                     flex: 1,
                                                     display: 'flex',
@@ -1405,27 +1641,27 @@ export default function SurvivalGamePage() {
                                                     justifyContent: 'center',
                                                     gap: '4px',
                                                     padding: '12px 8px',
-                                                    background: (userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL)
+                                                    background: (lifelineLocked)
                                                         ? 'rgba(100, 100, 100, 0.2)'
                                                         : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
-                                                    border: `2px solid ${(userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? '#666' : '#fbbf24'}`,
+                                                    border: `2px solid ${(lifelineLocked) ? '#666' : '#fbbf24'}`,
                                                     borderRadius: '12px',
-                                                    color: (userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? '#666' : 'white',
+                                                    color: (lifelineLocked) ? '#666' : 'white',
                                                     fontSize: '13px',
                                                     fontWeight: 'bold',
-                                                    cursor: (userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? 'default' : 'pointer',
+                                                    cursor: (lifelineLocked) ? 'default' : 'pointer',
                                                     transition: 'all 0.2s'
                                                 }}
                                             >
                                                 <span style={{ fontSize: '20px' }}>⏭️</span>
                                                 <span>Skip</span>
-                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>5💎</span>
+                                                <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
                                             </button>
 
                                             {/* Double Chance Button */}
                                             <button
                                                 onClick={useDoubleChance}
-                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL}
+                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked}
                                                 style={{
                                                     flex: 1,
                                                     display: 'flex',
@@ -1434,15 +1670,15 @@ export default function SurvivalGamePage() {
                                                     justifyContent: 'center',
                                                     gap: '4px',
                                                     padding: '12px 8px',
-                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL)
+                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked)
                                                         ? 'rgba(100, 100, 100, 0.2)'
                                                         : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(120, 60, 180, 0.3))',
-                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? '#666' : '#a855f7'}`,
+                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? '#666' : '#a855f7'}`,
                                                     borderRadius: '12px',
-                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? '#666' : 'white',
+                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? '#666' : 'white',
                                                     fontSize: '13px',
                                                     fontWeight: 'bold',
-                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) ? 'default' : 'pointer',
+                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || lifelineLocked) ? 'default' : 'pointer',
                                                     transition: 'all 0.2s'
                                                 }}
                                             >
@@ -1453,9 +1689,22 @@ export default function SurvivalGamePage() {
                                                 ) : doubleChanceUsedThisQuestion ? (
                                                     <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
                                                 ) : (
-                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>5💎</span>
+                                                    <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#a855f7' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
                                                 )}
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {/* Report-a-bad-question — the component was imported here but
+                                        never rendered, leaving the 3-strike quality demotion
+                                        pipeline unwired in survival. Shown once the answer is
+                                        revealed so it cannot be used to stall the shot clock. */}
+                                    {trivia.showResult && currentQuestion?.id != null && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                                            <ReportQuestionButton
+                                                questionId={currentQuestion.id}
+                                                userToken={accessToken}
+                                            />
                                         </div>
                                     )}
                                 </div>
@@ -1552,9 +1801,56 @@ export default function SurvivalGamePage() {
                                     <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
                                         Score: {correctCount}/{currentQuestionIndex + 1} • Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL}
                                     </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '24px' }}>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '8px' }}>
                                         You needed {config.accuracyRequired}% accuracy to pass
                                     </div>
+                                    {/* Economy clarity: the 10-diamond entry fee is charged on
+                                        level 1 only, so retrying a failed level costs nothing. */}
+                                    <div style={{ color: '#22c55e', fontSize: '13px', marginBottom: '20px' }}>
+                                        Retries Are Free — You Only Pay To Start A New Run
+                                    </div>
+
+                                    {/* Post-run review: learn from the ones you missed.
+                                        Uses data already in memory (questions + answersRef). */}
+                                    {reviewMissed.length > 0 && (
+                                        <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+                                            <button
+                                                onClick={() => setShowReview(prev => !prev)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    background: 'rgba(255,255,255,0.08)',
+                                                    border: '1px solid rgba(255,255,255,0.15)',
+                                                    borderRadius: '10px',
+                                                    color: '#e4e6eb',
+                                                    fontSize: '14px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {showReview ? 'Hide' : 'Review'} {reviewMissed.length} Missed {reviewMissed.length === 1 ? 'Question' : 'Questions'}
+                                            </button>
+                                            {showReview && (
+                                                <div style={{ maxHeight: '220px', overflowY: 'auto', marginTop: '10px' }}>
+                                                    {reviewMissed.map((item) => (
+                                                        <div key={item.id} style={{
+                                                            background: 'rgba(0,0,0,0.35)',
+                                                            border: '1px solid rgba(255,255,255,0.08)',
+                                                            borderRadius: '8px',
+                                                            padding: '10px 12px',
+                                                            marginBottom: '8px'
+                                                        }}>
+                                                            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', marginBottom: '6px' }}>
+                                                                {toTitleCase(item.question)}
+                                                            </div>
+                                                            <div style={{ color: '#22c55e', fontSize: '12px' }}>
+                                                                Correct: {toTitleCase(item.correctOption || '')}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     {totalDiamondsEarned > 0 && (
                                         <div style={{
                                             display: 'inline-block',
@@ -1566,6 +1862,11 @@ export default function SurvivalGamePage() {
                                             marginBottom: '24px'
                                         }}>
                                             💎 Diamonds Earned: {totalDiamondsEarned}
+                                            {capReachedThisRun && (
+                                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: 6 }}>
+                                                    Daily earning cap reached — later levels paid less than shown in the HUD.
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>

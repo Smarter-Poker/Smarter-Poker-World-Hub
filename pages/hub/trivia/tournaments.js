@@ -13,7 +13,6 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -38,6 +37,11 @@ export default function TournamentsPage() {
     const [tournaments, setTournaments] = useState([]);
     const [activeTournament, setActiveTournament] = useState(null);
     const [userEntry, setUserEntry] = useState(null);
+    // { [tournament_id]: entry } for every listed tournament, so each Register
+    // button can be gated on its own tournament rather than the active one.
+    const [entriesByTournament, setEntriesByTournament] = useState({});
+    // { [profile_id]: username } for the whole bracket, fetched in one query.
+    const [playerNames, setPlayerNames] = useState({});
     const [pastResults, setPastResults] = useState([]);
     const [gameState, setGameState] = useState('loading');
     const [notifications, setNotifications] = useState([]);
@@ -59,21 +63,18 @@ export default function TournamentsPage() {
     // TRAIN-WIRE-TRIVIA-HOOK-3 - shared trivia answer-state plumbing
     const timerCtrlRef = useRef({});
     const trivia = useTriviaQuestion(questions[currentQuestionIndex], {
-        onAnswer: ({ index, isCorrect }) => {
+        onAnswer: ({ index }) => {
             timerCtrlRef.current.stop?.();
 
-            // Track answer accuracy per question for history recording
-            answersRef.current[currentQuestionIndex] = isCorrect;
-
-            if (isCorrect) {
-                const newScore = scoreRef.current + 100;
-                scoreRef.current = newScore;
-                setScore(newScore);
-                busEmit.decisionCorrect(newScore);
-            } else {
-                busEmit.decisionIncorrect(scoreRef.current);
-                busEmit.screenShake('light');
-            }
+            // ANSWER-KEY LOCKDOWN (Phase 80): tournament questions are served by
+            // /api/trivia/tournament-round-questions WITHOUT correct_index, so the
+            // client genuinely cannot know whether a pick was right. We record the
+            // DISPLAY index the player clicked; the submit route maps it back
+            // through the same deterministic permutation and grades server-side.
+            // -1 (timeout) is stored as null == "unanswered".
+            answersRef.current[currentQuestionIndex] =
+                Number.isInteger(index) && index >= 0 ? index : null;
+            setAnsweredCount(answersRef.current.filter(a => a != null).length);
 
             // Advance quickly - no GTO explanations in tournaments
             setTimeout(() => {
@@ -89,16 +90,31 @@ export default function TournamentsPage() {
     });
     const { selectedAnswer, showResult } = trivia;
     const [score, setScore] = useState(0);
+    // How many questions the player has actually answered this round (the client
+    // can no longer compute a live score — see the answer-key lockdown note).
+    const [answeredCount, setAnsweredCount] = useState(0);
+    // Server-graded result for the round, filled from the submit response.
+    const [roundResult, setRoundResult] = useState(null);
+    const [roundLoading, setRoundLoading] = useState(false);
     const [startTime, setStartTime] = useState(null);
-    // TRAIN-WIRE-TRIVIA-TIMER-3 - shared shot-clock hook
-    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
+    // TRAIN-WIRE-TRIVIA-TIMER-3 - shared shot-clock hook.
+    // pauseOnHide:false — tournaments are competitive; pausing the shot clock on
+    // tab-hide was a free answer-lookup window.
+    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, onTimeout: handleTimeout, pauseOnHide: false });
     timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
-    const scoreRef = useRef(0); // Accurate score outside React closures
-    const answersRef = useRef([]); // Track correct/incorrect per question
+    const answersRef = useRef([]); // Display index picked per question (null = unanswered)
     const realtimeChannelRef = useRef(null);
     const isStartingRef = useRef(false); // Prevent double-click race
     const deadlineTimerRef = useRef(null);
     const [deadlineDisplay, setDeadlineDisplay] = useState('');
+    // Mirrors gameState so realtime callbacks (registered once per tournament id)
+    // can test the LIVE phase instead of a frozen closure value.
+    const gameStateRef = useRef('loading');
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+    // Notification ids we have already raised an OS notification for. Without
+    // this, loadNotifications' 30s poll re-fired a browser Notification for the
+    // same unread item every 30 seconds until it was dismissed.
+    const notifiedIdsRef = useRef(new Set());
 
     useEffect(() => {
         if (authLoading) return;
@@ -164,6 +180,16 @@ export default function TournamentsPage() {
                     filter: `id=eq.${activeTournament.id}`
                 },
                 () => {
+                    // Scope this to the transitions that actually matter.
+                    // Previously ANY update to the tournament row (e.g. the
+                    // prize_pool increment when another player registers) called
+                    // loadData(), which unconditionally ends with
+                    // setGameState('lobby') — yanking a mid-round player out of
+                    // their questions and losing their in-progress answers.
+                    if (gameStateRef.current === 'playing' || gameStateRef.current === 'complete') {
+                        refreshTournamentRowOnly(activeTournament.id);
+                        return;
+                    }
                     loadData();
                 }
             )
@@ -213,14 +239,20 @@ export default function TournamentsPage() {
 
         if (data && data.length > 0) {
             setNotifications(data);
-            // Show browser notification for unread items
+            // Show a browser notification only for items we have not already
+            // notified about in this session.
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                 const latest = data[0];
-                new Notification('Smarter Poker Tournament', {
-                    body: latest.message,
-                    icon: '/images/trivia/lobby-tournaments.jpg'
-                });
+                if (latest?.id != null && !notifiedIdsRef.current.has(latest.id)) {
+                    notifiedIdsRef.current.add(latest.id);
+                    new Notification('Smarter Poker Tournament', {
+                        body: latest.message,
+                        icon: '/images/trivia/lobby-tournaments.jpg'
+                    });
+                }
             }
+        } else {
+            setNotifications([]);
         }
     }
 
@@ -251,15 +283,33 @@ export default function TournamentsPage() {
 
         if (profile) setUserDiamonds(profile.diamonds || 0);
 
-        // Load upcoming/active tournaments
+        // Load upcoming/active tournaments.
+        // trivia_tournaments_public is the key-stripped projection (migration
+        // 120800): `questions` has correct_index/explanation removed from every
+        // element, and clients no longer hold SELECT on the base table.
         const { data: tournamentData } = await supabase
-            .from('trivia_tournaments')
+            .from('trivia_tournaments_public')
             .select('*')
             .in('status', ['upcoming', 'active'])
             .order('start_time', { ascending: true })
             .limit(50); // tournaments
 
         setTournaments(tournamentData || []);
+
+        // One query for the user's entries across every listed tournament.
+        const listedIds = (tournamentData || []).map(t => t.id).filter(Boolean);
+        if (listedIds.length > 0) {
+            const { data: myEntries } = await supabase
+                .from('trivia_tournament_entries')
+                .select('*')
+                .eq('user_id', user.id)
+                .in('tournament_id', listedIds);
+            const byId = {};
+            (myEntries || []).forEach(e => { byId[e.tournament_id] = e; });
+            setEntriesByTournament(byId);
+        } else {
+            setEntriesByTournament({});
+        }
 
         // Find active tournament and load bracket data
         const active = tournamentData?.find(t => t.status === 'active');
@@ -280,7 +330,7 @@ export default function TournamentsPage() {
 
         // Load past results
         const { data: past } = await supabase
-            .from('trivia_tournaments')
+            .from('trivia_tournaments_public')
             .select('*')
             .in('status', ['completed', 'cancelled'])
             .order('completed_at', { ascending: false })
@@ -291,7 +341,31 @@ export default function TournamentsPage() {
         // Load notifications (pass user.id directly since useState hasn't propagated yet)
         await loadNotifications(user.id);
 
-        setGameState('lobby');
+        // Only take over the screen when we are not mid-round. loadData used to
+        // force 'lobby' unconditionally, so any refresh during play kicked the
+        // player out of their questions.
+        if (gameStateRef.current !== 'playing' && gameStateRef.current !== 'complete') {
+            setGameState('lobby');
+            gameStateRef.current = 'lobby';
+        }
+    }
+
+    /**
+     * Refresh ONLY the tournament row (prize pool, round counters, deadline)
+     * without touching gameState — used by the realtime handler while the player
+     * is mid-round.
+     */
+    async function refreshTournamentRowOnly(tournamentId) {
+        try {
+            const { data: fresh } = await supabase
+                .from('trivia_tournaments_public')
+                .select('*')
+                .eq('id', tournamentId)
+                .maybeSingle();
+            if (fresh) setActiveTournament(fresh);
+        } catch (e) {
+            console.warn('[Tournaments] Row refresh failed:', e);
+        }
     }
 
     async function loadBracketData(tournament, uid) {
@@ -303,6 +377,33 @@ export default function TournamentsPage() {
             .order('round_number', { ascending: true });
 
         setRounds(roundsData || []);
+
+        // Batch-resolve every player name in the bracket in ONE query.
+        // BracketPlayerName used to issue a profiles query per player per render
+        // — a 64-player bracket fired ~128 requests, re-fired on every realtime
+        // bracket update.
+        try {
+            const ids = new Set();
+            (roundsData || []).forEach(r => {
+                (r.matchups || []).forEach(m => {
+                    if (m?.player1_id) ids.add(m.player1_id);
+                    if (m?.player2_id) ids.add(m.player2_id);
+                });
+            });
+            if (ids.size > 0) {
+                const { data: profs } = await supabase
+                    .from('profiles')
+                    .select('id, username')
+                    .in('id', Array.from(ids));
+                const map = {};
+                (profs || []).forEach(pr => { map[pr.id] = pr.username || 'Player'; });
+                setPlayerNames(map);
+            } else {
+                setPlayerNames({});
+            }
+        } catch (e) {
+            console.warn('[Tournaments] Bracket name batch fetch failed:', e);
+        }
 
         // Find the current active round
         const activeRound = roundsData?.find(r => r.status === 'active');
@@ -348,11 +449,9 @@ export default function TournamentsPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // Clear any TriviaLobby payment flag (tournaments handles its own variable entry-fee billing)
-        try {
-            sessionStorage.removeItem('trivia_paid');
-            sessionStorage.removeItem('trivia_mode');
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        // (The old `sessionStorage.trivia_paid` cleanup is gone — nothing writes
+        //  that flag any more; tournaments always bill their own entry fee via
+        //  /api/trivia/tournament-enter.)
 
         if (!allowed) {
             showUpgradeModal();
@@ -413,22 +512,76 @@ export default function TournamentsPage() {
         }
     }
 
+    /** Human-readable text for the API's machine error codes. */
+    function roundQuestionsErrorText(code, status) {
+        switch (code) {
+            case 'round_not_active': return 'This round is no longer active.';
+            case 'round_deadline_passed': return 'The deadline for this round has passed.';
+            case 'not_entered': return 'You are not entered in this tournament.';
+            case 'eliminated': return 'You have been eliminated from this tournament.';
+            case 'not_in_round': return 'You are not scheduled in this round.';
+            case 'bye_round': return 'You have a bye — you advance automatically.';
+            case 'already_submitted': return 'You have already played this round.';
+            case 'no_questions':
+            case 'no_playable_questions': return 'No questions are available for this round yet. Please try again shortly.';
+            default: return code || `Could not load this round (HTTP ${status}).`;
+        }
+    }
+
     async function startRoundPlay() {
-        if (!activeTournament?.questions || activeTournament.questions.length === 0) {
-            console.warn('[Tournaments] No questions available for this round.');
+        // Guard against re-entering a round that has already been submitted
+        // (e.g. a stale realtime refresh re-rendering the PLAY button).
+        if (hasPlayedThisRound || roundLoading) return;
+        if (!currentRoundData?.id) {
+            setSubmitError('No active round to play yet. Please try again shortly.');
             return;
         }
 
-        // Use 20 questions per round (random from all categories)
-        setQuestions(shuffleOptions(activeTournament.questions.slice(0, 20)));
-        setCurrentQuestionIndex(0);
-        setScore(0);
-        scoreRef.current = 0;
-        answersRef.current = [];
-        trivia.reset();
-        setStartTime(Date.now());
-        setGameState('playing');
-        timer.resetTimer();
+        setRoundLoading(true);
+        setSubmitError(null);
+        try {
+            // ANSWER-KEY LOCKDOWN (Phase 80): the round roster now comes from the
+            // server WITHOUT correct_index/explanation, with options permuted
+            // deterministically per user. The page no longer slices (and no
+            // longer shuffles) the world-readable tournament snapshot, which used
+            // to hand the answer key to every client.
+            const token = getAccessToken();
+            if (!token) {
+                setSubmitError('Your session expired — please sign in again.');
+                return;
+            }
+            const resp = await fetch(
+                `/api/trivia/tournament-round-questions?round_id=${encodeURIComponent(currentRoundData.id)}`,
+                { method: 'GET', headers: { Authorization: `Bearer ${token}` } }
+            );
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok || !json.success || !Array.isArray(json.questions) || json.questions.length === 0) {
+                if (json?.error === 'already_submitted') {
+                    // Server already has this round — resync the bracket instead
+                    // of dropping the player into a round they cannot submit.
+                    await loadBracketData(activeTournament, userId);
+                }
+                setSubmitError(roundQuestionsErrorText(json?.error, resp.status));
+                return;
+            }
+
+            setQuestions(json.questions);
+            setCurrentQuestionIndex(0);
+            setScore(0);
+            setAnsweredCount(0);
+            setRoundResult(null);
+            answersRef.current = [];
+            trivia.reset();
+            setStartTime(Date.now());
+            gameStateRef.current = 'playing'; // set synchronously — realtime callbacks read this
+            setGameState('playing');
+            timer.resetTimer();
+        } catch (e) {
+            console.warn('[Tournaments] Round question fetch failed:', e?.message || e);
+            setSubmitError('Network error — please try again');
+        } finally {
+            setRoundLoading(false);
+        }
     }
 
     function handleTimeout() {
@@ -441,39 +594,27 @@ export default function TournamentsPage() {
         setSubmitError(null);
 
         // Server-side score submission via /api/trivia/tournament-submit-round.
-        // Replaces direct anon-key writes that let users DevTools-edit their
-        // own finalScore. The API verifies each answer against
-        // tournament.questions[i].correct_index and writes the authoritative
-        // score to trivia_tournament_entries + trivia_tournament_rounds.
+        // ANSWER-KEY LOCKDOWN (Phase 80): we submit { question_id, display_index }
+        // — the position the player actually clicked in the per-user permuted
+        // option order. The server reverses the permutation and compares against
+        // the key it holds privately, so the client never sees, and never gets to
+        // assert, correctness. (The old payload posted a `selected` index derived
+        // from the downloaded correct_index — self-grading in all but name.)
         if (currentRoundData && myMatchup) {
             const submitOnce = async () => {
                 const token = getAccessToken();
                 if (!token) throw new Error('No session token — cannot submit round');
-                // Phase 58 fix: shuffleOptions rewrites q.correct_index to the
-                // SHUFFLED position (e.g. correct option moved to index 2).
-                // The server's correctMap is built from tournament.questions
-                // which is UNSHUFFLED (correct_index still 0). Sending the
-                // shuffled q.correct_index made all tournament rounds score
-                // ~25% (random alignment only). Look up the ORIGINAL correct
-                // index from activeTournament.questions (the source-of-truth
-                // before shuffling) when reporting "correct" — server then
-                // matches its own correctMap entry.
-                const originalCorrectMap = new Map();
-                for (const oq of (activeTournament?.questions || [])) {
-                    if (oq?.id != null) originalCorrectMap.set(oq.id, oq.correct_index);
-                }
-                // Build { question_id, selected } per question. selected is
-                // the user's authoritative answer index in ORIGINAL option
-                // coordinates: original correct_index when user got it right,
-                // -1 sentinel otherwise (server treats -1 as wrong).
+                // display_index === null means "did not answer" (timeout / skipped);
+                // the server counts it as unanswered rather than wrong-by-sentinel.
                 const answersPayload = questions
                     .filter(q => q.id != null)
-                    .map((q, idx) => ({
-                        question_id: q.id,
-                        selected: answersRef.current[idx] === true
-                            ? (originalCorrectMap.has(q.id) ? originalCorrectMap.get(q.id) : -1)
-                            : -1
-                    }));
+                    .map((q, idx) => {
+                        const picked = answersRef.current[idx];
+                        return {
+                            question_id: q.id,
+                            display_index: Number.isInteger(picked) && picked >= 0 ? picked : null
+                        };
+                    });
                 const resp = await fetch('/api/trivia/tournament-submit-round', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -491,7 +632,21 @@ export default function TournamentsPage() {
             let lastErr = null;
             for (let attempt = 0; attempt < 2; attempt++) {
                 try {
-                    await submitOnce();
+                    const json = await submitOnce();
+                    // The server is the only party that knows the score. On an
+                    // idempotent resubmit score_added is 0, so fall back to the
+                    // score already sitting in our matchup slot.
+                    const slot = json?.matchup
+                        ? (json.matchup.player1_id === userId ? json.matchup.player1_score : json.matchup.player2_score)
+                        : null;
+                    const graded = json?.deduped && slot != null ? Number(slot) : Number(json?.score_added ?? 0);
+                    const safeGraded = Number.isFinite(graded) ? graded : 0;
+                    setRoundResult({
+                        correct: safeGraded,
+                        answered: Number.isFinite(Number(json?.answered)) ? Number(json.answered) : answeredCount,
+                        total: questions.length
+                    });
+                    setScore(safeGraded * 100);
                     lastErr = null;
                     break;
                 } catch (e) {
@@ -507,23 +662,33 @@ export default function TournamentsPage() {
             }
         }
 
-        // Record question history (with actual accuracy per question)
+        // Record question history. Only the SEEN fact is recorded here: with the
+        // answer key server-side the page cannot know per-question correctness,
+        // and inventing `was_correct: false` would understate every player's
+        // accuracy AND poison trivia_questions.times_correct via the usage
+        // trigger. The seen record is what the 60-day no-repeat rule needs.
+        // (Cross-file: if per-question grades are wanted here, the submit route
+        // would have to return them — see the report.)
         if (userId && questions && questions.length > 0) {
             try {
                 const historyRecords = questions
                     .filter(q => q.id)
-                    .map((q, idx) => ({
+                    .map((q) => ({
                         user_id: userId,
                         question_id: q.id,
-                        was_correct: answersRef.current[idx] === true,
                         seen_at: new Date().toISOString(),
                         mode: 'tournament'
                     }));
 
                 if (historyRecords.length > 0) {
+                    // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
+                    // trivia_user_question_history has SELECT + INSERT RLS
+                    // policies but NO UPDATE policy, so ignoreDuplicates:false
+                    // (an UPDATE on conflict) failed the ENTIRE batch as soon as
+                    // one question had been seen before.
                     const { error: err_trivia_user_question_history_xzckg } = await supabase.from('trivia_user_question_history').upsert(historyRecords, {
                             onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
+                            ignoreDuplicates: true
                         });
                     if (err_trivia_user_question_history_xzckg) console.warn('[Supabase] Silent mutation failed in trivia_user_question_history:', err_trivia_user_question_history_xzckg.message);
                 }
@@ -535,6 +700,7 @@ export default function TournamentsPage() {
         // Refresh bracket data
         await loadBracketData(activeTournament, userId);
         busEmit.celebration('confetti');
+        gameStateRef.current = 'complete';
         setGameState('complete');
     }
 
@@ -574,9 +740,39 @@ export default function TournamentsPage() {
     }
 
     const currentQuestion = questions[currentQuestionIndex];
+
+    // Round-complete derivations (post loadBracketData refresh).
+    // The correct count is whatever the SERVER graded — the client has no key.
+    const roundCorrectCount = roundResult?.correct ?? 0;
+    const opponentRoundScore = myMatchup
+        ? (myMatchup.player1_id === userId ? myMatchup.player2_score : myMatchup.player1_score)
+        : null;
+    const roundOutcome = !myMatchup || !myMatchup.winner_id
+        ? 'pending'
+        : (myMatchup.winner_id === userId ? 'won' : 'lost');
+
+    // Prize distribution preview, computed from the live prize pool so players
+    // can see exactly what each finishing place pays BEFORE they enter. (The
+    // table previously existed only inside the deprecated TournamentLobby.jsx.)
+    const PRIZE_SPLIT = [
+        { place: '1st', pct: 0.40 },
+        { place: '2nd', pct: 0.20 },
+        { place: '3rd', pct: 0.12 },
+        { place: '4th', pct: 0.08 },
+        { place: '5th-8th', pct: 0.05 }
+    ];
+    const prizeBreakdown = activeTournament
+        ? PRIZE_SPLIT.map(p => ({ ...p, amount: Math.floor((activeTournament.prize_pool || 0) * p.pct) }))
+        : [];
+
+    // Loose (!= null) checks: matchups live in a JSONB array, so a bracket
+    // generator that OMITS the score keys yields `undefined`, and
+    // `undefined !== null` is true — the player would be shown "Score
+    // Submitted! Waiting For Opponent..." with the PLAY button permanently
+    // hidden, silently blocking them out of the whole bracket.
     const hasPlayedThisRound = myMatchup && (
-        (myMatchup.player1_id === userId && myMatchup.player1_score !== null) ||
-        (myMatchup.player2_id === userId && myMatchup.player2_score !== null)
+        (myMatchup.player1_id === userId && myMatchup.player1_score != null) ||
+        (myMatchup.player2_id === userId && myMatchup.player2_score != null)
     );
     const isEliminated = userEntry?.eliminated_round != null;
 
@@ -720,7 +916,7 @@ export default function TournamentsPage() {
                                                     variant="primary"
                                                     size="lg"
                                                 >
-                                                    PLAY YOUR MATCH
+                                                    {roundLoading ? 'LOADING ROUND...' : 'PLAY YOUR MATCH'}
                                                 </HexButton>
                                             )}
 
@@ -751,6 +947,22 @@ export default function TournamentsPage() {
                                         </HexButton>
                                     )}
 
+                                    {/* Prize distribution — visible and auditable before entry */}
+                                    {(activeTournament.prize_pool || 0) > 0 && prizeBreakdown.length > 0 && (
+                                        <div className="prize-breakdown">
+                                            <h4>Prize Distribution</h4>
+                                            <div className="prize-rows">
+                                                {prizeBreakdown.map(p => (
+                                                    <div key={p.place} className="prize-row">
+                                                        <span className="prize-place">{p.place}</span>
+                                                        <span className="prize-pct">{Math.round(p.pct * 100)}%</span>
+                                                        <span className="prize-amount">{p.amount} diamonds</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Bracket Visualization */}
                                     {rounds.length > 0 && (
                                         <div className="bracket-section">
@@ -767,14 +979,14 @@ export default function TournamentsPage() {
                                                                 <div key={idx} className={`bracket-matchup ${matchup.winner_id ? 'completed' : ''} ${matchup.player1_id === userId || matchup.player2_id === userId ? 'my-match' : ''
                                                                     }`}>
                                                                     <div className={`bracket-player ${matchup.winner_id === matchup.player1_id ? 'winner' : ''}`}>
-                                                                        <BracketPlayerName playerId={matchup.player1_id} userId={userId} />
-                                                                        {matchup.player1_score !== null && (
+                                                                        <BracketPlayerName playerId={matchup.player1_id} userId={userId} names={playerNames} />
+                                                                        {matchup.player1_score != null && (
                                                                             <span className="bracket-score">{matchup.player1_score}</span>
                                                                         )}
                                                                     </div>
                                                                     <div className={`bracket-player ${matchup.winner_id === matchup.player2_id ? 'winner' : ''}`}>
-                                                                        <BracketPlayerName playerId={matchup.player2_id} userId={userId} />
-                                                                        {matchup.player2_score !== null && (
+                                                                        <BracketPlayerName playerId={matchup.player2_id} userId={userId} names={playerNames} />
+                                                                        {matchup.player2_score != null && (
                                                                             <span className="bracket-score">{matchup.player2_score}</span>
                                                                         )}
                                                                     </div>
@@ -808,7 +1020,18 @@ export default function TournamentsPage() {
                                                 <div className="tournament-action">
                                                     <div className="countdown">{getCountdown(tournament.start_time)}</div>
                                                     <div className="entry-fee">{tournament.entry_fee}💎 entry</div>
-                                                    {!userEntry && (
+                                                    {/* Gate on THIS tournament's own entry.
+                                                        `userEntry` is the entry for the ACTIVE
+                                                        tournament only — using it here hid Register
+                                                        from anyone playing today's live event, and
+                                                        showed it on every upcoming row to everyone
+                                                        else regardless of what they had entered. */}
+                                                    {entriesByTournament[tournament.id] ? (
+                                                        <div className="entered-badge">
+                                                            <CheckCircle size={14} color="#22c55e" />
+                                                            <span>Registered</span>
+                                                        </div>
+                                                    ) : (
                                                         <HexButton
                                                             onClick={() => handleRegister(tournament)}
                                                             variant="secondary"
@@ -875,7 +1098,7 @@ export default function TournamentsPage() {
                                     Q{currentQuestionIndex + 1}/{questions.length}
                                 </div>
                                 <div className="current-score">
-                                    Score: {score}
+                                    Answered: {answeredCount}/{questions.length}
                                 </div>
                                 <div className={`timer ${timer.timeLeft <= 10 ? 'danger' : ''}`}>
                                     {timer.timeLeft}s
@@ -886,15 +1109,20 @@ export default function TournamentsPage() {
                                 <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
-                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — shared option primitive */}
-                                {currentQuestion.options.map((option, idx) => (
+                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — shared option primitive.
+                                        showResult is deliberately false: with the answer key held
+                                        server-side there is nothing to reveal, so the pick only
+                                        renders as "selected" (locked in) and `disabled` comes from
+                                        the hook's showResult instead. Revealing here would either
+                                        lie (every answer painted wrong) or leak the key. */}
+                                {(currentQuestion.options || []).map((option, idx) => (
                                   <TriviaAnswerOption
                                     key={idx}
                                     index={idx}
                                     option={toTitleCase(option)}
                                     selectedAnswer={selectedAnswer}
-                                    correctIndex={currentQuestion.correct_index}
-                                    showResult={showResult}
+                                    showResult={false}
+                                    disabled={showResult}
                                     onSelect={trivia.selectAnswer}
                                   />
                                 ))}
@@ -909,17 +1137,36 @@ export default function TournamentsPage() {
 
 
                             <div className="result-panel-container">
+                                {/* The panel used to be hard-coded to panel-win.jpg, so a
+                                    player who had just been eliminated got a victory
+                                    screen. Derive the real state from the refreshed
+                                    matchup: won / lost / still awaiting the opponent. */}
                                 <img
-                                    src="/trivia/panels/panel-win.jpg"
+                                    src={roundOutcome === 'lost' ? '/trivia/panels/panel-defeat.jpg' : '/trivia/panels/panel-win.jpg'}
                                     alt=""
                                     className="result-panel-bg"
                                     loading="lazy" />
                                 <div className="result-panel-content">
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
-                                            <span className="panel-stat-label">YOUR SCORE</span>
-                                            <span className="panel-stat-value cyan">{Math.round(score / 100)}/{questions.length}</span>
+                                            <span className="panel-stat-label">RESULT</span>
+                                            <span className={`panel-stat-value ${roundOutcome === 'won' ? 'green' : roundOutcome === 'lost' ? 'red' : 'white'}`}>
+                                                {roundOutcome === 'won' ? 'YOU ADVANCE' : roundOutcome === 'lost' ? 'ELIMINATED' : 'AWAITING OPPONENT'}
+                                            </span>
                                         </div>
+                                        <div className="panel-stat-row">
+                                            {/* Correct count as GRADED BY THE SERVER (submit
+                                                response). The client no longer holds the answer
+                                                key, so it cannot count this itself. */}
+                                            <span className="panel-stat-label">YOUR SCORE</span>
+                                            <span className="panel-stat-value cyan">{roundCorrectCount}/{questions.length}</span>
+                                        </div>
+                                        {opponentRoundScore != null && (
+                                            <div className="panel-stat-row">
+                                                <span className="panel-stat-label">{opponentInfo?.username || 'OPPONENT'}</span>
+                                                <span className="panel-stat-value red">{opponentRoundScore}</span>
+                                            </div>
+                                        )}
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">POINTS</span>
                                             <span className="panel-stat-value green">{score}</span>
@@ -936,7 +1183,7 @@ export default function TournamentsPage() {
                                     </div>
                                 </div>
                                 {/* Navigation buttons — MUST be inside result-panel-container for absolute positioning */}
-                                <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); loadData(); }} aria-label="Back To Lobby" />
+                                <button className="result-play-again-hitbox" onClick={() => { gameStateRef.current = 'lobby'; setGameState('lobby'); loadData(); }} aria-label="Back To Lobby" />
                                 <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                             </div>
                         </div>
@@ -1225,7 +1472,52 @@ export default function TournamentsPage() {
                     display: flex;
                     gap: 16px;
                     overflow-x: auto;
+                    /* Momentum scrolling + snap so 4-round brackets stay
+                       browsable on a phone instead of crushing to nothing. */
+                    -webkit-overflow-scrolling: touch;
+                    scroll-snap-type: x proximity;
                     padding-bottom: 12px;
+                }
+
+                .bracket-round { scroll-snap-align: start; }
+
+                .prize-breakdown {
+                    margin-top: 20px;
+                    padding: 14px 16px;
+                    background: rgba(255, 215, 0, 0.06);
+                    border: 1px solid rgba(255, 215, 0, 0.2);
+                    border-radius: 10px;
+                }
+
+                .prize-breakdown h4 {
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    color: rgba(255, 215, 0, 0.8);
+                    margin: 0 0 10px;
+                }
+
+                .prize-rows { display: flex; flex-direction: column; gap: 6px; }
+
+                .prize-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+                .prize-place { font-weight: 700; min-width: 62px; }
+                .prize-pct { color: rgba(255, 255, 255, 0.45); font-size: 12px; }
+                .prize-amount { color: #FFD700; font-weight: 700; }
+
+                .entered-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #22c55e;
                 }
 
                 .bracket-round {
@@ -1744,30 +2036,16 @@ export default function TournamentsPage() {
     );
 }
 
-// Helper component to display player names in bracket
-function BracketPlayerName({ playerId, userId }) {
-    const [name, setName] = useState(null);
-
-    useEffect(() => {
-        if (!playerId) {
-            setName('BYE');
-            return;
-        }
-        if (playerId === userId) {
-            setName('You');
-            return;
-        }
-
-        supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', playerId)
-            .maybeSingle()
-            .then(({ data }) => {
-                setName(data?.username || 'Player');
-            })
-            .catch(e => { console.warn('[Tournaments] BracketName fetch failed:', e); setName('Player'); });
-    }, [playerId, userId]);
-
-    return <span className={playerId === userId ? 'bracket-you' : ''}>{name || '...'}</span>;
+/**
+ * Helper component to display player names in the bracket.
+ *
+ * Now purely presentational — it reads from the `names` map that
+ * loadBracketData resolves in a single .in('id', ids) query. It previously
+ * issued its own profiles query per instance (N+1: ~128 requests for a
+ * 64-player bracket, re-fired on every realtime bracket update).
+ */
+function BracketPlayerName({ playerId, userId, names }) {
+    if (!playerId) return <span>BYE</span>;
+    if (playerId === userId) return <span className="bracket-you">You</span>;
+    return <span>{(names && names[playerId]) || 'Player'}</span>;
 }

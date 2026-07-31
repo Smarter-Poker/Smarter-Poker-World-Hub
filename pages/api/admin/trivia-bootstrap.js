@@ -6,20 +6,65 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
-import { validateBatch } from '../../../src/lib/triviaValidator';
+import { validateBatch, normalizeQuestionText } from '../../../src/lib/triviaValidator';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
+
+// Vercel kills the default-duration invocation mid-run on a large bootstrap.
+// The handler is ALSO incremental (see `nextCategory` in the response) so a
+// scheduler can loop calls instead of relying on one long invocation.
+export const config = { maxDuration: 300 };
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            // This route writes to trivia_questions; with the anon key every
+            // insert is silently rejected by RLS. Fail loudly instead.
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing — bootstrap cannot write to trivia_questions');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+/** Baseline score for validator-passed questions. Gameplay floor is 6. */
+const SEEDED_QUALITY_SCORE = 7;
+
+/** Wall-clock budget for one invocation, leaving headroom under maxDuration. */
+const RUN_BUDGET_MS = 240000;
+
+/**
+ * Existing question texts for a category, normalized, so re-runs stop
+ * inflating the pool with paraphrased near-duplicates that still count toward
+ * the depth target the 60-day guarantee depends on.
+ */
+async function loadExistingTexts(supabase, categoryId) {
+    const texts = new Set();
+    const PAGE = 1000;
+    for (let from = 0; from < 5000; from += PAGE) {
+        const { data, error } = await supabase
+            .from('trivia_questions')
+            .select('question')
+            .eq('category', categoryId)
+            .order('id', { ascending: true })
+            .range(from, from + PAGE - 1);
+        if (error) {
+            console.warn('[Bootstrap] existing-text load failed:', error.message);
+            break;
+        }
+        for (const row of data || []) {
+            const norm = normalizeQuestionText(row?.question);
+            if (norm) texts.add(norm);
+        }
+        if (!data || data.length < PAGE) break;
+    }
+    return texts;
 }
 
 const CATEGORIES = [
@@ -220,6 +265,11 @@ Return ONLY valid JSON array:
                 explanation: q.explanation || '',
                 subcategory: topic,
                 source: 'grok-bootstrap',
+                // Without this the column default of 5 applied, which is below
+                // the gameplay floor of 6 — every bootstrapped question was
+                // invisible to players until a quality audit re-scored it.
+                // Matches scripts/trivia-grok-seed.js.
+                quality_score: SEEDED_QUALITY_SCORE,
                 created_at: new Date().toISOString()
             }));
     } catch (error) {
@@ -230,26 +280,12 @@ Return ONLY valid JSON array:
 
 export default async function handler(req, res) {
   try {
-      // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
-      // This previously FAILED OPEN: with CRON_SECRET unset the query-param
-      // comparison was `undefined !== undefined` → false, so a caller sending
-      // neither a Bearer token nor a ?secret= param passed the gate outright.
-      // (The Bearer branch also degraded to the literal "Bearer undefined".)
-      const cronSecret = process.env.CRON_SECRET;
-      if (!cronSecret) {
-          console.warn('[trivia-bootstrap] CRON_SECRET is not configured — rejecting request');
-          return res.status(500).json({ error: 'Server misconfigured' });
-      }
+      // Header-only, fail-closed auth. See src/lib/trivia/adminAuth.js for
+      // what was wrong with the previous check (it authenticated requests
+      // carrying no credentials at all whenever CRON_SECRET was unset).
+      if (!requireAdminSecret(req, res, { label: 'trivia-bootstrap' })) return;
 
-      // Allow both GET and POST, but require auth
-      const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${cronSecret}`) {
-          // Also allow without auth for admin testing
-          const { secret } = req.query;
-          if (secret !== cronSecret) {
-              return res.status(401).json({ error: 'Unauthorized - pass secret as query param or Bearer token' });
-          }
-      }
+      const deadline = Date.now() + RUN_BUDGET_MS;
 
       // Get target category from query or do all
       const { category: targetCat } = req.query;
@@ -261,15 +297,28 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Invalid category' });
       }
 
+      const maxBatches = Math.max(1, Math.min(15, parseInt(req.query.batchCount, 10) || 15));
 
       const results = {
           started: new Date().toISOString(),
           targetPerCategory: TARGET_PER_CATEGORY,
-          categories: {}
+          categories: {},
+          timedOut: false,
+          nextCategory: null,
       };
 
       // Process each category
-      for (const category of categoriesToProcess) {
+      for (let ci = 0; ci < categoriesToProcess.length; ci++) {
+          const category = categoriesToProcess[ci];
+
+          // Incremental: stop cleanly before Vercel kills the invocation and
+          // hand the caller a cursor to resume from, instead of returning a
+          // 504 with no results and no way to tell what got inserted.
+          if (Date.now() > deadline) {
+              results.timedOut = true;
+              results.nextCategory = category.id;
+              break;
+          }
 
           // Get current count
           const { count: existingCount } = await getSupabase()
@@ -289,13 +338,21 @@ export default async function handler(req, res) {
               continue;
           }
 
+          const existingTexts = await loadExistingTexts(getSupabase(), category.id);
 
           let generated = 0;
+          let duplicatesRejected = 0;
           const difficulties = ['easy', 'medium', 'medium', 'medium', 'hard']; // 20/60/20 distribution
 
           // Generate in batches across topics
           let batchCount = 0;
-          while (generated < needed && batchCount < 15) { // Max 15 batches per category
+          while (generated < needed && batchCount < maxBatches) {
+              if (Date.now() > deadline) {
+                  results.timedOut = true;
+                  results.nextCategory = category.id;
+                  break;
+              }
+
               const topic = category.topics[batchCount % category.topics.length];
               const difficulty = difficulties[batchCount % difficulties.length];
               const batchNeeded = Math.min(BATCH_SIZE, needed - generated);
@@ -304,9 +361,10 @@ export default async function handler(req, res) {
               const questions = await generateBatch(category, topic, difficulty, batchNeeded);
 
               if (questions.length > 0) {
-                  // ═══ QA VALIDATION GATE ═══
-                  const { valid: validQuestions, rejected } = validateBatch(questions);
+                  // ═══ QA VALIDATION + DEDUP GATE ═══
+                  const { valid: validQuestions, rejected } = validateBatch(questions, { existingTexts });
                   if (rejected.length > 0) {
+                      duplicatesRejected += rejected.filter(r => r.errors.some(e => e.startsWith('DUP-'))).length;
                       rejected.forEach(r => r.errors.forEach(e => console.debug(`  → ${e}`)));
                   }
 
@@ -318,6 +376,10 @@ export default async function handler(req, res) {
 
                       if (!error && data) {
                           generated += data.length;
+                          for (const q of validQuestions) {
+                              const norm = normalizeQuestionText(q.question);
+                              if (norm) existingTexts.add(norm);
+                          }
                       } else if (error) {
                           console.warn(`[Bootstrap] Insert error:`, error.message);
                       }
@@ -334,20 +396,23 @@ export default async function handler(req, res) {
               name: category.name,
               existing: existingCount || 0,
               generated,
+              duplicatesRejected,
               total: (existingCount || 0) + generated,
               target: TARGET_PER_CATEGORY
           };
+
+          if (results.timedOut) break;
       }
 
-      // Get final counts
-      let totalQuestions = 0;
-      for (const cat of CATEGORIES) {
-          const { count } = await getSupabase()
+      // Get final counts (parallel — this used to be 10 serial round-trips)
+      const counts = await Promise.all(CATEGORIES.map(cat =>
+          getSupabase()
               .from('trivia_questions')
               .select('*', { count: 'exact', head: true })
-              .eq('category', cat.id);
-          totalQuestions += count || 0;
-      }
+              .eq('category', cat.id)
+              .then(({ count }) => count || 0)
+      ));
+      const totalQuestions = counts.reduce((a, b) => a + b, 0);
 
       results.completed = new Date().toISOString();
       results.totalQuestions = totalQuestions;

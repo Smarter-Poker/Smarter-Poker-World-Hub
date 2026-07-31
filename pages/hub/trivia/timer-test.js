@@ -3,12 +3,23 @@
  * Testing positioning of the timer ring only
  */
 
-// Opt out of static generation — this is a dev test page only
-export const dynamic = 'force-dynamic';
+// NOTE: `export const dynamic = 'force-dynamic'` used to live here. That is an
+// App Router directive and is a no-op in the Pages Router, so this dev harness
+// was fully reachable in production at /hub/trivia/timer-test. It is now gated
+// server-side: getServerSideProps returns { notFound: true } in production, so
+// the route renders the standard 404 instead of a half-built test page. The
+// route is kept (not deleted) so local/preview timer tuning still works.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+
+export async function getServerSideProps() {
+    if (process.env.NODE_ENV === 'production') {
+        return { notFound: true };
+    }
+    return { props: {} };
+}
 
 export default function TimerTest() {
     const [timeRemaining, setTimeRemaining] = useState(15);
@@ -59,6 +70,11 @@ export default function TimerTest() {
         if (timeRemaining <= 5) return '#f59e0b';
         return '#22d3ee';
     };
+
+    // Defence in depth (after all hooks, so hook order is never conditional):
+    // if this component is ever reached in a production bundle — e.g. a stale
+    // client-side route manifest — render nothing rather than a test harness.
+    if (process.env.NODE_ENV === 'production') return null;
 
     return (
         <>

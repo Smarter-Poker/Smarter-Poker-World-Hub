@@ -1,15 +1,36 @@
 /**
  * SURVIVAL MODE TRIVIA GAME - SELF-CONTAINED VERSION
  * No external imports except React to isolate React error #31
+ *
+ * WARNING: CURRENTLY UNREFERENCED — nothing imports this component, and the live
+ * Survival route is the page-level implementation at
+ * /hub/trivia/survival-game. Kept so the work can be adopted deliberately.
+ *
+ * BEFORE WIRING IT UP:
+ *   1. It used to have NO daily diamond cap at all, paying unlimited
+ *      multiplier-scaled diamonds — an economy hole. A cap is now enforced,
+ *      but the caller MUST pass `dailyDiamondsEarned` (diamonds already
+ *      earned in this mode today) or the cap starts from zero every session.
+ *   2. Its reward curve differs from survival-game.js. Reconcile the two
+ *      before both are reachable, or players get different payouts for the
+ *      same mode and leaderboard/history writes split across schemes.
+ *   3. SurvivalModeGame.css is NOT imported here (a global stylesheet cannot
+ *      be imported from a component under the Pages Router) — see the note at
+ *      the top of that file.
  */
 
 import { useState, useEffect, useRef } from 'react';
+
+// Mirrors DAILY_DIAMOND_CAPS.survival in src/lib/trivia/triviaEngine.ts. Kept
+// as a literal to preserve this file's "no external imports" isolation intent.
+const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModeGame({
     questions,
     onComplete,
     onLoadMoreQuestions,
-    userId
+    userId,
+    dailyDiamondsEarned = 0
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -45,14 +66,20 @@ export default function SurvivalModeGame({
         _pendingTimeoutsRef.current.clear();
     }, []);
 
-    // Inline diamond calculation
-    const calculateSurvivalDiamonds = (streak) => {
-        if (streak === 0) return 0;
+    const remainingCap = Math.max(
+        0,
+        DAILY_DIAMOND_CAP - (Number.isFinite(dailyDiamondsEarned) ? dailyDiamondsEarned : 0)
+    );
+    const capReached = diamondsEarned >= remainingCap;
+
+    // Inline diamond calculation, clamped to what is left of today's cap.
+    const calculateSurvivalDiamonds = (correctAnswers) => {
+        if (!correctAnswers || correctAnswers <= 0) return 0;
         let total = 0;
-        for (let i = 0; i < streak; i++) {
+        for (let i = 0; i < correctAnswers; i++) {
             total += Math.floor(i / 5) + 1;
         }
-        return total;
+        return Math.min(total, remainingCap);
     };
 
     useEffect(() => {
@@ -76,7 +103,7 @@ export default function SurvivalModeGame({
         setAnswers(newAnswers);
 
         if (correct) {
-            setDiamondsEarned(prev => prev + multiplier);
+            setDiamondsEarned(prev => Math.min(remainingCap, prev + multiplier));
             setStreak(prev => prev + 1);
 
             // Phase 69: safeSetTimeout + isMounted guard.
@@ -94,7 +121,7 @@ export default function SurvivalModeGame({
                 if (_completedRef.current) return;
                 _completedRef.current = true;
                 const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-                onComplete({
+                onComplete?.({
                     answers: newAnswers,
                     correctCount: streak,
                     totalQuestions: streak + 1,
@@ -123,6 +150,11 @@ export default function SurvivalModeGame({
                 <p style={{ fontSize: '20px', color: '#00D4FF' }}>
                     Diamonds Earned: {calculateSurvivalDiamonds(streak)}
                 </p>
+                {remainingCap <= 0 && (
+                    <p style={{ fontSize: '13px', color: '#fbbf24', marginTop: '8px' }}>
+                        Daily diamond cap reached — this run counts for the leaderboard.
+                    </p>
+                )}
             </div>
         );
     }
@@ -208,6 +240,7 @@ export default function SurvivalModeGame({
                                     alignItems: 'center',
                                     gap: '16px',
                                     padding: '16px 20px',
+                                    minHeight: '56px',
                                     background: bg,
                                     border: `2px solid ${borderColor}`,
                                     borderRadius: '10px',
@@ -247,10 +280,12 @@ export default function SurvivalModeGame({
                     background: 'rgba(0, 212, 255, 0.1)',
                     border: '1px solid rgba(0, 212, 255, 0.2)',
                     borderRadius: '8px',
-                    color: '#00D4FF',
+                    color: capReached ? 'rgba(255,255,255,0.5)' : '#00D4FF',
                     fontSize: '13px'
                 }}>
-                    +{multiplier} diamonds for correct answer
+                    {capReached
+                        ? 'Daily cap reached — playing for the leaderboard'
+                        : `+${multiplier} diamonds for correct answer`}
                 </div>
             </div>
         </div>

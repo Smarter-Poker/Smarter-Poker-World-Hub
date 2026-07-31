@@ -1,16 +1,16 @@
 /**
  * PVP LOBBY — Find opponents and start 1v1 trivia battles
- * Entry stakes: 10-100💎, winner takes 90% (10% rake)
+ * Entry stakes: 10-100 diamonds, winner takes 90% (10% rake)
  *
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ║ NOT CURRENTLY WIRED — presentational only                                ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
  * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The real        ║
  * ║ PvP matchmaking + lobby logic lives inline in pages/hub/trivia/pvp.js,   ║
  * ║ which integrates Supabase realtime + the actual matchmaking RPC. This    ║
- * ║ component is a leftover prototype with hard-coded stakes (10/25/50/100)  ║
- * ║ that don't match the production stake schedule, and the "Battle          ║
- * ║ Starting In 3..." text is a fixed string with no real countdown.         ║
+ * ║ component has hard-coded stakes (10/25/50/100) that may not match the    ║
+ * ║ production stake schedule. The "Battle Starting In 3..." text used to be ║
+ * ║ a fixed string with no countdown behind it; it now counts down for real. ║
  * ║ Verify with: grep -rn 'PvPLobby' pages/ src/                             ║
  * ║ — safe to delete as of Phase 69.                                          ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
@@ -22,11 +22,13 @@ import { Swords, Gem, Users, Clock, Trophy, Loader2 } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 
+// Labels are plain text on purpose: bare emoji characters in JSX source break
+// the SWC build (repo rule). The Gem icon carries the visual.
 const STAKE_OPTIONS = [
-    { amount: 10, label: '10 💎', color: '#22c55e' },
-    { amount: 25, label: '25 💎', color: '#0ea5e9' },
-    { amount: 50, label: '50 💎', color: '#8b5cf6' },
-    { amount: 100, label: '100 💎', color: '#f97316' }
+    { amount: 10, label: '10', color: '#22c55e' },
+    { amount: 25, label: '25', color: '#0ea5e9' },
+    { amount: 50, label: '50', color: '#8b5cf6' },
+    { amount: 100, label: '100', color: '#f97316' }
 ];
 
 const RAKE_PERCENT = 10; // House takes 10%
@@ -41,6 +43,7 @@ export default function PvPLobby({
 }) {
     const [selectedStake, setSelectedStake] = useState(null);
     const [searchTime, setSearchTime] = useState(0);
+    const [startIn, setStartIn] = useState(3);
 
     // Search timer
     useEffect(() => {
@@ -55,6 +58,20 @@ export default function PvPLobby({
 
         return () => clearInterval(timer);
     }, [searching]);
+
+    // Real countdown once a match is found. The old fixed "3..." string never
+    // moved, so the UI claimed a timer that did not exist.
+    useEffect(() => {
+        if (!matchFound) {
+            setStartIn(3);
+            return;
+        }
+        setStartIn(3);
+        const timer = setInterval(() => {
+            setStartIn(prev => (prev <= 1 ? 0 : prev - 1));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [matchFound]);
 
     const handleStakeSelect = (stake) => {
         if (userDiamonds < stake.amount) return;
@@ -108,11 +125,15 @@ export default function PvPLobby({
                             <div className="stake-info">
                                 <div className="info-row">
                                     <span>Your Stake:</span>
-                                    <span className="value">{selectedStake.amount} 💎</span>
+                                    <span className="value">
+                                        <Gem size={13} /> {selectedStake.amount.toLocaleString()}
+                                    </span>
                                 </div>
                                 <div className="info-row">
                                     <span>If You Win:</span>
-                                    <span className="value win">+{winAmount} 💎</span>
+                                    <span className="value win">
+                                        <Gem size={13} /> +{winAmount.toLocaleString()}
+                                    </span>
                                 </div>
                                 <div className="info-row small">
                                     <span>House Rake:</span>
@@ -123,7 +144,7 @@ export default function PvPLobby({
 
                         <div className="balance-display">
                             <Gem size={16} />
-                            <span>Your Balance: {userDiamonds}</span>
+                            <span>Your Balance: {Number(userDiamonds || 0).toLocaleString()}</span>
                         </div>
 
                         <HexButton
@@ -153,7 +174,7 @@ export default function PvPLobby({
                             {searchTime}s
                         </p>
                         <p className="search-stake">
-                            Stake: {selectedStake?.amount} 💎
+                            Stake: {(selectedStake?.amount || 0).toLocaleString()}
                         </p>
                         <HexButton
                             label="Cancel"
@@ -183,14 +204,17 @@ export default function PvPLobby({
                                 )}
                             </div>
                             <div className="opponent-info">
-                                <span className="opponent-name">{opponent.username}</span>
+                                <span className="opponent-name">{opponent?.username || 'Opponent'}</span>
                                 <span className="opponent-stats">
-                                    {opponent.wins || 0}W - {opponent.losses || 0}L
+                                    {Number(opponent?.wins || 0).toLocaleString()}W -{' '}
+                                    {Number(opponent?.losses || 0).toLocaleString()}L
                                 </span>
                             </div>
                         </div>
 
-                        <p className="starting-soon">Battle Starting In 3...</p>
+                        <p className="starting-soon">
+                            {startIn > 0 ? `Battle Starting In ${startIn}...` : 'Starting...'}
+                        </p>
                     </div>
                 )}
             </MetalFrame>

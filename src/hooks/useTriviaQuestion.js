@@ -22,12 +22,18 @@
  */
 // TRAIN-TRIVIA-HOOK-1 — audit-marker registry token
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export default function useTriviaQuestion(currentQuestion, options = {}) {
   const { onAnswer, autoRevealMs } = options || {};
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  // Correctness is CAPTURED at selection time. Deriving it live
+  // (selectedAnswer === currentQuestion.correct_index) meant that if the page
+  // advanced currentQuestion before calling reset() — or a background refresh
+  // swapped the questions array — the displayed correct/wrong feedback flipped
+  // to compare the old pick against the NEW question's answer key.
+  const [lastResult, setLastResult] = useState(null);
   const lockedRef = useRef(false);
 
   const selectAnswer = useCallback(
@@ -37,10 +43,11 @@ export default function useTriviaQuestion(currentQuestion, options = {}) {
       lockedRef.current = true;
 
       const correctIdx = currentQuestion?.correct_index;
-      const isCorrect = index >= 0 && index === correctIdx;
+      const isCorrect = index >= 0 && Number.isInteger(correctIdx) && index === correctIdx;
 
       setSelectedAnswer(index);
       setShowResult(true);
+      setLastResult({ index, isCorrect, correctIndex: correctIdx, questionId: currentQuestion?.id });
 
       if (typeof onAnswer === 'function') {
         try {
@@ -58,12 +65,27 @@ export default function useTriviaQuestion(currentQuestion, options = {}) {
   const reset = useCallback(() => {
     setSelectedAnswer(null);
     setShowResult(false);
+    setLastResult(null);
     lockedRef.current = false;
   }, []);
 
-  const isCorrect = showResult && selectedAnswer !== null && currentQuestion
-    ? selectedAnswer === currentQuestion.correct_index
-    : false;
+  // Auto-unlock when the question identity changes. Previously lockedRef
+  // stayed latched across question changes until an explicit reset(), so a
+  // forgotten reset() bricked input for the rest of the game.
+  const questionId = currentQuestion?.id;
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setLastResult(null);
+    lockedRef.current = false;
+  }, [questionId]);
+
+  // NOTE: `autoRevealMs` is accepted for API compatibility but intentionally
+  // not acted on — no caller passes it, and every page drives its own reveal
+  // timing. Left unimplemented rather than guessing at semantics.
+  void autoRevealMs;
+
+  const isCorrect = showResult && lastResult ? lastResult.isCorrect : false;
 
   return {
     selectedAnswer,
@@ -71,6 +93,7 @@ export default function useTriviaQuestion(currentQuestion, options = {}) {
     showResult,
     setShowResult,
     isCorrect,
+    lastResult,
     selectAnswer,
     reset,
     correctIndex: currentQuestion?.correct_index,

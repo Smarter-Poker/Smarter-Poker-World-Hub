@@ -1,9 +1,19 @@
 /**
  * ALL-IN MODE — High-risk, high-reward trivia
  * Stake your diamonds, 10-question quiz, 2x payout on 80%+
+ *
+ * WARNING: CURRENTLY UNREFERENCED — no page or component imports this file, so the
+ * mode is unreachable in the product. It is kept (and kept correct) so it can
+ * be adopted deliberately. BEFORE WIRING IT UP:
+ *   1. Money is client-computed here. The stake must be DEBITED server-side at
+ *      start and the payout CREDITED server-side at verified completion (an
+ *      add_diamonds_to_balance call with a unique reference per event), or the
+ *      mode is a self-service diamond printer.
+ *   2. Pass at least QUESTIONS_COUNT questions. The component now slices and
+ *      guards, but a short pool means the entry button stays disabled.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Gem, AlertTriangle, Check, X, Zap, Target } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
@@ -11,6 +21,7 @@ import HexButton from '../ui/HexButton';
 
 const STAKE_PRESETS = [25, 50, 100, 250, 500];
 const QUESTIONS_COUNT = 10;
+const MIN_STAKE = 10;
 const WIN_THRESHOLD = 0.8; // 80% correct to win
 const PAYOUT_MULTIPLIER = 2;
 const HOUSE_EDGE = 0.05; // 5% house edge
@@ -54,15 +65,40 @@ export default function AllInMode({
         _pendingTimeoutsRef.current.clear();
     }, []);
 
-    const currentQuestion = questions[currentIndex];
+    // Slice to exactly the number of questions the mode scores against, so a
+    // longer pool can never desync the progress/needed maths and a shorter one
+    // is detectable up front instead of blanking out mid-game.
+    const gameQuestions = useMemo(
+        () => (Array.isArray(questions) ? questions.slice(0, QUESTIONS_COUNT) : []),
+        [questions]
+    );
+    const hasEnoughQuestions = gameQuestions.length >= QUESTIONS_COUNT;
+
+    const currentQuestion = gameQuestions[currentIndex];
     const progress = (currentIndex / QUESTIONS_COUNT) * 100;
     const needCorrect = Math.ceil(QUESTIONS_COUNT * WIN_THRESHOLD);
     const maxWrong = QUESTIONS_COUNT - needCorrect;
     const wrongCount = currentIndex - correctCount;
     const canStillWin = wrongCount <= maxWrong;
 
+    // Effective stake — the custom input is a STRING, so the old code compared
+    // '250' > userDiamonds and rendered NaN in the payout preview.
+    const parsedCustom = customStake === '' ? null : parseInt(customStake, 10);
+    const effectiveStake = parsedCustom != null && Number.isFinite(parsedCustom)
+        ? parsedCustom
+        : (customStake === '' ? stakeAmount : NaN);
+    const stakeIsNumber = Number.isFinite(effectiveStake);
+    const stakeValid = stakeIsNumber && effectiveStake >= MIN_STAKE && effectiveStake <= userDiamonds;
+    const previewStake = stakeIsNumber ? effectiveStake : 0;
+
+    let stakeError = null;
+    if (!stakeIsNumber) stakeError = 'Enter a number of diamonds to stake.';
+    else if (effectiveStake < MIN_STAKE) stakeError = `Minimum stake is ${MIN_STAKE} diamonds.`;
+    else if (effectiveStake > userDiamonds) stakeError = `You only have ${userDiamonds} diamonds.`;
+    else if (!hasEnoughQuestions) stakeError = 'Not enough questions loaded for a full run. Try again shortly.';
+
     const handleAnswer = (answerIndex) => {
-        if (isRevealing || gameOver) return;
+        if (isRevealing || gameOver || !currentQuestion) return;
 
         setSelectedAnswer(answerIndex);
         setIsRevealing(true);
@@ -111,11 +147,11 @@ export default function AllInMode({
     const handleStartGame = () => {
         // Phase 54: parseInt('abc') returns NaN → NaN<10 and NaN>userDiamonds are
         // both false → balance check bypassed → setStakeAmount(NaN) → backend
-        // gets corrupt stake. Now validate explicitly.
-        const parsed = customStake ? parseInt(customStake, 10) : stakeAmount;
-        const stake = Number.isFinite(parsed) ? parsed : 0;
-        if (!Number.isFinite(stake) || stake < 10 || stake > userDiamonds) return;
-        setStakeAmount(stake);
+        // gets corrupt stake. Now validate explicitly, and refuse to start
+        // without a full question set (previously the game would fall through
+        // to `return null` mid-run — a blank screen with a live stake).
+        if (!stakeValid || !hasEnoughQuestions) return;
+        setStakeAmount(effectiveStake);
         setStage('playing');
     };
 
@@ -185,11 +221,13 @@ export default function AllInMode({
                         <div className="custom-stake">
                             <input
                                 type="number"
+                                inputMode="numeric"
                                 placeholder="Custom Amount..."
                                 value={customStake}
                                 onChange={(e) => setCustomStake(e.target.value)}
-                                min="10"
+                                min={MIN_STAKE}
                                 max={userDiamonds}
+                                aria-label={`Custom stake, minimum ${MIN_STAKE} diamonds`}
                             />
                         </div>
                     </div>
@@ -197,19 +235,28 @@ export default function AllInMode({
                     <div className="payout-preview">
                         <div className="payout-row">
                             <span>Your Stake:</span>
-                            <span className="value">{customStake || stakeAmount} 💎</span>
+                            <span className="value"><Gem size={13} /> {previewStake}</span>
                         </div>
                         <div className="payout-row win">
                             <span>If 80%+ Correct:</span>
                             <span className="value">
-                                +{Math.floor((customStake || stakeAmount) * PAYOUT_MULTIPLIER * (1 - HOUSE_EDGE))} 💎
+                                <Gem size={13} /> +{Math.floor(previewStake * PAYOUT_MULTIPLIER * (1 - HOUSE_EDGE))}
                             </span>
                         </div>
                         <div className="payout-row lose">
                             <span>If Below 80%:</span>
-                            <span className="value">-{customStake || stakeAmount} 💎</span>
+                            <span className="value"><Gem size={13} /> -{previewStake}</span>
                         </div>
                     </div>
+
+                    {/* The GO ALL-IN button used to be a silent no-op for
+                        sub-minimum / non-numeric stakes. Say why instead. */}
+                    {stakeError && (
+                        <div className="stake-error" role="alert">
+                            <AlertTriangle size={14} />
+                            <span>{stakeError}</span>
+                        </div>
+                    )}
 
                     <div className="balance-display">
                         <Gem size={16} />
@@ -224,7 +271,7 @@ export default function AllInMode({
                             variant="primary"
                             size="lg"
                             fullWidth
-                            disabled={(customStake || stakeAmount) > userDiamonds}
+                            disabled={!stakeValid || !hasEnoughQuestions}
                         />
                         <HexButton
                             label="Cancel"
@@ -299,13 +346,14 @@ export default function AllInMode({
                         align-items: center;
                         gap: 6px;
                         padding: 12px 16px;
+                        min-height: 44px;
                         background: rgba(0, 0, 0, 0.2);
                         border: 2px solid rgba(255, 255, 255, 0.1);
                         border-radius: 8px;
                         color: #fff;
                         font-weight: 600;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: border-color 0.2s, background-color 0.2s;
                     }
 
                     .stake-btn:hover:not(.disabled) {
@@ -363,6 +411,25 @@ export default function AllInMode({
                         color: #ef4444;
                     }
 
+                    .payout-row .value {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                    }
+
+                    .stake-error {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 12px;
+                        margin-bottom: 16px;
+                        background: rgba(251, 191, 36, 0.1);
+                        border: 1px solid rgba(251, 191, 36, 0.3);
+                        border-radius: 8px;
+                        color: #fbbf24;
+                        font-size: 12px;
+                    }
+
                     .balance-display {
                         display: flex;
                         align-items: center;
@@ -377,6 +444,42 @@ export default function AllInMode({
                         display: flex;
                         flex-direction: column;
                         gap: 12px;
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    // Playing stage with no question available — the pool ran dry mid-run.
+    // This used to fall through to `return null`: a blank screen with the
+    // player's stake conceptually committed and no way out.
+    if (stage === 'playing' && !currentQuestion) {
+        return (
+            <div className="all-in-result">
+                <MetalFrame padding="32px" showBolts={true}>
+                    <div className="result-header lose">
+                        <AlertTriangle size={48} />
+                        <h1>RUN INTERRUPTED</h1>
+                    </div>
+                    <p className="interrupted-copy">
+                        We ran out of questions for this run. Your stake of {stakeAmount} diamonds has not been settled.
+                    </p>
+                    <HexButton label="Back" onClick={onCancel} variant="primary" fullWidth />
+                </MetalFrame>
+                <style>{`
+                    .all-in-result {
+                        max-width: 480px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .result-header.lose { color: #ef4444; margin-bottom: 16px; }
+                    .result-header h1 { font-size: 30px; margin: 12px 0 0 0; }
+                    .interrupted-copy {
+                        color: rgba(255, 255, 255, 0.7);
+                        font-size: 14px;
+                        line-height: 1.5;
+                        margin: 0 0 24px 0;
                     }
                 `}</style>
             </div>
@@ -514,11 +617,12 @@ export default function AllInMode({
                         align-items: center;
                         gap: 12px;
                         padding: 16px;
+                        min-height: 56px;
                         background: rgba(30, 41, 59, 0.8);
                         border: 2px solid rgba(255, 255, 255, 0.1);
                         border-radius: 12px;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: border-color 0.2s, background-color 0.2s;
                         text-align: left;
                     }
 
@@ -566,6 +670,10 @@ export default function AllInMode({
                         border-radius: 10px;
                         color: #ef4444;
                         font-weight: 600;
+                    }
+
+                    @media (prefers-reduced-motion: reduce) {
+                        .answer-btn { transition: none; }
                     }
                 `}</style>
             </div>
@@ -680,10 +788,20 @@ export default function AllInMode({
                         font-size: 40px;
                         font-weight: 700;
                     }
+
+                    @media (prefers-reduced-motion: reduce) {
+                        .stake-btn, .answer-btn { transition: none; }
+                    }
                 `}</style>
             </div>
         );
     }
 
-    return null;
+    // Unknown stage — never render nothing, always leave an exit.
+    return (
+        <div style={{ maxWidth: 480, margin: '0 auto', padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
+            <p style={{ marginBottom: 20 }}>All-In Mode is unavailable right now.</p>
+            <HexButton label="Back" onClick={onCancel} variant="secondary" />
+        </div>
+    );
 }

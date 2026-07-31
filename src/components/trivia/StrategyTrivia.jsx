@@ -5,23 +5,42 @@
 
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/lib/trivia/triviaEngine';
+import {
+    calculateDiamonds,
+    DAILY_DIAMOND_CAPS,
+    TRIVIA_MODES,
+    getModeConfig,
+    getCategoryName,
+} from '../../../src/lib/trivia/triviaEngine';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import {
+    loadQuestionsForUser,
+    fetchRandomQuestionPool,
+    filterAndShuffle,
+    getSeenHistory,
+    recordQuestionsSeen,
+} from '../../../src/lib/triviaQuestionLoader';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import { Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain, AlertTriangle } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
+import TriviaSkeleton from './TriviaSkeleton';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */
 function formatPokerText(text) {
     if (!text) return text;
     return text
-        // Add space before BB when preceded by a number (e.g., "31BB" → "31BB")
+        // Normalize "31 BB" / "31bb" -> "31BB" (compact form, no space).
+        // The old comment claimed it ADDED a space and gave "31BB -> 31BB"
+        // as the example, which contradicted the replacement below.
         .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1BB')
         // Capitalize poker position abbreviations
         .replace(/\b(btn|Btn)\b/gi, 'BTN')
@@ -40,7 +59,54 @@ import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
 import useVIP from '../../hooks/useVIP';
 
-const GAME_DIAMOND_COST = 10;
+/**
+ * Entry price for the strategy modes.
+ *
+ * TRIVIA_MODES is the single source of truth for entry cost. It now declares
+ * diamondCost: 10 for mtt/cash/icm/gto, so the local
+ * STRATEGY_ENTRY_COST_FALLBACK that used to live here is gone — the lobby's
+ * advertised price, the direct-URL price and the actual charge all read the
+ * same field and cannot drift apart.
+ */
+function getEntryCost(mode) {
+    const configured = getModeConfig(mode)?.diamondCost;
+    return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+const QUESTIONS_PER_GAME = 20;
+const SECONDS_PER_QUESTION = 60;
+const MIN_QUALITY_SCORE = 6;
+const LIFELINE_SKIP = -2;   // sentinel stored in answers[] for a bought skip
+const TIMEOUT_ANSWER = -1;  // sentinel stored in answers[] for a timeout
+
+/** Best-effort unique token; crypto.randomUUID is missing on older Safari. */
+function makeNonce() {
+    try {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isRealQuestion = q => !!q && typeof q.id === 'string' && UUID_RE.test(q.id);
+
+/**
+ * Score an answers array. A bought Skip is NEUTRAL — excluded from both the
+ * numerator and the denominator. It used to be counted as CORRECT, which made
+ * a 5-diamond lifeline a guaranteed right answer (purchasable perfect scores
+ * and inflated leaderboard rows).
+ */
+function scoreAnswers(answers, questions) {
+    let correct = 0;
+    let skipped = 0;
+    (answers || []).forEach((a, i) => {
+        if (a === LIFELINE_SKIP) { skipped += 1; return; }
+        if (a === questions[i]?.correct_index) correct += 1;
+    });
+    return { correct, skipped, total: Math.max(1, (questions?.length || 0) - skipped) };
+}
 
 // Strategy mode configuration
 const STRATEGY_MODES = {
@@ -97,40 +163,65 @@ function generateGTOApproach(question) {
     return approaches[category] || 'This action maximizes expected value given the game tree and opponent tendencies.';
 }
 
-function generateEVAnalysis(question) {
-    const difficulty = question?.difficulty || 'medium';
-    const evValues = { easy: 0.85, medium: 1.25, hard: 1.75 };
+/**
+ * REAL solver metadata only.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * This used to be generateEVAnalysis()/generateAlternateLines(): a fixed EV of
+ * +0.85/+1.25/+1.75 BB keyed on difficulty alone, and 15%/10%/5% frequencies
+ * assigned by option POSITION, presented to the player as solver output. Any
+ * competent player spots identical "solver" numbers on every question, and the
+ * product's whole claim is credibility.
+ *
+ * Now the panel renders numbers only when the question row actually carries
+ * them in trivia_questions.engine_metadata (Phase 49 column: gtoFrequencies,
+ * evData). When it does not, the EV/alternate-lines sections are omitted and
+ * only the question's own explanation is shown.
+ *
+ * @returns {{confidence:number|null, evAnalysis:object|null, alternateLines:object[]}}
+ */
+function readSolverMetadata(question) {
+    const empty = { confidence: null, evAnalysis: null, alternateLines: [] };
+    const meta = question?.engine_metadata;
+    if (!meta || typeof meta !== 'object') return empty;
 
-    return {
-        value: evValues[difficulty] || 1.25,
-        description: `This action yields an expected value of +${evValues[difficulty] || 1.25} big blinds, significantly higher than alternate lines. Optimal play captures maximum value while maintaining range balance.`
-    };
-}
+    const out = { ...empty };
 
-function generateAlternateLines(question) {
-    if (!question?.options) return [];
+    // EV — accept evData.ev / evData.value / evBB, in big blinds.
+    const ev = meta.evData ?? meta.ev ?? null;
+    const evValue = typeof ev === 'number'
+        ? ev
+        : (Number.isFinite(ev?.ev) ? ev.ev : (Number.isFinite(ev?.value) ? ev.value : null));
+    if (Number.isFinite(evValue)) {
+        out.evAnalysis = {
+            value: Math.round(evValue * 100) / 100,
+            description: typeof ev?.description === 'string'
+                ? ev.description
+                : 'Expected value of the solver-preferred line for this spot, in big blinds.',
+        };
+    }
 
-    const correctIdx = question.correct_index;
-    const altLines = [];
+    // Frequencies — { FOLD: 12, CALL: 33, ... } or [{action, frequency}]
+    const freqs = meta.gtoFrequencies ?? meta.frequencies ?? null;
+    let rows = [];
+    if (Array.isArray(freqs)) {
+        rows = freqs
+            .filter(f => f && typeof f.action === 'string' && Number.isFinite(f.frequency))
+            .map(f => ({ action: String(f.action).toUpperCase(), frequency: Math.round(f.frequency), description: f.description || '' }));
+    } else if (freqs && typeof freqs === 'object') {
+        rows = Object.entries(freqs)
+            .filter(([, v]) => Number.isFinite(v))
+            .map(([k, v]) => ({ action: String(k).toUpperCase(), frequency: Math.round(v), description: '' }));
+    }
+    if (rows.length > 0) {
+        rows.sort((a, b) => b.frequency - a.frequency);
+        out.confidence = Math.max(0, Math.min(100, rows[0].frequency));
+        out.alternateLines = rows.slice(1, 3).map(r => ({
+            ...r,
+            description: r.description || 'Mixed-strategy branch reported by the solver for this node.',
+        }));
+    }
 
-    question.options.forEach((option, idx) => {
-        if (idx !== correctIdx && altLines.length < 2) {
-            const action = option.split(' ')[0]?.toUpperCase() || option.toUpperCase();
-            const frequency = idx === 0 ? 15 : idx === 1 ? 10 : 5;
-
-            altLines.push({
-                action,
-                frequency,
-                description: action === 'FOLD'
-                    ? 'Against extremely tight opponents to avoid negative EV spots'
-                    : action === 'CALL'
-                        ? 'Balanced with drawing hands to collaborate with bluffing frequencies'
-                        : 'Mixed strategy implementation for range protection'
-            });
-        }
-    });
-
-    return altLines;
+    return out;
 }
 
 // ════════════════════════════════════════════════════
@@ -180,24 +271,60 @@ function PlayingCard({ card, size = 'inline' }) {
     );
 }
 
-function renderTextWithCards(text) {
+/**
+ * Render poker card notation (Ah, Ks, 10d, 4c) as graphic cards.
+ *
+ * Two bugs fixed here:
+ *  1. The regex carried the /i flag, so ordinary English matched: "as", "ah",
+ *     "ad", "ac" all became playing cards. Canonical notation is an UPPERCASE
+ *     rank plus a LOWERCASE suit, so the flag is gone.
+ *  2. The pipeline title-cased FIRST, which manufactured "As" out of every
+ *     mid-sentence "as" and then matched it. Matching now runs on the raw
+ *     string and the caller's text transform (toTitleCase) is applied to the
+ *     non-card fragments only.
+ *
+ * A lone letter-ranked token ("As", "Ad") is still ambiguous with English, so
+ * letter ranks only render as a card when they sit next to another card token
+ * ("AhKs", "Ah Ks 7d"). Digit ranks ("7d", "10c") are unambiguous and always
+ * render. Worst case a real card renders as plain text — never the reverse.
+ *
+ * @param {string} text
+ * @param {(s: string) => string} [transform] applied to non-card fragments
+ */
+function renderTextWithCards(text, transform) {
     if (!text) return null;
-    // Match standard card formats like Ah, Ks, 10d, 4c
-    const cardRegex = /\b([2-9]|10|[JQKA])([shdc])\b/gi;
-    const parts = text.split(cardRegex);
+    const apply = typeof transform === 'function' ? transform : (s => s);
+    const cardRegex = /\b(10|[2-9]|[TJQKA])([shdc])\b/g;
+
+    const matches = [];
+    let m;
+    while ((m = cardRegex.exec(text)) !== null) {
+        matches.push({ start: m.index, end: m.index + m[0].length, rank: m[1], suit: m[2] });
+    }
+    if (matches.length === 0) return apply(text);
+
+    // A letter-ranked token counts only when it neighbours another candidate
+    // (allowing at most one space between, e.g. "Ah Ks 7d").
+    const isDigitRank = r => /^(10|[2-9])$/.test(r);
+    const keep = matches.map((cur, i) => {
+        if (isDigitRank(cur.rank)) return true;
+        const prev = matches[i - 1];
+        const next = matches[i + 1];
+        const adjacent = (a, b) => a && b && (b.start - a.end) <= 1;
+        return adjacent(prev, cur) || adjacent(cur, next);
+    });
 
     const result = [];
-    let i = 0;
-    while (i < parts.length) {
-        result.push(parts[i]);
-        i++;
-        if (i < parts.length) {
-            const rank = parts[i];
-            const suit = parts[i + 1];
-            result.push(<PlayingCard key={i} card={`${rank}${suit}`} size="inline" />);
-            i += 2;
-        }
-    }
+    let cursor = 0;
+    matches.forEach((match, i) => {
+        if (!keep[i]) return;
+        if (match.start > cursor) result.push(apply(text.slice(cursor, match.start)));
+        result.push(
+            <PlayingCard key={`c${match.start}`} card={`${match.rank}${match.suit}`} size="inline" />
+        );
+        cursor = match.end;
+    });
+    if (cursor < text.length) result.push(apply(text.slice(cursor)));
     return result;
 }
 
@@ -241,6 +368,12 @@ export default function StrategyTrivia({ mode }) {
     // calculated amount even when the balance never moved).
     const [resultActualAwarded, setResultActualAwarded] = useState(null);
     const [resultAwardError, setResultAwardError] = useState(null);
+    // Final tally for the results screen: correct / skipped / effective total.
+    const [resultSummary, setResultSummary] = useState(null);
+    const [resultCapped, setResultCapped] = useState(false);
+    // Entry-flow error (question load failure, signed-out, etc.)
+    const [entryError, setEntryError] = useState(null);
+    const [isPreparing, setIsPreparing] = useState(false);
 
     // User data — userId from useVIP, fallback to getAuthUser
     const [localUserId, setLocalUserId] = useState(null);
@@ -248,13 +381,26 @@ export default function StrategyTrivia({ mode }) {
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Timer
-    const [timeLeft, setTimeLeft] = useState(60);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const timerRef = useRef(null);
     const startTimeRef = useRef(null);
     const isStartingRef = useRef(false); // Prevent double-click race
     const answersRef = useRef([]); // Ref mirror — avoids stale closure in skip→finishGame
+
+    // Per-game idempotency nonce. Reference ids used to be
+    // `strategy_fifty_${mode}_${user}_${questionIndex}` — identical on every
+    // replay, so the DB idempotency table swallowed the charge while the
+    // lifeline was still granted (free lifelines forever after game 1), and
+    // the reward id was per-MINUTE, so two short games in one minute paid once.
+    const gameNonceRef = useRef(null);
+    const finishedRef = useRef(false);      // finishGame runs at most once per game
+    const advanceLockRef = useRef(false);   // Next button double-click guard
+    const fiftyInFlightRef = useRef(false);
+    const skipInFlightRef = useRef(false);
+
+    // Ids already served in THIS sitting — never re-serve them on Play Again.
+    const sessionServedIdsRef = useRef(new Set());
+
+    // Entry price for this mode (config first, see getEntryCost).
+    const entryCost = getEntryCost(mode);
 
     // Phase 68: track pending setTimeouts so unmount cancels them. Without
     // this, the 300ms skip-advance setTimeout would fire on an unmounted
@@ -280,11 +426,15 @@ export default function StrategyTrivia({ mode }) {
     // Keep answersRef in sync with answers state
     useEffect(() => { answersRef.current = answers; }, [answers]);
 
-    // Preloaded questions state (load in background while user views lobby image)
+    // Preloaded question set (loaded in the background while the user looks at
+    // the lobby image). ALWAYS consumed exactly once: startGame clears it and
+    // immediately preloads the NEXT set, so Play Again serves fresh questions.
     const [preloadedQuestions, setPreloadedQuestions] = useState(null);
+    const [preloadFailed, setPreloadFailed] = useState(false);
+    const preloadInFlightRef = useRef(false);
 
-    // Initialize + preload questions. Re-runs on auth resolution so the user
-    // is properly wired up even if AvatarContext was still loading on first render.
+    // Initialize. Re-runs on auth resolution so the user is properly wired up
+    // even if AvatarContext was still loading on first render.
     useEffect(() => {
         if (avatarLoading) return;
         const user = avatarUser || getAuthUser();
@@ -294,57 +444,143 @@ export default function StrategyTrivia({ mode }) {
             DiamondEngine.init(user.id);
         }
         setIsLoading(false);
-        // Preload questions in background
-        preloadQuestions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [avatarUser?.id, avatarLoading]);
 
-    async function preloadQuestions() {
+    /**
+     * Fetch ONE fresh set of questions.
+     *
+     * Replaces two hand-rolled loaders that both did `select('*')` with no
+     * limit (capped at PostgREST's 1000-row default, so anything past the
+     * first 1000 rows in a category was unreachable) and applied the 60-day
+     * exclusion inconsistently. Everything now goes through the shared loader:
+     * global 60-day exclusion, quality floor, multi-page random sampling and
+     * oldest-seen-first degradation, plus a hard exclusion of ids already
+     * served in this sitting.
+     */
+    const fetchQuestionSet = useCallback(async () => {
+        const categories = config.categories;
+        const sessionExcludeIds = sessionServedIdsRef.current;
+
         try {
-            const categories = config.categories;
-            // Phase 58: was missing quality_score filter — low-quality
-            // questions could leak into MTT/Cash/ICM/GTO. Apply qs>=6
-            // floor consistent with survival/endless/etc.
+            // 1. Today's daily roster for these categories, if it is deep enough.
+            const today = getTodayCST();
+            const { data: dailyData, error: dailyErr } = await supabase
+                .from('trivia_questions')
+                .select('id, category, difficulty, question, options, correct_index, explanation, quality_score')
+                .in('category', categories)
+                .eq('daily_date', today)
+                .gte('quality_score', MIN_QUALITY_SCORE)
+                .limit(500);
+
+            if (!dailyErr && dailyData && dailyData.length >= QUESTIONS_PER_GAME) {
+                const { ids: seenIds } = await getSeenHistory(supabase, userId, {});
+                // Shuffled by the loader — the old code sliced the DB's return
+                // order, so every player got the same first 20 in the same order.
+                const ordered = filterAndShuffle(dailyData, seenIds, QUESTIONS_PER_GAME, {
+                    minQualityScore: MIN_QUALITY_SCORE,
+                    sessionExcludeIds,
+                });
+                if (ordered.length >= QUESTIONS_PER_GAME) {
+                    return await withSolverMetadata(ordered.slice(0, QUESTIONS_PER_GAME));
+                }
+            }
+
+            // 2. Full pool through the shared no-repeat pipeline.
+            const { questions: loaded } = await loadQuestionsForUser(supabase, {
+                userId,
+                category: categories,
+                count: QUESTIONS_PER_GAME,
+                minQuality: MIN_QUALITY_SCORE,
+                sessionExcludeIds,
+            });
+            // The loader's server-side RPC fast path cannot see this session's
+            // served ids, so enforce them here too.
+            const fresh = (loaded || []).filter(q => q && !sessionExcludeIds.has(q.id));
+            if (fresh.length >= QUESTIONS_PER_GAME) {
+                return await withSolverMetadata(fresh.slice(0, QUESTIONS_PER_GAME));
+            }
+
+            // 3. Last resort before the offline bank: sample the pool directly
+            //    with the session exclusion applied.
+            const { ids: seenIds } = await getSeenHistory(supabase, userId, {});
+            const pool = await fetchRandomQuestionPool(supabase, {
+                category: categories,
+                minQuality: MIN_QUALITY_SCORE,
+                pageSize: Math.max(200, QUESTIONS_PER_GAME * 10),
+                excludeIds: seenIds,
+                want: QUESTIONS_PER_GAME,
+                attempts: 3,
+            });
+            const ordered = filterAndShuffle(pool, seenIds, QUESTIONS_PER_GAME, {
+                minQualityScore: MIN_QUALITY_SCORE,
+                sessionExcludeIds,
+            });
+            if (ordered.length > 0) {
+                return await withSolverMetadata(ordered.slice(0, QUESTIONS_PER_GAME));
+            }
+        } catch (e) {
+            console.warn('[StrategyTrivia] Question load failed:', e?.message || e);
+        }
+
+        return getFallbackQuestions(mode);
+    }, [mode, userId, config.categories]);
+
+    /**
+     * Attach engine_metadata (Phase 49 JSONB: gtoFrequencies, evData) to a
+     * chosen set so the analysis panel can show REAL solver numbers where they
+     * exist. The shared loader selects gameplay columns only, so this is a
+     * single follow-up query for the 20 ids actually served. Failure is
+     * non-fatal: the panel just omits the EV/frequency sections.
+     */
+    async function withSolverMetadata(rows) {
+        const ids = (rows || []).filter(isRealQuestion).map(q => q.id);
+        if (ids.length === 0) return rows;
+        try {
             const { data, error } = await supabase
                 .from('trivia_questions')
-                .select('*')
-                .in('category', categories)
-                .gte('quality_score', 6);
-
-            if (!error && data && data.length > 0) {
-                let available = data;
-                // Phase 58: was fetching the user's COMPLETE history with no
-                // time window — long-time users would exhaust the unseen pool
-                // forever. Now bounds to last 60 days, matching loadQuestions.
-                if (userId) {
-                    const sixtyDaysAgo = new Date();
-                    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-                    const { data: history } = await supabase
-                        .from('trivia_user_question_history')
-                        .select('question_id')
-                        .eq('user_id', userId)
-                        .gte('seen_at', sixtyDaysAgo.toISOString());
-                    if (history && history.length > 0) {
-                        const seenIds = new Set(history.map(h => h.question_id));
-                        const unseen = data.filter(q => !seenIds.has(q.id));
-                        if (unseen.length >= 10) available = unseen;
-                    }
-                }
-                // Phase 58: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-                const _shufArr = [...available];
-                for (let i = _shufArr.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [_shufArr[i], _shufArr[j]] = [_shufArr[j], _shufArr[i]];
-                }
-                setPreloadedQuestions(_shufArr.slice(0, 20));
-            } else {
-                setPreloadedQuestions(getFallbackQuestions(mode));
-            }
-        } catch (err) {
-            console.warn('[StrategyTrivia] Preload failed:', err);
-            setPreloadedQuestions(getFallbackQuestions(mode));
+                .select('id, engine_metadata')
+                .in('id', ids);
+            if (error || !data) return rows;
+            const byId = new Map(data.map(r => [r.id, r.engine_metadata]));
+            return rows.map(q => (byId.has(q.id) ? { ...q, engine_metadata: byId.get(q.id) } : q));
+        } catch (e) {
+            console.warn('[StrategyTrivia] metadata fetch skipped:', e?.message || e);
+            return rows;
         }
     }
+
+    /** Load the next set into preloadedQuestions (idempotent, background-safe). */
+    const preloadQuestions = useCallback(async () => {
+        if (preloadInFlightRef.current) return;
+        preloadInFlightRef.current = true;
+        try {
+            let set = await fetchQuestionSet();
+            // A preload started before the current game began cannot know which
+            // ids that game consumed. If the result overlaps, fetch once more
+            // (the session exclusion is now up to date) rather than handing the
+            // player a Play Again set containing questions they just answered.
+            const overlaps = (set || []).some(q => isRealQuestion(q) && sessionServedIdsRef.current.has(q.id));
+            if (overlaps) set = await fetchQuestionSet();
+            if (!_isMountedRef.current) return;
+            setPreloadedQuestions(set && set.length > 0 ? set : null);
+            setPreloadFailed(!set || set.length === 0);
+        } finally {
+            preloadInFlightRef.current = false;
+        }
+    }, [fetchQuestionSet]);
+
+    // Preload once auth has resolved. userId is in the dep list because the
+    // 60-day exclusion is per-user: the old effect read userId from the same
+    // render in which setLocalUserId was called, so on the common path the
+    // preloaded set was built with NO seen-history filter at all.
+    useEffect(() => {
+        if (avatarLoading || vipInitializing) return;
+        if (gameState !== 'lobby') return;
+        if (preloadedQuestions) return;
+        preloadQuestions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [avatarLoading, vipInitializing, userId, gameState]);
 
     async function loadUserDiamonds(uid) {
         try {
@@ -361,118 +597,34 @@ export default function StrategyTrivia({ mode }) {
         }
     }
 
-    // Timer effect
-    useEffect(() => {
-        if (!isTimerRunning || showResult) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return;
-        }
+    // ══ TIMER ══
+    // Was a setInterval whose updater called handleTimeout() — a side effect
+    // inside a setState updater. React 18 may invoke updaters twice, and
+    // handleTimeout -> selectAnswer(-1) appends to answers[], so a double
+    // invocation pushed TWO entries and permanently misaligned answers[]
+    // against questions[] (every later answer scored against the wrong
+    // question). The shared hook keeps its updater pure, fires onTimeout once,
+    // is anchored to a wall-clock deadline (no drift) and pauses when the tab
+    // is hidden instead of burning the clock in the background.
+    const { timeLeft, resetTimer, setIsTimerRunning } = useTriviaTimer({
+        initialTime: SECONDS_PER_QUESTION,
+        showResult,
+        gameState,
+        playingState: 'playing',
+        pauseOnHide: true,
+        onTimeout: () => { handleTimeout(); },
+    });
 
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [isTimerRunning, showResult, currentQuestionIndex]);
-
-    async function loadQuestions() {
-        setIsLoading(true);
-
-        try {
-            // 60-day non-repeat: Get user's recently seen question IDs
-            let excludeIds = [];
-            if (userId) {
-                const sixtyDaysAgo = new Date();
-                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-                const { data: recentHistory } = await supabase
-                    .from('trivia_user_question_history')
-                    .select('question_id')
-                    .eq('user_id', userId)
-                    .gte('seen_at', sixtyDaysAgo.toISOString());
-
-                if (recentHistory) {
-                    excludeIds = recentHistory.map(h => h.question_id);
-                }
-            }
-
-            // First try daily-tagged questions for today
-            const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
-                .toISOString().split('T')[0];
-
-            // Phase 58: apply qs>=6 quality floor on both daily + pool paths.
-            let dailyQuery = supabase
-                .from('trivia_questions')
-                .select('*')
-                .in('category', config.categories)
-                .eq('daily_date', today)
-                .gte('quality_score', 6);
-
-            const { data: dailyData } = await dailyQuery;
-
-            if (dailyData && dailyData.length >= 20) {
-                // Filter out recently seen, take 20
-                let available = excludeIds.length > 0
-                    ? dailyData.filter(q => !excludeIds.includes(q.id))
-                    : dailyData;
-
-                if (available.length >= 20) {
-                    setQuestions(available.slice(0, 20));
-                } else {
-                    // Supplement with daily questions even if seen
-                    setQuestions(dailyData.slice(0, 20));
-                }
-            } else {
-                // Fallback: fetch from full pool (still quality-floored).
-                let query = supabase
-                    .from('trivia_questions')
-                    .select('*')
-                    .in('category', config.categories)
-                    .gte('quality_score', 6);
-
-                const { data } = await query;
-
-                if (data && data.length > 0) {
-                    // Filter out recently seen questions (60-day exclusion)
-                    let available = excludeIds.length > 0
-                        ? data.filter(q => !excludeIds.includes(q.id))
-                        : data;
-
-                    // If not enough unseen questions, fall back to all
-                    if (available.length < 20) {
-                        available = data;
-                    }
-
-                    // Phase 58: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
-                    const _arr = [...available];
-                    for (let i = _arr.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [_arr[i], _arr[j]] = [_arr[j], _arr[i]];
-                    }
-                    setQuestions(_arr.slice(0, 20));
-                } else {
-                    setQuestions(getFallbackQuestions(mode));
-                }
-            }
-        } catch (e) {
-            console.warn('[StrategyTrivia] Error loading questions:', e);
-            setQuestions(getFallbackQuestions(mode));
-        }
-
-        setIsLoading(false);
-    }
-
+    /**
+     * Offline bank used only when the database is unreachable.
+     *
+     * These carry non-UUID ids on purpose: history rows are filtered to
+     * UUID-shaped ids (the FK to trivia_questions would reject them), and
+     * isFallbackSet() below makes a fallback run NON-REWARDING. Before that,
+     * a 2-question outage bank meant a 20-second "perfect" game paid the full
+     * mode reward plus the perfect bonus.
+     */
     function getFallbackQuestions(mode) {
-        // Fallback questions until database is seeded
         const fallbacks = {
             mtt: [
                 {
@@ -492,6 +644,42 @@ export default function StrategyTrivia({ mode }) {
                     options: ['Play tighter overall', 'Attack short stacks only', 'Play your normal game', 'Attack the chip leader'],
                     correct_index: 0,
                     explanation: 'With pay jumps imminent, playing tighter preserves equity against short stacks who will bust.'
+                },
+                {
+                    id: 'mtt-fb-3',
+                    category: 'mtt_situations',
+                    difficulty: 'easy',
+                    question: 'You open to 2.2x from the BTN with 40BB and the BB defends. Why is a small continuation bet good on a dry board?',
+                    options: ['It denies equity cheaply', 'It builds the pot for value only', 'It disguises your monsters', 'It is never good'],
+                    correct_index: 0,
+                    explanation: 'A small c-bet on a dry board denies the BB equity at a low price and keeps your whole range in.'
+                },
+                {
+                    id: 'mtt-fb-4',
+                    category: 'mtt_situations',
+                    difficulty: 'medium',
+                    question: 'With 8BB in the SB and folded to you, which hand class should you shove widest?',
+                    options: ['Suited connectors', 'Any two broadway cards', 'Small pairs only', 'Only premium hands'],
+                    correct_index: 1,
+                    explanation: 'At 8BB the BB calls wide, so card strength beats playability: broadways dominate the calling range.'
+                },
+                {
+                    id: 'mtt-fb-5',
+                    category: 'mtt_situations',
+                    difficulty: 'medium',
+                    question: 'A late-registration player sits with 100BB while the average is 30BB. How does that change your opens?',
+                    options: ['Open larger against them', 'Avoid marginal spots out of position to them', 'Ignore stack sizes', 'Always 3-bet them'],
+                    correct_index: 1,
+                    explanation: 'Deeper effective stacks amplify positional disadvantage, so tighten the hands you play out of position.'
+                },
+                {
+                    id: 'mtt-fb-6',
+                    category: 'mtt_situations',
+                    difficulty: 'hard',
+                    question: 'You are second in chips at a 9-handed final table with a huge pay jump one elimination away. The big stack opens your BB. You hold 88 with 30BB. Best default?',
+                    options: ['Shove', 'Call', '3-bet small', 'Fold'],
+                    correct_index: 1,
+                    explanation: 'Calling keeps the pot controlled and avoids a stack-off with the only player who can bust you before the pay jump.'
                 }
             ],
             cash: [
@@ -512,6 +700,42 @@ export default function StrategyTrivia({ mode }) {
                     options: ['Fold', 'Call', '5-Bet shove', '5-Bet small'],
                     correct_index: 1,
                     explanation: 'With 250BB stacks, AQs plays well deep and 5-betting turns your hand into a bluff.'
+                },
+                {
+                    id: 'cash-fb-3',
+                    category: 'cash_game_situations',
+                    difficulty: 'easy',
+                    question: 'What does a low stack-to-pot ratio on the flop generally favour?',
+                    options: ['Drawing hands', 'Made hands that can commit', 'Bluff-heavy strategies', 'Checking every street'],
+                    correct_index: 1,
+                    explanation: 'A low SPR removes future streets of leverage, so top-pair-type made hands can get stacks in profitably.'
+                },
+                {
+                    id: 'cash-fb-4',
+                    category: 'cash_game_situations',
+                    difficulty: 'medium',
+                    question: 'You hold 9h8h on a Jh 7h 2c flop in a single-raised pot in position. Why is a raise attractive versus a bet?',
+                    options: ['You have no equity', 'It builds a pot with a strong draw and fold equity', 'It protects a made hand', 'It is a value raise only'],
+                    correct_index: 1,
+                    explanation: 'A flush draw plus a gutshot has enough equity to raise for value against a range that folds often enough.'
+                },
+                {
+                    id: 'cash-fb-5',
+                    category: 'cash_game_situations',
+                    difficulty: 'medium',
+                    question: 'A recreational player limps and calls raises constantly. What is the single biggest adjustment?',
+                    options: ['Bluff more on every street', 'Isolate wider in position and value bet thinner', 'Play only premium hands', 'Always 3-bet the limp'],
+                    correct_index: 1,
+                    explanation: 'Value comes from playing more pots in position against the weak range and betting thinner for value.'
+                },
+                {
+                    id: 'cash-fb-6',
+                    category: 'cash_game_situations',
+                    difficulty: 'hard',
+                    question: 'You bet the flop and turn on a wet board and the river bricks. Villain has called twice. What most often justifies a third barrel?',
+                    options: ['Your hand has showdown value', 'Blockers to the hands that call', 'The pot is large', 'You want to see a showdown'],
+                    correct_index: 1,
+                    explanation: 'Third barrels need blockers to villains continuing range; card removal is what turns a marginal bluff profitable.'
                 }
             ],
             icm: [
@@ -532,6 +756,42 @@ export default function StrategyTrivia({ mode }) {
                     options: ['Extra chips you need to justify a call', 'The rake taken by the house', 'Your equity in the prize pool', 'The value of position'],
                     correct_index: 0,
                     explanation: 'Risk premium is the additional equity you need to call vs. chip EV due to ICM.'
+                },
+                {
+                    id: 'icm-fb-3',
+                    category: 'icm_chip_ev',
+                    difficulty: 'easy',
+                    question: 'In a satellite where every remaining seat pays the same, what happens to marginal calls?',
+                    options: ['They become much worse', 'They become much better', 'Nothing changes', 'They only matter for the chip leader'],
+                    correct_index: 0,
+                    explanation: 'Flat payouts make survival almost everything: a marginal call risks a seat to win chips worth nearly nothing.'
+                },
+                {
+                    id: 'icm-fb-4',
+                    category: 'icm_chip_ev',
+                    difficulty: 'medium',
+                    question: 'Which stack applies the most ICM pressure at a final table?',
+                    options: ['The shortest stack', 'The big stack, against medium stacks', 'The medium stack, against the big stack', 'Every stack equally'],
+                    correct_index: 1,
+                    explanation: 'The big stack risks least and can bust medium stacks who have the most to lose, so its aggression is cheapest.'
+                },
+                {
+                    id: 'icm-fb-5',
+                    category: 'icm_chip_ev',
+                    difficulty: 'hard',
+                    question: 'Two short stacks are all-in at another table on the money bubble. How should that affect your marginal spot?',
+                    options: ['Play more aggressively', 'Wait: your equity rises for free', 'Nothing changes', 'Always call to accumulate'],
+                    correct_index: 1,
+                    explanation: 'Someone else busting raises your equity at zero risk, so marginal gambles become even less attractive.'
+                },
+                {
+                    id: 'icm-fb-6',
+                    category: 'icm_chip_ev',
+                    difficulty: 'medium',
+                    question: 'Why is doubling your stack worth less than double in a tournament?',
+                    options: ['Because of rake', 'Because prize pool equity is concave in chips', 'Because blinds rise', 'It is worth exactly double'],
+                    correct_index: 1,
+                    explanation: 'Prize equity grows more slowly than chips: the second half of a doubled stack is worth less than the first.'
                 }
             ],
             gto: [
@@ -552,6 +812,42 @@ export default function StrategyTrivia({ mode }) {
                     options: ['33%', '50%', '67%', '75%'],
                     correct_index: 1,
                     explanation: 'MDF vs pot-sized bet is 1/(1+1) = 50%. You must defend at least 50% to prevent opponent profiting.'
+                },
+                {
+                    id: 'gto-fb-3',
+                    category: 'gto_theory',
+                    difficulty: 'easy',
+                    question: 'A half-pot bluff needs to work how often to break even immediately?',
+                    options: ['25%', '33%', '50%', '67%'],
+                    correct_index: 1,
+                    explanation: 'Risk 0.5 to win 1.0: the bluff must succeed 0.5 / 1.5 = 33% of the time to break even.'
+                },
+                {
+                    id: 'gto-fb-4',
+                    category: 'gto_theory',
+                    difficulty: 'medium',
+                    question: 'What does having a range advantage on a board usually allow?',
+                    options: ['Betting small at a high frequency', 'Always checking', 'Only betting big', 'Folding more'],
+                    correct_index: 0,
+                    explanation: 'When your range is stronger across the board, small bets at high frequency pressure the whole opposing range cheaply.'
+                },
+                {
+                    id: 'gto-fb-5',
+                    category: 'gto_theory',
+                    difficulty: 'hard',
+                    question: 'What is a blocker, in solver terms?',
+                    options: ['A card that stops the action', 'A card in your hand that removes combinations from their range', 'A bet size that stops bluffs', 'A position advantage'],
+                    correct_index: 1,
+                    explanation: 'Blockers remove combinations from the opponent range, shifting how often they can continue and which bluffs are best.'
+                },
+                {
+                    id: 'gto-fb-6',
+                    category: 'gto_theory',
+                    difficulty: 'medium',
+                    question: 'Why does a polarized range prefer large bet sizes?',
+                    options: ['To look strong', 'Because value hands and bluffs both gain from maximum pressure', 'To save money', 'Because it is faster'],
+                    correct_index: 1,
+                    explanation: 'A polarized range wants maximum fold equity for the bluffs and maximum value from the strong hands - both favour big sizing.'
                 }
             ]
         };
@@ -559,92 +855,134 @@ export default function StrategyTrivia({ mode }) {
         return fallbacks[mode] || fallbacks.gto;
     }
 
+    /** Any non-UUID id means this run came from the offline bank. */
+    function isFallbackSet(list) {
+        return (list || []).some(q => !isRealQuestion(q));
+    }
+
+    /**
+     * Start (or restart) a game.
+     *
+     * Billing changes vs the previous version:
+     *  - The forgeable sessionStorage 'trivia_paid' flag is GONE. Anyone could
+     *    set it in devtools and play for free; the lobby also set it after
+     *    charging, which meant lobby entry and direct-URL entry cost different
+     *    amounts for the same mode. The destination page (this component) is
+     *    now the only charger, and the DB deduction RPC — server-verified and
+     *    idempotency-keyed — is the entitlement.
+     *  - Entry is blocked until the VIP check resolves, so a VIP who taps fast
+     *    is no longer charged as a non-VIP.
+     *  - Questions are resolved BEFORE the charge, so a failed load can never
+     *    take diamonds without giving a game.
+     */
     async function startGame() {
         if (isStartingRef.current) return;
+        // Race: isVip is false until the async VIP check resolves.
+        if (vipInitializing) return;
         isStartingRef.current = true;
+        setEntryError(null);
+        setIsPreparing(true);
         try {
-        // ═══════════════════════════════════════════════════════════════
-        // HOTFIX: Check if this game was already paid for via TriviaLobby
-        // payment modal. If so, skip the deduction and clear the flag.
-        // ═══════════════════════════════════════════════════════════════
-        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
-            && sessionStorage.getItem('trivia_mode') === mode;
-        if (alreadyPaid) {
-            sessionStorage.removeItem('trivia_paid');
-            sessionStorage.removeItem('trivia_mode');
-        }
-
-        // Per-game diamond cost for non-VIP users (skip if already paid)
-        if (!alreadyPaid && !isVip && userId) {
-            // Fresh balance check from DB to avoid stale-state false negatives
-            let freshBalance = userDiamonds;
-            try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (profile) {
-                    freshBalance = profile.diamonds || 0;
-                    setUserDiamonds(freshBalance);
-                }
-            } catch (e) {
-                console.warn('[StrategyTrivia] Balance check failed:', e);
+            // 1. Resolve a question set first (preloaded set is consumed once).
+            let set = preloadedQuestions;
+            if (!set || set.length === 0) {
+                set = await fetchQuestionSet();
             }
-
-            if (freshBalance < GAME_DIAMOND_COST) {
-                setShowOutOfDiamonds(true);
+            if (!set || set.length === 0) {
+                setPreloadFailed(true);
+                setEntryError('Questions could not be loaded right now. Please try again in a moment.');
                 return;
             }
 
-            try {
-                await DiamondEngine.init(userId);
-                const result = await DiamondEngine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
-                if (!result.success) {
+            // 2. Server-authoritative entry charge for non-VIP users.
+            if (!isVip && entryCost > 0) {
+                if (!userId) {
+                    setEntryError('Please sign in to play this mode.');
+                    return;
+                }
+                let freshBalance = userDiamonds;
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', userId)
+                        .maybeSingle();
+                    if (profile) {
+                        freshBalance = profile.diamonds || 0;
+                        setUserDiamonds(freshBalance);
+                    }
+                } catch (e) {
+                    console.warn('[StrategyTrivia] Balance check failed:', e);
+                }
+
+                if (freshBalance < entryCost) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                if (result.balance !== undefined) setUserDiamonds(result.balance);
-                busEmit.diamondsSpent(GAME_DIAMOND_COST, `${config.title} Entry`);
-            } catch (e) {
-                console.warn('[StrategyTrivia] Diamond deduction failed:', e);
-                setShowOutOfDiamonds(true);
-                return;
-            }
-        }
 
-        // Use preloaded questions if available, otherwise load fresh
-        if (preloadedQuestions && preloadedQuestions.length > 0) {
-            setQuestions(preloadedQuestions);
-        } else {
-            loadQuestions();
-        }
-        // Phase 68: clear last-game's award-result state so a Play Again from
-        // a previous failed-award run doesn't show the stale error banner
-        // on the next results screen.
-        setResultActualAwarded(null);
-        setResultAwardError(null);
-        setGameState('playing');
-        setCurrentQuestionIndex(0);
-        setCorrectCount(0);
-        setAnswers([]);
-        setSelectedAnswer(null);
-        setShowResult(false);
-        setFiftyFiftyUsed(false);
-        setEliminatedOptions([]);
-        setSkipUsed(false);
-        setLifelinesUsedCount(0);
-        setTimeLeft(60);
-        setIsTimerRunning(true);
-        startTimeRef.current = Date.now();
+                try {
+                    await DiamondEngine.init(userId);
+                    const result = await DiamondEngine.deduct(entryCost, 'game_cost', { mode, game: 'trivia' });
+                    if (!result?.success) {
+                        setShowOutOfDiamonds(true);
+                        return;
+                    }
+                    if (result.balance !== undefined) setUserDiamonds(result.balance);
+                    busEmit.diamondsSpent(entryCost, `${config.title} Entry`);
+                } catch (e) {
+                    console.warn('[StrategyTrivia] Diamond deduction failed:', e);
+                    setEntryError('The entry charge could not be completed. You have not been charged.');
+                    return;
+                }
+            }
+
+            // 3. Consume the set and start. Everything below is synchronous so
+            //    a paid entry always lands in a playable game.
+            sessionServedIdsRef.current = new Set([
+                ...sessionServedIdsRef.current,
+                ...set.filter(isRealQuestion).map(q => q.id),
+            ]);
+            setPreloadedQuestions(null);
+            setQuestions(set);
+
+            gameNonceRef.current = makeNonce();
+            finishedRef.current = false;
+            advanceLockRef.current = false;
+            fiftyInFlightRef.current = false;
+            skipInFlightRef.current = false;
+
+            setResultActualAwarded(null);
+            setResultAwardError(null);
+            setResultSummary(null);
+            setResultCapped(false);
+            setGameState('playing');
+            setCurrentQuestionIndex(0);
+            setCorrectCount(0);
+            setAnswers([]);
+            answersRef.current = [];
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setFiftyFiftyUsed(false);
+            setEliminatedOptions([]);
+            setSkipUsed(false);
+            setLifelinesUsedCount(0);
+            startTimeRef.current = Date.now();
+            resetTimer(SECONDS_PER_QUESTION);
+
+            // 4. Warm the NEXT set in the background. This is what makes Play
+            //    Again serve fresh questions: the old code kept one preloaded
+            //    array forever, so every replay was the SAME 20 questions in
+            //    the SAME order — memorize once, then farm the perfect bonus.
+            preloadQuestions();
         } finally {
+            setIsPreparing(false);
             isStartingRef.current = false;
         }
     }
 
     function handleTimeout() {
         setIsTimerRunning(false);
-        selectAnswer(-1); // Wrong answer due to timeout
+        selectAnswer(TIMEOUT_ANSWER);
     }
 
     function selectAnswer(index) {
@@ -662,52 +1000,104 @@ export default function StrategyTrivia({ mode }) {
             busEmit.decisionIncorrect(correctCount);
             busEmit.screenShake('light');
         }
-        setAnswers(prev => [...prev, index]);
+        // Mirror into the ref immediately: finishGame and the skip lifeline
+        // both read answersRef, and a double-click must not be able to append
+        // twice through a stale render.
+        const next = [...answersRef.current, index];
+        answersRef.current = next;
+        setAnswers(next);
     }
 
     function nextQuestion() {
+        // Double-clicking Next used to run setCurrentQuestionIndex(prev+1)
+        // twice, skipping a question with no answer appended and misaligning
+        // answers[] against questions[] for the rest of the game.
+        if (advanceLockRef.current) return;
+        advanceLockRef.current = true;
+
         if (currentQuestionIndex + 1 >= questions.length) {
             finishGame();
-        } else {
-            setCurrentQuestionIndex(prev => prev + 1);
-            setSelectedAnswer(null);
-            setShowResult(false);
-            setEliminatedOptions([]);
-            setTimeLeft(60);
-            setIsTimerRunning(true);
+            return;
         }
+        setCurrentQuestionIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+        setShowResult(false);
+        setEliminatedOptions([]);
+        resetTimer(SECONDS_PER_QUESTION);
     }
 
-    async function finishGame() {
-        setIsTimerRunning(false);
-        const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        // Recompute correctCount from answersRef (always current) to avoid stale closure
-        // when called from skip lifeline's 300ms setTimeout
-        const actualCorrectCount = answersRef.current.filter((a, i) =>
-            a === questions[i]?.correct_index || a === -2 // -2 = skipped (counts as correct)
-        ).length;
-        const diamondsEarned = calculateDiamonds(mode, actualCorrectCount, questions.length, 0);
+    // Release the advance lock once the new question has rendered.
+    useEffect(() => { advanceLockRef.current = false; }, [currentQuestionIndex]);
 
-        // Phase 68: track what actually got awarded so trivia_scores doesn't
-        // record a false diamonds_earned and the results UI doesn't lie.
+    async function finishGame() {
+        // Double-clicking 'See Results' used to run two concurrent finishGame
+        // calls: two trivia_scores inserts (duplicate leaderboard rows) and two
+        // reward RPCs.
+        if (finishedRef.current) return;
+        finishedRef.current = true;
+
+        setIsTimerRunning(false);
+        const timeSpent = Math.max(0, Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000));
+
+        // Skips are neutral: excluded from numerator AND denominator.
+        const { correct: actualCorrectCount, skipped, total: effectiveTotal } =
+            scoreAnswers(answersRef.current, questions);
+        setResultSummary({ correct: actualCorrectCount, skipped, total: effectiveTotal });
+
+        // A run served from the offline fallback bank pays nothing: it is a
+        // 6-question emergency set, not a 20-question game.
+        const fallbackRun = isFallbackSet(questions);
+        const rawEarned = fallbackRun
+            ? 0
+            : calculateDiamonds(mode, actualCorrectCount, effectiveTotal, 0);
+
+        let diamondsEarned = rawEarned;
         let actualAwarded = 0;
         let awardError = null;
+
         if (userId) {
-            // Save score and award diamonds
+            // Daily cap — without it, Play Again is an unbounded faucet for
+            // anyone who memorizes a category.
+            //
+            // The cap comes from the shared DAILY_DIAMOND_CAPS table, which now
+            // carries paid-mode-aware values (mtt/cash/icm 40, gto 60) instead
+            // of the old blanket 10/day. That 10 was below a single perfect GTO
+            // run (8 + 15 = 23), so a PAID mode could never return its own
+            // 10-diamond entry — the mode was net-negative by construction.
+            // The local "two perfect runs" override that used to compensate for
+            // that is gone; the table is authoritative. Only the defensive
+            // fallback for a mode missing from the table remains.
+            if (rawEarned > 0) {
+                try {
+                    const earnedToday = await getDailyDiamondsEarned(supabase, userId, mode);
+                    const modeCfg = getModeConfig(mode) || {};
+                    const fallbackCap = Math.max(20, ((modeCfg.diamondReward || 0) + (modeCfg.perfectBonus || 0)) * 2);
+                    const dailyCap = DAILY_DIAMOND_CAPS[mode] || fallbackCap;
+                    diamondsEarned = clampToCap(earnedToday, rawEarned, dailyCap);
+                } catch (e) {
+                    console.warn('[StrategyTrivia] Daily cap check failed, awarding uncapped:', e?.message || e);
+                    diamondsEarned = rawEarned;
+                }
+                setResultCapped(diamondsEarned < rawEarned);
+            }
+
             if (diamondsEarned > 0) {
                 try {
                     const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: diamondsEarned,
                         p_type: 'trivia_reward',
-                        p_description: `${config.title} reward — ${diamondsEarned}diamonds`,
-                        p_reference_id: `strategy_reward_${mode}_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: stable per-(mode, user, minute) so retries dedup at DB
+                        p_description: `${config.title} reward — ${diamondsEarned} diamonds`,
+                        // Per-GAME nonce. Was per (mode, user, MINUTE): two short
+                        // games inside one minute paid once, and a retry across a
+                        // minute boundary paid twice.
+                        p_reference_id: `strategy_reward_${mode}_${userId}_${gameNonceRef.current}`
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
                     busEmit.diamondsEarned(diamondsEarned, `${config.title} Reward`);
-                    if (actualCorrectCount >= questions.length) busEmit.celebration('confetti');
+                    if (actualCorrectCount >= effectiveTotal) busEmit.celebration('confetti');
                     actualAwarded = diamondsEarned;
                 } catch (e) {
                     // Phase 68: was silently swallowing the rpcErr — user saw
@@ -723,60 +1113,35 @@ export default function StrategyTrivia({ mode }) {
             // does NOT throw on DB errors, so the surrounding try/catch only
             // saw network errors. Without this, NOT NULL violations / RLS
             // denials silently dropped scores while UI showed success.
-            try {
-                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-                const { error: scoreErr } = await supabase.from('trivia_scores').insert({
-                    user_id: userId,
-                    mode,
-                    score: actualCorrectCount * 100,
-                    correct_count: actualCorrectCount,
-                    total_questions: questions.length,
-                    time_spent: timeSpent,
-                    // Phase 68: was diamondsEarned (the intended amount). Now
-                    // actualAwarded — 0 if the RPC failed — so trivia_scores
-                    // matches what the user really received.
-                    diamonds_earned: actualAwarded,
-                    play_date: today
-                });
-                if (scoreErr) throw scoreErr;
-            } catch (e) {
-                console.warn('[StrategyTrivia] Error saving score:', e);
+            if (!fallbackRun) {
+                try {
+                    const { error: scoreErr } = await supabase.from('trivia_scores').insert({
+                        user_id: userId,
+                        mode,
+                        score: actualCorrectCount * 100,
+                        correct_count: actualCorrectCount,
+                        total_questions: effectiveTotal,
+                        time_spent: timeSpent,
+                        // Phase 68: was diamondsEarned (the intended amount). Now
+                        // actualAwarded — 0 if the RPC failed — so trivia_scores
+                        // matches what the user really received.
+                        diamonds_earned: actualAwarded,
+                        play_date: getTodayCST()
+                    });
+                    if (scoreErr) throw scoreErr;
+                } catch (e) {
+                    console.warn('[StrategyTrivia] Error saving score:', e);
+                }
             }
 
-            // Record question history for 60-day non-repeat tracking.
-            // Phase 68: was inserting EVERY question including
-            // getFallbackQuestions() entries with hardcoded string IDs like
-            // 'mtt-fb-1' / 'cash-fb-2' which violate the FK to
-            // trivia_questions.id (uuid). Each fallback insert silently
-            // failed and dropped the entire batch (PostgREST upsert is
-            // all-or-nothing). Filter to UUID-shaped IDs only so real
-            // questions are tracked even when fallback questions are mixed
-            // in. Also capture upsert errors that were silently swallowed.
-            if (questions && questions.length > 0) {
+            // Record question history for the 60-day non-repeat guarantee.
+            // Only UUID-shaped ids: fallback ids like 'mtt-fb-1' violate the FK
+            // to trivia_questions.id and PostgREST upserts are all-or-nothing,
+            // so one fallback row used to drop the entire batch.
+            const realQuestions = (questions || []).filter(isRealQuestion);
+            if (realQuestions.length > 0) {
                 try {
-                    const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                    const historyRecords = questions
-                        .map((q, idx) => ({ q, idx }))
-                        .filter(({ q }) => q && typeof q.id === 'string' && _uuidRe.test(q.id))
-                        .map(({ q, idx }) => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: answersRef.current[idx] === q.correct_index,
-                            seen_at: new Date().toISOString(),
-                            mode
-                        }));
-
-                    if (historyRecords.length > 0) {
-                        const { error: historyErr } = await supabase
-                            .from('trivia_user_question_history')
-                            .upsert(historyRecords, {
-                                onConflict: 'user_id,question_id',
-                                ignoreDuplicates: false
-                            });
-                        if (historyErr) {
-                            console.warn('[StrategyTrivia] History upsert failed (non-fatal):', historyErr.message);
-                        }
-                    }
+                    await recordQuestionsSeen(supabase, userId, realQuestions, mode);
                 } catch (e) {
                     console.warn('[StrategyTrivia] Error recording history:', e);
                 }
@@ -790,109 +1155,156 @@ export default function StrategyTrivia({ mode }) {
         setGameState('results');
     }
 
+    /**
+     * Charge a lifeline. Returns true when the player may use it.
+     * The reference id carries the per-game nonce AND the question index, so
+     * retries inside one game dedup while a replay is charged again.
+     */
+    async function chargeLifeline(kind, label) {
+        if (isVip) return true;
+        if (!userId) return false;
+        try {
+            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -LIFELINE_COST,
+                p_type: 'strategy_lifeline',
+                p_description: `${config.title} ${label} — ${LIFELINE_COST} diamonds`,
+                p_reference_id: `strategy_${kind}_${mode}_${userId}_${gameNonceRef.current}_${currentQuestionIndex}`
+            });
+            if (__rpcErr) throw __rpcErr;
+            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+            busEmit.diamondsSpent(LIFELINE_COST, label);
+            return true;
+        } catch (e) {
+            console.warn(`[StrategyTrivia] ${label} deduct failed:`, e);
+            return false;
+        }
+    }
+
     // Lifeline: 50/50
     async function useFiftyFifty() {
+        if (fiftyInFlightRef.current) return;
         if (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
+        if (showResult || selectedAnswer !== null || !currentQuestion) return;
         if (!isVip && userDiamonds < LIFELINE_COST) {
             setShowOutOfDiamonds(true);
             return;
         }
+        fiftyInFlightRef.current = true;
+        try {
+            const paid = await chargeLifeline('fifty', '50/50 Lifeline');
+            if (!paid) return;
 
-        // Deduct diamonds via audit-safe RPC for non-VIP users
-        if (!isVip) {
-            try {
-                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: -LIFELINE_COST,
-                    p_type: 'strategy_lifeline',
-                    p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}diamonds`,
-                    p_reference_id: `strategy_fifty_${mode}_${userId}_${currentQuestionIndex}`  // Phase 56: stable per question — DB dedups double-clicks
-                });
-                if (__rpcErr) throw __rpcErr;
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsSpent(LIFELINE_COST, '50/50 Lifeline');
-            } catch (e) {
-                console.warn('[StrategyTrivia] 50/50 deduct failed:', e);
-                return;
+            // Eliminate 2 wrong answers.
+            // Phase 58: was using sort(()=>Math.random()-0.5) which is mathematically
+            // biased; some permutations are 2x more likely. Fisher-Yates is uniform.
+            const correctIdx = currentQuestion.correct_index;
+            const wrongIndices = currentQuestion.options
+                .map((_, i) => i)
+                .filter(i => i !== correctIdx);
+            for (let i = wrongIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
             }
-        }
+            const toEliminate = wrongIndices.slice(0, 2);
 
-        // Eliminate 2 wrong answers.
-        // Phase 58: was using sort(()=>Math.random()-0.5) which is mathematically
-        // biased; some permutations are 2x more likely. Fisher-Yates is uniform.
-        const correctIdx = currentQuestion.correct_index;
-        const wrongIndices = currentQuestion.options
-            .map((_, i) => i)
-            .filter(i => i !== correctIdx);
-        for (let i = wrongIndices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+            setEliminatedOptions(toEliminate);
+            setFiftyFiftyUsed(true);
+            setLifelinesUsedCount(prev => prev + 1);
+        } finally {
+            fiftyInFlightRef.current = false;
         }
-        const toEliminate = wrongIndices.slice(0, 2);
-
-        setEliminatedOptions(toEliminate);
-        setFiftyFiftyUsed(true);
-        setLifelinesUsedCount(prev => prev + 1);
     }
 
     // Lifeline: Skip Question
     async function useSkip() {
+        if (skipInFlightRef.current) return;
         if (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
+        if (showResult || selectedAnswer !== null || !currentQuestion) return;
         if (!isVip && userDiamonds < LIFELINE_COST) {
             setShowOutOfDiamonds(true);
             return;
         }
+        skipInFlightRef.current = true;
+        try {
+            const paid = await chargeLifeline('skip', 'Skip Question');
+            if (!paid) return;
 
-        // Deduct diamonds via audit-safe RPC for non-VIP users
-        if (!isVip) {
-            try {
-                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: -LIFELINE_COST,
-                    p_type: 'strategy_lifeline',
-                    p_description: `${config.title} skip question — ${LIFELINE_COST}diamonds`,
-                    p_reference_id: `strategy_skip_${mode}_${userId}_${currentQuestionIndex}`  // Phase 56: stable per question — DB dedups double-clicks
-                });
-                if (__rpcErr) throw __rpcErr;
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
-            } catch (e) {
-                console.warn('[StrategyTrivia] Skip deduct failed:', e);
-                return;
-            }
+            // Mark as skipped. NOT as correct: a paid skip used to increment
+            // correctCount and be scored as a right answer, so 5 diamonds
+            // bought a guaranteed correct answer, purchasable perfect bonuses
+            // and an inflated leaderboard score. It is neutral now — excluded
+            // from both the numerator and the denominator.
+            const next = [...answersRef.current, LIFELINE_SKIP];
+            answersRef.current = next;
+            setAnswers(next);
+            setSkipUsed(true);
+            setLifelinesUsedCount(prev => prev + 1);
+            setIsTimerRunning(false);
+            // Lock answering for the 300ms hand-off. Without this the player
+            // could still click an option and append a SECOND entry for this
+            // question, shifting answers[] against questions[] for good.
+            setSelectedAnswer(LIFELINE_SKIP);
+
+            // Move to next.
+            // Phase 68: safeSetTimeout instead of setTimeout — was firing
+            // setState / finishGame on an unmounted component when the user
+            // navigated away during the 300ms window after pressing Skip.
+            safeSetTimeout(() => {
+                if (currentQuestionIndex + 1 >= questions.length) {
+                    finishGame();
+                } else {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    setSelectedAnswer(null);
+                    setShowResult(false);
+                    setEliminatedOptions([]);
+                    resetTimer(SECONDS_PER_QUESTION);
+                }
+            }, 300);
+        } finally {
+            skipInFlightRef.current = false;
         }
-
-        // Mark as skipped (correct to not penalize)
-        setCorrectCount(prev => prev + 1);
-        setAnswers(prev => [...prev, -2]); // -2 = skipped
-        setSkipUsed(true);
-        setLifelinesUsedCount(prev => prev + 1);
-
-        // Move to next.
-        // Phase 68: safeSetTimeout instead of setTimeout — was firing
-        // setState / finishGame on an unmounted component when the user
-        // navigated away during the 300ms window after pressing Skip.
-        safeSetTimeout(() => {
-            if (currentQuestionIndex + 1 >= questions.length) {
-                finishGame();
-            } else {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setSelectedAnswer(null);
-                setShowResult(false);
-                setEliminatedOptions([]);
-                setTimeLeft(60);
-                setIsTimerRunning(true);
-            }
-        }, 300);
     }
 
+    // ══ KEYBOARD CONTROLS ══ 1-4 / A-D answer, Enter advances.
+    useEffect(() => {
+        if (gameState !== 'playing') return undefined;
+        const onKeyDown = (e) => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const target = e.target;
+            const tag = (target?.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+
+            if (!showResult && selectedAnswer === null && currentQuestion) {
+                let idx = -1;
+                if (/^[1-9]$/.test(e.key)) idx = parseInt(e.key, 10) - 1;
+                else if (/^[a-jA-J]$/.test(e.key)) idx = e.key.toLowerCase().charCodeAt(0) - 97;
+                if (idx >= 0 && idx < (currentQuestion.options?.length || 0) && !eliminatedOptions.includes(idx)) {
+                    e.preventDefault();
+                    selectAnswer(idx);
+                    return;
+                }
+            }
+            if (showResult && (e.key === 'Enter' || e.key === ' ') && tag !== 'button' && tag !== 'a') {
+                e.preventDefault();
+                nextQuestion();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameState, showResult, selectedAnswer, currentQuestion, eliminatedOptions, currentQuestionIndex, questions.length]);
+
+
     if (isLoading) {
+        // Was a bare 'Loading...' string on an empty page for the flagship
+        // strategy modes; the shared skeleton is what every other trivia
+        // entry point shows.
         return (
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ color: 'white' }}>Loading...</div>
+                    <TriviaSkeleton label={`Loading ${config.title}`} />
                 </div>
             </PageTransition>
         );
@@ -909,45 +1321,76 @@ export default function StrategyTrivia({ mode }) {
 
                 {/* Out of Diamonds Modal */}
                 {showOutOfDiamonds && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div
+                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Not enough diamonds"
+                    >
                         <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>diamonds</div>
+                            {/* Was the literal word 'diamonds' rendered at 48px as
+                                the modal's hero icon — left over from an emoji strip. */}
+                            <div style={{ marginBottom: 16, color: '#00D4FF' }}><Gem size={48} aria-hidden /></div>
                             <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {GAME_DIAMOND_COST}diamonds to play. Visit the Diamond Store to get more!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {entryCost} diamonds to play. Visit the Diamond Store to get more!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
-                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                                <button type="button" onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '12px 20px', minHeight: 44, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                                <button type="button" onClick={() => router.push('/hub/diamond-store')} style={{ padding: '12px 20px', minHeight: 44, background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* One-time diamond cost popup for non-VIP users */}
+                {/* One-time diamond cost popup for non-VIP users.
+                    featureKey, not pageKey: every other call site in the repo
+                    passes featureKey, so this popup's per-feature acknowledged
+                    tracking was reading undefined on all four strategy modes. */}
                 <GameCostPopup
                     userId={userId}
-                    pageKey={`trivia_${mode}`}
+                    featureKey={`trivia_${mode}`}
                     isVip={isVip}
-                    cost={GAME_DIAMOND_COST}
+                    cost={entryCost}
                 />
 
                 <div className="content">
+                    {entryError && (
+                        <div className="entry-error" role="alert">
+                            <AlertTriangle size={16} aria-hidden />
+                            <span>{entryError}</span>
+                        </div>
+                    )}
+
                     {/* LOBBY STATE */}
                     {gameState === 'lobby' && (
                         LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby */
-                            <div className="lobby-image-wrapper" onClick={startGame}>
+                            /* Full-bleed image lobby. A real <button>, not a
+                               click-only div: this is the primary entry point
+                               for the mode and was unreachable by keyboard. */
+                            <button
+                                type="button"
+                                className="lobby-image-wrapper"
+                                onClick={startGame}
+                                disabled={isPreparing || vipInitializing}
+                                aria-label={`${config.title} — start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
+                            >
                                 <img
                                     src={LOBBY_IMAGES[mode]}
                                     alt={`${config.title} - Start Challenge`}
                                     className="lobby-image"
                                 />
-                                {!preloadedQuestions && (
+                                {(isPreparing || (!preloadedQuestions && !preloadFailed)) && (
                                     <div className="lobby-loading-overlay">
                                         <div className="lobby-spinner" />
-                                        <span>Loading Questions...</span>
+                                        <span>{isPreparing ? 'Dealing In...' : 'Loading Questions...'}</span>
                                     </div>
                                 )}
-                            </div>
+                                <div className="lobby-cost-strip">
+                                    <span>{QUESTIONS_PER_GAME} Questions</span>
+                                    <span className="lobby-cost-chip">
+                                        {isVip ? 'VIP: Free Entry' : <>Entry {entryCost} <Gem size={12} aria-hidden /></>}
+                                    </span>
+                                </div>
+                            </button>
                         ) : (
                             /* Fallback text lobby for modes without images */
                             <div className="lobby">
@@ -958,20 +1401,30 @@ export default function StrategyTrivia({ mode }) {
                                 <div className="info-card">
                                     <div className="info-row">
                                         <span>Questions</span>
-                                        <span>20</span>
+                                        <span>{QUESTIONS_PER_GAME}</span>
                                     </div>
                                     <div className="info-row">
                                         <span>Time Per Question</span>
-                                        <span>60 Seconds</span>
+                                        <span>{SECONDS_PER_QUESTION} Seconds</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span>Entry</span>
+                                        <span>{isVip ? 'Free (VIP)' : <>{entryCost} <Gem size={14} aria-hidden /></>}</span>
                                     </div>
                                     <div className="info-row">
                                         <span>Perfect Score Bonus</span>
-                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} /></span>
+                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} aria-hidden /></span>
                                     </div>
                                 </div>
 
-                                <button className="start-btn" onClick={startGame} style={{ background: config.color }}>
-                                    Start Challenge
+                                <button
+                                    type="button"
+                                    className="start-btn"
+                                    onClick={startGame}
+                                    disabled={isPreparing || vipInitializing}
+                                    style={{ background: config.color }}
+                                >
+                                    {isPreparing ? 'Dealing In...' : 'Start Challenge'}
                                 </button>
                             </div>
                         )
@@ -983,24 +1436,31 @@ export default function StrategyTrivia({ mode }) {
                             <div className="game-frame">
                                 {/* Header */}
                                 <div className="game-header">
-                                    <div className="progress">
+                                    <div className="progress" role="status" aria-live="polite">
                                         Question {currentQuestionIndex + 1} of {questions.length}
                                     </div>
                                     <div className="timer-ring-container">
-                                        <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48">
+                                        <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden>
                                             <circle className="timer-ring-bg" cx="24" cy="24" r="20" />
                                             <circle
                                                 className="timer-ring-progress"
                                                 cx="24" cy="24" r="20"
                                                 style={{
                                                     strokeDasharray: `${2 * Math.PI * 20}`,
-                                                    strokeDashoffset: `${2 * Math.PI * 20 * (1 - timeLeft / 60)}`,
+                                                    strokeDashoffset: `${2 * Math.PI * 20 * (1 - timeLeft / SECONDS_PER_QUESTION)}`,
                                                     stroke: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
                                                 }}
                                             />
                                         </svg>
                                         <span className="timer-text" style={{ color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88' }}>
                                             {timeLeft}
+                                        </span>
+                                        {/* Announce at the 30/10/5s marks only — a
+                                            per-second live region is unusable. */}
+                                        <span className="sr-only" role="timer" aria-live="assertive">
+                                            {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
+                                                ? `${timeLeft} seconds remaining`
+                                                : ''}
                                         </span>
                                     </div>
                                 </div>
@@ -1014,14 +1474,20 @@ export default function StrategyTrivia({ mode }) {
                                     </div>
 
                                     <h2 className="question-text">
-                                        {renderTextWithCards(formatPokerText(toTitleCase(currentQuestion.question)))}
+                                        {/* Card detection runs on the RAW text and the
+                                            title-caser is applied to the remaining
+                                            fragments — title-casing first turned every
+                                            mid-sentence "as" into the ace of spades. */}
+                                        {renderTextWithCards(
+                                            currentQuestion.question,
+                                            s => formatPokerText(toTitleCase(s))
+                                        )}
                                     </h2>
 
-                                    {/* GTO Scenario Display — Inline rendering */}
+                                    {/* Analysis panel — real solver metadata only */}
                                     {showResult && (() => {
-                                        const altLines = generateAlternateLines(currentQuestion);
-                                        const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
-                                        const computedConfidence = 100 - altSum;
+                                        const solver = readSolverMetadata(currentQuestion);
+                                        const hasSolverData = solver.confidence != null;
 
                                         return (
                                             <div style={{ marginTop: '16px', marginBottom: '8px', width: '100%' }}>
@@ -1041,19 +1507,58 @@ export default function StrategyTrivia({ mode }) {
                                                     fontWeight: 700,
                                                     fontSize: '15px',
                                                 }}>
-                                                    {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
+                                                    {selectedAnswer === currentQuestion.correct_index ? 'CORRECT' : 'INCORRECT'}
                                                 </div>
 
-                                                <GTOScenarioDisplay
-                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                    confidence={computedConfidence}
-                                                    explanation={currentQuestion.explanation}
-                                                    gtoApproach={generateGTOApproach(currentQuestion)}
-                                                    evAnalysis={generateEVAnalysis(currentQuestion)}
-                                                    alternateLines={altLines}
-                                                    isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
-                                                    showDetails={true}
-                                                />
+                                                {hasSolverData ? (
+                                                    <GTOScenarioDisplay
+                                                        action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
+                                                        confidence={solver.confidence}
+                                                        explanation={currentQuestion.explanation}
+                                                        gtoApproach={generateGTOApproach(currentQuestion)}
+                                                        evAnalysis={solver.evAnalysis}
+                                                        alternateLines={solver.alternateLines}
+                                                        isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
+                                                        showDetails={true}
+                                                        // Enables the opt-in "Generate visual card"
+                                                        // button. Without a questionId the panel
+                                                        // hides it by design, which kept the whole
+                                                        // visual-analysis feature dark. The category
+                                                        // lets the panel hide the button up front for
+                                                        // questions /api/trivia/render-gto-panel
+                                                        // would reject anyway. Auth falls back to the
+                                                        // live supabase session inside the panel.
+                                                        questionId={currentQuestion.id}
+                                                        category={currentQuestion.category}
+                                                    />
+                                                ) : (
+                                                    /* No solver metadata on this question: show the
+                                                       question's own coaching notes rather than an
+                                                       invented EV number and confidence circle. */
+                                                    <div className="coaching-notes">
+                                                        <div className="coaching-notes__head">Coaching Notes</div>
+                                                        <div className="coaching-notes__answer">
+                                                            Best line:{' '}
+                                                            <strong>
+                                                                {renderTextWithCards(
+                                                                    currentQuestion.options[currentQuestion.correct_index] || '',
+                                                                    s => formatPokerText(toTitleCase(s))
+                                                                )}
+                                                            </strong>
+                                                        </div>
+                                                        {currentQuestion.explanation && (
+                                                            <p className="coaching-notes__body">
+                                                                {renderTextWithCards(
+                                                                    currentQuestion.explanation,
+                                                                    s => formatPokerText(s)
+                                                                )}
+                                                            </p>
+                                                        )}
+                                                        <p className="coaching-notes__body">
+                                                            {generateGTOApproach(currentQuestion)}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })()}
@@ -1074,24 +1579,39 @@ export default function StrategyTrivia({ mode }) {
                                                 }
                                             }
 
+                                            const letter = String.fromCharCode(65 + index);
                                             return (
                                                 <button
                                                     key={index}
+                                                    type="button"
                                                     className={optionClass}
                                                     onClick={() => selectAnswer(index)}
                                                     disabled={showResult || isEliminated}
+                                                    data-trivia-answer
+                                                    aria-pressed={selectedAnswer === index}
+                                                    aria-label={isEliminated
+                                                        ? `Answer ${letter}: ${option} — eliminated by 50/50`
+                                                        : `Answer ${letter}: ${option}`}
                                                 >
-                                                    <span className="option-letter">
-                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
+                                                    <span className="option-letter" aria-hidden>
+                                                        {isEliminated ? '✗' : letter}
                                                     </span>
-                                                    <span className="option-text">
-                                                        {isEliminated ? '---' : renderTextWithCards(formatPokerText(toTitleCase(option)))}
+                                                    <span className="option-text" aria-hidden={isEliminated || undefined}>
+                                                        {isEliminated
+                                                            ? '---'
+                                                            : renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
                                                     </span>
                                                     {showResult && index === currentQuestion.correct_index && (
-                                                        <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} />
+                                                        <>
+                                                            <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} aria-hidden />
+                                                            <span className="sr-only">Correct answer</span>
+                                                        </>
                                                     )}
                                                     {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                                        <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} />
+                                                        <>
+                                                            <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} aria-hidden />
+                                                            <span className="sr-only">Your answer, incorrect</span>
+                                                        </>
                                                     )}
                                                 </button>
                                             );
@@ -1102,8 +1622,10 @@ export default function StrategyTrivia({ mode }) {
                                     {!showResult && (
                                         <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '20px auto 0', maxWidth: '400px', width: '100%' }}>
                                             <button
+                                                type="button"
                                                 className="lifeline-btn"
                                                 onClick={useFiftyFifty}
+                                                aria-label={`Use the 50/50 lifeline to remove two wrong answers${isVip ? ' (free for VIP)' : ` for ${LIFELINE_COST} diamonds`}`}
                                                 disabled={fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES}
                                                 style={{
                                                     background: 'none',
@@ -1122,8 +1644,10 @@ export default function StrategyTrivia({ mode }) {
                                                 />
                                             </button>
                                             <button
+                                                type="button"
                                                 className="lifeline-btn"
                                                 onClick={useSkip}
+                                                aria-label={`Use the skip lifeline${isVip ? ' (free for VIP)' : ` for ${LIFELINE_COST} diamonds`}. A skipped question does not count for or against your score.`}
                                                 disabled={skipUsed || lifelinesUsedCount >= MAX_LIFELINES}
                                                 style={{
                                                     background: 'none',
@@ -1147,6 +1671,7 @@ export default function StrategyTrivia({ mode }) {
                                     {/* Next Button */}
                                     {showResult && (
                                         <button
+                                            type="button"
                                             className="next-btn"
                                             onClick={nextQuestion}
                                             style={{
@@ -1165,58 +1690,87 @@ export default function StrategyTrivia({ mode }) {
                     )}
 
                     {/* RESULTS STATE */}
-                    {gameState === 'results' && (
-                        <div className="results">
-                            <div className="result-icon">
-                                {correctCount >= 8 ? <Trophy size={48} color="#fbbf24" /> : correctCount >= 5 ? <CheckCircle size={48} color="#22c55e" /> : <Clock size={48} color="#3b82f6" />}
-                            </div>
-                            <h1>Challenge Complete!</h1>
-
-                            <div className="score-card">
-                                <div className="score-main">
-                                    <span className="score-num">{correctCount}</span>
-                                    <span className="score-total">/ {questions.length}</span>
+                    {gameState === 'results' && (() => {
+                        const summary = resultSummary || { correct: correctCount, skipped: 0, total: questions.length };
+                        const pct = summary.total > 0 ? summary.correct / summary.total : 0;
+                        const awarded = resultActualAwarded != null ? resultActualAwarded : 0;
+                        return (
+                            <div className="results">
+                                <div className="result-icon">
+                                    {pct >= 0.8 ? <Trophy size={48} color="#fbbf24" /> : pct >= 0.5 ? <CheckCircle size={48} color="#22c55e" /> : <Clock size={48} color="#3b82f6" />}
                                 </div>
-                                <div className="score-label">Correct Answers</div>
-                            </div>
+                                <h1>Challenge Complete!</h1>
 
-                            <div className="reward-card">
-                                <Gem size={24} />
-                                <span className="diamonds-earned">
-                                    {/* Phase 68: show actualAwarded if known (reality),
-                                        falls back to calculated value only if state hasn't
-                                        propagated yet (impossible after gameState=results
-                                        but defensive). */}
-                                    +{resultActualAwarded != null ? resultActualAwarded : calculateDiamonds(mode, correctCount, questions.length, 0)} Diamonds
-                                </span>
-                            </div>
-                            {resultAwardError && (
-                                <div style={{
-                                    marginTop: 12,
-                                    padding: '10px 14px',
-                                    background: 'rgba(239, 68, 68, 0.12)',
-                                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                                    borderRadius: 8,
-                                    color: '#fca5a5',
-                                    fontSize: 13,
-                                    textAlign: 'center',
-                                    maxWidth: 400,
-                                    margin: '12px auto 0',
-                                }} role="alert">
-                                    Diamond reward failed to apply ({resultAwardError}). Your balance may not reflect the reward — please contact support if this persists.
+                                <div className="score-card">
+                                    <div className="score-main">
+                                        <span className="score-num">{summary.correct}</span>
+                                        <span className="score-total">/ {summary.total}</span>
+                                    </div>
+                                    <div className="score-label">
+                                        Correct Answers
+                                        {summary.skipped > 0 && (
+                                            <span className="score-skipped">
+                                                {' '}({summary.skipped} skipped, not scored)
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
 
-                            <div className="action-buttons">
-                                <button className="play-again" onClick={startGame} style={{ background: config.color }}>
-                                    Play Again
-                                </button>
-                                <button className="back-btn" onClick={() => router.push('/hub/trivia')}>
-                                    Back to Lobby
-                                </button>
+                                <div className="reward-card">
+                                    <Gem size={24} aria-hidden />
+                                    <span className="diamonds-earned">
+                                        {/* Phase 68: shows what was ACTUALLY credited, never
+                                            the calculated-but-failed amount. */}
+                                        +{awarded} Diamonds
+                                    </span>
+                                </div>
+
+                                {resultCapped && (
+                                    <div className="results-note">
+                                        Daily reward cap reached for {config.title} — play for the score, come back tomorrow for more diamonds.
+                                    </div>
+                                )}
+                                {isFallbackSet(questions) && (
+                                    <div className="results-note">
+                                        This was an offline practice set (our question service was unreachable), so it does not pay diamonds.
+                                    </div>
+                                )}
+
+                                {resultAwardError && (
+                                    <div style={{
+                                        padding: '10px 14px',
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                                        borderRadius: 8,
+                                        color: '#fca5a5',
+                                        fontSize: 13,
+                                        textAlign: 'center',
+                                        maxWidth: 400,
+                                        margin: '12px auto 0',
+                                    }} role="alert">
+                                        Diamond reward failed to apply ({resultAwardError}). Your balance may not reflect the reward — please contact support if this persists.
+                                    </div>
+                                )}
+
+                                <div className="action-buttons">
+                                    <button
+                                        type="button"
+                                        className="play-again"
+                                        onClick={startGame}
+                                        disabled={isPreparing || vipInitializing}
+                                        style={{ background: config.color }}
+                                    >
+                                        {isPreparing
+                                            ? 'Dealing In...'
+                                            : (isVip ? 'Play Again (New Questions)' : `Play Again (${entryCost} Diamonds)`)}
+                                    </button>
+                                    <button type="button" className="back-btn" onClick={() => router.push('/hub/trivia')}>
+                                        Back to Lobby
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
             </div>
 
@@ -1242,14 +1796,88 @@ export default function StrategyTrivia({ mode }) {
                     overflow: hidden;
                 }
 
-                /* LOBBY — Full-bleed image */
+                .sr-only {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0 0 0 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
+
+                .entry-error {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 0 auto 12px;
+                    padding: 10px 14px;
+                    max-width: 520px;
+                    background: rgba(239, 68, 68, 0.12);
+                    border: 1px solid rgba(239, 68, 68, 0.4);
+                    border-radius: 8px;
+                    color: #fca5a5;
+                    font-size: 13px;
+                }
+
+                /* LOBBY — Full-bleed image (a <button>, so the browser
+                   defaults have to be reset back to the old div look) */
                 .lobby-image-wrapper {
                     position: relative;
+                    display: block;
+                    width: 100%;
+                    padding: 0;
+                    background: none;
+                    border: none;
+                    font: inherit;
+                    color: inherit;
+                    text-align: left;
                     cursor: pointer;
                     overflow: hidden;
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
                     max-width: 100%;
                     margin: 0 auto;
+                }
+
+                .lobby-image-wrapper:disabled {
+                    cursor: wait;
+                }
+
+                .lobby-image-wrapper:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 3px;
+                }
+
+                .lobby-cost-strip {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0));
+                    color: rgba(255,255,255,0.9);
+                    font-size: 12px;
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
+                    pointer-events: none;
+                }
+
+                .lobby-cost-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    background: rgba(0, 212, 255, 0.15);
+                    border: 1px solid rgba(0, 212, 255, 0.35);
+                    color: #7ce7ff;
+                    font-weight: 700;
                 }
 
                 .lobby-image-wrapper:hover {
@@ -1622,6 +2250,50 @@ export default function StrategyTrivia({ mode }) {
                     margin-top: 8px;
                 }
 
+                .score-skipped {
+                    color: #fbbf24;
+                }
+
+                .results-note {
+                    max-width: 420px;
+                    margin: 0 auto 16px;
+                    padding: 10px 14px;
+                    background: rgba(251, 191, 36, 0.1);
+                    border: 1px solid rgba(251, 191, 36, 0.3);
+                    border-radius: 8px;
+                    color: #fbbf24;
+                    font-size: 13px;
+                    line-height: 1.5;
+                }
+
+                /* Coaching notes — shown instead of the solver panel when the
+                   question carries no real EV/frequency metadata. */
+                .coaching-notes {
+                    padding: 16px;
+                    background: rgba(255, 255, 255, 0.04);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-left: 3px solid rgba(0, 212, 255, 0.5);
+                    border-radius: 10px;
+                }
+                .coaching-notes__head {
+                    font-size: 11px;
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.5);
+                    margin-bottom: 10px;
+                }
+                .coaching-notes__answer {
+                    color: #fff;
+                    font-size: 15px;
+                    margin-bottom: 10px;
+                }
+                .coaching-notes__body {
+                    margin: 0 0 8px;
+                    color: rgba(255, 255, 255, 0.72);
+                    font-size: 14px;
+                    line-height: 1.6;
+                }
+
                 .reward-card {
                     display: flex;
                     align-items: center;
@@ -1664,6 +2336,49 @@ export default function StrategyTrivia({ mode }) {
                     color: rgba(255,255,255,0.7);
                     font-size: 16px;
                     cursor: pointer;
+                }
+
+                .play-again:disabled,
+                .start-btn:disabled {
+                    opacity: 0.6;
+                    cursor: wait;
+                }
+
+                /* Keyboard focus + tap targets */
+                .option,
+                .next-btn,
+                .lifeline-btn,
+                .start-btn,
+                .play-again,
+                .back-btn {
+                    min-height: 48px;
+                }
+                .option:focus-visible,
+                .next-btn:focus-visible,
+                .lifeline-btn:focus-visible,
+                .start-btn:focus-visible,
+                .play-again:focus-visible,
+                .back-btn:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 2px;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .lobby-spinner { animation-duration: 3s; }
+                    .lobby-image-wrapper:hover,
+                    .next-btn:hover,
+                    .start-btn:hover {
+                        transform: none;
+                    }
+                    .timer-ring-progress { transition: none; }
+                }
+
+                @media (max-width: 480px) {
+                    .game-frame { padding: 12px; border-radius: 14px; }
+                    .game-header { padding: 10px 14px; margin-bottom: 14px; }
+                    .question-text { font-size: 17px; margin-bottom: 18px; }
+                    .option { padding: 12px 14px; font-size: 14px; gap: 10px; }
+                    .lobby-cost-strip { font-size: 11px; padding: 8px 10px; }
                 }
             `}</style>
         </PageTransition >

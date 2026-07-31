@@ -1,11 +1,27 @@
 /**
  * STREAK BADGE COMPONENT — Visual display for trivia streaks
  * Shows tier badge, multiplier, and progress to next tier
+ *
+ * WARNING: CURRENTLY UNREFERENCED — nothing imports this component, so the streak
+ * tier system (which IS live: [mode].js uses getStreakTier for the prize-wheel
+ * multiplier) has no visual presence for players. It is a ready-made retention
+ * surface: drop it into the trivia lobby header and/or TriviaResult, passing
+ * the streakDays value those screens already load.
  */
 
 import React from 'react';
-import { Flame, ChevronUp, Zap } from 'lucide-react';
-import { formatStreakDisplay, getNextTier, STREAK_TIERS } from '../../config/triviaStreakSystem';
+import { Flame, Dumbbell, Trophy, Crown, ChevronUp, Zap } from 'lucide-react';
+import { formatStreakDisplay, getNextTier, getStreakTier } from '../../config/triviaStreakSystem';
+
+// triviaStreakSystem stores `badge` as a Lucide component NAME (a string, by
+// design — bare emoji break the SWC build). Rendering it directly printed the
+// literal text "Flame" / "Trophy" where an icon belonged.
+const BADGE_ICONS = { Flame, Dumbbell, Trophy, Crown };
+
+function BadgeIcon({ name, size, color }) {
+    const Icon = BADGE_ICONS[name] || Flame;
+    return <Icon size={size} style={{ color }} />;
+}
 
 export default function StreakBadge({
     streakDays = 0,
@@ -14,8 +30,10 @@ export default function StreakBadge({
     showMultiplier = true,
     animated = true
 }) {
-    const streak = formatStreakDisplay(streakDays);
-    const nextTier = getNextTier(streakDays);
+    const days = Number.isFinite(streakDays) && streakDays > 0 ? Math.floor(streakDays) : 0;
+    const streak = formatStreakDisplay(days);
+    const currentTier = getStreakTier(days);
+    const nextTier = getNextTier(currentTier);
 
     // Size configs
     const sizes = {
@@ -25,23 +43,25 @@ export default function StreakBadge({
     };
     const sizeConfig = sizes[size] || sizes.md;
 
-    // Calculate progress percentage
-    const progressPercent = nextTier
-        ? ((streakDays - (STREAK_TIERS.find(t => t.id === streak.tier)?.minDays || 0)) /
-            (nextTier.minDays - (STREAK_TIERS.find(t => t.id === streak.tier)?.minDays || 0))) * 100
-        : 100;
+    // Progress toward the next tier.
+    // Unclamped this went NEGATIVE for streakDays=0 (bronze minDays is 1, so
+    // (0-1)/(7-1) = -16.7%), producing an invalid negative CSS width.
+    const tierStart = currentTier?.minDays || 0;
+    const span = nextTier ? Math.max(1, nextTier.minDays - tierStart) : 1;
+    const rawPercent = nextTier ? ((days - tierStart) / span) * 100 : 100;
+    const progressPercent = Math.max(0, Math.min(100, Number.isFinite(rawPercent) ? rawPercent : 0));
 
     return (
         <div className={`streak-badge ${animated && streak.isMilestone ? 'milestone' : ''}`}>
             {/* Main badge */}
             <div className="streak-main" style={{ borderColor: streak.color }}>
                 <div className="streak-icon" style={{ background: `${streak.color}20` }}>
-                    {streak.badge || <Flame size={sizeConfig.iconSize} style={{ color: streak.color }} />}
+                    <BadgeIcon name={streak.badge} size={sizeConfig.iconSize} color={streak.color} />
                 </div>
 
                 <div className="streak-info">
                     <div className="streak-days" style={{ color: streak.color }}>
-                        {streakDays} Day{streakDays !== 1 ? 's' : ''}
+                        {days} Day{days !== 1 ? 's' : ''}
                     </div>
                     <div className="streak-title">{streak.title}</div>
                 </div>
@@ -71,7 +91,7 @@ export default function StreakBadge({
                     </div>
                     <div className="progress-text">
                         <ChevronUp size={12} />
-                        {streak.daysUntilNext} days to {nextTier.badge || nextTier.title}
+                        {streak.daysUntilNext} days to {nextTier.title}
                     </div>
                 </div>
             )}
@@ -167,6 +187,11 @@ export default function StreakBadge({
                     margin-top: 4px;
                     font-size: 10px;
                     color: rgba(255, 255, 255, 0.5);
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .streak-badge.milestone { animation: none; }
+                    .progress-fill { transition: none; }
                 }
             `}</style>
         </div>

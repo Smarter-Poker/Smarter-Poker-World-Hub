@@ -1,48 +1,103 @@
 /**
- * getTodayCST — Returns today's date in America/Chicago (CST/CDT) as a
- * YYYY-MM-DD string. The trivia codebase uses CST as the canonical day
- * anchor for daily caps, leaderboard windows, and score-row play_date.
+ * CST/CDT day helpers — the canonical day anchor for the whole trivia system.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Daily caps, leaderboard windows, reward claim_date and trivia_scores.play_date
+ * all bucket by the America/Chicago day, not the UTC day.
  *
- * Phase 73: extracted from 5 inlined copies (submit.js, daily.js,
- * leaderboard.js, hub/trivia/index.js, [mode].js). Was redundantly
- * defined per-file with the same body. Now there's one source of truth.
+ * Timezone-safety rules honoured here:
+ *  - NEVER derive a day from toISOString() (that is the UTC day; between 6pm
+ *    and midnight CST it has already rolled over).
+ *  - NEVER derive the day from `new Date(now.toLocaleString(...))`. That
+ *    round-trips through a locale-formatted string and re-parses it in the
+ *    RUNTIME's timezone; it happens to work on V8/en-US but is undefined
+ *    behaviour and drifts on other ICU builds and at DST boundaries.
+ *  - The CST/CDT offset is resolved FOR THE TARGET MIDNIGHT, not for "now".
+ *    Deriving it from the current abbreviation shifts the cap window by an
+ *    hour on both DST changeover days each year.
  *
- * @returns {string} 'YYYY-MM-DD' in America/Chicago
+ * All functions are dependency-free so API routes can import them too.
  */
-export function getTodayCST() {
-    const now = new Date();
-    // toLocaleString with timeZone rebuilds the Date as if it were in CST.
-    // This is the same pattern the existing inlined copies use — keep it
-    // consistent so behavior doesn't drift.
-    const cst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const year = cst.getFullYear();
-    const month = String(cst.getMonth() + 1).padStart(2, '0');
-    const day = String(cst.getDate()).padStart(2, '0');
+
+const TZ = 'America/Chicago';
+
+const _dateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+});
+
+/**
+ * Split a Date into America/Chicago calendar parts.
+ * @param {Date} [date=new Date()]
+ * @returns {{year: string, month: string, day: string}} zero-padded strings
+ */
+export function getCSTDateParts(date = new Date()) {
+    const parts = _dateParts.formatToParts(date);
+    const pick = type => parts.find(p => p.type === type)?.value || '';
+    return {
+        year: pick('year'),
+        month: pick('month'),
+        day: pick('day'),
+    };
+}
+
+/**
+ * Today's date in America/Chicago (CST/CDT) as 'YYYY-MM-DD'.
+ * @param {Date} [date=new Date()]
+ * @returns {string}
+ */
+export function getTodayCST(date = new Date()) {
+    const { year, month, day } = getCSTDateParts(date);
     return `${year}-${month}-${day}`;
 }
 
 /**
- * Returns the CST-day-start as a UTC ISO timestamp (with -06:00 or -05:00
- * offset for CST/CDT respectively). Use this for `.gte('created_at', x)`
- * style queries where you want "rows from today's CST day onwards".
+ * The UTC offset in effect in America/Chicago at MIDNIGHT of the given
+ * calendar date — '-06:00' (CST) or '-05:00' (CDT).
  *
- * Phase 72/73: matches the diamondCap.js fix that anchors daily-cap
- * windows to CST instead of UTC, closing the 6-hour double-earning
- * window that occurred between 6pm CST and midnight CST every day.
+ * 06:00 UTC always falls inside the target Chicago day (00:00 or 01:00 local)
+ * and is always on the correct side of both DST transitions:
+ *   - spring forward: 02:00 CST -> 08:00 UTC, so 06:00Z is still CST
+ *   - fall back:      02:00 CDT -> 07:00 UTC, so 06:00Z is still CDT
  *
- * @returns {string} ISO 8601 with explicit CST/CDT offset
+ * @param {string} dateStr - 'YYYY-MM-DD'
+ * @returns {string} '-05:00' | '-06:00'
  */
-export function getTodayStartCST() {
-    const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const year = cstNow.getFullYear();
-    const month = String(cstNow.getMonth() + 1).padStart(2, '0');
-    const date = String(cstNow.getDate()).padStart(2, '0');
-    // Auto-detect CST vs CDT via Intl.
-    const tzParts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Chicago',
-        timeZoneName: 'short'
-    }).formatToParts(new Date());
-    const tzAbbr = tzParts.find(p => p.type === 'timeZoneName')?.value || 'CST';
-    const offset = tzAbbr === 'CDT' ? '-05:00' : '-06:00';
-    return `${year}-${month}-${date}T00:00:00${offset}`;
+export function getCSTOffsetForDate(dateStr) {
+    const probe = new Date(`${dateStr}T06:00:00Z`);
+    if (Number.isNaN(probe.getTime())) return '-06:00';
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: TZ,
+        timeZoneName: 'short',
+    }).formatToParts(probe);
+    const abbr = parts.find(p => p.type === 'timeZoneName')?.value || 'CST';
+    return abbr === 'CDT' ? '-05:00' : '-06:00';
 }
+
+/**
+ * Start of a CST day as an offset-qualified ISO timestamp. Use for
+ * `.gte('created_at', x)` style queries meaning "rows from this CST day on".
+ *
+ * @param {string} [dateStr] - 'YYYY-MM-DD'; defaults to today in CST
+ * @returns {string} e.g. '2026-07-26T00:00:00-05:00'
+ */
+export function getTodayStartCST(dateStr) {
+    const day = dateStr || getTodayCST();
+    return `${day}T00:00:00${getCSTOffsetForDate(day)}`;
+}
+
+/**
+ * Start of the CST day N days before the given date (inclusive window start).
+ * @param {number} daysAgo
+ * @param {string} [dateStr]
+ * @returns {string} offset-qualified ISO timestamp
+ */
+export function getDayStartCSTDaysAgo(daysAgo, dateStr) {
+    const base = new Date(`${dateStr || getTodayCST()}T12:00:00Z`);
+    base.setUTCDate(base.getUTCDate() - (Number.isFinite(daysAgo) ? daysAgo : 0));
+    const day = getTodayCST(base);
+    return `${day}T00:00:00${getCSTOffsetForDate(day)}`;
+}
+
+export default getTodayCST;

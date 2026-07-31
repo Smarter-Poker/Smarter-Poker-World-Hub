@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import {
@@ -40,6 +40,49 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
+// How long a finished player waits for their opponent before being offered an
+// escape from the 'waiting' screen.
+const WAITING_DEADLINE_MS = 3 * 60 * 1000;
+
+/**
+ * Unique-per-event idempotency reference.
+ *
+ * The old scheme was `pvp_stake_${userId}_${minute}` / `pvp_refund_${userId}_${minute}`
+ * — a per-minute bucket. Two matches started inside the same minute meant the
+ * second stake deduction was de-duplicated by the DB (a free entry), and two
+ * refunds inside the same minute (cancel + a horse-setup failure) meant the
+ * second refund was silently dropped and the player simply lost the diamonds.
+ * Refunds are now keyed to the thing being refunded (the stake reference or the
+ * matchId); stakes get a fresh id held in a ref for retry stability.
+ */
+function newPvpReference(prefix, userId) {
+    let unique;
+    try {
+        unique = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    } catch (e) {
+        unique = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+    return `${prefix}_${userId}_${unique}`;
+}
+
+/**
+ * Wrapper around the diamond RPC that treats `{ success: false }` as a failure.
+ *
+ * Every call site used to check only `error`. add_diamonds_to_balance returns
+ * `{ success:false }` WITHOUT an error on insufficient balance or reference_id
+ * dedup, so failed stakes/refunds/payouts looked like successes: the UI moved
+ * on and the money silently never moved.
+ */
+async function diamondRpc(supabase, params) {
+    const { data, error } = await supabase.rpc('add_diamonds_to_balance', params);
+    if (error) throw error;
+    if (data && typeof data === 'object' && data.success === false) {
+        throw new Error(data.error || data.message || 'Diamond transaction was rejected');
+    }
+    return data;
+}
 
 export default function PvPPage() {
     useTrainingBus('trivia-pvp');
@@ -61,6 +104,7 @@ export default function PvPPage() {
     // Error/refund-failure UI state — was previously silent
     const [pvpError, setPvpError] = useState(null);
     const [refundFailed, setRefundFailed] = useState(false);
+    const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
 
     // Battle state
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -99,7 +143,9 @@ export default function PvPPage() {
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(null);
     // TRAIN-WIRE-TRIVIA-TIMER-2 - shared shot-clock hook
-    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, playingState: 'battle', onTimeout: handleTimeout });
+    // pauseOnHide:false — PvP is head-to-head; pausing the shot clock on
+    // tab-hide handed the player a free, untimed answer-lookup window.
+    const timer = useTriviaTimer({ initialTime: 40, showResult: trivia.showResult, gameState, playingState: 'battle', onTimeout: handleTimeout, pauseOnHide: false });
     timerCtrlRef.current = { stop: () => timer.setIsTimerRunning(false), reset: timer.resetTimer };
 
     const queueSubscription = useRef(null);
@@ -109,9 +155,55 @@ export default function PvPPage() {
     const playerScoreRef = useRef(0);
     const playerAnswersRef = useRef([]); // Track correct/incorrect per question
 
+    // ---------------------------------------------------------------------
+    // LIVE-VALUE REFS.
+    //
+    // handleFindMatch builds the queue subscription -> handleMatchFound ->
+    // subscribeToMatch(handleMatchUpdate) chain. Every one of those callbacks
+    // captures the bindings from the render in which handleFindMatch ran — a
+    // render where stakeAmount is still 0 and isPlayer1 is still false. The
+    // later setState re-renders never reach the already-registered callback.
+    //
+    // Consequences before this change, on every REAL (non-horse) match:
+    //   * handleBattleComplete: totalPot = stakeAmount(0) * 2 = 0, so the
+    //     WINNER of a real PvP match was paid 0 diamonds;
+    //   * loserId = isPlayer1(stale false) ? player2 : player1 — for the actual
+    //     player1 that resolves to THEMSELVES, so processMatchReward debited
+    //     the winner;
+    //   * myScore/theirScore were swapped for player1;
+    //   * handleMatchUpdate read the player's OWN score column as the
+    //     opponent's score;
+    //   * the `gameState !== 'result'` guard never became true, so every
+    //     realtime UPDATE re-ran handleBattleComplete and updatePvpStats (a
+    //     non-idempotent read-modify-write) double-counted wins/losses.
+    //
+    // These refs are written synchronously at the moment the value is known, so
+    // the subscription callbacks always read live values.
+    // ---------------------------------------------------------------------
+    const stakeRef = useRef(0);
+    const isPlayer1Ref = useRef(false);
+    const matchIdRef = useRef(null);
+    const opponentRef = useRef(null);
+    const gameStateRef = useRef('lobby');
+    const isHorseMatchRef = useRef(false);
+    const completedRef = useRef(false);   // handleBattleComplete runs once per match
+    const matchFoundRef = useRef(false);  // a real match won the race vs. the horse fallback
+    const searchingRef = useRef(false);   // a stake is in flight and unrefunded
+    const stakeRefIdRef = useRef(null);   // unique reference_id for the current stake
+    const userIdRef = useRef(null);       // readable from unmount cleanup
+    const waitingTimerRef = useRef(null); // opponent-finish deadline countdown
+
+    // Keep gameStateRef in lockstep with gameState for the ref-based guards.
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
     // Horse (AI opponent) battle state
     const [isHorseMatch, setIsHorseMatch] = useState(false);
     const horseAnswersRef = useRef([]);
+
+    // Opponent-finish deadline (real matches only)
+    const [waitingSecondsLeft, setWaitingSecondsLeft] = useState(0);
+    const [waitingExpired, setWaitingExpired] = useState(false);
+    useEffect(() => () => { if (waitingTimerRef.current) clearInterval(waitingTimerRef.current); }, []);
 
     useEffect(() => {
         if (authLoading) return;
@@ -123,6 +215,33 @@ export default function PvPPage() {
             if (matchSubscription.current) { matchSubscription.current(); matchSubscription.current = null; }
             if (searchTimeout.current) {
                 clearTimeout(searchTimeout.current);
+            }
+            // If the player navigates away mid-search, their stake has already
+            // been deducted. Previously nothing refunded it and their queue row
+            // stayed 'waiting' forever — a ghost opponent that another player
+            // could match against and then wait on indefinitely. Leave the queue
+            // and refund, keyed to the stake reference so it can't double-refund.
+            if (searchingRef.current) {
+                const uid = userIdRef.current;
+                const amount = stakeRef.current;
+                const stakeRefId = stakeRefIdRef.current;
+                searchingRef.current = false;
+                if (uid) {
+                    // Fire-and-forget: the component is going away, but these
+                    // promises still resolve against the module-level client.
+                    Promise.resolve()
+                        .then(() => leaveMatchmakingQueue(uid))
+                        .catch(e => console.warn('[PVP] unmount leaveQueue failed:', e));
+                    if (amount > 0) {
+                        diamondRpc(supabase, {
+                            p_user_id: uid,
+                            p_amount: amount,
+                            p_type: 'pvp_refund',
+                            p_description: `PvP search abandoned — ${amount} diamonds refunded`,
+                            p_reference_id: `pvp_refund_${stakeRefId || newPvpReference('abandon', uid)}`
+                        }).catch(e => console.warn('[PVP] unmount refund failed — user owed manual refund:', e));
+                    }
+                }
             }
         };
     }, [avatarUser?.id, authLoading]);
@@ -152,6 +271,8 @@ export default function PvPPage() {
         }
 
         setUserId(user.id);
+        userIdRef.current = user.id;
+        try { setAccessToken(getAccessToken()); } catch (e) { /* anonymous report still allowed */ }
 
         try {
             // Get diamond balance and username
@@ -187,60 +308,49 @@ export default function PvPPage() {
         }
     }
 
-    // Persist PvP stats after each match
+    /**
+     * Persist PvP stats after each match.
+     *
+     * Phase 80: this used to be a client-side read-modify-write of
+     * trivia_pvp_stats. Two problems, both now closed by
+     * fn_trivia_pvp_record_result (migration 120300):
+     *   1. RLS no longer permits a direct client write to trivia_pvp_stats, so
+     *      the old upsert simply fails.
+     *   2. Even when it worked, the client chose the absolute values — a
+     *      tampered client could post wins: 9999 — and two matches finishing
+     *      concurrently lost each other's update.
+     * The RPC applies a single bounded INCREMENT for one reported outcome,
+     * always for auth.uid(), and returns the resulting row.
+     */
     async function updatePvpStats(outcome, diamondsDelta) {
         if (!userId) return;
+        if (!['win', 'loss', 'tie'].includes(outcome)) {
+            console.warn('[PVP] Ignoring unknown outcome:', outcome);
+            return;
+        }
 
         try {
-            // Fetch current stats
-            const { data: current } = await supabase
-                .from('trivia_pvp_stats')
-                .select('*')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
-
-            let newStats = { ...prev };
-            if (outcome === 'win') {
-                newStats.wins = (prev.wins || 0) + 1;
-                newStats.win_streak = (prev.win_streak || 0) + 1;
-                newStats.best_streak = Math.max(newStats.win_streak, prev.best_streak || 0);
-                newStats.total_diamonds_won = (prev.total_diamonds_won || 0) + (diamondsDelta || 0);
-            } else if (outcome === 'loss') {
-                newStats.losses = (prev.losses || 0) + 1;
-                newStats.win_streak = 0;
-                newStats.total_diamonds_lost = (prev.total_diamonds_lost || 0) + (diamondsDelta || 0);
-            } else if (outcome === 'tie') {
-                newStats.ties = (prev.ties || 0) + 1;
-                // Streak continues on ties
+            const { data, error: rpcErr } = await supabase.rpc('fn_trivia_pvp_record_result', {
+                p_outcome: outcome,
+                p_diamonds: Math.max(0, Math.floor(Number(diamondsDelta) || 0))
+            });
+            if (rpcErr) {
+                console.warn('[PVP] fn_trivia_pvp_record_result failed:', rpcErr.message);
+                return;
             }
-            newStats.updated_at = new Date().toISOString();
+            if (!data || data.success === false) {
+                console.warn('[PVP] PvP stat record rejected:', data?.error || 'unknown');
+                return;
+            }
 
-            const { error: err_trivia_pvp_stats_nz6cn } = await supabase
-
-              .from('trivia_pvp_stats')
-
-              .upsert({
-                    user_id: userId,
-                    wins: newStats.wins,
-                    losses: newStats.losses,
-                    ties: newStats.ties,
-                    win_streak: newStats.win_streak,
-                    best_streak: newStats.best_streak,
-                    total_diamonds_won: newStats.total_diamonds_won,
-                    total_diamonds_lost: newStats.total_diamonds_lost,
-                    updated_at: newStats.updated_at
-                }, { onConflict: 'user_id' });
-
-            if (err_trivia_pvp_stats_nz6cn) console.warn('[Supabase] Silent mutation failed in trivia_pvp_stats:', err_trivia_pvp_stats_nz6cn.message);
-
+            // The RPC returns the authoritative post-increment row — mirror it
+            // instead of the locally-guessed values the old code displayed.
             setStats({
-                wins: newStats.wins,
-                losses: newStats.losses,
-                ties: newStats.ties,
-                winStreak: newStats.win_streak,
-                bestStreak: newStats.best_streak
+                wins: Number(data.wins) || 0,
+                losses: Number(data.losses) || 0,
+                ties: Number(data.ties) || 0,
+                winStreak: Number(data.win_streak) || 0,
+                bestStreak: Number(data.best_streak) || 0
             });
         } catch (e) {
             console.warn('[PVP] Failed to update stats:', e);
@@ -251,15 +361,14 @@ export default function PvPPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
+            // VIP gate (devhead migrated this page from useFeatureGate to
+            // useVIPGate; the hook destructure above is the useVIPGate one).
             if (!allowed) {
                 showUpgradeModal();
                 return;
             }
-        // Clear any TriviaLobby payment flag (pvp handles its own variable-stake billing)
-        try {
-            sessionStorage.removeItem('trivia_paid');
-            sessionStorage.removeItem('trivia_mode');
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        // (The old `sessionStorage.trivia_paid` cleanup is gone — nothing writes
+        //  that flag any more and pvp always bills its own variable stake.)
 
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
@@ -282,19 +391,29 @@ export default function PvPPage() {
             return;
         }
 
+        // Write the live-value refs synchronously — the subscription callbacks
+        // created below capture this render's bindings forever.
         setStakeAmount(stake);
+        stakeRef.current = stake;
+        completedRef.current = false;
+        matchFoundRef.current = false;
+        isPlayer1Ref.current = false;
+        setPvpError(null);
+        setRefundFailed(false);
         setGameState('searching');
+        gameStateRef.current = 'searching';
 
         // Deduct stake immediately via RPC for audit trail
+        stakeRefIdRef.current = newPvpReference('pvp_stake', userId);
         try {
-            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+            await diamondRpc(supabase, {
                 p_user_id: userId,
                 p_amount: -stake,
                 p_type: 'pvp_stake',
-                p_description: `PvP stake — ${stake}💎 entry`,
-                p_reference_id: `pvp_stake_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket, DB dedups within window
+                p_description: `PvP stake — ${stake} diamonds entry`,
+                p_reference_id: stakeRefIdRef.current
             });
-            if (rpcErr) throw rpcErr;
+            searchingRef.current = true; // stake is now at risk until refunded/resolved
             // Refresh balance from DB after deduction
             const { data: postDeductProfile } = await supabase
                 .from('profiles')
@@ -305,7 +424,9 @@ export default function PvPPage() {
             busEmit.diamondsSpent(stake, 'PvP Stake Entry');
         } catch (e) {
             console.warn('[PVP] Stake deduction failed — aborting match:', e);
+            setPvpError('We could not take your stake, so the match was not started. Please check your balance and try again.');
             setGameState('lobby');
+            gameStateRef.current = 'lobby';
             return;
         }
 
@@ -322,10 +443,12 @@ export default function PvPPage() {
             if (queueEntry) {
                 // Subscribe to queue changes to detect new opponents
                 queueSubscription.current = subscribeToQueue(stake, async (newPlayer) => {
+                    if (matchFoundRef.current) return;
                     if (newPlayer.user_id !== userId) {
                         const matchData = await findMatch(userId, stake);
-                        if (matchData) {
+                        if (matchData && !matchFoundRef.current) {
                             // Cancel horse fallback — real match found
+                            matchFoundRef.current = true;
                             if (searchTimeout.current) clearTimeout(searchTimeout.current);
                             handleMatchFound(matchData);
                         }
@@ -334,8 +457,9 @@ export default function PvPPage() {
 
                 // Also immediately try to find an existing opponent
                 const matchData = await findMatch(userId, stake);
-                if (matchData) {
+                if (matchData && !matchFoundRef.current) {
                     // Cancel horse fallback — real match found
+                    matchFoundRef.current = true;
                     if (searchTimeout.current) clearTimeout(searchTimeout.current);
                     handleMatchFound(matchData);
                 }
@@ -348,10 +472,21 @@ export default function PvPPage() {
 
     // Horse Match - Select random AI horse as opponent
     async function handleHorseMatch(stake) {
-        // Guard: if a real match was already found, don't start a horse match (race condition prevention)
-        if (gameState === 'battle' || gameState === 'result') return;
+        // Ref-based guards. The previous check read `gameState` from the closure
+        // captured when handleFindMatch ran (frozen at 'lobby'/'searching'), so
+        // it NEVER blocked: a horse match could clobber a real match that had
+        // just been found — double question loads, wrong opponent, and the real
+        // opponent left hanging on a match that never completes.
+        if (matchFoundRef.current) return;
+        if (gameStateRef.current === 'battle' || gameStateRef.current === 'result' || gameStateRef.current === 'waiting') return;
 
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
+
+        // Leave the matchmaking queue BEFORE playing the horse. Previously only
+        // the local subscription was torn down and the trivia_pvp_queue row was
+        // left 'waiting' — another real player would match against this ghost,
+        // stake their diamonds and wait forever for a score that never comes.
+        try { await leaveMatchmakingQueue(userId); } catch (e) { console.warn('[PVP] leaveQueue before horse match failed:', e); }
 
         // Wrap entire flow — if any supabase call throws (network blip,
         // RLS issue, etc.), refund the stake and surface a banner instead
@@ -368,15 +503,30 @@ export default function PvPPage() {
         let horseOpponent;
         if (horses && horses.length > 0) {
             const randomHorse = horses[Math.floor(Math.random() * horses.length)];
-            // Generate realistic W/L record based on stake
-            const baseWins = Math.floor(Math.random() * 50) + 20;
-            const baseLosses = Math.floor(Math.random() * 30) + 10;
+            // Use the horse's REAL record where one exists. Fabricating a random
+            // W/L every match meant the same horse showed a different record each
+            // time you met it — obviously fake.
+            let horseWins = 0;
+            let horseLosses = 0;
+            try {
+                const { data: horseStats } = await supabase
+                    .from('trivia_pvp_stats')
+                    .select('wins, losses')
+                    .eq('user_id', randomHorse.id)
+                    .maybeSingle();
+                if (horseStats) {
+                    horseWins = horseStats.wins || 0;
+                    horseLosses = horseStats.losses || 0;
+                }
+            } catch (e) {
+                console.warn('[PVP] Horse stats lookup failed, defaulting to 0-0:', e);
+            }
             horseOpponent = {
                 id: randomHorse.id,
                 username: randomHorse.username,
                 avatar_url: randomHorse.avatar_url,
-                wins: baseWins,
-                losses: baseLosses,
+                wins: horseWins,
+                losses: horseLosses,
                 isHorse: true
             };
         } else {
@@ -429,14 +579,24 @@ export default function PvPPage() {
         });
         horseAnswersRef.current = horseAnswers;
 
+        const horseMatchId = `horse-match-${Date.now()}`;
+        // Committed to the horse match — the outcome settles the stake, so the
+        // unmount refund path must not also fire.
+        searchingRef.current = false;
         setIsHorseMatch(true);
+        isHorseMatchRef.current = true;
         setOpponent(horseOpponent);
+        opponentRef.current = horseOpponent;
         setQuestions(shuffledQuestions);
-        setMatchId(`horse-match-${Date.now()}`);
+        setMatchId(horseMatchId);
+        matchIdRef.current = horseMatchId;
         setIsPlayer1(true);
+        isPlayer1Ref.current = true;
+        matchFoundRef.current = true;
 
         // Start battle after short delay
         setTimeout(() => {
+            gameStateRef.current = 'battle';
             setGameState('battle');
             setCurrentQuestionIndex(0);
             setPlayerScore(0);
@@ -448,42 +608,67 @@ export default function PvPPage() {
 
         } catch (e) {
             console.warn('[PVP] handleHorseMatch threw — refunding stake:', e);
+            let refunded = false;
             try {
-                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                // Keyed to the stake's own reference so this refund can never
+                // collide with (and be swallowed by) another refund in the same
+                // minute — the old per-minute bucket did exactly that.
+                await diamondRpc(supabase, {
                     p_user_id: userId,
                     p_amount: stake,
                     p_type: 'pvp_refund',
-                    p_description: `PvP horse-match setup failed — ${stake}💎 refund`,
-                    p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
+                    p_description: `PvP horse-match setup failed — ${stake} diamonds refunded`,
+                    p_reference_id: `pvp_refund_${stakeRefIdRef.current || newPvpReference('horsefail', userId)}`
                 });
-                if (__rpcErr) throw __rpcErr;
+                refunded = true;
+                searchingRef.current = false;
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
             } catch (refundErr) {
                 console.warn('[PVP] Refund also failed — user owed manual refund:', refundErr);
                 setRefundFailed(true);
             }
-            setPvpError('Could not start match — your stake has been refunded.');
+            setPvpError(refunded
+                ? 'Could not start the match — your stake has been refunded.'
+                : `Could not start the match and the ${stake} diamond refund did not go through. Please verify your balance or contact support.`);
             setGameState('lobby');
+            gameStateRef.current = 'lobby';
         }
     }
 
     function handleMatchFound(matchData) {
+        matchFoundRef.current = true;
+        // The stake is now committed to a real match. Clear the search flag so
+        // unmounting mid-battle does NOT refund a stake that the match itself
+        // will settle (which would double-pay the player).
+        searchingRef.current = false;
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current);
         }
 
+        const amIPlayer1 = matchData.match.player1_id === userId;
+
+        // Write refs BEFORE subscribing. subscribeToMatch registers
+        // handleMatchUpdate immediately and realtime events can arrive before
+        // React has flushed any of these setState calls.
+        matchIdRef.current = matchData.match.id;
+        opponentRef.current = matchData.opponent;
+        isPlayer1Ref.current = amIPlayer1;
+        isHorseMatchRef.current = false;
+        completedRef.current = false;
+
         setMatchId(matchData.match.id);
         setOpponent(matchData.opponent);
         setQuestions(shuffleOptions(matchData.questions));
-        setIsPlayer1(matchData.match.player1_id === userId);
+        setIsPlayer1(amIPlayer1);
 
         // Subscribe to match updates
         matchSubscription.current = subscribeToMatch(matchData.match.id, handleMatchUpdate);
 
         // Start the battle after short delay
         setTimeout(() => {
+            gameStateRef.current = 'battle';
             setGameState('battle');
             setCurrentQuestionIndex(0);
             setPlayerScore(0);
@@ -494,33 +679,10 @@ export default function PvPPage() {
         }, 2000);
     }
 
-    async function handleNoMatchFound() {
-        // This is now only called if horse match also fails
-        // Refund stake via audit-safe RPC
-        try {
-            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: stakeAmount,
-                p_type: 'pvp_refund',
-                p_description: `PvP match failed — ${stakeAmount}💎 refund`,
-                p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
-            });
-            if (__rpcErr) throw __rpcErr;
-            // Refresh balance from DB
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds || 0);
-        } catch (e) {
-            console.warn('[PVP] Refund failed — user may need manual refund:', e);
-        }
-
-        await leaveMatchmakingQueue(userId);
-        setGameState('lobby');
-        console.warn('[PVP] Unable to start match — returned to lobby.');
-    }
+    // NOTE: handleNoMatchFound() used to live here — a refund path that nothing
+    // ever called. Its job (refund + leave queue on a failed match start) is now
+    // handled inline by handleHorseMatch's catch block and the unmount cleanup,
+    // both keyed to the stake's own reference_id.
 
     async function handleCancelSearch() {
         if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
@@ -533,15 +695,16 @@ export default function PvPPage() {
         // Refund stake via audit-safe RPC. Was previously silent on RPC error
         // — user clicked Cancel, returned to lobby thinking they got refund,
         // but RPC may have failed. Now surface refund-failure to user.
+        const refundAmount = stakeRef.current || stakeAmount;
         try {
-            const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+            await diamondRpc(supabase, {
                 p_user_id: userId,
-                p_amount: stakeAmount,
+                p_amount: refundAmount,
                 p_type: 'pvp_refund',
-                p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
-                p_reference_id: `pvp_refund_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
+                p_description: `PvP cancelled — ${refundAmount} diamonds refunded`,
+                p_reference_id: `pvp_refund_${stakeRefIdRef.current || newPvpReference('cancel', userId)}`
             });
-            if (rpcErr) throw rpcErr;
+            searchingRef.current = false;
             // Refresh balance from DB
             const { data: profile } = await supabase
                 .from('profiles')
@@ -552,22 +715,31 @@ export default function PvPPage() {
         } catch (e) {
             console.warn('[PVP] Cancel refund failed:', e);
             setRefundFailed(true);
-            setPvpError(`Refund of ${stakeAmount}💎 may have failed — please verify balance or contact support.`);
+            setPvpError(`Your refund of ${refundAmount} diamonds may not have gone through. Please verify your balance or contact support.`);
         }
 
         setGameState('lobby');
+        gameStateRef.current = 'lobby';
         setOpponent(null);
+        opponentRef.current = null;
     }
 
     function handleMatchUpdate(updatedMatch) {
-        // Check if opponent submitted their score
-        const opponentScoreField = isPlayer1 ? 'player2_score' : 'player1_score';
-        if (updatedMatch[opponentScoreField] !== null && updatedMatch[opponentScoreField] !== opponentScore) {
-            setOpponentScore(updatedMatch[opponentScoreField]);
+        // Reads isPlayer1Ref, NOT the isPlayer1 state: this callback was
+        // registered from a render where isPlayer1 was still false, so for the
+        // actual player1 the "opponent" field resolved to their OWN score column.
+        const opponentScoreField = isPlayer1Ref.current ? 'player2_score' : 'player1_score';
+        const oppScore = updatedMatch[opponentScoreField];
+        if (oppScore !== null && oppScore !== undefined) {
+            setOpponentScore(oppScore);
         }
 
-        // Check if match is complete
-        if (updatedMatch.status === 'complete' && gameState !== 'result') {
+        // completedRef guards against the same 'complete' UPDATE (or several of
+        // them) re-running the payout + the non-idempotent updatePvpStats
+        // read-modify-write, which double-counted wins/losses. The old guard
+        // (`gameState !== 'result'`) read a frozen closure value and never fired.
+        if (updatedMatch.status === 'complete' && !completedRef.current) {
+            completedRef.current = true;
             handleBattleComplete(updatedMatch);
         }
     }
@@ -580,18 +752,51 @@ export default function PvPPage() {
     async function finishBattle() {
         timer.setIsTimerRunning(false);
         setGameState('waiting');
+        gameStateRef.current = 'waiting';
 
-        // Use ref for accurate score — React state may be stale inside this closure
+        // Use refs for accurate values — React state may be stale inside the
+        // setTimeout closure that calls this.
         const finalScore = playerScoreRef.current;
 
         // Handle horse match differently
-        if (isHorseMatch) {
+        if (isHorseMatchRef.current) {
             await finishHorseBattle(finalScore);
             return;
         }
 
         // Submit our score for real match
-        await submitMatchScore(matchId, userId, finalScore, isPlayer1);
+        try {
+            await submitMatchScore(matchIdRef.current, userId, finalScore, isPlayer1Ref.current);
+        } catch (e) {
+            console.warn('[PVP] Score submission failed:', e);
+            setPvpError('We could not submit your score. Check your connection — your stake is still in this match.');
+        }
+
+        // Opponent-disconnect deadline. Without this, a player whose opponent
+        // never submits sits on "Waiting For Opponent To Finish..." forever with
+        // their stake locked and no way out.
+        startWaitingDeadline();
+    }
+
+    /**
+     * Start (or restart) the wait-for-opponent countdown. On expiry the player
+     * is told the opponent has not finished and offered a lobby escape; the
+     * match subscription stays live so a late completion still resolves.
+     */
+    function startWaitingDeadline() {
+        if (waitingTimerRef.current) clearInterval(waitingTimerRef.current);
+        const deadline = Date.now() + WAITING_DEADLINE_MS;
+        setWaitingSecondsLeft(Math.ceil(WAITING_DEADLINE_MS / 1000));
+        setWaitingExpired(false);
+        waitingTimerRef.current = setInterval(() => {
+            const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            setWaitingSecondsLeft(remaining);
+            if (remaining <= 0) {
+                clearInterval(waitingTimerRef.current);
+                waitingTimerRef.current = null;
+                setWaitingExpired(true);
+            }
+        }, 1000);
     }
 
     // Complete horse battle - calculate result and award winnings
@@ -603,9 +808,13 @@ export default function PvPPage() {
 
         const won = playerFinalScore > horseScore;
         const tied = playerFinalScore === horseScore;
+        // Refs, not state — this runs from a setTimeout closure.
+        const stake = stakeRef.current || stakeAmount;
+        const liveMatchId = matchIdRef.current || matchId;
+        searchingRef.current = false; // stake resolved by the match outcome
 
         // Calculate winnings — 10% rake on total pot
-        const totalPot = stakeAmount * 2;
+        const totalPot = stake * 2;
         const rakeAmount = Math.floor(totalPot * 0.1);
         let winnings = 0;
 
@@ -619,14 +828,13 @@ export default function PvPPage() {
             winnings = totalPot - rakeAmount;
             // Award winnings via audit-safe RPC
             try {
-                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                await diamondRpc(supabase, {
                     p_user_id: userId,
                     p_amount: winnings,
                     p_type: 'pvp_win',
-                    p_description: `PvP win — ${winnings}💎 payout`,
-                    p_reference_id: matchId
+                    p_description: `PvP win — ${winnings} diamonds payout`,
+                    p_reference_id: `pvp_win_${liveMatchId}`
                 });
-                if (__rpcErr) throw __rpcErr;
                 // Refresh balance from DB
                 const { data: winProfile } = await supabase
                     .from('profiles')
@@ -639,20 +847,19 @@ export default function PvPPage() {
             } catch (e) {
                 console.warn('[PVP] Win payout failed:', e);
                 _payoutFailed = true;
-                try { setRefundFailed(true); } catch {}
-                try { setPvpError(`Payout of ${winnings}💎 may have failed — please verify your balance.`); } catch {}
+                setRefundFailed(true);
+                setPvpError(`Your payout of ${winnings} diamonds may not have gone through. Please verify your balance or contact support.`);
             }
         } else if (tied) {
             // Refund stake on tie via audit-safe RPC
             try {
-                const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                await diamondRpc(supabase, {
                     p_user_id: userId,
-                    p_amount: stakeAmount,
+                    p_amount: stake,
                     p_type: 'pvp_refund',
-                    p_description: `PvP tie — ${stakeAmount}💎 refund`,
-                    p_reference_id: matchId
+                    p_description: `PvP tie — ${stake} diamonds returned`,
+                    p_reference_id: `pvp_tie_refund_${liveMatchId}_${userId}`
                 });
-                if (__rpcErr) throw __rpcErr;
                 const { data: tieProfile } = await supabase
                     .from('profiles')
                     .select('diamonds')
@@ -662,21 +869,21 @@ export default function PvPPage() {
             } catch (e) {
                 console.warn('[PVP] Tie refund failed:', e);
                 _payoutFailed = true;
-                try { setRefundFailed(true); } catch {}
-                try { setPvpError(`Tie refund of ${stakeAmount}💎 may have failed — please verify your balance.`); } catch {}
+                setRefundFailed(true);
+                setPvpError(`Your ${stake} diamond stake refund for the drawn match may not have gone through. Please verify your balance or contact support.`);
             }
-            winnings = stakeAmount;
+            winnings = stake;
         } else {
             busEmit.screenShake('medium');
         }
 
         // Update persistent stats
         if (won) {
-            await updatePvpStats('win', winnings - stakeAmount);
+            await updatePvpStats('win', winnings - stake);
         } else if (tied) {
             await updatePvpStats('tie', 0);
         } else {
-            await updatePvpStats('loss', stakeAmount);
+            await updatePvpStats('loss', stake);
         }
 
         setOpponentScore(horseScore);
@@ -688,8 +895,9 @@ export default function PvPPage() {
             // Phase 59: if payout RPC failed, show 0 winnings so the result
             // panel doesn't lie about money the user didn't actually receive.
             // The error banner from setPvpError above tells them what happened.
-            winnings: _payoutFailed ? 0 : (won ? winnings : (tied ? stakeAmount : 0)),
-            opponent,
+            winnings: _payoutFailed ? 0 : (won ? winnings : (tied ? stake : 0)),
+            stake,
+            opponent: opponentRef.current || opponent,
             isHorseMatch: true,
             payoutFailed: _payoutFailed
         });
@@ -713,8 +921,12 @@ export default function PvPPage() {
                     const { error: historyErr } = await supabase
                         .from('trivia_user_question_history')
                         .upsert(historyRecords, {
+                            // ON CONFLICT DO NOTHING. trivia_user_question_history
+                            // has SELECT + INSERT RLS policies but NO UPDATE policy,
+                            // so the previous ignoreDuplicates:false failed the whole
+                            // batch as soon as one question had been seen before.
                             onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
+                            ignoreDuplicates: true
                         });
                     if (historyErr) {
                         console.warn('[PVP] History upsert failed (non-fatal):', historyErr.message);
@@ -726,30 +938,48 @@ export default function PvPPage() {
         }
 
         setGameState('result');
+        gameStateRef.current = 'result';
     }
 
     async function handleBattleComplete(match) {
         if (matchSubscription.current) { matchSubscription.current(); matchSubscription.current = null; }
+        if (waitingTimerRef.current) { clearInterval(waitingTimerRef.current); waitingTimerRef.current = null; }
+        searchingRef.current = false; // stake is now resolved by the match itself
+
+        // EVERY value below comes from a ref, not state. This function runs
+        // inside the realtime subscription closure created back in
+        // handleFindMatch, where stakeAmount was 0 and isPlayer1 was false —
+        // which paid winners 0 diamonds and made player1 their own "loser".
+        const stake = stakeRef.current;
+        const amIPlayer1 = isPlayer1Ref.current;
+        const liveMatchId = matchIdRef.current || match.id;
 
         const won = match.winner_id === userId;
-        const myScore = isPlayer1 ? match.player1_score : match.player2_score;
-        const theirScore = isPlayer1 ? match.player2_score : match.player1_score;
+        const myScore = amIPlayer1 ? match.player1_score : match.player2_score;
+        const theirScore = amIPlayer1 ? match.player2_score : match.player1_score;
+        const tied = !match.winner_id && myScore != null && theirScore != null && myScore === theirScore;
 
         // Calculate winnings — 10% rake on total pot. Floored for integer diamonds.
-        // Phase 55: moved BEFORE busEmit so the toaster shows the same amount as
-        // the result UI. Previously busEmit used `stakeAmount * 2 * 0.9` which
-        // produces a float for non-multiples-of-10 (e.g., custom AllInMode stake
-        // of 33 → busEmit shows 59.4 while actual credit is 60). Now both use
-        // the same floored value.
-        const totalPot = stakeAmount * 2;
+        const totalPot = stake * 2;
         const rakeAmount = Math.floor(totalPot * 0.1);
         const winnings = won ? totalPot - rakeAmount : 0;
+        let payoutFailed = false;
 
         // Process rewards if we won
         if (won) {
-            const loserId = isPlayer1 ? match.player2_id : match.player1_id;
-            // Phase 55: pass matchId for stable RPC idempotency reference_id
-            await processMatchReward(userId, loserId, stakeAmount, matchId);
+            const loserId = amIPlayer1 ? match.player2_id : match.player1_id;
+            try {
+                // Phase 55: pass matchId for stable RPC idempotency reference_id
+                const rewardResult = await processMatchReward(userId, loserId, stake, liveMatchId);
+                if (rewardResult && rewardResult.success === false) {
+                    throw new Error(rewardResult.error || 'Payout was rejected');
+                }
+            } catch (e) {
+                console.warn('[PVP] Win payout failed:', e);
+                payoutFailed = true;
+                setRefundFailed(true);
+                setPvpError(`Your payout of ${winnings} diamonds may not have gone through. Please verify your balance or contact support.`);
+            }
 
             // Reload diamonds
             const { data: profile } = await supabase
@@ -759,25 +989,51 @@ export default function PvPPage() {
                 .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds || 0);
 
-            busEmit.diamondsEarned(winnings, 'PvP Real Match Victory');
-            busEmit.celebration('confetti');
+            if (!payoutFailed) {
+                busEmit.diamondsEarned(winnings, 'PvP Real Match Victory');
+                busEmit.celebration('confetti');
+            }
+        } else if (tied) {
+            // Tie refund for REAL matches. Horse ties already refunded, but real
+            // ties only called updatePvpStats('tie', 0) — so BOTH players simply
+            // lost their full stake on a draw. Keyed to the matchId so the two
+            // players' refunds are independent and each is idempotent.
+            try {
+                await diamondRpc(supabase, {
+                    p_user_id: userId,
+                    p_amount: stake,
+                    p_type: 'pvp_refund',
+                    p_description: `PvP tie — ${stake} diamonds returned`,
+                    p_reference_id: `pvp_tie_refund_${liveMatchId}_${userId}`
+                });
+                const { data: tieProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
+            } catch (e) {
+                console.warn('[PVP] Real-match tie refund failed:', e);
+                payoutFailed = true;
+                setRefundFailed(true);
+                setPvpError(`Your ${stake} diamond stake refund for the drawn match may not have gone through. Please verify your balance or contact support.`);
+            }
         } else {
             busEmit.screenShake('medium');
         }
 
         setResult({
             won,
+            tied,
             playerScore: myScore,
             opponentScore: theirScore,
-            winnings,
-            opponent
+            winnings: payoutFailed ? 0 : (won ? winnings : (tied ? stake : 0)),
+            stake,
+            payoutFailed,
+            opponent: opponentRef.current || opponent
         });
 
         // Update persistent stats via upsert (not just local setState)
         if (won) {
-            await updatePvpStats('win', winnings - stakeAmount);
+            await updatePvpStats('win', winnings - stake);
         } else if (match.winner_id && match.winner_id !== userId) {
-            await updatePvpStats('loss', stakeAmount);
+            await updatePvpStats('loss', stake);
         } else {
             await updatePvpStats('tie', 0);
         }
@@ -800,8 +1056,12 @@ export default function PvPPage() {
                     const { error: historyErr } = await supabase
                         .from('trivia_user_question_history')
                         .upsert(historyRecords, {
+                            // ON CONFLICT DO NOTHING. trivia_user_question_history
+                            // has SELECT + INSERT RLS policies but NO UPDATE policy,
+                            // so the previous ignoreDuplicates:false failed the whole
+                            // batch as soon as one question had been seen before.
                             onConflict: 'user_id,question_id',
-                            ignoreDuplicates: false
+                            ignoreDuplicates: true
                         });
                     if (historyErr) {
                         console.warn('[PVP] History upsert failed (non-fatal):', historyErr.message);
@@ -813,13 +1073,29 @@ export default function PvPPage() {
         }
 
         setGameState('result');
+        gameStateRef.current = 'result';
     }
 
     function handlePlayAgain() {
+        if (waitingTimerRef.current) { clearInterval(waitingTimerRef.current); waitingTimerRef.current = null; }
         setGameState('lobby');
+        gameStateRef.current = 'lobby';
+        setWaitingExpired(false);
+        setWaitingSecondsLeft(0);
+        setPvpError(null);
+        setRefundFailed(false);
         setResult(null);
         setOpponent(null);
+        opponentRef.current = null;
         setMatchId(null);
+        matchIdRef.current = null;
+        stakeRef.current = 0;
+        isPlayer1Ref.current = false;
+        isHorseMatchRef.current = false;
+        completedRef.current = false;
+        matchFoundRef.current = false;
+        searchingRef.current = false;
+        stakeRefIdRef.current = null;
         setQuestions([]);
         setPlayerScore(0);
         playerScoreRef.current = 0;
@@ -851,6 +1127,38 @@ export default function PvPPage() {
             <div className="pvp-page">
                 <div className="bg-overlay" />
                 <UniversalHeader pageDepth={2} />
+
+                {/* Error / refund-failure banner.
+                    pvpError and refundFailed were set on every refund and payout
+                    failure path but no JSX referenced them — so all the "surface
+                    it to the user" work was dead and players got zero feedback
+                    when their money did not move. */}
+                {pvpError && (
+                    <div role="alert" style={{
+                        position: 'fixed', top: 16, left: 16, right: 16, zIndex: 10000,
+                        background: '#7f1d1d', border: '1px solid #ef4444', borderRadius: 12,
+                        padding: 14, color: '#fff', display: 'flex', alignItems: 'flex-start',
+                        justifyContent: 'space-between', gap: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+                            <XCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 14 }}>{pvpError}</div>
+                                {refundFailed && (
+                                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                                        Please double-check your diamond balance. If it looks wrong, contact support with the time of this match.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => { setPvpError(null); setRefundFailed(false); }}
+                            style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
 
                 {/* Out of Diamonds Modal */}
                 {showOutOfDiamonds && (
@@ -987,7 +1295,10 @@ export default function PvPPage() {
                                 <div className="vs">VS</div>
                                 <div className="player opponent">
                                     <span className="name">{opponent?.username}</span>
-                                    <span className="score">?</span>
+                                    <span className="score">{opponentScore != null ? opponentScore : '?'}</span>
+                                    {opponentScore == null && (
+                                        <span className="ellipsis-pulse" aria-hidden="true">thinking</span>
+                                    )}
                                 </div>
                             </div>
 
@@ -1000,6 +1311,18 @@ export default function PvPPage() {
                             {/* Progress */}
                             <div className="battle-progress">
                                 Question {currentQuestionIndex + 1} of {questions.length}
+                            </div>
+
+                            {/* Per-question result dots — data already lived in
+                                playerAnswersRef but was never shown. */}
+                            <div className="battle-dots" aria-hidden="true">
+                                {questions.map((_, i) => {
+                                    const outcome = playerAnswersRef.current[i];
+                                    const cls = outcome === true ? 'dot correct'
+                                        : outcome === false ? 'dot wrong'
+                                            : 'dot';
+                                    return <span key={i} className={cls} />;
+                                })}
                             </div>
 
                             {/* Question */}
@@ -1020,6 +1343,16 @@ export default function PvPPage() {
                                   />
                                 ))}
                                 </div>
+
+                                {/* Report-a-bad-question. The component was imported here
+                                    but never rendered, leaving the 3-strike quality
+                                    demotion pipeline unwired in PvP. Only shown after the
+                                    answer is revealed so it cannot stall the shot clock. */}
+                                {showResult && currentQuestion?.id != null && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+                                        <ReportQuestionButton questionId={currentQuestion.id} userToken={accessToken} />
+                                    </div>
+                                )}
                             </MetalFrame>
                         </div>
                     )}
@@ -1030,10 +1363,34 @@ export default function PvPPage() {
                             <MetalFrame padding="32px" showBolts={true}>
                                 <h2>Battle Complete!</h2>
                                 <p>Your Score: <strong>{playerScore}</strong></p>
-                                <div className="waiting-spinner">
-                                    <div className="spinner" />
-                                    <span>Waiting For Opponent To Finish...</span>
-                                </div>
+                                {!waitingExpired ? (
+                                    <div className="waiting-spinner">
+                                        <div className="spinner" />
+                                        <span>
+                                            Waiting For Opponent To Finish
+                                            {waitingSecondsLeft > 0 && ` — ${Math.floor(waitingSecondsLeft / 60)}:${String(waitingSecondsLeft % 60).padStart(2, '0')}`}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    /* Escape hatch. Before this, a player whose opponent
+                                       disconnected sat here forever with their stake locked
+                                       and no way out — the match row never reached 'complete'
+                                       so handleMatchUpdate never fired. */
+                                    <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 6 }}>
+                                            Your Opponent Has Not Finished Yet.
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 16 }}>
+                                            Your score is submitted and safe. This match will settle automatically as soon as they finish — you can wait here or head back to the lobby.
+                                        </p>
+                                        <button
+                                            onClick={handlePlayAgain}
+                                            style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+                                        >
+                                            Back To Lobby
+                                        </button>
+                                    </div>
+                                )}
                             </MetalFrame>
                         </div>
                     )}
@@ -1072,11 +1429,23 @@ export default function PvPPage() {
                                             <span className="panel-stat-value gold">{stats.winStreak || 0} 🔥</span>
                                         </div>
                                         <div className="panel-stat-row">
-                                            <span className="panel-stat-label">DIAMONDS</span>
+                                            {/* A tie is a refund, not winnings — labelling it
+                                                "+N DIAMONDS" read as a payout. */}
+                                            <span className="panel-stat-label">{result.tied ? 'STAKE RETURNED' : 'DIAMONDS'}</span>
                                             <span className={`panel-stat-value ${result.won ? 'green' : result.tied ? 'white' : 'red'}`}>
-                                                {result.won ? `+${result.winnings}` : result.tied ? `+${stakeAmount}` : `-${stakeAmount}`} 💎
+                                                {result.won
+                                                    ? `+${result.winnings} DIAMONDS`
+                                                    : result.tied
+                                                        ? `${result.stake ?? stakeAmount} DIAMONDS`
+                                                        : `-${result.stake ?? stakeAmount} DIAMONDS`}
                                             </span>
                                         </div>
+                                        {result.payoutFailed && (
+                                            <div className="panel-stat-row">
+                                                <span className="panel-stat-label">STATUS</span>
+                                                <span className="panel-stat-value red">PAYOUT PENDING</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 {/* Invisible hitboxes over baked-in PLAY AGAIN and BACK TO TRIVIA buttons */}
@@ -1620,6 +1989,35 @@ export default function PvPPage() {
                     font-size: 1.3rem;
                 }
 
+                /* Per-question progress dots (battle screen) */
+                .battle-dots {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 6px;
+                    margin: 0 0 14px;
+                }
+
+                .battle-dots .dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.18);
+                    transition: background 0.2s;
+                }
+
+                .battle-dots .dot.correct { background: #22c55e; }
+                .battle-dots .dot.wrong { background: #ef4444; }
+
+                /* Press feedback for the otherwise-invisible image hitboxes —
+                   tapping a baked-in button previously gave zero response. */
+                .result-play-again-hitbox:active,
+                .result-back-hitbox:active,
+                .finding-cancel-hitbox:active {
+                    background: rgba(0, 240, 255, 0.08);
+                    border-radius: 8px;
+                }
+
                 /* Invisible hitboxes over baked-in buttons */
                 .result-play-again-hitbox {
                     position: absolute;
@@ -1684,6 +2082,10 @@ export default function PvPPage() {
 
                 .ellipsis-pulse {
                     animation: ellipsisPulse 1.5s infinite;
+                    font-size: 10px;
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.45);
                 }
 
                 @keyframes ellipsisPulse {

@@ -1,23 +1,33 @@
 /**
  * TIME ATTACK GAME — 30 seconds, answer as many as possible
- * Speed creates adrenaline, 1💎 per 3 correct (max 5💎/day)
+ * Speed creates adrenaline, 1 diamond per 3 correct (capped daily)
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Zap, Gem, Target, Timer } from 'lucide-react';
 import { busEmit } from '../../engine/EventBus';
+import { DAILY_DIAMOND_CAPS } from '../../lib/trivia/triviaEngine';
 import MetalFrame from '../ui/MetalFrame';
+import ReportQuestionButton from './ReportQuestionButton';
+import { getAccessToken } from '../../lib/authUtils';
 
 const GAME_DURATION = 30; // seconds
-const DAILY_DIAMOND_CAP = 5;
+// Single source of truth for the cap lives in triviaEngine.
+const DAILY_DIAMOND_CAP = DAILY_DIAMOND_CAPS?.['time-attack'] ?? 5;
 const DIAMONDS_PER_MILESTONE = 1;
-const MILESTONE_INTERVAL = 3; // Every 3 correct = 1💎
+const MILESTONE_INTERVAL = 3; // Every 3 correct = 1 diamond
+const LOAD_MORE_THRESHOLD = 5;
 
 export default function TimeAttackGame({
     questions = [],
     onComplete,
-    dailyDiamondsEarned = 0
+    onLoadMoreQuestions,
+    dailyDiamondsEarned = 0,
+    // Optional: supabase access token for the per-question report button.
+    // /api/trivia/report-question requires a Bearer token, so when the page
+    // does not supply one we resolve it from the live session below.
+    userToken = null
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
@@ -33,6 +43,15 @@ export default function TimeAttackGame({
 
     const currentQuestion = questions[currentIndex];
     const remainingCap = Math.max(0, DAILY_DIAMOND_CAP - dailyDiamondsEarned);
+
+    // The report button needs a Bearer token. Prefer the one the page passes;
+    // otherwise read the live session (client-only, so do it in an effect).
+    const [reportToken, setReportToken] = useState(userToken || null);
+    useEffect(() => {
+        if (userToken) { setReportToken(userToken); return; }
+        try { setReportToken(getAccessToken() || null); }
+        catch (e) { console.warn('[TimeAttackGame] token lookup failed:', e?.message || e); }
+    }, [userToken]);
 
     // Phase 69: track the 400ms reveal-and-advance setTimeouts so unmount
     // cancels them. Without this, navigating away mid-question fired
@@ -57,30 +76,53 @@ export default function TimeAttackGame({
         _pendingTimeoutsRef.current.clear();
     }, []);
 
-    // Main timer
+    // Set when the clock expires mid-reveal: the pending answer must be
+    // counted BEFORE the game ends. Previously the [gameOver] effect fired
+    // onComplete immediately with the pre-answer counts and the reveal
+    // timeout landed afterwards, so the player's last (possibly
+    // milestone-earning) answer was excluded from the payload, the score
+    // save and the diamond count.
+    const pendingGameOverRef = useRef(false);
+
+    // Main timer. The updater only decrements — deciding to end the game
+    // inside a state updater is a side effect that React 18 StrictMode
+    // double-invokes.
     useEffect(() => {
-        if (gameOver) return;
+        if (gameOver) return undefined;
 
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    setGameOver(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            setTimeLeft(prev => (prev <= 1 ? 0 : prev - 1));
         }, 1000);
 
         return () => clearInterval(timer);
     }, [gameOver]);
+
+    useEffect(() => {
+        if (gameOver || timeLeft > 0) return;
+        if (isRevealing) {
+            pendingGameOverRef.current = true;
+            return;
+        }
+        setGameOver(true);
+    }, [timeLeft, gameOver, isRevealing]);
 
     // Reset answer timer on new question
     useEffect(() => {
         answerStartTime.current = Date.now();
     }, [currentIndex]);
 
+    // Top up the pool before it runs dry. time-attack.js currently passes a
+    // large pool, but the 60-day non-repeat product goal will shrink pools
+    // over time and this mode used to just hard-end the game when exhausted.
+    useEffect(() => {
+        if (!onLoadMoreQuestions || gameOver) return;
+        if (questions.length > 0 && currentIndex >= questions.length - LOAD_MORE_THRESHOLD) {
+            onLoadMoreQuestions();
+        }
+    }, [currentIndex, questions.length, onLoadMoreQuestions, gameOver]);
+
     const handleAnswer = (answerIndex) => {
-        if (isRevealing || gameOver) return;
+        if (isRevealing || gameOver || !currentQuestion) return;
 
         const answerTime = (Date.now() - answerStartTime.current) / 1000;
         setSelectedAnswer(answerIndex);
@@ -117,6 +159,14 @@ export default function TimeAttackGame({
                 busEmit.screenShake('light');
             }
 
+            // The clock ran out while this answer was revealing — end now that
+            // the answer has been counted.
+            if (pendingGameOverRef.current) {
+                pendingGameOverRef.current = false;
+                setGameOver(true);
+                return;
+            }
+
             // Quick next question
             if (currentIndex < questions.length - 1) {
                 setCurrentIndex(prev => prev + 1);
@@ -129,6 +179,10 @@ export default function TimeAttackGame({
     };
 
     const handleGameOver = () => {
+        // _completedRef was declared and documented as the double-fire guard
+        // but was never actually checked.
+        if (_completedRef.current) return;
+        _completedRef.current = true;
         onComplete?.({
             correctCount,
             wrongCount,
@@ -226,6 +280,17 @@ export default function TimeAttackGame({
                                 </button>
                             );
                         })}
+                    </div>
+
+                    {/* Per-question report affordance. The page used to import
+                        ReportQuestionButton and never render it; the
+                        per-question UI belongs here, where the question is. */}
+                    <div className="report-row">
+                        <ReportQuestionButton
+                            key={currentQuestion.id}
+                            questionId={currentQuestion.id}
+                            userToken={reportToken}
+                        />
                     </div>
                 </div>
             )}
@@ -349,17 +414,26 @@ export default function TimeAttackGame({
                     margin-top: 16px;
                 }
 
+                .report-row {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 10px;
+                }
+
                 .answer-btn {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     gap: 6px;
                     padding: 14px 10px;
+                    min-height: 56px;
                     background: rgba(30, 41, 59, 0.8);
                     border: 2px solid rgba(255, 255, 255, 0.1);
                     border-radius: 10px;
                     cursor: pointer;
-                    transition: all 0.15s ease;
+                    /* explicit properties only — transition:all also animated
+                       layout-affecting properties */
+                    transition: border-color 0.15s ease, transform 0.15s ease;
                     text-align: center;
                 }
 
@@ -465,6 +539,13 @@ export default function TimeAttackGame({
 
                 @keyframes spin {
                     to { transform: rotate(360deg); }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .timer-text[data-warning="true"] { animation: none; }
+                    .answer-btn { transition: none; }
+                    .answer-btn:hover:not(:disabled) { transform: none; }
+                    .spinner { animation-duration: 2s; }
                 }
             `}</style>
         </div>

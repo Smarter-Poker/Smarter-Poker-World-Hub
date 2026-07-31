@@ -17,6 +17,8 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
 // The 'Timer' hamburger toggle is not part of the original trivia preferences
 // payload, so it is mirrored to this namespaced key for durable local persistence.
@@ -133,36 +135,43 @@ export default function TriviaHubPage() {
             return;
         }
         try {
-            // Get user profile for diamonds
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds, is_vip')
-                .eq('id', userId)
-                .maybeSingle();
+            const today = getTodayCST();
 
+            // Run the three independent reads in parallel — was three
+            // sequential awaits, ~2 extra round trips before the lobby showed.
+            const [profileRes, dailyPlayRes, streakRes] = await Promise.all([
+                supabase
+                    .from('profiles')
+                    .select('diamonds, is_vip')
+                    .eq('id', userId)
+                    .maybeSingle(),
+                // NOTE: multiple daily_trivia_plays rows per (user, date) are
+                // possible (replays), so .maybeSingle() errored with 2+ rows
+                // and the lobby re-offered an already-completed daily. Use
+                // .limit(1) like [mode].js does.
+                supabase
+                    .from('daily_trivia_plays')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('played_date', today)
+                    .limit(1),
+                supabase
+                    .from('trivia_streaks')
+                    .select('current_streak')
+                    .eq('user_id', userId)
+                    .maybeSingle(),
+            ]);
+
+            const profile = profileRes?.data;
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
                 setIsVip(profile.is_vip === true);
             }
 
-            // Check if daily trivia completed today
-            const today = getTodayCST();
-            const { data: dailyPlay } = await supabase
-                .from('daily_trivia_plays')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('played_date', today)
-                .maybeSingle();
+            const dailyPlay = dailyPlayRes?.data;
+            setDailyCompleted(!!(dailyPlay && dailyPlay.length > 0));
 
-            setDailyCompleted(!!dailyPlay);
-
-            // Get streak
-            const { data: streakData } = await supabase
-                .from('trivia_streaks')
-                .select('current_streak')
-                .eq('user_id', userId)
-                .maybeSingle();
-
+            const streakData = streakRes?.data;
             if (streakData) {
                 setCurrentStreak(streakData.current_streak || 0);
             }
@@ -195,15 +204,6 @@ export default function TriviaHubPage() {
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id, loadUserData]);
 
-    function getTodayCST() {
-        const now = new Date();
-        const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-        const year = cstDate.getFullYear();
-        const month = String(cstDate.getMonth() + 1).padStart(2, '0');
-        const day = String(cstDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
     return (
         <PageTransition>
             <SEOHead
@@ -225,8 +225,8 @@ export default function TriviaHubPage() {
                     onClose={() => setMenuOpen(false)}
                     direction="left"
                     theme="dark"
-                    user={null}
-                    showProfile={false}
+                    user={user || null}
+                    showProfile={!!user}
                     menuItems={menuConfig.menuItems}
                     bottomLinks={menuConfig.bottomLinks}
                 />
@@ -234,8 +234,7 @@ export default function TriviaHubPage() {
                 <div className="content">
                     {isLoading ? (
                         <div className="loading">
-                            <div className="spinner" />
-                            <p>Loading...</p>
+                            <TriviaSkeleton />
                         </div>
                     ) : (
                         <TriviaLobby

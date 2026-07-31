@@ -10,9 +10,32 @@
  * Usage:
  *   node scripts/trivia-grok-parallel-fill.js \
  *     --category=poker_history --difficulty=easy \
- *     --rounds=2 --concurrency=5 --batch-size=10
+ *     --rounds=2 --concurrency=5 --batch-size=10 \
+ *     --target=2000 --cost-cap=25
+ *
+ * Env:
+ *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, XAI_API_KEY,
+ *   SUPABASE_DB_PASSWORD                        (required)
+ *   SUPABASE_DB_HOST, SUPABASE_DB_USER,
+ *   SUPABASE_DB_PORT, SUPABASE_DB_NAME,
+ *   SUPABASE_DB_CA                              (optional, see below)
  *
  * Output: progress to stdout, JSON summary at end.
+ *
+ * WHAT WAS BROKEN:
+ *   - `ssl: { rejectUnauthorized: false }` disabled certificate verification on
+ *     a production database connection that carries the service password.
+ *     Anyone able to intercept the connection could present their own
+ *     certificate and read or rewrite everything. Verification is now ON; if a
+ *     custom root is genuinely needed, supply it through SUPABASE_DB_CA.
+ *   - The pooler host and database user were hardcoded, so a project-ref or
+ *     region change would break the script with a confusing auth error. Both
+ *     now come from env, with the current values as documented defaults.
+ *   - There was NO cost cap (unlike trivia-grok-seed.js), so a large
+ *     --rounds x --concurrency ran to completion no matter the spend.
+ *   - The script blindly generated ROUNDS x CONCURRENCY x BATCH questions for a
+ *     single fixed difficulty, with no reference to what the category actually
+ *     needed. Large fills overshot the target and skewed the difficulty mix.
  */
 
 import pg from '../node_modules/pg/lib/index.js';
@@ -26,12 +49,36 @@ if (!SUPABASE_URL || !SERVICE_KEY || !XAI_KEY || !PG_PASSWORD) {
   process.exit(1);
 }
 
+// Connection topology from env, with the current production values as defaults.
+const DB_HOST = process.env.SUPABASE_DB_HOST || 'aws-0-us-west-2.pooler.supabase.com';
+const DB_USER = process.env.SUPABASE_DB_USER || 'postgres.kuklfnapbkmacvwxktbh';
+const DB_PORT = parseInt(process.env.SUPABASE_DB_PORT || '6543', 10);
+const DB_NAME = process.env.SUPABASE_DB_NAME || 'postgres';
+
+/**
+ * TLS config. The Supabase pooler presents a certificate chaining to a public
+ * root, so verification succeeds with the system trust store. SUPABASE_DB_CA
+ * exists for deployments behind a private root — it is NOT an escape hatch for
+ * turning verification off.
+ */
+export function buildSslConfig(env = process.env) {
+  const ca = env.SUPABASE_DB_CA;
+  return ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: true };
+}
+
 const args = process.argv.slice(2);
 const CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1] || 'poker_history';
 const DIFFICULTY = args.find(a => a.startsWith('--difficulty='))?.split('=')[1] || 'easy';
 const ROUNDS = parseInt(args.find(a => a.startsWith('--rounds='))?.split('=')[1] || '1', 10);
 const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '5', 10);
 const BATCH = parseInt(args.find(a => a.startsWith('--batch-size='))?.split('=')[1] || '10', 10);
+/** Per-category depth target; the per-difficulty need is derived from it. */
+const TARGET = parseInt(args.find(a => a.startsWith('--target='))?.split('=')[1] || '2000', 10);
+/** Hard spend ceiling for this invocation, mirroring trivia-grok-seed.js. */
+const COST_CAP_USD = parseFloat(args.find(a => a.startsWith('--cost-cap='))?.split('=')[1] || '25');
+
+/** 20/50/30 difficulty split — the share of TARGET this difficulty should hold. */
+const DIFFICULTY_SHARES = { easy: 0.20, medium: 0.50, hard: 0.30 };
 
 const SUBCAT_MAP = {
   poker_history: ['Origins of poker', 'WSOP history', 'Online poker boom', 'Black Friday April 2011', 'Famous poker venues', 'Poker in pop culture', 'Pre-Hold\'em era games'],
@@ -136,24 +183,42 @@ async function loadDedup(client, category) {
 
 async function main() {
   const t0 = Date.now();
-  console.log(`Phase 50 — parallel Grok fill for ${CATEGORY}/${DIFFICULTY} (${ROUNDS} rounds × ${CONCURRENCY} concurrent × ${BATCH} q)`);
+  console.log(`Phase 50 — parallel Grok fill for ${CATEGORY}/${DIFFICULTY} (${ROUNDS} rounds x ${CONCURRENCY} concurrent x ${BATCH} q, cost cap $${COST_CAP_USD})`);
 
   const client = new Client({
-    host: 'aws-0-us-west-2.pooler.supabase.com', port: 6543,
-    user: 'postgres.kuklfnapbkmacvwxktbh',
+    host: DB_HOST, port: DB_PORT,
+    user: DB_USER,
     password: PG_PASSWORD,
-    database: 'postgres',
-    ssl: { rejectUnauthorized: false },
+    database: DB_NAME,
+    ssl: buildSslConfig(),
   });
   await client.connect();
 
   const dedup = await loadDedup(client, CATEGORY);
   console.log(`  starting dedup set size: ${dedup.size}`);
 
+  // Ask the DB what this difficulty actually needs instead of blindly
+  // generating ROUNDS x CONCURRENCY x BATCH and overshooting the mix.
+  const existing = await client.query(
+    'SELECT COUNT(*)::int AS n FROM trivia_questions WHERE category = $1 AND difficulty = $2',
+    [CATEGORY, DIFFICULTY],
+  );
+  const have = existing.rows[0]?.n || 0;
+  const difficultyTarget = Math.round(TARGET * (DIFFICULTY_SHARES[DIFFICULTY] ?? 0.33));
+  const need = Math.max(0, difficultyTarget - have);
+  console.log(`  ${CATEGORY}/${DIFFICULTY}: have ${have}, target ${difficultyTarget}, need ${need}`);
+
+  if (need === 0) {
+    console.log('  already at target for this difficulty — nothing to do');
+    await client.end();
+    return;
+  }
+
   let totalCost = 0;
   let totalInserted = 0;
   let totalRejected = 0;
   let totalGrokFails = 0;
+  let stopReason = null;
 
   // Insert as soon as each call resolves so partial completion still persists
   async function insertRows(rows) {
@@ -177,12 +242,30 @@ async function main() {
   }
 
   for (let round = 0; round < ROUNDS; round++) {
+    // Both guards are checked BETWEEN rounds: a round already in flight is
+    // allowed to finish and persist rather than being abandoned mid-insert.
+    if (totalCost >= COST_CAP_USD) {
+      stopReason = `cost cap $${COST_CAP_USD} reached at $${totalCost.toFixed(4)}`;
+      console.warn(`  stopping: ${stopReason}`);
+      break;
+    }
+    if (totalInserted >= need) {
+      stopReason = `difficulty target reached (${have + totalInserted}/${difficultyTarget})`;
+      console.log(`  stopping: ${stopReason}`);
+      break;
+    }
+
+    // Do not generate more than the remaining need in this round.
+    const remaining = need - totalInserted;
+    const perCall = Math.max(1, Math.min(BATCH, Math.ceil(remaining / CONCURRENCY)));
+    const callsThisRound = Math.max(1, Math.min(CONCURRENCY, Math.ceil(remaining / perCall)));
+
     const calls = [];
-    for (let i = 0; i < CONCURRENCY; i++) {
+    for (let i = 0; i < callsThisRound; i++) {
       const subcat = subcats[(round * CONCURRENCY + i) % subcats.length];
       calls.push((async () => {
         try {
-          const r = await grokCall(subcat, BATCH, DIFFICULTY);
+          const r = await grokCall(subcat, perCall, DIFFICULTY);
           totalCost += r.callCost || 0;
           let parsed;
           try {
@@ -225,11 +308,17 @@ async function main() {
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`\n=== summary ===`);
-  console.log(`  inserted: ${totalInserted}`);
-  console.log(`  rejected: ${totalRejected}`);
+  console.log(`  category:   ${CATEGORY}/${DIFFICULTY}`);
+  console.log(`  inserted:   ${totalInserted}`);
+  console.log(`  now at:     ${have + totalInserted}/${difficultyTarget} for this difficulty`);
+  console.log(`  rejected:   ${totalRejected}`);
   console.log(`  grok fails: ${totalGrokFails}`);
-  console.log(`  cost: $${totalCost.toFixed(4)}`);
-  console.log(`  elapsed: ${elapsed}s`);
+  console.log(`  cost:       $${totalCost.toFixed(4)} (cap $${COST_CAP_USD})`);
+  console.log(`  elapsed:    ${elapsed}s`);
+  if (stopReason) console.log(`  stopped:    ${stopReason}`);
+  if (have + totalInserted < difficultyTarget) {
+    console.log(`  re-run to add the remaining ${difficultyTarget - have - totalInserted}.`);
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

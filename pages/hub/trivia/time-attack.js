@@ -9,7 +9,10 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
+// NOTE: ReportQuestionButton was imported here but never rendered — the
+// per-question UI for this mode lives in <TimeAttackGame>, which this page does
+// not own. The dead import is removed rather than left in the bundle; wiring the
+// report button belongs inside src/components/trivia/TimeAttackGame.jsx.
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -26,11 +29,19 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 
-const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const GAME_ENTRY_COST = 10; // diamonds per game for non-VIP
 
-const DAILY_DIAMOND_CAP = 5;
+// Phase 80: the cap lives in triviaEngine so the page, <TimeAttackGame>'s results
+// display and the shared clampToCap helper all agree. The old local value of 5 was
+// below a single 10-diamond entry (mathematically unwinnable) AND disagreed with the
+// engine value the component reads, which made the results screen over-report earnings.
+const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS['time-attack'])
+    ? DAILY_DIAMOND_CAPS['time-attack']
+    : 40;
 
 export default function TimeAttackPage() {
     useTrainingBus('trivia-time-attack');
@@ -47,6 +58,7 @@ export default function TimeAttackPage() {
     const [isVip, setIsVip] = useState(false);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
+    const [startError, setStartError] = useState(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -165,6 +177,19 @@ export default function TimeAttackPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
+        // Reset the per-game save pipeline. This is the REAL "Play Again" path
+        // (the complete screen's button calls handleStart), and it used to be
+        // missing: getIdempotencyKey('game_complete') therefore returned the same
+        // reference_id for every game in the session, so add_diamonds_to_balance
+        // de-duplicated the award and players were credited only for their FIRST
+        // time-attack game per page load — while trivia_scores kept recording
+        // diamonds_earned > 0, inflating the daily cap and the stats page.
+        idempotencyRefs.current = {};
+        savePhaseRef.current = 0;
+        cappedAwardRef.current = null;
+        setSaveErrorPayload(null);
+        setResult(null);
+
         // Check if already paid via TriviaLobby (defense-in-depth)
         const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
             && sessionStorage.getItem('trivia_mode') === 'time-attack';
@@ -201,7 +226,13 @@ export default function TimeAttackPage() {
         }
         const qs = await loadQuestions();
         if (qs.length > 0) {
+            setStartError(null);
             setGameState('playing');
+        } else {
+            // Previously this failed silently — the player clicked Start (and
+            // had already been charged) and simply stayed on the lobby with no
+            // explanation.
+            setStartError('We could not load any questions right now. Please check your connection and try again.');
         }
         } finally {
             isStartingRef.current = false;
@@ -212,6 +243,8 @@ export default function TimeAttackPage() {
     const savePhaseRef = useRef(0); // Tracks which save steps completed: 0=none, 1=score, 2=diamonds, 3=history
 
     const idempotencyRefs = useRef({});
+    // Daily-cap-clamped award for the current game (null = not yet computed).
+    const cappedAwardRef = useRef(null);
     const getIdempotencyKey = (actionType) => {
         if (!idempotencyRefs.current[actionType]) {
             idempotencyRefs.current[actionType] = `time_attack_${actionType}_${crypto.randomUUID()}`;
@@ -219,11 +252,9 @@ export default function TimeAttackPage() {
         return idempotencyRefs.current[actionType];
     };
 
-    async function handlePlayAgain() {
-        setResult(null);
-        idempotencyRefs.current = {}; // Reset idempotency keys for new game
-        setGameState('ready');
-    }
+    // NOTE: a handlePlayAgain() that set gameState 'ready' used to live here. It
+    // was dead code — nothing called it and no render branch existed for 'ready',
+    // so its idempotency reset never ran. That reset now lives in handleStart.
 
     async function handleComplete(gameResult) {
         setResult(gameResult);
@@ -237,6 +268,17 @@ export default function TimeAttackPage() {
             const today = getTodayCST();
 
             try {
+                // Compute the capped award BEFORE the score row is written.
+                // Order matters: getDailyDiamondsEarned sums trivia_scores rows,
+                // so clamping after the insert would count this very run against
+                // itself (and, on a Retry Save, could clamp the award to 0).
+                // Memoised in a ref so retries reuse the same figure.
+                if (cappedAwardRef.current === null) {
+                    const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'time-attack');
+                    cappedAwardRef.current = clampToCap(earnedToday, gameResult.diamondsEarned || 0, DAILY_DIAMOND_CAP);
+                }
+                const cappedAward = cappedAwardRef.current;
+
                 // Phase 1: Save score (only if not already saved).
                 // Capture insert error — supabase-js does NOT throw on DB errors.
                 if (savePhaseRef.current < 1) {
@@ -247,33 +289,49 @@ export default function TimeAttackPage() {
                         score: gameResult.correctCount * 100,
                         correct_count: gameResult.correctCount,
                         total_questions: gameResult.correctCount + gameResult.wrongCount,
-                        diamonds_earned: gameResult.diamondsEarned,
+                        diamonds_earned: cappedAward,
                         play_date: today
                     });
                     if (scoreErr) throw scoreErr;
                     savePhaseRef.current = 1;
                 }
 
-                // Phase 2: Award diamonds (only if not already awarded)
+                // Phase 2: Award diamonds (only if not already awarded).
+                // Re-check the daily cap against the SERVER here rather than
+                // trusting the component's page-load state — otherwise two tabs
+                // (or a stale tab left open across the cap reset) could each
+                // award up to the full cap. Matches endless.js phase 1.
+                let actualAwarded = 0;
                 if (savePhaseRef.current < 2) {
-                    if (gameResult.diamondsEarned > 0) {
-                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    const capped = cappedAward;
+                    if (capped > 0) {
+                        const { data: rpcData, error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
-                            p_amount: gameResult.diamondsEarned,
+                            p_amount: capped,
                             p_type: 'time_attack_reward',
-                            p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
+                            p_description: `Time Attack — ${capped} diamonds (${gameResult.correctCount} correct)`,
                             p_reference_id: getIdempotencyKey('game_complete')
                         });
                         if (__rpcErr) throw __rpcErr;
-                        busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
+                        // The RPC returns { success:false } without an error on
+                        // dedup / insufficient funds — don't claim a credit that
+                        // never landed.
+                        if (rpcData && typeof rpcData === 'object' && rpcData.success === false) {
+                            throw new Error(rpcData.error || 'Diamond award was rejected');
+                        }
+                        busEmit.diamondsEarned(capped, 'Time Attack');
+                        actualAwarded = capped;
                     }
                     savePhaseRef.current = 2;
+                    // Show what was actually credited, not what the component
+                    // hoped to credit.
+                    setResult(prev => (prev ? { ...prev, diamondsEarned: actualAwarded } : prev));
                 }
 
                 if (gameResult.correctCount > personalBest) {
                     setPersonalBest(gameResult.correctCount);
                 }
-                setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
+                setDailyDiamondsEarned(prev => prev + actualAwarded);
 
                 // Phase 3: Record question history (only if not already recorded)
                 if (savePhaseRef.current < 3) {
@@ -295,11 +353,18 @@ export default function TimeAttackPage() {
                             }));
 
                         if (historyRecords.length > 0) {
+                            // ignoreDuplicates:true => ON CONFLICT DO NOTHING.
+                            // trivia_user_question_history has SELECT + INSERT RLS
+                            // policies but NO UPDATE policy, so the previous
+                            // ignoreDuplicates:false (an UPDATE on conflict) failed
+                            // the ENTIRE batch whenever any question had been seen
+                            // before — silently dropping the run's history and
+                            // eroding the 60-day non-repeat guarantee.
                             const { error: historyErr } = await supabase
                                 .from('trivia_user_question_history')
                                 .upsert(historyRecords, {
                                     onConflict: 'user_id,question_id',
-                                    ignoreDuplicates: false
+                                    ignoreDuplicates: true
                                 });
                             if (historyErr) {
                                 // Non-fatal: score + diamonds already saved at
@@ -379,6 +444,20 @@ export default function TimeAttackPage() {
                 <div className="content">
                     {gameState === 'lobby' && (
                         <div className="lobby">
+                            {startError && (
+                                <div role="alert" style={{
+                                    background: 'rgba(239, 68, 68, 0.12)',
+                                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                                    borderRadius: '12px',
+                                    padding: '14px 16px',
+                                    margin: '0 16px 16px',
+                                    color: '#fecaca',
+                                    fontSize: '14px',
+                                    textAlign: 'center'
+                                }}>
+                                    {startError}
+                                </div>
+                            )}
                             <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
                                 <div className="lobby-header">
                                     <Timer size={48} className="mode-icon" />
@@ -403,7 +482,7 @@ export default function TimeAttackPage() {
                                     <h3>Rewards</h3>
                                     <ul>
                                         <li>+1💎 For Every 3 Correct Answers</li>
-                                        <li>Max {DAILY_DIAMOND_CAP}💎 per day</li>
+                                        <li>Max {DAILY_DIAMOND_CAP} diamonds per day</li>
                                         <li>Speed Is Everything!</li>
                                     </ul>
                                 </div>

@@ -3,12 +3,25 @@
  * Confetti, sounds, and dramatic popups
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Trophy, Star, Crown, Target, Award } from 'lucide-react';
 
 // Confetti configuration
 const CONFETTI_COLORS = ['#00d4ff', '#ffd700', '#ff6b6b', '#22c55e', '#a78bfa', '#f472b6'];
 const CONFETTI_COUNT = 100;
+const CONFETTI_COUNT_MOBILE = 60;
+
+export function prefersReducedMotion() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch { return false; }
+}
+
+function isSmallScreen() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try { return window.matchMedia('(max-width: 480px)').matches; }
+    catch { return false; }
+}
 
 /**
  * Confetti explosion effect
@@ -16,8 +29,21 @@ const CONFETTI_COUNT = 100;
 export function ConfettiExplosion({ duration = 3000, onComplete }) {
     const [particles, setParticles] = useState([]);
 
+    // onComplete is almost always an inline arrow from the caller, so a new
+    // identity every parent render. Keeping it in a ref stops the effect from
+    // re-running (and regenerating all ~100 particles) on unrelated renders.
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
     useEffect(() => {
-        const newParticles = Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
+        // Motion-sensitive users get the result immediately, no particles.
+        if (prefersReducedMotion()) {
+            const skip = setTimeout(() => onCompleteRef.current?.(), 0);
+            return () => clearTimeout(skip);
+        }
+
+        const count = isSmallScreen() ? CONFETTI_COUNT_MOBILE : CONFETTI_COUNT;
+        const newParticles = Array.from({ length: count }, (_, i) => ({
             id: i,
             x: 50 + (Math.random() - 0.5) * 20,
             y: 50,
@@ -34,11 +60,11 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
 
         const timer = setTimeout(() => {
             setParticles([]);
-            onComplete?.();
+            onCompleteRef.current?.();
         }, duration);
 
         return () => clearTimeout(timer);
-    }, [duration, onComplete]);
+    }, [duration]);
 
     return (
         <div className="confetti-container">
@@ -78,7 +104,13 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                     width: var(--size);
                     height: var(--size);
                     background: var(--color);
+                    /* transform/opacity only, promoted to its own layer */
+                    will-change: transform, opacity;
                     animation: confettiFall linear forwards;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .confetti { display: none; }
                 }
                 
                 .confetti.rect {
@@ -340,25 +372,57 @@ export function CorrectAnswerFlash() {
 }
 
 /**
- * Wrong answer shake effect
+ * Wrong answer shake effect.
+ *
+ * The original implementation styled `.wrong-shake ~ *` — the subsequent-
+ * sibling combinator. This component renders LAST inside the celebration
+ * fragment, so it has no following siblings and nothing ever shook. It now
+ * toggles a class on a real ancestor (document.body by default) for the
+ * duration of the animation, which is how the rest of the app does screen
+ * shake.
  */
-export function WrongAnswerShake() {
+const SHAKE_CLASS = 'trivia-screen-shake';
+const SHAKE_MS = 400;
+
+export function WrongAnswerShake({ target = null, duration = SHAKE_MS }) {
+    useEffect(() => {
+        if (typeof document === 'undefined') return undefined;
+        if (prefersReducedMotion()) return undefined;
+
+        const el = target || document.body;
+        if (!el || !el.classList) return undefined;
+
+        // Restart the animation if it is already running.
+        el.classList.remove(SHAKE_CLASS);
+        // Reading offsetWidth forces a reflow so the re-added class animates.
+        void el.offsetWidth;
+        el.classList.add(SHAKE_CLASS);
+
+        const timer = setTimeout(() => el.classList.remove(SHAKE_CLASS), duration);
+        return () => {
+            clearTimeout(timer);
+            el.classList.remove(SHAKE_CLASS);
+        };
+    }, [target, duration]);
+
     return (
-        <div className="wrong-shake">
-            <style>{`
-                .wrong-shake ~ * {
-                    animation: shake 0.4s ease-in-out;
-                }
-                
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    20% { transform: translateX(-10px); }
-                    40% { transform: translateX(10px); }
-                    60% { transform: translateX(-5px); }
-                    80% { transform: translateX(5px); }
-                }
-            `}</style>
-        </div>
+        <style>{`
+            .${SHAKE_CLASS} {
+                animation: triviaScreenShake ${duration}ms ease-in-out;
+            }
+
+            @keyframes triviaScreenShake {
+                0%, 100% { transform: translate3d(0, 0, 0); }
+                20% { transform: translate3d(-10px, 0, 0); }
+                40% { transform: translate3d(10px, 0, 0); }
+                60% { transform: translate3d(-5px, 0, 0); }
+                80% { transform: translate3d(5px, 0, 0); }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .${SHAKE_CLASS} { animation: none; }
+            }
+        `}</style>
     );
 }
 
@@ -414,16 +478,20 @@ export function PerfectScoreCelebration({ onComplete }) {
                     margin-bottom: 20px;
                 }
                 
-                .perfect-stars :global(.star) {
+                /* :global() is styled-jsx / CSS-Modules syntax and is INVALID
+                   in a plain <style> element — browsers dropped these rules,
+                   so the three stars rendered unsized, uncoloured and
+                   unanimated. The classNames are already on the elements. */
+                .perfect-stars .star {
                     width: 48px;
                     height: 48px;
                     color: #ffd700;
                     filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
                 }
-                
-                .perfect-stars :global(.s1) { animation: starPop 0.5s ease-out 0.1s backwards; }
-                .perfect-stars :global(.s2) { animation: starPop 0.5s ease-out 0.2s backwards; }
-                .perfect-stars :global(.s3) { animation: starPop 0.5s ease-out 0.3s backwards; }
+
+                .perfect-stars .s1 { animation: starPop 0.5s ease-out 0.1s backwards; }
+                .perfect-stars .s2 { animation: starPop 0.5s ease-out 0.2s backwards; }
+                .perfect-stars .s3 { animation: starPop 0.5s ease-out 0.3s backwards; }
                 
                 @keyframes starPop {
                     0% { transform: scale(0) rotate(-180deg); opacity: 0; }
@@ -450,13 +518,65 @@ export function PerfectScoreCelebration({ onComplete }) {
                     color: rgba(255, 255, 255, 0.7);
                     margin: 0;
                 }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .perfect-celebration,
+                    .perfect-content,
+                    .perfect-stars .star,
+                    .perfect-stars .s1,
+                    .perfect-stars .s2,
+                    .perfect-stars .s3,
+                    .perfect-title {
+                        animation: none;
+                    }
+                }
             `}</style>
         </div>
     );
 }
 
 /**
- * Hook to manage celebration effects
+ * Stable top-level render surface for the celebration layer.
+ *
+ * This MUST live outside useCelebrations. When it was defined inside the hook,
+ * a brand new component type was created on every render of the consuming
+ * page, so React unmounted and remounted the entire celebration subtree each
+ * time: confetti regenerated all its particles and restarted its timer, the
+ * achievement toast restarted its slide-in and auto-close, etc.
+ */
+const Celebrations = React.memo(function Celebrations({
+    showConfetti,
+    showPerfect,
+    showCorrect,
+    showWrong,
+    achievement,
+    onConfettiDone,
+    onAchievementClose
+}) {
+    return (
+        <>
+            {showConfetti && <ConfettiExplosion onComplete={onConfettiDone} />}
+            {showPerfect && <PerfectScoreCelebration />}
+            {showCorrect && <CorrectAnswerFlash />}
+            {showWrong && <WrongAnswerShake />}
+            {achievement && (
+                <AchievementToast
+                    achievement={achievement}
+                    onClose={onAchievementClose}
+                />
+            )}
+        </>
+    );
+});
+
+/**
+ * Hook to manage celebration effects.
+ *
+ * Returns both:
+ *   celebrationElements   — render directly: {celebrations.celebrationElements}
+ *   CelebrationComponents — stable-identity component, safe either as
+ *                           {celebrations.CelebrationComponents()} or
+ *                           <celebrations.CelebrationComponents />
  */
 export function useCelebrations() {
     const [showConfetti, setShowConfetti] = useState(false);
@@ -465,44 +585,74 @@ export function useCelebrations() {
     const [showWrong, setShowWrong] = useState(false);
     const [achievement, setAchievement] = useState(null);
 
+    // Trigger timeouts were previously fire-and-forget, so a trigger fired
+    // shortly before navigation set state on an unmounted component.
+    const timeoutsRef = useRef(new Set());
+    const isMountedRef = useRef(true);
+    const safeSetTimeout = useCallback((fn, delay) => {
+        const id = setTimeout(() => {
+            timeoutsRef.current.delete(id);
+            if (isMountedRef.current) fn();
+        }, delay);
+        timeoutsRef.current.add(id);
+        return id;
+    }, []);
+    useEffect(() => () => {
+        isMountedRef.current = false;
+        for (const id of timeoutsRef.current) clearTimeout(id);
+        timeoutsRef.current.clear();
+    }, []);
+
     const triggerConfetti = useCallback(() => {
         setShowConfetti(true);
     }, []);
 
     const triggerPerfect = useCallback(() => {
-        setShowPerfect(true);
+        // Motion-sensitive users skip the full-screen overlay entirely.
+        if (!prefersReducedMotion()) {
+            setShowPerfect(true);
+            safeSetTimeout(() => setShowPerfect(false), 4000);
+        }
         setShowConfetti(true);
-        setTimeout(() => setShowPerfect(false), 4000);
-    }, []);
+    }, [safeSetTimeout]);
 
     const triggerCorrect = useCallback(() => {
         setShowCorrect(true);
-        setTimeout(() => setShowCorrect(false), 500);
-    }, []);
+        safeSetTimeout(() => setShowCorrect(false), 500);
+    }, [safeSetTimeout]);
 
     const triggerWrong = useCallback(() => {
         setShowWrong(true);
-        setTimeout(() => setShowWrong(false), 400);
-    }, []);
+        safeSetTimeout(() => setShowWrong(false), 400);
+    }, [safeSetTimeout]);
 
     const triggerAchievement = useCallback((ach) => {
         setAchievement(ach);
     }, []);
 
-    const CelebrationComponents = () => (
-        <>
-            {showConfetti && <ConfettiExplosion onComplete={() => setShowConfetti(false)} />}
-            {showPerfect && <PerfectScoreCelebration />}
-            {showCorrect && <CorrectAnswerFlash />}
-            {showWrong && <WrongAnswerShake />}
-            {achievement && (
-                <AchievementToast
-                    achievement={achievement}
-                    onClose={() => setAchievement(null)}
-                />
-            )}
-        </>
-    );
+    const handleConfettiDone = useCallback(() => setShowConfetti(false), []);
+    const handleAchievementClose = useCallback(() => setAchievement(null), []);
+
+    const celebrationElements = useMemo(() => (
+        <Celebrations
+            showConfetti={showConfetti}
+            showPerfect={showPerfect}
+            showCorrect={showCorrect}
+            showWrong={showWrong}
+            achievement={achievement}
+            onConfettiDone={handleConfettiDone}
+            onAchievementClose={handleAchievementClose}
+        />
+    ), [showConfetti, showPerfect, showCorrect, showWrong, achievement, handleConfettiDone, handleAchievementClose]);
+
+    // Stable function identity for the whole lifetime of the hook. It reads
+    // the latest element from a ref, so calling it OR rendering it as a
+    // component both work without ever changing the component type.
+    const elementsRef = useRef(celebrationElements);
+    elementsRef.current = celebrationElements;
+    const CelebrationComponents = useRef(function CelebrationComponents() {
+        return elementsRef.current;
+    }).current;
 
     return {
         triggerConfetti,
@@ -510,6 +660,7 @@ export function useCelebrations() {
         triggerCorrect,
         triggerWrong,
         triggerAchievement,
+        celebrationElements,
         CelebrationComponents
     };
 }

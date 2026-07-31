@@ -6,20 +6,55 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
-import { validateBatch } from '../../../src/lib/triviaValidator';
+import { validateBatch, normalizeQuestionText } from '../../../src/lib/triviaValidator';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
+
+export const config = { maxDuration: 300 };
+
+/** Baseline score for validator-passed questions. Gameplay floor is 6. */
+const SEEDED_QUALITY_SCORE = 7;
+/** Wall-clock budget for one invocation, leaving headroom under maxDuration. */
+const RUN_BUDGET_MS = 240000;
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY missing — bootstrap cannot write to trivia_questions');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
+}
+
+/** Normalized existing question texts for a category (near-duplicate guard). */
+async function loadExistingTexts(supabase, categoryId) {
+    const texts = new Set();
+    const PAGE = 1000;
+    for (let from = 0; from < 5000; from += PAGE) {
+        const { data, error } = await supabase
+            .from('trivia_questions')
+            .select('question')
+            .eq('category', categoryId)
+            .order('id', { ascending: true })
+            .range(from, from + PAGE - 1);
+        if (error) {
+            console.warn('[Bootstrap-Strategy] existing-text load failed:', error.message);
+            break;
+        }
+        for (const row of data || []) {
+            const norm = normalizeQuestionText(row?.question);
+            if (norm) texts.add(norm);
+        }
+        if (!data || data.length < PAGE) break;
+    }
+    return texts;
 }
 
 const NEW_CATEGORIES = [
@@ -141,11 +176,17 @@ Return ONLY a valid JSON array:
                 category: category.id,
                 difficulty,
                 question: q.question.trim(),
-                options: q.options.map(o => o.trim()),
+                // String() coercion: a numeric option from Grok used to throw
+                // on .trim(), and the surrounding catch discarded the whole
+                // paid batch silently.
+                options: q.options.map(o => String(o).trim()),
                 correct_index: q.correct_index,
                 explanation: q.explanation || '',
                 subcategory,
                 source: 'grok-bootstrap',
+                // Column default is 5, below the gameplay floor of 6 — without
+                // this every generated question was invisible to players.
+                quality_score: SEEDED_QUALITY_SCORE,
                 created_at: new Date().toISOString()
             }));
     } catch (error) {
@@ -156,30 +197,34 @@ Return ONLY a valid JSON array:
 
 export default async function handler(req, res) {
   try {
-      // SECURITY: a missing CRON_SECRET is a server misconfiguration, not a grant.
-      // This previously FAILED OPEN: with CRON_SECRET unset the template below
-      // collapsed to the literal string "Bearer undefined", so any caller
-      // sending `Authorization: Bearer undefined` authenticated successfully.
-      const cronSecret = process.env.CRON_SECRET;
-      if (!cronSecret) {
-          console.warn('[trivia-bootstrap-strategy] CRON_SECRET is not configured — rejecting request');
-          return res.status(500).json({ error: 'Server misconfigured' });
-      }
+      // Header-only, fail-closed auth (the old check authenticated the literal
+      // header 'Bearer undefined' whenever CRON_SECRET was unset).
+      if (!requireAdminSecret(req, res, { label: 'trivia-bootstrap-strategy' })) return;
 
-      // Admin-only endpoint
-      const authHeader = req.headers.authorization;
-      if (authHeader !== `Bearer ${cronSecret}`) {
-          return res.status(401).json({ error: 'Unauthorized' });
-      }
+      const deadline = Date.now() + RUN_BUDGET_MS;
 
-      const { category: targetCategory, batchCount = 5 } = req.query;
+      const { category: targetCategory } = req.query;
+      // req.query values are STRINGS. Math.min('abc', n) is NaN, so the batch
+      // loop ran zero times and the endpoint no-opped with success:true.
+      const maxBatches = Math.max(1, Math.min(20, parseInt(req.query.batchCount, 10) || 5));
+
       const categories = targetCategory
           ? NEW_CATEGORIES.filter(c => c.id === targetCategory)
           : NEW_CATEGORIES;
 
-      const results = { generated: 0, categories: {} };
+      if (categories.length === 0) {
+          return res.status(400).json({ error: 'Invalid category' });
+      }
+
+      const results = { generated: 0, categories: {}, timedOut: false, nextCategory: null };
 
       for (const cat of categories) {
+          if (Date.now() > deadline) {
+              results.timedOut = true;
+              results.nextCategory = cat.id;
+              break;
+          }
+
           // Check current count
           const { count: existing } = await getSupabase()
               .from('trivia_questions')
@@ -192,19 +237,30 @@ export default async function handler(req, res) {
               continue;
           }
 
-          let catGenerated = 0;
-          const difficulties = ['easy', 'medium', 'hard'];
+          const existingTexts = await loadExistingTexts(getSupabase(), cat.id);
 
-          for (let batch = 0; batch < Math.min(batchCount, Math.ceil(needed / BATCH_SIZE)); batch++) {
+          let catGenerated = 0;
+          let duplicatesRejected = 0;
+          const difficulties = ['easy', 'medium', 'hard'];
+          const batchLimit = Math.min(maxBatches, Math.ceil(needed / BATCH_SIZE));
+
+          for (let batch = 0; batch < batchLimit; batch++) {
+              if (Date.now() > deadline) {
+                  results.timedOut = true;
+                  results.nextCategory = cat.id;
+                  break;
+              }
+
               const diff = difficulties[batch % 3];
               const subcat = cat.subcategories[batch % cat.subcategories.length];
 
               const questions = await generateBatch(cat, subcat, diff, BATCH_SIZE);
 
               if (questions.length > 0) {
-                  // ═══ QA VALIDATION GATE ═══
-                  const { valid: validQuestions, rejected } = validateBatch(questions);
+                  // ═══ QA VALIDATION + DEDUP GATE ═══
+                  const { valid: validQuestions, rejected } = validateBatch(questions, { existingTexts });
                   if (rejected.length > 0) {
+                      duplicatesRejected += rejected.filter(r => r.errors.some(e => e.startsWith('DUP-'))).length;
                       rejected.forEach(r => r.errors.forEach(e => console.debug(`  → ${e}`)));
                   }
 
@@ -216,6 +272,14 @@ export default async function handler(req, res) {
 
                       if (!error && data) {
                           catGenerated += data.length;
+                          for (const q of validQuestions) {
+                              const norm = normalizeQuestionText(q.question);
+                              if (norm) existingTexts.add(norm);
+                          }
+                      } else if (error) {
+                          // Was swallowed entirely — a failing insert looked
+                          // identical to a successful one in the response.
+                          console.warn('[Bootstrap-Strategy] Insert error:', error.message);
                       }
                   }
               }
@@ -225,12 +289,21 @@ export default async function handler(req, res) {
           }
 
           results.generated += catGenerated;
-          results.categories[cat.id] = { existing: existing || 0, needed, generated: catGenerated };
+          results.categories[cat.id] = {
+              existing: existing || 0,
+              needed,
+              generated: catGenerated,
+              duplicatesRejected,
+          };
+
+          if (results.timedOut) break;
       }
 
       return res.status(200).json({
           success: true,
-          message: `Bootstrap complete: ${results.generated} questions generated`,
+          message: results.timedOut
+              ? `Bootstrap paused at time budget: ${results.generated} questions generated. Resume with ?category=${results.nextCategory}`
+              : `Bootstrap complete: ${results.generated} questions generated`,
           results
       });
 

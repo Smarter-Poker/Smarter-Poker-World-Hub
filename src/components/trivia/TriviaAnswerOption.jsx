@@ -58,6 +58,9 @@
  *   iconSize        number  — CheckCircle/XCircle px (default 20, css only)
  *   className       string  — extra wrapper className (rare, css only)
  *   variant         'css' | 'inline'  — render mode (default 'css')
+ *   announceResult  boolean — render a visually-hidden 'Correct answer' /
+ *                              'Your answer, incorrect' string on reveal so
+ *                              screen-reader users get the outcome
  *
  * Build-safety: no emoji chars in code, no JSX comments inside conditional
  * expressions. Uses lucide-react icons (already CDN-cached for trivia).
@@ -66,6 +69,42 @@
 
 import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
+
+/**
+ * Shared focus/tap treatment. Injected ONCE per document (not per option) so
+ * every mode that renders this primitive gets a visible keyboard focus ring
+ * without each of the five call sites shipping its own copy.
+ */
+const FOCUS_STYLE_ID = 'trivia-answer-option-styles';
+const FOCUS_STYLE_CSS = `
+[data-trivia-answer]:focus-visible {
+  outline: 2px solid #00D4FF;
+  outline-offset: 2px;
+}
+[data-trivia-answer] {
+  min-height: 48px;
+}
+.trivia-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+`;
+
+function ensureFocusStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(FOCUS_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = FOCUS_STYLE_ID;
+  el.appendChild(document.createTextNode(FOCUS_STYLE_CSS));
+  document.head.appendChild(el);
+}
 
 const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
   index,
@@ -79,12 +118,20 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
   iconSize = 20,
   className: extraClassName = '',
   variant = 'css',
+  announceResult = false,
 }) {
+  React.useEffect(() => { ensureFocusStyles(); }, []);
   const isCorrect = showResult && index === correctIndex;
   const isWrong = showResult && index === selectedAnswer && index !== correctIndex;
   const isSelected = !showResult && index === selectedAnswer;
   const isDisabled = disabled !== undefined ? disabled : (showResult || eliminated);
   const letter = String.fromCharCode(65 + index); // A / B / C / D ...
+
+  // Optional screen-reader announcement of the reveal. Rendered inside the
+  // button (which is in the tab order) so it is read when the result flips.
+  const srResult = announceResult && showResult && (index === correctIndex || index === selectedAnswer)
+    ? (index === correctIndex ? 'Correct answer' : 'Your answer, incorrect')
+    : null;
 
   const handleClick = React.useCallback(() => {
     if (isDisabled) return;
@@ -96,8 +143,13 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
     onClick: handleClick,
     disabled: isDisabled,
     type: 'button',
-    'aria-label': `Answer ${letter}: ${option}`,
-    'aria-pressed': selectedAnswer === index ? true : undefined,
+    'aria-label': eliminated
+      ? `Answer ${letter}: ${option} — eliminated`
+      : `Answer ${letter}: ${option}`,
+    // Always a boolean: toggling the ATTRIBUTE's presence (undefined when
+    // unselected) makes screen readers announce only the selected option as a
+    // toggle and the rest as plain buttons.
+    'aria-pressed': selectedAnswer === index,
     'data-trivia-answer': true,
     'data-correct': isCorrect ? 'true' : undefined,
     'data-wrong': isWrong ? 'true' : undefined,
@@ -136,6 +188,9 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
           transition: 'all 0.2s',
           textDecoration: eliminated ? 'line-through' : 'none',
           opacity: eliminated ? 0.5 : 1,
+          // 44px is the minimum comfortable tap target; 48 keeps the label
+          // vertically centred with the existing 14px padding.
+          minHeight: '48px',
         }}
       >
         <span
@@ -155,6 +210,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
           {eliminated ? '✗' : letter}
         </span>
         <span style={{ flex: 1 }}>{option}</span>
+        {srResult ? <span className="trivia-sr-only">{srResult}</span> : null}
       </button>
     );
   }
@@ -177,10 +233,11 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
       {isWrong ? (
         <XCircle size={iconSize} className="result-icon incorrect-icon" aria-hidden />
       ) : null}
+      {srResult ? <span className="trivia-sr-only">{srResult}</span> : null}
     </button>
   );
 });
 
 export default TriviaAnswerOption;
 
-export const TRIVIA_ANSWER_OPTION_VERSION = '1.1.0';
+export const TRIVIA_ANSWER_OPTION_VERSION = '1.2.0';

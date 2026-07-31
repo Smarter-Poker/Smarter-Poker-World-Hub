@@ -5,15 +5,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain } from 'lucide-react';
+import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
-import { supabase } from '../../lib/supabase';
-import { busEmit } from '../../engine/EventBus';
-import { getAuthUser } from '../../lib/authUtils';
 import useVIPGate from '../../hooks/useVIPGate';
 import VIPGateModal from '../ui/VIPGateModal';
+// The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
+// deductDiamonds. Entry price now comes from the engine config only.
+import { getModeConfig } from '../../lib/trivia/triviaEngine';
 
 // Pre-computed particle positions to avoid Math.random() hydration mismatches
 const SUITS = ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'];
@@ -25,8 +25,38 @@ const SUIT_PARTICLES = SUITS.map((suit, i) => ({
     fontSize: 14 + (((i * 17 + 2) % 10) * 1.2),
 }));
 
-const GAME_COST = 10; // diamonds per game for non-VIP
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
+
+/**
+ * ENTRY PRICING — display only.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * The lobby no longer charges anything. It used to deduct a flat 10 diamonds
+ * and then write sessionStorage('trivia_paid') for the destination page to
+ * trust, which was broken two ways:
+ *   1. The "receipt" was a client-side string. Anyone could set it in devtools
+ *      and play every paid mode free.
+ *   2. The lobby charged 10 for history/rules/pro even though those modes have
+ *      diamondCost: 0, so the SAME game was free by direct URL and 10 diamonds
+ *      from the lobby.
+ * Every destination page already performs its own server-verified charge (a
+ * DiamondEngine/RPC deduction with an idempotency key). That charge is now the
+ * only entitlement, so lobby entry and direct-URL entry cost exactly the same.
+ *
+ * The price shown comes straight from TRIVIA_MODES.diamondCost — the local
+ * PAGE_ENTRY_COSTS override table that used to live here is gone, because the
+ * engine config now carries the real number for every paid mode (mtt/cash/
+ * icm/gto/mixed/endless/survival/time-attack). One table, so the lobby price
+ * and the direct-URL price cannot drift apart again.
+ */
+
+/** What the user will actually be charged when they enter this mode. */
+function getEntryCost(modeId) {
+    const configured = getModeConfig(modeId)?.diamondCost;
+    return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+/** Modes whose entry price is a stake / tournament fee rather than fixed. */
+const VARIABLE_COST_MODES = new Set(['pvp', 'tournaments']);
 
 const MODE_CARDS = [
     // TOP ROW - Strategy Modes (MTT, Cash, GTO)
@@ -168,6 +198,11 @@ const MODE_CARDS = [
 ];
 
 
+/**
+ * onDiamondsChange is still accepted (index.js passes it) but is intentionally
+ * unused: this component no longer moves diamonds, so it has no delta to
+ * report. The destination pages emit their own balance updates.
+ */
 export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
     const router = useRouter();
     const [hoveredCard, setHoveredCard] = useState(null);
@@ -175,13 +210,24 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
     useEffect(() => {
         setMounted(true);
+        // Clear any legacy 'already paid' flags left in this session by an
+        // older build. Nothing writes them any more, and a stale one would
+        // hand out one free paid entry on the destination page.
+        try {
+            sessionStorage.removeItem('trivia_paid');
+            sessionStorage.removeItem('trivia_mode');
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
-    // VIP Gating state
+    // Cost-disclosure state. NOTE: no diamonds move in this component any
+    // more — the popup only tells the player what the destination page will
+    // charge, and Accept routes them there.
     const [showChargePopup, setShowChargePopup] = useState(false);
     const [pendingMode, setPendingMode] = useState(null);
-    const [isDeducting, setIsDeducting] = useState(false);
+    const [isRouting, setIsRouting] = useState(false);
     const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('trivia');
+
+    const pendingCost = pendingMode ? getEntryCost(pendingMode) : 0;
 
     // Route to the correct page for a mode
     const routeToMode = (modeId) => {
@@ -195,182 +241,63 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         router.push(standaloneRoutes[modeId] || `/hub/trivia/${modeId}`);
     };
 
-    // Phase 56 fix: synchronous re-entry guard via ref. setIsDeducting() is
-    // async and does not block subsequent calls before React re-renders, so a
-    // user double-clicking the start button (or routing handler firing twice
-    // from a race) could trigger two simultaneous deductDiamonds() calls.
-    const _deductInFlightRef = useRef(false);
-    // Phase 56 fix: per-(user, mode) idempotency token cached in a ref so all
-    // retries during this component's lifecycle use the SAME reference_id.
-    // The DB's idempotency table will dedup any double-fire. Was previously
-    // generating a fresh UUID + Date.now() on every call, which deliberately
-    // defeated DB idempotency — a double-click that snuck past the in-flight
-    // guard would charge the user TWICE for one game.
-    const _idempotencyTokens = useRef({});
-    const _getIdempotencyToken = (mode) => {
-        if (!_idempotencyTokens.current[mode]) {
-            _idempotencyTokens.current[mode] = `trivia_entry_${mode}_${crypto.randomUUID()}`;
-        }
-        return _idempotencyTokens.current[mode];
-    };
-    const _clearIdempotencyToken = (mode) => {
-        delete _idempotencyTokens.current[mode];
+    const handleChargeAccept = () => {
+        const modeId = pendingMode;
+        if (!modeId) return;
+        // Remember the disclosure so it is shown once, not once per mode.
+        try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        setIsRouting(true);
+        setShowChargePopup(false);
+        setPendingMode(null);
+        routeToMode(modeId);
     };
 
-    // Deduct diamonds via Supabase
-    const deductDiamonds = async (modeId = null) => {
-        if (_deductInFlightRef.current) {
-            console.warn('[TriviaLobby] deductDiamonds already in-flight — ignored duplicate');
-            return false;
-        }
-        _deductInFlightRef.current = true;
-        try {
-            const user = getAuthUser();
-            if (!user) return false;
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .maybeSingle();
-            if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
-            const refId = _getIdempotencyToken(modeId || 'unknown');
-            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: user.id,
-                p_amount: -GAME_COST,
-                p_type: 'game_cost',
-                p_description: `Trivia game entry — ${GAME_COST}diamonds`,
-                p_reference_id: refId,
-            });
-            if (__rpcErr) throw __rpcErr;
-            // Successful charge — invalidate the token so the NEXT game generates
-            // a fresh one (otherwise the user couldn't play the same mode twice
-            // in one component lifecycle, since the second call would dedup).
-            _clearIdempotencyToken(modeId || 'unknown');
-            onDiamondsChange?.(-GAME_COST);
-            busEmit.diamondsSpent(GAME_COST, 'Trivia Game Entry');
-            return true;
-        } catch (err) {
-            console.warn('Diamond deduction failed:', err);
-            return false;
-        } finally {
-            _deductInFlightRef.current = false;
-        }
-    };
-
-    // Handle charge popup acceptance.
-    // Phase 70: was missing a synchronous re-entry guard at the handler
-    // boundary — `disabled={isDeducting}` on the button doesn't help during
-    // the same React batch, and `_deductInFlightRef` blocks the SECOND
-    // deductDiamonds call (correct), but causes the second handleChargeAccept
-    // to see success=false and trigger the top-up popup, falsely telling
-    // the user they're out of diamonds AFTER a successful charge. A
-    // dedicated ref at the handler level avoids the misleading UX.
-    const _chargeAcceptInFlightRef = useRef(false);
-    const handleChargeAccept = async () => {
-        if (_chargeAcceptInFlightRef.current) return;
-        _chargeAcceptInFlightRef.current = true;
-        setIsDeducting(true);
-        try {
-            const success = await deductDiamonds(pendingMode);
-            if (success) {
-                // Mark as acknowledged — popup never shows again
-                try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                // Signal downstream pages that payment was already made
-                try {
-                    sessionStorage.setItem('trivia_paid', 'true');
-                    sessionStorage.setItem('trivia_mode', pendingMode);
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                setShowChargePopup(false);
-                routeToMode(pendingMode);
-                setPendingMode(null);
-            } else {
-                // Deduction failed (insufficient) — show top-up
-                setShowChargePopup(false);
-                showUpgradeModal();
-            }
-        } finally {
-            setIsDeducting(false);
-            _chargeAcceptInFlightRef.current = false;
-        }
-    };
-
-    // Phase 70: synchronous re-entry guard prevents rapid clicks on a
-    // mode card from firing two startMode flows. With Phase 56's
-    // _deductInFlightRef the SECOND call's deduct is blocked, but
-    // success=false flowed back to showUpgradeModal(), falsely
-    // telling the user they're out of diamonds. This ref short-circuits
-    // before any state changes.
+    // Synchronous re-entry guard: two fast taps on a card used to run two
+    // start flows (and, when this component still billed, two charges).
     const _startModeInFlightRef = useRef(false);
-    const startMode = async (modeId) => {
+    const startMode = (modeId) => {
         if (_startModeInFlightRef.current) return;
         _startModeInFlightRef.current = true;
         try {
-            await _startModeInner(modeId);
+            _startModeInner(modeId);
         } finally {
-            _startModeInFlightRef.current = false;
+            // Released on the next tick — the guard only exists to swallow the
+            // duplicate click in the same burst.
+            setTimeout(() => { _startModeInFlightRef.current = false; }, 400);
         }
     };
 
-    const _startModeInner = async (modeId) => {
+    const _startModeInner = (modeId) => {
         // Block daily if already completed
         if (modeId === 'daily' && dailyCompleted) return;
 
-        // === VIP members: free access to everything ===
-        if (isVip) {
+        const cost = getEntryCost(modeId);
+
+        // VIPs and free modes go straight through.
+        if (isVip || cost === 0 || VARIABLE_COST_MODES.has(modeId)) {
             routeToMode(modeId);
             return;
         }
 
-        // === Non-VIP: Daily trivia is free (once/day) ===
-        if (modeId === 'daily') {
-            routeToMode(modeId);
+        // Client-side balance check is a courtesy only; the destination page
+        // re-checks against the database before it charges.
+        if (userDiamonds < cost) {
+            // devhead replaced the in-lobby top-up card with the shared VIP
+            // upgrade gate; that modal is the insufficient-funds surface now.
+            showUpgradeModal();
             return;
         }
 
-        // === Standalone modes handle their own billing ===
-        // These pages have their own diamond deduction, balance checks, and BUS emits.
-        // TriviaLobby must NOT deduct here or users get double-charged.
-        const SELF_BILLING_MODES = ['survival', 'endless', 'mixed', 'pvp', 'tournaments'];
-        if (SELF_BILLING_MODES.includes(modeId)) {
-            routeToMode(modeId);
-            return;
-        }
-
-        // === Non-VIP: All other modes cost 10 diamonds ===
-        // Check if user has previously acknowledged the charge popup
         let acknowledged = false;
         try { acknowledged = localStorage.getItem(ACKNOWLEDGED_KEY) === 'true'; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         if (!acknowledged) {
-            // FIRST TIME: Show confirmation popup
-            if (userDiamonds < GAME_COST) {
-                showUpgradeModal();
-                return;
-            }
             setPendingMode(modeId);
             setShowChargePopup(true);
             return;
         }
 
-        // RETURNING USER: Auto-deduct silently
-        if (userDiamonds < GAME_COST) {
-            showUpgradeModal();
-            return;
-        }
-
-        setIsDeducting(true);
-        const success = await deductDiamonds(modeId);
-        setIsDeducting(false);
-        if (success) {
-            // Signal downstream pages that payment was already made
-            try {
-                sessionStorage.setItem('trivia_paid', 'true');
-                sessionStorage.setItem('trivia_mode', modeId);
-            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-            routeToMode(modeId);
-        } else {
-            showUpgradeModal();
-        }
+        routeToMode(modeId);
     };
 
     return (
@@ -390,7 +317,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 </div>
             )}
 
-            {/* Daily Trivia Hero Card - Image Based */}
+            {/* Daily Trivia Hero Card - Image Based.
+                The wrapper keeps its mouse affordance; keyboard and
+                screen-reader users are served by the labelled inner button. */}
             <div
                 className="daily-trivia-banner"
                 onClick={() => !dailyCompleted && startMode('daily')}
@@ -403,17 +332,27 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 />
                 {/* Clickable button overlay positioned over the START DAILY TRIVIA button */}
                 <button
+                    type="button"
                     className="daily-trivia-banner__button"
                     onClick={(e) => {
                         e.stopPropagation();
                         if (!dailyCompleted) startMode('daily');
                     }}
                     disabled={dailyCompleted}
-                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia'}
+                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia — free, once per day'}
                 />
+                {currentStreak > 0 && !dailyCompleted && (
+                    <div className="daily-streak-chip" title={`${currentStreak} day streak`}>
+                        <Flame size={14} aria-hidden />
+                        <span>Day {currentStreak} — keep it alive!</span>
+                    </div>
+                )}
                 {dailyCompleted && (
                     <div className="daily-trivia-banner__completed">
-                        <span>✓ COMPLETED</span>
+                        <span>
+                            COMPLETED
+                            {currentStreak > 0 ? ` — ${currentStreak} DAY STREAK` : ''}
+                        </span>
                     </div>
                 )}
             </div>
@@ -429,21 +368,51 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                         // Use image-based card if mode has an image
                         if (mode.image) {
+                            const cost = getEntryCost(mode.id);
+                            const variableCost = VARIABLE_COST_MODES.has(mode.id);
+                            const costText = isVip
+                                ? 'VIP: free'
+                                : variableCost
+                                    ? 'Stake to play'
+                                    : cost > 0 ? `${cost} to play` : 'Free';
+                            const rewardText = typeof mode.diamondReward === 'number'
+                                ? `+${mode.diamondReward}${mode.perfectBonus ? ` / perfect +${mode.perfectBonus}` : ''}`
+                                : (mode.diamondReward ? String(mode.diamondReward) : '');
+
+                            // A real <button>: these image cards were click-only
+                            // divs, so the whole lobby was unreachable by keyboard,
+                            // and the price was only revealed by the popup.
                             return (
-                                <div
+                                <button
                                     key={mode.id}
+                                    type="button"
                                     className="mode-image-card"
                                     onMouseEnter={() => setHoveredCard(mode.id)}
                                     onMouseLeave={() => setHoveredCard(null)}
+                                    onFocus={() => setHoveredCard(mode.id)}
+                                    onBlur={() => setHoveredCard(null)}
                                     onClick={() => startMode(mode.id)}
-                                    style={{ cursor: 'pointer' }}
+                                    aria-label={`${mode.name}. ${mode.description}. ${costText}${rewardText ? `. Reward ${rewardText} diamonds` : ''}.`}
+                                    style={isHovered ? { boxShadow: `0 8px 30px ${mode.color}55` } : undefined}
                                 >
                                     <img
                                         src={mode.image}
-                                        alt={mode.name}
+                                        alt=""
+                                        aria-hidden
                                         className="mode-image-card__img"
                                     />
-                                </div>
+                                    <span className="mode-image-card__strip" aria-hidden>
+                                        <span className="mode-image-card__name" style={{ color: mode.color }}>{mode.name}</span>
+                                        <span className="mode-image-card__meta">
+                                            <span className="mode-chip">{costText}</span>
+                                            {rewardText && (
+                                                <span className="mode-chip reward">
+                                                    <Gem size={10} /> {rewardText}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </span>
+                                </button>
                             );
                         }
 
@@ -509,17 +478,22 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
             {/* Quick Stakes Section - Landscape Banner */}
             <div className="quick-stakes-section">
-                <div
+                <button
+                    type="button"
                     className="quick-stakes-banner"
                     onClick={() => startMode('arcade')}
-                    style={{ cursor: 'pointer' }}
+                    aria-label={`Quick Stakes — timed arcade round. ${isVip ? 'Free for VIP' : `Entry ${getEntryCost('arcade')} diamonds`}.`}
                 >
                     <img
                         src="/images/trivia/quick-stakes.webp?v=v5"
-                        alt="Quick Stakes - 10 Questions In 60 Seconds"
+                        alt=""
+                        aria-hidden
                         className="quick-stakes-banner__img"
                     />
-                </div>
+                    <span className="quick-stakes-banner__chip" aria-hidden>
+                        {isVip ? 'VIP: free' : <>{getEntryCost('arcade')} <Gem size={11} /> to play</>}
+                    </span>
+                </button>
             </div>
 
             <style>{`
@@ -712,14 +686,71 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     filter: grayscale(50%);
                 }
 
-                /* Image-based Mode Cards */
+                /* Image-based Mode Cards (now <button> — reset UA styles) */
                 .mode-image-card {
                     position: relative;
+                    display: block;
+                    width: 100%;
+                    padding: 0;
+                    background: none;
+                    border: none;
+                    font: inherit;
+                    color: inherit;
+                    text-align: left;
                     border-radius: 12px;
                     overflow: hidden;
                     cursor: pointer;
                     animation: cardEntrance 0.5s ease backwards;
                     transition: transform 0.25s ease, box-shadow 0.25s ease;
+                }
+                .mode-image-card:focus-visible,
+                .quick-stakes-banner:focus-visible,
+                .daily-trivia-banner__button:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 3px;
+                }
+
+                /* Text strip: name + real entry cost / reward, so players can
+                   compare modes without memorizing the artwork. */
+                .mode-image-card__strip {
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    padding: 18px 10px 8px;
+                    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.85));
+                    pointer-events: none;
+                }
+                .mode-image-card__name {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.03em;
+                    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+                }
+                .mode-image-card__meta {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                }
+                .mode-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 3px;
+                    padding: 2px 7px;
+                    border-radius: 999px;
+                    background: rgba(255, 255, 255, 0.12);
+                    color: rgba(255, 255, 255, 0.85);
+                    font-size: 10px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                .mode-chip.reward {
+                    background: rgba(35, 116, 225, 0.25);
+                    color: #9ecbff;
                 }
                 .mode-image-card:hover {
                     transform: translateY(-4px) scale(1.02);
@@ -760,11 +791,54 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 /* Quick Stakes Banner - landscape format, matching Daily Trivia size */
                 .quick-stakes-banner {
                     position: relative;
+                    display: block;
+                    width: 100%;
+                    padding: 0;
+                    background: none;
+                    border: none;
                     border-radius: 0;
                     overflow: hidden;
                     cursor: pointer;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
                     aspect-ratio: 918 / 333;
+                }
+
+                .quick-stakes-banner__chip {
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    background: rgba(0, 0, 0, 0.6);
+                    border: 1px solid rgba(35, 116, 225, 0.45);
+                    color: #9ecbff;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
+                    pointer-events: none;
+                }
+
+                /* Streak chip on the daily banner */
+                .daily-streak-chip {
+                    position: absolute;
+                    left: 3%;
+                    bottom: 8%;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 5px 12px;
+                    border-radius: 999px;
+                    background: rgba(0, 0, 0, 0.65);
+                    border: 1px solid rgba(249, 115, 22, 0.45);
+                    color: #f97316;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.03em;
+                    z-index: 3;
+                    pointer-events: none;
                 }
 
                 .quick-stakes-banner:hover {
@@ -868,6 +942,37 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
+                /* The modal spinner was wrapped in .dm-spinner-overlay, which
+                   had no rule anywhere — it rendered in normal flow BELOW the
+                   modal image instead of over it. */
+                .dm-spinner-overlay {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.45);
+                    border-radius: 16px;
+                }
+
+                /* Tap targets + motion preferences */
+                .gate-btn,
+                .daily-trivia-banner__button {
+                    min-height: 44px;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .suit-particles { display: none; }
+                    .mode-image-card {
+                        animation: none;
+                    }
+                    .mode-image-card:hover,
+                    .quick-stakes-banner:hover,
+                    .daily-trivia-banner:hover,
+                    .gate-btn--accept:hover,
+                    .gate-btn--store:hover {
+                        transform: none;
+                    }
+                }
 
                 /* ═══════ DYNAMIC DIAMOND MODAL ═══════ */
                 .diamond-modal {
@@ -962,6 +1067,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                             {/* Close Button hit area */}
                             <button
+                                type="button"
                                 className="dm-hitbox dm-close"
                                 onClick={() => {
                                     navigator.vibrate?.(50);
@@ -973,6 +1079,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                             {/* Upgrade to VIP hit area */}
                             <button
+                                type="button"
                                 className="dm-hitbox dm-vip"
                                 onClick={() => {
                                     navigator.vibrate?.(50);
@@ -981,21 +1088,30 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 aria-label="Upgrade to VIP"
                             />
 
-                            {/* Accept & Play hit area */}
+                            {/* Accept & Play hit area. This no longer charges:
+                                it acknowledges the price and routes to the mode,
+                                which performs the real server-side deduction. */}
                             <button
+                                type="button"
                                 className="dm-hitbox dm-accept"
                                 onClick={() => {
                                     navigator.vibrate?.(50);
                                     handleChargeAccept();
                                 }}
-                                disabled={isDeducting}
-                                aria-label="Accept and Play"
+                                disabled={isRouting}
+                                aria-label={`Accept the ${pendingCost} diamond entry and play`}
                             />
 
                             {/* Dynamic Diamond Balance */}
                             <div className="dm-balance">
                                 {userDiamonds} diamonds
                             </div>
+
+                            {isRouting && (
+                                <div className="dm-spinner-overlay">
+                                    <div className="deducting-spinner" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )
@@ -1009,9 +1125,9 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 featureConfig={featureConfig}
             />
 
-            {/* Deducting spinner overlay */}
+            {/* Routing spinner overlay */}
             {
-                isDeducting && !showChargePopup && (
+                isRouting && !showChargePopup && (
                     <div className="deducting-overlay">
                         <div className="deducting-spinner" />
                     </div>

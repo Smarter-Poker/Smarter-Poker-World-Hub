@@ -6,9 +6,21 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Images are cached in Supabase storage for reuse.
  * 
  * POST /api/trivia/render-gto-panel
- * 
- * Input: { question, correctAnswer, explanation, difficulty, category }
- * Returns: { imageUrl: "https://..." }
+ *
+ * Input: { question_id: uuid }
+ * Returns: { imageUrl: "https://...", illustrative: boolean }
+ *
+ * SECURITY: the prompt is built EXCLUSIVELY from the trivia_questions row
+ * identified by question_id. It used to interpolate free-text `question`,
+ * `correctAnswer`, `explanation`, `options` and `category` straight from the
+ * request body into a paid image-generation prompt, which made this a
+ * subsidised arbitrary-image generator writing to a public bucket under
+ * content-derived cache keys (unbounded keys = unbounded storage + spend).
+ *
+ * HONESTY: frequencies and EV are read from engine_metadata when the row was
+ * produced by the deterministic solver pipeline. Otherwise the panel is
+ * generated with clearly illustrative numbers and labelled as such, rather
+ * than presenting invented solver output as real analysis.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -56,6 +68,45 @@ const CATEGORY_APPROACHES = {
     'icm_chip_ev': 'ICM calculations show significant risk premium here. The chip EV vs $EV differential requires frequency adjustments.',
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Only these categories get a GTO analysis panel. */
+const GTO_CATEGORIES = new Set([
+    'gto_theory', 'gto_scenarios', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev',
+]);
+
+/** Trim a DB string to a hard length before it enters the prompt. */
+function clamp(text, max) {
+    const s = typeof text === 'string' ? text : '';
+    return s.length > max ? `${s.slice(0, max - 1)}...` : s;
+}
+
+/**
+ * Real GTO frequency for an action from engine_metadata.gtoFrequencies,
+ * when the deterministic pipeline produced this question.
+ * @returns {number|null} percentage 0-100
+ */
+function pickFrequency(meta, action) {
+    const freqs = meta?.gtoFrequencies;
+    if (!freqs || typeof freqs !== 'object') return null;
+    const key = Object.keys(freqs).find(k => k.toUpperCase() === String(action).toUpperCase());
+    const raw = key ? freqs[key] : null;
+    const num = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(num)) return null;
+    // Accept either 0-1 or 0-100 encodings.
+    const pct = num <= 1 ? num * 100 : num;
+    return Math.max(0, Math.min(100, Math.round(pct)));
+}
+
+/** Real EV string from engine_metadata.evData, when present. */
+function pickEv(meta) {
+    const ev = meta?.evData;
+    const raw = typeof ev === 'object' && ev !== null ? (ev.bb ?? ev.value ?? ev.ev) : ev;
+    const num = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(num)) return null;
+    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}BB`;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -81,40 +132,66 @@ export default async function handler(req, res) {
       }
 
       try {
-          const {
-              question,
-              correctAnswer,
-              explanation,
-              difficulty = 'medium',
-              category = 'gto_theory',
-              options = [],
-              correctIndex = 0,
-          } = req.body;
+          // ─── INPUT: a question id, nothing else ──────────────────────────
+          const questionId = req.body?.question_id ?? req.body?.questionId;
+          if (typeof questionId !== 'string' || !UUID_RE.test(questionId)) {
+              return res.status(400).json({ success: false, error: 'question_id (uuid) required' });
+          }
 
-          // Extract action from correct answer
-          const action = extractAction(correctAnswer);
-          const frequency = DIFFICULTY_CONFIDENCE[difficulty] || 78;
+          const { data: row, error: qErr } = await getSupabase()
+              .from('trivia_questions')
+              .select('id, category, difficulty, question, options, correct_index, explanation, engine_metadata, source')
+              .eq('id', questionId)
+              .maybeSingle();
+
+          if (qErr) {
+              console.warn('[Trivia-GTO-Panel] question lookup failed:', qErr.message);
+              return res.status(500).json({ success: false, error: 'Lookup failed' });
+          }
+          if (!row) {
+              return res.status(404).json({ success: false, error: 'Question not found' });
+          }
+          if (!GTO_CATEGORIES.has(row.category)) {
+              return res.status(400).json({ success: false, error: 'Question is not a GTO-category question' });
+          }
+
+          const options = Array.isArray(row.options) ? row.options : [];
+          const correctIndex = Number.isInteger(row.correct_index) ? row.correct_index : 0;
+          const difficulty = row.difficulty || 'medium';
+          const category = row.category;
+
+          const action = extractAction(options[correctIndex]);
           const gtoApproach = CATEGORY_APPROACHES[category] || CATEGORY_APPROACHES['gto_theory'];
 
-          // Generate EV value based on difficulty
-          const evValue = difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB';
+          // Real solver numbers when the row carries them; otherwise clearly
+          // illustrative placeholders derived from difficulty.
+          const meta = row.engine_metadata && typeof row.engine_metadata === 'object' ? row.engine_metadata : null;
+          const realFreq = pickFrequency(meta, action);
+          const realEv = pickEv(meta);
+          const illustrative = realFreq == null && realEv == null;
 
-          // Generate alternate lines from other options
+          const frequency = realFreq ?? (DIFFICULTY_CONFIDENCE[difficulty] || 78);
+          const evValue = realEv ?? (difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB');
+
+          const explanation = clamp(row.explanation || 'This is the optimal GTO play in this situation.', 200);
+
+          // Alternate lines from the other options in the DB row.
           const alternateLines = options
               .filter((_, i) => i !== correctIndex)
               .slice(0, 2)
               .map((opt, i) => ({
                   action: extractAction(opt),
-                  frequency: i === 0 ? '15%' : '5%',
+                  frequency: pickFrequency(meta, extractAction(opt)) != null
+                      ? `${pickFrequency(meta, extractAction(opt))}%`
+                      : (i === 0 ? '15%' : '5%'),
                   reason: i === 0
                       ? 'Mixed strategy for range balance'
                       : 'Against extremely tight opponents',
               }));
 
-          // Generate cache key
-          const cacheKey = generateCacheKey({
-              action, frequency, explanation, category,
-          });
+          // Cache key is derived from the QUESTION ID, so the number of
+          // distinct stored objects is bounded by the question pool.
+          const cacheKey = generateCacheKey({ questionId: row.id, illustrative });
 
           // Check if image exists in cache
           const existingUrl = await checkCachedImage(cacheKey);
@@ -123,6 +200,7 @@ export default async function handler(req, res) {
                   success: true,
                   imageUrl: existingUrl,
                   fromCache: true,
+                  illustrative,
               });
           }
 
@@ -130,11 +208,12 @@ export default async function handler(req, res) {
           const imageBuffer = await generateWithGrok({
               action,
               frequency,
-              explanation: explanation || 'This is the optimal GTO play in this situation.',
+              explanation,
               gtoApproach,
               evValue,
               alternateLines,
               category,
+              illustrative,
           });
 
           // Upload to Supabase storage
@@ -144,6 +223,7 @@ export default async function handler(req, res) {
               success: true,
               imageUrl,
               fromCache: false,
+              illustrative,
           });
 
       } catch (error) {
@@ -188,8 +268,13 @@ async function generateWithGrok({
     evValue,
     alternateLines,
     category,
+    illustrative = false,
 }) {
     const actionColor = ACTION_COLORS[action] || 'neon green';
+    // Do not present invented numbers as solver output.
+    const sourceBadge = illustrative
+        ? 'ILLUSTRATIVE - not solver output'
+        : 'Smarter Poker Data';
 
     const prompt = `Create a premium poker GTO analysis panel with futuristic metal styling:
 
@@ -203,15 +288,15 @@ HEADER SECTION:
 - TOP LEFT: Circular Jarvis AI avatar (cyan glowing humanoid robot face) with "JARVIS" label below
 - CENTER: Large "${action}" text in ${actionColor} with glow effect, inside a pill-shaped badge
 - RIGHT: "${frequency}%" in a circular meter
-- TOP RIGHT CORNER: "Smarter Poker Data" badge in cyan
+- TOP RIGHT CORNER: "${sourceBadge}" badge in cyan
 
 CONTENT SECTIONS (4 expandable metal-framed cards):
 
-1. ⓘ EXPLANATION:
-"${explanation.slice(0, 200)}"
+1. EXPLANATION:
+"${explanation}"
 Highlight "${action}" in ${actionColor}, "GTO" and "EV" terms in cyan
 
-2. ⚙ GTO APPROACH:
+2. GTO APPROACH:
 "${gtoApproach}"
 Highlight "balanced range" in cyan
 
@@ -219,7 +304,7 @@ Highlight "balanced range" in cyan
 Large "${evValue}" in green with glow
 "This action yields an expected value of ${evValue}, significantly higher than alternatives."
 
-4. ↕ ALTERNATE LINES:
+4. ALTERNATE LINES:
 ${alternateLines.map((line, i) => `• ${i === 0 ? 'Yellow' : 'Red'} dot: ${line.action} - ${line.frequency} - "${line.reason}"`).join('\n')}
 
 STYLE: Premium, futuristic, metal-framed poker solver UI. High-tech dark theme. NO plain/basic styling.`;

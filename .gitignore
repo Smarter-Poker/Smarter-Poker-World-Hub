@@ -114,3 +114,5 @@ _to_delete/
 # Source tarball accidentally committed 2026-07-25 — build artifact, never track
 wh-fixes.tar.gz
 *.tar.gz
+trivia-*.tgz
+tmp/*.tgz

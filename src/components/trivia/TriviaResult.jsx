@@ -23,6 +23,23 @@ async function fireConfetti(opts) {
 }
 import * as audio from '../../lib/trivia/triviaAudio';
 
+/** Linear blend between two #rrggbb colours. t=0 -> a, t=1 -> b. */
+function mixHex(a, b, t) {
+    const parse = (hex) => {
+        const h = String(hex || '').replace('#', '');
+        if (h.length !== 6) return null;
+        const n = parseInt(h, 16);
+        if (Number.isNaN(n)) return null;
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const ca = parse(a);
+    const cb = parse(b);
+    if (!ca || !cb) return b;
+    const k = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 1));
+    const c = ca.map((v, i) => Math.round(v + (cb[i] - v) * k));
+    return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
+
 export default function TriviaResult({
     mode,
     correctCount,
@@ -48,14 +65,32 @@ export default function TriviaResult({
     // ══ REVIEW MODE PROPS ══
     questions = null,        // Array of question objects for review
     answers = null,          // Array of user answer indices
+    // ══ REWARD-TRANSPARENCY PROPS (all optional) ══
+    rawDiamonds = null,        // pre-daily-cap award, when the page computed one
+    capReached = false,        // true when the daily cap clipped the award
+    timeBonusAwarded = null,   // arcade time bonus actually included in the award
+    dailyBonusDiamonds = 0,    // daily-completion bonus
+    showDailyBonusRow = false, // opt-in: pages that render their own callout leave this false
+    personalBest = null,       // best score for this mode, for a comparison line
+    beatPersonalBest = false,
 }) {
-    const accuracy = Math.round((correctCount / totalQuestions) * 100);
-    const isPerfect = isPerfectProp || correctCount === totalQuestions;
+    // Guard: totalQuestions of 0 (or a missing prop) produced NaN% in the ring
+    // and grade 'F'. Display components in this repo must degrade gracefully.
+    const safeTotal = Number.isFinite(totalQuestions) && totalQuestions > 0 ? totalQuestions : 0;
+    const safeCorrect = Number.isFinite(correctCount) && correctCount > 0 ? correctCount : 0;
+    const accuracy = safeTotal > 0 ? Math.round((safeCorrect / safeTotal) * 100) : 0;
+    const isPerfect = safeTotal > 0 && (isPerfectProp || safeCorrect === safeTotal);
     const isArcade = mode === 'arcade';
     const hasMultiplier = streakMultiplier > 1;
     const hasOpponent = opponentScore !== null;
-    const playerWon = hasOpponent ? correctCount > opponentScore : true;
-    const tied = hasOpponent && correctCount === opponentScore;
+    const playerWon = hasOpponent ? safeCorrect > opponentScore : true;
+    const tied = hasOpponent && safeCorrect === opponentScore;
+
+    // Skipped questions (sentinels: -1 skip hint, -2 skip lifeline) are neither
+    // right nor wrong — surface the count instead of hiding it inside "wrong".
+    const skippedCount = Array.isArray(answers)
+        ? answers.filter(a => a === -1 || a === -2).length
+        : 0;
 
     // Review mode state
     const [showReview, setShowReview] = useState(false);
@@ -63,9 +98,15 @@ export default function TriviaResult({
 
     // Share state
     const [shareLabel, setShareLabel] = useState('Share Result');
+    // Phase 75: the reset timeout was a raw setTimeout — navigating away within
+    // 2s of copying fired setState on an unmounted component.
+    const shareTimerRef = useRef(null);
+    useEffect(() => () => {
+        if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
+    }, []);
 
     const handleShare = async () => {
-        const text = `Poker Trivia ${grade.letter} Grade! ${correctCount}/${totalQuestions} correct (${accuracy}%)${diamondsEarned > 0 ? ` — earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` — ${streak} day streak` : ''} on smarter.poker`;
+        const text = `Poker Trivia ${grade.letter} Grade! ${safeCorrect}/${safeTotal} correct (${accuracy}%)${diamondsEarned > 0 ? ` — earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` — ${streak} day streak` : ''} on smarter.poker`;
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
                 await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });
@@ -74,7 +115,11 @@ export default function TriviaResult({
             try {
                 await navigator.clipboard.writeText(text);
                 setShareLabel('Copied!');
-                setTimeout(() => setShareLabel('Share Result'), 2000);
+                if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
+                shareTimerRef.current = setTimeout(() => {
+                    shareTimerRef.current = null;
+                    setShareLabel('Share Result');
+                }, 2000);
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     };
@@ -87,13 +132,15 @@ export default function TriviaResult({
     const countUpDone = useRef(false);
 
     useEffect(() => {
-        // Confetti
+        // Confetti. disableForReducedMotion matches TriviaGame — a full-screen
+        // particle burst is exactly what "reduce motion" is asking us not to do.
         if (accuracy >= 70) {
             fireConfetti({
                 particleCount: isPerfect ? 200 : 80,
                 spread: 70,
                 origin: { y: 0.6 },
                 colors: isPerfect ? ['#fbbf24', '#f59e0b', '#f02849', '#31a24c'] : undefined,
+                disableForReducedMotion: true,
             });
         }
         // Phase 69: track FLAWLESS-banner setTimeout so it gets cleared on
@@ -103,9 +150,12 @@ export default function TriviaResult({
         let flawlessTimer = null;
         if (isPerfect) {
             audio.victoryFanfare();
+            // A short haptic triple-tap on the emotional peak. Guarded: iOS
+            // Safari has no navigator.vibrate, hence the optional call.
+            try { navigator.vibrate?.([30, 50, 30]); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             flawlessTimer = setTimeout(() => {
                 setShowFlawless(true);
-                fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 } });
+                fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 }, disableForReducedMotion: true });
             }, 800);
         }
         return () => {
@@ -113,41 +163,71 @@ export default function TriviaResult({
         };
     }, []);
 
-    // Animate ring + numbers
+    // Animate ring + numbers.
+    // Phase 75: was two 16ms setIntervals. On a 120Hz screen that samples out
+    // of phase with the compositor (visible stepping), and it keeps ticking in
+    // a background tab. requestAnimationFrame is frame-locked and free.
     useEffect(() => {
         if (countUpDone.current) return;
         countUpDone.current = true;
 
-        // Ring animation (0 → accuracy over 1.5s)
-        const ringStart = Date.now();
-        const ringDuration = 1500;
-        const ringInterval = setInterval(() => {
-            const elapsed = Date.now() - ringStart;
-            const progress = Math.min(elapsed / ringDuration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            setRingProgress(eased * accuracy);
-            setDisplayAccuracy(Math.round(eased * accuracy));
-            if (progress >= 1) clearInterval(ringInterval);
-        }, 16);
-
-        // Diamond count-up
         const totalDiamonds = stakePot || diamondsEarned || 0;
-        if (totalDiamonds > 0) {
-            const diamondStart = Date.now() + 500; // delay 500ms
-            const diamondDuration = 1000;
-            const diamondInterval = setInterval(() => {
-                const elapsed = Date.now() - diamondStart;
-                if (elapsed < 0) return;
-                const progress = Math.min(elapsed / diamondDuration, 1);
-                setDisplayDiamonds(Math.round(progress * totalDiamonds));
-                if (progress >= 1) {
-                    clearInterval(diamondInterval);
-                    audio.cashOutKaChing();
-                }
-            }, 16);
-            return () => { clearInterval(ringInterval); clearInterval(diamondInterval); };
+        const prefersReduced = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (prefersReduced) {
+            // Land on the final values immediately — no animation, no jank.
+            setRingProgress(accuracy);
+            setDisplayAccuracy(accuracy);
+            setDisplayDiamonds(totalDiamonds);
+            return undefined;
         }
-        return () => clearInterval(ringInterval);
+
+        let cancelled = false;
+        const frames = [];
+        const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
+        const animate = ({ duration, delay = 0, onFrame, onDone }) => {
+            const start = Date.now() + delay;
+            const step = () => {
+                if (cancelled) return;
+                const elapsed = Date.now() - start;
+                if (elapsed < 0) { frames.push(requestAnimationFrame(step)); return; }
+                const progress = Math.min(elapsed / duration, 1);
+                onFrame(easeOutCubic(progress), progress);
+                if (progress < 1) frames.push(requestAnimationFrame(step));
+                else onDone?.();
+            };
+            frames.push(requestAnimationFrame(step));
+        };
+
+        // Ring + accuracy (0 -> accuracy over 1.5s)
+        animate({
+            duration: 1500,
+            onFrame: (eased) => {
+                setRingProgress(eased * accuracy);
+                setDisplayAccuracy(Math.round(eased * accuracy));
+            },
+        });
+
+        // Diamond count-up, starting 500ms in so the ring reads first.
+        if (totalDiamonds > 0) {
+            animate({
+                duration: 1000,
+                delay: 500,
+                onFrame: (eased) => setDisplayDiamonds(Math.round(eased * totalDiamonds)),
+                onDone: () => {
+                    setDisplayDiamonds(totalDiamonds);
+                    audio.cashOutKaChing();
+                },
+            });
+        }
+
+        return () => {
+            cancelled = true;
+            for (const id of frames) cancelAnimationFrame(id);
+        };
     }, []);
 
     const getGrade = () => {
@@ -162,6 +242,47 @@ export default function TriviaResult({
     const grade = getGrade();
     const circumference = 2 * Math.PI * 58;
     const ringOffset = circumference * (1 - ringProgress / 100);
+
+    // The ring fades from neutral grey into the grade colour as it fills, so
+    // the colour reveal lands with the number instead of being spoiled at 0%.
+    const ringColor = mixHex('#3a3b3c', grade.color, Math.min(1, ringProgress / Math.max(accuracy, 1)));
+
+    // ══ Reward breakdown ══
+    // The arcade time bonus used to be rendered from a formula the award path
+    // does not always use: in stakes mode the award is the stake pot with NO
+    // time bonus, and below 50% accuracy calculateDiamonds() returns 0. Only
+    // show a bonus the player actually received.
+    const ARCADE_MAX_TIME_BONUS = 10; // mirrors triviaEngine.calculateDiamonds
+    const inferredTimeBonus = (isArcade && stakePot <= 0 && !cashedOut && accuracy >= 50 && timeRemaining > 0)
+        ? Math.min(ARCADE_MAX_TIME_BONUS, Math.floor(timeRemaining / 6))
+        : 0;
+    const shownTimeBonus = Number.isFinite(timeBonusAwarded)
+        ? Math.max(0, timeBonusAwarded)
+        : (capReached ? 0 : inferredTimeBonus);
+
+    const breakdownRows = [];
+    if (stakePot > 0) {
+        breakdownRows.push({ key: 'stake', label: cashedOut ? 'Cashed-out pot' : 'Stake pot', value: `+${stakePot}` });
+    } else if (diamondsEarned > 0) {
+        breakdownRows.push({ key: 'base', label: 'Quiz reward', value: `+${diamondsEarned}` });
+    }
+    if (hasMultiplier) {
+        breakdownRows.push({ key: 'mult', label: 'Streak multiplier', value: `${streakMultiplier}x` });
+    }
+    if (shownTimeBonus > 0) {
+        breakdownRows.push({ key: 'time', label: `Time bonus (${timeRemaining}s left)`, value: `+${shownTimeBonus}` });
+    }
+    if (showDailyBonusRow && dailyBonusDiamonds > 0) {
+        breakdownRows.push({ key: 'daily', label: 'Daily completion bonus', value: `+${dailyBonusDiamonds}` });
+    }
+    if (capReached && Number.isFinite(rawDiamonds)) {
+        breakdownRows.push({
+            key: 'cap',
+            label: 'Daily cap reached',
+            value: `${diamondsEarned} of ${rawDiamonds}`,
+            muted: true,
+        });
+    }
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -210,7 +331,7 @@ export default function TriviaResult({
                             style={{
                                 strokeDasharray: circumference,
                                 strokeDashoffset: ringOffset,
-                                stroke: grade.color,
+                                stroke: ringColor,
                             }}
                         />
                     </svg>
@@ -256,38 +377,87 @@ export default function TriviaResult({
                     </motion.div>
                 )}
 
-                {/* Stats Grid */}
+                {/* Stats Grid — 80ms stagger so the tiles land one after another */}
                 <div className="stats-grid">
-                    <div className="stat-item">
-                        <Target size={24} className="stat-icon" />
-                        <div className="stat-value">{correctCount}/{totalQuestions}</div>
-                        <div className="stat-label">Correct</div>
-                    </div>
-
-                    <div className="stat-item">
-                        <Clock size={24} className="stat-icon" />
-                        <div className="stat-value">{formatTime(timeSpent)}</div>
-                        <div className="stat-label">Time</div>
-                    </div>
-
-                    {(stakePot > 0 || diamondsEarned > 0) && (
-                        <div className="stat-item highlight diamond-stat">
-                            <Gem size={24} className="stat-icon diamond" />
-                            <div className="stat-value diamond-value">+{displayDiamonds}</div>
-                            <div className="stat-label">{cashedOut ? 'Cashed Out' : 'Diamonds'}</div>
-                        </div>
-                    )}
-
-                    {/* XP display removed — diamonds are the only reward currency */}
-
-                    {hasMultiplier && (
-                        <div className="stat-item multiplier">
-                            <Zap size={24} className="stat-icon mult" />
-                            <div className="stat-value">{streakMultiplier}x</div>
-                            <div className="stat-label">Streak Bonus</div>
-                        </div>
-                    )}
+                    {[
+                        {
+                            key: 'correct',
+                            className: 'stat-item',
+                            icon: <Target size={24} className="stat-icon" />,
+                            value: `${safeCorrect}/${safeTotal}`,
+                            label: 'Correct',
+                        },
+                        {
+                            key: 'time',
+                            className: 'stat-item',
+                            icon: <Clock size={24} className="stat-icon" />,
+                            value: formatTime(timeSpent),
+                            label: 'Time',
+                        },
+                        ...(stakePot > 0 || diamondsEarned > 0 ? [{
+                            key: 'diamonds',
+                            className: 'stat-item highlight diamond-stat',
+                            icon: <Gem size={24} className="stat-icon diamond" />,
+                            value: `+${displayDiamonds}`,
+                            valueClass: 'stat-value diamond-value',
+                            label: cashedOut ? 'Cashed Out' : 'Diamonds',
+                        }] : []),
+                        ...(hasMultiplier ? [{
+                            key: 'mult',
+                            className: 'stat-item multiplier',
+                            icon: <Zap size={24} className="stat-icon mult" />,
+                            value: `${streakMultiplier}x`,
+                            label: 'Streak Bonus',
+                        }] : []),
+                        ...(skippedCount > 0 ? [{
+                            key: 'skipped',
+                            className: 'stat-item skipped-stat',
+                            icon: <ChevronRight size={24} className="stat-icon" />,
+                            value: `${skippedCount}`,
+                            label: 'Skipped',
+                        }] : []),
+                    ].map((stat, i) => (
+                        <motion.div
+                            key={stat.key}
+                            className={stat.className}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 + i * 0.08, duration: 0.3 }}
+                        >
+                            {stat.icon}
+                            <div className={stat.valueClass || 'stat-value'}>{stat.value}</div>
+                            <div className="stat-label">{stat.label}</div>
+                        </motion.div>
+                    ))}
                 </div>
+
+                {/* Personal best comparison — data the pages already track */}
+                {Number.isFinite(personalBest) && (
+                    <div className={`personal-best-line ${beatPersonalBest ? 'is-new' : ''}`}>
+                        {beatPersonalBest ? 'New personal best!' : `Your best: ${personalBest}`}
+                    </div>
+                )}
+
+                {/* Reward breakdown — one row per component of the award, so a
+                    single count-up can never silently drop the rest. */}
+                {breakdownRows.length > 0 && (
+                    <div className="reward-breakdown">
+                        {breakdownRows.map((row, i) => (
+                            <motion.div
+                                key={row.key}
+                                className={`breakdown-row ${row.muted ? 'muted' : ''}`}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.4 + i * 0.08, duration: 0.25 }}
+                            >
+                                <span className="breakdown-label">{row.label}</span>
+                                <span className="breakdown-value">
+                                    <Gem size={12} /> {row.value}
+                                </span>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Streak Info */}
                 {streak > 0 && !isArcade && (
@@ -297,11 +467,12 @@ export default function TriviaResult({
                     </div>
                 )}
 
-                {/* Arcade Time Bonus */}
-                {isArcade && timeRemaining > 0 && (
+                {/* Arcade Time Bonus — rendered only when the award really
+                    contained one (see shownTimeBonus above). */}
+                {isArcade && shownTimeBonus > 0 && (
                     <div className="time-bonus">
                         <Clock size={16} />
-                        <span>+{Math.floor(timeRemaining / 6)} bonus diamonds for {timeRemaining}s remaining!</span>
+                        <span>+{shownTimeBonus} bonus diamonds for {timeRemaining}s remaining!</span>
                     </div>
                 )}
 
@@ -623,6 +794,56 @@ export default function TriviaResult({
                     margin-bottom: 24px;
                 }
 
+                /* ═══ PERSONAL BEST + REWARD BREAKDOWN ═══ */
+                .personal-best-line {
+                    font-size: 13px;
+                    color: #65676b;
+                    margin: -8px 0 16px;
+                    letter-spacing: 0.5px;
+                }
+                .personal-best-line.is-new {
+                    color: #fbbf24;
+                    font-weight: 700;
+                    text-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+                }
+                .reward-breakdown {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    margin-bottom: 20px;
+                    padding: 12px 14px;
+                    background: #18191a;
+                    border: 1px solid #4e4f50;
+                    border-radius: 12px;
+                    text-align: left;
+                }
+                .breakdown-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.75);
+                }
+                .breakdown-row.muted {
+                    color: #65676b;
+                }
+                .breakdown-label {
+                    letter-spacing: 0.3px;
+                }
+                .breakdown-value {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-weight: 700;
+                    color: #2374e1;
+                    white-space: nowrap;
+                }
+                .breakdown-row.muted .breakdown-value {
+                    color: #65676b;
+                }
+                .skipped-stat .stat-icon { color: #fbbf24; }
+
                 .time-bonus {
                     display: inline-flex;
                     align-items: center;
@@ -657,6 +878,23 @@ export default function TriviaResult({
                     transition: all 0.2s ease;
                     text-decoration: none;
                     min-width: 140px;
+                    min-height: 48px;
+                    border: none;
+                }
+                .action-btn:focus-visible,
+                .review-toggle:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 2px;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .flawless-banner,
+                    .action-btn.spin-wheel,
+                    .action-btn.double-or-nothing {
+                        animation: none !important;
+                    }
+                    .action-btn:hover {
+                        transform: none !important;
+                    }
                 }
                 .action-btn.secondary {
                     background: #3a3b3c;
@@ -751,6 +989,15 @@ export default function TriviaResult({
                 }
                 .review-item.incorrect {
                     border-left: 3px solid #f02849;
+                }
+                /* Phase 75: the skipped state was assigned but never styled,
+                   so skipped questions rendered with no accent at all. */
+                .review-item.skipped {
+                    border-left: 3px solid #fbbf24;
+                    background: rgba(251, 191, 36, 0.05);
+                }
+                .review-item.skipped .review-q-num {
+                    color: #fbbf24;
                 }
                 .review-q-header {
                     display: flex;

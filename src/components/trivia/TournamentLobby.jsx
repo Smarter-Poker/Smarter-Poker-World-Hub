@@ -1,18 +1,19 @@
 /**
  * WEEKLY TOURNAMENT — Scheduled competitive trivia
- * Entry: 25💎, Prize pool distributed to top 10
+ * Entry: 25 diamonds. Prize pool distributed to the top finishers.
  *
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠️  DEPRECATED / ORPHANED — DO NOT USE THIS COMPONENT                    ║
+ * ║ NOT CURRENTLY WIRED — presentational only                                ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
  * ║ Phase 69 audit: zero imports anywhere in pages/ or src/. The real        ║
  * ║ tournament lobby + bracket UI is implemented inline in                   ║
  * ║ pages/hub/trivia/tournaments.js (1803 lines), which uses the actual      ║
  * ║ trivia_tournaments / trivia_tournament_rounds tables + realtime          ║
- * ║ subscriptions. This component has a hard-coded prize distribution        ║
- * ║ that doesn't match the production schedule.                              ║
- * ║ Verify with: grep -rn 'TournamentLobby' pages/ src/                      ║
- * ║ — safe to delete as of Phase 69.                                          ║
+ * ║ subscriptions. The PRIZE_DISTRIBUTION below is display-only and does NOT ║
+ * ║ decide payouts — the authoritative schedule lives server-side in         ║
+ * ║ pages/api/trivia/tournament-lifecycle.js (prizeSchedule / splitPrizePool)║
+ * ║ and is the only thing that moves diamonds. Pass `prizeSchedule` in to    ║
+ * ║ show the real numbers.                                                   ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -42,31 +43,38 @@ export default function TournamentLobby({
     leaderboard = [],
     userRank = null,
     userScore = null,
+    entryCount = null,      // live field size (tournament-enter returns entries_count)
+    prizeSchedule = null,   // [{ place, percent, label }] from the server, optional
     onRegister,
     onPlay
 }) {
     const [timeLeft, setTimeLeft] = useState('');
 
-    const {
-        id,
-        name = 'Weekly Tournament',
-        entry_fee = 25,
-        prize_pool = 0,
-        max_players = 100,
-        current_players = 0,
-        starts_at,
-        ends_at,
-        status = 'upcoming'
-    } = tournament;
+    const t = tournament || {};
+    const name = t.name || 'Weekly Tournament';
+    const entryFee = Number(t.entry_fee ?? 25) || 0;
+    const prizePool = Number(t.prize_pool ?? 0) || 0;
+    const status = t.status || 'upcoming';
+    // The live trivia_tournaments table uses start_time / end_time; the older
+    // schema used starts_at / ends_at. Accept either so the countdown works
+    // instead of silently never starting.
+    const startsAt = t.start_time || t.starts_at || null;
+    const endsAt = t.end_time || t.ends_at || null;
+    // max_players / current_players are not present on the live table. Only show
+    // a field-size chip when the caller actually supplies real numbers.
+    const num = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+    const maxPlayers = num(t.max_players);
+    const currentPlayers = num(t.current_players) ?? num(entryCount);
 
     // Countdown timer
     useEffect(() => {
-        if (!starts_at && !ends_at) return;
+        if (!startsAt && !endsAt) return;
 
         const updateTimer = () => {
             const now = new Date();
-            const target = status === 'upcoming' ? new Date(starts_at) : new Date(ends_at);
-            const diff = target - now;
+            const rawTarget = status === 'upcoming' ? startsAt : endsAt;
+            const target = rawTarget ? new Date(rawTarget) : null;
+            const diff = target && !Number.isNaN(target.getTime()) ? target - now : 0;
 
             if (diff <= 0) {
                 setTimeLeft('Now!');
@@ -90,10 +98,20 @@ export default function TournamentLobby({
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, [starts_at, ends_at, status]);
+    }, [startsAt, endsAt, status]);
 
-    const canAfford = userDiamonds >= entry_fee;
-    const spotsLeft = max_players - current_players;
+    const canAfford = Number(userDiamonds || 0) >= entryFee;
+    // Only a real cap can be "full". Previously undefined columns produced NaN,
+    // and `NaN <= 0` is false, so this silently did nothing either way.
+    const spotsLeft =
+        maxPlayers != null && currentPlayers != null ? maxPlayers - currentPlayers : null;
+    const isFull = spotsLeft != null && spotsLeft <= 0;
+
+    // Display-only prize preview. The server's split is authoritative.
+    const prizeRows = (Array.isArray(prizeSchedule) && prizeSchedule.length > 0
+        ? prizeSchedule
+        : PRIZE_DISTRIBUTION
+    ).slice(0, 5);
 
     return (
         <div className="tournament-lobby">
@@ -106,7 +124,8 @@ export default function TournamentLobby({
                         <span className="status-badge" data-status={status}>
                             {status === 'upcoming' ? 'Registration Open' :
                                 status === 'active' ? 'In Progress' :
-                                    status === 'complete' ? 'Finished' : status}
+                                    (status === 'complete' || status === 'completed') ? 'Finished' :
+                                    status === 'cancelled' ? 'Cancelled' : status}
                         </span>
                     </div>
                 </div>
@@ -121,15 +140,20 @@ export default function TournamentLobby({
                             </span>
                             <span className="stat-value">{timeLeft}</span>
                         </div>
-                        <div className="stat-card">
-                            <Users size={20} />
-                            <span className="stat-label">Players</span>
-                            <span className="stat-value">{current_players}/{max_players}</span>
-                        </div>
+                        {currentPlayers != null && (
+                            <div className="stat-card">
+                                <Users size={20} />
+                                <span className="stat-label">Players</span>
+                                <span className="stat-value">
+                                    {currentPlayers.toLocaleString()}
+                                    {maxPlayers != null ? `/${maxPlayers.toLocaleString()}` : ''}
+                                </span>
+                            </div>
+                        )}
                         <div className="stat-card highlight">
                             <Gem size={20} />
                             <span className="stat-label">Prize Pool</span>
-                            <span className="stat-value">{prize_pool.toLocaleString()} 💎</span>
+                            <span className="stat-value">{prizePool.toLocaleString()}</span>
                         </div>
                     </div>
 
@@ -140,7 +164,7 @@ export default function TournamentLobby({
                             <div className="status-info">
                                 <span className="status-label">Your Rank</span>
                                 <span className="status-value">
-                                    #{userRank || '-'} • {userScore || 0} pts
+                                    #{userRank || '-'} - {Number(userScore || 0).toLocaleString()} pts
                                 </span>
                             </div>
                         </div>
@@ -150,7 +174,7 @@ export default function TournamentLobby({
                     <div className="prizes-section">
                         <h3>Prize Distribution</h3>
                         <div className="prizes-list">
-                            {PRIZE_DISTRIBUTION.slice(0, 5).map((prize) => (
+                            {prizeRows.map((prize) => (
                                 <div
                                     key={prize.place}
                                     className="prize-row"
@@ -158,7 +182,7 @@ export default function TournamentLobby({
                                 >
                                     <span className="prize-place">{prize.label}</span>
                                     <span className="prize-amount">
-                                        {Math.floor(prize_pool * prize.percent / 100)} 💎
+                                        {Math.floor((prizePool * (Number(prize.percent) || 0)) / 100).toLocaleString()}
                                     </span>
                                 </div>
                             ))}
@@ -173,8 +197,8 @@ export default function TournamentLobby({
                                 {leaderboard.slice(0, 5).map((entry, idx) => (
                                     <div key={idx} className="lb-row">
                                         <span className="lb-rank">#{idx + 1}</span>
-                                        <span className="lb-name">{entry.username}</span>
-                                        <span className="lb-score">{entry.score} pts</span>
+                                        <span className="lb-name">{entry?.username || 'Player'}</span>
+                                        <span className="lb-score">{Number(entry?.score || 0).toLocaleString()} pts</span>
                                     </div>
                                 ))}
                             </div>
@@ -186,7 +210,7 @@ export default function TournamentLobby({
                         {!isRegistered && status === 'upcoming' && (
                             <>
                                 <div className="entry-fee">
-                                    Entry Fee: <strong>{entry_fee} 💎</strong>
+                                    Entry Fee: <strong>{entryFee.toLocaleString()} diamonds</strong>
                                 </div>
                                 <HexButton
                                     label={canAfford ? 'Register Now' : 'Not Enough Diamonds'}
@@ -195,11 +219,11 @@ export default function TournamentLobby({
                                     variant="primary"
                                     size="lg"
                                     fullWidth
-                                    disabled={!canAfford || spotsLeft <= 0}
+                                    disabled={!canAfford || isFull}
                                 />
                                 {!canAfford && (
                                     <p className="need-diamonds">
-                                        You need {entry_fee - userDiamonds} more 💎
+                                        You need {Math.max(0, entryFee - Number(userDiamonds || 0)).toLocaleString()} more diamonds
                                     </p>
                                 )}
                             </>

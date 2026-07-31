@@ -16,15 +16,61 @@ function getCtx() {
 }
 
 // ══ Mute Toggle ══
-const MUTE_KEY = 'trivia_audio_muted';
+// Single source of truth for "is trivia audio on". Pages that keep their own
+// sound flag should delegate here (isMuted/setMuted) rather than maintaining
+// a parallel switch, otherwise muting in one mode leaves another mode loud.
+export const MUTE_KEY = 'trivia_audio_muted';
 let _muted = false;
 try { if (typeof window !== 'undefined') _muted = localStorage.getItem(MUTE_KEY) === 'true'; } catch (e) { console.warn('[App] Handled exception:', e); }
 
+const _muteListeners = new Set();
+
+function _emitMuteChange() {
+    for (const fn of _muteListeners) {
+        try { fn(_muted); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    }
+}
+
 export function isMuted() { return _muted; }
-export function toggleMute() {
-    _muted = !_muted;
+
+/**
+ * Set mute state explicitly (lets a settings checkbox bind directly).
+ * @param {boolean} value
+ * @returns {boolean} the new mute state
+ */
+export function setMuted(value) {
+    const next = !!value;
+    if (next === _muted) return _muted;
+    _muted = next;
     try { localStorage.setItem(MUTE_KEY, String(_muted)); } catch (e) { console.warn('[App] Handled exception:', e); }
+    _emitMuteChange();
     return _muted;
+}
+
+export function toggleMute() {
+    return setMuted(!_muted);
+}
+
+/**
+ * Subscribe to mute changes (including changes made in another tab).
+ * @param {(muted: boolean) => void} fn
+ * @returns {() => void} unsubscribe
+ */
+export function onMuteChange(fn) {
+    if (typeof fn !== 'function') return () => {};
+    _muteListeners.add(fn);
+    return () => _muteListeners.delete(fn);
+}
+
+// Keep mute state coherent across open tabs.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (event) => {
+        if (!event || event.key !== MUTE_KEY) return;
+        const next = event.newValue === 'true';
+        if (next === _muted) return;
+        _muted = next;
+        _emitMuteChange();
+    });
 }
 
 // ══ Core Synth Helpers ══
@@ -41,19 +87,38 @@ function playTone(freq, duration, type = 'sine', volume = 0.3) {
     osc.start(); osc.stop(ctx.currentTime + duration);
 }
 
+// Noise buffer is generated once and replayed with an offset window.
+// Previously every bustDrop/fireWhoosh allocated and filled a fresh
+// sampleRate*duration Float32Array — real GC churn on the low-end mobile
+// devices this UI is designed for.
+const NOISE_BUFFER_SECONDS = 1;
+let _noiseBuf = null;
+let _noiseBufRate = 0;
+
+function getNoiseBuffer(ctx) {
+    if (_noiseBuf && _noiseBufRate === ctx.sampleRate) return _noiseBuf;
+    const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * NOISE_BUFFER_SECONDS)), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    _noiseBuf = buf;
+    _noiseBufRate = ctx.sampleRate;
+    return buf;
+}
+
 function playNoise(duration, volume = 0.15) {
     if (_muted) return;
     const ctx = getCtx(); if (!ctx) return;
-    const buf = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const buf = getNoiseBuffer(ctx);
+    const safeDuration = Math.min(Math.max(duration || 0.1, 0.01), NOISE_BUFFER_SECONDS);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + safeDuration);
     src.connect(gain).connect(ctx.destination);
-    src.start();
+    // Random start offset keeps repeated hits from sounding identical.
+    const offset = Math.random() * Math.max(0, NOISE_BUFFER_SECONDS - safeDuration);
+    src.start(0, offset, safeDuration);
 }
 
 // ══ Game Sound Effects ══

@@ -370,7 +370,10 @@
     { "path": "/api/cron/archive-signup-errors", "schedule": "0 3 * * *" },
     { "path": "/api/cron/login-probe", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/recovery-probe", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/auth-integrity-audit", "schedule": "0 4 * * *" }
+    { "path": "/api/cron/auth-integrity-audit", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/generate-trivia", "schedule": "5 5 * * *" },
+    { "path": "/api/cron/trivia-pool-guard", "schedule": "30 13 * * *" },
+    { "path": "/api/cron/trivia-tournament-tick", "schedule": "0,15,30,45 * * * *" }
   ],
   "rewrites": [
     {

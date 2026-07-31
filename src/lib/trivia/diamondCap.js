@@ -1,3 +1,5 @@
+import { getTodayStartCST } from './getTodayCST';
+
 /**
  * Get total diamonds earned today for a specific trivia mode.
  * Used to enforce daily diamond caps.
@@ -23,35 +25,26 @@
  * @returns {Promise<number>} — total diamonds earned today (in CST day)
  */
 export async function getDailyDiamondsEarned(supabase, userId, mode) {
-    // Compute start-of-day in CST as a UTC ISO timestamp.
-    const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const cstYear = cstNow.getFullYear();
-    const cstMonth = cstNow.getMonth();
-    const cstDate = cstNow.getDate();
-    // Build a UTC midnight for that CST date — actually we need start of CST day
-    // as UTC. Use Date.UTC to construct, then offset by the CST UTC-offset (≈6h).
-    // Simpler approach: format the CST midnight as 'YYYY-MM-DDT00:00:00-06:00'
-    // (or -05:00 for CDT). The toLocaleString trick above already collapses
-    // to local CST time, so we reconstruct an ISO string with a fixed CST
-    // offset and let Postgres parse it.
-    // Determine if CST or CDT (DST observance). new Date doesn't expose this
-    // directly, but Intl.DateTimeFormat does:
-    const tzParts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Chicago',
-        timeZoneName: 'short'
-    }).formatToParts(new Date());
-    const tzAbbr = tzParts.find(p => p.type === 'timeZoneName')?.value || 'CST';
-    const offset = tzAbbr === 'CDT' ? '-05:00' : '-06:00';
-    const monthStr = String(cstMonth + 1).padStart(2, '0');
-    const dateStr = String(cstDate).padStart(2, '0');
-    const todayStartCST = `${cstYear}-${monthStr}-${dateStr}T00:00:00${offset}`;
+    if (!supabase || !userId) return 0;
 
-    const { data, error } = await supabase
+    // Phase 74: this used to re-implement getTodayStartCST() byte-for-byte,
+    // including the bug where the CST/CDT offset was read from the CURRENT
+    // abbreviation rather than the abbreviation in effect at the target
+    // midnight — shifting the cap window by an hour on both DST changeover
+    // days. One source of truth now.
+    const todayStartCST = getTodayStartCST();
+
+    let query = supabase
         .from('trivia_scores')
         .select('diamonds_earned')
         .eq('user_id', userId)
-        .eq('mode', mode)
-        .gte('created_at', todayStartCST)
+        .gte('created_at', todayStartCST);
+
+    // Omitting the mode filter yields the ALL-MODES total (used for a
+    // platform-wide daily cap). Passing a mode keeps the per-mode behaviour.
+    if (typeof mode === 'string' && mode.length > 0) query = query.eq('mode', mode);
+
+    const { data, error } = await query
         .limit(500); // Phase 72: bumped from 100 — endless/mixed players can
                     //          legitimately exceed 100 score-rows in one day
 

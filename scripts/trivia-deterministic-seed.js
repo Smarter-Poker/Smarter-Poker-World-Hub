@@ -67,11 +67,17 @@ async function supabaseQuery(table, params = '', extraHeaders = {}) {
 /**
  * Paginate through a filter to fetch up to maxRows scenarios.
  * PostgREST has a default max of 1000 per request; we paginate via offset.
+ *
+ * `startOffset` makes --offset functional. The flag was parsed at the top of
+ * this file and then never used, so every re-run re-walked the same first 5,000
+ * rows of a 5.3M-row solver table, rebuilt the same scenarios and discarded
+ * them all as duplicates. Passing --offset=5000 on the second run scans fresh
+ * pages instead.
  */
-async function supabaseQueryPaginated(table, baseParams, maxRows = 5000) {
+async function supabaseQueryPaginated(table, baseParams, maxRows = 5000, startOffset = 0) {
     const all = [];
     const PAGE = 1000;
-    for (let offset = 0; all.length < maxRows; offset += PAGE) {
+    for (let offset = startOffset; all.length < maxRows; offset += PAGE) {
         const params = `${baseParams}${baseParams.includes('?') ? '&' : '?'}limit=${PAGE}&offset=${offset}`;
         const page = await supabaseQuery(table, params);
         if (!page || page.length === 0) break;
@@ -214,8 +220,17 @@ function buildQuestionFromScenario(scenario, questionIndex) {
         if (newTotal !== 100) gtoFrequencies[optimalAction] += (100 - newTotal);
     }
 
-    // Build options (up to 4)
-    const options = validActions.slice(0, 4).map(a => ({
+    // Build options (up to 4), HIGHEST FREQUENCY FIRST.
+    //
+    // This used to be `validActions.slice(0, 4)` on the UNSORTED action list
+    // while optimalAction was the max-frequency action across ALL of them. On
+    // any node with more than four valid actions — routine on turn and river
+    // nodes with several bet sizes — the optimal action could sit at index 4 or
+    // beyond, get sliced away, and leave correctIndex = -1. The row was then
+    // rejected downstream as "correct_index out of range", silently discarding
+    // every multi-sizing scenario the solver table is richest in.
+    const topActions = [...validActions].sort((a, b) => (handActions[b] || 0) - (handActions[a] || 0));
+    const options = topActions.slice(0, 4).map(a => ({
         id: a,
         text: getActionLabel(a),
         frequency: gtoFrequencies[a],
@@ -245,23 +260,39 @@ function buildQuestionFromScenario(scenario, questionIndex) {
     const freqPct = (maxFreq * 100).toFixed(0);
     let explanation;
     if (maxFreq >= 0.95) {
-        explanation = `GTO solver: Pure ${getActionLabel(optimalAction)} (${freqPct}%). ${heroHand} has a clear optimal line on the ${street}.`;
+        explanation = `GTO solver: pure ${getActionLabel(optimalAction)} (${freqPct}%). ${heroHand} has a clear optimal line on the ${street}.`;
     } else {
         const mixedParts = validActions
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a])
             .map(a => `${getActionLabel(a)} ${(handActions[a] * 100).toFixed(0)}%`)
             .join(', ');
-        explanation = `GTO solver mixes: ${mixedParts}. Primary line is ${getActionLabel(optimalAction)} at ${freqPct}%.${maxFreq < 0.6 ? ' This is a close GTO spot.' : ''}`;
+        explanation = `GTO solver mixes: ${mixedParts}. The primary line is ${getActionLabel(optimalAction)} at ${freqPct}%.${maxFreq < 0.6 ? ' This is a close spot where small changes in range composition flip the answer.' : ''}`;
     }
-    if (board.length > 0) explanation = `Board: ${board.join(' ')}. ${explanation}`;
+    // Restate the scenario in the explanation. Besides being more educational,
+    // this guarantees the >=80 character depth the shared validator requires
+    // (QUAL-04) on the short pure-action explanations.
+    explanation = `${heroHand} in ${heroPos} vs ${villainPos} on the ${street} at `
+        + `${scenario.stack_depth || 100}BB effective`
+        + (board.length > 0 ? `, board ${board.join(' ')}` : '')
+        + `. ${explanation}`;
 
-    // Question text
+    // Question text.
+    //
+    // The postflop branch used to omit position, stack depth, villain and pot
+    // size even though all four were computed right above and returned unused.
+    // "You hold Ah Kd on the turn. Board: ... What is the GTO play?" is not
+    // answerable — the correct action depends entirely on the context that was
+    // being thrown away — and it fails QUAL-01/QUAL-02 of the shared validator.
+    const stackDepth = scenario.stack_depth || 100;
     let questionText;
     if (street === 'preflop') {
-        questionText = `You hold ${heroHand} in ${heroPos} preflop (${scenario.stack_depth || 100}BB). What is the GTO play?`;
+        questionText = `You hold ${heroHand} in ${heroPos} preflop vs ${villainPos} (${stackDepth}BB effective). What is the GTO play?`;
     } else {
-        questionText = `You hold ${heroHand} on the ${street}. Board: ${board.join(' ')}. What is the GTO play?`;
+        const potSize = POT_BY_STREET[street] || POT_BY_STREET.flop;
+        const boardText = board.length > 0 ? ` Board: ${board.join(' ')}.` : '';
+        questionText = `You hold ${heroHand} in ${heroPos} vs ${villainPos} on the ${street} `
+            + `(${stackDepth}BB effective, pot ${potSize}BB).${boardText} What is the GTO play?`;
     }
 
     return {
@@ -312,19 +343,24 @@ function buildQuestionFromChart(chart, questionIndex) {
     const fsum = gtoFrequencies.push + gtoFrequencies.fold;
     if (fsum !== 100) gtoFrequencies[correctAction] += (100 - fsum);
 
-    // 4 options for trivia consistency: Push, Fold, + 2 plausible-but-wrong
+    // 4 options for trivia consistency: Push, Fold, + 2 plausible-but-wrong.
+    //
+    // The distractor labels used to be self-contradictory: id 'minraise' read
+    // "Min-raise (limp)" and id 'limp' read "Limp (call BB)". A min-raise is
+    // not a limp, so one distractor was nonsense — exactly the distractor-parity
+    // failure the Grok audit's CHECK 3 rejects elsewhere in this pipeline.
     const options = [
         { id: 'push', text: 'Push All-In', frequency: gtoFrequencies.push },
         { id: 'fold', text: 'Fold', frequency: gtoFrequencies.fold },
-        { id: 'minraise', text: 'Min-raise (limp)', frequency: 0 },
-        { id: 'limp', text: 'Limp (call BB)', frequency: 0 },
+        { id: 'minraise', text: 'Min-raise to 2BB', frequency: 0 },
+        { id: 'limp', text: 'Limp (call 1BB)', frequency: 0 },
     ];
 
     const explanation = correctAction === 'push'
-        ? `ICM chart: ${heroHand} is a ${gtoFrequencies.push}% push from ${heroPos} at ${stackDepth}BB. Push. The hand has sufficient equity and fold equity to shove.`
-        : `ICM chart: ${heroHand} only pushes ${gtoFrequencies.push}% from ${heroPos} at ${stackDepth}BB — the hand lacks fold equity or equity-when-called. This is a fold.`;
+        ? `ICM push/fold chart: ${heroHand} pushes ${gtoFrequencies.push}% of the time from ${heroPos} at ${stackDepth}BB effective. At this depth the hand carries enough raw equity and enough fold equity that shoving beats every alternative line.`
+        : `ICM push/fold chart: ${heroHand} pushes only ${gtoFrequencies.push}% of the time from ${heroPos} at ${stackDepth}BB effective. The hand lacks either the fold equity or the equity-when-called to jam profitably here, so folding is correct.`;
 
-    const questionText = `You are in ${heroPos} with ${heroHand} at ${stackDepth}BB. ${villainAction}. What is the optimal action?`;
+    const questionText = `You are in ${heroPos} with ${heroHand} at ${stackDepth}BB effective. ${villainAction}. What is the optimal action?`;
 
     return {
         questionText,
@@ -415,6 +451,12 @@ function classifyDifficulty(question) {
 
 // ─── VALIDATOR ────────────────────────────────────────────────────────────
 
+// This script deliberately used only its own weak shape check, so thousands of
+// solver-derived rows entered the pool without ever meeting the standard every
+// other seeding path enforces. Rows now clear the shape check AND the shared
+// 5-check validator (STRUCT / SYNC / MATH / LOGIC / QUAL).
+const { validateQuestion } = require('./trivia-qa-validator');
+
 function validateTriviaRow(row, errors) {
     if (!row.question || row.question.length < 10) errors.push('Short question');
     if (!Array.isArray(row.options) || row.options.length !== 4) errors.push('Need 4 options');
@@ -425,7 +467,14 @@ function validateTriviaRow(row, errors) {
     const distinct = new Set(optTexts).size;
     if (distinct !== optTexts.length) errors.push('Duplicate option texts');
     if (!row.explanation || row.explanation.length < 20) errors.push('Short explanation');
-    return errors.length === 0;
+    if (errors.length > 0) return false;
+
+    const qa = validateQuestion(row);
+    if (!qa.valid) {
+        errors.push(...qa.errors);
+        return false;
+    }
+    return true;
 }
 
 // ─── ROW BUILDER (engine output → trivia_questions row) ───────────────────
@@ -519,8 +568,9 @@ async function seedCategory(category, target) {
                 ? 'chart_id,game_type,stack_depth,hero_position,villain_action,hand_matrix'
                 : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix';
             pool = await supabaseQueryPaginated(source.table,
-                `?select=${select}${source.filter}`, POOL_SIZE);
-            console.log(`   pool from ${source.table}${source.filter}: ${pool.length} rows`);
+                `?select=${select}${source.filter}`, POOL_SIZE, ARG_OFFSET);
+            console.log(`   pool from ${source.table}${source.filter}: ${pool.length} rows`
+                + (ARG_OFFSET > 0 ? ` (starting at offset ${ARG_OFFSET})` : ''));
         } catch (e) {
             console.warn(`   pool fetch failed: ${e.message}`);
             continue;

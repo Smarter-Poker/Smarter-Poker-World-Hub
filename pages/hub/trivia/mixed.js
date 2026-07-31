@@ -11,11 +11,10 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
+import { Trophy, BookOpen, GraduationCap, Gem, Lightbulb, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
@@ -31,11 +30,32 @@ import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
-const DAILY_DIAMOND_CAP = 10;
+// Cap comes from triviaEngine so the lobby and the payout can never disagree.
+// The local literal was 10 — below a single 10-diamond entry fee, which made
+// the mode net-negative by construction.
+const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.mixed) ? DAILY_DIAMOND_CAPS.mixed : 40;
+
+/**
+ * A fresh, unique reward reference per GAME. add_diamonds_to_balance dedups on
+ * p_reference_id, so this must be unique across games but stable within one
+ * (so a saving_error retry re-uses it instead of double-crediting).
+ */
+function makeReferenceId(prefix, userId) {
+    let unique;
+    try {
+        unique = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    } catch (e) {
+        unique = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+    return `${prefix}_${userId || 'anon'}_${unique}`;
+}
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
@@ -49,6 +69,7 @@ const CATEGORIES = [
 ];
 
 const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
+const QUESTIONS_PER_CATEGORY = QUESTIONS_PER_SESSION / CATEGORIES.length; // 3
 
 export default function MixedModePage() {
     useTrainingBus('trivia-mixed');
@@ -127,20 +148,37 @@ export default function MixedModePage() {
 
     const [totalCorrect, setTotalCorrect] = useState(0);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
+    const [capReached, setCapReached] = useState(false);
+    const [earnedTodayCap, setEarnedTodayCap] = useState(0); // diamonds earned today (for cap display)
+    const [loadError, setLoadError] = useState(null);
+    const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
     const answersRef = useRef([]); // Track per-question correctness
 
     const isStartingRef = useRef(false); // Prevent double-click race
+    const didInitRef = useRef(false); // Guard against double-init across dep re-fires
 
     useEffect(() => {
+        // Wait for AvatarContext to resolve — with an empty dep array this
+        // effect used to run once while authLoading was still true and never
+        // again, leaving the page stuck on the skeleton forever after a hard
+        // load. Deps below re-fire it when auth resolves.
         if (authLoading) return;
+        if (didInitRef.current) return;
         async function initialize() {
             const user = avatarUser || getAuthUser();
             if (!user) {
                 router.push('/hub/trivia');
                 return;
             }
+            didInitRef.current = true;
 
             setUserId(user.id);
+
+            // Session token for the report-question API
+            try {
+                const { data: sessionData } = await supabase.auth.getSession();
+                setAccessToken(sessionData?.session?.access_token || null);
+            } catch (e) { console.warn('[Mixed] Session fetch failed:', e); }
 
             // Check VIP status
             await DiamondEngine.init(user.id);
@@ -173,13 +211,19 @@ export default function MixedModePage() {
                 setCategoryMastery(masteryMap);
             }
 
+            // Diamonds already earned today in mixed mode (cap awareness UI)
+            try {
+                const earnedToday = await getDailyDiamondsEarned(supabase, user.id, 'mixed');
+                setEarnedTodayCap(earnedToday);
+            } catch (e) { console.warn('[Mixed] Cap fetch failed:', e); }
+
             // Load questions
             await loadMixedQuestions(user.id);
             setGameState('ready');
         }
 
         initialize();
-    }, []);
+    }, [authLoading, avatarUser?.id]);
 
     // Realtime: Refresh diamond balance when scores change
     useEffect(() => {
@@ -200,8 +244,10 @@ export default function MixedModePage() {
 
     async function loadMixedQuestions(uid) {
         try {
-            // 60-day non-repeat: Get user's recently seen question IDs using shared utility
-            const excludeIds = await getRecentlySeenIds(supabase, uid, 200, 'mixed');
+            // 60-day non-repeat: GLOBAL exclusion (no mode filter) so a question
+            // answered in any other mode can't reappear here within 60 days;
+            // 2000-row limit covers an active player's full 60-day history.
+            const excludeIds = await getRecentlySeenIds(supabase, uid, 2000);
 
 
             // Phase 55: random-offset fetch per category instead of "first 50"
@@ -221,9 +267,11 @@ export default function MixedModePage() {
             );
             const allQuestions = categoryResults.flat();
 
-            // Interleave categories: H, R, P, H, R, P, H, R, P, H, R, P, H, R, P
+            // Interleave categories: H, R, P, MTT, Cash, ICM, GTO, H, R, P, ...
+            // 3 questions per category = the advertised 21-question session
+            // (the old `i < 5` loop silently built 35-question sessions).
             const interleaved = [];
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < QUESTIONS_PER_CATEGORY; i++) {
                 for (let j = 0; j < CATEGORIES.length; j++) {
                     const catQuestions = allQuestions.filter(q => q.displayCategory === CATEGORIES[j].id);
                     if (catQuestions[i]) {
@@ -233,8 +281,10 @@ export default function MixedModePage() {
             }
 
             setQuestions(shuffleOptions(interleaved));
+            return interleaved.length;
         } catch (e) {
             console.warn('Failed to load mixed questions:', e);
+            return 0;
         }
     }
 
@@ -242,16 +292,21 @@ export default function MixedModePage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
-        // Check if already paid via TriviaLobby (defense-in-depth)
-        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
-            && sessionStorage.getItem('trivia_mode') === 'mixed';
-        if (alreadyPaid) {
-            sessionStorage.removeItem('trivia_paid');
-            sessionStorage.removeItem('trivia_mode');
+        // NEVER charge for an empty game: if question loading failed or the
+        // pool came back empty, show an error state instead of taking 10
+        // diamonds for a game that can't render.
+        if (!questions || questions.length === 0) {
+            setLoadError('No questions are available right now. Please try again in a moment.');
+            setGameState('error');
+            return;
         }
 
-        // Per-game diamond gate (VIP bypass, skip if already paid)
-        if (!alreadyPaid && !isVip && userId) {
+        // NOTE: the `sessionStorage.trivia_paid` short-circuit is gone. Nothing
+        // writes that flag any more, so all it could still do was let a stale
+        // flag from an earlier session buy a free entry. Always charge.
+
+        // Per-game diamond gate (VIP bypass)
+        if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             let freshBalance = userDiamonds;
             try {
@@ -287,6 +342,10 @@ export default function MixedModePage() {
         trivia.reset();
         setTotalCorrect(0);
         setDiamondsEarned(0);
+        setCapReached(false);
+        awardedRef.current = null;
+        savePhaseRef.current = 0;
+        newGameRewardRefId(); // unique reward reference for THIS game
         answersRef.current = [];
         setCategoryStats({
             poker_history: { answered: 0, correct: 0 },
@@ -311,6 +370,16 @@ export default function MixedModePage() {
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
     const savePhaseRef = useRef(0); // 0=none, 1=diamonds, 2=mastery, 3=history, 4=score
+    // Persists the ACTUAL awarded (cap-clamped) amount across saving_error
+    // retries — a local variable re-initialized to 0 on retry, so the score
+    // row recorded 0 diamonds even when the award had already gone through.
+    const awardedRef = useRef(null);
+    // Unique per-game reward reference (replaces the per-minute bucket).
+    const gameRewardRefIdRef = useRef(null);
+    const newGameRewardRefId = () => {
+        gameRewardRefIdRef.current = makeReferenceId('mixed_reward', userId);
+        return gameRewardRefIdRef.current;
+    };
 
     async function finishGame() {
         timer.setIsTimerRunning(false);
@@ -330,29 +399,38 @@ export default function MixedModePage() {
         setDiamondsEarned(actualDiamonds);
 
         try {
-            let actualAwarded = 0;
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
                 // Clamp to daily cap
                 const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'mixed');
+                setEarnedTodayCap(earnedToday);
                 const cappedDiamonds = clampToCap(earnedToday, actualDiamonds, DAILY_DIAMOND_CAP);
+                awardedRef.current = cappedDiamonds; // ref survives saving_error retries
                 if (cappedDiamonds > 0) {
                     const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: cappedDiamonds,
                         p_type: 'mixed_reward',
                         p_description: `Mixed mode — ${cappedDiamonds}💎`,
-                        p_reference_id: `mixed_reward_${userId}_${Math.floor(Date.now()/60000)}`  // Phase 56: per-minute bucket
+                        // Per-GAME reference, minted in startGame(). The old
+                        // per-minute bucket (`Math.floor(Date.now()/60000)`)
+                        // meant a second game finished inside the same minute
+                        // reused the first game's reference, and
+                        // add_diamonds_to_balance deduped it away — the player
+                        // earned nothing and nothing surfaced the failure. The
+                        // reference is still STABLE within a game, so a
+                        // saving_error retry cannot double-credit.
+                        p_reference_id: gameRewardRefIdRef.current || newGameRewardRefId()
                     });
                     if (__rpcErr) throw __rpcErr;
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, 'Mixed Mode');
                     busEmit.celebration('confetti');
-                    actualAwarded = cappedDiamonds;
                 }
                 savePhaseRef.current = 1;
             }
+            const actualAwarded = awardedRef.current ?? 0;
 
             // Phase 2: Update category mastery (only if not already updated)
             if (savePhaseRef.current < 2) {
@@ -468,7 +546,14 @@ export default function MixedModePage() {
                 savePhaseRef.current = 4;
             }
 
-            // Success! Game saved — reset phase for next game
+            // Success! Show the TRUE awarded amount on the results screen —
+            // previously it displayed the uncapped 1-per-correct count while
+            // the player actually received the cap-clamped amount.
+            setDiamondsEarned(actualAwarded);
+            setCapReached(actualAwarded < actualDiamonds);
+            setEarnedTodayCap(prev => Math.min(DAILY_DIAMOND_CAP, prev + actualAwarded));
+
+            // Game saved — reset phase for next game
             setGameState('results');
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
@@ -486,6 +571,22 @@ export default function MixedModePage() {
         setSaveErrorPayload(null);
         finishGame(); // savePhaseRef skips already-completed steps
     };
+
+    // Play Again — refetch a FRESH question set (the just-played questions are
+    // now in trivia_user_question_history, so they're excluded) BEFORE charging
+    // another entry fee. Restarting on the identical set the user answered
+    // seconds ago was both bad value and a memorization exploit.
+    async function playAgain() {
+        setGameState('loading');
+        setLoadError(null);
+        const count = await loadMixedQuestions(userId);
+        if (!count) {
+            setLoadError('No fresh questions are available right now. Please try again later.');
+            setGameState('error');
+            return;
+        }
+        await startGame();
+    }
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
@@ -505,16 +606,16 @@ export default function MixedModePage() {
 
                 {/* Per-game cost popup (one-time) */}
                 {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={10} />
+                    <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={GAME_ENTRY_COST} />
                 )}
 
                 {/* Out of diamonds modal */}
                 {showOutOfDiamonds && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
                         <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><Gem size={48} color="#00D4FF" /></div>
                             <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs {GAME_ENTRY_COST} Diamonds. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 20, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
@@ -544,7 +645,7 @@ export default function MixedModePage() {
                             }}>
                                 <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
                                 <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We couldn't save your score of {saveErrorPayload?.actualCorrect} correct answers because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.actualDiamonds}💎!
+                                    We couldn't save your score of {saveErrorPayload?.actualCorrect} correct answers because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.actualDiamonds} Diamonds!
                                 </p>
                                 <button
                                     onClick={handleRetrySave}
@@ -560,6 +661,32 @@ export default function MixedModePage() {
                                     }}
                                 >
                                     Retry Save
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {gameState === 'error' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: 24 }}>
+                            <p style={{ margin: 0 }}>{loadError || 'Something went wrong loading the game.'}</p>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <button
+                                    onClick={async () => {
+                                        setGameState('loading');
+                                        setLoadError(null);
+                                        const n = await loadMixedQuestions(userId);
+                                        setGameState(n ? 'ready' : 'error');
+                                        if (!n) setLoadError('Still no questions available. Please try again later.');
+                                    }}
+                                    style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                                >
+                                    Try Again
+                                </button>
+                                <button
+                                    onClick={() => router.push('/hub/trivia')}
+                                    style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}
+                                >
+                                    Back To Trivia
                                 </button>
                             </div>
                         </div>
@@ -589,6 +716,10 @@ export default function MixedModePage() {
                                 <div className="category-badge" style={{ borderColor: currentCategory.color }}>
                                     <CategoryIcon size={18} color={currentCategory.color} />
                                     <span style={{ color: currentCategory.color }}>{currentCategory.name}</span>
+                                </div>
+                                <div className="cap-chip" title="Daily bonus diamonds earned">
+                                    <Gem size={14} color="#00D4FF" />
+                                    <span>{Math.min(DAILY_DIAMOND_CAP, earnedTodayCap + diamondsEarned)}/{DAILY_DIAMOND_CAP} Today</span>
                                 </div>
                                 <div className={`timer ${timer.timeLeft <= 8 ? 'warning' : ''} ${timer.timeLeft <= 3 ? 'danger' : ''}`}>
                                     {timer.timeLeft}s
@@ -627,7 +758,13 @@ export default function MixedModePage() {
 
                                 {showResult && currentQuestion.explanation && (
                                     <div className="explanation">
-                                        <strong>💡</strong> {currentQuestion.explanation}
+                                        <Lightbulb size={16} color="#00D4FF" style={{ flexShrink: 0, verticalAlign: 'text-bottom', marginRight: 6 }} />
+                                        {currentQuestion.explanation}
+                                    </div>
+                                )}
+                                {showResult && (
+                                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <ReportQuestionButton key={currentQuestion.id} questionId={currentQuestion.id} userToken={accessToken} />
                                     </div>
                                 )}
                             </MetalFrame>
@@ -662,15 +799,25 @@ export default function MixedModePage() {
                                     <span>+{diamondsEarned} Diamonds</span>
                                 </div>
 
+                                {capReached && (
+                                    <div className="cap-note">
+                                        Daily diamond cap reached ({DAILY_DIAMOND_CAP}/day) — correct answers still count toward your category mastery!
+                                    </div>
+                                )}
+
                                 <div className="category-breakdown">
                                     <h3>Category Breakdown</h3>
                                     {CATEGORIES.map(cat => {
                                         const stats = categoryStats[cat.id];
                                         const accuracy = stats.answered > 0 ? Math.round((stats.correct / stats.answered) * 100) : 0;
+                                        const masteryLevel = categoryMastery[cat.id]?.mastery_level;
                                         return (
                                             <div key={cat.id} className="cat-result">
                                                 <cat.icon size={20} color={cat.color} />
                                                 <span className="cat-name" style={{ color: cat.color }}>{cat.name}</span>
+                                                {masteryLevel != null && (
+                                                    <span className="cat-mastery" title="Cumulative mastery level">Lv {masteryLevel}</span>
+                                                )}
                                                 <span className="cat-score">{stats.correct}/{stats.answered}</span>
                                                 <span className="cat-accuracy">{accuracy}%</span>
                                             </div>
@@ -679,7 +826,7 @@ export default function MixedModePage() {
                                 </div>
 
                                 <div className="result-actions">
-                                    <HexButton onClick={startGame} variant="primary" size="md">
+                                    <HexButton onClick={playAgain} variant="primary" size="md">
                                         <ArrowRight size={16} /> Play Again
                                     </HexButton>
                                     <HexButton onClick={async () => {
@@ -813,6 +960,39 @@ export default function MixedModePage() {
 
                 .timer.warning { color: #fbbf24; }
                 .timer.danger { color: #ef4444; animation: pulse 0.5s infinite; }
+
+                .cap-chip {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 8px 12px;
+                    background: rgba(30, 41, 59, 0.6);
+                    border: 1px solid rgba(0, 212, 255, 0.25);
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+                .cap-note {
+                    padding: 10px 14px;
+                    background: rgba(251, 191, 36, 0.1);
+                    border: 1px solid rgba(251, 191, 36, 0.35);
+                    border-radius: 10px;
+                    color: #fbbf24;
+                    font-size: 12px;
+                    margin-bottom: 20px;
+                }
+
+                .cat-mastery {
+                    padding: 2px 8px;
+                    background: rgba(0, 212, 255, 0.12);
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    border-radius: 10px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #00D4FF;
+                }
 
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }

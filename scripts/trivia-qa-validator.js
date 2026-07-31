@@ -14,6 +14,13 @@
  * Usage:
  *   const { validateQuestion, validateBatch } = require('./trivia-qa-validator');
  *   const { valid, rejected, report } = validateBatch(questions);
+ *   const { valid } = validateBatch(questions, { existingTexts: setOfNormalizedTexts });
+ *
+ * CROSS-FILE NOTE: src/lib/triviaValidator.js is the ESM twin of this file and
+ * gates the API/cron paths. This copy stays CommonJS because bootstrap-trivia.js,
+ * bootstrap-strategy-trivia.js and seed_missing_trivia.js `require()` it. The
+ * two copies are kept rule-for-rule identical; when you change a rule here,
+ * change it there.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -194,12 +201,24 @@ function checkMath(q) {
     }
 
     // --- MDF check ---
+    // Only cross-check when the text contains exactly ONE distinct bet-size
+    // percentage. A multi-street question ("bet 50% pot on the flop, 75% pot on
+    // the turn... MDF is 57%") used to be validated against whichever size
+    // appeared FIRST, which both rejected correct questions and passed wrong
+    // ones. Kept identical to src/lib/triviaValidator.js.
     const mdfMatch = fullText.match(/MDF.*?(\d+)%/i);
     if (mdfMatch) {
         const claimedMdf = parseInt(mdfMatch[1]);
-        const betSizeMatch = fullText.match(/(\d+)%\s*(?:of\s*)?pot/i) || fullText.match(/pot[- ]?size[d]?\s*bet/i);
-        if (betSizeMatch) {
-            const betPct = betSizeMatch[1] ? parseInt(betSizeMatch[1]) : 100;
+        const potPctMatches = fullText.match(/(\d+)\s*%\s*(?:of\s*(?:the\s*)?)?pot/gi) || [];
+        const distinctSizes = new Set(
+            potPctMatches
+                .map(m => parseInt(m.match(/(\d+)/)?.[1] || '', 10))
+                .filter(n => Number.isFinite(n))
+        );
+        if (/pot[- ]?size[d]?\s*bet/i.test(fullText)) distinctSizes.add(100);
+
+        if (distinctSizes.size === 1) {
+            const betPct = [...distinctSizes][0];
             const expectedMdf = Math.round((1 / (1 + betPct / 100)) * 100);
             if (Math.abs(claimedMdf - expectedMdf) > 5) {
                 errors.push(`MATH-04: MDF claimed ${claimedMdf}% but for ${betPct}% pot bet, MDF should be ~${expectedMdf}%`);
@@ -292,30 +311,84 @@ function checkLogic(q) {
         }
     }
 
-    // --- BB ANTE RULE: Tournament antes must equal 1BB ---
-    // Modern tournaments ALWAYS use BB ante. "2000/4000 with 400 ante" is WRONG — ante must be 4000.
-    const blindsAnteMatch = fullText.match(/(\d[\d,]*)\/(\d[\d,]*).*?(\d[\d,]*)\s*ante/i);
-    if (blindsAnteMatch) {
-        const bb = parseInt(blindsAnteMatch[2].replace(/,/g, ''));
-        const ante = parseInt(blindsAnteMatch[3].replace(/,/g, ''));
-        if (ante > 0 && ante !== bb) {
-            errors.push(`LOGIC-07: Non-BB ante detected (blinds ${blindsAnteMatch[1]}/${blindsAnteMatch[2]}, ante ${ante}). Tournaments use BB ante — ante must equal 1BB (${bb})`);
-        }
-    }
-    // Also catch "ante of X" or "X ante" patterns with explicit blinds
-    if (!blindsAnteMatch) {
-        const blindsOnly = fullText.match(/(\d[\d,]*)\/(\d[\d,]*)/);
-        const anteOnly = fullText.match(/(?:with\s+(?:a\s+)?)?(\d[\d,]*)\s*ante/i) || fullText.match(/ante\s+(?:of\s+)?(\d[\d,]*)/i);
-        if (blindsOnly && anteOnly) {
-            const bb2 = parseInt(blindsOnly[2].replace(/,/g, ''));
-            const ante2 = parseInt(anteOnly[1].replace(/,/g, ''));
-            if (ante2 > 0 && ante2 !== bb2) {
-                errors.push(`LOGIC-07: Non-BB ante detected (BB=${bb2}, ante=${ante2}). Tournaments use BB ante — ante must equal 1BB`);
+    // --- BB ANTE RULE: modern tournament antes equal 1BB ---
+    //
+    // Two false-positive classes were removed here:
+    //
+    //  (a) SCOPE. The rule is a STRATEGY-content convention. Applied to fact
+    //      categories it rejected historically ACCURATE questions, because the
+    //      big-blind ante only became standard around 2018 — "at the 2006 WSOP
+    //      Main Event with blinds 2,000/4,000 and a 500 ante" is correct for its
+    //      era. The generator prompts explicitly ask famous_hands/tournament_facts
+    //      for event+year specificity, so the check was fighting the content
+    //      strategy. It now runs only for strategy categories, and is skipped
+    //      entirely when the text is anchored to a pre-2018 year.
+    //
+    //  (b) ANCHORING. The fallback branch matched a bare /(\d+)\/(\d+)/ — any
+    //      fraction at all ("1/2 of the pot", "finished 2/3") — and paired it
+    //      with any "N ante" anywhere in question+explanation. A $2/$5 cash
+    //      question whose explanation merely mentioned antes was rejected. Both
+    //      patterns are now anchored to the word "blinds".
+    if (STRATEGY_CATEGORIES.includes(q.category) && !/\b(19\d\d|200\d|201[0-7])\b/.test(fullText)) {
+        const BLINDS_RE = /blinds?\s*(?:are|of|at|:)?\s*(\d[\d,]*)\s*\/\s*(\d[\d,]*)/i;
+        const blindsAnteMatch = fullText.match(
+            /blinds?\s*(?:are|of|at|:)?\s*(\d[\d,]*)\s*\/\s*(\d[\d,]*)[^.]{0,80}?(\d[\d,]*)\s*ante/i
+        );
+        if (blindsAnteMatch) {
+            const bb = parseInt(blindsAnteMatch[2].replace(/,/g, ''));
+            const ante = parseInt(blindsAnteMatch[3].replace(/,/g, ''));
+            if (ante > 0 && bb > 0 && ante !== bb) {
+                errors.push(`LOGIC-07: Non-BB ante detected (blinds ${blindsAnteMatch[1]}/${blindsAnteMatch[2]}, ante ${ante}). Tournaments use BB ante — ante must equal 1BB (${bb})`);
+            }
+        } else {
+            const blindsOnly = fullText.match(BLINDS_RE);
+            const anteOnly = fullText.match(/(\d[\d,]*)\s*ante\b/i) || fullText.match(/\bante\s+(?:of\s+)?(\d[\d,]*)/i);
+            if (blindsOnly && anteOnly) {
+                const bb2 = parseInt(blindsOnly[2].replace(/,/g, ''));
+                const ante2 = parseInt(anteOnly[1].replace(/,/g, ''));
+                if (ante2 > 0 && bb2 > 0 && ante2 !== bb2) {
+                    errors.push(`LOGIC-07: Non-BB ante detected (BB=${bb2}, ante=${ante2}). Tournaments use BB ante — ante must equal 1BB`);
+                }
             }
         }
     }
 
     return errors;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HOLE-CARD DETECTION (QUAL-03)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// The original pattern was /[AKQJT2-9][♠♣♥♦hdcs]/i. With the /i flag it matched
+// "th" inside "the"/"this" (t≈T rank + h suit) and "ac" inside "stack" (a≈A +
+// c), so EVERY strategy question containing the word "the" satisfied the
+// hole-cards requirement. Verified by execution: "You are in the CO with 25 BB.
+// Villain shoves..." — no hole cards at all — passed with zero errors.
+//
+// The replacement is case-SENSITIVE on the rank (poker notation is uppercase)
+// and word-boundary anchored, and it additionally accepts the shorthand forms
+// real poker writing uses.
+const HOLE_CARD_PATTERNS = [
+    // Two explicit cards with letter suits: "As Kd", "Th9h".
+    // Requiring BOTH cards is what kills the "As the flop..." false positive
+    // that a single rank+suit pattern would still allow.
+    /\b[AKQJT2-9][shdc]\s?[AKQJT2-9][shdc]\b/,
+    // Suit glyphs never occur in prose, so one card is enough: "A♠".
+    /[AKQJT2-9][♠♣♥♦]/,
+    // Pocket pairs in shorthand: "AA", "77".
+    /\b(?:AA|KK|QQ|JJ|TT|99|88|77|66|55|44|33|22)\b/,
+    // Suited/offsuit shorthand: "AKo", "T9s".
+    /\b[AKQJT2-9]{2}[so]\b/,
+    // Spelled out: "pocket aces", "pocket 7s".
+    /pocket\s*(?:[2-9AKQJT]|aces|kings|queens|jacks|tens|pair)/i,
+];
+
+function hasHoleCards(text) {
+    if (!text || typeof text !== 'string') return false;
+    // Strip stack sizes first so "22 BB effective" is not read as pocket deuces.
+    const stripped = text.replace(/\b\d+[\d,]*\s*(?:BB|bb|big\s+blinds?|chips?)\b/g, ' ');
+    return HOLE_CARD_PATTERNS.some(p => p.test(stripped));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -342,9 +415,9 @@ function checkQuality(q) {
             errors.push('QUAL-02: Strategy question missing position context');
         }
 
-        // Must have specific hole cards
-        const hasCards = /[AKQJT2-9][♠♣♥♦hdcs]/i.test(q.question) || /pocket\s*[2-9AKQJT]/i.test(q.question);
-        if (!hasCards) {
+        // Must have specific hole cards (see hasHoleCards — the old inline
+        // regex was case-insensitive and matched "th" in "the").
+        if (!hasHoleCards(q.question)) {
             errors.push('QUAL-03: Strategy question missing specific hole cards');
         }
     }
@@ -364,7 +437,9 @@ function checkQuality(q) {
         const fillerPatterns = [
             /doesn't matter/i,
             /it's just luck/i,
-            /random/i,
+            // Word-boundary form: legitimate GTO language ("randomize between
+            // call and fold") is not filler, but "play randomly" is.
+            /\brandom\b/i,
             /who cares/i,
             /always fold/i,
             /none of the above/i,
@@ -405,24 +480,92 @@ function validateQuestion(q) {
 }
 
 /**
- * Validate a batch of questions. Returns { valid: [], rejected: [], report: string }
+ * Normalized question text for duplicate detection. Lowercase, punctuation
+ * stripped, whitespace collapsed. Identical to src/lib/triviaValidator.js so a
+ * dedup Set built by one path is usable by the other.
+ * @param {string} text
+ * @returns {string}
  */
-function validateBatch(questions) {
+function normalizeQuestionText(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Token-set Jaccard similarity over normalized text, ignoring stopwords.
+ * Used for near-duplicate detection: an exact-prefix comparison lets every
+ * reworded question through, which is how categories filled with paraphrases
+ * that still counted toward the 60-day depth target.
+ * @returns {number} 0..1
+ */
+const DEDUP_STOPWORDS = new Set([
+    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'of', 'to',
+    'for', 'with', 'and', 'or', 'what', 'which', 'who', 'how', 'you', 'your',
+    'does', 'do', 'did', 'be', 'this', 'that', 'it', 'its', 'has', 'have',
+]);
+
+function tokenSet(text) {
+    return new Set(
+        normalizeQuestionText(text)
+            .split(' ')
+            .filter(t => t.length > 2 && !DEDUP_STOPWORDS.has(t))
+    );
+}
+
+function jaccardSimilarity(a, b) {
+    const sa = a instanceof Set ? a : tokenSet(a);
+    const sb = b instanceof Set ? b : tokenSet(b);
+    if (sa.size === 0 || sb.size === 0) return 0;
+    let inter = 0;
+    for (const t of sa) if (sb.has(t)) inter++;
+    return inter / (sa.size + sb.size - inter);
+}
+
+/**
+ * Validate a batch of questions.
+ *
+ * @param {object[]} questions
+ * @param {object} [opts]
+ * @param {Set<string>} [opts.existingTexts] - normalized texts already in the
+ *        pool. Pass it from every seeding path so re-runs stop re-inserting the
+ *        same rows (bootstrap-strategy-trivia.js used to insert its 3 surviving
+ *        starters again on every run) or inflating a category with paraphrases.
+ * @returns {{valid: object[], rejected: object[], report: string}}
+ */
+function validateBatch(questions, opts = {}) {
     const valid = [];
     const rejected = [];
     const errorCounts = {};
+    const existing = opts.existingTexts instanceof Set ? opts.existingTexts : null;
+    const seenInBatch = new Set();
 
-    for (const q of questions) {
+    const push = (result) => {
+        rejected.push(result);
+        result.errors.forEach(err => {
+            const code = err.split(':')[0];
+            errorCounts[code] = (errorCounts[code] || 0) + 1;
+        });
+    };
+
+    for (const q of Array.isArray(questions) ? questions : []) {
         const result = validateQuestion(q);
-        if (result.valid) {
-            valid.push(q);
-        } else {
-            rejected.push(result);
-            result.errors.forEach(err => {
-                const code = err.split(':')[0];
-                errorCounts[code] = (errorCounts[code] || 0) + 1;
-            });
+        if (!result.valid) { push(result); continue; }
+
+        const norm = normalizeQuestionText(q?.question);
+        if (norm && seenInBatch.has(norm)) {
+            push({ valid: false, errors: ['DUP-01: Duplicate question inside this batch'], question: q });
+            continue;
         }
+        if (norm && existing && existing.has(norm)) {
+            push({ valid: false, errors: ['DUP-02: Question already exists in the pool'], question: q });
+            continue;
+        }
+        if (norm) seenInBatch.add(norm);
+        valid.push(q);
     }
 
     const report = [
@@ -512,5 +655,9 @@ module.exports = {
     checkMath,
     checkLogic,
     checkQuality,
+    hasHoleCards,
+    normalizeQuestionText,
+    tokenSet,
+    jaccardSimilarity,
     STRATEGY_CATEGORIES,
 };

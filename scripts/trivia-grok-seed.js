@@ -7,21 +7,46 @@
  * Targets the 5 fact categories that can't be solver-derived:
  *   poker_history, famous_hands, player_profiles, tournament_facts, rule_knowledge
  *
- * 5-layer validator gate per question:
- *   1. STRUCT — 4 distinct options, exactly 1 marked correct
- *   2. SYNC   — correct_index in [0,3], points to the marked correct option
- *   3. CONTENT— question + explanation length + topic-keyword presence
- *   4. DEDUPE — fuzzy match against existing pool (reject if 80%+ similar)
- *   5. SHAPE  — JSON parses, no missing fields
+ * Validation gate per question (in this order):
+ *   1. SHAPE   — JSON parses, 4 distinct options, correct_index in [0,3],
+ *                question and explanation within length bounds
+ *   2. DEDUPE  — token-set Jaccard similarity against the existing pool AND
+ *                against everything accepted earlier in this run; >= 0.80
+ *                similar is rejected
+ *   3. FULL QA — the shared 5-check validator (STRUCT / SYNC / MATH / LOGIC /
+ *                QUAL) from scripts/trivia-qa-validator.js, the same gate every
+ *                bootstrap path uses
  *
  * Batching: Grok generates 10 questions per call to keep cost down.
  *
  * Usage:
  *   node scripts/trivia-grok-seed.js --dry-run --category=poker_history --target=20
  *   node scripts/trivia-grok-seed.js --live --category=poker_history --target=1500
- *   node scripts/trivia-grok-seed.js --live --all
+ *   node scripts/trivia-grok-seed.js --live --all --target=2000
+ *
+ * WHAT WAS BROKEN:
+ *   - The header claimed "fuzzy match, reject if 80%+ similar" but the code
+ *     compared an exact 80-character prefix of the normalized text. Any
+ *     rewording sailed straight through, while two genuinely different
+ *     questions that happened to share an opening clause were wrongly rejected.
+ *     Dedup is now token-set Jaccard over the FULL normalized text.
+ *   - The anti-duplicate prompt block was built from the dedup Set, whose
+ *     members are normalized blobs ("whowonthe2003wsopmaineventafterqualifying").
+ *     The model was asked not to repeat strings it could not read. A parallel
+ *     array of RAW question texts is now kept and fed to the prompt.
+ *   - buildTriviaRow set no `source` column and stuffed model + citation into
+ *     `subcategory` truncated to 80 chars, so rows were invisible to the
+ *     factual audit (which filters on source), the citation was lossy, and
+ *     subcategory could not be used for topic analytics.
+ *   - Only the loose local shape check ran; the shared 5-check validator that
+ *     gates every other path did not. The highest-volume pipeline had the
+ *     weakest validation.
+ *   - The stored correct_index was whatever the model emitted, which skews
+ *     heavily toward index 0.
  * ═══════════════════════════════════════════════════════════════════════════
  */
+
+const { validateQuestion, normalizeQuestionText, tokenSet, jaccardSimilarity } = require('./trivia-qa-validator');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -162,24 +187,42 @@ const CATEGORY_PROMPTS = {
 
 function buildBatchPrompt(category, batchSize, difficulty, recentExamples) {
     const cfg = CATEGORY_PROMPTS[category];
+    // recentExamples are RAW question texts. Feeding the model normalized
+    // blobs, as this used to, gave it nothing it could actually compare against.
     const examplesBlock = recentExamples.length > 0
-        ? `\n\nDO NOT repeat or near-duplicate these existing questions:\n${recentExamples.map((q, i) => `${i + 1}. ${q.slice(0, 100)}`).join('\n')}`
+        ? `\n\nALREADY IN THE POOL — do not repeat these and do not merely reword them:\n${
+            recentExamples.map((q, i) => `${i + 1}. ${String(q).slice(0, 140)}`).join('\n')
+        }\n`
         : '';
 
     return `Generate ${batchSize} factually accurate ${difficulty}-difficulty trivia questions about ${cfg.topic}.
 Topic guidance: ${cfg.hint}
 
-Rules:
-- Each question has exactly 4 multiple-choice options
-- Exactly one option is correct
-- The correct answer must be 100% factually verifiable
-- Distractors must be plausible but clearly wrong
-- "${difficulty}" means: easy = casual fans know it; medium = enthusiasts know it; hard = serious students of the game
-- Provide a 1-2 sentence explanation citing a specific source/event/year
-- Avoid speculation, marketing copy, or unverifiable claims
-- Avoid duplicating well-known questions
-${examplesBlock}
+ACCURACY (non-negotiable):
+- The correct answer must be verifiable from the public record. Name the event, year, player,
+  venue or rule that settles it.
+- Anchor any figure that changes over time to a stated year.
+- If you are not certain of a fact, write a different question instead. Never guess.
 
+DISTRACTOR QUALITY (this is graded):
+- Every wrong option must be something a knowledgeable poker fan could genuinely believe:
+  the right kind of answer, the right order of magnitude, similar length and phrasing.
+- Wrong years must be plausible years. Wrong players must be contemporaries. Wrong amounts
+  must be in the same range.
+- NEVER use filler options such as "none of the above", "it doesn't matter" or joke answers.
+- The question text must not leak the answer.
+
+DIFFICULTY:
+- "${difficulty}" means: easy = casual fans know it; medium = enthusiasts know it;
+  hard = serious students of the game know it, but it is still objectively checkable.
+
+FORM:
+- Exactly 4 options, exactly one correct.
+- VARY correct_index across the batch — do not always answer with the first option.
+- Explanations must be at least 2 sentences (120+ characters) and teach the fact,
+  citing the source/event/year. Do not write "Option B is correct".
+- No two questions in this batch may test the same fact.
+${examplesBlock}
 Output ONLY this JSON shape (no markdown, no extra text):
 {
   "questions": [
@@ -187,7 +230,8 @@ Output ONLY this JSON shape (no markdown, no extra text):
       "question": "the question text",
       "options": ["option A", "option B", "option C", "option D"],
       "correct_index": 0,
-      "explanation": "1-2 sentences citing the source/event/year",
+      "explanation": "2+ sentences citing the source/event/year",
+      "theme": "3-6 word topic label",
       "citation": "source URL OR event reference"
     }
   ]
@@ -196,14 +240,71 @@ Output ONLY this JSON shape (no markdown, no extra text):
 
 // ─── VALIDATOR ────────────────────────────────────────────────────────────
 
-function validateGrokQuestion(q, category, dedup) {
+/** Reject anything at or above this token-set Jaccard similarity. */
+const DEDUP_SIMILARITY_THRESHOLD = 0.80;
+
+/**
+ * Per-category duplicate index.
+ *
+ * Holds exact normalized texts for O(1) rejection plus a parallel array of
+ * token sets for near-duplicate (Jaccard) comparison, and the RAW texts used to
+ * build the anti-duplicate prompt block.
+ */
+function createDedupIndex() {
+    return {
+        norms: new Set(),
+        tokenSets: [],
+        rawTexts: [],
+        /** @returns {string|null} the reason it is a duplicate, or null */
+        check(text) {
+            const norm = normalizeQuestionText(text);
+            if (!norm) return 'empty question text';
+            if (this.norms.has(norm)) return 'exact duplicate of existing pool';
+            const ts = tokenSet(text);
+            if (ts.size === 0) return null;
+            for (const other of this.tokenSets) {
+                if (jaccardSimilarity(ts, other) >= DEDUP_SIMILARITY_THRESHOLD) {
+                    return `near-duplicate (>= ${Math.round(DEDUP_SIMILARITY_THRESHOLD * 100)}% token overlap)`;
+                }
+            }
+            return null;
+        },
+        add(text) {
+            const norm = normalizeQuestionText(text);
+            if (!norm) return;
+            this.norms.add(norm);
+            this.tokenSets.push(tokenSet(text));
+            this.rawTexts.push(String(text));
+        },
+        /** A random sample of RAW texts for the prompt's do-not-repeat block. */
+        sample(n) {
+            if (this.rawTexts.length <= n) return [...this.rawTexts];
+            const out = [];
+            const taken = new Set();
+            while (out.length < n && taken.size < this.rawTexts.length) {
+                const i = Math.floor(Math.random() * this.rawTexts.length);
+                if (taken.has(i)) continue;
+                taken.add(i);
+                out.push(this.rawTexts[i]);
+            }
+            return out;
+        },
+        get size() { return this.norms.size; },
+    };
+}
+
+/**
+ * Shape check + duplicate check + the shared 5-check QA validator.
+ * Returns [] when the question is acceptable.
+ */
+function validateGrokQuestion(q, category, difficulty, dedup) {
     const errors = [];
     if (!q || typeof q !== 'object') return ['not an object'];
     if (typeof q.question !== 'string' || q.question.length < 15) errors.push('short question');
     if (q.question && q.question.length > 500) errors.push('overlong question');
     if (!Array.isArray(q.options) || q.options.length !== 4) errors.push('need 4 options');
     if (q.options) {
-        const opts = q.options.map(String);
+        const opts = q.options.map(o => String(o).trim().toLowerCase());
         if (new Set(opts).size !== 4) errors.push('duplicate options');
         if (opts.some(o => o.length < 1 || o.length > 200)) errors.push('option length out of range');
     }
@@ -212,24 +313,60 @@ function validateGrokQuestion(q, category, dedup) {
     }
     if (typeof q.explanation !== 'string' || q.explanation.length < 20) errors.push('short explanation');
     if (q.explanation && q.explanation.length > 1500) errors.push('overlong explanation');
-    // Dedup: simple normalized-text comparison
-    const norm = (q.question || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 80);
-    if (dedup.has(norm)) errors.push('duplicate of existing pool');
-    if (errors.length === 0) dedup.add(norm);
-    return errors;
+    if (errors.length > 0) return errors;
+
+    const dupReason = dedup.check(q.question);
+    if (dupReason) return [dupReason];
+
+    return [];
 }
 
 // ─── ROW BUILDER ──────────────────────────────────────────────────────────
 
+/** Unbiased shuffle. */
+function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/**
+ * Build the DB row. Options are shuffled here, BEFORE the QA validator runs, so
+ * the stored correct_index is uniformly distributed (models overwhelmingly
+ * answer with index 0) while the validator still sees a coherent question.
+ * The client-side shuffle protects the display; this protects every consumer
+ * that renders the stored order directly.
+ */
 function buildTriviaRow(q, category, difficulty) {
+    const pairs = q.options.map((text, i) => ({
+        text: String(text).trim(),
+        wasCorrect: i === q.correct_index,
+    }));
+    shuffleInPlace(pairs);
+    const newIndex = pairs.findIndex(p => p.wasCorrect);
+
     return {
         category,
         difficulty,
         question: q.question.trim(),
-        options: q.options.map(String),
-        correct_index: q.correct_index,
+        options: pairs.map(p => p.text),
+        correct_index: newIndex >= 0 ? newIndex : 0,
         explanation: q.explanation.trim(),
-        subcategory: `grok:${MODEL}:${(q.citation || 'no-citation').slice(0, 80)}`,
+        // subcategory is a TOPIC label again (usable for analytics), the model
+        // identity lives in `source`, and the citation is preserved in full in
+        // engine_metadata instead of being truncated to 80 chars.
+        subcategory: typeof q.theme === 'string' && q.theme.trim()
+            ? q.theme.trim().slice(0, 120)
+            : CATEGORY_PROMPTS[category]?.topic || category,
+        theme: typeof q.theme === 'string' ? q.theme.trim().slice(0, 80) : null,
+        source: `grok-seed:${MODEL}`,
+        engine_metadata: {
+            model: MODEL,
+            citation: typeof q.citation === 'string' ? q.citation.slice(0, 500) : null,
+            generated_at: new Date().toISOString(),
+        },
         quality_score: 7,
     };
 }
@@ -237,15 +374,14 @@ function buildTriviaRow(q, category, difficulty) {
 // ─── DEDUP ────────────────────────────────────────────────────────────────
 
 async function loadExistingDedup(category) {
-    const dedup = new Set();
+    const dedup = createDedupIndex();
     let offset = 0;
     while (true) {
         const rows = await supabaseQuery('trivia_questions',
             `?category=eq.${category}&select=question&limit=1000&offset=${offset}`);
         if (!rows || rows.length === 0) break;
         for (const r of rows) {
-            const norm = (r.question || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 80);
-            if (norm) dedup.add(norm);
+            if (r.question) dedup.add(r.question);
         }
         if (rows.length < 1000) break;
         offset += 1000;
@@ -289,7 +425,7 @@ async function seedCategory(category, target) {
     }
 
     const dedup = await loadExistingDedup(category);
-    console.log(`   existing question normalizations: ${dedup.size}`);
+    console.log(`   existing questions indexed for dedup: ${dedup.size}`);
 
     const generated = { easy: [], medium: [], hard: [] };
     let validatorRejections = 0;
@@ -312,8 +448,9 @@ async function seedCategory(category, target) {
                 break;
             }
 
-            // Pull a sample of existing questions to feed back as anti-dup hints
-            const recentSample = Array.from(dedup).slice(-15).map(s => s.slice(0, 60));
+            // Anti-duplicate hints must be READABLE question text, and a random
+            // sample so consecutive batches do not all see the same examples.
+            const recentSample = dedup.sample(15);
             const prompt = buildBatchPrompt(category, BATCH_SIZE, difficulty, recentSample);
 
             let result;
@@ -346,17 +483,32 @@ async function seedCategory(category, target) {
                 continue;
             }
 
-            // Validate this Grok batch's questions
+            // Validate this Grok batch: shape + dedup, then the SHARED 5-check
+            // QA validator every other seeding path uses. Only questions that
+            // clear both gates are added to the dedup index and inserted.
             const batchAccepted = [];
             for (const q of parsed.questions) {
                 if (generated[difficulty].length + batchAccepted.length >= targetD) break;
-                const errs = validateGrokQuestion(q, category, dedup);
-                if (errs.length === 0) {
-                    batchAccepted.push(buildTriviaRow(q, category, difficulty));
-                } else {
+
+                const errs = validateGrokQuestion(q, category, difficulty, dedup);
+                if (errs.length > 0) {
                     validatorRejections++;
                     if (VERBOSE) console.warn(`   reject: ${errs.join(', ')} — Q: ${(q.question || '').slice(0, 70)}`);
+                    continue;
                 }
+
+                const row = buildTriviaRow(q, category, difficulty);
+                const qa = validateQuestion(row);
+                if (!qa.valid) {
+                    validatorRejections++;
+                    if (VERBOSE) console.warn(`   QA reject: ${qa.errors.join(' | ')} — Q: ${row.question.slice(0, 70)}`);
+                    continue;
+                }
+
+                // Only registered AFTER both gates pass, so a rejected question
+                // does not poison the dedup index against a later good one.
+                dedup.add(row.question);
+                batchAccepted.push(row);
             }
 
             // INCREMENTAL INSERT — write this batch immediately so progress survives timeouts
@@ -416,7 +568,10 @@ async function main() {
         process.exit(1);
     }
 
-    const target = ARG_TARGET || 1500;
+    // 20 questions/day x 60 days = 1,200 usable is the hard floor for a
+    // dedicated single-category mode; 2,000 raw leaves headroom for the rows
+    // the factual audit later demotes below the quality floor of 6.
+    const target = ARG_TARGET || 2000;
     const results = [];
     for (const cat of categories) {
         try {
