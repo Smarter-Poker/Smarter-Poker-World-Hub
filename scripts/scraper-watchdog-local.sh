@@ -17,7 +17,14 @@ LOG_FILE="/Users/smarter.poker/.smarter-poker/logs/scraper-watchdog.log"
 BRAVO_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/bravo-logs/heartbeat.json"
 PA_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/pokeratlas-logs/heartbeat.json"
 
+# The simulator is the PRIMARY source for "Cash Games Running" while the Bravo
+# live scraper is intentionally not run. It models per-venue/per-game/per-hour
+# activity from weeks of real observed history. Nothing was watching it, so if
+# it died the cash-games surface would go dark with no auto-recovery.
+SIM_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/bravo-logs/simulator-heartbeat.json"
+
 BRAVO_PLIST="com.smarter-poker.bravo-daemon"
+SIM_PLIST="com.smarter-poker.bravo-simulator"
 PA_PLIST="com.smarter-poker.pokeratlas-daemon"
 
 # Max heartbeat age in seconds before auto-restart (30 minutes)
@@ -265,6 +272,29 @@ check_pid_alive "Bravo" "$BRAVO_HEARTBEAT" "$BRAVO_PLIST"
 
 check_heartbeat "PokerAtlas" "$PA_HEARTBEAT" "$PA_PLIST"
 check_pid_alive "PokerAtlas" "$PA_HEARTBEAT" "$PA_PLIST"
+
+# Simulator: primary cash-games source, so it is checked like the others.
+# If it is not registered with launchd the restart is a no-op and the log line
+# is the alert - that is still better than the previous silence.
+check_heartbeat "BravoSimulator" "$SIM_HEARTBEAT" "$SIM_PLIST"
+check_pid_alive "BravoSimulator" "$SIM_HEARTBEAT" "$SIM_PLIST"
+
+# Cash-games freshness: the simulator can be "running" yet publishing nothing.
+# venue_live_tables is rewritten every cycle, so zero active venues means the
+# surface is empty even though the process looks healthy.
+if [ -f "$SIM_HEARTBEAT" ]; then
+  sim_venues=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('venues_active',0) or 0))" 2>/dev/null || echo 0)
+  sim_tables=$(python3 -c "import json;print(int(json.load(open('$SIM_HEARTBEAT')).get('tables_running',0) or 0))" 2>/dev/null || echo 0)
+  if [ "$sim_venues" -eq 0 ] || [ "$sim_tables" -eq 0 ]; then
+    log "  BravoSimulator: PUBLISHING NOTHING (venues=${sim_venues}, tables=${sim_tables}) - restarting"
+    launchctl stop "$SIM_PLIST" 2>/dev/null
+    sleep 2
+    launchctl start "$SIM_PLIST" 2>/dev/null
+    discord_alert "BravoSimulator: restarted - published 0 venues/0 tables (cash games surface would be empty)"
+  else
+    log "  BravoSimulator: publishing ${sim_tables} tables across ${sim_venues} venues"
+  fi
+fi
 
 if [ "$RECOVERY_FAILURES" -gt 0 ]; then
   log "Watchdog check complete — ${RECOVERY_FAILURES} recovery attempt(s) FAILED."

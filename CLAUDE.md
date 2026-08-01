@@ -554,3 +554,16 @@ why Open Claw won't work.
 Bypass = not allowed. If you legitimately need to move a job OUT of one of
 these (e.g., retire a Vercel cron), shrink the baseline in the same PR.
 The CI check compares to current-state, not a hard-coded number.
+
+## Live Cash Games / scrapers — read before touching
+
+`Cash Games Running` is published from MODELLED history, not a live scrape. The
+Bravo live scraper is intentionally off. Before changing anything that reads or
+writes `venue_live_tables`, `game_live_history`, `/api/poker/live-tables`, or the
+PNM cash-games surface, read:
+
+    .agent/workflows/live-cash-games-policy.md
+
+It also records the Supabase key setup (Vercel is the source of truth — the keys
+are correct), how the launchd daemons start, and the sandbox limits that make
+`git push`, `playwright install` and `next build` impossible from a remote shell.
