@@ -185,9 +185,8 @@ export default async function handler(req, res) {
       const articleLimit = clampInt(safeQ(req.query.limit), DEFAULT_ARTICLE_LIMIT, 1, 10);
 
       const pushConfig = await resolvePushConfig();
-      if (!pushConfig.configured && !dryRun) {
-          // Degrade gracefully: no crash, nothing sent, no key echoed back.
-          log('not_configured', { reason: 'OneSignal not configured' });
+      if (!pushConfig.configured) {
+          log('not_configured', { reason: 'OneSignal keys missing' });
           return res.status(503).json({
               success: false,
               error: 'Push is not configured (OneSignal credentials missing). No notification was sent.'

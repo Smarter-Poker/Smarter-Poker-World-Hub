@@ -2,11 +2,8 @@
  * News Read Later Service
  * Manages user's read later queue for news articles
  *
- * NOTE — currently an orphan: no page imports this service yet, although the
- * hamburger menu ships a "Read Later" item pointing at /hub/news?filter=later.
- * Kept (not deleted) so that wiring the feature into pages/hub/news.js only
- * requires mirroring the newsBookmarks pattern. Hardened to the same
- * never-throw contract as newsBookmarks so it can be used fire-and-forget:
+ * Hardened to the same never-throw contract as newsBookmarks so it can
+ * be used fire-and-forget:
  *   - getReadLater        → [] on any failure
  *   - addToReadLater      → inserted/existing row object, or null on failure
  *   - removeFromReadLater → true on success, false on failure

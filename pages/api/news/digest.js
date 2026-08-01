@@ -250,7 +250,7 @@ export default async function handler(req, res) {
       // without a key (that is how you verify the recipient count on a machine
       // that has no secrets); the response flags emailConfigured: false so the
       // caller cannot mistake it for a working send path.
-      if (!apiKey && !dryRun) {
+      if (!apiKey) {
           // Degrade gracefully: no crash, no partial send, and the key itself
           // is never echoed back.
           log('not_configured', { reason: 'RESEND_API_KEY missing' });

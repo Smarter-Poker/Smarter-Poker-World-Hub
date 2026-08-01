@@ -321,7 +321,21 @@ export default function NewsHub() {
             const base = prev.key === newsFilterKey ? prev.items : [];
             const seen = new Set(base.map(a => a.id));
             const merged = base.slice();
-            page.forEach(a => { if (a && !seen.has(a.id)) { seen.add(a.id); merged.push(a); } });
+            let changed = false;
+            page.forEach(a => { 
+                if (!a) return;
+                if (!seen.has(a.id)) { 
+                    seen.add(a.id); 
+                    merged.push(a); 
+                    changed = true;
+                } else {
+                    const idx = merged.findIndex(x => x.id === a.id);
+                    if (idx !== -1 && JSON.stringify(merged[idx]) !== JSON.stringify(a)) {
+                        merged[idx] = a;
+                        changed = true;
+                    }
+                }
+            });
             merged.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0));
             const total = typeof pg.total === 'number' ? pg.total : merged.length;
             // Older API builds have no `pagination` block — fall back to "a full
@@ -330,7 +344,7 @@ export default function NewsHub() {
             // A plain revalidation that returns the same rows must not hand back a new
             // array identity — that would re-render the whole feed (and every derived
             // list) on each SWR focus/interval revalidate for no visible change.
-            if (prev.key === newsFilterKey && merged.length === base.length && prev.total === total && prev.hasMore === hasMore) {
+            if (prev.key === newsFilterKey && !changed && prev.total === total && prev.hasMore === hasMore) {
                 return prev;
             }
             return { key: newsFilterKey, items: merged, total, hasMore };
@@ -1478,7 +1492,7 @@ export default function NewsHub() {
                                                                 <motion.div
                                                                     className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''} ${isKeyFocused ? 'keyboard-focused' : ''}`}
                                                                     whileHover={{ x: 4 }}
-                                                                    role="button"
+                                                                    role="article"
                                                                     tabIndex={0}
                                                                     onClick={() => openArticle(article)}
                                                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
