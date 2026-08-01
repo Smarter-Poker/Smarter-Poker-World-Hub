@@ -1497,6 +1497,7 @@ export default function NewsHub() {
                                                                         {TIME_GROUP_LABELS[group]}
                                                                     </div>
                                                                 )}
+                                                                {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
                                                                 <motion.div
                                                                     className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''} ${isKeyFocused ? 'keyboard-focused' : ''}`}
                                                                     whileHover={{ x: 4 }}
