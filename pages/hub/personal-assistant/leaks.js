@@ -1778,7 +1778,7 @@ export default function LeakFinderPage() {
           </LeakErrorBoundary>
         </BottomSheet>
 
-        <style jsx global>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           .leak-card {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
@@ -1839,7 +1839,7 @@ export default function LeakFinderPage() {
               padding-right: max(24px, env(safe-area-inset-right, 0px)) !important;
             }
           }
-        `}</style>
+        ` }} />
       </div>
 
       {UpgradePopup}
