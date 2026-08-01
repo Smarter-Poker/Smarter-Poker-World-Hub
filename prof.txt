@@ -1,0 +1,987 @@
+Statistical profiling result from isolate-0xa7bc00000-73555-v8.log, (1237 ticks, 109 unaccounted, 0 excluded).
+
+ [Shared libraries]:
+   ticks  total  nonlib   name
+    111    9.0%          /usr/lib/system/libsystem_c.dylib
+     62    5.0%          /usr/lib/libc++.1.dylib
+     12    1.0%          /usr/lib/system/libsystem_malloc.dylib
+      2    0.2%          /usr/lib/system/libsystem_platform.dylib
+      1    0.1%          /usr/lib/system/libsystem_kernel.dylib
+      1    0.1%          /usr/lib/system/libcorecrypto.dylib
+
+ [JavaScript]:
+   ticks  total  nonlib   name
+      5    0.4%    0.5%  JS: *normalizeString node:path:92:25
+      3    0.2%    0.3%  JS: *resolve node:path:1245:10
+      1    0.1%    0.1%  JS: ^pushAsyncContext node:internal/async_hooks:547:26
+      1    0.1%    0.1%  JS: ^get hasSubscribers node:diagnostics_channel:306:21
+      1    0.1%    0.1%  JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    0.1%    0.1%  JS: +wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      1    0.1%    0.1%  JS: +normalizeRequirableId node:internal/bootstrap/realm:299:31
+      1    0.1%    0.1%  JS: +getOptions node:internal/fs/utils:317:20
+      1    0.1%    0.1%  JS: +URL node:internal/url:803:14
+      1    0.1%    0.1%  JS: +<anonymous> node:internal/modules/cjs/loader:879:37
+      1    0.1%    0.1%  JS: *dirname node:path:1441:10
+
+ [C++]:
+   ticks  total  nonlib   name
+    421   34.0%   40.2%  t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+     95    7.7%    9.1%  T _getsockname
+     72    5.8%    6.9%  T _mig_get_reply_port
+     58    4.7%    5.5%  T _chmod
+     52    4.2%    5.0%  T ___pthread_init
+     37    3.0%    3.5%  t __pthread_mutex_global_init
+     37    3.0%    3.5%  T _pthread_key_create
+     33    2.7%    3.1%  t std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:nn180100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char)
+     17    1.4%    1.6%  T _pthread_key_init_np
+     16    1.3%    1.5%  t ___pfz_setup
+     16    1.3%    1.5%  T __kernelrpc_vm_map
+     12    1.0%    1.1%  t std::__1::basic_ostream<char, std::__1::char_traits<char>>& std::__1::__put_character_sequence[abi:nn180100]<char, std::__1::char_traits<char>>(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, char const*, unsigned long)
+     11    0.9%    1.0%  t __pthread_bsdthread_init
+     10    0.8%    1.0%  T node::loader::ModuleWrap::New(v8::FunctionCallbackInfo<v8::Value> const&)
+      6    0.5%    0.6%  t __os_nospin_lock_lock_slow
+      6    0.5%    0.6%  T _task_get_special_port
+      4    0.3%    0.4%  T _vm_map
+      3    0.2%    0.3%  t __os_nospin_lock_unlock_slow
+      2    0.2%    0.2%  T _mach_vm_region
+      2    0.2%    0.2%  T _mach_vm_map
+      2    0.2%    0.2%  T __kernelrpc_mach_port_get_refs
+      1    0.1%    0.1%  t node::EnvGetter(v8::Local<v8::Name>, v8::PropertyCallbackInfo<v8::Value> const&)
+      1    0.1%    0.1%  T node::cares_wrap::ChannelWrap::New(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.1%    0.1%  T _semget
+      1    0.1%    0.1%  T _pwrite
+      1    0.1%    0.1%  T _mach_voucher_extract_attr_recipe
+      1    0.1%    0.1%  T _mach_vm_protect
+      1    0.1%    0.1%  T _mach_port_mod_refs
+      1    0.1%    0.1%  T _mach_port_deallocate
+      1    0.1%    0.1%  T __kernelrpc_mach_vm_map
+      1    0.1%    0.1%  T __kernelrpc_mach_port_set_attributes
+
+ [Summary]:
+   ticks  total  nonlib   name
+     17    1.4%    1.6%  JavaScript
+    922   74.5%   88.0%  C++
+     12    1.0%    1.1%  GC
+    189   15.3%          Shared libraries
+    109    8.8%          Unaccounted
+
+ [C++ entry points]:
+   ticks    cpp   total   name
+    580   59.9%   46.9%  t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+     70    7.2%    5.7%  T _mig_get_reply_port
+     51    5.3%    4.1%  T ___pthread_init
+     49    5.1%    4.0%  T _chmod
+     37    3.8%    3.0%  T _pthread_key_create
+     36    3.7%    2.9%  t __pthread_mutex_global_init
+     32    3.3%    2.6%  t std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:nn180100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char)
+     17    1.8%    1.4%  T _pthread_key_init_np
+     16    1.7%    1.3%  t ___pfz_setup
+     16    1.7%    1.3%  T __kernelrpc_vm_map
+     12    1.2%    1.0%  t std::__1::basic_ostream<char, std::__1::char_traits<char>>& std::__1::__put_character_sequence[abi:nn180100]<char, std::__1::char_traits<char>>(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, char const*, unsigned long)
+     11    1.1%    0.9%  t __pthread_bsdthread_init
+     10    1.0%    0.8%  T node::loader::ModuleWrap::New(v8::FunctionCallbackInfo<v8::Value> const&)
+      6    0.6%    0.5%  t __os_nospin_lock_lock_slow
+      6    0.6%    0.5%  T _task_get_special_port
+      4    0.4%    0.3%  T _vm_map
+      3    0.3%    0.2%  t __os_nospin_lock_unlock_slow
+      2    0.2%    0.2%  T _mach_vm_map
+      1    0.1%    0.1%  t node::EnvGetter(v8::Local<v8::Name>, v8::PropertyCallbackInfo<v8::Value> const&)
+      1    0.1%    0.1%  T node::cares_wrap::ChannelWrap::New(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.1%    0.1%  T _semget
+      1    0.1%    0.1%  T _mach_voucher_extract_attr_recipe
+      1    0.1%    0.1%  T _mach_vm_region
+      1    0.1%    0.1%  T _mach_vm_protect
+      1    0.1%    0.1%  T _mach_port_deallocate
+      1    0.1%    0.1%  T __kernelrpc_mach_vm_map
+      1    0.1%    0.1%  T __kernelrpc_mach_port_set_attributes
+      1    0.1%    0.1%  T __kernelrpc_mach_port_get_refs
+
+ [Bottom up (heavy) profile]:
+  Note: percentage shows a share of a particular caller in the total
+  amount of its parent calls.
+  Callers occupying less than 1.0% are not shown.
+
+   ticks parent  name
+    421   34.0%  t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+    125   29.7%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+    116   92.8%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+    100   86.2%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+    100  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     86   86.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+     14   14.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     16   13.8%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+     16  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     16  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      9    7.2%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      9  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      9  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      9  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     46   10.9%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     45   97.8%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     45  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     45  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     37   82.2%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      8   17.8%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    2.2%      JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%        JS: ^wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1568:36
+      1  100.0%            JS: ^mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+     30    7.1%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+     15   50.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      7   46.7%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      6   85.7%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      6  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   14.3%          JS: ~getCrypto /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:18656:19
+      1  100.0%            JS: ~load /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:18586:14
+      2   13.3%        JS: ~<anonymous> node:http2:1:1
+      2  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      2  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    6.7%        JS: ~<anonymous> node:perf_hooks:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%        JS: ~<anonymous> node:internal/webstreams/transformstream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%        JS: ~<anonymous> node:internal/webstreams/readablestream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%        JS: ~<anonymous> node:internal/webstreams/encoding:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%        JS: ~<anonymous> node:internal/readline/interface:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%        JS: ~<anonymous> node:internal/perf/timerify:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+     11   36.7%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      3   27.3%        JS: ~<anonymous> node:internal/child_process:1:1
+      3  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      3  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:tls:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:stream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:internal/tls/wrap:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:internal/streams/readable:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:internal/streams/operators:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:http:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    9.1%        JS: ~<anonymous> node:dgram:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    9.1%        JS: ~<anonymous> node:crypto:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      3   10.0%      JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      3  100.0%        JS: ^loadBuiltinModule node:internal/modules/helpers:118:27
+      3  100.0%          JS: ^loadBuiltinWithHooks node:internal/modules/cjs/loader:1205:30
+      3  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    3.3%      JS: +compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1  100.0%        JS: +loadBuiltinWithHooks node:internal/modules/cjs/loader:1205:30
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%            JS: +wrapModuleLoad node:internal/modules/cjs/loader:238:24
+     28    6.7%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      6   21.4%      JS: +realpathSync node:fs:2700:22
+      5   83.3%        JS: +toRealPath node:internal/modules/helpers:62:20
+      4   80.0%          JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      4  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      1   20.0%          JS: ^tryFile node:internal/modules/cjs/loader:559:17
+      1  100.0%            JS: ^tryPackage node:internal/modules/cjs/loader:516:20
+      1   16.7%        JS: ^toRealPath node:internal/modules/helpers:62:20
+      1  100.0%          JS: ^tryFile node:internal/modules/cjs/loader:559:17
+      1  100.0%            JS: ^tryExtensions node:internal/modules/cjs/loader:575:23
+      3   10.7%      JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      3  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      3  100.0%          JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      3  100.0%            JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+      2    7.1%      JS: ~<anonymous> node:internal/main/run_main_module:1:1
+      2    7.1%      JS: +stat node:internal/modules/cjs/loader:266:14
+      2  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      2  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      2  100.0%            JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      1    3.6%      t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/regexpu-core/data/i-bmp-mappings.js:1:1
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1    3.6%      JS: ~splitPath /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@sentry/core/build/cjs/utils/path.js:25:19
+      1  100.0%        JS: ~dirname /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@sentry/core/build/cjs/utils/path.js:106:17
+      1  100.0%          JS: ~createGetModuleFromFilename /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@sentry/node-core/build/cjs/utils/module.js:9:37
+      1  100.0%            JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@sentry/node-core/build/cjs/sdk/api.js:1:1
+      1    3.6%      JS: ~replaceXRange /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/core/node_modules/semver/semver.js:1209:24
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/core/node_modules/semver/semver.js:1204:41
+      1  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%            JS: ~replaceXRanges /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/core/node_modules/semver/semver.js:1202:25
+      1    3.6%      JS: ~parseRange /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2739
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2468
+      1  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%            JS: ~Range /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2058
+      1    3.6%      JS: ~parse /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/semver/classes/comparator.js:34:9
+      1  100.0%        JS: ~Comparator /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/semver/classes/comparator.js:8:15
+      1  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/semver/ranges/subset.js:1:1
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1    3.6%      JS: ~matchesRange /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/is-core-module/index.js:28:22
+      1  100.0%        JS: ~versionIncluded /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/is-core-module/index.js:41:25
+      1  100.0%          JS: ~isCore /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/is-core-module/index.js:67:33
+      1  100.0%            JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@rollup/plugin-node-resolve/node_modules/resolve/lib/core.js:1:1
+      1    3.6%      JS: ~lib/dispatcher/dispatcher.js node:internal/deps/undici/undici:662:33
+      1  100.0%        JS: ~__require node:internal/deps/undici/undici:5:49
+      1  100.0%          JS: ~lib/dispatcher/dispatcher-base.js node:internal/deps/undici/undici:2162:38
+      1  100.0%            JS: ~__require node:internal/deps/undici/undici:5:49
+      1    3.6%      JS: ~addBeforeRule /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/core.js:594:23
+      1  100.0%        JS: ^addRule /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/core.js:565:17
+      1  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/core.js:365:46
+      1  100.0%            t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1    3.6%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/app-render/dynamic-rendering.js:1:1
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1    3.6%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:27935
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%          JS: ~54 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:27297
+      1  100.0%            JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1    3.6%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/baseline-browser-mapping/dist/index.cjs:1:1
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1    3.6%      JS: ^toCamelCase /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:189640
+      1  100.0%        JS: ^getHook /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:190532
+      1  100.0%          JS: ~apply /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:176944
+      1  100.0%            JS: ~I.createResolver /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:196785
+      1    3.6%      JS: ^SafeWeakRef node:internal/per_context/primordials:430:3
+      1  100.0%        JS: ^WeakReference node:internal/util:911:14
+      1  100.0%          JS: ^set node:diagnostics_channel:48:6
+      1  100.0%            JS: ^Channel node:diagnostics_channel:191:14
+      1    3.6%      JS: +getNearestParentPackageJSON node:internal/modules/package_json_reader:167:37
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    3.6%      JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+      1  100.0%        JS: +resolveForCJSWithHooks node:internal/modules/cjs/loader:1088:32
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%            JS: +wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      5    1.2%    JS: ^readFileSync node:fs:434:22
+      4   80.0%      JS: +defaultLoadImpl node:internal/modules/cjs/loader:1158:25
+      4  100.0%        JS: +loadSource node:internal/modules/cjs/loader:1845:20
+      4  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      4  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1   20.0%      JS: ^defaultLoadImpl node:internal/modules/cjs/loader:1158:25
+      1  100.0%        JS: ^loadSource node:internal/modules/cjs/loader:1845:20
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+
+    111    9.0%  /usr/lib/system/libsystem_c.dylib
+     63   56.8%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     61   96.8%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     50   82.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     50  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     44   88.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      6   12.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     11   18.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+     11  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     11  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      2    3.2%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      2  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      2  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     26   23.4%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     26  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     26  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     26  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     19   73.1%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      7   26.9%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     15   13.5%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      9   60.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      7   77.8%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      6   85.7%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      6  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   14.3%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/bin/next:92:732
+      1  100.0%            JS: ~listener /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:6863
+      1   11.1%        JS: ~lazyLoadComparison node:assert:76:28
+      1  100.0%          JS: ~deepEqual node:assert:287:48
+      1  100.0%            JS: ~Conf /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/conf/index.js:1:105695
+      1   11.1%        JS: ~<anonymous> node:internal/webstreams/transformstream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      5   33.3%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   20.0%        JS: ~<anonymous> node:v8:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   20.0%        JS: ~<anonymous> node:stream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   20.0%        JS: ~<anonymous> node:internal/child_process:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   20.0%        JS: ~<anonymous> node:https:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   20.0%        JS: ~<anonymous> node:_http_common:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    6.7%      JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1  100.0%        JS: ^loadBuiltinModule node:internal/modules/helpers:118:27
+      1  100.0%          JS: ^loadBuiltinWithHooks node:internal/modules/cjs/loader:1205:30
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2    1.8%    JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      2  100.0%      JS: ~<anonymous> node:internal/main/run_main_module:1:1
+
+    109    8.8%  UNKNOWN
+     44   40.4%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     41   93.2%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     39   95.1%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     39  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     33   84.6%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      6   15.4%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      2    4.9%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      2  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      3    6.8%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      3  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      3  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      3  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     20   18.3%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     20  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     20  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     20  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     15   75.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      5   25.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     16   14.7%    JS: ~getReport node:internal/process/report:37:12
+     16  100.0%      JS: ~getReportHeader /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/rollup/dist/native.js:6:25
+     16  100.0%        JS: ~isMingw32 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/rollup/dist/native.js:44:19
+     16  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/rollup/dist/native.js:1:1
+     16  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     13   11.9%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      8   61.5%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      2   25.0%        JS: ~<anonymous> node:crypto:1:1
+      2  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      2  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   12.5%        JS: ~<anonymous> node:net:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   12.5%        JS: ~<anonymous> node:internal/streams/compose:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   12.5%        JS: ~<anonymous> node:internal/crypto/argon2:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   12.5%        JS: ~<anonymous> node:http:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   12.5%        JS: ~<anonymous> node:_http_client:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   12.5%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/fs-extra/lib/fs/index.js:51:25
+      1  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%            JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/fs-extra/lib/fs/index.js:1:1
+      4   30.8%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/webstreams/transformstream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/http2/compat:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/fs/promises:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/assert/utils:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1    7.7%      JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1  100.0%        JS: ^loadBuiltinModule node:internal/modules/helpers:118:27
+      1  100.0%          JS: ^loadBuiltinWithHooks node:internal/modules/cjs/loader:1205:30
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      3    2.8%    JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      3  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   66.7%        JS: ^wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      2  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1568:36
+      2  100.0%            JS: +mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1   33.3%        JS: +wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      1  100.0%          JS: +require node:internal/modules/helpers:152:19
+      1  100.0%            JS: ~requireWithFriendlyError /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/rollup/dist/native.js:101:34
+
+     95    7.7%  T _getsockname
+
+     72    5.8%  T _mig_get_reply_port
+     30   41.7%    JS: ^readFileSync node:fs:434:22
+     21   70.0%      JS: +defaultLoadImpl node:internal/modules/cjs/loader:1158:25
+     13   61.9%        JS: +loadSource node:internal/modules/cjs/loader:1845:20
+     13  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     13  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      8   38.1%        JS: ^loadSource node:internal/modules/cjs/loader:1845:20
+      7   87.5%          JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      5   71.4%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      2   28.6%            JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1   12.5%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      9   30.0%      JS: ^defaultLoadImpl node:internal/modules/cjs/loader:1158:25
+      9  100.0%        JS: ^loadSource node:internal/modules/cjs/loader:1845:20
+      8   88.9%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      8  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1   11.1%          JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     12   16.7%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     11   91.7%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     10   90.9%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     10  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      9   90.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   10.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    9.1%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    8.3%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      8   11.1%    JS: +read node:internal/modules/package_json_reader:122:14
+      8  100.0%      JS: +_readPackage node:internal/modules/cjs/loader:496:20
+      7   87.5%        JS: +resolveExports node:internal/modules/cjs/loader:675:24
+      7  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      7  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      1   12.5%        JS: ^tryPackage node:internal/modules/cjs/loader:516:20
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      6    8.3%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+      6  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      6  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      6  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      4   66.7%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   33.3%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      5    6.9%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      4   80.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   25.0%        JS: ~<anonymous> node:internal/webstreams/readablestream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/webstreams/compression:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   25.0%        JS: ~<anonymous> node:internal/http2/core:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   20.0%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-extensions/fast-set-immediate.external.js:1:1
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      4    5.6%    JS: ^lockfileTryAcquireSync /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/swc/index.js:1255:36
+      4  100.0%      JS: ^tryAcquire /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/lockfile.js:109:24
+      4  100.0%        JS: ~acquireWithRetriesOrExit /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/lockfile.js:166:44
+      4  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      3    4.2%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1   33.3%      JS: ~loadConfig /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:1132:26
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1   33.3%      JS: ~acquireWithRetriesOrExit /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/lockfile.js:166:44
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1   33.3%      JS: ~<anonymous> node:internal/main/run_main_module:1:1
+      3    4.2%    JS: ^read node:internal/modules/package_json_reader:122:14
+      3  100.0%      JS: ^_readPackage node:internal/modules/cjs/loader:496:20
+      2   66.7%        JS: ^resolveExports node:internal/modules/cjs/loader:675:24
+      2  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      1   33.3%        JS: +resolveExports node:internal/modules/cjs/loader:675:24
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      1    1.4%    JS: ^getNearestParentPackageJSON node:internal/modules/package_json_reader:167:37
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%            JS: ^wrapModuleLoad node:internal/modules/cjs/loader:238:24
+
+     62    5.0%  /usr/lib/libc++.1.dylib
+     33   53.2%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     33  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     26   78.8%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     26  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     20   76.9%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      6   23.1%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      7   21.2%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      7  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      7  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     13   21.0%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     13  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     13  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     13  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     13  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+     10   16.1%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      5   50.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      3   60.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      2   66.7%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      2  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   33.3%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/bin/next:92:732
+      1  100.0%            JS: ~listener /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:6863
+      1   20.0%        JS: ~<anonymous> node:internal/webstreams/transformstream:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   20.0%        JS: ~<anonymous> node:http2:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      3   30.0%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   33.3%        JS: ~<anonymous> node:tls:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   33.3%        JS: ~<anonymous> node:internal/streams/duplex:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   33.3%        JS: ~<anonymous> node:internal/fs/promises:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   10.0%      JS: ~mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1  100.0%        JS: ~718 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:18
+      1  100.0%          JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:36923
+      1  100.0%            JS: ~119 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:1558
+      1   10.0%      JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1  100.0%        JS: ^loadBuiltinModule node:internal/modules/helpers:118:27
+      1  100.0%          JS: ^loadBuiltinWithHooks node:internal/modules/cjs/loader:1205:30
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    1.6%    JS: ~writeGeneric node:internal/stream_base_commons:146:22
+      1  100.0%      JS: ~Socket._writeGeneric node:net:994:42
+      1  100.0%        JS: ~Socket._write node:net:1036:35
+      1  100.0%          JS: ~writeOrBuffer node:internal/streams/writable:546:23
+      1  100.0%            JS: ~_write node:internal/streams/writable:451:16
+      1    1.6%    JS: ~merge /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/terser/dist/bundle.min.js:163:19
+      1  100.0%      JS: ~_ms /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/terser/dist/bundle.min.js:174:17
+      1  100.0%        JS: ~_ms /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/terser/dist/bundle.min.js:174:17
+      1  100.0%          JS: ~_ms /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/terser/dist/bundle.min.js:174:17
+      1  100.0%            JS: ~_ms /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/terser/dist/bundle.min.js:174:17
+      1    1.6%    JS: ~addIssueToContext /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:4933
+      1  100.0%      JS: ~addIssue /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:67336
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:73665
+      1  100.0%          JS: ~executeRefinement /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:68156
+      1  100.0%            JS: ~_parse /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:67233
+      1    1.6%    JS: ~ZodString /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:23690
+      1  100.0%      JS: ~ZodString.create /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/zod/index.cjs:1:33507
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/segment-config/app/app-segment-config.js:1:1
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1    1.6%    JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%      JS: ~31112 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:817824
+      1  100.0%        JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%          JS: ~75778 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:1105863
+      1  100.0%            JS: ~__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1    1.6%    JS: +getNearestParentPackageJSON node:internal/modules/package_json_reader:167:37
+      1  100.0%      JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%            JS: +wrapModuleLoad node:internal/modules/cjs/loader:238:24
+
+     58    4.7%  T _chmod
+     23   39.7%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     21   91.3%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     16   76.2%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     16  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     14   87.5%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   12.5%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      5   23.8%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      5  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      5  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      2    8.7%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      2  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      2  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     11   19.0%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     11  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     11  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     11  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      7   63.6%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      4   36.4%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      6   10.3%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1   16.7%      JS: ~serialize /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/fast-uri/index.js:120:20
+      1  100.0%        JS: ~_getFullPath /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/compile/resolve.js:78:22
+      1  100.0%          JS: ~getFullPath /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/compile/resolve.js:71:21
+      1  100.0%            JS: ~getSchemaRefs /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/workbox-build/node_modules/ajv/dist/compile/resolve.js:94:23
+      1   16.7%      JS: ~replaceTilde /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:4388
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:4336
+      1  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%            JS: ~replaceTildes /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:4302
+      1   16.7%      JS: ~__exportStar /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@opentelemetry/semantic-conventions/build/src/trace/index.js:17:59
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@opentelemetry/semantic-conventions/build/src/trace/index.js:1:1
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1   16.7%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/utils.js:1:1
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1   16.7%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/babel-plugin-polyfill-corejs3/lib/built-in-definitions.js:1:1
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1   16.7%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@sentry/server-utils/build/cjs/orchestrion/config/mongoose.js:1:1
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      2    3.4%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1   50.0%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> node:http:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   50.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> node:http2:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    1.7%    JS: ~workUnitAsyncStorage /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js:59:35
+      1  100.0%      JS: ~io /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-extensions/io-utils.js:17:12
+      1  100.0%        JS: ~random /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-extensions/random.js:15:35
+      1  100.0%          JS: ~800 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/glob/glob.js:1:705
+      1  100.0%            JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/glob/glob.js:1:36078
+      1    1.7%    JS: ~processEnv /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/node_modules/@next/env/dist/index.js:1:8517
+      1  100.0%      JS: ~loadEnvConfig /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/node_modules/@next/env/dist/index.js:1:9272
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/index.js:417:88
+      1  100.0%          JS: ~traceFn /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/trace/trace.js:152:12
+      1  100.0%            JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/build/index.js:414:42
+      1    1.7%    JS: ~parseMaybeDefault /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:7459:20
+      1  100.0%      JS: ~parseBindingElement /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:7444:22
+      1  100.0%        JS: ~parseBindingList /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:7375:19
+      1  100.0%          JS: ~parseFunctionParams /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:13475:22
+      1  100.0%            JS: ~parseFunction /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:13437:16
+      1    1.7%    JS: ~pLocate /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/find-up/index.js:1:1960
+      1  100.0%      JS: ~r.exports /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/find-up/index.js:1:1232
+      1  100.0%        JS: ~runMatcher /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/find-up/index.js:1:230
+      1  100.0%          JS: ~r.exports /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/find-up/index.js:1:124
+      1  100.0%            JS: ~loadConfig /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:1132:26
+      1    1.7%    JS: ~initializeScopes /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:7018:19
+      1  100.0%      JS: ~Parser /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:14443:14
+      1  100.0%        JS: ~PlaceholdersParserMixin /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:10430:34
+      1  100.0%          JS: ~getParser /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:14557:19
+      1  100.0%            JS: ~parse /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/parser/lib/index.js:14511:15
+      1    1.7%    JS: ~checkDeprecations /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:159:27
+      1  100.0%      JS: ~loadConfig /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:1132:26
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1    1.7%    JS: ~assignDefaultsAndValidate /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:221:39
+      1  100.0%      JS: ~loadConfig /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config.js:1132:26
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1    1.7%    JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1  100.0%      JS: ~663 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:48113
+      1  100.0%        JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1  100.0%          JS: ~327 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:51775
+      1  100.0%            JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1    1.7%    JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/cross-spawn/index.js:1:7549
+      1  100.0%      JS: ~907 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/cross-spawn/index.js:1:2780
+      1  100.0%        JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/cross-spawn/index.js:1:7549
+      1  100.0%          JS: ~423 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/cross-spawn/index.js:1:1231
+      1  100.0%            JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/cross-spawn/index.js:1:7549
+      1    1.7%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/config-schema.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    1.7%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/@babel/core/lib/config/config-chain.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    1.7%    JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%      JS: ~<anonymous> node:internal/main/run_main_module:1:1
+      1    1.7%    JS: *dirname node:path:1441:10
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+
+     52    4.2%  T ___pthread_init
+     26   50.0%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     23   88.5%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     16   69.6%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     16  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     12   75.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      4   25.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      7   30.4%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      7  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      7  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      3   11.5%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      3  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      3  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      3  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     15   28.8%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     15  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     15  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     15  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     13   86.7%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   13.3%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      4    7.7%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      2   50.0%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   50.0%        JS: ~<anonymous> node:internal/streams/duplex:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   50.0%        JS: ~<anonymous> node:crypto:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      2   50.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      2  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      2  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      2  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      3    5.8%    JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      3  100.0%      JS: ~<anonymous> node:internal/main/run_main_module:1:1
+      1    1.9%    JS: ~mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1  100.0%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/bin/next:1:1
+      1  100.0%        JS: ~<anonymous> node:internal/main/run_main_module:1:1
+      1    1.9%    JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/source-map/source-map.js:1:31822
+      1  100.0%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/source-map/source-map.js:1:32090
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/source-map/source-map.js:1:2
+      1  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/source-map/source-map.js:1:1
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1    1.9%    JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%      JS: ~78376 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:484091
+      1  100.0%        JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%          JS: ~73529 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:1410792
+      1  100.0%            JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+
+     37    3.0%  t __pthread_mutex_global_init
+     25   67.6%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     24   96.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     23   95.8%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     23  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     22   95.7%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    4.3%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    4.2%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    4.0%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      8   21.6%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+      8  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      8  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      8  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      7   87.5%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   12.5%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      3    8.1%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      2   66.7%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   50.0%        JS: ~<anonymous> node:worker_threads:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1   50.0%        JS: ~<anonymous> node:internal/readline/interface:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1   33.3%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> node:fs/promises:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    2.7%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2640
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%          JS: ~format /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2612
+      1  100.0%            JS: ~Range /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/semver/index.js:1:2058
+
+     37    3.0%  T _pthread_key_create
+     14   37.8%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     12   85.7%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     10   83.3%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     10  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      9   90.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   10.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   16.7%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      2  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   14.3%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      2  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      2  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      2  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+     11   29.7%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+     11  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     11  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     11  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     11  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      6   16.2%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      4   66.7%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      3   75.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      3  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      3  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   25.0%        JS: ~<anonymous> node:http2:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      2   33.3%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   50.0%        JS: ~<anonymous> node:internal/crypto/hkdf:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1   50.0%        JS: ~<anonymous> node:child_process:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ~mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1    2.7%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%      JS: ~_findOption /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:17885
+      1  100.0%        JS: ~addOption /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:7947
+      1  100.0%          JS: ~_optionEx /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:8927
+      1  100.0%            JS: ~option /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/commander/index.js:1:9357
+      1    2.7%    JS: ~report /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/trace/report/to-json.js:116:20
+      1  100.0%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/trace/report/index.js:28:32
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%          JS: ~report /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/trace/report/index.js:27:11
+      1  100.0%            JS: ~stop /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/trace/trace.js:93:9
+      1    2.7%    JS: ~I.createResolver /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:196785
+      1  100.0%      JS: ~90878 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:210118
+      1  100.0%        JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%          JS: ~17864 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:16674
+      1  100.0%            JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1    2.7%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/shared/lib/errors/canary-only-config-error.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    2.7%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/lib/constants.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%        JS: ^wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1568:36
+      1  100.0%            JS: ^mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1    2.7%    JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1  100.0%      JS: ^wrapModuleLoad node:internal/modules/cjs/loader:238:24
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1568:36
+      1  100.0%          JS: ^mod.require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:75:33
+      1  100.0%            JS: ^require node:internal/modules/helpers:152:19
+
+     33    2.7%  t std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:nn180100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char)
+     18   54.5%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     17   94.4%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     16   94.1%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     16  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     13   81.3%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      3   18.8%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    5.9%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    5.6%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      7   21.2%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+      7  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      7  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      7  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      5   71.4%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      2   28.6%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      3    9.1%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      2   66.7%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      2  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1   50.0%          JS: ~getCrypto /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:18656:19
+      1  100.0%            JS: ~load /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:18586:14
+      1   50.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1   33.3%      JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> node:internal/fs/promises:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^requireBuiltin node:internal/bootstrap/realm:420:24
+      1    3.0%    t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%      JS: ~e /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/baseline-browser-mapping/dist/index.cjs:1:969
+      1  100.0%        JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/baseline-browser-mapping/dist/index.cjs:1:32655
+      1  100.0%          t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%            JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/baseline-browser-mapping/dist/index.cjs:1:1
+      1    3.0%    JS: ~createMerger /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/smob/dist/index.cjs:160:22
+      1  100.0%      JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/smob/dist/index.cjs:1:1
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1    3.0%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/lib/trace/constants.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    3.0%    JS: ~793 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:61110
+      1  100.0%      JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1  100.0%        JS: ~385 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:9946
+      1  100.0%          JS: ~__nccwpck_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:78850
+      1  100.0%            JS: ~327 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/ora/index.js:1:51775
+      1    3.0%    JS: ^dirname node:path:1441:10
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+
+     17    1.4%  T _pthread_key_init_np
+     13   76.5%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+     13  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+     10   76.9%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+     10  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+     10  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      3   23.1%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      3  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      3  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    5.9%    JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/shared/lib/match-remote-pattern.js:1:1
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    5.9%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    5.9%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        t std::__1::__function::__func<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&), std::__1::allocator<v8::MaybeLocal<v8::Value> (*)(node::StartExecutionCallbackInfo const&)>, v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>::~__func()
+      1  100.0%          JS: ~<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/node-environment-baseline.js:1:1
+      1  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      1    5.9%    JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%      JS: ~83885 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:177474
+      1  100.0%        JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+      1  100.0%          JS: ~96108 /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:1:193939
+      1  100.0%            JS: ^__webpack_require__ /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/webpack/bundle5.js:29:2280004
+
+     16    1.3%  t ___pfz_setup
+      9   56.3%    JS: +wrapSafe node:internal/modules/cjs/loader:1721:18
+      8   88.9%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      7   87.5%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      7  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      7  100.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   12.5%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   11.1%      JS: +<anonymous> node:internal/modules/cjs/loader:1782:37
+      1  100.0%        JS: +<anonymous> node:internal/modules/cjs/loader:1926:37
+      1  100.0%          JS: +<anonymous> node:internal/modules/cjs/loader:1538:33
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      5   31.3%    JS: ^wrapSafe node:internal/modules/cjs/loader:1721:18
+      5  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:1782:37
+      5  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1926:37
+      5  100.0%          JS: ^<anonymous> node:internal/modules/cjs/loader:1538:33
+      4   80.0%            JS: ^<anonymous> node:internal/modules/cjs/loader:1239:24
+      1   20.0%            JS: +<anonymous> node:internal/modules/cjs/loader:1239:24
+      1    6.3%    JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%      JS: +requireBuiltin node:internal/bootstrap/realm:420:24
+      1  100.0%        JS: ~<anonymous> node:assert:1:1
+      1  100.0%          JS: ^compileForInternalLoader node:internal/bootstrap/realm:383:27
+      1  100.0%            JS: ^compileForPublicLoader node:internal/bootstrap/realm:331:25
+      1    6.3%    JS: ^__require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:12:49
+      1  100.0%      JS: ~../../node_modules/.pnpm/undici@6.21.0/node_modules/undici/lib/mock/mock-client.js /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:10844:87
+      1  100.0%        JS: ^__require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:12:49
+      1  100.0%          JS: ~../../node_modules/.pnpm/undici@6.21.0/node_modules/undici/index.js /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:18390:72
+      1  100.0%            JS: ~__require /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/compiled/@edge-runtime/primitives/load.js:12:49
+
+     16    1.3%  T __kernelrpc_vm_map
+     10   62.5%    JS: +stat node:internal/modules/cjs/loader:266:14
+      8   80.0%      JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      7   87.5%        JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      7  100.0%          JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      7  100.0%            JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+      1   12.5%        JS: ^<anonymous> node:internal/modules/cjs/loader:1392:35
+      1  100.0%          JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      1  100.0%            JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+      1   10.0%      JS: ^tryFile node:internal/modules/cjs/loader:559:17
+      1  100.0%        JS: ^finalizeEsmResolution node:internal/modules/cjs/loader:1491:31
+      1  100.0%          JS: ^resolveExports node:internal/modules/cjs/loader:675:24
+      1  100.0%            JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      1   10.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:704:28
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1392:35
+      1  100.0%          JS: ^<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      1  100.0%            JS: ^wrapResolveFilename node:internal/modules/cjs/loader:1048:29
+      5   31.3%    JS: +<anonymous> node:internal/modules/cjs/loader:704:28
+      5  100.0%      JS: +<anonymous> node:internal/modules/cjs/loader:1392:35
+      5  100.0%        JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      5  100.0%          JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+      3   60.0%            JS: +resolveForCJSWithHooks node:internal/modules/cjs/loader:1088:32
+      2   40.0%            JS: ^resolveForCJSWithHooks node:internal/modules/cjs/loader:1088:32
+      1    6.3%    JS: +tryExtensions node:internal/modules/cjs/loader:575:23
+      1  100.0%      JS: ^<anonymous> node:internal/modules/cjs/loader:704:28
+      1  100.0%        JS: ^<anonymous> node:internal/modules/cjs/loader:1392:35
+      1  100.0%          JS: +<anonymous> /Users/smarter.poker/Documents/Smarter-Poker-World-Hub/node_modules/next/dist/server/require-hook.js:65:33
+      1  100.0%            JS: +defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1061:41
+

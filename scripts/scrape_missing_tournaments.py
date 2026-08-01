@@ -56,7 +56,7 @@ RATE_S      = 4   # seconds between venues
 CF_TIMEOUT  = 25000  # ms
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs"
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 BRAVO_TOKEN  = "cd6942d7-4d38-4ecc-95b2-cc9bee944b07"
 SB_HDR = {
     "apikey": SUPABASE_KEY,

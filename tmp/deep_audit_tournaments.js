@@ -11,7 +11,7 @@ const { createClient } = require('../node_modules/@supabase/supabase-js');
 const fs = require('fs');
 
 const url = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs';
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(url, key);
 
 // Parse time string to minutes (returns -1 if unparseable)

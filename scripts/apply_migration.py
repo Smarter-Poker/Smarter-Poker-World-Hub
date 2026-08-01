@@ -1,6 +1,6 @@
 import urllib.request, json
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs'
+KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
 req = urllib.request.Request(
     f'{SUPABASE_URL}/rest/v1/rpc/exec_sql',

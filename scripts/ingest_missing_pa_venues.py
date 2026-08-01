@@ -18,7 +18,7 @@ from scrapling.fetchers import AsyncStealthySession
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs'
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scrape-evidence')
 BATCH_ID = str(uuid.uuid4())
 USE_REMAINING = '--remaining' in sys.argv
