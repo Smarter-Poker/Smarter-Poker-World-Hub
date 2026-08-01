@@ -429,12 +429,46 @@ export default async function handler(req, res) {
     }
 
     // Catalog capacity is how many tables a room HAS, not how many are dealing.
-    // It is reported in its own field; total_tables_running stays at 0 when there
-    // is no live data rather than publishing capacity as a live count.
+    // It stays in its own field and is never folded into the running count.
     const dataIsLive = totalLiveTables > 0;
-    const totalPlayersWaiting = venues.reduce(
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUBLISHING POLICY (owner decision, 2026-08-01)
+    // The Bravo live scraper is intentionally not being run. "Cash Games
+    // Running" is published from bravo-simulator-daemon.py, which models each
+    // venue's per-game, per-hour, per-weekday activity from weeks of REAL
+    // observed history in game_live_history.
+    //
+    // So a modelled table is a publishable number, not something to hide — but
+    // it must never be dressed up as an observation. The split is:
+    //   total_tables_live      - observed by a real scrape (0 while Bravo is off)
+    //   total_tables_simulated - modelled from historical observation
+    //   total_tables_running   - what the UI shows: live when we have it,
+    //                            otherwise the modelled estimate
+    //   data_mode              - 'live' | 'mixed' | 'estimated' | 'none'
+    //   data_is_live           - stays strictly honest (true only for observed)
+    //
+    // Counting only live here is what made the page read 0 tables while the
+    // list underneath it was full of games.
+    // ─────────────────────────────────────────────────────────────────────────
+    const liveWaiting = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.players_waiting || 0)), 0), 0
     );
+    const simulatedWaiting = venues.reduce(
+      (sum, v) => sum + v.games.reduce((s, g) => s + (g.is_simulated ? (g.players_waiting || 0) : 0), 0), 0
+    );
+
+    const dataMode = totalLiveTables > 0
+      ? (totalSimulatedTables > 0 ? 'mixed' : 'live')
+      : (totalSimulatedTables > 0 ? 'estimated' : 'none');
+
+    // Live wins when present; otherwise publish the modelled estimate.
+    const totalTablesPublished = totalLiveTables > 0
+      ? totalLiveTables + totalSimulatedTables
+      : totalSimulatedTables;
+    const totalPlayersWaiting = totalLiveTables > 0
+      ? liveWaiting + simulatedWaiting
+      : simulatedWaiting;
 
     const dataAgeMinutes = newestStamp === null ? null : Math.round((now - newestStamp) / 60000);
     const oldestDataAgeMinutes = oldestStamp === null ? null : Math.round((now - oldestStamp) / 60000);
@@ -444,12 +478,22 @@ export default async function handler(req, res) {
     return res.status(200).json({
       metadata: {
         venues_with_live_data: venues.length,
-        // Live = observed by a real scrape. Never back-filled with catalog capacity.
-        total_tables_running: totalLiveTables,
+        // What the UI displays. Live when observed, otherwise the modelled
+        // estimate. Never back-filled with catalog capacity. Read data_mode
+        // (and per-game is_simulated) to label it correctly.
+        total_tables_running: totalTablesPublished,
+        // The honest split behind that single number.
+        total_tables_live: totalLiveTables,
         total_tables_catalog: totalCatalogTables,
         total_tables_simulated: totalSimulatedTables,
         total_players_waiting: totalPlayersWaiting,
+        total_players_waiting_live: liveWaiting,
+        total_players_waiting_simulated: simulatedWaiting,
+        // 'live' | 'mixed' | 'estimated' | 'none'
+        data_mode: dataMode,
+        estimated: dataMode === 'estimated',
         // Promoted out of dedup_stats: this qualifies the number above it.
+        // Strictly observation-only — an estimate never sets this true.
         data_is_live: dataIsLive,
         simulated_venue_count: simulatedVenueCount,
         stale_venue_count: staleVenueCount,
@@ -471,6 +515,8 @@ export default async function handler(req, res) {
           duplicate_rows_removed: dedupedRows,
           final_venues: venues.length,
           live_tables: totalLiveTables,
+          published_tables: totalTablesPublished,
+          data_mode: dataMode,
           catalog_estimate_tables: totalCatalogTables,
           simulated_tables: totalSimulatedTables,
           data_is_live: dataIsLive,

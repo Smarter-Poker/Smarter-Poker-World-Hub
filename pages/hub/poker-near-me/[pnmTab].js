@@ -438,6 +438,10 @@ export default function PokerNearMePage() {
 
   // Live table count for map stats (fetched from live-tables API)
   const [liveTableCount, setLiveTableCount] = useState(0);
+  // 'live' | 'mixed' | 'estimated' | 'none' from /api/poker/live-tables.
+  // While the Bravo live scraper is intentionally off, the count is modelled
+  // from weeks of real observed history and must be labelled approximate.
+  const [liveDataMode, setLiveDataMode] = useState(null);
 
   // UI states
   const [loading, setLoading] = useState(true);
@@ -1147,6 +1151,7 @@ export default function PokerNearMePage() {
       if (!res.ok) return;
       const json = await res.json();
       if (json && json.metadata) {
+        if (json.metadata.data_mode) setLiveDataMode(json.metadata.data_mode);
         if (typeof json.metadata.total_tables_running === 'number') {
           // POLICY: Never decrease live count to 0.
           // If API returns 0 (scraper down), keep the last known count.
@@ -3151,7 +3156,8 @@ export default function PokerNearMePage() {
             ) : (
               <>
                 {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
-                {liveTableCount.toLocaleString()} Live Tables
+                {liveTableCount.toLocaleString()}{' '}
+                {liveDataMode === 'estimated' ? 'Tables (Approx.)' : 'Live Tables'}
                 {dbStats.tournaments > 0 && (
                   <>
                     &nbsp;&bull;&nbsp;

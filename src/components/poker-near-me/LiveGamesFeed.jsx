@@ -176,7 +176,7 @@ function LiveGamesFeed({
     const [isScraperDead, setIsScraperDead] = useState(false);
     const lastGoodLiveDataRef = useRef(null);
     // Global stats from API metadata
-    const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
+    const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null, dataMode: null });
     const [isDataStale, setIsDataStale] = useState(false);
     
     // ─── REALTIME BUFFER STATE ───
@@ -388,6 +388,9 @@ function LiveGamesFeed({
                         tables: json.metadata.total_tables_running || 0,
                         waiting: json.metadata.total_players_waiting || 0,
                         lastScrape: json.metadata.last_scrape || null,
+                        // 'estimated' means these counts are modelled from weeks of
+                        // real observed history, not a live scrape. Label accordingly.
+                        dataMode: json.metadata.data_mode || null,
                     });
                 }
                 setLastRefreshTime(new Date());
