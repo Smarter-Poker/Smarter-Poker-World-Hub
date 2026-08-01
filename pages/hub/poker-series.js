@@ -2040,6 +2040,27 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 // ═══════════════════════════════════════════════
 import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 
+
+// ─── Build-time safety valve ────────────────────────────────────────────────
+// getStaticProps runs during `next build`. Its try/catch only fires on a
+// REJECTION — a hung request never rejects, so a slow or unreachable database
+// stalls the build forever and Vercel kills the deploy at its 45-minute cap.
+// (Three consecutive hub-vanguard builds died exactly that way at ~45m.)
+// Racing the query against a timer makes the build independent of the DB:
+// worst case we ship empty props and ISR fills the page in on the first real
+// request, which is the same path a cache miss already takes.
+const BUILD_FETCH_TIMEOUT_MS = 15000;
+function withBuildTimeout(promise, label) {
+    let timer;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => {
+            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms — continuing without it; ISR will populate on first request.`);
+            resolve(null);
+        }, BUILD_FETCH_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function getStaticProps() {
     try {
         // NOTE: poker_series uses 'series_name' (not 'name'), and lacks venue/latitude/longitude/country/logo_url
@@ -2048,10 +2069,12 @@ export async function getStaticProps() {
         const psColumns = 'id, series_name, start_date, end_date, city, state, logo_url, series_uid, is_suppressed, venue_id, created_at, updated_at, tour_code, main_event_buyin, total_guaranteed, events_count, is_featured, short_name';
         const tsColumns = 'id, name, start_date, end_date, venue, city, state, series_uid, is_suppressed, tour_code, main_event_buyin, main_event_guaranteed, events_count, is_featured, short_name';
 
-        const [psRes, tsRes] = await Promise.all([
+        const raced = await withBuildTimeout(Promise.all([
             supabaseAdmin.from('poker_series').select(psColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
             supabaseAdmin.from('tournament_series').select(tsColumns).or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
-        ]);
+        ]), 'poker-series supabase queries');
+        if (!raced) return { props: { initialSeries: [] }, revalidate: 60 };
+        const [psRes, tsRes] = raced;
 
         if (psRes.error) throw psRes.error;
         if (tsRes.error) throw tsRes.error;

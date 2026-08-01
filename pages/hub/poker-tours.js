@@ -2013,9 +2013,30 @@ export default function PokerToursPage({ initialTours = [] }) {
 // ═══════════════════════════════════════════════
 import { getAllToursForSSR } from '../api/poker/tours';
 
+
+// ─── Build-time safety valve ────────────────────────────────────────────────
+// getStaticProps runs during `next build`. Its try/catch only fires on a
+// REJECTION — a hung request never rejects, so a slow or unreachable database
+// stalls the build forever and Vercel kills the deploy at its 45-minute cap.
+// (Three consecutive hub-vanguard builds died exactly that way at ~45m.)
+// Racing the query against a timer makes the build independent of the DB:
+// worst case we ship empty props and ISR fills the page in on the first real
+// request, which is the same path a cache miss already takes.
+const BUILD_FETCH_TIMEOUT_MS = 15000;
+function withBuildTimeout(promise, label) {
+    let timer;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => {
+            console.warn(`[build] ${label} exceeded ${BUILD_FETCH_TIMEOUT_MS}ms — continuing without it; ISR will populate on first request.`);
+            resolve(null);
+        }, BUILD_FETCH_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function getStaticProps() {
     try {
-        const data = await getAllToursForSSR();
+        const data = await withBuildTimeout(getAllToursForSSR(), 'poker-tours getAllToursForSSR');
         
         return {
             props: { initialTours: data || [] },
