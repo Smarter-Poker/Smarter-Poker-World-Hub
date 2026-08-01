@@ -326,6 +326,24 @@ const nextConfig = {
       'node_modules/@ffprobe-installer/linux-arm/**',
       'node_modules/@ffprobe-installer/linux-arm64/**',
     ],
+
+    // ─── API routes: never trace client-only UI libraries ────────────────────
+    // "Collecting build traces" walks the dependency closure of EVERY function.
+    // With 582 API routes against a 1.5 GB node_modules that phase dominates the
+    // build. None of these packages is imported by anything under pages/api
+    // (verified by grep before adding — `three` IS imported by 2 API routes and
+    // is deliberately NOT listed here). Excluding them cuts both trace time and
+    // the size of every serverless function bundle.
+    //
+    // Scoped to 'pages/api/**' on purpose: these libraries ARE needed by SSR'd
+    // pages, so excluding them under '*' would break page rendering at runtime.
+    'pages/api/**': [
+      'node_modules/posthog-js/**',
+      'node_modules/lucide-react/**',
+      'node_modules/framer-motion/**',
+      'node_modules/@react-three/**',
+      'node_modules/recharts/**',
+    ],
   },
 
   // ─── Output File Tracing — INCLUDE linux-x64 binaries for transcode cron ──
