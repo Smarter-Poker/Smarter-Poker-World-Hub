@@ -568,6 +568,31 @@ def create_session():
     if _browser_heal is not None:
         _browser_heal.ensure_browser()
 
+    # CRITICAL: clear any dangling asyncio event loop before starting Playwright.
+    # Scrapling's StealthySession.start() calls sync_playwright().start(), which
+    # raises "Playwright Sync API inside the asyncio loop" if a loop is set on
+    # this thread. Session recycling (and threading.Timer callbacks) leave such a
+    # loop behind, which is why every cycle died at the first recycle:
+    #   [26/55] ... Recycle at #25 -> Daemon cycle crashed: Playwright Sync API
+    #   inside the asyncio loop -> sleeping 6 hours
+    # This is the same guard pokeratlas-live-daemon.connect() already uses.
+    try:
+        import asyncio
+        try:
+            asyncio.get_running_loop()
+            # Inside a running loop we must not close it; just reset the policy.
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.close()
+            except RuntimeError:
+                pass  # no loop at all, which is what we want
+        asyncio.set_event_loop(None)
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    except Exception as _loop_err:
+        log(f"  [SESSION] event loop cleanup skipped: {_loop_err}")
+
     from scrapling.fetchers import StealthySession
     session = StealthySession(headless=True, solve_cloudflare=True)
     session.start()
