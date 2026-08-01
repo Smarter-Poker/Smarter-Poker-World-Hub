@@ -130,6 +130,24 @@ export default async function handler(req, res) {
               // shape (the page of rows). `pagination` is purely additive, so
               // existing callers that only read `data` are unaffected.
               const rows = Array.isArray(data) ? data : [];
+              // PAYLOAD: select('*') pulls poker_news.content -- the full scraped
+              // article body -- plus search_vector (its tsvector) for every row. The
+              // feed renders neither; a row shows title, source, thumbnail and date.
+              // So both were pure download cost on the hottest path in the app: every
+              // visitor, every infinite-scroll page. Body text is still SEARCHED
+              // server-side by the .or() above, so dropping it from the payload
+              // cannot cost a single result. Callers that genuinely render the body
+              // opt back in with ?includeContent=1 (see /hub/training/gto-news).
+              const rawInclude = req.query.includeContent;
+              const includeContent = ['1', 'true', 'yes'].includes(
+                  String((Array.isArray(rawInclude) ? rawInclude[0] : rawInclude) || '').toLowerCase()
+              );
+              const slimRows = rows.map((row) => {
+                  if (!row || typeof row !== 'object') return row;
+                  // eslint-disable-next-line no-unused-vars
+                  const { search_vector, content, ...rest } = row;
+                  return includeContent ? { ...rest, content } : rest;
+              });
               // If the count comes back null (PostgREST can omit it), fall back
               // to a lower bound rather than inventing a number.
               const hasCount = typeof count === 'number';
@@ -147,7 +165,7 @@ export default async function handler(req, res) {
               res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
       return res.status(200).json({
           success: true,
-          data: rows,
+          data: slimRows,
           pagination: { limit, offset, total, hasMore }
       });
           } catch (error) {

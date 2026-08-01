@@ -970,9 +970,13 @@ export default function NewsHub() {
         if (isMuted(article.source_name)) return false;
         if (!VALID_SOURCES.includes(article.source_name) && !article.source_box) return false;
         if (feedFilter === 'bookmarks' && !bookmarks.includes(article.id)) return false;
-        if (searchQuery) {
-            return article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                article.content?.toLowerCase().includes(searchQuery.toLowerCase());
+        // The server already applied this term (title OR body) for whatever is in
+        // `debouncedSearch`, and the body is no longer shipped to the client. Re-
+        // filtering a settled result set here could therefore only DROP valid
+        // body-only matches. Filter locally ONLY while the debounce is still in
+        // flight, so typing stays responsive against the rows already loaded.
+        if (searchQuery && searchQuery !== debouncedSearch) {
+            return article.title?.toLowerCase().includes(searchQuery.toLowerCase());
         }
         return true;
     });
@@ -1051,7 +1055,11 @@ export default function NewsHub() {
             // Ignore while typing or while any modal/viewer owns the keyboard
             if (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
             // Ignore Enter when a button/link/row already has DOM focus — its own
-            // handler activates it and this listener must not double-fire
+            // handler activates it and this listener must not double-fire.
+            // Belt-and-braces: the rows themselves now stopPropagation on
+            // Enter/Space, because this role check silently stopped covering the
+            // feed row the moment its role changed from "button" to "article",
+            // which let one keypress open an article twice.
             if (e.key === 'Enter' && (['BUTTON', 'A'].includes(e.target.tagName) || e.target.getAttribute?.('role') === 'button')) return;
             if (keyNavRef.current.modalOpen) return;
             const { articles, focusedIdx } = keyNavRef.current;
@@ -1288,7 +1296,7 @@ export default function NewsHub() {
                                     role="button"
                                     tabIndex={0}
                                     onClick={() => openArticle(breakingNews)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(breakingNews); } }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(breakingNews); } }}
                                 >
                                     <span className="breaking-badge">BREAKING</span>
                                     <span className="breaking-text">{breakingNews.title}</span>
@@ -1495,7 +1503,7 @@ export default function NewsHub() {
                                                                     role="article"
                                                                     tabIndex={0}
                                                                     onClick={() => openArticle(article)}
-                                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(article); } }}
                                                                 >
                                                                     {isNewArticle(article) && (
                                                                         <span className="new-badge">NEW</span>
@@ -1512,6 +1520,8 @@ export default function NewsHub() {
                                                                         src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                         alt=""
                                                                         className="list-thumb"
+                                                                        width={60}
+                                                                        height={45}
                                                                         loading="lazy"
                                                                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGES.news; }}
                                                                     />
@@ -1806,7 +1816,7 @@ export default function NewsHub() {
                                             role="button"
                                             tabIndex={0}
                                             onClick={() => openArticle(article)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(article); } }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(article); } }}
                                         >
                                             <span className={`rank ${i < 3 ? `rank-medal medal-${i + 1}` : ''}`}>{i + 1}</span>
                                             {/* Raw <img> on purpose — same reason as the feed thumbnails:
@@ -1817,6 +1827,8 @@ export default function NewsHub() {
                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                 alt=""
                                                 className="trend-thumb"
+                                                width={40}
+                                                height={30}
                                                 loading="lazy"
                                                 onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGES.news; }}
                                             />
@@ -1898,7 +1910,7 @@ export default function NewsHub() {
                                                     role="button"
                                                     tabIndex={0}
                                                     onClick={() => openArticle(a)}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openArticle(a); } }}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(a); } }}
                                                 >
                                                     <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
                                                     <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>

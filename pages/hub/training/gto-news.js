@@ -195,7 +195,10 @@ const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Mental'];
 // across the news hub are: tournament | news | strategy | industry. 'strategy'
 // is the closest real category to this page's subject, so that is what we ask
 // for — the API does not expose Preflop/Postflop/Math/Mental as categories.
-const FEED_URL = '/api/news/articles?category=strategy&limit=50';
+// includeContent=1: this page renders a body preview (see `row?.content`
+// below), so it must opt back into the article body that /api/news/articles
+// now withholds by default to keep the main feed's payload small.
+const FEED_URL = '/api/news/articles?category=strategy&limit=50&includeContent=1';
 const jsonFetch = (url) => fetch(url).then((r) => r.json());
 
 // The API stores ONE coarse category per row, so the four training topics that
