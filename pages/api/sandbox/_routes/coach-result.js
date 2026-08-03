@@ -25,6 +25,51 @@ function clampOptional(value, max) {
     return String(value).slice(0, max);
 }
 
+// A sandbox_sessions row id echoed back by the client. It is only ever used as
+// a join key, so the shape check stays deliberately permissive about the id
+// format (uuid / bigint / nanoid all pass) and strict about everything else —
+// objects, arrays and overlong junk are dropped before they reach Postgres,
+// where a type error would otherwise fail the whole insert and cost the user
+// their verdict.
+const SESSION_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
+function cleanSessionId(value) {
+    if (value === undefined || value === null || value === '') return null;
+    if (typeof value === 'number') {
+        return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+    }
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return SESSION_ID_RE.test(trimmed) ? trimmed : null;
+}
+
+/**
+ * Confirm the claimed session actually belongs to this user before linking.
+ * The id arrives from the client, so a stale, foreign or wrong-typed value must
+ * degrade to an unlinked row (sessions.js then falls back to its spot+time
+ * heuristic) rather than writing a bogus correlation or 500ing the insert.
+ * Any error — missing table, malformed id, transient failure — returns null.
+ */
+async function verifySessionOwnership(supabase, sessionId, userId) {
+    if (!sessionId || !userId) return null;
+    try {
+        const { data, error } = await supabase
+            .from('sandbox_sessions')
+            .select('id')
+            .eq('id', sessionId)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (error) {
+            if (error.code !== '42P01') console.warn('[coach-result] Session verify failed:', error.code || error.message);
+            return null;
+        }
+        return data?.id ?? null;
+    } catch (e) {
+        console.warn('[coach-result] Session verify threw:', e?.message || e);
+        return null;
+    }
+}
+
 export default async function handler(req, res) {
   try {
       // Unbounded writes feed the leaderboard/session-stats aggregations —
@@ -55,6 +100,10 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, stored: false, reason: 'guest' });
           }
 
+          // Identity comes from the verified Bearer token above and nowhere
+          // else. A userId / user_id in the body is deliberately NOT read here
+          // — accepting one would let any caller write rows against another
+          // account (the IDOR this surface has already been bitten by).
           const {
               hand, position, street, board,
               userPick, gtoAction, isCorrect, evDelta, sessionId,
@@ -78,11 +127,17 @@ export default async function handler(req, res) {
           // Drill rows carry values like 'flop_cbet' — keep the street prefix.
           const normalizedStreet = STREETS.find(s => rawStreet.startsWith(s)) || 'preflop';
 
+          // Exact verdict↔hand correlation for /api/sandbox/sessions. Unlinked
+          // (null) is a fully supported state — never a hard failure.
+          const linkedSessionId = await verifySessionOwnership(
+              supabase, cleanSessionId(sessionId), userId
+          );
+
           const { data, error } = await supabase
               .from('sandbox_coach_results')
               .insert({
                   user_id: userId,
-                  session_id: sessionId || null,
+                  session_id: linkedSessionId,
                   hero_hand: hand.slice(0, 40),
                   hero_position: clampOptional(position, 40),
                   street: normalizedStreet,

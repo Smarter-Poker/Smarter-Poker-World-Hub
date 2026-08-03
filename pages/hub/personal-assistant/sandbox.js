@@ -29,7 +29,11 @@ import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, use
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
+import {
+  calculateEquity, simulateRunouts,
+  calculateEquityAsync, simulateRunoutsAsync,
+  isEquityWorkerAvailable, terminateEquityWorker,
+} from '../../../src/lib/sandbox/EquityEngine';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import { getArchetypeRangeString, getArchetypeVPIP, getArchetypeInfo, ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
@@ -93,6 +97,16 @@ const GAME_TYPES = [
 ];
 const MAX_VILLAINS = 5;
 const DEFAULT_VILLAINS = [{ id: 0, position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100, range: '' }];
+
+// Abort handle for the equity worker. AbortController ships everywhere Worker
+// does, but this surface has to survive old in-app webviews, so never assume:
+// without it the effect's own `cancelled` flag still stops a stale result from
+// landing, we just cannot interrupt the run early.
+function makeEquityAbort() {
+  if (typeof AbortController === 'undefined') return { signal: undefined, abort: () => {} };
+  const controller = new AbortController();
+  return { signal: controller.signal, abort: () => { try { controller.abort(); } catch (e) { /* already aborted */ } } };
+}
 
 const FELT_COLORS = [
   { id: 'default', label: 'Black', filter: 'none', swatch: '#18191A' },
@@ -1269,8 +1283,10 @@ export default function VirtualSandbox() {
   ), [villains]);
 
   // ━━━ EQUITY — range-aware and progressive ━━━
-  // A fast 250-sim pass paints a number immediately; a 2000-sim refinement runs
-  // in an idle callback so a mid-range phone never blocks on it.
+  // A fast 250-sim pass paints a number immediately (cheap enough to stay on
+  // the main thread); the 2000-sim refinement goes to a Web Worker so a
+  // mid-range phone never blocks on it. No worker available (SSR, CSP, ancient
+  // webview) => the old requestIdleCallback path, unchanged.
   const [equity, setEquity] = useState(null);
   const [equityVsRange, setEquityVsRange] = useState(true);
 
@@ -1282,6 +1298,7 @@ export default function VirtualSandbox() {
 
     let cancelled = false;
     let idleId = null;
+    const abort = makeEquityAbort();
     const idle = (cb) => {
       if (typeof window !== 'undefined' && window.requestIdleCallback) return window.requestIdleCallback(cb, { timeout: 900 });
       return setTimeout(cb, 80);
@@ -1297,6 +1314,19 @@ export default function VirtualSandbox() {
         const fast = calculateEquity(heroCards, boardCards, 250, range);
         if (!cancelled) setEquity({ ...fast, refining: true });
       } catch (e) { if (!cancelled) setEquity(null); }
+
+      if (isEquityWorkerAvailable()) {
+        // Off-thread: no reason to wait for an idle slice, it never touches
+        // this thread. `cancelled` is the last line of defence against a slow
+        // reply from a previous hand overwriting the current one.
+        calculateEquityAsync(heroCards, boardCards, 2000, range, { signal: abort.signal })
+          .then((full) => {
+            if (!cancelled && full) setEquity({ ...full, refining: false });
+          })
+          .catch(() => { /* keep the fast estimate */ });
+        return;
+      }
+
       idleId = idle(() => {
         try {
           const full = calculateEquity(heroCards, boardCards, 2000, range);
@@ -1305,7 +1335,7 @@ export default function VirtualSandbox() {
       });
     }, 90);
 
-    return () => { cancelled = true; clearTimeout(t); cancelIdle(idleId); };
+    return () => { cancelled = true; clearTimeout(t); cancelIdle(idleId); abort.abort(); };
   }, [heroHand.card1, heroHand.card2, board, equityVsRange, villainRangeStr]);
 
   const equityLabel = useMemo(() => (
@@ -1322,12 +1352,29 @@ export default function VirtualSandbox() {
     const boardCards = [...board.flop];
     if (board.turn) boardCards.push(board.turn);
     const range = equityVsRange ? villainRangeStr : null;
+
+    // ~46 candidate cards x 200 sims each — by far the heaviest thing on this
+    // page. Straight to the worker; the synchronous call is the fallback.
+    let cancelled = false;
+    const abort = makeEquityAbort();
     const t = setTimeout(() => {
+      if (isEquityWorkerAvailable()) {
+        simulateRunoutsAsync(heroCards, boardCards, 200, range, { signal: abort.signal })
+          .then((data) => {
+            if (!cancelled) setRunoutData(data || null);
+          })
+          .catch(() => { if (!cancelled) setRunoutData(null); });
+        return;
+      }
       try { setRunoutData(simulateRunouts(heroCards, boardCards, 200, range)); }
       catch (e) { setRunoutData(null); }
     }, 220);
-    return () => clearTimeout(t);
+    return () => { cancelled = true; clearTimeout(t); abort.abort(); };
   }, [heroHand.card1, heroHand.card2, board, equityVsRange, villainRangeStr]);
+
+  // The worker is shared across both effects, so it is torn down once, on
+  // unmount — never per input change (that is what abort() above is for).
+  useEffect(() => () => terminateEquityWorker(), []);
 
   // ━━━ PREFLOP CHARTS ━━━
   const [preflopScenario, setPreflopScenario] = useState('rfi');
@@ -2247,6 +2294,20 @@ export default function VirtualSandbox() {
       try {
         const accessToken = getAccessToken();
         if (!accessToken) return;
+        // Exact verdict↔hand link for the archived Hand Replay. This must be the
+        // sandbox_sessions row id that /api/assistant/sandbox/analyze created for
+        // THIS analysis and nothing else — a stand-in id would make the server
+        // attribute this verdict to someone else's hand, which is worse than the
+        // "not coached" it replaces. analyze returns it as `sessionId`; it is
+        // null for guests, cached responses and failed writes, in which case the
+        // key is omitted and the server keeps using its spot+time fallback.
+        const claimedSessionId = res?.sessionId;
+        const normalizedSessionId = typeof claimedSessionId === 'number' && Number.isSafeInteger(claimedSessionId) && claimedSessionId > 0
+          ? String(claimedSessionId)
+          : (typeof claimedSessionId === 'string' ? claimedSessionId.trim() : '');
+        const sessionId = /^[A-Za-z0-9_-]{1,64}$/.test(normalizedSessionId)
+          ? normalizedSessionId
+          : null;
         await fetch('/api/sandbox/coach-result', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -2254,6 +2315,7 @@ export default function VirtualSandbox() {
             hand: handLabel, position: heroPosition, street: currentStreet, board: snapBoardFull,
             userPick: currentPick, gtoAction: gtoLabel, isCorrect, evDelta: delta,
             evDeltaEstimated: estimated,
+            ...(sessionId ? { sessionId } : {}),
           }),
         });
         if (typeof window !== 'undefined') {

@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '../../src/lib/supabaseServerClient';
 import Head from 'next/head';
 import LZString from 'lz-string';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ExternalLink, RefreshCw, Link2 as LinkIcon } from 'lucide-react';
 import { T, F, S, R, FONT, btn } from '../../src/components/sandbox/paTokens';
 
 // Share ids are short alphanumeric slugs (create-share generates 6 chars)
@@ -74,9 +74,28 @@ export function buildQueryFallback(state) {
     return `${SANDBOX_PATH}?${params.toString()}`;
 }
 
+/**
+ * Which dead end are we in?
+ *
+ * getServerSideProps has exactly two failure props: `error: 'Server error'`
+ * when the lookup threw or the query itself errored (a transient DB failure is
+ * NOT a revoked link), and `error: 'Not found'` for a bad id, a missing row
+ * (the revoked case — DELETE removes the row outright) or a row with no
+ * state_json. Everything in that second group is indistinguishable from the
+ * outside and must read the same way: the link does not resolve any more.
+ */
+export function classifyFailure(error, stateJson) {
+    if (error === 'Server error') return 'server';
+    if (error || !stateJson) return 'gone';
+    return null;
+}
+
 export default function SharedSandboxRedirect({ error, stateJson }) {
-    const [failed, setFailed] = useState(!!error);
+    const [failure, setFailure] = useState(() => classifyFailure(error, stateJson));
     const [slow, setSlow] = useState(false);
+    // The payload is in hand but the browser refused the automatic redirect —
+    // that is not a missing hand, so it gets its own copy and a manual link.
+    const [redirectBlocked, setRedirectBlocked] = useState(false);
     const slowTimerRef = useRef(null);
 
     const fallbackHref = useMemo(
@@ -85,7 +104,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
     );
 
     useEffect(() => {
-        if (error || !stateJson) { setFailed(true); return undefined; }
+        if (error || !stateJson) { setFailure(classifyFailure(error, stateJson)); return undefined; }
 
         // Nothing here is allowed to leave the user on a permanent spinner.
         slowTimerRef.current = setTimeout(() => { slowTimerRef.current = null; setSlow(true); }, 4000);
@@ -105,7 +124,10 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                 window.location.replace(fallbackHref);
             } catch (redirectErr) {
                 console.warn('[shared-sandbox] redirect failed:', redirectErr?.message || redirectErr);
-                setFailed(true);
+                // The hand is fine — do not claim it is missing. Show the
+                // manual link instead of spinning until the slow timer fires.
+                if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
+                setRedirectBlocked(true);
             }
         }
 
@@ -134,21 +156,66 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                 <meta property="og:image" content="https://smarter.poker/images/social/sandbox-share.jpg" />
             </Head>
 
-            {failed ? (
+            {failure ? (
                 <div style={{ maxWidth: 320 }} role="alert">
                     <div style={{
-                        width: 56, height: 56, borderRadius: '50%', background: T.dangerSoft,
+                        width: 56, height: 56, borderRadius: '50%',
+                        background: failure === 'server' ? T.dangerSoft : T.surface2,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        margin: `0 auto ${S.lg}px`, color: T.warn,
+                        margin: `0 auto ${S.lg}px`, color: failure === 'server' ? T.warn : T.textMuted,
                     }}>
-                        <AlertTriangle size={24} strokeWidth={2} aria-hidden="true" />
+                        {failure === 'server'
+                            ? <AlertTriangle size={24} strokeWidth={2} aria-hidden="true" />
+                            : <LinkIcon size={24} strokeWidth={2} aria-hidden="true" />}
                     </div>
-                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>Scenario not found</h1>
+                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>
+                        {failure === 'server'
+                            ? 'Could not load this hand'
+                            : 'This shared hand is no longer available'}
+                    </h1>
                     <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
-                        This link may be invalid or expired.
+                        {failure === 'server'
+                            ? 'Something went wrong at our end — the link itself may be fine. Try again in a moment.'
+                            : 'Whoever shared it may have revoked the link, or the link may be incomplete. Ask them for a fresh one — then build the spot yourself in the Sandbox in the meantime.'}
                     </p>
-                    <a href={SANDBOX_PATH} style={{ ...btn('primary'), textDecoration: 'none' }}>
-                        Open the Sandbox
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, alignItems: 'stretch' }}>
+                        {failure === 'server' && (
+                            <button
+                                type="button"
+                                onClick={() => { try { window.location.reload(); } catch (e) { /* noop */ } }}
+                                style={{ ...btn('primary'), width: '100%' }}
+                            >
+                                <RefreshCw size={18} strokeWidth={2} aria-hidden="true" />
+                                Try again
+                            </button>
+                        )}
+                        <a
+                            href={SANDBOX_PATH}
+                            style={{
+                                ...btn(failure === 'server' ? 'secondary' : 'primary'),
+                                width: '100%', textDecoration: 'none',
+                            }}
+                        >
+                            Open the Sandbox
+                        </a>
+                    </div>
+                </div>
+            ) : redirectBlocked ? (
+                <div style={{ maxWidth: 320 }} role="alert">
+                    <div style={{
+                        width: 56, height: 56, borderRadius: '50%', background: T.surface2,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: `0 auto ${S.lg}px`, color: T.textMuted,
+                    }}>
+                        <ExternalLink size={24} strokeWidth={2} aria-hidden="true" />
+                    </div>
+                    <h1 style={{ fontSize: F.h2, fontWeight: 800, margin: `0 0 ${S.sm}px` }}>Almost there</h1>
+                    <p style={{ color: T.textMuted, fontSize: F.bodySm, lineHeight: 1.45, margin: `0 0 ${S.lg}px` }}>
+                        The hand loaded, but your browser blocked the automatic hand-off. Tap below to open it.
+                    </p>
+                    <a href={fallbackHref} style={{ ...btn('primary'), width: '100%', textDecoration: 'none' }}>
+                        <ExternalLink size={18} strokeWidth={2} aria-hidden="true" />
+                        Open this hand
                     </a>
                 </div>
             ) : (
@@ -177,7 +244,9 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                 </div>
             )}
 
-            <style>{`
+            {/* Raw <style> injection, never styled-jsx: a large styled-jsx block
+                on this surface deadlocked the SWC compiler for 45 minutes. */}
+            <style dangerouslySetInnerHTML={{ __html: `
                 .shared-spinner { animation: sharedSpin 1s linear infinite; }
                 @keyframes sharedSpin { to { transform: rotate(360deg); } }
                 @media (prefers-reduced-motion: reduce) {
@@ -188,7 +257,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
                         transition-duration: 0.01ms !important;
                     }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
@@ -217,8 +286,18 @@ export async function getServerSideProps(context) {
             .eq('id', id)
             .maybeSingle();
 
-        if (error || !data || !data.state_json) {
-            if (error) console.warn('[shared-sandbox] lookup error:', error.message);
+        // A lookup that FAILED is not the same as a link that is GONE. Collapsing
+        // the two told viewers "the sharer may have revoked this link" — with no
+        // retry offered — during a transient DB blip or a missing table. Real
+        // errors surface as 'Server error' (neutral copy + Try again); only a
+        // genuinely absent or empty row is 'Not found'. PGRST116 means "no rows",
+        // which is a real miss, not a failure.
+        if (error && error.code !== 'PGRST116') {
+            console.warn('[shared-sandbox] lookup error:', error.message);
+            return { props: { error: 'Server error' } };
+        }
+
+        if (!data || !data.state_json) {
             return { props: { error: 'Not found' } };
         }
 

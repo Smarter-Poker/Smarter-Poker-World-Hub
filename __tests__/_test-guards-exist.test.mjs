@@ -43,6 +43,10 @@ const REQUIRED_TEST_FILES = [
     // the Leak Finder in production. Both run in `prebuild`.
     '__tests__/menu-routes-exist.test.mjs',
     '__tests__/pa-no-undef.test.mjs',
+    // Proves the Blob-URL equity worker still computes the same numbers as
+    // EquityEngine.js — the worker holds a generated COPY of the Monte Carlo
+    // core, so drift is silent and user-visible.
+    '__tests__/equity-worker-parity.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
