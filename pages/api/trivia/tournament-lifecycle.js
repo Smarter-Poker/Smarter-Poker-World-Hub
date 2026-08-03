@@ -21,7 +21,7 @@
  * Body (all optional):
  *   { tournament_id?: uuid, dry_run?: boolean }
  *
- * ── IDEMPOTENCY / SAFETY MODEL ──────────────────────────────────────────────
+ * ── IDEMPOTENCY / SAFETY MODEL ───────────────────────────────────────
  * Every money-moving or state-advancing step is guarded twice:
  *   1. A conditional UPDATE that doubles as a mutex, e.g. flipping a tournament
  *      'upcoming' -> 'active' with `.eq('status','upcoming')`. PostgREST returns
@@ -32,7 +32,7 @@
  * Round rows additionally carry a UNIQUE-by-convention (tournament_id,
  * round_number) so a duplicate insert is detected and treated as "already done".
  *
- * ── SHARED HELPERS ──────────────────────────────────────────────────────────
+ * ── SHARED HELPERS ───────────────────────────────────────────────
  * This module is also the single source of truth for two pure functions that
  * MUST agree between the question-serving route and the grading route:
  *   - resolveRoundRoster()      which questions belong to a given round
@@ -759,6 +759,87 @@ export function splitPrizePool(pool, entrantCount) {
     return amounts.filter(a => a > 0);
 }
 
+/**
+ * FIX(audit): Shared payout plan — the ONE place standings + prize amounts are
+ * derived from (entries, champion, pool). Used by both finalizeTournament (the
+ * first attempt, right after the completed-flip) and sweepRecentPayouts (the
+ * retry pass), so the two can never drift: identical ordering, identical
+ * amounts, identical per-user reference ids.
+ *
+ * Determinism note (verified): computeStandings reads only eliminated_round,
+ * score, time_spent and user_id from entries. None of these are written by any
+ * lifecycle branch once status='completed' (advanceTournament only runs for
+ * 'active' tournaments, and round submissions require an 'active' round — all
+ * rounds are 'complete' by finalize time). The rank/payout columns written
+ * during distribution are NOT inputs to computeStandings. So re-running the
+ * plan against a completed tournament reproduces the original standings.
+ */
+function computePayoutPlan(entries, championId, pool) {
+    const standings = computeStandings(entries, championId);
+    const amounts = splitPrizePool(pool, standings.length);
+    return { standings, amounts };
+}
+
+/**
+ * FIX(audit): Prize distribution loop, extracted verbatim from
+ * finalizeTournament so the payout re-sweep uses the IDENTICAL money path.
+ * Every credit is keyed `trivia_tourn_payout_${tournament.id}_${user_id}` —
+ * the RPC's reference dedup makes a re-attempt for an already-paid user a
+ * no-op, which is exactly what lets the sweep run every tick safely.
+ * Returns { paidTotal, dedupedCount, failed, payoutResults }.
+ */
+async function distributePrizes(sb, tournament, standings, amounts, displayName) {
+    let paidTotal = 0;
+    let dedupedCount = 0;
+    let failed = 0;
+    const payoutResults = [];
+    for (let i = 0; i < standings.length; i++) {
+        const e = standings[i];
+        const amount = amounts[i] || 0;
+        const rank = i + 1;
+
+        // Record rank/payout on the entry (columns may not exist on every env —
+        // tolerate and keep going, the money move is what matters).
+        const { error: entryErr } = await sb
+            .from('trivia_tournament_entries')
+            .update({ rank, payout: amount })
+            .eq('id', e.id);
+        if (entryErr) {
+            const { error: rankOnlyErr } = await sb
+                .from('trivia_tournament_entries')
+                .update({ rank })
+                .eq('id', e.id);
+            if (rankOnlyErr) {
+                console.warn('[tournament-lifecycle] rank/payout columns unavailable:', entryErr.message);
+            }
+        }
+
+        if (amount > 0) {
+            const r = await moveDiamonds(sb, {
+                userId: e.user_id,
+                amount,
+                type: 'tournament_prize',
+                description: `Tournament prize — ${displayName} (rank ${rank})`,
+                referenceId: `trivia_tourn_payout_${tournament.id}_${e.user_id}`
+            });
+            payoutResults.push({ user_id: e.user_id, rank, amount, ok: r.ok, deduped: r.deduped });
+            if (r.ok && !r.deduped) paidTotal += amount;
+            if (r.ok && r.deduped) dedupedCount += 1;
+            if (!r.ok) {
+                failed += 1;
+                console.error(
+                    '[tournament-lifecycle] PAYOUT FAILED — will be retried by sweepRecentPayouts:',
+                    tournament.id,
+                    e.user_id,
+                    amount,
+                    r.error
+                );
+            }
+        }
+    }
+    return { paidTotal, dedupedCount, failed, payoutResults };
+}
+
 async function finalizeTournament(sb, tournament, championId) {
     const entries = await loadEntries(sb, tournament.id);
 
@@ -771,8 +852,9 @@ async function finalizeTournament(sb, tournament, championId) {
         .maybeSingle();
     const pool = Math.max(0, Math.floor(Number(fresh?.prize_pool ?? tournament.prize_pool) || 0));
 
-    const standings = computeStandings(entries, championId);
-    const amounts = splitPrizePool(pool, standings.length);
+    // FIX(audit): plan computed via the shared helper so the payout re-sweep
+    // reproduces the exact same standings and amounts.
+    const { standings, amounts } = computePayoutPlan(entries, championId, pool);
 
     const winnersJson = standings.slice(0, Math.max(amounts.length, 3)).map((e, i) => ({
         rank: i + 1,
@@ -802,50 +884,16 @@ async function finalizeTournament(sb, tournament, championId) {
         return { tournament_id: tournament.id, action: 'finalize_skipped' };
     }
 
-    let paidTotal = 0;
-    const payoutResults = [];
-    for (let i = 0; i < standings.length; i++) {
-        const e = standings[i];
-        const amount = amounts[i] || 0;
-        const rank = i + 1;
-
-        // Record rank/payout on the entry (columns may not exist on every env —
-        // tolerate and keep going, the money move is what matters).
-        const { error: entryErr } = await sb
-            .from('trivia_tournament_entries')
-            .update({ rank, payout: amount })
-            .eq('id', e.id);
-        if (entryErr) {
-            const { error: rankOnlyErr } = await sb
-                .from('trivia_tournament_entries')
-                .update({ rank })
-                .eq('id', e.id);
-            if (rankOnlyErr) {
-                console.warn('[tournament-lifecycle] rank/payout columns unavailable:', entryErr.message);
-            }
-        }
-
-        if (amount > 0) {
-            const r = await moveDiamonds(sb, {
-                userId: e.user_id,
-                amount,
-                type: 'tournament_prize',
-                description: `Tournament prize — ${fresh?.name || tournament.name} (rank ${rank})`,
-                referenceId: `trivia_tourn_payout_${tournament.id}_${e.user_id}`
-            });
-            payoutResults.push({ user_id: e.user_id, rank, amount, ok: r.ok, deduped: r.deduped });
-            if (r.ok && !r.deduped) paidTotal += amount;
-            if (!r.ok) {
-                console.error(
-                    '[tournament-lifecycle] PAYOUT FAILED — manual settlement required:',
-                    tournament.id,
-                    e.user_id,
-                    amount,
-                    r.error
-                );
-            }
-        }
-    }
+    // FIX(audit): distribution extracted to the shared helper used by the
+    // sweep, so a failure here is retried automatically on later ticks with the
+    // identical reference ids (dedup makes the retry pay only the missed users).
+    const { paidTotal, payoutResults } = await distributePrizes(
+        sb,
+        tournament,
+        standings,
+        amounts,
+        fresh?.name || tournament.name
+    );
 
     await notify(
         sb,
@@ -871,6 +919,108 @@ async function finalizeTournament(sb, tournament, championId) {
         paid: paidTotal,
         payouts: payoutResults
     };
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// PAYOUT RE-SWEEP
+// ───────────────────────────────────────────────────────────────────────────
+
+/** How far back the payout re-sweep looks for completed tournaments. */
+export const PAYOUT_SWEEP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+/** Per-tick cap on tournaments re-checked by the sweep. */
+export const PAYOUT_SWEEP_MAX = 20;
+
+/**
+ * FIX(audit): Payout re-sweep for completed tournaments.
+ *
+ * finalizeTournament flips 'active' -> 'completed' BEFORE paying (the flip is
+ * the mutex), so a crash or per-user RPC failure mid-loop left that entrant
+ * permanently unpaid: the tick only ever loaded upcoming/active tournaments and
+ * never looked at a 'completed' one again. This sweep closes that gap.
+ *
+ * Every tick it re-runs the distribution for tournaments completed in the last
+ * 14 days, recomputing standings and amounts with the SAME shared helpers
+ * finalizeTournament uses (computePayoutPlan/distributePrizes) and crediting
+ * with the IDENTICAL per-user reference id
+ * `trivia_tourn_payout_${tournament.id}_${user_id}`. The RPC's reference dedup
+ * turns every already-paid credit into a no-op, so the sweep is idempotent and
+ * only the failed/missed payouts actually move money.
+ *
+ * The champion is taken from the winners JSON written atomically WITH the
+ * completed-flip, so it cannot be missing unless the schema predates it — in
+ * that case the tournament is skipped loudly for manual settlement rather than
+ * guessed at.
+ */
+export async function sweepRecentPayouts(sb, opts = {}) {
+    const results = [];
+    const sinceIso = new Date(Date.now() - PAYOUT_SWEEP_WINDOW_MS).toISOString();
+
+    const build = (columns) => {
+        let q = sb
+            .from('trivia_tournaments')
+            .select(columns)
+            .eq('status', 'completed')
+            .gte('completed_at', sinceIso)
+            .order('completed_at', { ascending: false })
+            .limit(PAYOUT_SWEEP_MAX);
+        if (opts.tournamentId) q = q.eq('id', opts.tournamentId);
+        return q;
+    };
+
+    let { data: tournaments, error } = await build(
+        'id, name, entry_fee, prize_pool, status, completed_at, winners, current_round'
+    );
+    if (error) {
+        // Older schema revision — same narrow-then-widen fallback as the tick.
+        console.warn('[tournament-lifecycle] sweep select narrowed:', error.message);
+        const retry = await build('*');
+        tournaments = retry.data;
+        error = retry.error;
+    }
+    if (error) {
+        console.error('[tournament-lifecycle] payout sweep load failed:', error.message);
+        return [{ action: 'payout_sweep_load_failed', error: error.message }];
+    }
+
+    for (const t of tournaments || []) {
+        try {
+            const pool = Math.max(0, Math.floor(Number(t.prize_pool) || 0));
+            if (pool <= 0) continue;
+
+            const championId =
+                Array.isArray(t.winners) && t.winners[0] && t.winners[0].user_id
+                    ? t.winners[0].user_id
+                    : null;
+            if (!championId) {
+                results.push({ tournament_id: t.id, action: 'payout_sweep_no_champion' });
+                continue;
+            }
+
+            const entries = await loadEntries(sb, t.id);
+            if (entries.length === 0) continue;
+
+            const { standings, amounts } = computePayoutPlan(entries, championId, pool);
+            const dist = await distributePrizes(sb, t, standings, amounts, t.name);
+
+            // Only report tournaments where the sweep actually did something —
+            // a fully-deduped pass (the normal case) stays out of the tick log.
+            if (dist.paidTotal > 0 || dist.failed > 0) {
+                results.push({
+                    tournament_id: t.id,
+                    action: 'payout_swept',
+                    paid: dist.paidTotal,
+                    deduped: dist.dedupedCount,
+                    failed: dist.failed,
+                    payouts: dist.payoutResults.filter(p => !p.deduped)
+                });
+            }
+        } catch (e) {
+            console.error('[tournament-lifecycle] payout sweep failed for tournament:', t?.id, e?.message || e);
+            results.push({ tournament_id: t?.id, action: 'payout_sweep_error', error: e?.message || String(e) });
+        }
+    }
+
+    return results;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -936,6 +1086,20 @@ export async function runTournamentLifecycle(sb, opts = {}) {
             console.error('[tournament-lifecycle] tournament failed:', t?.id, e?.message || e);
             try { reportApiError(e, { route: 'tournament-lifecycle', tournament_id: t?.id }); } catch (_) {}
             results.push({ tournament_id: t?.id, action: 'error', error: e?.message || String(e) });
+        }
+    }
+
+    // FIX(audit): retry pass for prize payouts on recently-completed
+    // tournaments. Runs after the live phases; per-tournament errors are
+    // isolated inside the sweep, and reference-id dedup makes every re-attempt
+    // a no-op for already-paid users. Skipped on dry runs (it moves money).
+    if (!opts.dryRun) {
+        try {
+            const sweepResults = await sweepRecentPayouts(client, { tournamentId: opts.tournamentId });
+            for (const r of sweepResults) results.push(r);
+        } catch (e) {
+            console.error('[tournament-lifecycle] payout sweep pass failed:', e?.message || e);
+            results.push({ action: 'payout_sweep_error', error: e?.message || String(e) });
         }
     }
 
