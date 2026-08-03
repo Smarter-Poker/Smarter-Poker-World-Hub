@@ -66,7 +66,7 @@ export async function getServerSideProps({ req }) {
             .then(r => ({ cat, diff, count: r.count || 0 }))
     ));
     // Source mix
-    const sourceFetches = ['deterministic', 'grok-3-mini', 'legacy_v12'].map(src =>
+    const sourceFetches = ['deterministic', 'grok-3-mini', 'legacy_v12', 'cron-generate:grok-3-mini'].map(src =>
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('source', src)
             .then(r => ({ src, count: r.count || 0 }))
     );
@@ -75,8 +75,8 @@ export async function getServerSideProps({ req }) {
 
     // Phase 52: audit pipeline state
     const auditPromises = [
-        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3']),
-        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3']).not('last_audited_at', 'is', null),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3', 'cron-generate:grok-3-mini']),
+        adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3', 'cron-generate:grok-3-mini']).not('last_audited_at', 'is', null),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', true),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', false),
         adm.from('trivia_quality_audits').select('id', { count: 'exact', head: true }).gte('audited_at', new Date(Date.now() - 24*60*60*1000).toISOString()),

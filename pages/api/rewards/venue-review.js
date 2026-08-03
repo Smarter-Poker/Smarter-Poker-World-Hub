@@ -25,6 +25,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 
 // ── Service-role client — award_diamonds_v2 is GRANTed to service_role ONLY ──
 let _supabase = null;
@@ -68,15 +69,21 @@ async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targe
         console.warn('[RewardsV2] SUPABASE_SERVICE_ROLE_KEY missing — award_diamonds_v2 is service_role only');
         return { ok: false, transportError: { message: 'Service role key not configured' } };
     }
-    const { data, error } = await supabase.rpc('award_diamonds_v2', {
+    // safeAward never throws. If migration 20260726120000 has not been applied,
+    // award_diamonds_v2 does not exist — that comes back as migrationMissing so
+    // this endpoint can answer 200 "unavailable" instead of 500-ing the site.
+    const { ok, data, migrationMissing, error } = await safeAward(supabase, {
         p_user_id: userId,
         p_action_key: actionKey,
         p_reference_id: referenceId,
         p_target_id: targetId === null || targetId === undefined ? null : String(targetId),
         p_metadata: metadata || {}
     });
-    if (error) {
-        console.warn('[RewardsV2] RPC error for', actionKey, '-', error.message || error);
+    if (!ok) {
+        if (migrationMissing) {
+            return { ok: false, migrationMissing: true, transportError: error };
+        }
+        console.warn('[RewardsV2] RPC error for', actionKey, '-', (error && error.message) || error);
         return { ok: false, transportError: error };
     }
     const r = data || {};
@@ -100,6 +107,20 @@ async function awardDiamondsV2(supabase, { userId, actionKey, referenceId, targe
  */
 function sendAwardResult(res, award, label, extra = {}) {
     if (!award.ok) {
+        // Migration not applied → the reward system is down, not the request.
+        // 200 keeps the client's happy path intact and nothing was written, so
+        // the user can claim this exact reward again once the migration lands.
+        if (award.migrationMissing) {
+            return res.status(200).json({
+                ...extra,
+                success: false,
+                claimed: false,
+                awarded: 0,
+                diamondsAwarded: 0,
+                reason: 'unavailable',
+                message: 'Rewards are temporarily unavailable.'
+            });
+        }
         return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
     }
     const base = {

@@ -1,6 +1,8 @@
 {
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "git": {
     "deploymentEnabled": true
   },
@@ -272,108 +274,230 @@
     {
       "source": "/hub/:path*/:file.png",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.jpg",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.jpeg",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.webp",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.avif",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.svg",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.ico",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.woff2",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.woff",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.ttf",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.mp4",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.webm",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     },
     {
       "source": "/hub/:path*/:file.mp3",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Pragma", "value": "" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        }
       ]
     }
   ],
   "crons": [
-    { "path": "/api/cron/signup-probe", "schedule": "0 2 * * *" },
-    { "path": "/api/cron/signup-probe-restricted", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/sentry-signup-bridge", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/trigger-audit", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/email-deliverability-check", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/archive-signup-errors", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/login-probe", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/recovery-probe", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/auth-integrity-audit", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/generate-trivia", "schedule": "5 5 * * *" },
-    { "path": "/api/cron/trivia-pool-guard", "schedule": "30 13 * * *" },
-    { "path": "/api/cron/trivia-tournament-tick", "schedule": "0,15,30,45 * * * *" }
+    {
+      "path": "/api/cron/signup-probe",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/signup-probe-restricted",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/sentry-signup-bridge",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/trigger-audit",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/email-deliverability-check",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/archive-signup-errors",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/login-probe",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/recovery-probe",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/auth-integrity-audit",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/generate-trivia",
+      "schedule": "5 5 * * *"
+    },
+    {
+      "path": "/api/cron/trivia-pool-guard",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/trivia-tournament-tick",
+      "schedule": "0,15,30,45 * * * *"
+    },
+    {
+      "path": "/api/cron/vip-lapse",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/vip-stipend",
+      "schedule": "0 9 1 * *"
+    }
   ],
   "rewrites": [
     {

@@ -473,6 +473,10 @@ export default async function handler(req, res) {
               .eq('daily_date', today)
               .gte('quality_score', QUALITY_FLOOR)
               .order('order_index', { ascending: true })
+              // Secondary sort makes ordering deterministic inside each
+              // order_index tie group (10 categories share each slot number),
+              // so every player sees the same roster in the same order.
+              .order('id', { ascending: true })
               .limit(100);
 
           if (error) {
@@ -504,6 +508,16 @@ export default async function handler(req, res) {
               else rosterSource = `${rosterSource}+fallback`;
           }
 
+          // ─── HARD CAP AT ROSTER_SIZE ────────────────────────────────────
+          // The cron tags ROSTER_PER_CATEGORY(20) × 10 categories = 200 rows
+          // with today's daily_date, and the fetch above pulls up to 100 of
+          // them. Before this cap the endpoint served ALL of them as "daily"
+          // (and recordQuestionsSeen below burned every viewer's 60-day
+          // no-repeat pool 5× faster than the ROSTER_SIZE math allows).
+          // order_index asc + id asc means slice(0, 20) = slots 0-1 across
+          // all 10 categories → a balanced 2-per-category daily roster.
+          questions = questions.slice(0, ROSTER_SIZE);
+
           // Real user stats if Bearer JWT present.
           let userStats = { totalPlayed: 0, bestScore: 0, currentStreak: 0 };
           let hasPlayedToday = false;
@@ -529,7 +543,12 @@ export default async function handler(req, res) {
                               .select('id, was_correct, streak_at_time')
                               .eq('user_id', userId)
                               .eq('played_date', today)
-                              .maybeSingle(),
+                              // Legacy data has duplicate rows per (user, date)
+                              // — .maybeSingle() errors on them (see
+                              // hub/trivia/index.js which hit the same bug).
+                              .order('created_at', { ascending: false })
+                              .limit(1)
+                              .then(r => ({ data: r.data?.[0] ?? null })),
                           supabase
                               .from('trivia_scores')
                               .select('score')

@@ -14,6 +14,9 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+// 🛡️ ANTI-ABUSE: disposable-domain detection gates the Welcome Package.
+// antiAbuse.js was written for exactly this and had no caller until now.
+import { isDisposableEmail, normalizeEmail, hashEmail } from '../../../src/lib/antiAbuse';
 
 // ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -38,6 +41,13 @@ export default async function handler(req, res) {
       let { email } = req.body;
       const { user_id, full_name, username, avatar_url, metadata } = req.body;
 
+      // ── ANTI-ABUSE: snapshot the submitted email now. The duplicate-email
+      // branch below sets `email = null` to dodge the unique constraint, so by
+      // the time we build the INSERT the original address is gone. The welcome
+      // package decision must be made against what the user actually signed up
+      // with, not against the nulled column value.
+      const submittedEmail = typeof email === 'string' ? email.trim() : '';
+
       if (!user_id) {
           return res.status(400).json({ error: 'Missing user_id' });
       }
@@ -58,7 +68,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       /* removed duplicate authUser */
-      if (authError || !authUser) {
+      if (authErr || !authUser) {
           return res.status(401).json({ error: 'Invalid or expired token' });
       }
       if (authUser.id !== user_id) {
@@ -189,6 +199,41 @@ export default async function handler(req, res) {
           // of collecting phone numbers from every user. If the email signup
           // form is updated to collect phone, those users will be marked
           // complete out of the gate automatically.
+          // ═══════════════════════════════════════════════════════════════
+          // 🛡️ WELCOME-PACKAGE ABUSE GATE
+          // Throwaway-inbox farming is the cheapest attack on this economy: the
+          // package is 500 ◆ ($5 at 1 ◆ = $0.01) plus a 30-day VIP card, granted
+          // unconditionally on first profile creation. A disposable address costs
+          // the attacker nothing and is infinitely repeatable.
+          //
+          // Policy: NEVER block the signup — the profile is always created, the
+          // user keeps full app access. We withhold only the free money and the
+          // free VIP. Legitimate signups are completely unaffected.
+          // ═══════════════════════════════════════════════════════════════
+          const signupEmail = submittedEmail || (typeof authUser?.email === 'string' ? authUser.email.trim() : '');
+          const isDisposable = isDisposableEmail(signupEmail);
+
+          // Normalized form + SHA-256 digest. gmail dots and +aliases collapse to
+          // one identity, so the same human farming a.b+1@gmail / ab+2@gmail maps
+          // to a single hash. NOTE: `profiles` has no column to persist this yet —
+          // see the note in this handler's response/logging below. We compute it
+          // so it lands in the logs and is one line away from being stored once a
+          // migration adds the column.
+          const normalizedSignupEmail = signupEmail ? normalizeEmail(signupEmail) : '';
+          const signupEmailHash = normalizedSignupEmail ? hashEmail(normalizedSignupEmail) : null;
+
+          if (isDisposable) {
+              console.warn(
+                  '[ANTI-ABUSE] Disposable signup domain detected — creating profile but WITHHOLDING welcome package ' +
+                  '(0 ◆ instead of 500 ◆, no 30-day VIP).',
+                  {
+                      user_id,
+                      domain: signupEmail.split('@')[1] || 'unknown',
+                      email_hash: signupEmailHash,
+                  }
+              );
+          }
+
           const hadExplicitAlias = !!(metadata?.poker_alias || metadata?.preferred_username);
           const hadPhone         = !!(metadata?.phone || metadata?.phone_number);
           const socialProfileCompleted = hadExplicitAlias && hadPhone;
@@ -206,13 +251,17 @@ export default async function handler(req, res) {
                   social_profile_completed: socialProfileCompleted,
                   player_number: nextPlayerNumber,
                   streak_count: 0,
-                  diamonds: 500,        // Welcome bonus (Updated from 300 to 500)
+                  // 🛡️ Welcome package — withheld for disposable-domain signups.
+                  // access_tier stays 'Full_Access': we gate the reward, not the app.
+                  diamonds: isDisposable ? 0 : 500,   // Welcome bonus (Updated from 300 to 500)
                   diamond_multiplier: 1.0,
                   skill_tier: 'Newcomer',
                   access_tier: 'Full_Access',
-                  is_vip: true,         // Welcome VIP bonus
-                  vip_tier: 'monthly',  // 30-day VIP card
-                  vip_expires_at: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+                  is_vip: !isDisposable,              // Welcome VIP bonus
+                  vip_tier: isDisposable ? null : 'monthly',  // 30-day VIP card
+                  vip_expires_at: isDisposable
+                      ? null
+                      : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
                   created_at: new Date().toISOString(),
                   last_login: new Date().toISOString(),
                   last_active: new Date().toISOString(),
@@ -288,6 +337,12 @@ export default async function handler(req, res) {
               status: 'CREATED',
               profile: newProfile,
               created: true,
+              welcomePackage: {
+                  granted: !isDisposable,
+                  diamonds: isDisposable ? 0 : 500,
+                  vipDays: isDisposable ? 0 : 30,
+                  ...(isDisposable ? { withheldReason: 'disposable_email_domain' } : {}),
+              },
               message: 'Profile created successfully - user was orphaned but is now fixed!'
           });
 

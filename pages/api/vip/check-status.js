@@ -33,6 +33,28 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { MIGRATION_MISSING, MIGRATION_FILE } from '../../../src/lib/rewards/awardGuard';
+
+/**
+ * True when Postgres/PostgREST says vip_tier / vip_expires_at do not exist.
+ * Those two columns are ADDed by migration 20260726120000 (lines 80-81). Until
+ * it is applied, selecting them errors — and the expiry logic below would then
+ * answer isVip:false for EVERY paying subscriber. Detected here so we can fall
+ * back to the pre-v2 columns instead of silently revoking VIP platform-wide.
+ */
+function isMissingVipExpiryColumns(error) {
+    if (!error) return false;
+    try {
+        const code = error.code === undefined || error.code === null ? '' : String(error.code).trim().toUpperCase();
+        if (code === '42703' || code === 'PGRST204') return true;
+        const text = [error.message, error.details, error.hint].filter((v) => typeof v === 'string').join(' | ');
+        if (!text) return false;
+        if (!/vip_tier|vip_expires_at/i.test(text)) return false;
+        return /does not exist|could not find|unknown column|schema cache/i.test(text);
+    } catch (_e) {
+        return false;
+    }
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -72,11 +94,32 @@ export default async function handler(req, res) {
           const userId = user.id;
 
           // Query profiles for VIP status
-          const { data: profile, error } = await getSupabase()
+          let { data: profile, error } = await getSupabase()
               .from('profiles')
               .select('is_vip, diamonds, vip_tier, vip_expires_at')
               .eq('id', userId)
               .maybeSingle();
+
+          // ── FAILSAFE: migration 20260726120000 not applied ──────────────
+          // Read path — it must keep working. If the v2 expiry columns are not
+          // there yet, re-read the columns that ARE and fall back to pre-v2
+          // semantics (is_vip alone) rather than telling every subscriber their
+          // VIP has lapsed. Expiry enforcement resumes the moment the migration
+          // lands, with no code change.
+          let expiryColumnsMissing = false;
+          if (error && isMissingVipExpiryColumns(error)) {
+              expiryColumnsMissing = true;
+              console.error(
+                  `🚨 [${MIGRATION_MISSING}] profiles.vip_tier / profiles.vip_expires_at do not exist — ` +
+                  `VIP expiry cannot be enforced. Apply the migration: ${MIGRATION_FILE}. ` +
+                  `Falling back to legacy is_vip-only VIP status.`
+              );
+              ({ data: profile, error } = await getSupabase()
+                  .from('profiles')
+                  .select('is_vip, diamonds')
+                  .eq('id', userId)
+                  .maybeSingle());
+          }
 
           if (error || !profile) {
               return res.status(200).json({
@@ -97,7 +140,10 @@ export default async function handler(req, res) {
 
           let isVip = false;
           if (profile.is_vip === true) {
-              if (vipTier === 'lifetime') {
+              if (expiryColumnsMissing) {
+                  // Pre-v2 database: there is no expiry to check yet.
+                  isVip = true;
+              } else if (vipTier === 'lifetime') {
                   isVip = true;
               } else if (vipExpiresAt) {
                   const expiry = new Date(vipExpiresAt);

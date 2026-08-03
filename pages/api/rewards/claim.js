@@ -42,6 +42,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import {
     CATALOG_VERSION,
     REWARD_TIMEZONE,
@@ -328,21 +329,41 @@ export default async function handler(req, res) {
         const referenceId = `${actionKey}_${userId}_${target.value || chicagoDate()}`;
 
         // ── 6. Hand off. SQL owns amount, multiplier, caps and the write. ──
-        const { data: rpcData, error: rpcError } = await supabase.rpc('award_diamonds_v2', {
-            p_user_id: userId,
-            p_action_key: actionKey,
-            p_reference_id: referenceId,
-            p_target_id: target.value,
-            p_metadata: {
-                ...meta.value,
-                _source: 'api/rewards/claim',
-                _catalog_version: CATALOG_VERSION,
-                _claimed_at: new Date().toISOString(),
-            },
-        });
+        // safeAward never throws, and tells us apart the one failure mode we can
+        // do something sane about: migration 20260726120000 not applied, i.e.
+        // award_diamonds_v2 does not exist in this database.
+        const { ok: rpcOk, data: rpcData, migrationMissing, error: rpcError } =
+            await safeAward(supabase, {
+                p_user_id: userId,
+                p_action_key: actionKey,
+                p_reference_id: referenceId,
+                p_target_id: target.value,
+                p_metadata: {
+                    ...meta.value,
+                    _source: 'api/rewards/claim',
+                    _catalog_version: CATALOG_VERSION,
+                    _claimed_at: new Date().toISOString(),
+                },
+            });
 
-        if (rpcError) {
-            console.error('[Claim] award_diamonds_v2 failed:', rpcError.message || rpcError);
+        if (!rpcOk) {
+            // Rewards are down platform-wide, not "this claim was rejected".
+            // Nothing was written (this handler only reads before the RPC), so
+            // the same reference_id stays claimable once the migration lands.
+            // 200 keeps every client off its error branch.
+            if (migrationMissing) {
+                return respond(res, 200, {
+                    success: false,
+                    awarded: 0,
+                    reason: 'unavailable',
+                    extra: {
+                        actionKey,
+                        label: reward.label,
+                        message: 'Rewards are temporarily unavailable.',
+                    },
+                });
+            }
+            console.error('[Claim] award_diamonds_v2 failed:', (rpcError && rpcError.message) || rpcError);
             try { reportApiError(rpcError, req); } catch { /* noop */ }
             return res.status(500).json({
                 success: false,

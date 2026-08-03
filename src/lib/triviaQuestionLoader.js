@@ -330,8 +330,13 @@ export async function fetchRandomQuestionPool(supabase, opts = {}) {
     const filters = { category, difficulty, minQuality };
 
     // Count first so the random offset lands inside the pool.
+    // The exclusion filter MUST match the data query below — computing the
+    // offset from the unfiltered count let the random offset land past the
+    // end of the filtered set, returning empty pages to exactly the heavy
+    // players who had the most excluded ids.
     let countQ = supabase.from('trivia_questions').select('id', { count: 'exact', head: true });
     countQ = applyPoolFilters(countQ, filters);
+    if (dbExclude.length > 0) countQ = countQ.not('id', 'in', `(${dbExclude.join(',')})`);
 
     const { count: total, error: cErr } = await countQ;
     if (cErr) {
@@ -479,13 +484,19 @@ export function filterAndShuffle(questions, excludeIds, minFallback = 10, opts =
         result = result.concat(oldestFirst);
     }
 
-    if (result.length < wanted && belowFloor.length > 0) {
+    // Pool-health emergency ladder — but NEVER resurrect quarantined
+    // questions: qs=2 is audit-flagged-wrong and qs=3 is report-demoted
+    // (3 players said the answer is wrong). Serving those "in an emergency"
+    // is exactly the moment players lose trust. Only unclear-English (4)
+    // and low-quality (5) rows are eligible as last-resort filler.
+    const emergencyPool = belowFloor.filter(q => (q.quality_score ?? 5) >= 4);
+    if (result.length < wanted && emergencyPool.length > 0) {
         // Pool-health emergency — surfaced via /api/admin/trivia-pool-status.
         console.warn(
             `[triviaQuestionLoader] pool exhausted above quality floor (${result.length}/${wanted}); ` +
-            'falling back to below-floor questions.'
+            'falling back to below-floor (but never quarantined) questions.'
         );
-        result = result.concat(shuffleInPlace(belowFloor.slice()));
+        result = result.concat(shuffleInPlace(emergencyPool));
     }
 
     return result;

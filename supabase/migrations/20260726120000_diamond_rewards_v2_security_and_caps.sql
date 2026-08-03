@@ -445,7 +445,7 @@ VALUES
     -- SERVER (never the browser) passes the resolved value as
     -- p_metadata->>'egg_diamonds'. Hard-clamped to 250 per egg and 500 per
     -- calendar month per user inside award_diamonds_v2.
-    ('easter_egg',               0,   NULL, true,  false, 'easter_egg', true),
+    ('easter_egg',               0,   3,    false, false, 'easter_egg', true),
 
     -- ── Lifetime onboarding rewards (EXEMPT from the daily/monthly ceiling) ────
     ('profile_complete',         50,  1,    false, true,  'profile',  true),

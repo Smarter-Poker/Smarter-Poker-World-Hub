@@ -187,7 +187,13 @@ export default async function handler(req, res) {
           }
 
           // ─── SCORE: range + plausibility against correctCount ─────────────
-          if (!Number.isInteger(score) || score < 0 || score > 100000) {
+          // Absolute ceiling is per-mode: endless legitimately allows up to
+          // MAX_QUESTIONS(1000) × 200 pts = 200,000, which the old flat
+          // 100,000 cap rejected as invalid_score.
+          const modeMaxQuestions = MAX_QUESTIONS[mode] ?? DEFAULT_MAX_QUESTIONS;
+          const modeMaxPoints = MAX_POINTS_PER_QUESTION[mode] ?? DEFAULT_MAX_POINTS_PER_QUESTION;
+          const absoluteScoreCeiling = modeMaxQuestions * modeMaxPoints;
+          if (!Number.isInteger(score) || score < 0 || score > absoluteScoreCeiling) {
               return res.status(400).json({ success: false, error: 'invalid_score' });
           }
           const perQuestionCap = MAX_POINTS_PER_QUESTION[mode] ?? DEFAULT_MAX_POINTS_PER_QUESTION;
