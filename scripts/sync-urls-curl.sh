@@ -7,7 +7,14 @@ set -e
 source .env.local 2>/dev/null || true
 
 SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://kuklfnapbkmacvwxktbh.supabase.co}"
-SUPABASE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs}"
+
+# No hardcoded key fallback: the committed literal that used to live here was a
+# secret and its signing key has since been rotated.
+if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  echo "ERROR: SUPABASE_SERVICE_ROLE_KEY is not set. Export it (or add it to .env.local) before running this script." >&2
+  exit 1
+fi
+SUPABASE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 
 echo "════════════════════════════════════════════════════════════"
 echo "🔄 SYNCING VERIFIED POKERATLAS URLS TO DATABASE"

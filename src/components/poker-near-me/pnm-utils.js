@@ -99,16 +99,99 @@ export function getVenueLogoFallback(venue) {
     return null;
 }
 
+// ─── VENUE-LOCAL CLOCK ───
+// Posted room hours are LOCAL to the room. Comparing them against the viewer's
+// clock told a New York user that an open Las Vegas room was "Closed". Every
+// wall-clock comparison below therefore runs in the VENUE's timezone.
+
+const WEEKDAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Resolve "now" (weekday + minutes past midnight) inside an IANA timezone.
+ *
+ * Uses Intl.DateTimeFormat({ timeZone }).formatToParts — NOT the
+ * new Date(d.toLocaleString('en-US', { timeZone })) round-trip, which re-parses
+ * a localized string and loses precision around DST and non-en formats.
+ *
+ * @param {string} timeZone - IANA zone, e.g. "America/Los_Angeles"
+ * @param {Date} [at] - Instant to resolve (defaults to now)
+ * @returns {{ dayOfWeek: number, minutes: number } | null} null when the zone is
+ *          missing, not a string, or not a valid IANA identifier
+ */
+export function getZonedNow(timeZone, at) {
+    if (typeof timeZone !== 'string') return null;
+    const tz = timeZone.trim();
+    if (!tz) return null;
+
+    const when = at instanceof Date ? at : new Date();
+    if (isNaN(when.getTime())) return null;
+
+    let parts;
+    try {
+        parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            // h23 explicitly: hour12:false resolves to the h24 cycle in en-US on
+            // some ICU builds, which emits "24" for midnight.
+            hourCycle: 'h23',
+        }).formatToParts(when);
+    } catch {
+        // Invalid IANA string (RangeError) or an engine without data for it.
+        // Never let a bad row crash the card — treat it as unknown.
+        return null;
+    }
+    if (!Array.isArray(parts)) return null;
+
+    const valueOf = (type) => {
+        const part = parts.find((p) => p && p.type === type);
+        return part ? part.value : null;
+    };
+    const weekday = valueOf('weekday');
+    const hourRaw = valueOf('hour');
+    const minuteRaw = valueOf('minute');
+    if (weekday == null || hourRaw == null || minuteRaw == null) return null;
+
+    const dayOfWeek = WEEKDAY_INDEX[weekday];
+    const hour = parseInt(hourRaw, 10) % 24; // belt and braces against a stray "24"
+    const minute = parseInt(minuteRaw, 10);
+    if (dayOfWeek === undefined || isNaN(hour) || isNaN(minute)) return null;
+
+    return { dayOfWeek, minutes: hour * 60 + minute };
+}
+
+/**
+ * The "we cannot tell" open status. A wrong badge is worse than no badge, so
+ * this is returned instead of guessing whenever the venue timezone is missing
+ * or invalid.
+ *
+ * Shape stays compatible with the normal result: `open` is falsy, `label` and
+ * `nextChange` are null and `always` is false, so a caller that only reads those
+ * renders nothing. New callers should branch on `unknown`.
+ */
+function unknownOpenStatus() {
+    return { open: null, label: null, always: false, nextChange: null, unknown: true };
+}
+
 /**
  * Parse operating hours and determine open/closed status.
  * Handles formats: "24/7", "12:00pm - 4:00am", "12pm-4am", etc.
- * 
- * @param {object} venue - Venue object with hours, hours_weekday, hours_weekend
- * @returns {{ open: boolean, label: string, always: boolean, nextChange: string|null } | null}
+ *
+ * All wall-clock comparisons are made in the VENUE's timezone
+ * (poker_venues.timezone). That column is nullable — 12 split-timezone states
+ * are deliberately NULL — so when it is missing or invalid the open/closed
+ * determination is SUPPRESSED rather than guessed from the viewer's clock.
+ *
+ * Callers must treat BOTH `null` and a result with `unknown: true` as
+ * "render no status".
+ *
+ * @param {object} venue - Venue object with hours, hours_weekday, hours_weekend, timezone
+ * @returns {{ open: boolean|null, label: string|null, always: boolean, nextChange: string|null, unknown?: boolean } | null}
  */
 export function getOpenStatus(venue) {
     if (!venue) return null;
-    
+
     // Venue types that NEVER operate 24/7:
     // - Charity rooms always have cut-off times (legal requirement)
     // - Home games run on a schedule set by the host
@@ -120,29 +203,48 @@ export function getOpenStatus(venue) {
         return { open: true, label: 'Open 24/7', always: true, nextChange: null };
     }
     
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
-    // [BUG FIX] dayOfWeek === 5 is FRIDAY, not a weekend day.
-    // Saturday = 6, Sunday = 0. Friday erroneously used weekend_hours.
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
+    // "Now" in the ROOM's timezone, not the viewer's. null = zone unknown/invalid.
+    const zoned = getZonedNow(venue.timezone);
+
     // Pick the right hours string
     let hoursStr = null;
-    if (isWeekend && venue.hours_weekend) {
-        hoursStr = venue.hours_weekend;
-    } else if (venue.hours_weekday) {
-        hoursStr = venue.hours_weekday;
-    } else if (venue.hours) {
-        hoursStr = venue.hours;
+    if (zoned) {
+        const dayOfWeek = zoned.dayOfWeek; // 0=Sun, 6=Sat
+        // [BUG FIX] dayOfWeek === 5 is FRIDAY, not a weekend day.
+        // Saturday = 6, Sunday = 0. Friday erroneously used weekend_hours.
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        if (isWeekend && venue.hours_weekend) {
+            hoursStr = venue.hours_weekend;
+        } else if (venue.hours_weekday) {
+            hoursStr = venue.hours_weekday;
+        } else if (venue.hours) {
+            hoursStr = venue.hours;
+        }
+    } else {
+        // Without the venue clock we do not even know which day it is there, so
+        // weekday-vs-weekend cannot be chosen. Only the day-independent cases
+        // survive: nothing posted at all, or every posted window is 24/7.
+        const posted = [venue.hours_weekend, venue.hours_weekday, venue.hours].filter(Boolean);
+        if (posted.length === 0) {
+            hoursStr = null;
+        } else if (posted.every((h) => h === '24/7')) {
+            hoursStr = '24/7';
+        } else {
+            return unknownOpenStatus();
+        }
     }
-    
+
     if (!hoursStr || hoursStr === '24/7') {
         // For charity/home_game: no hours data = show nothing (never assume 24/7)
         if (isNever24) return null;
         // For casinos/card_rooms/poker_clubs: safe to assume 24/7
+        // (timezone-independent — no wall-clock comparison involved)
         return { open: true, label: 'Open 24/7', always: true, nextChange: null };
     }
-    
+
+    // Past this point every branch compares against a wall clock.
+    if (!zoned) return unknownOpenStatus();
+
     // Parse "12:00pm - 4:00am" or "12pm-4am" or "10am - 2am" format
     const timePattern = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*[-–—to]+\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
     const match = hoursStr.match(timePattern);
@@ -163,7 +265,7 @@ export function getOpenStatus(venue) {
     
     const openMinutes = openHour * 60 + openMin;
     const closeMinutes = closeHour * 60 + closeMin;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMinutes = zoned.minutes;
     
     let isOpen;
     if (closeMinutes > openMinutes) {

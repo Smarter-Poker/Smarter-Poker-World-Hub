@@ -94,12 +94,23 @@ import * as tus from 'tus-js-client';
 //   - response: 400 / "Invalid Compact JWS"
 //   - same Bearer + x-signature via plain fetch with literal anon key: 201
 // Fix: read NEXT_PUBLIC_SUPABASE_ANON_KEY directly from process.env at
-// module load time, with a hardcoded fallback so the value is NEVER undefined
-// (the fallback matches supabaseServer.ts which already does this server-side).
+// module load time.
+// [2026-08-03] The hardcoded fallback that used to sit here is REMOVED — it was
+// a committed secret signed with a key that has since been rotated, so it could
+// only ever produce the same "Invalid Compact JWS" failure described above,
+// while hiding the real cause. This module is imported by browser code, so we
+// do not throw at module scope; requireAnonKey() throws at upload time with a
+// message naming the missing variable.
 const SUPABASE_ANON_KEY = (
-    (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+    (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) || ''
 ).trim();
+
+function requireAnonKey() {
+    if (!SUPABASE_ANON_KEY) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — cannot upload to Supabase Storage. Set this environment variable.');
+    }
+    return SUPABASE_ANON_KEY;
+}
 
 // ─── Auth resilience helper ──────────────────────────────────────────────────
 // getAccessToken() is a one-shot localStorage read of the SDK's persisted
@@ -587,12 +598,16 @@ async function _uploadWithTus(file, meta, mimeType) {
         //   3. x-upsert: true                    — allow path overwrite on retry
         // Optional (extra path-binding when server creates a presigned token):
         //   4. x-signature: <token>              — only validated AFTER Authorization passes
-        if (!SUPABASE_ANON_KEY || typeof SUPABASE_ANON_KEY !== 'string' || SUPABASE_ANON_KEY.length < 50) {
-            console.error('[bgUpload] SUPABASE_ANON_KEY is missing/invalid at runtime — TUS would send apikey=undefined and Storage would reject as Invalid Compact JWS', { type: typeof SUPABASE_ANON_KEY, len: SUPABASE_ANON_KEY?.length });
+        // Missing key is fatal: TUS would send an empty apikey and Storage would
+        // reject it as Invalid Compact JWS, which reads like an auth bug rather
+        // than the config error it is.
+        const anonKey = requireAnonKey();
+        if (anonKey.length < 50) {
+            console.error('[bgUpload] NEXT_PUBLIC_SUPABASE_ANON_KEY looks malformed at runtime — Storage may reject it as Invalid Compact JWS', { len: anonKey.length });
         }
         const tusHeaders = {
             Authorization: `Bearer ${userToken}`,
-            apikey: SUPABASE_ANON_KEY,
+            apikey: anonKey,
             'x-upsert': 'true',
         };
         if (meta.token) {

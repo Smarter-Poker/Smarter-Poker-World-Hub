@@ -1108,8 +1108,18 @@ def scrape_venue(venue: dict, session, batch_id: str,
             dk=dedup_key(r)
             if dk not in seen_keys:
                 seen_keys.add(dk)
-                r["source_url"]=src_url
-                r["best_scrape_url"]=src_url
+                # Keep the URL the row was ACTUALLY scraped from. Overwriting it
+                # unconditionally replaced the precise page make_rec recorded
+                # (e.g. the dated HendonMob listing query) with the generic
+                # source landing page, so the row no longer cited its own
+                # evidence. Only fill in when the record has none.
+                r["source_url"] = r.get("source_url") or src_url
+                r["best_scrape_url"] = r.get("best_scrape_url") or r["source_url"]
+                # Every stored row must also say WHEN it was read.
+                if not r.get("scrape_timestamp"):
+                    ts = datetime.now(timezone.utc).isoformat()
+                    r["scrape_timestamp"] = ts
+                    r.setdefault("last_scraped", ts)
                 new.append(r)
         if new:
             result["records"].extend(new)

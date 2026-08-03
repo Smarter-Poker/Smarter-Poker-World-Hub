@@ -677,6 +677,53 @@ def extract_pdf(pdf_url: str) -> str:
     except Exception as e:
         log(f"      [PDF ERR] {str(e)[:120]}"); return ""
 
+# ── Provenance stamping ───────────────────────────────────────────────────────
+# poker_events has NO source_url column and NO timezone column: the writable
+# column set for this table is exactly what make_event_rec() emits below (plus
+# scrape_completeness_score, promoted at the end of scrape_series). PostgREST
+# answers an unknown column with PGRST204 and rejects the ENTIRE 100-row chunk —
+# see the removed "multi-source enrichment" block in scrape_series() for the
+# incident that cost whole batches. So until these columns exist:
+#
+#   NEEDED: poker_events.source_url TEXT  — the URL a row was scraped from
+#           (poker_series.source_url already exists and is written by
+#           sb_patch_series; the per-event equivalent does not).
+#   NEEDED: poker_events.timezone  TEXT   — IANA zone for start_time, mirroring
+#           venue_daily_tournaments.timezone (20260408_tournament_rich_fields.sql)
+#           and poker_venues.timezone (20260801000000_add_poker_venues_timezone.sql).
+#
+# ...both facts are stamped into `notes`, which IS written here and IS read back
+# by the enrichment pass, so every stored event stays traceable to its source and
+# its start_time stays interpretable.
+PROV_SOURCE_LABEL = "Source: "
+PROV_TZ_LABEL     = "Timezone: "
+
+def add_provenance_notes(notes, source_url=None, tz_name=None) -> Optional[str]:
+    """Append machine-readable provenance to an event's pipe-delimited `notes`.
+
+    Idempotent: a label that is already present is never appended twice, so a
+    re-scrape (or a caller that pre-stamped its own notes) cannot grow the field.
+    """
+    parts = [p.strip() for p in str(notes).split("|")] if notes else []
+    parts = [p for p in parts if p]
+
+    def _present(label: str) -> bool:
+        return any(p.startswith(label) for p in parts)
+
+    url = str(source_url or "").strip()
+    if url and not _present(PROV_SOURCE_LABEL):
+        parts.append(f"{PROV_SOURCE_LABEL}{url[:300]}")
+    if tz_name and not _present(PROV_TZ_LABEL):
+        parts.append(f"{PROV_TZ_LABEL}{tz_name}")
+    return " | ".join(parts) if parts else None
+
+def tz_for_state(*states) -> Optional[str]:
+    """First IANA zone resolvable from the given state codes (STATE_TZ)."""
+    for s in states:
+        tz = STATE_TZ.get(str(s or "").strip().upper())
+        if tz: return tz
+    return None
+
 # ── Record factory — maps to poker_events DB columns ──────────────────────────
 def make_event_rec(series_uid, series_name, batch_id, event_uid,
                    event_name, event_number, buy_in, game_type, fmt,
@@ -685,15 +732,25 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
                    prize_pool, day_number, flight, late_reg_levels,
                    re_entry, re_entry_limit, unlimited_re_entry,
                    venue_name, city, state, source, source_url,
-                   html_hash, notes=None, event_type=None) -> dict:
+                   html_hash, notes=None, event_type=None,
+                   tz_state=None) -> dict:
     """Build a record matching the poker_events DB schema exactly.
 
     data_quality / scrape_confidence are DERIVED from `source` (the extraction
     path) — they used to be hardcoded 'scraped_verified'/'high' on every record
     regardless of whether it came from structured JSON or a regex guess.
+
+    source_url used to be accepted and then silently dropped, so no stored event
+    could be traced back to the page it came from. It is now carried into the
+    record via add_provenance_notes() (see the column note above), together with
+    the STATE_TZ zone for `state` — tz_state is the series-level fallback for the
+    extractors that have no per-event state, and is used ONLY for the timezone
+    lookup so the `state` column keeps its existing value.
     """
     ts = datetime.now(timezone.utc).isoformat()
     dq, conf = quality_for(source)
+    notes = add_provenance_notes(notes, source_url=source_url,
+                                 tz_name=tz_for_state(state, tz_state))
     return {
         "event_uid":          event_uid,
         "series_uid":         series_uid,
@@ -732,7 +789,8 @@ def make_event_rec(series_uid, series_name, batch_id, event_uid,
 
 # ── PokerAtlas __NEXT_DATA__ extractor for Series pages ────────────────────────
 def extract_pa_next_data(html: str, series_uid: str, series_name: str,
-                         batch_id: str, url: str, html_hash: str) -> list:
+                         batch_id: str, url: str, html_hash: str,
+                         series_state: str = "") -> list:
     """
     Extract tournament events from a PokerAtlas series page __NEXT_DATA__.
     Walks the full JSON tree with parent-context propagation for rich fields.
@@ -904,6 +962,7 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
                         venue_name=venue_name, city=city, state=state,
                         source="pokeratlas", source_url=url,
                         html_hash=html_hash, notes=notes,
+                        tz_state=series_state,
                     )
                     results.append(rec)
 
@@ -920,7 +979,8 @@ TIME_RE = re.compile(r"((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a|p)?|\b[1-9
 BUY_RE  = re.compile(r"\$(\d{1,3}(?:,\d{3})*)")
 
 def extract_html_events(html: str, series_uid: str, series_name: str,
-                        batch_id: str, source_url: str, html_hash: str) -> list:
+                        batch_id: str, source_url: str, html_hash: str,
+                        series_state: str = "") -> list:
     """Fallback: Extract events from raw HTML when __NEXT_DATA__ is missing."""
     text = re.sub(r"\s+"," ", re.sub(r"<[^>]+>"," ",html))
     seen, results = set(), []
@@ -1004,6 +1064,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
             source="html_fallback", source_url=source_url,
             html_hash=html_hash,
             notes=" | ".join(notes_parts) if notes_parts else None,
+            tz_state=series_state,
         ))
 
     for block in re.split(r"(?=\$\d)", text):
@@ -1022,7 +1083,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
     return results
 
 # ── SOURCE 4 HELPER: Bravo Poker venue tournament schedule ─────────────────────
-def _try_bravo_venue(series_uid, series_name, batch_id, session):
+def _try_bravo_venue(series_uid, series_name, batch_id, session, series_state=""):
     """Try scraping tournament schedule from Bravo Poker venue page."""
     # Load venue mapping to find Bravo slug
     venues_file = PROJECT_ROOT / 'data' / 'all-venues.json'
@@ -1092,7 +1153,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
         try:
             b_html, b_status, b_raw, b_hash = scrapling_fetch(bravo_url)
             if b_status == 200 and b_html and has_tourn(b_html):
-                events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash)
+                events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash, series_state)
                 if events:
                     stamp_source(events, 'bravo_venue')
                     log(f"        [Bravo] {len(events)} events extracted")
@@ -1106,7 +1167,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
             v_html, v_status, v_raw, v_hash = scrapling_fetch(website)
             if v_status == 200 and v_html:
                 if has_tourn(v_html):
-                    events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash)
+                    events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash, series_state)
                     if events:
                         stamp_source(events, 'venue_website')
                         log(f"        [Venue Web] {len(events)} events extracted")
@@ -1122,7 +1183,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
                         try:
                             s_html, s_status, s_raw, s_hash = scrapling_fetch(sub_url, timeout=10)
                             if s_status == 200 and s_html and has_tourn(s_html):
-                                events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash)
+                                events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash, series_state)
                                 if events:
                                     stamp_source(events, 'venue_subpage')
                                     log(f"        [Venue Subpage] {len(events)} events from {sub_url[:50]}")
@@ -1140,7 +1201,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
             log(f"      [Src 4c: CardPlayer] Searching: {series_name[:35]}")
             cp_html, cp_status, cp_raw, cp_hash = scrapling_fetch(cp_url)
             if cp_status == 200 and cp_html and has_tourn(cp_html):
-                events = extract_html_events(cp_html, series_uid, series_name, batch_id, cp_url, cp_hash)
+                events = extract_html_events(cp_html, series_uid, series_name, batch_id, cp_url, cp_hash, series_state)
                 if events:
                     stamp_source(events, 'cardplayer')
                     log(f"        [CardPlayer] {len(events)} events extracted")
@@ -1151,7 +1212,7 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
 
 
 # ── SOURCE 3 HELPER: CardPlayer event search ─────────────────────────────────
-def _try_cardplayer(series_uid, series_name, batch_id, session):
+def _try_cardplayer(series_uid, series_name, batch_id, session, series_state=""):
     import urllib.parse, re
     # We will assume fetch_with_retry and extract_html_events exist globally
     events = []
@@ -1183,7 +1244,7 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
             log(f"      [Src 3: CardPlayer] Found series page: {series_url}")
             s_html, s_status, _, s_hash = fetch_with_retry(session, series_url)
             if s_status == 200 and s_html and has_tourn(s_html):
-                events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash)
+                events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash, series_state)
                 
                 # --- NEW DEEP SCRAPE LOGIC ---
                 # We attempt to find the deep /event/ links and match them to our extracted events
@@ -1231,7 +1292,7 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
     return events
 
 # ── SOURCE 4 HELPER: HendonMob event-level search ─────────────────────────────
-def _try_hendonmob(series_uid, series_name, batch_id, session):
+def _try_hendonmob(series_uid, series_name, batch_id, session, series_state=""):
     """Search HendonMob for tournament events matching this series."""
     # Clean series name for search
     clean_name = re.sub(r"[''`]", "", series_name)
@@ -1344,9 +1405,16 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         "scrape_confidence": hm_conf,
                         "scrape_batch_id": batch_id,
                         "scrape_html_hash": hm_hash,
-                        "scrape_timestamp": datetime.now(timezone.utc).isoformat()
+                        "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
+                        # This source builds its row by hand instead of going
+                        # through make_event_rec, so it had no link back to the
+                        # page it was read off at all. Prefer the event's own
+                        # detail URL; fall back to the search listing.
+                        "notes": add_provenance_notes(
+                            None, source_url=event_url or hm_url,
+                            tz_name=tz_for_state(series_state)),
                     }
-                    
+
                     # --- NEW DEEP SCRAPE LOGIC ---
                     if event_url and event_counter <= 10:  # Cap deep limit
                         e_html, e_stat, _, _ = fetch_with_retry(session, event_url)
@@ -1391,6 +1459,9 @@ def scrape_series(series: dict, session, batch_id: str,
     series_uid  = str(series.get("id", ""))
     series_name = series.get("name", "Unknown")
     missing_fields = series.get("_missing_fields", [])
+    # Series-level state, used ONLY as the STATE_TZ fallback when an extracted
+    # event carries no state of its own (the HTML/PDF/aggregator paths never do).
+    series_state = str(series.get("_db_state") or series.get("state") or "")
 
     # Build PA slug and URL — SOURCE OF TRUTH for re-scraping
     # Handle numeric IDs (some series don't have PA slugs)
@@ -1432,7 +1503,8 @@ def scrape_series(series: dict, session, batch_id: str,
         log(f"        HTTP 200 — {byte_count} bytes — hash: {html_hash[:16]}...")
 
         # Try __NEXT_DATA__ first (rich, structured data)
-        events = extract_pa_next_data(html, series_uid, series_name, batch_id, pa_url, html_hash)
+        events = extract_pa_next_data(html, series_uid, series_name, batch_id, pa_url, html_hash,
+                                      series_state)
         if events:
             log(f"        [PA:NEXT_DATA] {len(events)} events extracted")
             result["events"] = events
@@ -1442,7 +1514,8 @@ def scrape_series(series: dict, session, batch_id: str,
 
         # Fallback: HTML parsing
         if not events:
-            events = extract_html_events(html, series_uid, series_name, batch_id, pa_url, html_hash)
+            events = extract_html_events(html, series_uid, series_name, batch_id, pa_url, html_hash,
+                                         series_state)
             if events:
                 log(f"        [PA:HTML] {len(events)} events (fallback)")
                 result["events"] = events
@@ -1456,7 +1529,8 @@ def scrape_series(series: dict, session, batch_id: str,
             if pdf_text and has_tourn(pdf_text):
                 pdf_hash = sha256h(pdf_text.encode("utf-8"))
                 pdf_events = extract_html_events(
-                    pdf_text, series_uid, series_name, batch_id, pdf_url, pdf_hash
+                    pdf_text, series_uid, series_name, batch_id, pdf_url, pdf_hash,
+                    series_state
                 )
                 if pdf_events:
                     existing_uids = {e["event_uid"] for e in result["events"]}
@@ -1475,7 +1549,8 @@ def scrape_series(series: dict, session, batch_id: str,
         log(f"      [Src 2: Source URL] {db_source_url[:80]}")
         html2, status2, raw2, hash2 = fetch_with_retry(session, db_source_url)
         if status2 == 200 and html2 and has_tourn(html2):
-            events2 = extract_html_events(html2, series_uid, series_name, batch_id, db_source_url, hash2)
+            events2 = extract_html_events(html2, series_uid, series_name, batch_id, db_source_url,
+                                          hash2, series_state)
             if events2:
                 result["events"] = events2
                 result["found"] = True
@@ -1487,7 +1562,7 @@ def scrape_series(series: dict, session, batch_id: str,
 
     # ── SOURCE 3: CardPlayer ────────────────────────────────────────────────
     if not result["found"]:
-        cp_events = _try_cardplayer(series_uid, series_name, batch_id, session)
+        cp_events = _try_cardplayer(series_uid, series_name, batch_id, session, series_state)
         if cp_events:
             result["events"] = cp_events
             result["found"] = True
@@ -1496,7 +1571,7 @@ def scrape_series(series: dict, session, batch_id: str,
             
     # ── SOURCE 4: HendonMob / SummerInVegas ─────────────────────────────────
     if not result["found"]:
-        hm_events = _try_hendonmob(series_uid, series_name, batch_id, session)
+        hm_events = _try_hendonmob(series_uid, series_name, batch_id, session, series_state)
         if hm_events:
             result["events"] = hm_events
             result["found"] = True
@@ -1505,7 +1580,7 @@ def scrape_series(series: dict, session, batch_id: str,
 
     # ── SOURCE 5: Venue Web / Bravo ─────────────────────────────────────────
     if not result["found"]:
-        v_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
+        v_events = _try_bravo_venue(series_uid, series_name, batch_id, session, series_state)
         if v_events:
             result["events"] = v_events
             result["found"] = True

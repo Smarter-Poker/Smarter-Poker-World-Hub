@@ -6,8 +6,14 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+// No hardcoded key fallback: the committed literal that used to live here was a
+// secret and its signing key has since been rotated.
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+if (!SUPABASE_KEY) {
+    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. Export it (or source .env.local) before running this script.');
+    process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 

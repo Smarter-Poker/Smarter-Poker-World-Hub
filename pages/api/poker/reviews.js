@@ -394,15 +394,25 @@ try {
       // PATCH — Helpful / Unhelpful voting
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'PATCH') {
-        // SECURITY: voting was fully anonymous, so anyone could inflate helpful_count
-        // on their own review (and 'helpful' is a sort option). Require a JWT.
+        // SECURITY: a vote used to be accepted from review_id + action alone, so
+        // any script could inflate helpful_count and own the "Most Helpful" sort.
+        // Require a real, server-verified Supabase JWT. Deliberately NOT the
+        // header-fallback helper: x-user-id (and anything else the client sends)
+        // is client-controlled and is not proof of identity for a write like this.
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required to vote' });
-        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        /* removed duplicate authUser */
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
+        // KNOWN GAP — this blocks anonymous stuffing, not per-user repeat voting.
+        // One logged-in account can still PATCH the same review_id N times and add
+        // N to the count, because there is nowhere to record who already voted.
+        // Real dedup needs a review_votes(user_id, review_id, action) table with a
+        // UNIQUE (user_id, review_id) constraint: insert the vote row first, treat
+        // a unique-violation (23505) as "already voted" (or as a switch/undo when
+        // the action differs), and only then move the counter. That table does not
+        // exist yet, so it cannot be done here.
         const { review_id, action } = req.body;
         if (!review_id || !['helpful', 'unhelpful'].includes(action)) {
           return res.status(400).json({ success: false, error: 'review_id and action ("helpful" or "unhelpful") required' });

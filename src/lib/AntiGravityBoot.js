@@ -13,12 +13,15 @@
 import { supabase as sharedSupabase } from './supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURATION — HARDCODED FALLBACKS FOR PRODUCTION STABILITY
+// CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Fallback values ensure the site ALWAYS boots even if env vars are not detected
+// [2026-08-03] The hardcoded anon-key fallback is GONE. It was a committed
+// secret and the project signing key has since been rotated, so "always boots"
+// really meant "always boots against a dead key" — every request failed with an
+// opaque JWS error instead of one clear config error. There is no key fallback;
+// the URL fallback stays because the project URL is not a credential.
 const FALLBACK_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
 const REQUIRED_ENV_VARS = [
     'NEXT_PUBLIC_SUPABASE_URL',
@@ -45,8 +48,9 @@ let supabaseClient = sharedSupabase;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Verify all required environment variables exist
- * Uses hardcoded fallbacks to ensure the site ALWAYS boots
+ * Verify all required environment variables exist.
+ * Still non-fatal so a misconfigured deploy renders (rather than white-screens),
+ * but there is no key fallback any more, so a miss is reported as an error.
  */
 function verifyEnvVars() {
     const missing = [];
@@ -58,9 +62,8 @@ function verifyEnvVars() {
         }
     }
 
-    // ALWAYS succeed - we have hardcoded fallbacks
     if (missing.length > 0) {
-        console.debug(`[ANTIGRAVITY] Env vars missing, using fallbacks: ${missing.join(', ')}`);
+        console.error(`[ANTIGRAVITY] Required env vars are NOT set: ${missing.join(', ')} — Supabase calls will fail until they are configured.`);
     }
 
     return { success: true, missing: [] };
@@ -96,7 +99,10 @@ async function supabaseHealthCheck() {
         // The REST root (GET /rest/v1/) is publicly accessible (no auth required)
         // and returns 200, proving the connection is alive without hitting any RLS wall.
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
+        const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+        if (!anonKey) {
+            throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — cannot run the Supabase health check.');
+        }
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 1500);

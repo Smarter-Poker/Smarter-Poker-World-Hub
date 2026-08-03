@@ -743,9 +743,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     <div className="vc3-empty-state">
                                         {(() => {
                                             const os = openStatus;
-                                            if (os && os.open && !os.always) return `Open Now`;
-                                            if (os && !os.open && os.nextChange) return os.nextChange;
-                                            if (os && os.always) return 'Open 24/7';
+                                            // Unknown venue timezone (or unparseable hours) means we
+                                            // cannot tell whether the room is open. Show no open/closed
+                                            // claim at all rather than defaulting to one — a wrong badge
+                                            // is worse than no badge.
+                                            if (!os || os.unknown) return 'No Live Data';
+                                            if (os.open && !os.always) return `Open Now`;
+                                            if (!os.open && os.nextChange) return os.nextChange;
+                                            if (os.always) return 'Open 24/7';
                                             return 'No Live Data';
                                         })()}
                                     </div>

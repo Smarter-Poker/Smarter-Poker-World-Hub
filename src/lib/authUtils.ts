@@ -26,9 +26,20 @@ const AUTH_STORAGE_KEY = 'smarter-poker-auth';
 // to `undefined` (regression B-AUTH-EXPORTS-1, resurrected by the alias).
 // .trim() is mandatory, not cosmetic: the Vercel prod env values carry a
 // literal trailing "\n" that makes fetch() throw on the apikey header.
+//
+// [2026-08-03] The anon key has NO hardcoded fallback any more. The old
+// literal was a committed secret AND the project signing key has since been
+// rotated, so falling back to it produced "Invalid Compact JWS" style errors
+// instead of one clear config error. This module is imported by browser code
+// at module scope, so a missing env var must not throw here (that would white
+// screen the whole app) — we export an empty string and log once, loudly.
 // ═══════════════════════════════════════════════════════════════════════════
 export const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co').trim();
-export const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo').trim();
+const RAW_SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+if (!RAW_SUPABASE_ANON_KEY) {
+    console.error('[authUtils] NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. Every Supabase request will fail until this environment variable is configured.');
+}
+export const SUPABASE_ANON_KEY = RAW_SUPABASE_ANON_KEY;
 
 /**
  * Get the current authenticated user from localStorage.

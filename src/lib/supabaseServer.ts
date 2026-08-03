@@ -13,9 +13,20 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use production credentials - same as main supabase.ts
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+
+// [2026-08-03] No hardcoded anon-key fallback. The old literal was a committed
+// secret and the project signing key has since been rotated, so falling back to
+// it produced confusing per-request auth failures instead of one clear config
+// error. Resolved at call time (not module scope) so that merely importing this
+// module — e.g. for AUTH_COOKIE_OPTIONS — never explodes.
+function requireAnonKey(): string {
+    const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    if (!key) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set — refusing to create a Supabase server client. Set this environment variable.');
+    }
+    return key;
+}
 
 /**
  * Create a Supabase client for middleware that can read/write cookies.
@@ -24,7 +35,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGci
 export function createMiddlewareClient(request: NextRequest, response: NextResponse) {
     return createServerClient(
         SUPABASE_URL.trim(),
-        SUPABASE_ANON_KEY.trim(),
+        requireAnonKey(),
         {
             cookies: {
                 get(name: string) {

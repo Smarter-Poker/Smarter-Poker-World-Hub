@@ -36,6 +36,16 @@ if [ -f ".env.local" ]; then
     set +a
 fi
 
+# The venue query below authenticates with the service-role key. There is no
+# hardcoded fallback any more, so check it up front rather than paying for the
+# browser heal and dependency checks before failing.
+if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+    echo "FATAL: SUPABASE_SERVICE_ROLE_KEY is not set (checked the environment and .env.local)."
+    echo "       Export it before running the tournament daemon."
+    exit 1
+fi
+export SUPABASE_SERVICE_ROLE_KEY
+
 PYTHON=".venv/bin/python3"
 SCRAPER="scripts/tournament-schedule-daemon.py"
 BATCH_SLEEP=30
@@ -92,7 +102,12 @@ SKIP_TYPES = {
     "charity","charity_event","charity_game","series","poker_series",
     "tour","poker_tour","traveling_tour","regional_tour","tournament_series",
 }
-KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs')
+# No hardcoded key fallback: the committed literal that used to be the default
+# here was a secret and its signing key has since been rotated.
+KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+if not KEY:
+    sys.stderr.write("SUPABASE_SERVICE_ROLE_KEY is not set.\n")
+    sys.exit(1)
 URL = ("https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/poker_venues"
        "?select=id,venue_type&is_active=eq.true&is_suppressed=eq.false"
        "&has_tournaments=eq.true&order=id.asc&limit=2000")

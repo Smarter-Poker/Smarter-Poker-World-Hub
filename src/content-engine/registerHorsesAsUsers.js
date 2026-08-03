@@ -27,16 +27,24 @@ try {
         if (match) env[match[1].trim()] = match[2].trim();
     });
 } catch {
-    // Fallback to production credentials
-    env = {
-        NEXT_PUBLIC_SUPABASE_URL: 'https://kuklfnapbkmacvwxktbh.supabase.co',
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
-    };
+    // No .env.local — fall back to the ambient process environment only.
+    // There is deliberately NO hardcoded credential fallback here.
+    env = {};
+}
+
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set (checked .env.local and the environment).');
+}
+if (!SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set (checked .env.local and the environment).');
 }
 
 const supabase = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
 );
 
 // Load personas from JSON

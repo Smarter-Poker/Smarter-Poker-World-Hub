@@ -64,6 +64,15 @@ function verifyBatchToken(token, secret) {
     }
 }
 
+// A tournament may cite its own page (a structure/detail URL) rather than the
+// venue-level listing the batch was scraped from. Keep the most specific one so
+// the stored row links to the evidence it actually came from.
+function rowSourceUrl(t, ctx) {
+    const own = t && t.source_url != null ? String(t.source_url).trim() : '';
+    if (own && /^https?:\/\//i.test(own)) return own.slice(0, 500);
+    return ctx.sourceUrl;
+}
+
 // Non-negotiable columns on venue_daily_tournaments (all NOT NULL).
 function buildTournamentRow(t, ctx) {
     const dayOfWeek = t.day_of_week ? String(t.day_of_week).trim() : null;
@@ -74,6 +83,8 @@ function buildTournamentRow(t, ctx) {
 
     const buyIn = t.buy_in != null && !isNaN(t.buy_in) ? Math.round(parseFloat(t.buy_in)) : null;
     if (buyIn == null) return null;
+
+    const sourceUrl = rowSourceUrl(t, ctx);
 
     const gameType = t.game_type ? String(t.game_type).trim().toUpperCase() : 'NLH';
     const tournamentName = t.tournament_name
@@ -94,7 +105,10 @@ function buildTournamentRow(t, ctx) {
         game_type: gameType,
         format: t.format ? String(t.format).trim() : null,
         guaranteed: t.guaranteed != null && !isNaN(t.guaranteed) ? Math.round(parseFloat(t.guaranteed)) : null,
-        source_url: ctx.sourceUrl,
+        source_url: sourceUrl,
+        // best_scrape_url is what the enrichment daemon reads first when it goes
+        // back to a row's page; rows received here used to leave it NULL.
+        best_scrape_url: sourceUrl,
         last_scraped: ctx.scrapeTimestamp,
         is_active: true,
         // 15-Layer scrape-integrity provenance (all NOT NULL + trigger-enforced)

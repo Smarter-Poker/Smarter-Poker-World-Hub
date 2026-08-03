@@ -15,6 +15,15 @@ LOGDIR="$ROOT/data/tournament-logs"
 MASTERLOG="$LOGDIR/orchestrator_$(date +%Y%m%d_%H%M%S).log"
 LOCKFILE="/tmp/sp_scraper.lock"
 
+# The coverage counters below authenticate with the service-role key. There is
+# no hardcoded fallback, so fail here — before the lockfile and the browser
+# heal — rather than at the first query.
+if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  echo "FATAL: SUPABASE_SERVICE_ROLE_KEY is not set. Export it before running this daemon." >&2
+  exit 1
+fi
+export SUPABASE_SERVICE_ROLE_KEY
+
 mkdir -p "$LOGDIR"
 
 # Browser self-heal — see scripts/ensure-browsers.sh
@@ -53,8 +62,14 @@ check_network() {
 # must skip the round, never substitute a fabricated 999.
 get_missing_count() {
   "$PYTHON" - << 'PYEOF'
-import json, sys, urllib.request
-KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs"
+import json, os, sys, urllib.request
+# No hardcoded key: the committed literal that used to live here was a secret
+# and its signing key has since been rotated. The caller guarantees the var is
+# exported; this check keeps the failure legible if it ever is not.
+KEY=os.environ.get("SUPABASE_SERVICE_ROLE_KEY","")
+if not KEY:
+    print("SUPABASE_SERVICE_ROLE_KEY is not set", file=sys.stderr)
+    sys.exit(1)
 URL="https://kuklfnapbkmacvwxktbh.supabase.co"
 hdrs={"apikey":KEY,"Authorization":f"Bearer {KEY}"}
 PAGE=1000
@@ -91,8 +106,14 @@ PYEOF
 
 get_low_score_count() {
   "$PYTHON" - << 'PYEOF'
-import json, sys, urllib.request
-KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs"
+import json, os, sys, urllib.request
+# No hardcoded key: the committed literal that used to live here was a secret
+# and its signing key has since been rotated. The caller guarantees the var is
+# exported; this check keeps the failure legible if it ever is not.
+KEY=os.environ.get("SUPABASE_SERVICE_ROLE_KEY","")
+if not KEY:
+    print("SUPABASE_SERVICE_ROLE_KEY is not set", file=sys.stderr)
+    sys.exit(1)
 URL="https://kuklfnapbkmacvwxktbh.supabase.co"
 hdrs={"apikey":KEY,"Authorization":f"Bearer {KEY}"}
 PAGE=1000

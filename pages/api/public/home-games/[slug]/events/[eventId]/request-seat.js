@@ -180,13 +180,27 @@ export default async function handler(req, res) {
       }
     }
 
-    // 6. Determine waitlist vs yes based on capacity
+    // 6. Determine waitlist vs yes based on capacity.
+    //    NOTE: this is a read of a denormalized counter, so it is only a first
+    //    guess — step 8b re-checks it against the real rows after the write.
     let response = 'yes';
     const spotsNeeded = 1 + bringingGuests;
     const currentYes = Number(event.rsvp_yes || 0);
     if (event.max_players && currentYes + spotsNeeded > event.max_players) {
       response = 'waitlist';
     }
+
+    // 6b. Did this user already hold a confirmed-yes seat before this request?
+    //     A re-POST (editing the message, changing guests) must never knock an
+    //     existing seat holder onto the waitlist in step 8b just because the
+    //     game is already at capacity — they are part of that capacity.
+    const { data: priorRsvp } = await supabase
+      .from('commander_home_rsvps')
+      .select('id, response')
+      .eq('game_id', eventId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const alreadyHeldSeat = priorRsvp?.response === 'yes';
 
     // 7. Upsert membership (no-op if the user is already a member,
     //    regardless of status — we don't want to demote an approved
@@ -241,6 +255,51 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (rsvpErr) throw rsvpErr;
+
+    // 8b. Post-write capacity re-check (self-correcting overbooking guard).
+    //     Step 6 reads event.rsvp_yes and step 8 writes the row — that is a
+    //     non-atomic read-then-write, so two requests racing for the last seat
+    //     can both read the same rsvp_yes, both pass the check, and both land on
+    //     response='yes', putting the game past max_players. There is no atomic
+    //     seat-claim RPC available, so instead of pretending the race can't
+    //     happen we detect it after the fact: re-count the actual yes rows (each
+    //     row occupies 1 seat + its guests) and, if the game is now over
+    //     capacity, demote THIS request to waitlist. Last writer loses, so the
+    //     RSVP that got there first keeps its seat, and this caller is told the
+    //     truth instead of being promised a seat that doesn't exist.
+    if (response === 'yes' && event.max_players && !alreadyHeldSeat) {
+      try {
+        const { data: yesRows, error: recountErr } = await supabase
+          .from('commander_home_rsvps')
+          .select('user_id, bringing_guests')
+          .eq('game_id', eventId)
+          .eq('response', 'yes');
+        if (recountErr) throw recountErr;
+
+        const seatsTaken = (yesRows || []).reduce(
+          (sum, r) => sum + 1 + Math.max(0, Number(r.bringing_guests) || 0),
+          0
+        );
+
+        if (seatsTaken > event.max_players) {
+          // Only touch our own row, and only while it is still 'yes', so a host
+          // action that landed in between isn't clobbered.
+          const { data: demoted, error: demoteErr } = await supabase
+            .from('commander_home_rsvps')
+            .update({ response: 'waitlist', updated_at: new Date().toISOString() })
+            .eq('game_id', eventId)
+            .eq('user_id', user.id)
+            .eq('response', 'yes')
+            .select('id');
+          if (demoteErr) throw demoteErr;
+          if (demoted && demoted.length > 0) response = 'waitlist';
+        }
+      } catch (capacityErr) {
+        // Non-fatal: fall back to the step 6 decision rather than failing the
+        // request, but log it — a silent failure here means an overbooked game.
+        console.warn('[request-seat] capacity re-check failed:', capacityErr?.message || capacityErr);
+      }
+    }
 
     // 9. Fire host notifications (in-app row + email). This block MUST NEVER
     //    cause the main request to fail. We await it so it completes before

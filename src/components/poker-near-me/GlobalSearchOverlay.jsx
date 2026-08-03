@@ -13,6 +13,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { fuzzyMatchScore } from './pnm-utils';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -333,8 +334,20 @@ function DetailModal({ item, type, onClose }) {
           )}
           {/* Actions */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {/* Directions routes through the shared device-aware helper — the
+                hardcoded maps.apple.com link sent Android and desktop users
+                through Apple Maps regardless of platform or saved preference. */}
             {address && (
-              <button onClick={() => { const q = encodeURIComponent([item.name, address, city].filter(Boolean).join(' ')); window.open(`https://maps.apple.com/?q=${q}`, '_blank'); }}
+              <button onClick={() => {
+                  const latNum = parseFloat(item.latitude ?? item.lat);
+                  const lngNum = parseFloat(item.longitude ?? item.lng);
+                  openNativeMaps({
+                    address: [item.name, address, city].filter(Boolean).join(' '),
+                    lat: Number.isFinite(latNum) ? latNum : undefined,
+                    lng: Number.isFinite(lngNum) ? lngNum : undefined,
+                    mode: 'directions',
+                  });
+                }}
                 style={{ flex: 1, minWidth: 120, padding: '12px 16px', background: 'linear-gradient(135deg,#d4a853,#b8860b)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 Directions
               </button>

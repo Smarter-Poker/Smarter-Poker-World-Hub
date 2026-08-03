@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
@@ -21,6 +22,7 @@ import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pok
 import { formatGameType } from '../../../src/utils/pokerFormatters';
 import { openNativeMaps as openNativeMapsUtil, buildVenueAddress, getMapProviderName } from '../../../src/utils/openNativeMaps';
 import dynamic from 'next/dynamic';
+import { createClient } from '@supabase/supabase-js';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 const BestTimeToGoWidget = dynamic(
@@ -38,6 +40,290 @@ const VenueReviews = dynamic(
   { ssr: false }
 );
 
+const SITE_ORIGIN = 'https://smarter.poker';
+
+// ── SEO helpers (shared by getServerSideProps output and the render) ────────
+
+/** Normalize a possibly protocol-less URL ('venue.com') to an absolute one. */
+function toAbsoluteUrl(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[\w-]+(\.[\w-]+)+/.test(trimmed)) return 'https://' + trimmed;
+  return null;
+}
+
+/** Share images must be absolute; stored paths are sometimes site-relative. */
+function toAbsoluteImageUrl(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed.startsWith('/')) return SITE_ORIGIN + trimmed;
+  return toAbsoluteUrl(trimmed);
+}
+
+function clampText(text, max) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  return clean.slice(0, max - 1).replace(/\s+\S*$/, '') + '...';
+}
+
+/**
+ * Build title / description / canonical / share image from the venue record.
+ * Everything here is derived from real columns — nothing hardcoded per venue.
+ */
+function buildVenueSeo(venue, routeId, scheduleCount) {
+  const routeCanonical = SITE_ORIGIN + '/hub/venues/' + encodeURIComponent(String(routeId || ''));
+  if (!venue || !venue.name) {
+    return {
+      title: 'Poker Venue Details',
+      description: 'View detailed information about this poker venue including games, tournaments, and hours.',
+      canonical: routeCanonical,
+      image: null,
+    };
+  }
+
+  // Prefer the numeric/uuid record id so slug URLs canonicalize to one page.
+  const canonicalId = (venue.id || venue.id === 0) ? String(venue.id) : String(routeId || '');
+  const canonical = SITE_ORIGIN + '/hub/venues/' + encodeURIComponent(canonicalId);
+  const location = [venue.city, venue.state].filter(Boolean).join(', ');
+
+  // Avoid 'X Poker Room - Poker Room in ...' when the name already says it.
+  const namesPoker = /poker/i.test(venue.name);
+  const title = location
+    ? venue.name + (namesPoker ? ' - ' : ' - Poker Room in ') + location
+    : venue.name + (namesPoker ? ' - Venue Details' : ' - Poker Venue');
+
+  let description = 'Poker at ' + venue.name + (location ? ' in ' + location : '') + '.';
+  if (scheduleCount > 0) {
+    description += ' ' + scheduleCount + ' weekly tournament' + (scheduleCount === 1 ? '' : 's') + ' listed.';
+  }
+  const venueBlurb = typeof venue.description === 'string' ? venue.description.replace(/\s+/g, ' ').trim() : '';
+  if (venueBlurb) description += ' ' + venueBlurb;
+  description += ' Live games, tournament schedule, hours, directions and player reviews.';
+
+  return {
+    title: clampText(title, 110),
+    description: clampText(description, 300),
+    canonical,
+    image: toAbsoluteImageUrl(venue.profile_photo_url) || toAbsoluteImageUrl(venue.cover_photo_url),
+  };
+}
+
+/**
+ * schema.org node for the venue. Only fields present on the record are
+ * emitted — no invented addresses, ratings or hours.
+ */
+function buildVenueJsonLd(venue, canonical, image) {
+  if (!venue || !venue.name) return null;
+
+  const node = {
+    '@context': 'https://schema.org',
+    '@type': venue.venue_type === 'casino' ? 'Casino' : 'LocalBusiness',
+    name: venue.name,
+    url: canonical,
+  };
+
+  const address = {};
+  if (venue.address) address.streetAddress = String(venue.address);
+  if (venue.city) address.addressLocality = String(venue.city);
+  if (venue.state) address.addressRegion = String(venue.state);
+  if (venue.zip_code) address.postalCode = String(venue.zip_code);
+  if (Object.keys(address).length > 0) {
+    node.address = Object.assign({ '@type': 'PostalAddress' }, address);
+  }
+
+  const lat = parseFloat(venue.latitude);
+  const lng = parseFloat(venue.longitude);
+  if (venue.latitude != null && venue.longitude != null && !isNaN(lat) && !isNaN(lng)) {
+    node.geo = { '@type': 'GeoCoordinates', latitude: lat, longitude: lng };
+  }
+
+  if (venue.phone) node.telephone = String(venue.phone);
+  if (image) node.image = image;
+
+  const blurb = typeof venue.description === 'string' ? venue.description.replace(/\s+/g, ' ').trim() : '';
+  if (blurb) node.description = clampText(blurb, 500);
+
+  const sameAs = [toAbsoluteUrl(venue.website), toAbsoluteUrl(venue.poker_atlas_url)].filter(Boolean);
+  if (sameAs.length > 0) node.sameAs = sameAs;
+
+  return node;
+}
+
+/** Count schedule rows across either daily_tournaments shape. */
+function countSchedules(venue) {
+  if (!venue || !Array.isArray(venue.daily_tournaments)) return 0;
+  return venue.daily_tournaments.reduce(function (total, dt) {
+    if (dt && Array.isArray(dt.schedules)) return total + dt.schedules.length;
+    return total + (dt ? 1 : 0);
+  }, 0);
+}
+
+// ── Server-side render ──────────────────────────────────────────────────────
+
+/**
+ * Flat venue_daily_tournaments rows -> the { source_url, schedules } shape the
+ * page renders. This mirrors the transform in /api/poker/venues (including its
+ * start_time + normalized-game + buy_in dedupe) so the server HTML matches what
+ * SWR renders after it revalidates — otherwise the schedule visibly shrinks on
+ * hydration and crawlers index rows the live page never shows.
+ * Every field is normalized to null: getServerSideProps props must be JSON
+ * serializable, and `undefined` would throw.
+ */
+function groupDailyTournamentRows(rows) {
+  if (!rows || rows.length === 0) return [];
+
+  const seenKeys = new Set();
+  const schedules = [];
+  for (const t of rows) {
+    let normGame = String(t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
+    if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
+      normGame = 'nlh';
+    } else if (normGame.includes('plo') || normGame.includes('omaha')) {
+      normGame = 'omaha';
+    } else if (normGame.includes('mixed') || normGame.includes('horse')) {
+      normGame = 'mixed';
+    }
+
+    const key = [
+      String(t.start_time || '').toLowerCase().trim(),
+      normGame,
+      String(t.buy_in || 0),
+    ].join('|');
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
+    schedules.push({
+      day_of_week: t.day_of_week ?? null,
+      start_time: t.start_time ?? null,
+      tournament_name: t.tournament_name ?? null,
+      buy_in: t.buy_in ?? null,
+      rebuy_addon: t.rebuy_addon ?? null,
+      starting_stack: t.starting_stack ?? null,
+      blind_levels: t.blind_levels ?? null,
+      game_type: t.game_type ?? null,
+      format: t.format ?? null,
+      guaranteed: t.guaranteed ?? null,
+    });
+  }
+
+  return [{
+    source_url: rows[0].source_url || null,
+    schedules,
+  }];
+}
+
+/**
+ * Fallback resolution through the same endpoint the client uses. Covers the
+ * cases the direct table read cannot: home-group UUIDs, slug URLs and venues
+ * that only exist in the static JSON dataset. Returns notFound only when the
+ * API positively says the venue does not exist — a transport failure leaves
+ * the page on its pre-existing client-only path instead of 404ing.
+ */
+async function resolveVenueViaApi(req, id) {
+  try {
+    const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+    const rawHost = req.headers['x-forwarded-host'] || req.headers.host;
+    const host = rawHost ? String(rawHost).split(',')[0].trim() : '';
+    if (!host) return { venue: null, notFound: false };
+
+    const apiRes = await fetch(proto + '://' + host + '/api/poker/venues?id=' + encodeURIComponent(id));
+    if (apiRes.status === 404) return { venue: null, notFound: true };
+    if (!apiRes.ok) return { venue: null, notFound: false };
+
+    const json = await apiRes.json();
+    const dataArr = Array.isArray(json.data) ? json.data : (json.data ? [json.data] : []);
+    const homeGroupsArr = Array.isArray(json.home_groups) ? json.home_groups : (json.home_groups ? [json.home_groups] : []);
+    const all = [...dataArr, ...homeGroupsArr];
+    const exact = all.find(function (v) { return String(v.id) === String(id); });
+    // Single-venue responses return an object (not an array); slug lookups
+    // legitimately resolve to a record whose id differs from the URL segment.
+    const single = (!Array.isArray(json.data) && json.data) ? json.data : null;
+    const found = exact || single || null;
+    return { venue: found, notFound: !found && all.length === 0 };
+  } catch (e) {
+    console.warn('[venues/[id]] SSR API fallback failed:', e?.message || e);
+    return { venue: null, notFound: false };
+  }
+}
+
+export async function getServerSideProps({ params, req, res }) {
+  const rawId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const id = String(rawId || '').trim();
+  if (!id) return { notFound: true };
+
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
+  const numericId = /^\d+$/.test(id) ? parseInt(id, 10) : null;
+  let venue = null;
+  // Only set when a lookup positively reports "no such venue" — never on an
+  // outage, so a Supabase blip can't start serving 404s for real venues.
+  let confirmedMissing = false;
+
+  if (numericId && numericId >= 1) {
+    try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const supabaseServer = createClient(url, key);
+
+      const { data, error } = await supabaseServer
+        .from('poker_venues')
+        .select('*')
+        .eq('id', numericId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+
+      if (data && data.is_suppressed) {
+        confirmedMissing = true;
+      } else if (data) {
+        // select('*') mirrors the API's own query — an explicit column list
+        // would fail the whole read if any one name drifted.
+        const { data: tourRows } = await supabaseServer
+          .from('venue_daily_tournaments')
+          .select('*')
+          .eq('venue_id', numericId)
+          .eq('is_active', true)
+          .or('is_suppressed.is.null,is_suppressed.eq.false')
+          .order('day_of_week')
+          .limit(100);
+
+        const grouped = groupDailyTournamentRows(tourRows);
+        const overrides = {
+          daily_tournaments: grouped,
+          daily_tournaments_source: grouped.length > 0 ? (grouped[0].source_url || null) : null,
+        };
+        // The API stamps last_scraped from the tournament rows when it has
+        // live ones; match it so the badge doesn't change value on hydration.
+        if (tourRows && tourRows.length > 0) {
+          overrides.last_scraped = tourRows[0].last_scraped ?? null;
+        }
+        venue = Object.assign({}, data, overrides);
+      }
+    } catch (e) {
+      console.warn('[venues/[id]] SSR venue fetch failed:', e?.message || e);
+    }
+  }
+
+  // Slug / home-group UUID / JSON-only venues, plus any miss above.
+  if (!venue && !confirmedMissing) {
+    const viaApi = await resolveVenueViaApi(req, id);
+    if (viaApi.venue) venue = viaApi.venue;
+    else if (viaApi.notFound) confirmedMissing = true;
+  }
+
+  if (!venue && confirmedMissing) return { notFound: true };
+
+  return {
+    props: {
+      venueId: id,
+      // null keeps the pre-change client-only path intact when SSR can't
+      // resolve the venue (e.g. Supabase outage) rather than showing a 404.
+      initialVenue: venue || null,
+    },
+  };
+}
+
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
   card_room: 'Card Room',
@@ -53,17 +339,21 @@ function formatTime(timeStr) {
   return timeStr.replace(/([AP])M$/i, ' $1M');
 }
 
+// Locales are pinned to 'en-US' (as the date formatting in this file already
+// is): the tournament schedule is server-rendered now, and an unpinned
+// toLocaleString formats with the server's default locale on the server and the
+// visitor's in the browser, which is a hydration mismatch for non-US users.
 function formatMoney(amount) {
   if (!amount && amount !== 0) return '-';
   if (typeof amount === 'string') {
     if (amount.startsWith('$')) return amount;
     const num = parseFloat(amount);
     if (isNaN(num)) return amount;
-    return `$${num.toLocaleString()}`;
+    return `$${num.toLocaleString('en-US')}`;
   }
   if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
   if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
-  return `$${amount.toLocaleString()}`;
+  return `$${amount.toLocaleString('en-US')}`;
 }
 
 function timeAgo(dateStr) {
@@ -218,9 +508,12 @@ function StarRating({ rating, size, interactive, onRate }) {
   );
 }
 
-export default function VenueDetailPage() {
+export default function VenueDetailPage({ venueId = null, initialVenue = null }) {
   const router = useRouter();
-  const { id, action, tab } = router.query;
+  const { id: queryId, action, tab } = router.query;
+  // venueId comes from getServerSideProps and is present on the very first
+  // render (including on the server); router.query is the existing source.
+  const id = queryId || venueId;
   const bus = useTrainingBus();
   const { hasAccess: isVip, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
 
@@ -390,6 +683,12 @@ export default function VenueDetailPage() {
 
   // SWR — parallel fetch venue + follow count + social page
   const swrKey = id ? `/api/poker/venues?id=${id}` : null;
+  // Seed SWR with the server-rendered venue so the first paint is populated
+  // (no empty shell for crawlers, no flash on navigation). SWR still
+  // revalidates on mount, so follower count / social page fill in as before.
+  const swrFallback = initialVenue
+    ? { venue: initialVenue, followerCount: 0, socialPageSlug: null }
+    : undefined;
   const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
     const [venueRes, followRes, socialRes] = await Promise.all([
       fetch('/api/poker/venues?id=' + id).catch(() => ({ ok: false })),
@@ -409,7 +708,7 @@ export default function VenueDetailPage() {
       followerCount: fj.success ? (fj.follower_count || 0) : 0,
       socialPageSlug: sj.success && sj.data && sj.data.length > 0 ? (sj.data[0].slug || sj.data[0].id) : null
     };
-  });
+  }, { fallbackData: swrFallback });
   const venue = swrData?.venue || null;
   const [localFollowerCount, setFollowerCount] = useState(null);
   const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
@@ -1329,7 +1628,14 @@ export default function VenueDetailPage() {
   };
 
   var groupedSchedules = venue ? getGroupedSchedules() : null;
-  var todayName = DAYS_ORDER[(new Date().getDay() + 6) % 7];
+  // Resolved after mount: the schedule is now server-rendered, and the server
+  // clock can sit on a different calendar day than the visitor's, which would
+  // make the "Today" badge a hydration mismatch. The badge simply appears once
+  // the browser clock is known.
+  const [todayName, setTodayName] = useState(null);
+  useEffect(function () {
+    setTodayName(DAYS_ORDER[(new Date().getDay() + 6) % 7]);
+  }, []);
 
   // Compute rating distribution
   var getRatingDistribution = function () {
@@ -1361,17 +1667,49 @@ export default function VenueDetailPage() {
 
   var pageTitle = venue ? venue.name + ' - Poker Venue' : 'Venue Detail';
 
+  // Per-venue SEO, built from the record itself. Server-rendered because the
+  // venue is seeded from getServerSideProps.
+  // Home games stay noindex: their public SEO surface is /hub/home-games and
+  // this route does not apply the privacy filters that page does.
+  var isIndexable = !!venue && venue.venue_type !== 'home_game';
+  var seo = buildVenueSeo(venue, id, countSchedules(venue));
+  var venueJsonLd = isIndexable ? buildVenueJsonLd(venue, seo.canonical, seo.image) : null;
+
   return (
     <>
       <SEOHead
-        title="Poker Venue Details"
-        description="View Detailed Information About This Poker Venue Including Games, Tournaments, And Hours."
-        noindex={true}
+        title={seo.title}
+        description={seo.description}
+        canonical={seo.canonical}
+        noindex={!isIndexable}
       >
+        <meta key="og:type" property="og:type" content="website" />
+        <meta key="og:site_name" property="og:site_name" content="Smarter Poker" />
+        <meta key="og:title" property="og:title" content={seo.title} />
+        <meta key="og:description" property="og:description" content={seo.description} />
+        <meta key="og:url" property="og:url" content={seo.canonical} />
+        {seo.image ? <meta key="og:image" property="og:image" content={seo.image} /> : null}
+        <meta key="twitter:card" name="twitter:card" content={seo.image ? 'summary_large_image' : 'summary'} />
+        <meta key="twitter:title" name="twitter:title" content={seo.title} />
+        <meta key="twitter:description" name="twitter:description" content={seo.description} />
+        {seo.image ? <meta key="twitter:image" name="twitter:image" content={seo.image} /> : null}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
+
+      {venueJsonLd && (
+        <Head>
+          <script
+            type="application/ld+json"
+            // Venue fields are operator/scraper authored. Escape '<' to its
+            // unicode form so an injected closing script tag cannot break out.
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(venueJsonLd).replace(/</g, '\\u003c'),
+            }}
+          />
+        </Head>
+      )}
 
       {!isIframeMode && (
         <UniversalHeader 
@@ -1396,11 +1734,15 @@ export default function VenueDetailPage() {
           </div>
         )}
 
-        {error && !loading && (
+        {error && !loading && !venue && (
           <div className="error-state">
             <div className="error-icon">!</div>
             <h2>Venue Not Found</h2>
-            <p>{error}</p>
+            {/* `error` is an Error instance — rendering the object itself
+                throws. Also gated on !venue: with the server-rendered venue
+                seeded into SWR, a failed background revalidation must not
+                stack a "not found" banner on top of a populated page. */}
+            <p>{error?.message || 'Something went wrong loading this venue.'}</p>
           </div>
         )}
 
@@ -1835,7 +2177,7 @@ export default function VenueDetailPage() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
                         {t.guaranteed && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{formatMoney(t.guaranteed)} GTD</span>}
                         {t.game_type && <span>{t.game_type}</span>}
-                        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString()}</span>}
+                        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString('en-US')}</span>}
                         {t.blind_levels && <span>Levels: {t.blind_levels}m</span>}
                       </div>
                     </div>
@@ -2127,7 +2469,12 @@ export default function VenueDetailPage() {
 
             {/* Last Scraped Badge */}
             {venue.last_scraped && (
-              <div className="last-scraped-badge">
+              <div
+                className="last-scraped-badge"
+                // The date formats in the server's timezone first and the
+                // visitor's after hydration, which is not a real mismatch.
+                suppressHydrationWarning
+              >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
@@ -2163,7 +2510,7 @@ export default function VenueDetailPage() {
                           )}
                           <div className="news-card-footer">
                             {article.published_at && (
-                              <span className="news-card-date">
+                              <span className="news-card-date" suppressHydrationWarning>
                                 {new Date(article.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </span>
                             )}
