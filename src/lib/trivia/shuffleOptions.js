@@ -56,6 +56,15 @@ export function shuffleOptions(questions) {
             ...q,
             options: order.map(i => opts[i]),
             correct_index: order.indexOf(correctIndex),
+            // FEAT(server-grading): expose the permutation used for display.
+            // _order[displayIndex] === originalIndex, i.e. displayed option k
+            // is the original opts[_order[k]]. A future server-authoritative
+            // grading path can reverse a submitted display index with
+            // _order[submittedIndex] and compare against the stored key,
+            // instead of trusting the client-side correct_index. Non-breaking:
+            // purely additive, underscore-prefixed, ignored by existing
+            // consumers.
+            _order: order,
         };
     });
 }
