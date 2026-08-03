@@ -162,7 +162,7 @@ export default function LoginPage() {
                     // Check if they have a valid trusted device token
                     try {
                         const checkRes = await fetch('/api/auth/mfa/check-trusted', {
-                            method: 'GET',
+                            method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${data.session.access_token}`
                             }
