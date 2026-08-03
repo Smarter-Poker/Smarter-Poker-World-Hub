@@ -326,9 +326,13 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
             >
                 <img
-                    src="/images/trivia/daily-trivia-header-final.png?v=2"
+                    src="/images/trivia/daily-trivia-header-final.webp?v=v5"
                     alt="Daily Trivia - 10 Questions Fresh Every Day"
                     className="daily-trivia-banner__image"
+                    width={1024}
+                    height={309}
+                    fetchPriority="high"
+                    decoding="async"
                 />
                 {/* Clickable button overlay positioned over the START DAILY TRIVIA button */}
                 <button
@@ -362,7 +366,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             <div className="modes-section">
 
                 <div className="modes-grid">
-                    {MODE_CARDS.map((mode) => {
+                    {MODE_CARDS.map((mode, cardIdx) => {
                         const Icon = mode.icon;
                         const isHovered = hoveredCard === mode.id;
 
@@ -400,6 +404,10 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                         alt=""
                                         aria-hidden
                                         className="mode-image-card__img"
+                                        width={1024}
+                                        height={1024}
+                                        loading={cardIdx < 3 ? 'eager' : 'lazy'}
+                                        decoding="async"
                                     />
                                     <span className="mode-image-card__strip" aria-hidden>
                                         <span className="mode-image-card__name" style={{ color: mode.color }}>{mode.name}</span>
@@ -489,6 +497,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                         alt=""
                         aria-hidden
                         className="quick-stakes-banner__img"
+                        loading="lazy"
+                        decoding="async"
                     />
                     <span className="quick-stakes-banner__chip" aria-hidden>
                         {isVip ? 'VIP: free' : <>{getEntryCost('arcade')} <Gem size={11} /> to play</>}
@@ -1060,9 +1070,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     <div className="gate-overlay" onClick={() => { setShowChargePopup(false); setPendingMode(null); }}>
                         <div className="diamond-modal" onClick={e => e.stopPropagation()}>
                             <img
-                                src="/images/trivia/diamond-entry-modal.png"
+                                src="/images/trivia/diamond-entry-modal.webp?v=v5"
                                 alt="Diamond Entry Modal"
                                 className="diamond-modal__bg"
+                                width={946}
+                                height={1024}
+                                decoding="async"
                             />
 
                             {/* Close Button hit area */}
