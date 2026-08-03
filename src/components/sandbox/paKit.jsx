@@ -78,11 +78,30 @@ export function hashString(str) {
 
 /* ═══════════════════════════════════════════════════════════════════════
    Global CSS shared by every PA surface.
-   Rendered once per host component; styled-jsx dedupes identical blocks.
+
+   Raw <style> injection, NOT styled-jsx. A large global styled-jsx block on
+   this surface deadlocked the SWC compiler for 45 minutes and broke production
+   deploys (maintainer fix 17409efc08). Never reintroduce styled-jsx here.
+
+   The CSS is emitted verbatim and unscoped, exactly as `<style jsx global>`
+   emitted it — but not in the same PLACE. styled-jsx hoists global styles into
+   <head>; this tag renders inline in the body, wherever the host component
+   mounts. These rules therefore sit later in the cascade than every <head>
+   stylesheet, so at equal specificity they now win ties they previously lost.
+   That is what we want for the PA-specific classes below; if a rule ever needs
+   to lose such a tie, give the competing rule an explicit specificity bump
+   rather than relying on document order.
+
+   Rendered once per host component. Unlike styled-jsx this does NOT dedupe, so
+   N mounted hosts emit N identical <style> tags; the rules are byte-identical
+   and idempotent, so the cascade result is unchanged.
+
+   The ${...} holes are build-time constants from paTokens (never user input),
+   so nothing untrusted reaches the injected CSS.
    ═══════════════════════════════════════════════════════════════════════ */
 export function PAStyles() {
     return (
-        <style jsx global>{`
+        <style dangerouslySetInnerHTML={{ __html: `
             .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             .pa-btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(1.12); }
             .pa-btn:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
@@ -110,7 +129,7 @@ export function PAStyles() {
                     scroll-behavior: auto !important;
                 }
             }
-        `}</style>
+        ` }} />
     );
 }
 

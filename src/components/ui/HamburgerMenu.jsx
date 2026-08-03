@@ -1362,7 +1362,16 @@ export default function HamburgerMenu({
         </div>
       )}
 
-      <style jsx global>{`
+      {/* Raw <style> injection, NOT styled-jsx. A large global styled-jsx block on
+          this surface deadlocked the SWC compiler for 45 minutes and broke production
+          deploys (maintainer fix 17409efc08). Never reintroduce styled-jsx here.
+          The CSS is emitted verbatim and unscoped, exactly as `<style jsx global>`
+          emitted it — but styled-jsx hoisted global styles into <head> and this tag
+          renders inline in the body, so these rules now sit later in the cascade and
+          win same-specificity ties against head stylesheets they used to lose. If a
+          rule ever needs to lose such a tie, bump the other rule's specificity
+          explicitly instead of relying on document order. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .sp-menu-row,
         .sp-grid-tile,
         .sp-sc-tile,
@@ -1403,7 +1412,7 @@ export default function HamburgerMenu({
           .sp-sc-tile:active,
           .sp-icon-btn:active { transform: none; }
         }
-      `}</style>
+      ` }} />
     </>
   );
 }

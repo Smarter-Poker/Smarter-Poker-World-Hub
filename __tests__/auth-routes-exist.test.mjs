@@ -68,7 +68,12 @@ const CONTENT_GUARDS = [
     },
     {
         file: 'src/lib/authUtils.ts',
-        pattern: /export const SUPABASE_ANON_KEY[\s\S]{0,400}\.trim\(\)/,
+        // Two accepted shapes, both of which export a trimmed value:
+        //   (a) trimmed inline at the export site, or
+        //   (b) trimmed into RAW_SUPABASE_ANON_KEY first, then re-exported
+        //       (the shape introduced by ba48e491e4's credential cleanup).
+        // Still fails if the .trim() is dropped, which is the point of the guard.
+        pattern: /(export const SUPABASE_ANON_KEY[\s\S]{0,400}\.trim\(\))|(RAW_SUPABASE_ANON_KEY\s*=\s*\([\s\S]{0,200}\.trim\(\)[\s\S]{0,600}export const SUPABASE_ANON_KEY\s*=\s*RAW_SUPABASE_ANON_KEY)/,
         why: 'authUtils.ts must export a TRIMMED SUPABASE_ANON_KEY — next.config.js aliases authUtils.js to this file, so callers importing the constant get undefined without this export (B-AUTH-EXPORTS-1).',
     },
     {

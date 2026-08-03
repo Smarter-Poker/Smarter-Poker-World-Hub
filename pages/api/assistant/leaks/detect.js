@@ -670,10 +670,8 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const _authUser = authData?.user;
-      if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
       // Rebuild the body so an empty/non-JSON body still carries the JWT userId
       req.body = { ...(req.body && typeof req.body === 'object' ? req.body : {}), userId: _authUser.id };
     }

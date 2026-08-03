@@ -38,6 +38,11 @@ const REQUIRED_TEST_FILES = [
     '__tests__/sentry-coverage.test.mjs',
     '__tests__/phase-3-deliverables.test.mjs',
     '__tests__/phase-4-deliverables.test.mjs',
+    // Personal Assistant guards. menu-routes catches dead hamburger links;
+    // pa-no-undef catches the undefined-identifier class that white-screened
+    // the Leak Finder in production. Both run in `prebuild`.
+    '__tests__/menu-routes-exist.test.mjs',
+    '__tests__/pa-no-undef.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

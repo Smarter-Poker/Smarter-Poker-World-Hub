@@ -164,7 +164,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto' }) {
         paddingRight: 'env(safe-area-inset-right, 0px)',
         transform: hidden ? 'translateY(110%)' : 'translateY(0)',
         transition: reduceMotion ? 'none' : 'transform .22s ease',
-        // consumed by the styled-jsx rules below
+        // consumed by the .bn-tab:focus-visible rule in the <style> block below
         ['--bn-active']: c.active,
       }}
     >
@@ -227,7 +227,16 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto' }) {
         );
       })}
 
-      <style jsx global>{`
+      {/* Raw <style> injection, NOT styled-jsx. A large global styled-jsx block on
+          this surface deadlocked the SWC compiler for 45 minutes and broke production
+          deploys (maintainer fix 17409efc08). Never reintroduce styled-jsx here.
+          The CSS is emitted verbatim and unscoped, exactly as `<style jsx global>`
+          emitted it — but styled-jsx hoisted global styles into <head> and this tag
+          renders inline in the body, so these rules now sit later in the cascade and
+          win same-specificity ties against head stylesheets they used to lose. If a
+          rule ever needs to lose such a tie, bump the other rule's specificity
+          explicitly instead of relying on document order. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .bn-tab {
           -webkit-tap-highlight-color: transparent;
           touch-action: manipulation;
@@ -243,7 +252,7 @@ function BottomNavBar({ theme = 'auto', autoHide = 'auto' }) {
           .bn-tab, .bn-nav { transition: none !important; }
           .bn-tab:active { transform: none; }
         }
-      `}</style>
+      ` }} />
     </nav>
   );
 }

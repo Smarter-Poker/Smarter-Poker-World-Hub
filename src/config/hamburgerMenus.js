@@ -769,7 +769,29 @@ export const MENU_CONFIGS = {
                 createMenuItem.action('Session Report', handlers.onReport, MenuIcons.fileText),
 
                 createMenuItem.section('Pro Features'),
-                createMenuItem.action('God Mode', handlers.onGodMode, MenuIcons.zap),
+                // God Mode injects fabricated solver output, so it is dev-only.
+                // It used to render unconditionally: every production player saw a
+                // 'God Mode' row that GodModePanel then refused — advertising an
+                // admin tool and dead-ending on it.
+                //
+                // This matches what hasGodModeAccess() in GodModePanel.jsx actually
+                // does for the callers that exist today: nothing on this surface
+                // supplies a server-verified admin flag, so the panel's `isAdmin`
+                // prop is always undefined and its decision reduces to
+                // NODE_ENV !== 'production'. Gating the row on the same single
+                // condition keeps the row and the panel in agreement instead of
+                // branching on a `state.isAdmin` key no caller sets.
+                //
+                // If a server-verified admin flag ever lands, wire it BOTH here
+                // (via the getMenuConfig state object in sandbox.js) and into the
+                // <GodModePanel isAdmin={...}> prop — changing only one side
+                // re-creates the dead-end row this replaced. The panel's own check
+                // stays as defence in depth: hiding a menu row is not a security
+                // boundary.
+                ...(process.env.NODE_ENV !== 'production'
+                    ? [
+                        createMenuItem.action('God Mode', handlers.onGodMode, MenuIcons.zap),
+                    ] : []),
                 createMenuItem.action('Pro Import', handlers.onProImport, MenuIcons.upload),
                 createMenuItem.action('Custom Spot', handlers.onCustomSpot, MenuIcons.sliders),
                 createMenuItem.action('Quick Drill', handlers.onDrill, MenuIcons.timer),

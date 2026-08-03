@@ -19,6 +19,17 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Largest drill a caller may request. This is deliberately the same 20 the two
+ * clients enforce — CustomDrillBuilder's HAND_COUNTS tops out at 20 and
+ * QuickSpotDrill clamps the pool it keeps to 20 — so the server cap is not a
+ * silent lie about what a caller can actually receive. Raising it here alone is
+ * inert: raise all three together or not at all.
+ * Over-limit requests are clamped rather than rejected so an over-eager client
+ * still gets a usable pool.
+ */
+const MAX_DRILL_LIMIT = 20;
+
 /** Unbiased shuffle — sort(() => 0.5 - Math.random()) is not uniform. */
 function shuffle(arr) {
     const out = [...arr];
@@ -40,7 +51,9 @@ export default async function handler(req, res) {
           const { street, position, limit } = req.query;
 
           // parseInt('abc') is NaN — slice(0, NaN) silently returns [].
-          const n = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 20);
+          // Upper bound is 50 (the drill builder's longest set); the 200-row
+          // candidate window below still comfortably covers it.
+          const n = Math.min(Math.max(parseInt(limit, 10) || 10, 1), MAX_DRILL_LIMIT);
 
           let query = supabase
               .from('training_questions')

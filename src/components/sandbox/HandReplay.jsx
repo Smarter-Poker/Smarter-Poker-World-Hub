@@ -7,11 +7,16 @@
  * (never by the presence of a timestamp — local entries carry one too):
  *   • live hands played this sitting (source 'live'/'local'). With coach mode
  *     off these still have isCorrect null but DO carry a stored GTO action.
- *   • archived hands hydrated from /api/sandbox/sessions (source 'server') —
- *     the mapper cannot supply a verdict, so isCorrect/evDelta/userPick are null
- * Rendering the archived ones with "— NOT COACHED" and three em-dashes made the
- * whole feature look broken. They now get their own compact "replay only" card
- * and their own filter tab.
+ *   • archived hands hydrated from /api/sandbox/sessions (source 'server').
+ *
+ * PROVENANCE IS NOT A VERDICT. /api/sandbox/sessions now joins
+ * sandbox_coach_results, so an archived row MAY carry a real
+ * userPick/optimalAction/isCorrect/evDelta — and often does. The card therefore
+ * branches on whether a verdict is actually present (`graded`), never on
+ * `source`. `source` drives only the Archived provenance badge, the archived
+ * filter tab and the date stamp. Keying the verdict block off provenance hid
+ * real coach data and printed "no verdict exists" copy directly above an EV
+ * delta row that rendered anyway.
  *
  * Navigation is a scrollable strip of 44px snap buttons plus swipe gestures —
  * the old 8x8px dot field was neither tappable nor reachable.
@@ -35,11 +40,13 @@ function tone(pct) {
 }
 
 /**
- * Archived rows are the ones hydrated from /api/sandbox/sessions — they are
- * tagged `source: 'server'` by mergeSessions. Locally-created rows also carry a
- * `createdAt`, so that field must NOT be used to infer provenance: doing so
- * mislabelled every uncoached hand from the current sitting as archived and hid
- * its stored GTO action.
+ * PROVENANCE ONLY. Archived rows are the ones hydrated from
+ * /api/sandbox/sessions — they are tagged `source: 'server'` by mergeSessions.
+ * Locally-created rows also carry a `createdAt`, so that field must NOT be used
+ * to infer provenance: doing so mislabelled every uncoached hand from the
+ * current sitting as archived and hid its stored GTO action.
+ *
+ * This says nothing about whether a verdict exists — use `isGraded()` for that.
  */
 function isArchived(entry) {
     if (!entry) return false;
@@ -47,6 +54,18 @@ function isArchived(entry) {
     // Legacy rows with no provenance: only treat as archived when there is
     // genuinely nothing to show (no verdict AND no stored GTO action).
     return entry.isCorrect == null && !entry.optimalAction && entry.createdAt != null;
+}
+
+/**
+ * Does this row actually carry coach output? True for any entry with a verdict
+ * (isCorrect) or a stored GTO action — regardless of where the row came from.
+ * Archived rows joined to sandbox_coach_results satisfy this and must render
+ * the full verdict block.
+ */
+function isGraded(entry) {
+    if (!entry) return false;
+    return entry.isCorrect != null || !!entry.optimalAction || !!entry.userPick
+        || typeof entry.evDelta === 'number';
 }
 
 function hasHoleCards(entry) {
@@ -94,7 +113,10 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
     const accuracy = scoredCount > 0 ? Math.round(100 * correctCount / scoredCount) : 0;
 
     const entryScored = !!entry && entry.isCorrect != null;
+    // Provenance badge only — never gate coach output on this.
     const archived = isArchived(entry);
+    // Whether there is any coach output to show, wherever the row came from.
+    const graded = isGraded(entry);
     const playable = hasHoleCards(entry);
 
     useEffect(() => { setCurrentIdx(0); }, [filter]);
@@ -265,17 +287,22 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                     gap: S.sm, marginBottom: S.md, flexWrap: 'wrap',
                                 }}>
-                                    {archived ? (
-                                        <span style={pill('neutral')}>
-                                            <Archive size={12} strokeWidth={2.5} /> Archived — replay only
-                                        </span>
-                                    ) : !entryScored ? (
-                                        <span style={pill('neutral')}>Not coached</span>
-                                    ) : entry.isCorrect ? (
-                                        <span style={pill('success')}>Correct</span>
-                                    ) : (
-                                        <span style={pill('danger')}>Incorrect</span>
-                                    )}
+                                    {/* Provenance badge and verdict badge are independent:
+                                        an archived row can still be graded. */}
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                                        {archived && (
+                                            <span style={pill('neutral')}>
+                                                <Archive size={12} strokeWidth={2.5} /> Archived
+                                            </span>
+                                        )}
+                                        {!entryScored ? (
+                                            <span style={pill('neutral')}>{graded ? 'Ungraded' : 'Not coached'}</span>
+                                        ) : entry.isCorrect ? (
+                                            <span style={pill('success')}>Correct</span>
+                                        ) : (
+                                            <span style={pill('danger')}>Incorrect</span>
+                                        )}
+                                    </span>
                                     <span style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
                                         Hand {currentIdx + 1} / {total}
                                     </span>
@@ -286,7 +313,7 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                     <Detail label="Position" value={(entry?.position || '—').toUpperCase()} colour={T.accent} />
                                 </div>
 
-                                {!archived && (
+                                {graded && (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md, marginBottom: S.md }}>
                                         <Detail
                                             label="Your pick"
@@ -315,9 +342,10 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                         : ''}
                                 </div>
 
-                                {archived && (
+                                {/* Only claim "no verdict" when the row genuinely has none. */}
+                                {archived && !graded && (
                                     <p style={{ fontSize: F.caption, color: T.textDim, margin: `${S.md}px 0 0`, lineHeight: 1.45 }}>
-                                        Coach verdicts are not stored with archived sessions, so there is nothing to grade here —
+                                        No coach verdict was stored with this archived hand, so there is nothing to grade here —
                                         load it back into the sandbox to play it again.
                                     </p>
                                 )}

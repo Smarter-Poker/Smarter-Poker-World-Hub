@@ -427,6 +427,88 @@ async function queryPreflopData(params) {
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
+ * PER-ACTION EV — HONESTY CONTRACT
+ * ───────────────────────────────────────────────────────────────────────
+ * The sandbox Coach computes its EV delta as (picked action EV − ev.hero)
+ * and only trusts it when `typeof action.ev === 'number'`; otherwise it
+ * shows a heuristic estimate flagged `evDeltaEstimated: true`.
+ *
+ * So an `ev` key on an action is a claim that the number was MEASURED, in
+ * the same units as `ev.hero` (big blinds, 3dp). Consequences:
+ *   • Emit `ev` only when the solver payload actually carries a per-action
+ *     EV for this exact hand.
+ *   • When it does not, OMIT the key. Never default to 0 — 0 is a perfectly
+ *     legitimate EV, so a defaulted 0 would silently launder a guess into a
+ *     measured value and turn off the "estimated" warning in the UI.
+ *   • The Grok and rule-based paths therefore carry no `ev` at all: a
+ *     language model's guess at a spot's EV is not a measurement.
+ */
+
+/** Finite number or null — strings are accepted because some dumps quote them. */
+function toFiniteNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Solver exports disagree on where per-action EVs live. Two nesting orders are
+ * seen in the wild — map[action][hand] and map[hand][action] — under several
+ * key names. Probe both, under each key, and return only the actions for which
+ * a real finite number was found.
+ *
+ * A flat `hand_evs` (hand → number, the shape ev.hero is read from) yields
+ * nothing here, which is correct: one number per hand is the hand's strategy
+ * EV, not a per-action breakdown.
+ *
+ * @returns {Object|null} action id → EV, or null when nothing was derivable.
+ */
+const ACTION_EV_CONTAINER_KEYS = ['action_evs', 'actionEVs', 'ev_by_action', 'evs', 'action_ev', 'hand_evs'];
+
+function extractPerActionEVs(strategyMatrix, actionIds, handVariants) {
+  if (!isPlainObject(strategyMatrix)) return null;
+
+  for (const containerKey of ACTION_EV_CONTAINER_KEYS) {
+    const container = strategyMatrix[containerKey];
+    if (!isPlainObject(container)) continue;
+
+    const found = {};
+    let hits = 0;
+
+    for (const action of actionIds) {
+      // Shape A: container[action][hand]
+      const byAction = container[action];
+      if (isPlainObject(byAction)) {
+        for (const variant of handVariants) {
+          const n = toFiniteNumber(byAction[variant]);
+          if (n !== null) { found[action] = n; hits++; break; }
+        }
+      }
+      if (found[action] !== undefined) continue;
+
+      // Shape B: container[hand][action]
+      for (const variant of handVariants) {
+        const byHand = container[variant];
+        if (!isPlainObject(byHand)) continue;
+        const n = toFiniteNumber(byHand[action]);
+        if (n !== null) { found[action] = n; hits++; break; }
+      }
+    }
+
+    if (hits > 0) return found;
+  }
+
+  return null;
+}
+
+/**
  * Parse strategy_matrix for a specific hero hand
  */
 function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingBet = false) {
@@ -467,23 +549,67 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize, facingB
   // solver badge — bail out so the caller falls through to the Grok fallback.
   if (maxFreq <= 0) return null;
 
+  // Per-action EVs for THIS hand, when the solver row exposes them.
+  const perActionEV = extractPerActionEVs(strategyMatrix, validActions, handVariants);
+
   // Build enriched action data
   const actionData = validActions
-    .map(action => ({
-      id: action,
-      label: getActionLabel(action, potSize, facingBet),
-      frequency: Math.round(handActions[action] * 100),
-      frequencyRaw: handActions[action],
-      color: getActionColor(getActionLabel(action, potSize, facingBet)),
-      isOptimal: action === optimalAction,
-    }))
+    .map(action => {
+      const label = getActionLabel(action, potSize, facingBet);
+      const entry = {
+        id: action,
+        label,
+        frequency: Math.round(handActions[action] * 100),
+        frequencyRaw: handActions[action],
+        color: getActionColor(label),
+        isOptimal: action === optimalAction,
+      };
+      // Only attach `ev` when a real number exists — see the honesty contract
+      // above. An action the solver did not price simply has no `ev` key.
+      const actionEV = perActionEV ? perActionEV[action] : undefined;
+      if (typeof actionEV === 'number') entry.ev = parseFloat(actionEV.toFixed(3));
+      return entry;
+    })
     .sort((a, b) => b.frequency - a.frequency);
 
   // Get EV data
-  let heroEV = 0;
+  let heroEV = null;
   for (const variant of handVariants) {
-    if (handEVs[variant] !== undefined) { heroEV = Number(handEVs[variant]) || 0; break; }
+    const n = toFiniteNumber(handEVs[variant]);
+    if (n !== null) { heroEV = n; break; }
   }
+
+  // No flat hand EV, but the row does price individual actions: the hand's EV
+  // under the solver's own strategy is the frequency-weighted mixture of them.
+  // That is a derivation from measured numbers, not an estimate — and without
+  // it ev.hero stays 0, which makes the client discard every per-action EV
+  // (its delta requires gtoEV !== 0).
+  //
+  // Only valid when EVERY action carrying frequency is priced. Renormalising
+  // over a priced subset would quietly assume the unpriced actions are worth
+  // the same as the priced ones, which is a guess wearing a measurement's
+  // clothes — in that case ev.hero stays unset and the client keeps flagging
+  // its delta as estimated.
+  if (heroEV === null && perActionEV) {
+    let weighted = 0;
+    let pricedWeight = 0;
+    let totalWeight = 0;
+    for (const action of validActions) {
+      const freq = handActions[action];
+      if (!(freq > 0)) continue;
+      totalWeight += freq;
+      const actionEV = perActionEV[action];
+      if (typeof actionEV === 'number') {
+        weighted += actionEV * freq;
+        pricedWeight += freq;
+      }
+    }
+    if (totalWeight > 0 && pricedWeight >= totalWeight - 1e-6) {
+      heroEV = weighted / totalWeight;
+    }
+  }
+
+  if (heroEV === null) heroEV = 0;
 
   const allEVs = Object.values(handEVs || {}).filter(v => typeof v === 'number');
   const maxEV = allEVs.length > 0 ? Math.max(...allEVs) : heroEV;
@@ -560,6 +686,28 @@ function buildRangeHeatmap(strategyMatrix, facingBet = false) {
 // PREFLOP CHART PARSER
 // ═══════════════════════════════════════════════════════════════════════
 
+/**
+ * Per-action EV from a Nash push/fold chart entry, when the chart carries one.
+ * Nash solvers usually publish the shove EV alongside the frequency, but the
+ * key name varies by import. Returns null when the chart priced nothing — the
+ * caller then omits `ev` rather than inventing a 0.
+ */
+function chartActionEV(handData, action) {
+  if (!isPlainObject(handData)) return null;
+  const candidates = [
+    handData[`${action}_ev`],
+    handData[`ev_${action}`],
+    isPlainObject(handData.evs) ? handData.evs[action] : undefined,
+    isPlainObject(handData.action_evs) ? handData.action_evs[action] : undefined,
+    isPlainObject(handData.ev) ? handData.ev[action] : undefined,
+  ];
+  for (const candidate of candidates) {
+    const n = toFiniteNumber(candidate);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
 function parsePreflopChart(chart, heroHandNotation) {
   const handMatrix = chart.hand_matrix || {};
   const handData = handMatrix[heroHandNotation] || handMatrix[heroHandNotation?.toUpperCase()];
@@ -572,12 +720,62 @@ function parsePreflopChart(chart, heroHandNotation) {
   const foldFreq = 100 - pushFreq;
   const isPush = pushFreq > 50;
 
+  const pushEV = chartActionEV(handData, 'push');
+  const foldEV = chartActionEV(handData, 'fold');
+
+  const actions = [
+    { id: 'push', label: 'Push All-In', frequency: pushFreq, color: '#ec4899', isOptimal: isPush },
+    { id: 'fold', label: 'Fold', frequency: foldFreq, color: '#ef4444', isOptimal: !isPush },
+  ];
+  // Attach only what the chart actually priced. A push/fold chart that stores
+  // frequencies alone leaves both actions without an `ev` key, and the client
+  // keeps flagging its delta as estimated — which is the truth.
+  if (pushEV !== null) actions[0].ev = parseFloat(pushEV.toFixed(3));
+  if (foldEV !== null) actions[1].ev = parseFloat(foldEV.toFixed(3));
+
+  // Hero EV: an explicit scalar if the chart has one, else the frequency-
+  // weighted mixture — but only when every action that actually carries
+  // frequency is priced, for the same reason as the postflop path. When
+  // neither exists we keep the "no EV available" block ('—' renders as a dash,
+  // and the client's gtoEV !== 0 guard keeps the delta flagged as estimated).
+  let heroEV = toFiniteNumber(handData.ev);
+  if (heroEV === null) heroEV = toFiniteNumber(handData.hero_ev);
+  if (heroEV === null && (pushEV !== null || foldEV !== null)) {
+    const weights = [{ w: pushFreq / 100, ev: pushEV }, { w: foldFreq / 100, ev: foldEV }];
+    let weighted = 0;
+    let pricedWeight = 0;
+    let totalWeight = 0;
+    for (const { w, ev: actionEV } of weights) {
+      if (!(w > 0)) continue;
+      totalWeight += w;
+      if (actionEV !== null) { weighted += actionEV * w; pricedWeight += w; }
+    }
+    if (totalWeight > 0 && pricedWeight >= totalWeight - 1e-6) {
+      heroEV = weighted / totalWeight;
+    }
+  }
+
+  const pricedEVs = [pushEV, foldEV].filter(v => v !== null);
+  const ev = heroEV === null
+    ? { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 }
+    : (() => {
+      const pool = pricedEVs.length > 0 ? pricedEVs : [heroEV];
+      const maxEV = Math.max(...pool);
+      const minEV = Math.min(...pool);
+      const avgEV = pool.reduce((s, v) => s + v, 0) / pool.length;
+      return {
+        hero: parseFloat(heroEV.toFixed(3)),
+        heroDisplay: heroEV >= 0 ? `+${heroEV.toFixed(2)} BB` : `${heroEV.toFixed(2)} BB`,
+        max: parseFloat(maxEV.toFixed(3)),
+        min: parseFloat(minEV.toFixed(3)),
+        avg: parseFloat(avgEV.toFixed(3)),
+        evLoss: parseFloat(Math.max(0, maxEV - heroEV).toFixed(3)),
+      };
+    })();
+
   return {
     heroHand: heroHandNotation,
-    actions: [
-      { id: 'push', label: 'Push All-In', frequency: pushFreq, color: '#ec4899', isOptimal: isPush },
-      { id: 'fold', label: 'Fold', frequency: foldFreq, color: '#ef4444', isOptimal: !isPush },
-    ],
+    actions,
     optimalAction: {
       id: isPush ? 'push' : 'fold',
       label: isPush ? 'Push All-In' : 'Fold',
@@ -585,7 +783,7 @@ function parsePreflopChart(chart, heroHandNotation) {
       color: isPush ? '#ec4899' : '#ef4444',
     },
     isMixed: pushFreq > 10 && pushFreq < 90,
-    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    ev,
   };
 }
 
@@ -715,11 +913,17 @@ RULES:
 
     // Grok is NOT guaranteed to return actions sorted by frequency, nor to make
     // them sum to 100 — normalize both before trusting the ordering.
+    //
+    // Fields are copied EXPLICITLY rather than spread. A spread would forward
+    // anything the model volunteered — including an `ev` — and the client reads
+    // `typeof action.ev === 'number'` as "this EV was measured", which would
+    // switch off its `evDeltaEstimated` warning for a number the model made up.
+    // No per-action EV is derivable on this path, so none is emitted.
     const rawActions = (parsed.actions || [])
       .filter(a => a && typeof a === 'object')
       .map(a => ({
-        ...a,
         id: typeof a.id === 'string' ? a.id : 'c',
+        label: typeof a.label === 'string' && a.label ? a.label : null,
         frequency: Number(a.frequency) > 0 ? Number(a.frequency) : 0,
       }));
 
@@ -729,7 +933,7 @@ RULES:
         const normalized = freqTotal > 0 ? (a.frequency * 100) / freqTotal : 0;
         const label = a.label || getActionLabel(a.id, potSize, facingBet);
         return {
-          ...a,
+          id: a.id,
           label,
           frequency: Math.round(normalized),
           frequencyRaw: normalized / 100,
@@ -758,7 +962,11 @@ RULES:
 }
 
 /**
- * Hard fallback when Grok also fails — basic rule-based
+ * Hard fallback when Grok also fails — basic rule-based.
+ *
+ * These frequencies are positional heuristics, so no action carries an `ev`
+ * key: there is nothing measured to report, and a 0 would be read by the
+ * client as a real EV (see the honesty contract above parseStrategyForHand).
  */
 function ruleBasedFallback(params) {
   const { heroHand, heroPosition, heroStack, board, potSize } = params;
@@ -867,12 +1075,13 @@ export default async function handler(req, res) {
       let userId = null;
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
         try {
+          // NOTE: `authError` was referenced here instead of `authErr`. Module
+          // code is strict-mode, so that threw a ReferenceError on EVERY
+          // authenticated request, was swallowed by the catch below, and left
+          // userId null — no session row, no stats, no context-authority check.
           const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          /* removed duplicate authUser */
-          if (!authError && authUser) {
+          if (!authErr && authUser) {
             userId = authUser.id;
           }
         } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
