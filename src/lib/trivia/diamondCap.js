@@ -49,8 +49,17 @@ export async function getDailyDiamondsEarned(supabase, userId, mode) {
                     //          legitimately exceed 100 score-rows in one day
 
     if (error) {
-        console.warn('[diamondCap] cap query failed, treating as 0 earned:', error.message);
-        return 0;
+        // FIX(fail-closed): this used to return 0 ("nothing earned today"),
+        // which FAILED OPEN — diamond awards are client-initiated real
+        // currency, so a transient DB/RLS error let every award through at
+        // the full daily allotment, i.e. the error path WIDENED the mint.
+        // Return MAX_SAFE_INTEGER ("cap already reached") instead: clampToCap
+        // then yields 0 and the award is blocked for this one attempt. A
+        // blocked legitimate award self-heals on the next submit; minted
+        // diamonds cannot be un-minted. (MAX_SAFE_INTEGER rather than
+        // Infinity so any caller arithmetic on the value stays finite.)
+        console.warn('[diamondCap] cap query failed — failing CLOSED (treating cap as reached):', error.message);
+        return Number.MAX_SAFE_INTEGER;
     }
     if (!data) return 0;
     return data.reduce((sum, s) => sum + (s.diamonds_earned || 0), 0);

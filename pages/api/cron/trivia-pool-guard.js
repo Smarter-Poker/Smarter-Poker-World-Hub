@@ -73,8 +73,18 @@ const SURVIVAL_QUESTIONS_PER_RUN = 200;
 /** Audit attrition headroom — the audit demotes a slice of every category. */
 const DEPTH_HEADROOM = 1.25;
 
-/** Daily roster size per category, written by /api/cron/generate-trivia. */
-const ROSTER_PER_CATEGORY = 20;
+/**
+ * Daily roster TAGGING size per category, written by /api/cron/generate-trivia.
+ * FIX(roster-cut): was 20 (the per-player consumption number). generate-trivia
+ * now tags only ROSTER_TAG_PER_CATEGORY = 3 rows/category/day (2 served slots
+ * — the daily endpoint serves slice(0, 20) across 10 categories — plus 1
+ * demotion-headroom slot). Left at 20, this watchdog's rosterComplete check
+ * could never pass and the guard would report unhealthy forever. The 20/day
+ * per-player DEMAND model is untouched: it lives in CATEGORY_DAILY_DEMAND
+ * above and still drives the depth math. Keep in sync with
+ * ROSTER_TAG_PER_CATEGORY in pages/api/cron/generate-trivia.js.
+ */
+const ROSTER_TAG_PER_CATEGORY = 3;
 
 function getSupabase() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -124,7 +134,9 @@ export default async function handler(req, res) {
                 daysOfCoverage: report.daysOfCoverage,
                 meetsGuarantee: report.meetsGuarantee,
                 rosterToday: rosterCount,
-                rosterComplete: rosterCount >= ROSTER_PER_CATEGORY,
+                // FIX(roster-cut): compare against the tagging size (3), not
+                // the per-player demand model (20).
+                rosterComplete: rosterCount >= ROSTER_TAG_PER_CATEGORY,
             }];
         }));
 

@@ -14,7 +14,8 @@
  *                                        or NODE_ENV exceptions
  *   ANON_KEY fallback => RLS-silent      service-role key REQUIRED, throws if absent
  *   10 questions/day total               generates per category AND tags a
- *                                        20-question daily roster per category
+ *                                        daily roster per category (see
+ *                                        ROSTER_TAG_PER_CATEGORY)
  *   Only 6 fact categories               all 10 categories (incl. the 4 strategy
  *                                        ones that back the mtt/cash/icm/gto modes)
  *   1 Grok call per question             1 batched call per (category, difficulty)
@@ -56,6 +57,13 @@ import {
     DEFAULT_QUALITY_FLOOR,
 } from '../../../src/lib/triviaQuestionLoader';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+// FEAT(adaptive-volume): the per-player demand model lives in the pool guard
+// (CATEGORY_DAILY_DEMAND). Importing it — rather than copying the numbers —
+// keeps the watchdog's "how short are we" math and this cron's "how much do we
+// generate" math permanently in sync. The guard's default handler is unused
+// here; only the named constant is pulled in, and there is no import cycle
+// (the guard does not import this module).
+import { CATEGORY_DAILY_DEMAND } from './trivia-pool-guard';
 
 // Node.js runtime (Pages Router req/res API). Long job: 300s ceiling, with an
 // internal wall-clock budget so the handler returns a resumable cursor instead
@@ -69,8 +77,30 @@ export const config = { maxDuration: 300 };
 /** How far ahead the roster is tagged. See SCHEDULE above. */
 const TAG_LEAD_MINUTES = 90;
 
-/** Questions tagged onto the daily roster per category. */
+/**
+ * PER-PLAYER CONSUMPTION MODEL: how many questions a dedicated-mode player
+ * burns per day (the loader serves 20/day for rules/mtt/cash/icm). Used ONLY
+ * by the depth-demand math (buildDepthReport). NOT the roster tagging size.
+ *
+ * FIX(roster-cut): this constant used to drive BOTH the depth model AND how
+ * many rows tagRosterForDay stamped with daily_date. Tagging 20/category
+ * (200/day) while /api/trivia/daily serves slice(0, 20) burned 10x the
+ * questions the endpoint delivers and locked the surplus out of rotation via
+ * last_used_at. The two meanings are now decoupled:
+ *   - ROSTER_PER_CATEGORY (20)   -> per-player demand, depth math only
+ *   - ROSTER_TAG_PER_CATEGORY (3) -> rows actually tagged per category per day
+ */
 const ROSTER_PER_CATEGORY = 20;
+
+/**
+ * FEAT(roster-cut): rows tagged onto the daily roster per category per day.
+ * The daily endpoint serves slice(0, 20) = order_index slots 0-1 across the
+ * 10 categories (20 questions); slot 2 is headroom so a mid-day report
+ * demotion (which clears daily_date) still leaves a full 20 to serve without
+ * an emergency rebuild. Keep in sync with ROSTER_TAG_PER_CATEGORY in
+ * pages/api/cron/trivia-pool-guard.js (rosterComplete check).
+ */
+const ROSTER_TAG_PER_CATEGORY = 3;
 
 /** Quality floor for gameplay — must match [mode].js MIN_QUALITY_SCORE. */
 const ROSTER_MIN_QUALITY = DEFAULT_QUALITY_FLOOR; // 6
@@ -80,6 +110,26 @@ const ROSTER_PREFERRED_QUALITY = 8;
 
 /** New questions generated per category per run (PHASE A). */
 const GENERATE_PER_CATEGORY = 10;
+
+/**
+ * FEAT(adaptive-volume): ceiling for the per-category quota when a category's
+ * servable depth is below its 60-day target. Short categories scale from
+ * GENERATE_PER_CATEGORY up to this, proportionally to their shortfall.
+ */
+const ADAPTIVE_MAX_PER_CATEGORY = 30;
+
+/**
+ * FEAT(self-audit): PHASE D knobs. ~30 questions/day at 2 cold answers each is
+ * the whole 15,000-question pool audited on a rolling ~16-month cycle without
+ * a separate audit cron (the external "Phase 52" audit never runs in this
+ * repo's schedule).
+ */
+const AUDIT_PER_RUN = 30;
+/** Both cold answers must clear this confidence before a disagree demotes. */
+const AUDIT_MIN_CONFIDENCE = 0.6;
+/** Below the serving floor (6); distinct from report-demote (3) and flag (2)
+ *  so operators can tell WHY a row was buried. */
+const AUDIT_DEMOTED_QUALITY = 4;
 
 /** Baseline score for validator-passed questions (gameplay floor is 6). */
 const SEEDED_QUALITY_SCORE = 7;
@@ -337,12 +387,12 @@ function addDays(dayStr, n) {
     return getTodayCST(d);
 }
 
-/** ISO timestamp N days before now. */
-function daysAgoIso(n) {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    return d.toISOString();
-}
+// FIX(timezone): daysAgoIso() removed. It produced "now minus N days" as a
+// bare UTC instant, while every day label in this file is a CST day string —
+// so the last_used_at cutoff drifted up to 6 hours from the daily_date cutoff
+// at the window boundary. Cutoffs are now derived from the CST day boundary
+// via addDays() + getTodayStartCST() (see tagRosterForDay), so both filters
+// agree on where "60 days ago" starts.
 
 /**
  * Split a per-category quota across the enforced difficulty mix, distributing
@@ -551,6 +601,35 @@ async function generateBatch(grok, category, difficulty, count, avoidSamples, to
 }
 
 /**
+ * FIX(parse-retry): a Grok batch that throws OR parses to [] (malformed /
+ * truncated JSON is silently swallowed by parseGrokJson) used to be counted
+ * straight into grokFailures with no second chance, leaving that category's
+ * difficulty quota unmet for the day. Retry the SAME prompt exactly once
+ * before giving up. The retry is skipped when the wall-clock budget is spent,
+ * so a slow run cannot double its own overrun.
+ *
+ * @returns {Promise<{candidates: object[], error: string|null, retried: boolean}>}
+ */
+async function generateBatchWithRetry(grok, category, difficulty, count, avoidSamples, topic, deadline) {
+    let lastError = null;
+    let retried = false;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (Date.now() > deadline) {
+            return { candidates: [], error: lastError || 'budget exhausted before attempt', retried };
+        }
+        retried = attempt > 0;
+        try {
+            const candidates = await generateBatch(grok, category, difficulty, count, avoidSamples, topic);
+            if (candidates.length > 0) return { candidates, error: null, retried };
+            lastError = 'empty or unparseable response';
+        } catch (e) {
+            lastError = String(e?.message || e).slice(0, 160);
+        }
+    }
+    return { candidates: [], error: lastError, retried: true };
+}
+
+/**
  * Generate + validate + insert new questions for ONE category.
  * Every question passes src/lib/triviaValidator.validateBatch (structure, sync,
  * math, logic, quality) AND normalized-text dedup before it touches the DB.
@@ -584,14 +663,14 @@ async function generateForCategory(supabase, grok, category, quota, deadline) {
     // round trip.
     const settled = await Promise.all(plan.map(async ({ difficulty, count }, i) => {
         const topic = category.topics[(topicOffset + i) % category.topics.length];
-        try {
-            // Over-request slightly: the validator is strict, and asking for a
-            // couple of spares is far cheaper than a second round trip.
-            const candidates = await generateBatch(grok, category, difficulty, count + 2, samples, topic);
-            return { difficulty, count, candidates, error: null };
-        } catch (e) {
-            return { difficulty, count, candidates: [], error: String(e?.message || e).slice(0, 160) };
-        }
+        // Over-request slightly: the validator is strict, and asking for a
+        // couple of spares is far cheaper than a second round trip.
+        // FIX(parse-retry): throw/[] now gets ONE same-prompt retry (budget
+        // permitting) before it is surfaced as a grok failure.
+        const { candidates, error } = await generateBatchWithRetry(
+            grok, category, difficulty, count + 2, samples, topic, deadline
+        );
+        return { difficulty, count, candidates, error };
     }));
 
     // Validation and insertion run SEQUENTIALLY over the settled batches so the
@@ -650,7 +729,7 @@ async function generateForCategory(supabase, grok, category, quota, deadline) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Ensure `day` has ROSTER_PER_CATEGORY questions tagged for every category.
+ * Ensure `day` has ROSTER_TAG_PER_CATEGORY questions tagged for every category.
  *
  * Idempotent by construction: it counts what is already tagged for that day and
  * only tops up the difference, so a retry, a duplicate cron delivery or a manual
@@ -660,12 +739,16 @@ async function generateForCategory(supabase, grok, category, quota, deadline) {
  */
 async function tagRosterForDay(supabase, day, deadline) {
     const rosterCutoffDay = addDays(day, -NO_REPEAT_WINDOW_DAYS);
-    const usedCutoffIso = daysAgoIso(NO_REPEAT_WINDOW_DAYS);
+    // FIX(timezone): both cutoffs now share the SAME CST day boundary. The old
+    // daysAgoIso(60) was a UTC instant relative to "now", which disagreed with
+    // rosterCutoffDay (a CST day string) by up to 6 hours — rows re-entered
+    // one filter's window hours before the other's.
+    const usedCutoffIso = getTodayStartCST(rosterCutoffDay);
     const nowIso = new Date().toISOString();
 
     const perCategory = {};
     // id -> slot, so every category's Nth question shares an order_index and the
-    // roster can be written with ROSTER_PER_CATEGORY bulk updates instead of
+    // roster can be written with ROSTER_TAG_PER_CATEGORY bulk updates instead of
     // one round trip per row.
     const bySlot = new Map();
     let shortfall = 0;
@@ -689,7 +772,9 @@ async function tagRosterForDay(supabase, day, deadline) {
         }
 
         const have = alreadyTagged || 0;
-        const need = ROSTER_PER_CATEGORY - have;
+        // FIX(roster-cut): top-up target is the TAGGING size (3), not the
+        // per-player consumption model (20). See the constant block up top.
+        const need = ROSTER_TAG_PER_CATEGORY - have;
         if (need <= 0) {
             perCategory[category.id] = { tagged: 0, existing: have, complete: true };
             continue;
@@ -758,7 +843,8 @@ async function tagRosterForDay(supabase, day, deadline) {
         };
     }
 
-    // One update per order_index slot (<= 20 round trips for the whole roster).
+    // One update per order_index slot (<= ROSTER_TAG_PER_CATEGORY round trips
+    // for the whole roster).
     const slotEntries = [...bySlot.entries()];
     const updateResults = await Promise.all(slotEntries.map(([slot, ids]) =>
         supabase
@@ -777,7 +863,9 @@ async function tagRosterForDay(supabase, day, deadline) {
     return {
         day,
         tagged: updateResults.reduce((a, b) => a + b, 0),
-        target: ROSTER_PER_CATEGORY * CATEGORIES.length,
+        // FIX(roster-cut): target reflects what is actually tagged (3/category),
+        // not the per-player demand model.
+        target: ROSTER_TAG_PER_CATEGORY * CATEGORIES.length,
         shortfall,
         categories: perCategory,
     };
@@ -857,6 +945,273 @@ async function buildDepthReport(supabase) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// FEAT(adaptive-volume) — self-healing generation depth
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Plan this run's per-category generation quotas from measured pool depth.
+ *
+ * Demand model (same as trivia-pool-guard):
+ *   target(category) = CATEGORY_DAILY_DEMAND[category] x 60 days x 1.25 headroom
+ *
+ * A category at/above its target generates the base quota (the steady-state
+ * drip). A category below target scales linearly with its shortfall fraction,
+ * capped at ADAPTIVE_MAX_PER_CATEGORY (30). One cheap head-count per category;
+ * any count error falls back to the base quota for that category so a flaky
+ * read can never zero out generation.
+ *
+ * @returns {Promise<{plan: Map<string, object>, ordered: object[], measured: boolean}>}
+ *          `ordered` is CATEGORIES sorted shortest-first (lowest fill ratio),
+ *          so a budget timeout starves the healthiest categories, not the
+ *          neediest. `measured:false` means every count failed — callers keep
+ *          the original rotation order and base quotas.
+ */
+async function planAdaptiveQuotas(supabase, baseQuota) {
+    const counts = await Promise.all(CATEGORIES.map(async (cat) => {
+        const { count, error } = await supabase
+            .from('trivia_questions')
+            .select('id', { count: 'exact', head: true })
+            .eq('category', cat.id)
+            .gte('quality_score', ROSTER_MIN_QUALITY);
+        if (error) {
+            console.warn(`[GenerateTrivia] adaptive depth count failed (${cat.id}):`, error.message);
+            return { id: cat.id, servable: null };
+        }
+        return { id: cat.id, servable: count || 0 };
+    }));
+
+    const plan = new Map();
+    let anyMeasured = false;
+    for (const { id, servable } of counts) {
+        const perDay = CATEGORY_DAILY_DEMAND[id] ?? 10;
+        const target = Math.ceil(perDay * NO_REPEAT_WINDOW_DAYS * DEPTH_HEADROOM);
+        if (servable == null) {
+            plan.set(id, { quota: baseQuota, servable: null, target, shortfall: null, fillRatio: 1 });
+            continue;
+        }
+        anyMeasured = true;
+        const shortfall = Math.max(0, target - servable);
+        const fillRatio = target > 0 ? servable / target : 1;
+        const quota = shortfall === 0
+            ? baseQuota
+            : Math.min(
+                ADAPTIVE_MAX_PER_CATEGORY,
+                Math.max(
+                    baseQuota,
+                    Math.ceil(baseQuota + (ADAPTIVE_MAX_PER_CATEGORY - baseQuota) * Math.min(1, shortfall / target))
+                )
+            );
+        plan.set(id, { quota, servable, target, shortfall, fillRatio });
+    }
+
+    // Shortest categories first. Unmeasured categories keep a neutral ratio of
+    // 1 so they sort behind every genuinely short category.
+    const ordered = CATEGORIES.slice().sort(
+        (a, b) => (plan.get(a.id)?.fillRatio ?? 1) - (plan.get(b.id)?.fillRatio ?? 1)
+    );
+    return { plan, ordered, measured: anyMeasured };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEAT(self-audit) — PHASE D: cold-answer fact check, no external audit needed
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Parse one cold-answer completion: {"answer_index":0-3,"confidence":0-1}. */
+function parseColdAnswer(content) {
+    if (!content || typeof content !== 'string') return null;
+    const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    try {
+        const parsed = JSON.parse(cleaned);
+        const idx = Number.isInteger(parsed?.answer_index) ? parsed.answer_index : null;
+        if (idx == null || idx < 0 || idx > 3) return null;
+        const conf = Number.isFinite(parsed?.confidence)
+            ? Math.max(0, Math.min(1, parsed.confidence))
+            : null;
+        return { index: idx, confidence: conf };
+    } catch (_e) {
+        return null;
+    }
+}
+
+/**
+ * Ask the model to answer a stored question COLD — the stored correct_index is
+ * never sent, so agreement is evidence, not echo. Two cold answers are wanted;
+ * they are batched into ONE API call via `n: 2` (two independent samples at
+ * temperature 0.5). If the provider ignores `n` or one sample fails to parse,
+ * exactly one follow-up single call tops it up.
+ *
+ * @returns {Promise<{answers: Array<{index:number, confidence:number|null}>, error: string|null}>}
+ */
+async function coldAnswerQuestion(grok, q) {
+    const request = {
+        model: MODEL,
+        messages: [
+            {
+                role: 'system',
+                content: 'You are a poker expert answering a multiple-choice trivia question cold. ' +
+                    'Output ONLY valid JSON, never markdown, never commentary.',
+            },
+            {
+                role: 'user',
+                content: `Answer this poker question. Reply ONLY with JSON {"answer_index":<0-3>,"confidence":<0-1>}.\n\n` +
+                    `QUESTION: ${q.question}\nOPTIONS:\n${q.options.map((o, i) => `${i}. ${o}`).join('\n')}`,
+            },
+        ],
+        response_format: { type: 'json_object' },
+        // Non-zero so the two samples are semi-independent; at 0 they would
+        // always be identical and "both agree" would carry no extra signal.
+        temperature: 0.5,
+        // Cap tokens hard — the reply is a ~15-token JSON object.
+        max_tokens: 60,
+        n: 2,
+    };
+
+    let answers = [];
+    try {
+        const response = await grok.chat.completions.create(request);
+        answers = (response?.choices || [])
+            .map(c => parseColdAnswer(c?.message?.content))
+            .filter(Boolean);
+    } catch (e) {
+        return { answers: [], error: String(e?.message || e).slice(0, 160) };
+    }
+
+    if (answers.length < 2) {
+        try {
+            const retry = await grok.chat.completions.create({ ...request, n: 1 });
+            const extra = parseColdAnswer(retry?.choices?.[0]?.message?.content);
+            if (extra) answers.push(extra);
+        } catch (_e) {
+            // keep whatever we have; the caller treats <2 answers as inconclusive
+        }
+    }
+    return { answers: answers.slice(0, 2), error: null };
+}
+
+/**
+ * PHASE D — rolling self-audit of the servable pool.
+ *
+ * Picks up to AUDIT_PER_RUN oldest never-audited servable questions (ANY
+ * source — the external "Phase 52" audit does not exist in this repo's
+ * schedule, so this is the only fact check the pool gets) and cold-asks the
+ * model twice per question. Outcomes:
+ *   - both cold answers == stored correct_index
+ *         -> audit_verified = true, last_audited_at = now
+ *   - both agree with EACH OTHER, disagree with stored, both confident
+ *         -> quality_score = AUDIT_DEMOTED_QUALITY (4), daily_date cleared
+ *            (same pull-from-rotation semantics as report-question's
+ *            3-strike demotion), engine_metadata.audit note kept
+ *   - anything else (mixed, unparseable, low confidence, API error)
+ *         -> last_audited_at = now only, so the row leaves the never-audited
+ *            queue; once that queue drains, a follow-up change can re-audit by
+ *            ordering on last_audited_at ASC instead of IS NULL.
+ *
+ * Budget-aware: stops between questions when `deadline` passes; never starts
+ * a question with <5s left.
+ */
+async function selfAuditQuestions(supabase, grok, deadline) {
+    const out = {
+        attempted: 0,
+        verified: 0,
+        demoted: 0,
+        inconclusive: 0,
+        apiErrors: 0,
+        skipped: null,
+    };
+    if (!grok) {
+        out.skipped = 'grok client unavailable';
+        return out;
+    }
+    if (Date.now() > deadline) {
+        out.skipped = 'budget exhausted before audit';
+        return out;
+    }
+
+    const { data, error } = await supabase
+        .from('trivia_questions')
+        .select('id, question, options, correct_index, quality_score, engine_metadata')
+        .is('last_audited_at', null)
+        .gte('quality_score', ROSTER_MIN_QUALITY)
+        .order('created_at', { ascending: true })
+        .limit(AUDIT_PER_RUN);
+    if (error) {
+        out.skipped = `candidate query failed: ${error.message}`;
+        return out;
+    }
+
+    for (const q of data || []) {
+        if (Date.now() > deadline - 5000) {
+            out.skipped = 'budget exhausted mid-audit';
+            break;
+        }
+        const nowIso = new Date().toISOString();
+
+        // Structurally unauditable rows are stamped and skipped rather than
+        // burning two model calls on garbage.
+        if (
+            typeof q.question !== 'string'
+            || !Array.isArray(q.options) || q.options.length !== 4
+            || !Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3
+        ) {
+            await supabase.from('trivia_questions')
+                .update({ last_audited_at: nowIso })
+                .eq('id', q.id);
+            out.inconclusive += 1;
+            continue;
+        }
+
+        out.attempted += 1;
+        const { answers, error: coldErr } = await coldAnswerQuestion(grok, q);
+        if (coldErr) out.apiErrors += 1;
+
+        const bothParsed = answers.length === 2;
+        const bothMatchStored = bothParsed
+            && answers[0].index === q.correct_index
+            && answers[1].index === q.correct_index;
+        const bothAgreeWrong = bothParsed
+            && answers[0].index === answers[1].index
+            && answers[0].index !== q.correct_index
+            && (answers[0].confidence ?? 0) >= AUDIT_MIN_CONFIDENCE
+            && (answers[1].confidence ?? 0) >= AUDIT_MIN_CONFIDENCE;
+
+        let update;
+        if (bothMatchStored) {
+            update = { audit_verified: true, last_audited_at: nowIso };
+            out.verified += 1;
+        } else if (bothAgreeWrong) {
+            update = {
+                quality_score: AUDIT_DEMOTED_QUALITY,
+                last_audited_at: nowIso,
+                // Pull it off any tagged roster immediately, mirroring
+                // report-question's demotion semantics.
+                daily_date: null,
+                engine_metadata: {
+                    ...(q.engine_metadata && typeof q.engine_metadata === 'object' ? q.engine_metadata : {}),
+                    audit: {
+                        cold_answers: answers,
+                        stored_correct_index: q.correct_index,
+                        model: MODEL,
+                        at: nowIso,
+                    },
+                },
+            };
+            out.demoted += 1;
+        } else {
+            update = { last_audited_at: nowIso };
+            out.inconclusive += 1;
+        }
+
+        const { error: updErr } = await supabase
+            .from('trivia_questions')
+            .update(update)
+            .eq('id', q.id);
+        if (updErr) console.warn(`[GenerateTrivia] audit update failed (${q.id}):`, updErr.message);
+    }
+
+    return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -913,30 +1268,58 @@ export default async function handler(req, res) {
                 rejectedQuality: 0,
                 rejectedDuplicate: 0,
                 grokFailures: 0,
+                adaptive: null,
                 categories: {},
             },
             roster: [],
             depth: null,
+            audit: null,
             warnings: [],
         };
 
+        // FEAT(self-audit): the Grok client is hoisted so PHASE D can reuse it
+        // even when generation is skipped (rosterOnly runs still audit).
+        let grok = null;
+
         // ═══ PHASE A — grow the pool ═══════════════════════════════════
         if (!skipGeneration && perCategoryQuota > 0) {
+            // FEAT(adaptive-volume): measure servable depth per category and
+            // scale quotas BEFORE spending any Grok budget. Short categories
+            // (servable < CATEGORY_DAILY_DEMAND x 60 x 1.25) generate up to
+            // ADAPTIVE_MAX_PER_CATEGORY; healthy ones stay at the base drip.
+            // The iteration order becomes shortest-first so a budget timeout
+            // starves the healthiest categories, not the neediest. The
+            // resumable cursor now indexes into THIS ordering; depth barely
+            // moves between a run and its immediate ?cursor= retry, so the
+            // resume point stays meaningful.
+            const adaptive = await planAdaptiveQuotas(supabase, perCategoryQuota);
+            const orderedCats = adaptive.measured ? adaptive.ordered : CATEGORIES;
+            summary.generation.adaptive = Object.fromEntries(
+                [...adaptive.plan.entries()].map(([id, p]) => [id, {
+                    servable: p.servable,
+                    target: p.target,
+                    shortfall: p.shortfall,
+                    quota: p.quota,
+                }])
+            );
+            const plannedTotal = [...adaptive.plan.values()].reduce((s, p) => s + p.quota, 0)
+                || perCategoryQuota * CATEGORIES.length;
+
             // Cheap idempotency guard: if this run already produced its daily
             // quota (retry, duplicate cron delivery, manual re-trigger), do not
-            // spend the Grok budget again.
+            // spend the Grok budget again. The target is the ADAPTIVE total, so
+            // a resumed run keeps going until the scaled plan is met.
             const { count: madeToday } = await supabase
                 .from('trivia_questions')
                 .select('id', { count: 'exact', head: true })
                 .eq('source', SOURCE_TAG)
                 .gte('created_at', getTodayStartCST(todayCST));
 
-            const dailyTarget = perCategoryQuota * CATEGORIES.length;
+            const dailyTarget = plannedTotal;
             if ((madeToday || 0) >= dailyTarget) {
                 summary.generation.skipped = true;
                 summary.generation.reason = `already generated ${madeToday} questions today (target ${dailyTarget})`;
             } else {
-                let grok;
                 try {
                     grok = getGrokClient();
                 } catch (e) {
@@ -945,22 +1328,25 @@ export default async function handler(req, res) {
                 }
 
                 if (grok) {
-                    for (let i = 0; i < CATEGORIES.length; i++) {
-                        const category = CATEGORIES[(startCursor + i) % CATEGORIES.length];
+                    for (let i = 0; i < orderedCats.length; i++) {
+                        const category = orderedCats[(startCursor + i) % orderedCats.length];
                         if (Date.now() > deadline) {
                             summary.timedOut = true;
-                            summary.nextCursor = (startCursor + i) % CATEGORIES.length;
+                            summary.nextCursor = (startCursor + i) % orderedCats.length;
                             summary.warnings.push(
                                 `Generation stopped at ${category.id} — re-invoke with ?cursor=${summary.nextCursor} to resume.`
                             );
                             break;
                         }
-                        const r = await generateForCategory(supabase, grok, category, perCategoryQuota, deadline);
+                        // FEAT(adaptive-volume): per-category quota from the plan.
+                        const catQuota = adaptive.plan.get(category.id)?.quota ?? perCategoryQuota;
+                        const r = await generateForCategory(supabase, grok, category, catQuota, deadline);
                         summary.generation.inserted += r.inserted;
                         summary.generation.rejectedQuality += r.rejectedQuality;
                         summary.generation.rejectedDuplicate += r.rejectedDuplicate;
                         summary.generation.grokFailures += r.grokFailures;
                         summary.generation.categories[category.id] = {
+                            requested: catQuota,
                             inserted: r.inserted,
                             byDifficulty: r.byDifficulty,
                             rejectedQuality: r.rejectedQuality,
@@ -995,6 +1381,33 @@ export default async function handler(req, res) {
             }
         } catch (e) {
             summary.warnings.push(`depth report failed: ${String(e?.message || e).slice(0, 200)}`);
+        }
+
+        // ═══ PHASE D — SELF-AUDIT (FEAT: closes the never-runs fact-check
+        // gap; the external "Phase 52" audit is not in this repo's schedule).
+        // Budget: the ORIGINAL RUN_BUDGET_MS deadline — on generation-heavy
+        // days this phase yields entirely rather than risk the 300s kill.
+        try {
+            if (!grok) {
+                // rosterOnly / generation-skipped runs still audit.
+                try {
+                    grok = getGrokClient();
+                } catch (e) {
+                    grok = null;
+                    summary.warnings.push(
+                        `audit skipped — Grok client unavailable: ${String(e?.message || e).slice(0, 200)}`
+                    );
+                }
+            }
+            summary.audit = await selfAuditQuestions(supabase, grok, deadline);
+            if (summary.audit.demoted > 0) {
+                summary.warnings.push(
+                    `AUDIT: demoted ${summary.audit.demoted} questions whose stored answer twice ` +
+                    'disagreed with confident cold answers — review engine_metadata.audit.'
+                );
+            }
+        } catch (e) {
+            summary.warnings.push(`self-audit failed: ${String(e?.message || e).slice(0, 200)}`);
         }
 
         const rosterShortfall = summary.roster.reduce((s, r) => s + (r.shortfall || 0), 0);
