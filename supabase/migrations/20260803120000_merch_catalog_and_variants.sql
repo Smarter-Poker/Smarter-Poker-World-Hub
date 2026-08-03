@@ -55,6 +55,8 @@ $fn$;
 --    id is TEXT: create-checkout-session.js and purchase-with-diamonds.js both
 --    do .in('id', itemIds) with slugs coming from the MERCHANDISE array.
 -- ─────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS public.merchandise_items CASCADE;
+
 CREATE TABLE IF NOT EXISTS public.merchandise_items (
     id              TEXT PRIMARY KEY,
     name            TEXT NOT NULL,

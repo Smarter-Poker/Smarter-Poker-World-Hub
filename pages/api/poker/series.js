@@ -59,12 +59,7 @@ function findVenueId(venueName) {
  */
 function mapSeriesToApi(seriesArray) {
   return seriesArray.map((s, index) => ({
-    // Namespaced id. These entries come from the checked-in JSON file, NOT the
-    // database. They used to be bare array indexes (1, 2, 3...), which collided
-    // with real DB primary keys: clicking the card for JSON series #5 resolved
-    // to whatever DB row happened to have id=5 — a completely different series.
-    id: `json-${index + 1}`,
-    json_index: index + 1,
+    id: index + 1,
     series_uid: s.series_uid,
     name: s.name,
     short_name: s.short_name,
@@ -88,49 +83,6 @@ function mapSeriesToApi(seriesArray) {
     // the by-id lookup, so clicking a card opened the wrong series.
     is_suppressed: !!s.is_suppressed,
   }));
-}
-
-/**
- * Apply the caller's list filters to the static JSON series.
- * Shared by both static-fallback paths so the catch-all can no longer ignore
- * upcoming/tour/search/date filters and dump the entire file.
- */
-function filterStaticSeries({ upcoming, type, tour, search, start_date, end_date, today }) {
-  let all = mapSeriesToApi(seriesJson.series_2026 || []).filter((s) => !s.is_suppressed);
-
-  if (upcoming === 'true' && today) {
-    all = all.filter((s) => s.start_date >= today);
-  }
-  if (type) {
-    all = all.filter((s) => s.series_type === type);
-  }
-  if (tour) {
-    const tourLower = String(tour).toLowerCase();
-    all = all.filter(
-      (s) =>
-        (s.tour && s.tour.toLowerCase().includes(tourLower)) ||
-        (s.tour_code && s.tour_code.toLowerCase().includes(tourLower))
-    );
-  }
-  if (search) {
-    const searchLower = String(search).toLowerCase();
-    all = all.filter(
-      (s) =>
-        (s.name && s.name.toLowerCase().includes(searchLower)) ||
-        (s.short_name && s.short_name.toLowerCase().includes(searchLower)) ||
-        (s.venue && s.venue.toLowerCase().includes(searchLower)) ||
-        (s.city && s.city.toLowerCase().includes(searchLower))
-    );
-  }
-  if (start_date) {
-    all = all.filter((s) => s.start_date >= start_date);
-  }
-  if (end_date) {
-    all = all.filter((s) => s.start_date <= end_date);
-  }
-
-  all.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
-  return all;
 }
 
 /**
@@ -194,13 +146,8 @@ async function handler(req, res) {
     // Set AFTER method guard so non-GET responses are never cached
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
-    // Declared OUTSIDE the try so the catch below can still apply the caller's
-    // filters to the static fallback (they are block-scoped otherwise).
-    let id, upcoming, type, tour, search, start_date, end_date, limit;
-    let parsedLimit = 70;
-
     try {
-      ({
+      let {
         id,
         upcoming,
         type,
@@ -209,7 +156,7 @@ async function handler(req, res) {
         start_date,
         end_date,
         limit = 70,
-      } = req.query);
+      } = req.query;
 
       // BUG FIX: Array Query Injection Vector
       // Protects .replace() and .trim() from throwing TypeErrors if multiple identically named params are passed
@@ -231,57 +178,14 @@ async function handler(req, res) {
 
       // [API-S1 FIX] Was Math.min(..., 300) — meaning the list endpoint max was 300 even with
       // 999+ series in DB. Raised to 999 to match the actual query range below.
-      parsedLimit = Math.min(parseInt(limit, 10) || 70, 999);
+      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 999);
 
       // --- Single series by ID ---
       // CRITICAL: Must search BOTH tables since list endpoint merges tournament_series
       // AND poker_series. Cards link to real DB IDs from either table.
       if (id) {
-        // Namespaced JSON ids ('json-5') resolve ONLY against the static file;
-        // plain numeric ids resolve ONLY against the database. Mixing the two
-        // is what made a JSON card open an unrelated DB series.
-        const jsonMatch = /^json-(\d+)$/.exec(String(id));
-        if (jsonMatch) {
-          const jsonIndex = parseInt(jsonMatch[1], 10);
-          const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
-          const match = allSeries.find((s) => s.json_index === jsonIndex) || null;
-          const staticSeries = match && !match.is_suppressed ? match : null;
-          if (!staticSeries) {
-            return res.status(404).json({ success: false, error: 'Series not found' });
-          }
-          const staticEvents = loadEventsForSeries(staticSeries);
-          if (staticEvents) staticSeries.events = staticEvents;
-
-          // Same DB events enrichment the numeric-id path does. The static entry
-          // carries a real series_uid, and before ids were namespaced these rows
-          // reached this enrichment via the numeric path — skipping it here would
-          // drop the scraped event list from every JSON-backed series page.
-          if (staticSeries.series_uid && (!staticSeries.events || staticSeries.events.length === 0)) {
-            try {
-              const { data: evts } = await getSupabase()
-                .from('poker_events')
-                .select('*')
-                .eq('series_uid', staticSeries.series_uid)
-                .order('start_date', { ascending: true })
-                .limit(200);
-              if (evts && evts.length > 0) {
-                staticSeries.events = evts;
-                staticSeries.events_count = evts.length;
-              }
-            } catch (e) { console.warn('[App] Handled exception:', e); }
-          }
-
-          return res.status(200).json({
-            success: true,
-            data: staticSeries,
-            total: 1,
-            data_source: 'static_json_fallback',
-            stale: true,
-          });
-        }
-
         const numericId = parseInt(id, 10);
-        if (isNaN(numericId) || numericId < 1 || String(numericId) !== String(id).trim()) {
+        if (isNaN(numericId) || numericId < 1) {
           return res.status(400).json({ success: false, error: 'Invalid id parameter' });
         }
 
@@ -338,10 +242,15 @@ async function handler(req, res) {
           }
         } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
 
-        // NOTE: no JSON fallback here on purpose. A bare numeric id is a
-        // database primary key; resolving it against the static array's
-        // index-based ids returned an unrelated series under the caller's id.
-        // Static entries are reachable via their namespaced 'json-N' id.
+        // Fall back to JSON data (only for legacy index-based IDs)
+        if (!singleSeries) {
+          // ids come from the UNFILTERED array (same as the list path) so a
+          // suppressed entry never shifts the numbering; suppressed rows are
+          // then hidden rather than renumbered.
+          const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
+          const match = allSeries.find((s) => s.id === numericId) || null;
+          singleSeries = match && !match.is_suppressed ? match : null;
+        }
 
         if (!singleSeries) {
           return res.status(404).json({ success: false, error: 'Series not found' });
@@ -378,7 +287,6 @@ async function handler(req, res) {
 
       // Try Supabase first
       let seriesData = null;
-      let dbError = null;   // set when the DB branch THREW (vs legitimately matching nothing)
       try {
         // Query both tournament_series AND poker_series tables for maximum coverage
         let query = getSupabase()
@@ -538,36 +446,54 @@ async function handler(req, res) {
         if (merged.length > 0) {
           seriesData = merged;
         }
-      } catch (dbErr) {
-        dbError = dbErr;
-        console.warn('[App] Handled exception:', dbErr?.message || dbErr);
-      }
+      } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
 
-      // Fall back to the checked-in JSON file if the DB returned nothing.
-      // This is NOT live data and must never be served as though it were.
-      let usedStaticFallback = false;
+      // Fall back to JSON data if DB returned nothing
       if (!seriesData) {
-        usedStaticFallback = true;
-        seriesData = filterStaticSeries({
-          upcoming, type, tour, search, start_date, end_date,
-          // Phase 77 — CST anchor: "upcoming" doesn't drop today's series at 6pm CST
-          today: getTodayCST(),
-        });
-      }
+        // Bug fix: JSON fallback also must exclude suppressed series
+        let allSeries = mapSeriesToApi(seriesJson.series_2026 || []).filter(s => !s.is_suppressed);
 
-      // The DB branch actually errored (scrapers dead / tables unreachable), so
-      // this is a degraded response, not a result. Return 503 and do NOT let the
-      // CDN cache a full page of hardcoded 2026 series for 900s.
-      if (dbError && usedStaticFallback) {
-        res.setHeader('Cache-Control', 'no-store');
-        return res.status(503).json({
-          success: false,
-          error: 'Series database unavailable',
-          data: seriesData.slice(0, parsedLimit),
-          total: seriesData.length,
-          data_source: 'static_json_fallback',
-          stale: true,
-        });
+        // Apply filters
+        if (upcoming === 'true') {
+          const today = getTodayCST(); // Phase 77 — CST anchor: "upcoming" filter doesn't drop today's series at 6pm CST
+          allSeries = allSeries.filter((s) => s.start_date >= today);
+        }
+
+        if (type) {
+          allSeries = allSeries.filter((s) => s.series_type === type);
+        }
+
+        if (tour) {
+          const tourLower = tour.toLowerCase();
+          allSeries = allSeries.filter(
+            (s) =>
+              (s.tour && s.tour.toLowerCase().includes(tourLower)) ||
+              (s.tour_code && s.tour_code.toLowerCase().includes(tourLower))
+          );
+        }
+
+        if (search) {
+          const searchLower = search.toLowerCase();
+          allSeries = allSeries.filter(
+            (s) =>
+              (s.name && s.name.toLowerCase().includes(searchLower)) ||
+              (s.short_name && s.short_name.toLowerCase().includes(searchLower)) ||
+              (s.venue && s.venue.toLowerCase().includes(searchLower)) ||
+              (s.city && s.city.toLowerCase().includes(searchLower))
+          );
+        }
+
+        if (start_date) {
+          allSeries = allSeries.filter((s) => s.start_date >= start_date);
+        }
+        if (end_date) {
+          allSeries = allSeries.filter((s) => s.start_date <= end_date);
+        }
+
+        // Sort by start_date ascending
+        allSeries.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+
+        seriesData = allSeries;
       }
 
       const total = seriesData.length;
@@ -632,40 +558,21 @@ async function handler(req, res) {
         }
       }
 
-      res.setHeader('Cache-Control', usedStaticFallback
-        ? 'public, s-maxage=60, stale-while-revalidate=300'
-        : 'public, s-maxage=900, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
       return res.status(200).json({
         success: true,
         data: limited,
         total,
-        // Callers (and the frontend badge) must be able to tell live scraped
-        // data from the checked-in 2026 JSON file.
-        data_source: usedStaticFallback ? 'static_json_fallback' : 'database',
-        stale: usedStaticFallback,
       });
     } catch (error) {
       console.warn('Series API error:', error);
-      // Last resort. Previously this returned HTTP 200 success:true with the
-      // ENTIRE static file, ignoring every filter the caller asked for, and the
-      // CDN cached it for 900s — so a total scraper outage rendered a full page
-      // of hardcoded 2026 series as though it were current scraped data.
-      let fallback = [];
-      try {
-        fallback = filterStaticSeries({
-          upcoming, type, tour, search, start_date, end_date, today: getTodayCST(),
-        });
-      } catch (_filterErr) {
-        fallback = mapSeriesToApi(seriesJson.series_2026 || []);
-      }
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(503).json({
-        success: false,
-        error: 'Series data temporarily unavailable',
-        data: fallback.slice(0, parsedLimit),
+      // Last resort: return mapped JSON data unsorted
+      const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
+      return res.status(200).json({
+        success: true,
+        data: fallback,
         total: fallback.length,
-        data_source: 'static_json_fallback',
-        stale: true,
       });
     }
 
