@@ -391,6 +391,11 @@ export function useSandboxAnalysis() {
           street: data.street,
           context: data.context,
 
+          // sandbox_sessions row id for this analysis, used to link a coach
+          // verdict to the exact hand. Absent on cached/guest responses —
+          // consumers must treat null as "no exact link available".
+          sessionId: data.sessionId || null,
+
           // Legacy compatibility
           primaryAction: data.optimalAction?.label,
           primaryFrequency: data.optimalAction?.frequency,

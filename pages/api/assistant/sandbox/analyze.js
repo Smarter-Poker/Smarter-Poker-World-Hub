@@ -1231,6 +1231,11 @@ export default async function handler(req, res) {
 
       // Save session — only for authenticated users. Guest analyses must not
       // write null-user rows into sandbox_sessions / user_assistant_stats.
+      // savedSessionId is echoed back to the client so a coach verdict logged
+      // right after this analysis can be linked to the exact hand instead of
+      // relying on the spot+timestamp heuristic. Stays null whenever the row
+      // could not be written (guest, missing table, DB error).
+      let savedSessionId = null;
       if (userId) {
        try {
         const { data: session } = await getSupabase()
@@ -1254,6 +1259,12 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (session) {
+          // Normalise to a string — the id may come back as a bigint/number
+          // depending on the column type, and every consumer treats it as text.
+          savedSessionId = (session.id === null || session.id === undefined || session.id === '')
+            ? null
+            : String(session.id);
+
           const { error: resultsErr } = await getSupabase().from('sandbox_results').insert({
             session_id: session.id,
             primary_action: analysis.optimalAction?.label,
@@ -1295,10 +1306,15 @@ export default async function handler(req, res) {
        }
       }
 
+      // sessionId is spread last so a stray key inside responseData can never
+      // shadow the real row id. Null for guests / failed writes, which the
+      // client treats exactly like "absent" (it omits the key and the server
+      // falls back to its spot+time heuristic).
       return res.status(200).json({
         success: true,
         rateLimit: { remaining: rl.remaining },
         ...responseData,
+        sessionId: savedSessionId,
       });
 
     } catch (error) {

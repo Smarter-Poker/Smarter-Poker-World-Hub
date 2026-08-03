@@ -72,10 +72,18 @@ function streetOf(row) {
 // ── Coach-verdict correlation ──────────────────────────────────────────────
 // sandbox_sessions (written by /api/assistant/sandbox/analyze) and
 // sandbox_coach_results (written by /api/sandbox/coach-result) are two separate
-// inserts from the SAME user interaction, and the client does not currently
-// send a sessionId with the coach result — so session_id is null on virtually
-// every row. Correlation therefore falls back to the spot identity
-// (hand + position + street + board) plus time proximity.
+// inserts from the SAME user interaction.
+//
+// Preferred path: sandbox_coach_results.session_id, which coach-result.js
+// persists after verifying the id belongs to the caller. That is an exact link
+// — one verdict, one hand, no ambiguity.
+//
+// Fallback path: session_id is null on every row written before that link
+// existed, and stays null whenever the client has no id to send (guest
+// analyses, cached analyses that never wrote a session row). Those rows are
+// still correlated by spot identity (hand + position + street + board) plus
+// time proximity, so historical hands keep their verdicts. Deleting this
+// fallback would blank the verdict on every hand recorded before the link.
 //
 // The coach POST always follows the analyze POST, seconds apart. The window is
 // deliberately tight: matching a replay of the same spot from another day would
@@ -114,16 +122,31 @@ function timeOf(value) {
     return Number.isFinite(t) ? t : null;
 }
 
+/** Comparable form of a session id; null when there is no link at all. */
+function sessionKeyOf(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const str = String(value).trim();
+    return str || null;
+}
+
 /**
- * Index coach rows by spot identity. Each bucket stays an array so that a spot
- * played repeatedly keeps every verdict available for one-to-one consumption.
+ * Index coach rows by exact session link and by spot identity. Each spot bucket
+ * stays an array so that a spot played repeatedly keeps every verdict available
+ * for one-to-one consumption.
+ *
+ * Rows are newest-first, so the first row seen for a session_id is the most
+ * recent verdict for that hand — the right one to keep if a re-grade ever
+ * produced two.
  */
 function indexCoachRows(rows) {
     const bySpot = new Map();
     const bySession = new Map();
     for (const row of rows || []) {
         if (!row) continue;
-        if (row.session_id && !bySession.has(row.session_id)) bySession.set(row.session_id, row);
+        // Keyed as a string so a uuid column and a numeric id column both match
+        // the session row's own id without a type-coercion miss.
+        const link = sessionKeyOf(row.session_id);
+        if (link && !bySession.has(link)) bySession.set(link, row);
         const key = spotKey(row.hero_hand, row.hero_position, row.street, row.board);
         if (!bySpot.has(key)) bySpot.set(key, []);
         bySpot.get(key).push(row);
@@ -138,13 +161,18 @@ function indexCoachRows(rows) {
 function takeCoachMatch(index, sessionRow, entryStreet, entryBoard) {
     if (!index) return null;
     const used = index.used;
+    const sessionKey = sessionKeyOf(sessionRow.id);
 
-    // Exact link wins whenever the client did send a sessionId.
-    const direct = index.bySession.get(sessionRow.id);
+    // Exact link always wins: the verdict names this exact hand, so no amount of
+    // spot/time similarity may override it.
+    const direct = sessionKey ? index.bySession.get(sessionKey) : null;
     if (direct && !used.has(direct.id)) {
         used.add(direct.id);
         return direct;
     }
+    // The link exists but was already consumed — that verdict is not this hand's
+    // to reuse, and guessing another one would be a fabrication.
+    if (direct) return null;
 
     const bucket = index.bySpot.get(
         spotKey(sessionRow.hero_hand, sessionRow.hero_position, entryStreet, entryBoard)
@@ -156,6 +184,12 @@ function takeCoachMatch(index, sessionRow, entryStreet, entryBoard) {
     let bestDiff = Infinity;
     for (const candidate of bucket) {
         if (used.has(candidate.id)) continue;
+        // A verdict that names its own session is already spoken for: it belongs
+        // to that hand and to no other, even when an identical spot was replayed
+        // seconds later. Without this the guess could outrun the exact link and
+        // hand the wrong verdict to the wrong replay.
+        const candidateKey = sessionKeyOf(candidate.session_id);
+        if (candidateKey && candidateKey !== sessionKey) continue;
         if (sessionTime === null) { best = candidate; break; }
         const candidateTime = timeOf(candidate.created_at);
         if (candidateTime === null) continue;
