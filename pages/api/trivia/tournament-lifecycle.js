@@ -21,7 +21,7 @@
  * Body (all optional):
  *   { tournament_id?: uuid, dry_run?: boolean }
  *
- * ── IDEMPOTENCY / SAFETY MODEL ───────────────────────────────────────
+ * ── IDEMPOTENCY / SAFETY MODEL ──────────────────────────────────────────────
  * Every money-moving or state-advancing step is guarded twice:
  *   1. A conditional UPDATE that doubles as a mutex, e.g. flipping a tournament
  *      'upcoming' -> 'active' with `.eq('status','upcoming')`. PostgREST returns
@@ -32,7 +32,7 @@
  * Round rows additionally carry a UNIQUE-by-convention (tournament_id,
  * round_number) so a duplicate insert is detected and treated as "already done".
  *
- * ── SHARED HELPERS ───────────────────────────────────────────────
+ * ── SHARED HELPERS ──────────────────────────────────────────────────────────
  * This module is also the single source of truth for two pure functions that
  * MUST agree between the question-serving route and the grading route:
  *   - resolveRoundRoster()      which questions belong to a given round
