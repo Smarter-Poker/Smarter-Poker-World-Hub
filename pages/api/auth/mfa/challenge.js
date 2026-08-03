@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             return res.status(405).json({ error: 'Method not allowed' });
         }
 
-        const { code, isBackupCode } = req.body || {};
+        const { code, isBackupCode, rememberDevice } = req.body || {};
         if (!code) {
             return res.status(400).json({ error: 'Verification code is required' });
         }
@@ -133,10 +133,17 @@ export default async function handler(req, res) {
 
         // Set an HTTP-only cookie. The client's sensitive requests will
         // automatically include it; admin endpoints read it via mfaGate.
-        res.setHeader(
-            'Set-Cookie',
+        const cookies = [
             `mfa_session=${mfaToken}; Path=/; Max-Age=${MFA_TOKEN_TTL_MS / 1000}; HttpOnly; Secure; SameSite=Lax`
-        );
+        ];
+
+        if (rememberDevice) {
+            const trustedToken = signMfaToken(user.id, issuedAt, secret);
+            const TRUSTED_DEVICE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+            cookies.push(`mfa_trusted_device=${trustedToken}; Path=/; Max-Age=${TRUSTED_DEVICE_TTL_MS / 1000}; HttpOnly; Secure; SameSite=Lax`);
+        }
+
+        res.setHeader('Set-Cookie', cookies);
 
         return res.status(200).json({
             success: true,

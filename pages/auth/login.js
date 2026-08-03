@@ -159,6 +159,28 @@ export default function LoginPage() {
                 const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
                 const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
                 if (hasMfa || mfaRequired) {
+                    // Check if they have a valid trusted device token
+                    try {
+                        const checkRes = await fetch('/api/auth/mfa/check-trusted', {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${data.session.access_token}`
+                            }
+                        });
+                        if (checkRes.ok) {
+                            const checkJson = await checkRes.json();
+                            if (checkJson.trusted) {
+                                // Device is trusted! Server minted a fresh mfa_session cookie.
+                                // Safe to skip MFA challenge.
+                                sessionStorage.setItem('just_authenticated', 'true');
+                                router.push(getRedirectUrl());
+                                return;
+                            }
+                        }
+                    } catch (checkErr) {
+                        console.warn('[login] MFA trusted check failed:', checkErr);
+                    }
+
                     const next = encodeURIComponent(getRedirectUrl());
                     router.push(`/auth/mfa?next=${next}`);
                     return;

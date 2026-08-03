@@ -35,6 +35,7 @@ export default function MfaChallengePage() {
     const [error, setError] = useState(null);
     const [session, setSession] = useState(null);
     const [checkingSession, setCheckingSession] = useState(true);
+    const [rememberDevice, setRememberDevice] = useState(false);
 
     // [Phase 6.1.26] step-up flag. When true, the user is re-challenging
     // for a high-risk action (change email, withdraw, disable MFA, etc.)
@@ -104,6 +105,7 @@ export default function MfaChallengePage() {
                 body: JSON.stringify({
                     code: cleaned,
                     isBackupCode: useBackup,
+                    rememberDevice,
                 }),
             });
 
@@ -194,6 +196,19 @@ export default function MfaChallengePage() {
                                 {error}
                             </div>
                         )}
+
+                        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#cbd5e1', fontSize: '0.85rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={rememberDevice}
+                                    onChange={(e) => setRememberDevice(e.target.checked)}
+                                    disabled={isLoading}
+                                    style={{ marginRight: '0.5rem', cursor: 'pointer' }}
+                                />
+                                Remember this device for 30 days
+                            </label>
+                        </div>
 
                         <button
                             type="submit"

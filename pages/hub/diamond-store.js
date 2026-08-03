@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard, MerchCard } from '../../src/components/store/StoreCards';
+import MerchStore from '../../src/components/store/MerchStore';
 
 import {
     STANDARD_REWARDS,
@@ -392,9 +393,9 @@ export default function DiamondStorePage() {
         }
     };
 
-    const handleMerchPurchase = (itemId) => {
-        showStoreToast('info', 'Merchandise store coming soon!');
-    };
+    // Merchandise checkout lives in src/components/store/MerchStore.jsx — it talks
+    // to /api/store/create-checkout-session (card) and /api/store/purchase-with-diamonds
+    // (diamonds) directly, so the page no longer needs a merch purchase handler.
 
     // ═══ Club Shop: Load items from marketplace API ═══
     const loadClubShop = useCallback(async (silent = false) => {
@@ -1031,54 +1032,9 @@ export default function DiamondStorePage() {
                         {/* MERCHANDISE TAB */}
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {activeTab === 'merch' && (
-                            <>
-                                <div style={styles.intro}>
-                                    <h2 style={styles.merchTitle}>Official Merch</h2>
-                                    <p style={styles.introText}>
-                                        Rep The Smarter.Poker Brand At The Tables. Premium Quality Gear For Serious Players.
-                                        Merch Checkout Is Coming Soon — Browse The Lineup Below.
-                                    </p>
-                                    {isVip && (
-                                        <div style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            marginTop: 12,
-                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                            color: '#000',
-                                            padding: '8px 16px',
-                                            borderRadius: 20,
-                                            fontSize: 13,
-                                            fontWeight: 800,
-                                            boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
-                                            letterSpacing: '0.5px',
-                                        }}>
-                                            <Crown size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> VIP — 10% OFF ALL PHYSICAL MERCH
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Apparel Section */}
-                                <div style={styles.merchSection}>
-                                    <h3 style={styles.merchCategoryTitle}>Apparel</h3>
-                                    <div style={styles.merchGrid}>
-                                        {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
-                                            <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Accessories Section */}
-                                <div style={styles.merchSection}>
-                                    <h3 style={styles.merchCategoryTitle}>Accessories</h3>
-                                    <div style={styles.merchGrid}>
-                                        {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
-                                            <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
+                            <MerchStore user={user} />
                         )}
+
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
                         {/* ═══════════════════════════════════════════════════════════════════ */}

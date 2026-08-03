@@ -646,6 +646,14 @@ export default async function handler(req, res) {
             console.info(`[DiamondTransfer] Idempotent retry detected for transfer ${transferId} — skipping refund`);
         }
 
+        // The recipient HAS been credited. Disarm the rollback: refundSender was
+        // assigned at :615 and never cleared, so any later throw (the
+        // anti_farming_ips insert below, the notification block, or the final
+        // res.json) fell into the catch at the bottom of this handler and
+        // refunded a sender whose recipient already had the money — minting the
+        // full transfer amount a second time.
+        refundSender = null;
+
         // Record the IP cluster action
         const { error: ipErr } = await getSupabase().from('anti_farming_ips').insert({
             user_id: userId,

@@ -83,6 +83,9 @@ const RESERVED_METADATA_KEYS = new Set([
     'actionKey',
     'reference_id',
     'balance',
+    // The egg payout is resolved server-side from EASTER_EGGS below. Without
+    // this the client could POST metadata.egg_diamonds and name its own price.
+    'egg_diamonds',
 ]);
 
 /** reason → user-facing copy. Keep in sync with the SQL reason enum. */
@@ -271,8 +274,10 @@ export default async function handler(req, res) {
 
         // Easter eggs: the amount lives on the egg, and staff-awarded eggs
         // (verifiable:false) are not claimable from the browser at all.
+        let resolvedEgg = null;
         if (actionKey === 'easter_egg') {
             const egg = getEasterEgg(target.value);
+            resolvedEgg = egg;
             if (!egg) {
                 return respond(res, 200, { success: false, awarded: 0, reason: 'unknown_action' });
             }
@@ -340,6 +345,13 @@ export default async function handler(req, res) {
                 p_target_id: target.value,
                 p_metadata: {
                     ...meta.value,
+                    // award_diamonds_v2 reads the egg payout from
+                    // p_metadata->>'egg_diamonds' because the catalog row for
+                    // easter_egg carries diamonds:0. Without this every egg
+                    // awarded exactly 0. Resolved from EASTER_EGGS server-side;
+                    // 'egg_diamonds' is a RESERVED metadata key so the spread
+                    // above can never override it.
+                    ...(resolvedEgg ? { egg_diamonds: resolvedEgg.diamonds } : {}),
                     _source: 'api/rewards/claim',
                     _catalog_version: CATALOG_VERSION,
                     _claimed_at: new Date().toISOString(),
