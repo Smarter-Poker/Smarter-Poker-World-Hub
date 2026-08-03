@@ -156,6 +156,22 @@ export default function EndlessModePage() {
     // Every question id served in THIS sitting — passed to filterAndShuffle as
     // a hard exclusion so a top-up batch can never repeat an earlier question.
     const sessionServedIdsRef = useRef(new Set());
+    // FIX(audit #8): synchronous in-flight lock for paid lifelines. The "used"
+    // state flags are set only AFTER the awaited charge RPC, so a double-tap
+    // passed the guards twice and produced two unique-reference deductions
+    // (which the DB cannot dedup by design) for a single lifeline.
+    const lifelineBusyRef = useRef(false);
+    // FIX(audit #10): in-flight lock for pool refills. The refill effect fires
+    // on every advance inside the last-5 window; two overlapping
+    // loadMoreQuestions calls both filtered against sessionServedIdsRef before
+    // either recorded its ids, so a question in both random pages could be
+    // appended twice to the same run.
+    const isFetchingMoreRef = useRef(false);
+    // FIX(audit #17): per-question outcomes, index-aligned with `questions`
+    // (true=correct, false=wrong/timeout, null=skipped). saveGameResult used to
+    // mark every question before the final index was_correct:true, which
+    // recorded SKIPPED questions as correct answers.
+    const answerOutcomesRef = useRef([]);
 
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
@@ -316,6 +332,11 @@ export default function EndlessModePage() {
     }, [currentIndex, questions.length]);
 
     async function loadMoreQuestions(uidOverride) {
+        // FIX(audit #10): single-flight — the refill effect fires on every
+        // question advance inside the last-5 window, and overlapping calls
+        // could append duplicate questions to the same run.
+        if (isFetchingMoreRef.current) return [];
+        isFetchingMoreRef.current = true;
         try {
             // `uidOverride` lets init() pass user.id before the userId state has
             // propagated — otherwise the 60-day exclusion silently no-ops.
@@ -357,7 +378,11 @@ export default function EndlessModePage() {
                 for (const q of toAdd) { if (q?.id) sessionServedIdsRef.current.add(q.id); }
 
                 setQuestions(prev => {
-                    const next = [...prev, ...toAdd];
+                    // FIX(audit #10): belt-and-suspenders dedup on append — even
+                    // if two refills raced past the single-flight guard, never
+                    // let an id already in the deck in twice.
+                    const have = new Set(prev.map(p => p?.id));
+                    const next = [...prev, ...toAdd.filter(q => q?.id && !have.has(q.id))];
                     // Keep the ref hot immediately — startGame needs to verify a
                     // non-empty pool before charging, without waiting for a render.
                     questionsRef.current = next;
@@ -367,6 +392,9 @@ export default function EndlessModePage() {
             }
         } catch (e) {
             console.warn('Failed to load questions:', e);
+        } finally {
+            // FIX(audit #10): release the single-flight lock on every path.
+            isFetchingMoreRef.current = false;
         }
         return [];
     }
@@ -442,6 +470,7 @@ export default function EndlessModePage() {
         diamondsEarnedRef.current = 0;
         setAwardedDiamonds(null);
         currentIndexRef.current = 0;
+        answerOutcomesRef.current = []; // FIX(audit #17): fresh outcome log per game
         // Fresh per-game reward reference + save-phase tracker so game 2 in the
         // same minute is credited independently of game 1.
         gameRewardRefId.current = newReferenceId('endless_reward', userId || 'anon');
@@ -516,6 +545,15 @@ export default function EndlessModePage() {
         setScreenShake(false);
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         trivia.setShowResult(true);
+        // FIX(audit #2): the current question timed out — record it as an
+        // incorrect outcome so the history batch attributes it correctly.
+        answerOutcomesRef.current.push(false);
+        // FIX(audit #2): never stack a second pending timeout on top of an
+        // existing one — an un-cleared earlier timeout could fire a duplicate
+        // saveGameResult after savePhaseRef was reset, double-running the save
+        // pipeline (reward dedup then throws and strands the player in an
+        // unwinnable saving_error retry loop).
+        if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         answerTimeoutRef.current = setTimeout(() => {
             finalizeDuration();
             setGameState('saving');
@@ -583,9 +621,17 @@ export default function EndlessModePage() {
             // Paid 50/50 counts against the per-game lifeline cap, like Skip and
             // Double Chance. It previously bypassed the cap entirely.
             if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) return;
-            const paid = await chargeLifeline(LIFELINE_COST, 'endless_fifty', '50/50 Lifeline');
-            if (!paid) return;
-            setLifelinesUsedThisGame(prev => prev + 1);
+            // FIX(audit #8): synchronous lock — a double-tap on the paid 50/50
+            // charged twice for a single elimination set.
+            if (lifelineBusyRef.current) return;
+            lifelineBusyRef.current = true;
+            try {
+                const paid = await chargeLifeline(LIFELINE_COST, 'endless_fifty', '50/50 Lifeline');
+                if (!paid) return;
+                setLifelinesUsedThisGame(prev => prev + 1);
+            } finally {
+                lifelineBusyRef.current = false;
+            }
         } else {
             setFiftyFiftyUsedFree(true);
         }
@@ -611,23 +657,35 @@ export default function EndlessModePage() {
             // Lifeline limit reached — silently prevent
             return;
         }
+        // FIX(audit #8): synchronous lock BEFORE the awaited charge — the state
+        // guards above don't re-render fast enough to stop a double-tap, which
+        // charged twice (unique reference ids) and skipped two questions.
+        if (lifelineBusyRef.current) return;
+        lifelineBusyRef.current = true;
+        try {
+            const paid = await chargeLifeline(LIFELINE_COST, 'endless_skip', 'Skip Question');
+            if (!paid) return;
+            setLifelinesUsedThisGame(prev => prev + 1);
 
-        const paid = await chargeLifeline(LIFELINE_COST, 'endless_skip', 'Skip Question');
-        if (!paid) return;
-        setLifelinesUsedThisGame(prev => prev + 1);
+            setSkipUsedThisQuestion(true);
+            timer.setIsTimerRunning(false);
 
-        setSkipUsedThisQuestion(true);
-        timer.setIsTimerRunning(false);
+            // FIX(audit #17): skipped question was still SEEN but never answered
+            // — log null so history doesn't credit it as correct.
+            answerOutcomesRef.current.push(null);
 
-        // Move to next question without penalty (keep streak)
-        setCurrentIndex(prev => prev + 1);
-        trivia.reset();
-        setEliminatedOptions([]);
-        setSkipUsedThisQuestion(false);
-        setDoubleChanceActive(false);
-        setDoubleChanceUsedThisQuestion(false);
-        setFirstAttemptWrong(null);
-        timer.resetTimer();
+            // Move to next question without penalty (keep streak)
+            setCurrentIndex(prev => prev + 1);
+            trivia.reset();
+            setEliminatedOptions([]);
+            setSkipUsedThisQuestion(false);
+            setDoubleChanceActive(false);
+            setDoubleChanceUsedThisQuestion(false);
+            setFirstAttemptWrong(null);
+            timer.resetTimer();
+        } finally {
+            lifelineBusyRef.current = false;
+        }
     }
 
     async function useDoubleChance() {
@@ -636,17 +694,31 @@ export default function EndlessModePage() {
             // Lifeline limit reached — silently prevent
             return;
         }
+        // FIX(audit #8): synchronous lock — a double-tap paid twice for one
+        // double chance (the second setDoubleChanceActive(true) is a no-op).
+        if (lifelineBusyRef.current) return;
+        lifelineBusyRef.current = true;
+        try {
+            const paid = await chargeLifeline(LIFELINE_COST, 'endless_double', 'Double Chance');
+            if (!paid) return;
+            setLifelinesUsedThisGame(prev => prev + 1);
 
-        const paid = await chargeLifeline(LIFELINE_COST, 'endless_double', 'Double Chance');
-        if (!paid) return;
-        setLifelinesUsedThisGame(prev => prev + 1);
-
-        setDoubleChanceActive(true);
-        setDoubleChanceUsedThisQuestion(true);
+            setDoubleChanceActive(true);
+            setDoubleChanceUsedThisQuestion(true);
+        } finally {
+            lifelineBusyRef.current = false;
+        }
     }
 
     function selectAnswer(index) {
-        if (trivia.selectedAnswer !== null) return;
+        // FIX(audit #2): also block on showResult. handleTimeOut reveals the
+        // correct answer via setShowResult(true) WITHOUT setting selectedAnswer,
+        // so during the 1.5s reveal the option buttons were still enabled — a
+        // player could tap the highlighted correct answer after every timeout
+        // and be credited streak + diamonds for a question they never answered
+        // (and schedule a second, duplicate saveGameResult). Survival already
+        // guards both; endless now matches.
+        if (trivia.selectedAnswer !== null || trivia.showResult) return;
 
         // Stop timer
         timer.setIsTimerRunning(false);
@@ -688,6 +760,10 @@ export default function EndlessModePage() {
 
             setDiamondsEarned(prev => { const next = prev + earned; diamondsEarnedRef.current = next; return next; });
             setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
+            // FIX(audit #17): per-question outcome tracking (true=correct,
+            // false=wrong/timeout, null=skipped). Index-aligned with `questions`
+            // so the history batch never mislabels a skipped question as correct.
+            answerOutcomesRef.current.push(true);
             busEmit.decisionCorrect(streak + 1);
 
             // Multiplier tier-up celebration — the multiplier used to tick up
@@ -699,6 +775,9 @@ export default function EndlessModePage() {
                 setTimeout(() => setMilestoneMultiplier(0), 1800);
             }
 
+            // FIX(audit #2): clear any pending timeout before scheduling a new
+            // one so two pipelines can never race (advance vs save).
+            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
             answerTimeoutRef.current = setTimeout(() => {
                 setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
                 trivia.reset();
@@ -710,8 +789,13 @@ export default function EndlessModePage() {
                 timer.resetTimer();
             }, 1000);
         } else {
+            // FIX(audit #17): record the run-ending wrong answer explicitly.
+            answerOutcomesRef.current.push(false);
             busEmit.decisionIncorrect(streak);
             busEmit.screenShake('medium');
+            // FIX(audit #2): clear any pending timeout before scheduling the
+            // save so saveGameResult can never be queued twice.
+            if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
             answerTimeoutRef.current = setTimeout(() => {
                 finalizeDuration();
                 setGameState('saving'); // Show skeleton while saving
@@ -798,26 +882,23 @@ export default function EndlessModePage() {
             // Phase 59: filter null question_id (FK violation guard) +
             // capture upsert errors that were silently swallowed.
             if (savePhaseRef.current < 3) {
-                const correctQuestions = questions.slice(0, finalIndex);
-                const wrongQuestion = questions[finalIndex];
-                const historyRecords = [
-                    ...correctQuestions
-                        .filter(q => q && q.id != null)
-                        .map(q => ({
-                            user_id: userId,
-                            question_id: q.id,
-                            was_correct: true,
-                            seen_at: new Date().toISOString(),
-                            mode: 'endless'
-                        })),
-                    ...(wrongQuestion && wrongQuestion.id != null ? [{
+                // FIX(audit #17): build history from the per-question outcome
+                // log instead of assuming everything before finalIndex was
+                // answered correctly — that assumption recorded SKIPPED
+                // questions (which advance the index without an answer) as
+                // was_correct:true. Null outcomes (skips) are dropped, matching
+                // survival's recordQuestionHistory.
+                const servedQuestions = questions.slice(0, answerOutcomesRef.current.length);
+                const historyRecords = servedQuestions
+                    .map((q, idx) => ({ q, outcome: answerOutcomesRef.current[idx] }))
+                    .filter(({ q, outcome }) => q && q.id != null && outcome != null)
+                    .map(({ q, outcome }) => ({
                         user_id: userId,
-                        question_id: wrongQuestion.id,
-                        was_correct: false,
+                        question_id: q.id,
+                        was_correct: outcome === true,
                         seen_at: new Date().toISOString(),
                         mode: 'endless'
-                    }] : [])
-                ];
+                    }));
                 if (historyRecords.length > 0) {
                     // ignoreDuplicates:true => INSERT ... ON CONFLICT DO NOTHING.
                     // trivia_user_question_history has SELECT + INSERT RLS
@@ -853,7 +934,10 @@ export default function EndlessModePage() {
                     mode: 'endless',
                     score: finalStreak * 100,
                     correct_count: finalStreak,
-                    total_questions: finalStreak + 1,
+                    // FIX(audit #17): count questions actually SERVED (including
+                    // skips), not streak+1 — skips advanced the index without
+                    // advancing the streak, so totals under-counted.
+                    total_questions: Math.max(finalStreak + 1, answerOutcomesRef.current.length),
                     diamonds_earned: actualAwarded,
                     play_date: today
                 });
@@ -885,7 +969,12 @@ export default function EndlessModePage() {
     function playAgain() {
         // Phase 59: Fisher-Yates instead of biased sort(()=>Math.random()-0.5).
         setQuestions(prev => {
-            const remaining = prev.slice(currentIndex);
+            // FIX(audit #7): slice from currentIndex + 1 — index currentIndex is
+            // the question the player just got WRONG, whose correct answer was
+            // highlighted on the reveal screen seconds ago. slice(currentIndex)
+            // kept it in the next game's deck: a just-seen repeat and a
+            // guaranteed-correct free diamond.
+            const remaining = prev.slice(currentIndex + 1);
             for (let i = remaining.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [remaining[i], remaining[j]] = [remaining[j], remaining[i]];

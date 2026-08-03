@@ -441,10 +441,32 @@ export default function PvPPage() {
             const { data: queueEntry } = await joinMatchmakingQueue(userId, stake);
 
             if (queueEntry) {
-                // Subscribe to queue changes to detect new opponents
-                queueSubscription.current = subscribeToQueue(stake, async (newPlayer) => {
+                // Subscribe to queue changes to detect new opponents.
+                // FIX(audit): pass userId as the third argument — the polling
+                // service's signature is subscribeToQueue(stakeAmount, onNewPlayer,
+                // userId) and it needs the id to find this player's own 'matched'
+                // queue row. Without it the matched-row lookup queried
+                // user_id=undefined and never fired, so the player an opponent had
+                // matched against never entered the match: their stake stayed in
+                // the opponent's match while the horse fallback hijacked them.
+                queueSubscription.current = subscribeToQueue(stake, async (payload) => {
                     if (matchFoundRef.current) return;
-                    if (newPlayer.user_id !== userId) {
+                    // FIX(audit): a 'matched' notification now arrives carrying the
+                    // ALREADY-CREATED match (the opponent's findMatch built it,
+                    // shared questions included). Enter it directly — re-running
+                    // findMatch here always returned null because the opponent's
+                    // queue row is no longer 'waiting'.
+                    if (payload && payload.match && payload.match.id &&
+                        Array.isArray(payload.questions) && payload.questions.length > 0) {
+                        // Cancel horse fallback — real match found
+                        matchFoundRef.current = true;
+                        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+                        handleMatchFound(payload);
+                        return;
+                    }
+                    // Legacy shape: another player appeared in the queue — try to
+                    // pair with them ourselves.
+                    if (payload && payload.user_id && payload.user_id !== userId) {
                         const matchData = await findMatch(userId, stake);
                         if (matchData && !matchFoundRef.current) {
                             // Cancel horse fallback — real match found
@@ -453,7 +475,7 @@ export default function PvPPage() {
                             handleMatchFound(matchData);
                         }
                     }
-                });
+                }, userId);
 
                 // Also immediately try to find an existing opponent
                 const matchData = await findMatch(userId, stake);
@@ -1380,8 +1402,14 @@ export default function PvPPage() {
                                         <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 6 }}>
                                             Your Opponent Has Not Finished Yet.
                                         </p>
+                                        {/* FIX(audit): honest stake status. The old copy promised the
+                                            match "will settle automatically", but no server-side sweep
+                                            exists yet for abandoned matches — if the opponent never
+                                            finishes, the stake stays locked until support settles it.
+                                            Do NOT auto-refund here: the stake is committed to a real
+                                            match and a client-side refund could double-pay. */}
                                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 16 }}>
-                                            Your score is submitted and safe. This match will settle automatically as soon as they finish — you can wait here or head back to the lobby.
+                                            Your score is submitted, but your {stakeAmount} diamond stake is still held in this unfinished match. If your opponent finishes, the match settles automatically. If they never finish, contact support with the time of this match to have it settled or your stake refunded.
                                         </p>
                                         <button
                                             onClick={handlePlayAgain}

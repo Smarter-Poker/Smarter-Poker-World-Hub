@@ -46,14 +46,23 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Category source of truth is triviaEngine's CATEGORY_MAPPINGS — do not
 // re-declare category arrays here (three parallel maps had silently drifted).
-// mtt/cash/icm/gto/survival/mixed have dedicated static pages that shadow this
-// dynamic route in Next.js, so this map only covers the modes actually served.
+// AUDIT FIX (C2): the old comment claimed mtt/cash/icm/gto had dedicated
+// static pages shadowing this dynamic route — those pages do not exist, so
+// /hub/trivia/mtt|cash|icm|gto resolve HERE. Without entries in this map,
+// `categories` came back undefined and the paid strategy modes served
+// questions from EVERY category. They now mirror the engine's canonical
+// arrays. (mixed/endless/time-attack/pvp/tournaments DO have static pages;
+// survival is redirected to /hub/trivia/survival-game — see C1 fix below.)
 const CATEGORY_MAP = {
     daily: null,
     arcade: null,
     history: [...CATEGORY_MAPPINGS.history],
     rules: [...CATEGORY_MAPPINGS.rules],
     pro: [...CATEGORY_MAPPINGS.pro],
+    mtt: [...CATEGORY_MAPPINGS.mtt],
+    cash: [...CATEGORY_MAPPINGS.cash],
+    icm: [...CATEGORY_MAPPINGS.icm],
+    gto: [...CATEGORY_MAPPINGS.gto],
 };
 
 // Lobby image mapping — modes with full-bleed lobby images
@@ -89,7 +98,26 @@ export default function TriviaModePage() {
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();
 
+    // ── AUDIT FIX (C1) ─────────────────────────────────────────────────
+    // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
+    // no renderer for it (`gameState === 'playing' && mode !== 'survival'`),
+    // so a direct hit on /hub/trivia/survival showed a paid lobby, charged
+    // 10 diamonds on Start, then rendered a blank game — charge without
+    // serving. Redirect to the real game BEFORE anything can charge; the
+    // component renders null for this slug (see guard before router.isReady).
+    const isSurvivalSlug = mode === 'survival';
+    useEffect(() => {
+        if (isSurvivalSlug) router.replace('/hub/trivia/survival-game');
+    }, [isSurvivalSlug, router]);
+
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
+    // ── AUDIT FIX (M4) ─────────────────────────────────────────────────
+    // Ref mirror of gameState so the initialize effect (whose deps include
+    // avatarUser?.id / authLoading) can tell whether a game is in progress
+    // WITHOUT adding gameState to its dep list. Declared before that effect
+    // so the sync runs first in each commit.
+    const gameStateRef = useRef('loading');
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
     const [questions, setQuestions] = useState([]);
     const [result, setResult] = useState(null);
     const [leaderboard, setLeaderboard] = useState([]);
@@ -167,8 +195,18 @@ export default function TriviaModePage() {
     // Load questions and user data
     useEffect(() => {
         if (!mode || !modeConfig) return;
+        // AUDIT FIX (C1): survival is redirected to its own page — never
+        // initialize (or later charge) for it here.
+        if (mode === 'survival') return;
         // Wait for auth to finish loading before initializing
         if (authLoading) return;
+        // AUDIT FIX (M4): this effect re-runs when avatarUser?.id or
+        // authLoading change (sign-in completing in another tab, session
+        // refresh re-hydrating AvatarContext). initialize() unconditionally
+        // setGameState('loading'), which destroyed an in-progress PAID game
+        // — entry diamonds already deducted, no completion, no refund.
+        // Never re-initialize over an active or still-saving run.
+        if (['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) return;
 
         async function initialize() {
             setGameState('loading');
@@ -629,6 +667,15 @@ export default function TriviaModePage() {
         const modeCost = modeConfig?.diamondCost || 0;
         const isFreeMode = modeCost === 0;
 
+        // AUDIT FIX (M3): the charge below is gated on `userId`, so a
+        // signed-out visitor slipped past it and played PAID modes for free.
+        // Mirror StrategyTrivia: paid entry requires a signed-in account.
+        if (!isFreeMode && !userId && !isVIP) {
+            setError('Please sign in to play this mode.');
+            setGameState('error');
+            return;
+        }
+
         // Per-game diamond deduction for paid modes
         if (!isFreeMode && userId && !isVIP) {
             // Fresh balance check from DB to avoid stale-state false negatives
@@ -694,16 +741,27 @@ export default function TriviaModePage() {
         const isStakesMode = mode === 'arcade';
         const baseDiamonds = isStakesMode ? 0 : calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
         const streakTier = getStreakTier(userStreak);
+        // AUDIT FIX (H1, partial): the client-computed stake pot could reach
+        // ~698💎 on a perfect 20-question run (STAKE_VALUES × up to 5x streak
+        // multiplier) for a 10💎 entry, and the daily-cap clamp below used to
+        // exempt arcade entirely — DAILY_DIAMOND_CAPS.arcade (40, documented
+        // as "max single run 50") was never enforced on the only arcade
+        // payout path. Clamp a single run to 50 here, and let the daily cap
+        // apply to arcade too (next block). NOTE: this is harm reduction only
+        // — the pot is still computed and credited client-side, so the REAL
+        // fix is server-side grading/crediting (e.g. /api/trivia/submit).
+        const ARCADE_MAX_RUN_PAYOUT = 50;
         const rawDiamonds = isStakesMode
-            ? Math.max(0, Math.floor(Number(stakePot) || 0))
+            ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(Number(stakePot) || 0)))
             : calculateRewardWithMultiplier(baseDiamonds, userStreak);
 
-        // Daily earnings cap for FREE modes — closes the diamond-farming loop
-        // (replay memorized questions for unlimited diamonds). Paid arcade runs
-        // are exempt: the stake pot is winnings from a paid entry.
+        // Daily earnings cap — closes the diamond-farming loop (replay
+        // memorized questions for unlimited diamonds). AUDIT FIX (H1): arcade
+        // stake-pot payouts are no longer exempt; they clamp against
+        // DAILY_DIAMOND_CAPS.arcade like every other reward.
         let diamondsEarned = rawDiamonds;
         let capReached = false;
-        if (userId && !isStakesMode && (modeConfig?.diamondCost || 0) === 0 && rawDiamonds > 0) {
+        if (userId && rawDiamonds > 0 && (isStakesMode || (modeConfig?.diamondCost || 0) === 0)) {
             if (cappedRewardRef.current == null) {
                 try {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, mode);
@@ -754,9 +812,14 @@ export default function TriviaModePage() {
             }
         }
 
-        // Daily trivia: award 10 diamonds for finishing all 20 questions (once per day)
+        // Daily trivia: award 10 diamonds for finishing all 20 questions (once per day).
+        // AUDIT FIX (M1): gate on the SERVED question count, not on
+        // `totalQuestions` — TriviaGame excludes bought skips from
+        // totalQuestions (19 after one skip), so paying for a Skip hint used
+        // to silently forfeit the completion bonus for the whole day (the
+        // daily_trivia_plays row was still written, making it unrecoverable).
         let dailyBonusDiamonds = 0;
-        if (firstDailyToday && totalQuestions >= 20) {
+        if (firstDailyToday && questions.length >= 20) {
             dailyBonusDiamonds = 10;
             setDailyDiamondsClaimed(true);
         }
@@ -853,13 +916,30 @@ export default function TriviaModePage() {
                     savePhaseRef.current = 2;
                 }
 
+                // AUDIT FIX (M2): only questions the player actually REACHED
+                // may be recorded. After a cash-out at question 6 (or an
+                // arcade timer expiry) the old code recorded all 20 loaded
+                // questions: ~14 never-displayed questions were burned from
+                // the 60-day pool AND counted as WRONG in category mastery
+                // (answers[idx] === undefined never equals correct_index).
+                // Skip/timeout sentinels (negative answers) are scored
+                // neutral by TriviaGame, so they persist as was_correct:null
+                // and are excluded from mastery accuracy below.
+                const servedQuestions = Array.isArray(answers)
+                    ? (questions || []).slice(0, answers.length)
+                    : (questions || []);
+                const answeredIndex = (idx) => {
+                    const a = Array.isArray(answers) ? answers[idx] : undefined;
+                    return typeof a === 'number' && a >= 0 ? a : null; // null = skip/timeout/unanswered
+                };
+
                 // Phase 3: Record question history (only if not already recorded)
                 if (savePhaseRef.current < 3) {
-                    if (questions && questions.length > 0) {
-                        const historyRecords = questions.map((q, idx) => ({
+                    if (servedQuestions.length > 0) {
+                        const historyRecords = servedQuestions.map((q, idx) => ({
                             user_id: userId,
                             question_id: q.id,
-                            was_correct: answers ? answers[idx] === q.correct_index : null,
+                            was_correct: answeredIndex(idx) != null ? answeredIndex(idx) === q.correct_index : null,
                             seen_at: new Date().toISOString(),
                             mode
                         }));
@@ -877,13 +957,18 @@ export default function TriviaModePage() {
                 // Phase 4: Update category mastery (only if not already updated)
                 if (savePhaseRef.current < 4) {
                     const categoryStats = {};
-                    questions.forEach((q, idx) => {
+                    // AUDIT FIX (M2): iterate only SERVED questions, and skip
+                    // neutral entries (bought skips / timeouts, sentinel < 0)
+                    // entirely — they must not count as answered-wrong.
+                    servedQuestions.forEach((q, idx) => {
+                        const a = answeredIndex(idx);
+                        if (a == null) return; // neutral: excluded from accuracy
                         const cat = q.category || 'general';
                         if (!categoryStats[cat]) {
                             categoryStats[cat] = { answered: 0, correct: 0 };
                         }
                         categoryStats[cat].answered++;
-                        if (answers && answers[idx] === q.correct_index) {
+                        if (a === q.correct_index) {
                             categoryStats[cat].correct++;
                         }
                     });
@@ -922,9 +1007,13 @@ export default function TriviaModePage() {
                         };
                     });
 
-                    const { error: masteryError } = await supabase.from('trivia_category_mastery')
-                        .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
-                    if (masteryError) console.warn('[Trivia] Category mastery upsert failed:', masteryError);
+                    // AUDIT FIX (M2): with neutral-only runs categoryStats can
+                    // now legitimately be empty — don't upsert an empty batch.
+                    if (masteryRecords.length > 0) {
+                        const { error: masteryError } = await supabase.from('trivia_category_mastery')
+                            .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
+                        if (masteryError) console.warn('[Trivia] Category mastery upsert failed:', masteryError);
+                    }
                     savePhaseRef.current = 4;
                 }
 
@@ -1136,6 +1225,12 @@ export default function TriviaModePage() {
                 ...questions.map(q => q?.id).filter(Boolean)
             ]);
             const pool = await fetchRandomQuestionPool(supabase, {
+                // AUDIT FIX (C2/L3): CATEGORY_MAP now carries entries for
+                // mtt/cash/icm/gto (arrays). fetchRandomQuestionPool accepts
+                // string OR array — applyPoolFilters uses .in() for arrays,
+                // exactly as loadQuestions already relies on for
+                // history/rules/pro — so the bonus round now draws from the
+                // mode's own categories instead of the whole pool.
                 category: CATEGORY_MAP[mode],
                 pageSize: 300,
                 minQuality: MIN_QUALITY_SCORE,
@@ -1204,6 +1299,12 @@ export default function TriviaModePage() {
         }
         if (isMountedRef.current) setGameState('ready');
     };
+
+    // AUDIT FIX (C1): survival is served by /hub/trivia/survival-game; the
+    // redirect effect above is already in flight. Render nothing so the paid
+    // lobby (and its Start charge) can never appear for this slug. This
+    // return sits after all hooks, so hook order is stable across renders.
+    if (isSurvivalSlug) return null;
 
     // While the router hydrates, show a skeleton instead of a blank flash
     if (!router.isReady) {
@@ -1333,11 +1434,25 @@ export default function TriviaModePage() {
 
                     {gameState === 'ready' && (
                         LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby */
-                            <div className="lobby-image-wrapper" onClick={startGame} style={{ borderRadius: 0 }}>
+                            /* Full-bleed image lobby.
+                               AUDIT FIX (H3): was a click-only <div> — the sole
+                               start control for every image-lobby mode was
+                               unreachable by keyboard and invisible to screen
+                               readers. A real <button> restores focus, Enter/
+                               Space activation and a proper accessible name
+                               (button-reset CSS keeps the old visual). */
+                            <button
+                                type="button"
+                                className="lobby-image-wrapper"
+                                onClick={startGame}
+                                disabled={isStarting}
+                                aria-label={`${modeConfig.name} — start challenge${modeConfig.diamondCost > 0 ? `, entry ${modeConfig.diamondCost} diamonds` : ''}`}
+                                style={{ borderRadius: 0 }}
+                            >
                                 <img
                                     src={LOBBY_IMAGES[mode]}
-                                    alt={`${modeConfig.name} - Start Challenge`}
+                                    alt=""
+                                    aria-hidden="true"
                                     className="lobby-image"
                                     style={{ borderRadius: 0, width: '100%' }}
                                     loading="lazy" />
@@ -1349,7 +1464,7 @@ export default function TriviaModePage() {
                                         <div className="spinner" />
                                     </div>
                                 )}
-                            </div>
+                            </button>
                         ) : (
                             /* Fallback text lobby */
                             <div className="ready-screen">
@@ -1706,6 +1821,25 @@ export default function TriviaModePage() {
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
                     max-width: 100%;
                     margin: 0 auto;
+                    /* AUDIT FIX (H3): now a <button> — reset browser button
+                       chrome back to the old full-bleed div look. */
+                    display: block;
+                    width: 100%;
+                    padding: 0;
+                    background: none;
+                    border: none;
+                    font: inherit;
+                    color: inherit;
+                    text-align: left;
+                }
+
+                .lobby-image-wrapper:disabled {
+                    cursor: wait;
+                }
+
+                .lobby-image-wrapper:focus-visible {
+                    outline: 2px solid #00D4FF;
+                    outline-offset: 3px;
                 }
 
                 .lobby-image-wrapper:hover {

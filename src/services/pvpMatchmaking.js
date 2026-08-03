@@ -213,13 +213,76 @@ export function subscribeToMatch(matchId, onUpdate) {
 }
 
 /**
+ * FIX(audit): Load an existing match (created by the opponent's findMatch) and
+ * shape it exactly like findMatch's return value, so the player whose queue row
+ * was flipped to 'matched' can enter the SAME match instead of re-running
+ * findMatch — which always found nothing, because the opponent's queue row is
+ * already 'matched', leaving this player out of a match that held their stake.
+ *
+ * @param {string} matchId - trivia_pvp_matches.id from the matched queue row
+ * @param {string} userId  - The local user's ID (must be a participant)
+ * @returns {Object|null} { match, opponent, questions } or null
+ */
+async function loadMatchForPlayer(matchId, userId) {
+    try {
+        if (!matchId || !userId) return null;
+
+        const { data: match, error } = await supabase
+            .from('trivia_pvp_matches')
+            .select('*')
+            .eq('id', matchId)
+            .maybeSingle();
+        if (error || !match) return null;
+        // Only enter matches this user actually belongs to.
+        if (match.player1_id !== userId && match.player2_id !== userId) return null;
+
+        const opponentId = match.player1_id === userId ? match.player2_id : match.player1_id;
+
+        let opponentProfile = null;
+        let opponentStats = null;
+        if (opponentId) {
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .eq('id', opponentId)
+                .maybeSingle();
+            opponentProfile = prof;
+
+            const { data: st } = await supabase
+                .from('trivia_pvp_stats')
+                .select('wins, losses')
+                .eq('user_id', opponentId)
+                .maybeSingle();
+            opponentStats = st;
+        }
+
+        return {
+            match,
+            opponent: {
+                id: opponentId || null,
+                username: opponentProfile?.username || 'Opponent',
+                wins: opponentStats?.wins || 0,
+                losses: opponentStats?.losses || 0
+            },
+            questions: Array.isArray(match.questions) ? match.questions : []
+        };
+    } catch (e) {
+        console.warn('[PvP Matchmaking] loadMatchForPlayer failed:', e);
+        return null;
+    }
+}
+
+/**
  * Subscribe to queue changes for finding opponents — polling implementation
  * Replaces the old `pvp_queue:{stakeAmount}` postgres_changes channel.
  *
  * Polls every 3 seconds for the user's own queue entry. If the entry's
- * status has changed from 'waiting' to 'matched', fires onNewPlayer with
- * a synthetic payload matching the original Realtime INSERT shape so callers
- * need no changes.
+ * status has changed from 'waiting' to 'matched', fires onNewPlayer with the
+ * loaded { match, opponent, questions } payload (same shape findMatch returns)
+ * so the caller can enter the already-created match directly. Falls back to
+ * the raw queue row if the match cannot be loaded.
+ * FIX(audit): previously the raw queue row was always delivered; the page
+ * callback ignored it (own user_id) and the matched player never joined.
  *
  * @param {number} stakeAmount - The stake level to monitor
  * @param {string} userId      - The local user's ID (needed to poll own entry)
@@ -268,7 +331,23 @@ export function subscribeToQueue(stakeAmount, onNewPlayer, userId) {
                 if (matched && !stopped) {
                     lastStatus = 'matched';
                     console.debug('[PvP Queue] Match found via polling:', matched.match_id);
-                    onNewPlayer(matched);
+                    // FIX(audit): the raw queue row alone cannot put the player
+                    // into the battle — the page callback used to receive it,
+                    // see its own user_id and ignore it, so the notified player
+                    // never joined the match the opponent created (and their
+                    // stake was consumed by the horse fallback instead). Load
+                    // the match row (it already holds the shared question set)
+                    // and deliver the same { match, opponent, questions } shape
+                    // findMatch returns so the page can enter via
+                    // handleMatchFound.
+                    const matchData = await loadMatchForPlayer(matched.match_id, userId);
+                    if (stopped) return;
+                    if (matchData) {
+                        onNewPlayer(matchData);
+                    } else {
+                        // Fall back to the raw row so callers can still react.
+                        onNewPlayer(matched);
+                    }
                 }
             }
         } catch (err) {

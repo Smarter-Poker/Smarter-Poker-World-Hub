@@ -23,6 +23,9 @@ import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+// FIX(audit): shared prize schedule — same percentages the payout engine
+// (tournament-lifecycle.js) uses, so the advertised split matches what is paid.
+import { prizeSchedule, splitPrizePool } from '../../../src/lib/trivia/prizeSchedule';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
@@ -752,18 +755,40 @@ export default function TournamentsPage() {
         : (myMatchup.winner_id === userId ? 'won' : 'lost');
 
     // Prize distribution preview, computed from the live prize pool so players
-    // can see exactly what each finishing place pays BEFORE they enter. (The
-    // table previously existed only inside the deprecated TournamentLobby.jsx.)
-    const PRIZE_SPLIT = [
-        { place: '1st', pct: 0.40 },
-        { place: '2nd', pct: 0.20 },
-        { place: '3rd', pct: 0.12 },
-        { place: '4th', pct: 0.08 },
-        { place: '5th-8th', pct: 0.05 }
-    ];
-    const prizeBreakdown = activeTournament
-        ? PRIZE_SPLIT.map(p => ({ ...p, amount: Math.floor((activeTournament.prize_pool || 0) * p.pct) }))
-        : [];
+    // can see exactly what each finishing place pays BEFORE they enter.
+    // FIX(audit): the old hard-coded 40/20/12/8/5 PRIZE_SPLIT never matched the
+    // payout engine's schedule (tournament-lifecycle.js prizeSchedule), so every
+    // advertised amount was wrong. The preview now uses the SAME
+    // prizeSchedule()/splitPrizePool() the engine pays with, keyed to the live
+    // entrant count derived from the round-1 bracket roster.
+    const ordinal = (n) => {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+    };
+    const entrantCount = (() => {
+        const firstRound = rounds && rounds.length > 0 ? rounds[0] : null;
+        if (!firstRound) return 0;
+        const ids = new Set();
+        (firstRound.matchups || []).forEach(m => {
+            if (m?.player1_id) ids.add(m.player1_id);
+            if (m?.player2_id) ids.add(m.player2_id);
+        });
+        return ids.size;
+    })();
+    const prizeBreakdown = (() => {
+        // Without a seeded bracket the field size is unknown — show nothing
+        // rather than a split that may not apply to the final entrant count.
+        if (!activeTournament || entrantCount < 2) return [];
+        const pool = Math.max(0, Math.floor(Number(activeTournament.prize_pool) || 0));
+        if (pool <= 0) return [];
+        const pcts = prizeSchedule(entrantCount);
+        return splitPrizePool(pool, entrantCount).map((amount, i) => ({
+            place: ordinal(i + 1),
+            pct: pcts[i] || 0,
+            amount
+        }));
+    })();
 
     // Loose (!= null) checks: matchups live in a JSONB array, so a bracket
     // generator that OMITS the score keys yields `undefined`, and
@@ -955,7 +980,8 @@ export default function TournamentsPage() {
                                                 {prizeBreakdown.map(p => (
                                                     <div key={p.place} className="prize-row">
                                                         <span className="prize-place">{p.place}</span>
-                                                        <span className="prize-pct">{Math.round(p.pct * 100)}%</span>
+                                                        {/* FIX(audit): pct is now an integer percent from the shared schedule */}
+                                                        <span className="prize-pct">{p.pct}%</span>
                                                         <span className="prize-amount">{p.amount} diamonds</span>
                                                     </div>
                                                 ))}

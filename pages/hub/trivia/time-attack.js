@@ -190,16 +190,31 @@ export default function TimeAttackPage() {
         setSaveErrorPayload(null);
         setResult(null);
 
-        // Check if already paid via TriviaLobby (defense-in-depth)
-        const alreadyPaid = sessionStorage.getItem('trivia_paid') === 'true'
-            && sessionStorage.getItem('trivia_mode') === 'time-attack';
-        if (alreadyPaid) {
+        // FIX(audit #3): the `sessionStorage.trivia_paid` short-circuit is gone.
+        // Nothing writes that flag any more (TriviaLobby no longer pre-charges),
+        // so all it could still do was let anyone set the flag in devtools —
+        // `sessionStorage.setItem('trivia_paid','true')` — and play every game
+        // free. This was the one page that still honored it; endless, mixed and
+        // survival removed it long ago. Always charge.
+        // Clear any stale legacy flag so an old build's receipt can't linger.
+        try {
             sessionStorage.removeItem('trivia_paid');
             sessionStorage.removeItem('trivia_mode');
+        } catch (e) { /* storage unavailable — nothing to clear */ }
+
+        // FIX(audit #5): load the question set BEFORE taking the entry fee.
+        // Previously the 10-diamond deduction ran first, so a failed question
+        // load charged the player for a game that never started — and clicking
+        // Start again charged them again. Mirrors endless.js, which verifies a
+        // non-empty pool before charging.
+        const qs = await loadQuestions();
+        if (qs.length === 0) {
+            setStartError('We could not load any questions right now. Please check your connection and try again.');
+            return;
         }
 
-        // Per-game diamond gate (VIP bypass, skip if already paid)
-        if (!alreadyPaid && !isVip && userId) {
+        // Per-game diamond gate (VIP bypass)
+        if (!isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
             try {
                 const { data: profile } = await supabase
@@ -224,16 +239,10 @@ export default function TimeAttackPage() {
                 return;
             }
         }
-        const qs = await loadQuestions();
-        if (qs.length > 0) {
-            setStartError(null);
-            setGameState('playing');
-        } else {
-            // Previously this failed silently — the player clicked Start (and
-            // had already been charged) and simply stayed on the lobby with no
-            // explanation.
-            setStartError('We could not load any questions right now. Please check your connection and try again.');
-        }
+        // FIX(audit #5): questions were verified above, before the charge — the
+        // player can no longer pay for a game that fails to load.
+        setStartError(null);
+        setGameState('playing');
         } finally {
             isStartingRef.current = false;
         }
@@ -245,9 +254,19 @@ export default function TimeAttackPage() {
     const idempotencyRefs = useRef({});
     // Daily-cap-clamped award for the current game (null = not yet computed).
     const cappedAwardRef = useRef(null);
+    // FIX(audit #20): guarded token generator (copied from survival-game.js).
+    // Bare crypto.randomUUID() throws on insecure contexts / older WebViews,
+    // which killed the save pipeline before phase 1 and stranded the player in
+    // a saving_error retry loop that could never succeed.
+    const randomToken = () => {
+        try {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        } catch (e) { /* fall through */ }
+        return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    };
     const getIdempotencyKey = (actionType) => {
         if (!idempotencyRefs.current[actionType]) {
-            idempotencyRefs.current[actionType] = `time_attack_${actionType}_${crypto.randomUUID()}`;
+            idempotencyRefs.current[actionType] = `time_attack_${actionType}_${randomToken()}`;
         }
         return idempotencyRefs.current[actionType];
     };

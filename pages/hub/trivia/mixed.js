@@ -513,11 +513,22 @@ export default function MixedModePage() {
                         }));
 
                     if (historyRecords.length > 0) {
+                        // FIX(audit #9): ignoreDuplicates:true => INSERT ... ON
+                        // CONFLICT DO NOTHING. trivia_user_question_history has
+                        // SELECT + INSERT RLS policies but NO UPDATE policy, so
+                        // ignoreDuplicates:false (which UPDATEs on conflict) was
+                        // rejected by RLS and failed the ENTIRE batch whenever
+                        // any question in the session had been seen before —
+                        // silently dropping the whole run's history, eroding the
+                        // 60-day non-repeat guarantee, and letting playAgain()
+                        // re-serve the identical just-played set. Survival,
+                        // endless and time-attack already carry this fix; mixed
+                        // was the one page left behind.
                         const { error: historyErr } = await supabase
                             .from('trivia_user_question_history')
                             .upsert(historyRecords, {
                                 onConflict: 'user_id,question_id',
-                                ignoreDuplicates: false
+                                ignoreDuplicates: true
                             });
                         if (historyErr) {
                             console.warn('[Mixed] History upsert failed (non-fatal):', historyErr.message);

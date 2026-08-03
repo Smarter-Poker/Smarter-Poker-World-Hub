@@ -164,6 +164,11 @@ export default function SurvivalGamePage() {
     // Every question id served in THIS run — a hard exclusion so level 4 can
     // never re-serve a question the player already saw on level 1.
     const sessionServedIdsRef = useRef(new Set());
+    // FIX(audit #8): synchronous in-flight lock for paid lifelines. The "used"
+    // state flags are only set AFTER the awaited charge RPC resolves, so a
+    // double-tap passed the guards twice and produced two unique-reference
+    // deductions (undedupable by design) for a single lifeline.
+    const lifelineBusyRef = useRef(false);
 
     // ── SOUND: one switch, globally ────────────────────────────────────
     // triviaAudio owns the mute flag for the whole trivia system; this page's
@@ -311,14 +316,27 @@ export default function SurvivalGamePage() {
         trivia.setShowResult(true);
 
         const config = LEVEL_CONFIG[currentLevel - 1];
-        const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
+        // FIX(audit #12): drive the level boundary off the ACTUAL loaded set,
+        // falling back to the constant only if state is somehow empty — a short
+        // set must end the level at its last real question, never run the shot
+        // clock against questions that do not exist.
+        const levelLength = questions.length || QUESTIONS_PER_LEVEL;
+        const remainingQuestions = levelLength - currentQuestionIndex - 1;
         const maxPossibleCorrect = correctCount + remainingQuestions;
 
         answerTimeoutRef.current = setTimeout(() => {
-            if (currentQuestionIndex + 1 >= QUESTIONS_PER_LEVEL) {
+            if (currentQuestionIndex + 1 >= levelLength) {
                 evaluateLevelResult(correctCount);
             } else if (maxPossibleCorrect < config.minCorrect) {
-                setGameState('gameOver');
+                // FIX(audit #4): a run that becomes mathematically unwinnable
+                // mid-level is the MOST COMMON fail path, and it used to jump
+                // straight to 'gameOver' without saving anything — no question
+                // history (breaking the 60-day non-repeat guarantee for every
+                // question served in the run) and no trivia_scores row. Route it
+                // through the same failed-run save path the end-of-level failure
+                // uses; saveFailedRun() sets gameState('gameOver') itself.
+                setGameState('saving_progress');
+                saveFailedRun();
             } else {
                 setCurrentQuestionIndex(prev => prev + 1);
                 trivia.reset();
@@ -429,6 +447,28 @@ export default function SurvivalGamePage() {
         // writes that flag any more, so all it could still do is let a stale
         // flag from an old session buy a free run. Always charge on level 1.
 
+        // FIX(audit #5): load and verify the level's questions BEFORE the
+        // diamond gate. Previously the 10-diamond entry was deducted first, so
+        // a failed question load bounced the player back to the lobby having
+        // paid for a game that never started — and clicking Start again
+        // deducted another 10. Mirrors endless.js, which verifies the pool
+        // before charging. (Trade-off: on a subsequent charge failure the
+        // loaded ids stay in sessionServedIdsRef — a few questions excluded for
+        // this sitting is far cheaper than a diamond charged for no game.)
+        setQuestions([]);
+        setGameState('loading_level');
+        const loaded = await loadQuestionsForLevel(level);
+        // FIX(audit #12): a SHORT set is a load failure too. Only length === 0
+        // was checked before, so the fallback path could enter a level with
+        // 1-19 questions while handleTimeOut/selectAnswer iterate the full
+        // QUESTIONS_PER_LEVEL — a blank board with a running shot clock and
+        // forced timeouts on questions that do not exist.
+        if (!loaded || loaded.length < QUESTIONS_PER_LEVEL) {
+            setLevelLoadError('We could not load a full set of questions for this level. Please check your connection and try again.');
+            setGameState('lobby');
+            return;
+        }
+
         // Per-game diamond gate (VIP bypass) — only charge on level 1 (start of a new run)
         if (level === 1 && !isVip && userId) {
             // Fresh balance check from DB to avoid stale-state false negatives
@@ -448,12 +488,14 @@ export default function SurvivalGamePage() {
             }
 
             if (freshBalance < GAME_ENTRY_COST) {
+                setGameState('lobby'); // FIX(audit #5): leave the loading screen
                 setShowOutOfDiamonds(true);
                 return;
             }
 
             const result = await DiamondEngine.deduct(GAME_ENTRY_COST, 'trivia_survival_game');
             if (!result.success) {
+                setGameState('lobby'); // FIX(audit #5): leave the loading screen
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -478,20 +520,9 @@ export default function SurvivalGamePage() {
         setLifelinesUsedThisLevel(0); // Reset lifeline counter
         setScreenShake(false);
 
-        // Load the level's questions BEFORE entering 'playing' and starting the
-        // shot clock. Previously loadQuestionsForLevel was fired without await
-        // while the timer already ran, so (a) players lost seconds off Q1 during
-        // the fetch and (b) when continuing to the next level the PREVIOUS
-        // level's questions rendered until the new set swapped in mid-question,
-        // invalidating an in-flight answer.
-        setQuestions([]);
-        setGameState('loading_level');
-        const loaded = await loadQuestionsForLevel(level);
-        if (!loaded || loaded.length === 0) {
-            setLevelLoadError('We could not load questions for this level. Please check your connection and try again.');
-            setGameState('lobby');
-            return;
-        }
+        // FIX(audit #5): the questions were loaded and verified at the top of
+        // this function, before the diamond gate — loadQuestionsForLevel has
+        // already called setQuestions(loaded). Enter play directly.
         setLevelLoadError(null);
         setGameState('playing');
         timer.resetTimer();
@@ -559,9 +590,17 @@ export default function SurvivalGamePage() {
             // Paid 50/50 now counts against the per-level lifeline cap, like
             // Skip and Double Chance. It previously bypassed the cap entirely.
             if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) return;
-            const paid = await chargeLifeline(LIFELINE_COST, 'fifty_fifty', '50/50 Lifeline');
-            if (!paid) return;
-            setLifelinesUsedThisLevel(prev => prev + 1);
+            // FIX(audit #8): synchronous lock — a double-tap on the paid 50/50
+            // charged twice for a single elimination set.
+            if (lifelineBusyRef.current) return;
+            lifelineBusyRef.current = true;
+            try {
+                const paid = await chargeLifeline(LIFELINE_COST, 'fifty_fifty', '50/50 Lifeline');
+                if (!paid) return;
+                setLifelinesUsedThisLevel(prev => prev + 1);
+            } finally {
+                lifelineBusyRef.current = false;
+            }
         } else {
             // Mark free use as consumed
             setFiftyFiftyUsedFree(true);
@@ -592,35 +631,44 @@ export default function SurvivalGamePage() {
             // Lifeline limit reached — silently prevent
             return;
         }
+        // FIX(audit #8): synchronous lock BEFORE the awaited charge — the state
+        // guards above don't re-render fast enough to stop a double-tap, which
+        // charged twice and skipped two questions.
+        if (lifelineBusyRef.current) return;
+        lifelineBusyRef.current = true;
+        try {
+            const paid = await chargeLifeline(LIFELINE_COST, 'skip', 'Skip Question');
+            if (!paid) return;
+            setLifelinesUsedThisLevel(prev => prev + 1);
 
-        const paid = await chargeLifeline(LIFELINE_COST, 'skip', 'Skip Question');
-        if (!paid) return;
-        setLifelinesUsedThisLevel(prev => prev + 1);
+            setSkipUsedThisQuestion(true);
+            timer.setIsTimerRunning(false);
 
-        setSkipUsedThisQuestion(true);
-        timer.setIsTimerRunning(false);
+            // Push a null placeholder so answersRef stays index-aligned with
+            // `questions`. Without it, every question after a skip was credited /
+            // blamed against the WRONG question id in trivia_user_question_history
+            // (saveProgress slices questions by answersRef.length). Nulls are
+            // filtered out of the history batch.
+            answersRef.current.push(null);
 
-        // Push a null placeholder so answersRef stays index-aligned with
-        // `questions`. Without it, every question after a skip was credited /
-        // blamed against the WRONG question id in trivia_user_question_history
-        // (saveProgress slices questions by answersRef.length). Nulls are
-        // filtered out of the history batch.
-        answersRef.current.push(null);
-
-        if (currentQuestionIndex < QUESTIONS_PER_LEVEL - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
-            trivia.reset();
-            setEliminatedOptions([]);
-            setSkipUsedThisQuestion(false);
-            setDoubleChanceActive(false);
-            setDoubleChanceUsedThisQuestion(false);
-            setFirstAttemptWrong(null);
-            timer.resetTimer();
-        } else {
-            // Skipping the LAST question used to charge the player, stop the
-            // clock and then do nothing at all — they sat on a dead board
-            // having paid for it. Evaluate the level instead.
-            evaluateLevelResult(correctCount);
+            // FIX(audit #12): boundary from the actual loaded set, not the constant.
+            if (currentQuestionIndex < (questions.length || QUESTIONS_PER_LEVEL) - 1) {
+                setCurrentQuestionIndex(prev => prev + 1);
+                trivia.reset();
+                setEliminatedOptions([]);
+                setSkipUsedThisQuestion(false);
+                setDoubleChanceActive(false);
+                setDoubleChanceUsedThisQuestion(false);
+                setFirstAttemptWrong(null);
+                timer.resetTimer();
+            } else {
+                // Skipping the LAST question used to charge the player, stop the
+                // clock and then do nothing at all — they sat on a dead board
+                // having paid for it. Evaluate the level instead.
+                evaluateLevelResult(correctCount);
+            }
+        } finally {
+            lifelineBusyRef.current = false;
         }
     }
 
@@ -630,13 +678,20 @@ export default function SurvivalGamePage() {
             // Lifeline limit reached — silently prevent
             return;
         }
+        // FIX(audit #8): synchronous lock — a double-tap paid twice for one
+        // double chance (the second setDoubleChanceActive(true) is a no-op).
+        if (lifelineBusyRef.current) return;
+        lifelineBusyRef.current = true;
+        try {
+            const paid = await chargeLifeline(LIFELINE_COST, 'double', 'Double Chance');
+            if (!paid) return;
+            setLifelinesUsedThisLevel(prev => prev + 1);
 
-        const paid = await chargeLifeline(LIFELINE_COST, 'double', 'Double Chance');
-        if (!paid) return;
-        setLifelinesUsedThisLevel(prev => prev + 1);
-
-        setDoubleChanceActive(true);
-        setDoubleChanceUsedThisQuestion(true);
+            setDoubleChanceActive(true);
+            setDoubleChanceUsedThisQuestion(true);
+        } finally {
+            lifelineBusyRef.current = false;
+        }
     }
 
     function selectAnswer(index) {
@@ -693,15 +748,25 @@ export default function SurvivalGamePage() {
         }
 
         const config = LEVEL_CONFIG[currentLevel - 1];
-        const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
+        // FIX(audit #12): boundary from the actual loaded set (see handleTimeOut).
+        const levelLength = questions.length || QUESTIONS_PER_LEVEL;
+        const remainingQuestions = levelLength - currentQuestionIndex - 1;
         const maxPossibleCorrect = correctCount + (isCorrect ? 1 : 0) + remainingQuestions;
 
         answerTimeoutRef.current = setTimeout(() => {
-            if (currentQuestionIndex + 1 >= QUESTIONS_PER_LEVEL) {
+            if (currentQuestionIndex + 1 >= levelLength) {
                 const finalCorrect = correctCount + (isCorrect ? 1 : 0);
                 evaluateLevelResult(finalCorrect);
             } else if (maxPossibleCorrect < config.minCorrect) {
-                setGameState('gameOver');
+                // FIX(audit #4): a run that becomes mathematically unwinnable
+                // mid-level is the MOST COMMON fail path, and it used to jump
+                // straight to 'gameOver' without saving anything — no question
+                // history (breaking the 60-day non-repeat guarantee for every
+                // question served in the run) and no trivia_scores row. Route it
+                // through the same failed-run save path the end-of-level failure
+                // uses; saveFailedRun() sets gameState('gameOver') itself.
+                setGameState('saving_progress');
+                saveFailedRun();
             } else {
                 setCurrentQuestionIndex(prev => prev + 1);
                 trivia.reset();
