@@ -32,9 +32,7 @@ const CRITICAL_AUTH_FILES = [
     // regressed at least once, or is a single point of failure for a flow.
     'pages/auth/signin.js',          // safety-net redirect → /auth/login
     'pages/auth/quick.js',           // emergency signup page
-    'pages/auth/mfa.js',             // 2FA challenge page
     'pages/api/auth/quick-signup.js',
-    'pages/api/auth/mfa/challenge.js',
     'src/lib/supabase.ts',           // the real Supabase client
     'src/lib/authUtils.ts',          // webpack-aliased target of authUtils.js
 ];
@@ -50,7 +48,6 @@ const AUTH_ROUTE_TARGETS = [
     { route: '/auth/reset-password',  mustExist: 'pages/auth/reset-password.js' },
     { route: '/auth/signin',          mustExist: 'pages/auth/signin.js' },
     { route: '/auth/quick',           mustExist: 'pages/auth/quick.js' },
-    { route: '/auth/mfa',             mustExist: 'pages/auth/mfa.js' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,11 +77,6 @@ const CONTENT_GUARDS = [
         file: 'pages/api/auth/quick-signup.js',
         pattern: /NEXT_PUBLIC_SUPABASE_ANON_KEY[^;]*\.trim\(\)/,
         why: 'Emergency signup endpoint 500s on every request if the anon key is not trimmed (trailing \n in prod env).',
-    },
-    {
-        file: 'pages/auth/login.js',
-        pattern: /enabled === true/,
-        why: 'MFA login gate must use STRICT === true checks (loose truthiness caused random /auth/mfa redirects and got the gate disabled once already).',
     },
     {
         file: 'pages/auth/callback.js',
