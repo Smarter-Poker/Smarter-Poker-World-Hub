@@ -8,10 +8,12 @@
    is gone entirely — there is no authenticator-app enrolment left to be
    half-finished.
 
-   The code is checked against the EXISTING `sms_otp_codes` table using the
-   same rules as pages/api/sms/verify-otp.js: newest row for the phone,
-   10-minute expiry, 5 attempts max, attempts incremented BEFORE the
-   comparison, row deleted on success.
+   The code check comes from src/lib/mfaSmsCode.js. It used to be a private
+   copy in this file, which meant the MFA namespacing (see that file's header
+   — it is what stops an unauthenticated caller burning a victim's MFA
+   challenge through /api/sms/verify-otp) applied to challenge.js and
+   disable.js but NOT to enrolment. Three copies of an attempt counter is
+   three chances for one to drift into a free guess.
 
    Identity is taken from the bearer JWT. The body supplies only the code
    (and optionally the challengeId issued by setup).
@@ -27,6 +29,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { checkSmsCode, normalizePhone, isSendablePhone } from '../../../../src/lib/mfaSmsCode';
 
 let _supabase = null;
 function getSupabase() {
@@ -36,86 +39,6 @@ function getSupabase() {
         _supabase = createClient(url, key);
     }
     return _supabase;
-}
-
-function normalizePhone(raw) {
-    const digits = String(raw || '').replace(/\D/g, '');
-    if (digits.length === 10) return '+1' + digits;
-    if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
-    return '+' + digits;
-}
-
-const MAX_ATTEMPTS = 5;   // same as pages/api/sms/verify-otp.js
-const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-/**
- * Check a 4-digit SMS code against the shared sms_otp_codes store.
- * Returns { ok:true } or { ok:false, status, error, ...hints }.
- */
-async function checkSmsCode(supabase, phone, rawCode, challengeId) {
-    const code = String(rawCode || '').trim();
-    if (!/^\d{4}$/.test(code)) {
-        return { ok: false, status: 400, error: 'Verification code must be 4 digits' };
-    }
-
-    const { error: purgeErr } = await supabase
-        .from('sms_otp_codes')
-        .delete()
-        .lt('expires_at', new Date().toISOString());
-    if (purgeErr) console.warn('[mfa/verify] OTP purge failed:', purgeErr.message);
-
-    let query = supabase.from('sms_otp_codes').select('*').eq('phone', phone);
-    // Only trust a well-formed uuid — a malformed one would make Postgres
-    // throw 22P02 instead of simply not matching.
-    if (challengeId && UUID_RE.test(String(challengeId))) {
-        query = query.eq('id', String(challengeId));
-    }
-
-    const { data: stored, error: fetchError } = await query
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (fetchError) {
-        console.warn('[mfa/verify] OTP fetch error:', fetchError.message);
-        return { ok: false, status: 500, error: 'Failed to verify code' };
-    }
-    if (!stored) {
-        return { ok: false, status: 400, error: 'No verification code found. Please request a new code.', expired: true };
-    }
-    if (new Date() > new Date(stored.expires_at)) {
-        const { error: e } = await supabase.from('sms_otp_codes').delete().eq('id', stored.id);
-        if (e) console.warn('[mfa/verify] Expired-row cleanup failed:', e.message);
-        return { ok: false, status: 400, error: 'Verification code has expired. Please request a new code.', expired: true };
-    }
-    if (stored.attempts >= MAX_ATTEMPTS) {
-        const { error: e } = await supabase.from('sms_otp_codes').delete().eq('id', stored.id);
-        if (e) console.warn('[mfa/verify] Attempt-cap cleanup failed:', e.message);
-        return { ok: false, status: 429, error: 'Too many attempts. Please request a new code.', tooManyAttempts: true };
-    }
-
-    // Increment BEFORE comparing so a crash can never hand out a free guess.
-    const newAttempts = stored.attempts + 1;
-    const { error: bumpErr } = await supabase
-        .from('sms_otp_codes')
-        .update({ attempts: newAttempts })
-        .eq('id', stored.id);
-    if (bumpErr) console.warn('[mfa/verify] Attempt increment failed:', bumpErr.message);
-
-    if (stored.code !== code) {
-        const remaining = MAX_ATTEMPTS - newAttempts;
-        return {
-            ok: false,
-            status: 400,
-            error: `Invalid verification code. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
-            remainingAttempts: remaining,
-        };
-    }
-
-    const { error: delErr } = await supabase.from('sms_otp_codes').delete().eq('id', stored.id);
-    if (delErr) console.warn('[mfa/verify] Consumed-code cleanup failed:', delErr.message);
-
-    return { ok: true };
 }
 
 export default async function handler(req, res) {
@@ -169,7 +92,7 @@ export default async function handler(req, res) {
     }
 
     const phone = profile?.phone ? normalizePhone(profile.phone) : null;
-    if (!phone || !/^\+1\d{10}$/.test(phone) || profile?.phone_verified !== true) {
+    if (!phone || !isSendablePhone(phone) || profile?.phone_verified !== true) {
         return res.status(400).json({
             error: 'Add and verify a mobile phone number on your account first — your text-message codes are sent there.',
             code: 'PHONE_NOT_VERIFIED',
