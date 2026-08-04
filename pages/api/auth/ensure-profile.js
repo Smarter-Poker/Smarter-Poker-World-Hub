@@ -268,6 +268,13 @@ export default async function handler(req, res) {
                   full_name: full_name || metadata?.full_name || metadata?.poker_alias || null,
                   avatar_url: avatar_url || metadata?.avatar_url || null,
                   phone: metadata?.phone || metadata?.phone_number || null,
+                  // [Phase 6.1.27] Carry the signup SMS verification through.
+                  // Without this the duplicate-phone guard in
+                  // pages/api/sms/verify-otp.js (which only matches
+                  // phone_verified = true) never fires for email signups, so
+                  // one handset can open unlimited accounts. Strictly ===
+                  // true: a truthy string from metadata must not count.
+                  phone_verified: metadata?.phone_verified === true,
                   city: metadata?.city || null,
                   state: metadata?.state || null,
                   birthday: metadata?.birthday || null,
