@@ -436,36 +436,49 @@ export default function SignUpPage() {
     // ─────────────────────────────────────────────────────────────────────────
     const handleSignUp = async (e) => {
         e.preventDefault();
+        // [2026-08-04] Guard against double-submit: the HIBP password check
+        // below is an up-to-3s network call. Previously `loading` stayed
+        // false until AFTER it resolved, so a second click launched a
+        // concurrent signUp — the loser saw "already registered" and got
+        // dumped into the email_pending dead-end mid-flow.
+        if (loading) return;
+        setLoading(true);
         setError('');
 
         // Validate first and last name
         if (!formData.firstName.trim()) {
             setError('Please Enter Your First Name');
+            setLoading(false);
             return;
         }
         if (!formData.lastName.trim()) {
             setError('Please Enter Your Last Name');
+            setLoading(false);
             return;
         }
 
         // Validate alias availability
         if (aliasAvailable === false) {
             setError('Please Choose A Different Poker Alias');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length < 3) {
             setError('Poker Alias Must Be At Least 3 Characters');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length > 20) {
             setError('Poker Alias Must Be 20 Characters Or Less');
+            setLoading(false);
             return;
         }
 
         if (!isValidEmail(formData.email)) {
             setError('Please Enter A Valid Email Address');
+            setLoading(false);
             return;
         }
 
@@ -483,32 +496,49 @@ export default function SignUpPage() {
 
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords Do Not Match');
+            setLoading(false);
             return;
         }
 
         // Birthdate validation - must be 18+ (using dropdown values)
         if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
             setError('Please Select Your Complete Birth Date');
+            setLoading(false);
             return;
         }
-        const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
+        
+        const birthYearInt = parseInt(formData.birthYear, 10);
+        const birthMonthInt = parseInt(formData.birthMonth, 10);
+        const birthDayInt = parseInt(formData.birthDay, 10);
+        const birthDate = new Date(birthYearInt, birthMonthInt - 1, birthDayInt);
+        
+        // JS Date auto-wraps (e.g. Feb 31 -> Mar 2 or Mar 3). We must verify the month/day didn't change!
+        if (birthDate.getFullYear() !== birthYearInt || birthDate.getMonth() !== birthMonthInt - 1 || birthDate.getDate() !== birthDayInt) {
+            setError('Please Enter A Valid Birth Date');
+            setLoading(false);
+            return;
+        }
+
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (age < 18 || (age === 18 && monthDiff < 0) || (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             setError('You Must Be 18 Years Or Older To Create An Account');
+            setLoading(false);
             return;
         }
 
         // 18+ Age Verification Check
         if (!ageConfirmed) {
             setError('You Must Confirm You Are 18+ Years Of Age');
+            setLoading(false);
             return;
         }
 
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
             setError('Please Enter A Valid 10-Digit Phone Number');
+            setLoading(false);
             return;
         }
 
@@ -521,8 +551,10 @@ export default function SignUpPage() {
 
         try {
             // Step 1: Create auth user with email/password
+            // [2026-08-04] Normalize the email the same way login.js does —
+            // "Dan@X.com " and "dan@x.com" must be the same account.
             const { data: authData, error: signUpError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
                 options: {
                     data: {
@@ -533,6 +565,7 @@ export default function SignUpPage() {
                         city: formData.city,
                         state: formData.state,
                         birth_year: parseInt(formData.birthYear),
+                        birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
                     },
                     // Enable email confirmation - redirect to /auth/callback after verification
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -542,6 +575,14 @@ export default function SignUpPage() {
             if (signUpError) throw signUpError;
 
             console.log('Auth user created:', authData);
+
+            // ── Save pending promo/referral for after email verification ──
+            if (formData.promoCode && promoValid && !isReferralCode) {
+                localStorage.setItem('smarter-poker-pending-promo', formData.promoCode);
+            }
+            if (isReferralCode && referralValid && referralDetails) {
+                localStorage.setItem('smarter-poker-pending-referral', JSON.stringify(referralDetails));
+            }
 
             // ── [Phase 5.1.2] PostHog activation-funnel: signup event ───────
             // Fire client-side so the SDK can auto-populate the UTM / referrer
@@ -561,188 +602,7 @@ export default function SignUpPage() {
                 }
             } catch (_analyticsErr) { console.warn('[App] Handled exception:', _analyticsErr?.message || _analyticsErr); }
 
-            // Step 2: Create profile directly
-            if (authData.user) {
-                const cleanPhoneFormatted = '+1' + cleanPhone;
 
-                // Try RPC first
-                try {
-                    const { data: profileData, error: rpcError } = await supabase
-                        .rpc('initialize_player_profile', {
-                            p_user_id: authData.user.id,
-                            p_full_name: cleanFullName,
-                            p_email: formData.email,
-                            p_phone: cleanPhoneFormatted,
-                            p_city: formData.city,
-                            p_state: formData.state,
-                            p_username: formData.pokerAlias,
-                        });
-
-                    if (rpcError) {
-                        console.log('RPC failed, trying direct insert:', rpcError);
-                        throw rpcError;
-                    }
-
-                    if (profileData && profileData.length > 0) {
-                        setAssignedPlayerNumber(profileData[0].player_number);
-                    }
-
-                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
-                    const { error: err_user_diamond_balance_qf0e1 } = await supabase
-                      .from('user_diamond_balance')
-                      .upsert({
-                            user_id: authData.user.id,
-                            balance: 500, // Welcome diamond bonus (matches profile)
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                        }, {
-                            onConflict: 'user_id',
-                        });
-                    if (err_user_diamond_balance_qf0e1) console.warn('[Supabase] Silent mutation failed in user_diamond_balance:', err_user_diamond_balance_qf0e1.message);
-
-                    // RPC doesn't accept birthday params — persist it separately
-                    if (formData.birthYear && formData.birthMonth && formData.birthDay) {
-                        const { error: err_profiles_p53n7 } = await supabase
-                          .from('profiles')
-                          .update({
-                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                birth_year: parseInt(formData.birthYear),
-                            })
-                            .eq('id', authData.user.id);
-                        if (err_profiles_p53n7) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_p53n7.message);
-                    }
-                } catch (rpcErr) {
-                    console.warn('[App] Handled exception:', rpcErr?.message || rpcErr);
-
-                    // Fallback: query current max player_number using numeric cast RPC
-                    // (avoid lexicographic sort bug: '999' > '1500' on TEXT column)
-                    try {
-                        const { data: maxNum } = await supabase
-                            .rpc('get_max_player_number');
-
-                        const nextPlayerNumber = Math.max(1500, (parseInt(maxNum, 10) || 1499) + 1);
-                        console.log('Updating profile for user:', authData.user.id);
-
-                        // UPDATE the profile created by the database trigger
-                        // The trigger creates the profile with correct id = auth.user.id
-                        // We just need to add/update the additional fields
-                        // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({
-                                full_name: cleanFullName,
-                                first_name: cleanFirstName,
-                                last_name: cleanLastName,
-                                phone: cleanPhoneFormatted,
-                                city: formData.city,
-                                state: formData.state,
-                                username: formData.pokerAlias,
-                                player_number: nextPlayerNumber,
-                                // NOTE (Diamond Rewards v2): diamonds, diamond_multiplier, is_vip,
-                                // vip_tier and vip_expires_at are deliberately NOT written here.
-                                // Migration 20260726120000 locks those columns to service_role — a
-                                // browser-side write would now be rejected and would have let any
-                                // user self-grant VIP and an arbitrary balance. The welcome package
-                                // (30-day VIP + welcome diamonds) is granted server-side by the
-                                // handle_new_user trigger and /api/auth/ensure-profile.
-                                streak_count: 0,
-                                skill_tier: 'Newcomer',
-                                access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                last_login: new Date().toISOString(),
-                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                birth_year: parseInt(formData.birthYear),
-                            })
-                            .eq('id', authData.user.id);
-
-                        if (updateError) {
-                            console.warn('Profile update error:', updateError);
-                            // If update fails (profile doesn't exist yet), try insert as fallback
-                            const { error: insertError } = await supabase
-                                .from('profiles')
-                                .insert({
-                                    id: authData.user.id,
-                                    full_name: cleanFullName,
-                                    first_name: cleanFirstName,
-                                    last_name: cleanLastName,
-                                    email: formData.email,
-                                    phone: cleanPhoneFormatted,
-                                    city: formData.city,
-                                    state: formData.state,
-                                    username: formData.pokerAlias,
-                                    player_number: nextPlayerNumber,
-                                    // See note above — economic columns are server-granted only.
-                                    streak_count: 0,
-                                    skill_tier: 'Newcomer',
-                                    access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                    created_at: new Date().toISOString(),
-                                    last_login: new Date().toISOString(),
-                                    birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                    birth_year: parseInt(formData.birthYear),
-                                });
-
-                            if (insertError) {
-                                console.warn('Profile insert fallback error:', insertError);
-                            }
-                        }
-
-                        // Set the assigned player number
-                        setAssignedPlayerNumber(nextPlayerNumber);
-                    } catch (fallbackErr) {
-                        console.warn('[Signup] Profile fallback error:', fallbackErr?.message || fallbackErr);
-                    }
-                }
-
-                // ── CRITICAL: Persist phone_verified to Supabase ─────────────
-                // The signup form verifies the phone via verify-otp WITHOUT userId,
-                // so verify-otp does NOT set phone_verified on the profile.
-                // We must do it here to prevent the VIP popup from re-firing.
-                if (phoneVerified) {
-                    try {
-                        const { error: err_profiles_gh469 } = await supabase
-                          .from('profiles')
-                          .update({ phone_verified: true })
-                            .eq('id', authData.user.id);
-                        if (err_profiles_gh469) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_gh469.message);
-                        console.log('[Signup] phone_verified persisted to profile');
-                    } catch (pvErr) {
-                        console.warn('[Signup] phone_verified persist error (non-blocking):', pvErr);
-                    }
-                }
-            }
-
-            // Redeem promo code if provided and valid
-            if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
-                try {
-                    await fetch('/api/promo/redeem-promo-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            code: formData.promoCode,
-                            userId: authData.user.id,
-                        }),
-                    });
-                    console.log('Promo code redeemed:', formData.promoCode);
-                } catch (promoErr) {
-                    console.warn('Promo redemption error (non-blocking):', promoErr);
-                }
-            }
-
-            // Award referral bonus to referrer if referral code was used
-            if (isReferralCode && referralValid && referralDetails && authData.user) {
-                try {
-                    await fetch('/api/rewards/referral', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            referrerId: referralDetails.referrerId,
-                            referredUserId: authData.user.id,
-                        }),
-                    });
-                    console.log('Referral reward sent to:', referralDetails.referrerId);
-                } catch (refErr) {
-                    console.warn('Referral reward error (non-blocking):', refErr);
-                }
-            }
 
             // [2026-05-03] Deferred SIGNUP funnel event. Fire AFTER the
             // full provisioning attempt so orphaned auth.users rows (no
@@ -1361,7 +1221,7 @@ export default function SignUpPage() {
                             <h2 style={styles.successTitle}>Verify Your Email</h2>
 
                             <p style={styles.emailPendingText}>
-                                We've sent a 4-digit verification code to:
+                                We've sent a 6-digit verification code to:
                             </p>
                             <p style={styles.emailHighlight}>{formData.email}</p>
 

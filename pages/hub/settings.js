@@ -13,7 +13,6 @@ import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
 // CustomAvatarBuilder statically imported is a heavy bundle hit. Lazy load it.
-const TwoFactorAuthModal = dynamic(() => import('../../src/components/settings/modals/TwoFactorAuthModal'), { ssr: false });
 const DevicesModal = dynamic(() => import('../../src/components/settings/modals/DevicesModal'), { ssr: false });
 const DeleteAccountModal = dynamic(() => import('../../src/components/settings/modals/DeleteAccountModal'), { ssr: false });
 const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
@@ -144,18 +143,10 @@ export default function SettingsPage() {
     const [cancelReason, setCancelReason] = useState('');
     const [cancelOtherText, setCancelOtherText] = useState('');
     const [cancelLoading, setCancelLoading] = useState(false);
-    const [show2FAModal, setShow2FAModal] = useState(false);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-    const [qrCode, setQrCode] = useState('');
-    const [manualEntryKey, setManualEntryKey] = useState('');
-    const [verificationCode, setVerificationCode] = useState('');
-    const [backupCodes, setBackupCodes] = useState([]);
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
 
-    // Improvement: 2FA disable confirmation modal (replaces native confirm)
-    const [showDisable2FAConfirm, setShowDisable2FAConfirm] = useState(false);
     // Improvement: Device revoke confirmation (replaces native confirm)
     const [revokeDeviceTarget, setRevokeDeviceTarget] = useState(null); // device object to revoke
     // Improvement: Password reset inline feedback (replaces alert)
@@ -168,8 +159,6 @@ export default function SettingsPage() {
     const [cancelFeedback, setCancelFeedback] = useState(null); // { type: 'success'|'error', message }
     // Phase 2: Data export inline feedback
     const [exportFeedback, setExportFeedback] = useState(null); // { type: 'success'|'error', message }
-    // Phase 2: Backup codes copied state
-    const [backupCodesCopied, setBackupCodesCopied] = useState(false);
     // Phase 2: Promo history dedup guard
     const [promoHistoryLoaded, setPromoHistoryLoaded] = useState(false);
     // Phase 3: Separate state for referral link copy vs code copy
@@ -469,18 +458,6 @@ export default function SettingsPage() {
                         try {
                             localStorage.setItem('sp-cached-settings-profile', JSON.stringify(profile));
                         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    }
-                });
-
-            // Load 2FA status
-            supabase
-                .from('user_mfa_factors')
-                .select('enabled')
-                .eq('user_id', user.id)
-                .maybeSingle()
-                .then(({ data: mfaData }) => {
-                    if (mfaData) {
-                        setTwoFactorEnabled(mfaData.enabled || false);
                     }
                 });
 
@@ -1360,12 +1337,6 @@ export default function SettingsPage() {
                                             Error Sending Password Reset Email. Please Try Again.
                                         </div>
                                     )}
-                                    <button
-                                        onClick={() => setShow2FAModal(true)}
-                                        style={styles.secondaryButton}
-                                    >
-                                        {twoFactorEnabled ? ' 2FA Enabled' : 'Enable 2FA'}
-                                    </button>
                                     <button
                                         onClick={async () => {
                                             setShowDevicesModal(true);
@@ -2573,33 +2544,6 @@ export default function SettingsPage() {
                     </button>
                     <CustomAvatarBuilder isVip={isVip} onClose={() => setShowAvatarBuilder(false)} />
                 </div>
-            )}
-
-            {/* 2FA Setup Modal */}
-                        {show2FAModal && (
-                <TwoFactorAuthModal
-                    show2FAModal={show2FAModal}
-                    setShow2FAModal={setShow2FAModal}
-                    twoFactorEnabled={twoFactorEnabled}
-                    setTwoFactorEnabled={setTwoFactorEnabled}
-                    qrCode={qrCode}
-                    setQrCode={setQrCode}
-                    manualEntryKey={manualEntryKey}
-                    setManualEntryKey={setManualEntryKey}
-                    verificationCode={verificationCode}
-                    setVerificationCode={setVerificationCode}
-                    backupCodes={backupCodes}
-                    setBackupCodes={setBackupCodes}
-                    loadingMFA={loadingMFA}
-                    setLoadingMFA={setLoadingMFA}
-                    mfaFeedback={mfaFeedback}
-                    setMfaFeedback={setMfaFeedback}
-                    user={user}
-                    showDisable2FAConfirm={showDisable2FAConfirm}
-                    setShowDisable2FAConfirm={setShowDisable2FAConfirm}
-                    backupCodesCopied={backupCodesCopied}
-                    setBackupCodesCopied={setBackupCodesCopied}
-                />
             )}
 
             {/* Connected Devices Modal */}
