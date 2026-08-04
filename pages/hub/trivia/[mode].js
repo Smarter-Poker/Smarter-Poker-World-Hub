@@ -27,6 +27,7 @@ import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaA
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, fetchRandomQuestionPool, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 
 // Phase 55 — gameplay quality floor. Questions tagged below this by the audit
 // pipeline (qs=2 auto-demoted via 3-strike user reports, qs=4 unclear English,
@@ -85,6 +86,13 @@ function genUUID() {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+// Modes this page runs through the server-authoritative grading flow
+// (session-start / session-answer / session-submit) instead of the
+// client-keyed correct_index flow. Ships EMPTY so production behavior is
+// unchanged — flip to ['arcade'] after browser test. Until then the only
+// activation path is the explicit ?serverGrading=1 query escape hatch.
+const SERVER_GRADED_PAGE_MODES = new Set([]);
+
 // Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
 function getYesterdayCST() {
     const cst = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
@@ -97,6 +105,12 @@ export default function TriviaModePage() {
     const router = useRouter();
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();
+
+    // Server-authoritative grading (dark until SERVER_GRADED_PAGE_MODES is
+    // flipped). The hook owns the session lifecycle; this flag picks which
+    // branch the page runs — it must never half-adopt (see the hook's docs).
+    const serverRun = useServerGradedRun(mode);
+    const serverGraded = serverRun.isEnabled && (SERVER_GRADED_PAGE_MODES.has(mode) || router.query.serverGrading === '1');
 
     // ── AUDIT FIX (C1) ─────────────────────────────────────────────────
     // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
@@ -302,14 +316,21 @@ export default function TriviaModePage() {
                 // Pass the RESOLVED user id explicitly — the `userId` state is
                 // still null inside this closure (stale-closure bug that used
                 // to silently skip the 60-day no-repeat exclusion).
-                const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount, currentUserId);
-                if (loadedQuestions.length === 0) {
-                    setError('No questions available. Please try again later.');
-                    setGameState('error');
-                    return;
-                }
+                // Server-graded runs get their questions from the session at
+                // start time instead (startGame) — pre-loading here would burn
+                // 60-day pool entries for questions never actually served.
+                if (serverGraded) {
+                    setQuestions([]);
+                } else {
+                    const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount, currentUserId);
+                    if (loadedQuestions.length === 0) {
+                        setError('No questions available. Please try again later.');
+                        setGameState('error');
+                        return;
+                    }
 
-                setQuestions(sortByDifficulty(shuffleOptions(loadedQuestions)));
+                    setQuestions(sortByDifficulty(shuffleOptions(loadedQuestions)));
+                }
 
                 // Load leaderboard for arcade
                 if (mode === 'arcade') {
@@ -366,24 +387,24 @@ export default function TriviaModePage() {
         // Determine which categories this mode uses
         const categories = CATEGORY_MAP[mode];
 
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         // STEP 0: Fetch user's 60-day question history to prevent repeats.
         // GLOBAL exclusion (no mode filter) — a question answered in one
         // mode must not reappear in another within 60 days. Limit raised to
         // 2000 rows so an active player's full 60-day history is covered.
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         let excludedSet = new Set();
         if (uid) {
             const excludeArray = await getRecentlySeenIds(supabase, uid, 2000);
             excludeArray.forEach(id => excludedSet.add(id));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         // STEP 1: Try to load today's daily-tagged questions
         // All users get the same 20 questions per category per day
         // Phase 55: also enforce quality_score >= MIN_QUALITY_SCORE so reported-bad
         //           and unclear questions never land on the daily roster.
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         let dailyQuery = supabase
             .from('trivia_questions')
             .select('*')
@@ -406,13 +427,13 @@ export default function TriviaModePage() {
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         // STEP 2: Fallback — random-offset pool fetch + seeded daily shuffle
         // Phase 55: was using .limit(1500) without offset which always pulled
         //           the same first-1500 by Postgres-internal order. With 8675+
         //           questions in the pool, ~7000 were never reachable. Now uses
         //           fetchRandomQuestionPool() to pull a different page each run.
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
         const poolQuestions = await fetchRandomQuestionPool(supabase, {
             category: categories,
             pageSize: 1500,
@@ -676,6 +697,22 @@ export default function TriviaModePage() {
             return;
         }
 
+        // Server-graded run: open the session BEFORE any charge so a failed
+        // start never costs the player anything. The server deals (and
+        // permutes) the questions — no sortByDifficulty / shuffleOptions here,
+        // reshuffling would break the display-index mapping the grader uses.
+        if (serverGraded) {
+            try {
+                const started = await serverRun.start({ count: modeConfig.questionsCount });
+                setQuestions(started.questions);
+            } catch (e) {
+                console.warn('[mode] Server-graded session start failed:', e?.message || e);
+                setError('Could not start the game. Please try again.');
+                setGameState('error');
+                return;
+            }
+        }
+
         // Per-game diamond deduction for paid modes
         if (!isFreeMode && userId && !isVIP) {
             // Fresh balance check from DB to avoid stale-state false negatives
@@ -689,6 +726,9 @@ export default function TriviaModePage() {
                     const freshBalance = profile.diamonds || 0;
                     setUserDiamonds(freshBalance);
                     if (freshBalance < modeCost) {
+                        // Abandon the just-opened server session (it expires
+                        // harmlessly) — nothing has been recorded or charged.
+                        if (serverGraded) serverRun.reset();
                         setShowOutOfDiamonds(true);
                         return;
                     }
@@ -696,6 +736,7 @@ export default function TriviaModePage() {
 
                 const result = await DiamondEngine.deduct(modeCost, `trivia_${mode}`);
                 if (!result.success) {
+                    if (serverGraded) serverRun.reset();
                     setShowOutOfDiamonds(true);
                     return;
                 }
@@ -709,6 +750,7 @@ export default function TriviaModePage() {
                 if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
             } catch (e) {
                 console.warn('[mode] Diamond deduction failed:', e);
+                if (serverGraded) serverRun.reset();
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -733,6 +775,37 @@ export default function TriviaModePage() {
             streak: gameStreak = 0,
         } = gameResult;
 
+        // Server-graded runs: the server regrades the recorded sequence and
+        // pays the reward inside award_trivia_run — the client submits the
+        // display-index answers and adopts the server's numbers wholesale.
+        // On failure, fall into the saving_error retry state WITHOUT any
+        // client-side crediting; a retry re-submits the same session.
+        let serverResult = null;
+        if (serverGraded) {
+            try {
+                const idAnswers = (gameResult.answers || [])
+                    .map((a, i) => ({
+                        questionId: questions[i]?.id,
+                        displayIndex: (typeof a === 'number' && a >= 0) ? a : -1
+                    }))
+                    .filter(x => typeof x.questionId === 'string');
+                serverResult = await serverRun.submit(idAnswers, { cashedOut: gameResult.cashedOut === true });
+            } catch (e) {
+                console.warn('[mode] Server-graded submit failed:', e?.message || e);
+                setSaveErrorPayload(gameResult);
+                setGameState('saving_error');
+                return;
+            }
+        }
+        const useServerPayout = serverGraded && serverResult != null;
+        // Effective score numbers — the server's when it graded the run, the
+        // client's (verdict-counted by TriviaGame) otherwise.
+        const effCorrectCount = useServerPayout ? (Number(serverResult.correct) || 0) : correctCount;
+        const effTotalQuestions = useServerPayout ? (Number(serverResult.total) || totalQuestions) : totalQuestions;
+        const runScore = useServerPayout
+            ? (Number(serverResult.score) || 0)
+            : correctCount * 100 + (timeRemaining || 0) * 2;
+
         // Calculate rewards with streak multiplier.
         // Arcade is a STAKES mode unconditionally — the pot IS the reward. The
         // old `stakePot > 0` qualifier meant a busted run (pot 0) fell through
@@ -751,9 +824,14 @@ export default function TriviaModePage() {
         // — the pot is still computed and credited client-side, so the REAL
         // fix is server-side grading/crediting (e.g. /api/trivia/submit).
         const ARCADE_MAX_RUN_PAYOUT = 50;
-        const rawDiamonds = isStakesMode
-            ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(Number(stakePot) || 0)))
-            : calculateRewardWithMultiplier(baseDiamonds, userStreak);
+        const rawDiamonds = useServerPayout
+            // award_trivia_run already recomputed the pot from the recorded
+            // answer sequence, capped it and credited it — adopt its number
+            // so the result screen agrees with the paid balance.
+            ? Math.max(0, Math.floor(Number(serverResult.diamondsAwarded) || 0))
+            : isStakesMode
+                ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(Number(stakePot) || 0)))
+                : calculateRewardWithMultiplier(baseDiamonds, userStreak);
 
         // Daily earnings cap — closes the diamond-farming loop (replay
         // memorized questions for unlimited diamonds). AUDIT FIX (H1): arcade
@@ -761,7 +839,8 @@ export default function TriviaModePage() {
         // DAILY_DIAMOND_CAPS.arcade like every other reward.
         let diamondsEarned = rawDiamonds;
         let capReached = false;
-        if (userId && rawDiamonds > 0 && (isStakesMode || (modeConfig?.diamondCost || 0) === 0)) {
+        // Server payouts are already capped server-side — never re-clamp them.
+        if (!useServerPayout && userId && rawDiamonds > 0 && (isStakesMode || (modeConfig?.diamondCost || 0) === 0)) {
             if (cappedRewardRef.current == null) {
                 try {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, mode);
@@ -784,13 +863,13 @@ export default function TriviaModePage() {
         }
 
         // Check for perfect score (100% correct)
-        const isPerfect = correctCount === totalQuestions && totalQuestions > 0;
+        const isPerfect = effCorrectCount === effTotalQuestions && effTotalQuestions > 0;
         setIsPerfectScore(isPerfect);
 
         // Trigger celebration effects
         if (isPerfect) {
             celebrations.triggerPerfect();
-        } else if (correctCount > 0) {
+        } else if (effCorrectCount > 0) {
             celebrations.triggerConfetti();
         }
 
@@ -841,9 +920,9 @@ export default function TriviaModePage() {
                         user_id: userId,
                         username: avatarUser?.username || avatarUser?.display_name || null,
                         mode,
-                        score: correctCount * 100 + (timeRemaining || 0) * 2,
-                        correct_count: correctCount,
-                        total_questions: totalQuestions,
+                        score: runScore,
+                        correct_count: effCorrectCount,
+                        total_questions: effTotalQuestions,
                         time_spent: timeSpent,
                         diamonds_earned: diamondsEarned,
                         play_date: today
@@ -891,27 +970,48 @@ export default function TriviaModePage() {
                     savePhaseRef.current = 1;
                 }
 
-                // Phase 2: Award diamonds (only if not already awarded)
+                // Phase 2: Award diamonds (only if not already awarded).
+                // Server-graded runs were already paid server-side by
+                // award_trivia_run — crediting here again would double-pay,
+                // so only surface the toast and sync the balance.
                 if (savePhaseRef.current < 2) {
-                    const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
-                    if (totalDiamondsToAward > 0) {
-                        const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                            p_user_id: userId,
-                            p_amount: totalDiamondsToAward,
-                            p_type: 'trivia_reward',
-                            p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
-                            p_reference_id: getIdempotencyKey('game_complete')
-                        });
-                        if (__rpcErr) throw __rpcErr;
-                        // Refresh balance from DB
-                        const { data: profile } = await supabase
-                            .from('profiles')
-                            .select('diamonds')
-                            .eq('id', userId)
-                            .maybeSingle();
-                        if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+                    if (useServerPayout) {
+                        if ((Number(serverResult.diamondsAwarded) || 0) > 0) {
+                            busEmit.diamondsEarned(Number(serverResult.diamondsAwarded) || 0, `Trivia ${mode}`);
+                        }
+                        if (serverResult.newBalance != null) {
+                            if (isMountedRef.current) setUserDiamonds(Number(serverResult.newBalance) || userDiamonds);
+                        } else {
+                            // newBalance missing from the response — fall back
+                            // to a fresh profiles read for the header display.
+                            const { data: profile } = await supabase
+                                .from('profiles')
+                                .select('diamonds')
+                                .eq('id', userId)
+                                .maybeSingle();
+                            if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+                        }
+                    } else {
+                        const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
+                        if (totalDiamondsToAward > 0) {
+                            const { error: __rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                                p_user_id: userId,
+                                p_amount: totalDiamondsToAward,
+                                p_type: 'trivia_reward',
+                                p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
+                                p_reference_id: getIdempotencyKey('game_complete')
+                            });
+                            if (__rpcErr) throw __rpcErr;
+                            // Refresh balance from DB
+                            const { data: profile } = await supabase
+                                .from('profiles')
+                                .select('diamonds')
+                                .eq('id', userId)
+                                .maybeSingle();
+                            if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
 
-                        busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
+                            busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
+                        }
                     }
                     savePhaseRef.current = 2;
                 }
@@ -932,6 +1032,17 @@ export default function TriviaModePage() {
                     const a = Array.isArray(answers) ? answers[idx] : undefined;
                     return typeof a === 'number' && a >= 0 ? a : null; // null = skip/timeout/unanswered
                 };
+                // Server verdict lookup (questionId -> wasCorrect) for the
+                // history and mastery phases: with server grading the client
+                // has no correct_index to compare against.
+                const serverVerdictMap = {};
+                if (useServerPayout && Array.isArray(serverResult.perQuestion)) {
+                    serverResult.perQuestion.forEach(pq => {
+                        if (pq && typeof pq.questionId === 'string') {
+                            serverVerdictMap[pq.questionId] = pq.wasCorrect === true;
+                        }
+                    });
+                }
 
                 // Phase 3: Record question history (only if not already recorded)
                 if (savePhaseRef.current < 3) {
@@ -939,7 +1050,11 @@ export default function TriviaModePage() {
                         const historyRecords = servedQuestions.map((q, idx) => ({
                             user_id: userId,
                             question_id: q.id,
-                            was_correct: answeredIndex(idx) != null ? answeredIndex(idx) === q.correct_index : null,
+                            was_correct: answeredIndex(idx) != null
+                                ? (useServerPayout
+                                    ? (serverVerdictMap[q.id] ?? null)
+                                    : answeredIndex(idx) === q.correct_index)
+                                : null,
                             seen_at: new Date().toISOString(),
                             mode
                         }));
@@ -963,12 +1078,16 @@ export default function TriviaModePage() {
                     servedQuestions.forEach((q, idx) => {
                         const a = answeredIndex(idx);
                         if (a == null) return; // neutral: excluded from accuracy
+                        // Server-graded: correctness comes from the verdict
+                        // map; an entry the server never graded is excluded
+                        // rather than guessed at.
+                        if (useServerPayout && serverVerdictMap[q.id] === undefined) return;
                         const cat = q.category || 'general';
                         if (!categoryStats[cat]) {
                             categoryStats[cat] = { answered: 0, correct: 0 };
                         }
                         categoryStats[cat].answered++;
-                        if (a === q.correct_index) {
+                        if (useServerPayout ? serverVerdictMap[q.id] : (a === q.correct_index)) {
                             categoryStats[cat].correct++;
                         }
                     });
@@ -1108,15 +1227,15 @@ export default function TriviaModePage() {
         }
 
         if (!isMountedRef.current) return;
-        const finalScore = correctCount * 100 + (timeRemaining || 0) * 2;
+        const finalScore = runScore;
         const beatPersonalBest = personalBest != null && finalScore > personalBest;
         if (personalBest == null || finalScore > personalBest) setPersonalBest(finalScore);
         setResult({
             mode,
-            correctCount,
+            correctCount: effCorrectCount,
             isPerfect,
             streakMultiplier: streakTier.multiplier,
-            totalQuestions,
+            totalQuestions: effTotalQuestions,
             timeSpent,
             timeRemaining: timeRemaining || 0,
             diamondsEarned,
@@ -1133,8 +1252,10 @@ export default function TriviaModePage() {
             // the player did not actually receive.
             timeBonusAwarded: 0,
             streak: newStreak,
-            // New addictive game mechanics data
-            stakePot: isStakesMode ? stakePot : 0,
+            // New addictive game mechanics data. For server-graded runs the
+            // authoritative pot is what the server actually paid, not the
+            // client's running total.
+            stakePot: isStakesMode ? (useServerPayout ? diamondsEarned : stakePot) : 0,
             cashedOut,
             opponentScore,
             opponentName,
@@ -1529,6 +1650,9 @@ export default function TriviaModePage() {
                             enableStakes={mode === 'arcade'}
                             enableGhostOpponent={true}
                             ghostAccuracy={communityAccuracy}
+                            // Per-answer server grading — null keeps the
+                            // legacy client-keyed path byte-for-byte.
+                            serverGrader={serverGraded ? (args) => serverRun.answer(args) : null}
                             // Reuse this page's out-of-diamonds modal when a hint
                             // is unaffordable — HintButtons otherwise only shows a
                             // transient inline notice with no route to the store.
