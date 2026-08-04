@@ -632,6 +632,18 @@ export default function SignUpPage() {
             state: formData.state,
             birth_year: parseInt(formData.birthYear),
             birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
+            // [Phase 6.1.27] The SMS gate above is what stops one handset
+            // opening unlimited accounts, and nothing was persisting it.
+            // `phone_verified` appeared once in this file — as a PostHog
+            // property, not a database write — so profiles.phone_verified
+            // was never set by signup. The duplicate-phone guard in
+            // pages/api/sms/verify-otp.js only matches rows where it is
+            // true, which made that guard a no-op on the signup path.
+            // Every free diamond is real money; N throwaway accounts is the
+            // cheapest attack on the economy. ensure-profile.js copies both
+            // of these onto the profile row it creates.
+            phone: cleanPhone.length === 10 ? `+1${cleanPhone}` : null,
+            phone_verified: !!phoneVerified,
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,
