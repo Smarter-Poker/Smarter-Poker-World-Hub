@@ -9,7 +9,7 @@
  * in ./EquityEngine.js, with the `export` keywords stripped and a small
  * onmessage shim appended. Regenerate it whenever that block changes:
  *
- *     node gen-equity-worker.js      (tooling lives outside the repo slice)
+ *     npm run gen:equity-worker
  *
  * Stored as an array of one-string-per-source-line so diffs stay readable and
  * so escaping (\\s in the range-splitting regex, backticks in buildDeck) is
