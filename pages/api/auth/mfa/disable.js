@@ -66,8 +66,13 @@ export default async function handler(req, res) {
     // token could silently strip the second factor off the account.
     const { code, challengeId } = req.body || {};
     if (!code) {
+        // `requiresMfa` is the signal the settings modal watches for: it
+        // reacts by calling /api/auth/mfa/send-code and prompting. Without
+        // this flag the client had no way to tell "you need a code" apart
+        // from "your code was wrong".
         return res.status(400).json({
             error: 'Enter the code we texted you, or a backup code, to turn off two-factor.',
+            requiresMfa: true,
         });
     }
 

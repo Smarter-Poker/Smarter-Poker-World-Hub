@@ -79,6 +79,15 @@ export default async function handler(req, res) {
 
       const supabase = getSupabase();
 
+      // [2026-08-04] Rollback bookkeeping for the Twilio-failure branch below.
+      // The OTP row is written BEFORE the SMS is handed to Twilio (we must not
+      // text a code we failed to persist). The cost of that ordering is that a
+      // Twilio outage leaves behind rows for codes the user never received —
+      // and those dead rows still count against MAX_CODES_PER_HOUR. Five failed
+      // sends and the user is locked out of signup for a full hour by codes
+      // that never existed. We undo the insert when the send fails.
+      let persistedOtp = null;
+
       try {
           const { phone } = req.body;
 
@@ -158,6 +167,9 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Failed to store verification code' });
           }
 
+          // Row is live from here on — anything that throws below must undo it.
+          persistedOtp = { phone: cleanPhone, code: otpCode };
+
           // ── Send SMS via Twilio ──────────────────────────────────────────
           const client = getTwilioClient();
 
@@ -175,6 +187,26 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.warn('[send-otp] Error:', error);
+
+          // ── Undo the stored code if we never managed to text it ──────
+          // Deleted by (phone, code) rather than by id so we do not depend on
+          // `.select()` being permitted on the insert. The code is 4 digits and
+          // the pair is effectively unique inside the 10-minute window; the
+          // worst case is that we also drop an identical unsent code, which is
+          // unverifiable anyway. Best-effort: never let cleanup mask the real
+          // Twilio error we are about to report.
+          if (persistedOtp) {
+              try {
+                  const { error: rollbackErr } = await supabase
+                      .from('sms_otp_codes')
+                      .delete()
+                      .eq('phone', persistedOtp.phone)
+                      .eq('code', persistedOtp.code);
+                  if (rollbackErr) console.warn('[send-otp] OTP rollback failed:', rollbackErr.message);
+              } catch (rollbackThrow) {
+                  console.warn('[send-otp] OTP rollback threw:', rollbackThrow?.message || rollbackThrow);
+              }
+          }
 
           // ── Twilio-specific error codes ──────────────────────────────────
           if (error.code === 21211) return res.status(400).json({ success: false, error: 'Invalid phone number format' });

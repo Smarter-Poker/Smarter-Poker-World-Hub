@@ -128,7 +128,7 @@ test('equity worker source evaluates and matches the synchronous engine', { skip
         assert.equal(
             work.heroEquity, sync.heroEquity,
             `heroEquity drift for ${c.hero} vs ${c.range || 'random'} — the worker copy of the ` +
-            `Monte Carlo core is out of sync with EquityEngine.js. Regenerate ` +
+            `Monte Carlo core is out of sync with EquityEngine.js. Run: npm run gen:equity-worker  to regenerate ` +
             `equityWorkerSource.js from the @equity-core block.`,
         );
         assert.equal(work.sampleSize, sync.sampleSize, `sampleSize drift for ${c.hero}`);
@@ -144,7 +144,7 @@ test('runout simulation matches between worker and engine', { skip: present ? fa
     const sync = engine.simulateRunouts(hero, board, 60, null, 555);
     const work = ask('runouts', { hero, board, sims: 60, range: null, seed: 555 });
 
-    assert.equal(work.baseline, sync.baseline, 'runout baseline drift — regenerate equityWorkerSource.js');
+    assert.equal(work.baseline, sync.baseline, 'runout baseline drift — run: npm run gen:equity-worker');
     assert.equal(work.bestCards.length, sync.bestCards.length, 'runout bestCards length drift');
 });
 

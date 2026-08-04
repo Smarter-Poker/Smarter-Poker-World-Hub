@@ -15,6 +15,7 @@ import { supabase } from '../../src/lib/supabase';
 // CustomAvatarBuilder statically imported is a heavy bundle hit. Lazy load it.
 const DevicesModal = dynamic(() => import('../../src/components/settings/modals/DevicesModal'), { ssr: false });
 const DeleteAccountModal = dynamic(() => import('../../src/components/settings/modals/DeleteAccountModal'), { ssr: false });
+const TwoFactorAuthModal = dynamic(() => import('../../src/components/settings/modals/TwoFactorAuthModal'), { ssr: false });
 const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
@@ -146,6 +147,19 @@ export default function SettingsPage() {
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
+
+    // ── [Phase 6.1.27] Two-factor (SMS) state ────────────────────────────
+    // REGRESSION FIX: the MFA-removal commit deleted these declarations and
+    // the modal render, but left setup2FA/verify2FA/disable2FA and the
+    // `show2FAModal` effect below in place. `show2FAModal` resolved to
+    // nothing, so /hub/settings threw ReferenceError on mount — the whole
+    // Settings page was down, not just the 2FA card.
+    const [show2FAModal, setShow2FAModal] = useState(false);
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [backupCodes, setBackupCodes] = useState([]);
+    const [backupCodesCopied, setBackupCodesCopied] = useState(false);
+    const [showDisable2FAConfirm, setShowDisable2FAConfirm] = useState(false);
 
     // Improvement: Device revoke confirmation (replaces native confirm)
     const [revokeDeviceTarget, setRevokeDeviceTarget] = useState(null); // device object to revoke
@@ -485,112 +499,44 @@ export default function SettingsPage() {
         }
     };
 
-    // Call setup API when 2FA modal opens
+    // ── [Phase 6.1.27] Reflect the account's real 2FA state ─────────────
+    // Nothing ever loaded this, so the card always rendered "off" even for
+    // enrolled users and offered to enrol them again (setup answers 409).
+    // check-trusted is the cheapest source of truth: one POST, no secrets.
     useEffect(() => {
-        if (show2FAModal && !twoFactorEnabled && !qrCode) {
-            setup2FA();
-        }
-        // Phase 3: Clear MFA feedback and disable-confirm when modal opens fresh
+        let cancelled = false;
+        (async () => {
+            if (!user?.id) return;
+            try {
+                const res = await fetch('/api/auth/mfa/check-trusted', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                });
+                if (!res.ok || cancelled) return;
+                const json = await res.json().catch(() => ({}));
+                if (!cancelled) setTwoFactorEnabled(json?.mfaEnabled === true);
+            } catch (err) {
+                console.warn('[Settings] 2FA status check failed:', err?.message || err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
+    // Clear stale feedback whenever the 2FA modal opens fresh. Enrolment,
+    // verification and disabling all live inside TwoFactorAuthModal now —
+    // it owns the SMS flow end to end, so the old setup2FA/verify2FA/
+    // disable2FA handlers here (TOTP, 6-digit, and a disable call that sent
+    // no code at all and could therefore never succeed) are gone.
+    useEffect(() => {
         if (show2FAModal) {
             setMfaFeedback(null);
             setShowDisable2FAConfirm(false);
         }
     }, [show2FAModal]);
-
-    const setup2FA = async () => {
-        setLoadingMFA(true);
-        try {
-
-            const response = await fetch('/api/auth/mfa/setup', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${getAccessToken()}`
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setQrCode(data.qrCode);
-                setManualEntryKey(data.manualEntryKey);
-                setMfaFeedback(null);
-            } else {
-                setMfaFeedback({ type: 'error', message: 'Failed To Setup 2FA. Please Try Again.' });
-            }
-        } catch (error) {
-            console.warn('Error setting up 2FA:', error);
-            setMfaFeedback({ type: 'error', message: 'Error Setting Up 2FA. Check Your Connection.' });
-        } finally {
-            setLoadingMFA(false);
-        }
-    };
-
-    const verify2FA = async () => {
-        if (verificationCode.length !== 6) {
-            setMfaFeedback({ type: 'error', message: 'Please Enter A Valid 6-Digit Code.' });
-            return;
-        }
-
-        setLoadingMFA(true);
-        try {
-
-            const response = await fetch('/api/auth/mfa/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAccessToken()}`
-                },
-                body: JSON.stringify({ code: verificationCode })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setTwoFactorEnabled(true);
-                setBackupCodes(data.backupCodes || []);
-                setVerificationCode('');
-                setMfaFeedback({ type: 'success', message: '2FA Enabled Successfully!' });
-                // Backup codes are now displayed in the modal UI instead of alert
-            } else {
-                const error = await response.json().catch(() => ({}));
-                setMfaFeedback({ type: 'error', message: error.error || 'Invalid Verification Code.' });
-            }
-        } catch (error) {
-            console.warn('Error verifying 2FA:', error);
-            setMfaFeedback({ type: 'error', message: 'Error Verifying 2FA. Please Try Again.' });
-        } finally {
-            setLoadingMFA(false);
-        }
-    };
-
-    const disable2FA = async () => {
-        // Now triggered by showDisable2FAConfirm confirmation UI instead of confirm()
-        setShowDisable2FAConfirm(false);
-
-        setLoadingMFA(true);
-        try {
-
-            const response = await fetch('/api/auth/mfa/disable', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${getAccessToken()}`
-                }
-            });
-
-            if (response.ok) {
-                setTwoFactorEnabled(false);
-                setQrCode('');
-                setManualEntryKey('');
-                setBackupCodes([]);
-                setMfaFeedback({ type: 'success', message: '2FA Has Been Disabled.' });
-            } else {
-                setMfaFeedback({ type: 'error', message: 'Failed To Disable 2FA. Please Try Again.' });
-            }
-        } catch (error) {
-            console.warn('Error disabling 2FA:', error);
-            setMfaFeedback({ type: 'error', message: 'Error Disabling 2FA. Check Your Connection.' });
-        } finally {
-            setLoadingMFA(false);
-        }
-    };
 
     const updateSetting = async (key, value) => {
         const newSettings = { ...settings, [key]: value };
@@ -1337,6 +1283,20 @@ export default function SettingsPage() {
                                             Error Sending Password Reset Email. Please Try Again.
                                         </div>
                                     )}
+                                    <button
+                                        onClick={() => setShow2FAModal(true)}
+                                        style={styles.secondaryButton}
+                                        aria-haspopup="dialog"
+                                    >
+                                        {twoFactorEnabled
+                                            ? 'Two-Factor Authentication — On'
+                                            : 'Turn On Two-Factor Authentication'}
+                                    </button>
+                                    <div style={{ margin: '-4px 0 12px', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                                        {twoFactorEnabled
+                                            ? 'We text you a code when something sensitive needs confirming. Confirm once and this device stays trusted for 30 days.'
+                                            : 'Adds a texted code to sign-ins and sensitive actions. One code keeps this device trusted for 30 days.'}
+                                    </div>
                                     <button
                                         onClick={async () => {
                                             setShowDevicesModal(true);
@@ -2560,6 +2520,29 @@ export default function SettingsPage() {
                     user={user}
                     setMfaFeedback={setMfaFeedback}
                     mfaFeedback={mfaFeedback}
+                />
+            )}
+
+            {/* Two-Factor Authentication Modal (SMS) */}
+            {show2FAModal && (
+                <TwoFactorAuthModal
+                    show2FAModal={show2FAModal}
+                    setShow2FAModal={setShow2FAModal}
+                    twoFactorEnabled={twoFactorEnabled}
+                    setTwoFactorEnabled={setTwoFactorEnabled}
+                    verificationCode={verificationCode}
+                    setVerificationCode={setVerificationCode}
+                    backupCodes={backupCodes}
+                    setBackupCodes={setBackupCodes}
+                    backupCodesCopied={backupCodesCopied}
+                    setBackupCodesCopied={setBackupCodesCopied}
+                    showDisable2FAConfirm={showDisable2FAConfirm}
+                    setShowDisable2FAConfirm={setShowDisable2FAConfirm}
+                    loadingMFA={loadingMFA}
+                    setLoadingMFA={setLoadingMFA}
+                    mfaFeedback={mfaFeedback}
+                    setMfaFeedback={setMfaFeedback}
+                    user={user}
                 />
             )}
 
