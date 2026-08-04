@@ -70,38 +70,9 @@ function resolveDiamondPackage(item) {
 // the client — otherwise a cheap price could be paired with a premium
 // tier claim and the webhook would grant VIP based on the claim.
 // ═══════════════════════════════════════════════════════════════
-// VIP_PRICE_FALLBACK — Daniel's confirmed pricing, in cents, server-side.
-// Both paid tiers were unbuyable because STRIPE_VIP_MONTHLY_PRICE_ID and
-// STRIPE_VIP_ANNUAL_PRICE_ID have never been set in any environment, so every
-// attempt answered 503 SUBSCRIPTIONS_NOT_CONFIGURED. Creating those prices by
-// hand in the Stripe dashboard is the only thing that stood between the
-// product and revenue.
-//
-// Stripe Checkout accepts an inline `price_data` with a `recurring` block in
-// subscription mode, so a pre-created price object is not actually required.
-// When the env var IS set we still use it and still validate it (below) —
-// that stays the source of truth. When it is absent we build the price here
-// from these constants instead of refusing the sale.
-//
-// The amounts live on the server and are never read from the request, so the
-// tamper-resistance the env-var design was protecting is unchanged: a client
-// still sends only a plan key. Keep in step with VIP_MEMBERSHIP in
-// src/data/diamondStoreData.js, which is display-only.
 const VIP_SUBSCRIPTION_PLANS = {
-    monthly: {
-        tier: 'monthly',
-        envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID',
-        unitAmount: 1999,          // $19.99
-        interval: 'month',
-        label: 'Smarter.Poker VIP — Monthly',
-    },
-    annual: {
-        tier: 'annual',
-        envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID',
-        unitAmount: 19999,         // $199.99
-        interval: 'year',
-        label: 'Smarter.Poker VIP — Annual',
-    },
+    monthly: { tier: 'monthly', envVar: 'STRIPE_VIP_MONTHLY_PRICE_ID' },
+    annual:  { tier: 'annual',  envVar: 'STRIPE_VIP_ANNUAL_PRICE_ID' },
 };
 
 /**
@@ -120,9 +91,6 @@ function resolveVipPlan(rawPlan) {
         tier: plan.tier,
         envVar: plan.envVar,
         priceId: process.env[plan.envVar] || null,
-        unitAmount: plan.unitAmount,
-        interval: plan.interval,
-        label: plan.label,
     };
 }
 
@@ -375,64 +343,50 @@ export default async function handler(req, res) {
                   });
               }
 
-              // ── Resolve the price: configured Stripe price, or inline. ──
-              let vipTier = plan.tier;
-
-              if (plan.priceId) {
-                  // Validate the configured price against Stripe and derive the
-                  // tier SERVER-SIDE. A failure here is a deployment
-                  // misconfiguration, not a bad client request — and it is NOT
-                  // silently papered over with the fallback, because someone
-                  // deliberately pointed at a price and we should say it is wrong
-                  // rather than quietly charge a different amount.
-                  let stripePrice;
-                  try {
-                      stripePrice = await stripe.prices.retrieve(plan.priceId);
-                  } catch (priceErr) {
-                      console.warn(`[Checkout] ${plan.envVar} points at an unknown Stripe price:`, plan.priceId, priceErr?.message);
-                      return res.status(503).json({
-                          success: false,
-                          error: {
-                              code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
-                              message: 'VIP subscriptions are not available right now. Please contact support.'
-                          }
-                      });
-                  }
-                  if (!stripePrice?.active || !stripePrice.recurring) {
-                      console.warn(`[Checkout] ${plan.envVar} is not an active recurring price:`, plan.priceId);
-                      return res.status(503).json({
-                          success: false,
-                          error: {
-                              code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
-                              message: 'VIP subscriptions are not available right now. Please contact support.'
-                          }
-                      });
-                  }
-                  vipTier = stripePrice.metadata?.vip_tier
-                      || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
-
-                  sessionConfig.line_items = [{ price: plan.priceId, quantity: 1 }];
-              } else {
-                  // No price object configured — build the recurring price inline
-                  // from the server-side constants. Amounts never come from the
-                  // request body, so this is exactly as tamper-proof as a price ID.
-                  console.warn(
-                      `[Checkout] ${plan.envVar} is not set — selling VIP ${plan.key} from the built-in ` +
-                      `$${(plan.unitAmount / 100).toFixed(2)}/${plan.interval} price. Set the env var to manage it in Stripe.`
-                  );
-                  sessionConfig.line_items = [{
-                      price_data: {
-                          currency: 'usd',
-                          unit_amount: plan.unitAmount,
-                          recurring: { interval: plan.interval },
-                          product_data: {
-                              name: plan.label,
-                              metadata: { vip_tier: plan.tier },
-                          },
-                      },
-                      quantity: 1,
-                  }];
+              if (!plan.priceId) {
+                  console.warn(`[Checkout] Missing ${plan.envVar} — VIP ${plan.key} subscriptions cannot be sold`);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
               }
+
+              // Validate the configured price against Stripe and derive the tier
+              // SERVER-SIDE. A failure here is a deployment misconfiguration, not
+              // a bad client request.
+              let stripePrice;
+              try {
+                  stripePrice = await stripe.prices.retrieve(plan.priceId);
+              } catch (priceErr) {
+                  console.warn(`[Checkout] ${plan.envVar} points at an unknown Stripe price:`, plan.priceId, priceErr?.message);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
+              }
+              if (!stripePrice?.active || !stripePrice.recurring) {
+                  console.warn(`[Checkout] ${plan.envVar} is not an active recurring price:`, plan.priceId);
+                  return res.status(503).json({
+                      success: false,
+                      error: {
+                          code: 'SUBSCRIPTIONS_NOT_CONFIGURED',
+                          message: 'VIP subscriptions are not available right now. Please contact support.'
+                      }
+                  });
+              }
+              const vipTier = stripePrice.metadata?.vip_tier
+                  || (stripePrice.recurring.interval === 'year' ? 'annual' : plan.tier);
+
+              sessionConfig.line_items = [{
+                  price: plan.priceId,
+                  quantity: 1
+              }];
 
               sessionConfig.metadata.vip_tier = vipTier;
               // Propagate metadata onto the subscription object itself so renewal

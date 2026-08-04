@@ -464,11 +464,12 @@ export default function LoginPage() {
                         autoComplete="email"
                         style={{
                             position: 'absolute', top: '65.5%', left: '29%', width: '42%', height: '4.5%',
-                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
-                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10
+                            background: email ? '#0b0e14' : 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
+                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10,
+                            borderRadius: '4px'
                         }}
-                        onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
-                        onBlur={(e) => e.target.style.background = 'transparent'}
+                        onFocus={(e) => { e.target.style.background = '#0b0e14'; e.target.style.boxShadow = '0 0 8px 2px rgba(0, 212, 255, 0.3)'; }}
+                        onBlur={(e) => { e.target.style.background = email ? '#0b0e14' : 'transparent'; e.target.style.boxShadow = 'none'; }}
                     />
 
                     {/* Password Input Overlay */}
@@ -481,11 +482,12 @@ export default function LoginPage() {
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         style={{
                             position: 'absolute', top: '71.5%', left: '29%', width: '38%', height: '4.5%',
-                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
-                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10
+                            background: password ? '#0b0e14' : 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
+                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10,
+                            borderRadius: '4px'
                         }}
-                        onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
-                        onBlur={(e) => e.target.style.background = 'transparent'}
+                        onFocus={(e) => { e.target.style.background = '#0b0e14'; e.target.style.boxShadow = '0 0 8px 2px rgba(0, 212, 255, 0.3)'; }}
+                        onBlur={(e) => { e.target.style.background = password ? '#0b0e14' : 'transparent'; e.target.style.boxShadow = 'none'; }}
                     />
 
                     {/* Show Password Toggle (Positioned over the eye icon in the image) */}
