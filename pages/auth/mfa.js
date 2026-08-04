@@ -1,49 +1,86 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MFA CHALLENGE PAGE — Phase 6.1.23
-   URL: /auth/mfa
+   MFA CHALLENGE PAGE — SMS FACTOR  ·  /auth/mfa
    ═══════════════════════════════════════════════════════════════════════════
 
-   Step-2 UX for post-login MFA challenge. Users land here in two ways:
+   Step-2 UX for the post-login MFA challenge. Users land here in two ways:
 
-   1. Post-signin redirect — login.js sees profiles.mfa_required === true
-      (or user_mfa_factors.enabled === true) and routes here after a
-      successful password sign-in.
+   1. Post-signin redirect — login.js POSTs /api/auth/mfa/check-trusted first.
+      If this device is already trusted the user never sees this page at all;
+      that is the intended normal path (one code every 30 days).
 
-   2. Fallback redirect — any fetch to an admin / sensitive API route that
-      returns `{ requiresMfa: true, status: 403 }` triggers the global
-      fetch wrapper (see src/lib/api.js) to push the user here, preserving
-      their intended destination via ?next=<path>.
+   2. Fallback redirect — any fetch to a gated API that answers
+      `{ requiresMfa: true }` pushes the user here with ?next=<path>.
 
-   On submit we POST to /api/auth/mfa/challenge with either the 6-digit
-   TOTP code or a backup code (10-char alphanumeric). The server issues
-   an HttpOnly `mfa_session` cookie on success — we just need to navigate
-   away; the cookie is set by the server.
+   THE FACTOR IS A TEXT MESSAGE. There is no authenticator app, no QR, no
+   TOTP. Sending and verifying are DIFFERENT routes:
+
+       POST /api/auth/mfa/send-code   → texts a code, returns
+                                        { challengeId, phoneHint, codeLength }
+       POST /api/auth/mfa/challenge   → { code, rememberDevice } → sets the
+                                        HttpOnly cookies. We only navigate.
+
+   "Remember this device for 30 days" DEFAULTS TO CHECKED. Daniel's rule is
+   one code every 30 days covering every gate, so being remembered is the
+   normal path, not an opt-in. The server also defaults `rememberDevice` to
+   true, but we send it explicitly so the UI and the cookie never disagree.
+
+   DEFENSIVE BY DESIGN: the API shapes are moving alongside this page. Every
+   field read off a response is optional, every JSON parse is guarded, and
+   nothing here throws if the server answers with something unexpected.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 
+/* Seconds the "Resend code" button stays locked after a successful send. */
+const RESEND_COOLDOWN_SEC = 30;
+/* Longer lock when the server tells us we are rate limited. */
+const RATE_LIMITED_COOLDOWN_SEC = 60;
+/* Backup codes are 8 hex chars — crypto.randomBytes(4).toString('hex'). */
+const BACKUP_CODE_LEN = 8;
+
+/** Never let a malformed body throw. Always hand back a plain object. */
+async function readJson(res) {
+    try {
+        const parsed = await res.json();
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_e) {
+        return {};
+    }
+}
+
 export default function MfaChallengePage() {
     const router = useRouter();
     const inputRef = useRef(null);
+    const didSendRef = useRef(false);
 
     const [code, setCode] = useState('');
     const [useBackup, setUseBackup] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState(null);
+    const [notice, setNotice] = useState(null);
     const [session, setSession] = useState(null);
     const [checkingSession, setCheckingSession] = useState(true);
-    const [rememberDevice, setRememberDevice] = useState(false);
 
-    // [Phase 6.1.26] step-up flag. When true, the user is re-challenging
-    // for a high-risk action (change email, withdraw, disable MFA, etc.)
-    // even though they already have a valid 12h session cookie.
+    /* Remembering the device is the default, not the exception. */
+    const [rememberDevice, setRememberDevice] = useState(true);
+
+    /* Everything below is filled in by the send response and is optional. */
+    const [phoneHint, setPhoneHint] = useState(null);   // "••• ••• 1234"
+    const [challengeId, setChallengeId] = useState(null);
+    const [codeLength, setCodeLength] = useState(null); // null = server didn't say
+    const [cooldown, setCooldown] = useState(0);
+    const [needsPhone, setNeedsPhone] = useState(false);
+    const [sendFailed, setSendFailed] = useState(false);
+    const [notEnrolled, setNotEnrolled] = useState(false);
+
+    // [Phase 6.1.26] step-up flag — a high-risk action re-confirming the user.
     const isStepUp = router.query.stepUp === '1' || router.query.stepUp === 'true';
 
-    // Where to send the user after successful challenge. Only internal
-    // paths are allowed to prevent open-redirect abuse.
+    /* Only internal paths, to prevent open-redirect abuse. */
     const getNextUrl = () => {
         const n = router.query.next;
         if (n && typeof n === 'string' && n.startsWith('/') && !n.startsWith('//')) {
@@ -52,45 +89,160 @@ export default function MfaChallengePage() {
         return '/hub';
     };
 
-    // Gate the page — user must already have a Supabase session (i.e. they've
-    // completed step-1 password auth). If not, bounce them back to /auth/login.
+    /* How many digits we expect. The server reports `codeLength` (currently 4,
+       matching the shared sms_otp_codes pipeline). If it stops reporting it we
+       accept any 4-8 digit code rather than blocking the user on our guess. */
+    const expectedLen =
+        Number.isInteger(codeLength) && codeLength >= 4 && codeLength <= 8 ? codeLength : null;
+
+    /* ── Countdown ticker for the resend cooldown ────────────────────────── */
     useEffect(() => {
-        async function checkSession() {
-            const { data: { session: s } } = await supabase.auth.getSession();
+        if (cooldown <= 0) return undefined;
+        const t = setTimeout(() => setCooldown((s) => (s > 0 ? s - 1 : 0)), 1000);
+        return () => clearTimeout(t);
+    }, [cooldown]);
+
+    /* ── Ask the server to text a code ───────────────────────────────────── */
+    const sendCode = useCallback(async (accessToken, { isResend = false } = {}) => {
+        if (!accessToken) return;
+        setIsSending(true);
+        setError(null);
+        try {
+            /* /challenge only VERIFIES — it 400s without a `code`.
+               /send-code is the route that actually texts. */
+            const res = await fetch('/api/auth/mfa/send-code', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+            const json = await readJson(res);
+
+            if (!res.ok) {
+                setSendFailed(true);
+                if (res.status === 401) {
+                    router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
+                    return;
+                }
+                /* The server tells us when texting is not an option at all
+                   (dead handset, Twilio down). Put the user straight on the
+                   backup-code input instead of leaving them waiting for an
+                   SMS that is never coming. */
+                if (json.useBackupCode === true) {
+                    setUseBackup(true);
+                    setCode('');
+                }
+                /* Not enrolled — no code will ever arrive. Offer a way out
+                   rather than trapping the user on a dead form. */
+                if (json.code === 'MFA_NOT_ENABLED') {
+                    setNotEnrolled(true);
+                    setError(
+                        typeof json.error === 'string' && json.error
+                            ? json.error
+                            : 'Two-factor authentication is not enabled on this account.',
+                    );
+                    return;
+                }
+                if (json.requiresPhoneVerification || json.code === 'PHONE_NOT_VERIFIED') {
+                    setNeedsPhone(true);
+                    setError(
+                        typeof json.error === 'string' && json.error
+                            ? json.error
+                            : 'We have no verified mobile number to text. Add and verify a phone number in Settings, or use a backup code.',
+                    );
+                    return;
+                }
+                if (res.status === 429) {
+                    setCooldown(RATE_LIMITED_COOLDOWN_SEC);
+                    setError('Too many code requests. Please wait a minute before trying again.');
+                    return;
+                }
+                setError(
+                    typeof json.error === 'string' && json.error
+                        ? json.error
+                        : 'We could not send your code right now. Try again, or use a backup code.',
+                );
+                return;
+            }
+
+            setSendFailed(false);
+            setNeedsPhone(false);
+            setNotEnrolled(false);
+            if (typeof json.phoneHint === 'string' && json.phoneHint) setPhoneHint(json.phoneHint);
+            if (json.challengeId) setChallengeId(json.challengeId);
+            if (Number.isFinite(Number(json.codeLength))) setCodeLength(Number(json.codeLength));
+            setCooldown(RESEND_COOLDOWN_SEC);
+            setNotice(isResend ? 'New code sent.' : null);
+            setTimeout(() => inputRef.current?.focus(), 50);
+        } catch (err) {
+            console.warn('[mfa] send error:', err);
+            setSendFailed(true);
+            setError('We could not reach the server to send your code. Please try again.');
+        } finally {
+            setIsSending(false);
+        }
+    }, [router]);
+
+    /* ── Gate the page, then text the code ───────────────────────────────── */
+    useEffect(() => {
+        let cancelled = false;
+        async function boot() {
+            let s = null;
+            try {
+                const { data } = await supabase.auth.getSession();
+                s = data?.session || null;
+            } catch (err) {
+                console.warn('[mfa] session lookup failed:', err);
+            }
+            if (cancelled) return;
             if (!s) {
                 router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
                 return;
             }
             setSession(s);
             setCheckingSession(false);
-            // Focus the code field once we're past the gate
-            setTimeout(() => inputRef.current?.focus(), 50);
+            /* React 18 StrictMode mounts effects twice in dev — send once. */
+            if (!didSendRef.current) {
+                didSendRef.current = true;
+                sendCode(s.access_token);
+            }
         }
-        checkSession();
-    }, [router]);
+        boot();
+        return () => { cancelled = true; };
+    }, [router, sendCode]);
+
+    const handleResend = () => {
+        if (cooldown > 0 || isSending || isLoading) return;
+        setCode('');
+        setNotice(null);
+        sendCode(session?.access_token, { isResend: true });
+    };
 
     const handleSubmit = async (e) => {
         e?.preventDefault?.();
         setError(null);
+        setNotice(null);
 
-        // Backup codes are 8 hex chars (see /api/auth/mfa/verify.js —
-        // crypto.randomBytes(4).toString('hex')). Strip EVERYTHING that
-        // isn't alphanumeric so users who type dash-grouped formats
-        // (A1B2-C3D4) still verify.
+        /* Strip formatting so dash-grouped backup codes still verify. */
         const cleaned = useBackup
             ? String(code).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-            : String(code).replace(/\s+/g, '');
+            : String(code).replace(/\D/g, '');
 
         if (useBackup) {
-            if (cleaned.length !== 8) {
+            if (cleaned.length !== BACKUP_CODE_LEN) {
                 setError('Backup codes are 8 characters (letters and numbers).');
                 return;
             }
-        } else {
-            if (!/^\d{6}$/.test(cleaned)) {
-                setError('Enter the 6-digit code from your authenticator app.');
+        } else if (expectedLen) {
+            if (cleaned.length !== expectedLen) {
+                setError(`Enter the ${expectedLen}-digit code we texted you.`);
                 return;
             }
+        } else if (!/^\d{4,8}$/.test(cleaned)) {
+            setError('Enter the code we texted you.');
+            return;
         }
 
         setIsLoading(true);
@@ -100,30 +252,48 @@ export default function MfaChallengePage() {
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
+                    Authorization: `Bearer ${session?.access_token}`,
                 },
                 body: JSON.stringify({
                     code: cleaned,
+                    challengeId: challengeId || undefined,
                     isBackupCode: useBackup,
                     rememberDevice,
                 }),
             });
 
-            const json = await res.json().catch(() => ({}));
+            const json = await readJson(res);
 
-            if (!res.ok || !json.success) {
-                // Keep server wording out of UI — neutral, non-enumerating.
+            /* Treat "ok and not explicitly failed" as success so a changed
+               response shape cannot strand a user who really did verify. */
+            if (!res.ok || json.success === false) {
+                if (res.status === 401) {
+                    router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
+                    return;
+                }
                 if (res.status === 429) {
-                    setError('Too many attempts. Please wait a minute and try again.');
+                    setError('Too many attempts. Request a new code and try again.');
+                } else if (json.expired || json.tooManyAttempts) {
+                    setError(
+                        typeof json.error === 'string' && json.error
+                            ? json.error
+                            : 'That code is no longer valid. Send yourself a new one.',
+                    );
+                    setCooldown(0);
                 } else {
-                    setError(json.error || 'That code didn\'t work. Please try again.');
+                    setError(
+                        typeof json.error === 'string' && json.error
+                            ? json.error
+                            : "That code didn't work. Please try again.",
+                    );
                 }
                 setCode('');
+                setTimeout(() => inputRef.current?.focus(), 50);
                 return;
             }
 
-            // Cookie is set by the server. Flag for the hub animation and go.
-            sessionStorage.setItem('mfa_verified', 'true');
+            /* Cookies are set by the server. Flag the hub animation and go. */
+            try { sessionStorage.setItem('mfa_verified', 'true'); } catch (_e) { /* private mode */ }
             router.replace(getNextUrl());
         } catch (err) {
             console.warn('[mfa] challenge error:', err);
@@ -135,7 +305,7 @@ export default function MfaChallengePage() {
 
     const handleSignOut = async () => {
         setIsLoading(true);
-        await supabase.auth.signOut();
+        try { await supabase.auth.signOut(); } catch (_e) { /* sign out anyway */ }
         router.replace('/auth/login');
     };
 
@@ -143,52 +313,93 @@ export default function MfaChallengePage() {
         return (
             <div style={bgStyle}>
                 <div style={cardStyle}>
-                    <p style={{ color: '#cbd5e1', textAlign: 'center' }}>
-                        Loading…
-                    </p>
+                    <p style={{ color: '#cbd5e1', textAlign: 'center' }}>Loading…</p>
                 </div>
             </div>
         );
     }
 
+    const destination = phoneHint ? `your phone ending ${String(phoneHint).slice(-4)}` : 'your phone';
+    const canSubmit = !isLoading && !isSending && code.trim().length > 0;
+
     return (
         <>
             <Head>
-                <title>Two-Factor Authentication · Smarter.Poker</title>
+                <title>Verify with a text code · Smarter.Poker</title>
                 <meta name="robots" content="noindex,nofollow" />
             </Head>
             <div style={bgStyle}>
                 <div style={cardStyle}>
                     <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                        <div style={lockBadgeStyle}>🔒</div>
+                        <div style={lockBadgeStyle}>💬</div>
                         <h1 style={titleStyle}>
-                            {isStepUp ? 'Confirm it\'s you' : 'Two-Factor Authentication'}
+                            {isStepUp ? 'Confirm it’s you' : 'Check your text messages'}
                         </h1>
                         <p style={subtitleStyle}>
-                            {isStepUp
-                                ? 'This action requires a fresh second-factor check.'
-                                : useBackup
-                                    ? 'Enter one of your backup codes.'
-                                    : 'Enter the 6-digit code from your authenticator app.'}
+                            {useBackup
+                                ? 'Enter one of your backup codes.'
+                                : isSending
+                                    ? 'Sending your code…'
+                                    : sendFailed
+                                        ? 'We could not send your code.'
+                                        : (
+                                            <>
+                                                We texted a {expectedLen ? `${expectedLen}-digit ` : ''}code to{' '}
+                                                <strong style={{ color: '#e2e8f0' }}>{destination}</strong>.
+                                            </>
+                                        )}
                         </p>
                     </div>
 
+                    {notEnrolled && (
+                        <div style={warnStyle}>
+                            <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
+                                Two-factor is not turned on for this account
+                            </strong>
+                            There is no code to send you. Head back and carry on — you can turn on
+                            text-message two-factor any time under Settings → Security.
+                            <div style={{ marginTop: 10 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => router.replace(getNextUrl())}
+                                    style={{ ...linkBtnStyle, color: '#fcd34d' }}
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {needsPhone && (
+                        <div style={warnStyle}>
+                            <strong style={{ display: 'block', marginBottom: 4, color: '#fcd34d' }}>
+                                No verified mobile number on file
+                            </strong>
+                            Add and verify a phone number in Settings → Account, then sign in again.
+                            If you cannot get to Settings, use a backup code below.
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit}>
-                        <label style={labelStyle}>
-                            {useBackup ? 'Backup code' : 'Verification code'}
+                        <label style={labelStyle} htmlFor="mfa-code">
+                            {useBackup ? 'Backup code' : 'Texted code'}
                         </label>
                         <input
+                            id="mfa-code"
                             ref={inputRef}
                             type="text"
                             inputMode={useBackup ? 'text' : 'numeric'}
                             autoComplete="one-time-code"
-                            maxLength={useBackup ? 12 : 6}
-                            placeholder={useBackup ? 'A1B2C3D4' : '123456'}
+                            maxLength={useBackup ? 12 : (expectedLen || 8)}
+                            placeholder={useBackup ? 'A1B2C3D4' : (expectedLen === 4 ? '1234' : '123456')}
                             value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            disabled={isLoading}
+                            onChange={(e) => {
+                                const raw = e.target.value;
+                                setCode(useBackup ? raw : raw.replace(/\D/g, ''));
+                            }}
+                            disabled={isLoading || isSending}
                             style={inputStyle}
-                            aria-label={useBackup ? 'Backup code' : 'Six digit verification code'}
+                            aria-label={useBackup ? 'Backup code' : 'Verification code sent by text message'}
                         />
 
                         {error && (
@@ -196,27 +407,62 @@ export default function MfaChallengePage() {
                                 {error}
                             </div>
                         )}
+                        {!error && notice && (
+                            <div style={noticeStyle} role="status">
+                                {notice}
+                            </div>
+                        )}
 
-                        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#cbd5e1', fontSize: '0.85rem' }}>
+                        {!useBackup && (
+                            <div style={resendRowStyle}>
+                                <span style={{ color: '#64748b' }}>Didn&apos;t get it?</span>
+                                <button
+                                    type="button"
+                                    onClick={handleResend}
+                                    disabled={cooldown > 0 || isSending || isLoading}
+                                    style={{
+                                        ...linkBtnStyle,
+                                        color: cooldown > 0 || isSending ? '#64748b' : '#60a5fa',
+                                        cursor: cooldown > 0 || isSending ? 'not-allowed' : 'pointer',
+                                        textDecoration: cooldown > 0 || isSending ? 'none' : 'underline',
+                                    }}
+                                >
+                                    {isSending
+                                        ? 'Sending…'
+                                        : cooldown > 0
+                                            ? `Resend code in ${cooldown}s`
+                                            : 'Resend code'}
+                                </button>
+                            </div>
+                        )}
+
+                        <div style={rememberBoxStyle}>
+                            <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer', color: '#cbd5e1', fontSize: '0.85rem' }}>
                                 <input
                                     type="checkbox"
                                     checked={rememberDevice}
                                     onChange={(e) => setRememberDevice(e.target.checked)}
                                     disabled={isLoading}
-                                    style={{ marginRight: '0.5rem', cursor: 'pointer' }}
+                                    style={{ marginRight: '0.6rem', marginTop: '0.15rem', cursor: 'pointer' }}
                                 />
-                                Remember this device for 30 days
+                                <span>
+                                    <strong style={{ color: '#e2e8f0' }}>Remember this device for 30 days</strong>
+                                    <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
+                                        {rememberDevice
+                                            ? 'We will not ask you for another code on this device for 30 days — not at sign-in, and not for admin, cashout or account actions.'
+                                            : 'You will be asked for a new code the next time anything needs confirming.'}
+                                    </span>
+                                </span>
                             </label>
                         </div>
 
                         <button
                             type="submit"
-                            disabled={isLoading || !code}
+                            disabled={!canSubmit}
                             style={{
                                 ...primaryBtnStyle,
-                                opacity: isLoading || !code ? 0.55 : 1,
-                                cursor: isLoading || !code ? 'not-allowed' : 'pointer',
+                                opacity: canSubmit ? 1 : 0.55,
+                                cursor: canSubmit ? 'pointer' : 'not-allowed',
                             }}
                         >
                             {isLoading ? 'Verifying…' : 'Verify & Continue'}
@@ -228,6 +474,7 @@ export default function MfaChallengePage() {
                             type="button"
                             onClick={() => {
                                 setError(null);
+                                setNotice(null);
                                 setCode('');
                                 setUseBackup((v) => !v);
                                 setTimeout(() => inputRef.current?.focus(), 50);
@@ -235,9 +482,7 @@ export default function MfaChallengePage() {
                             style={linkBtnStyle}
                             disabled={isLoading}
                         >
-                            {useBackup
-                                ? 'Use your authenticator app instead'
-                                : 'Use a backup code'}
+                            {useBackup ? 'Use the code we texted you' : 'Use a backup code instead'}
                         </button>
                     </div>
 
@@ -255,7 +500,7 @@ export default function MfaChallengePage() {
                     </div>
 
                     <p style={helpTextStyle}>
-                        Lost your authenticator and backup codes?{' '}
+                        No longer have that phone number or your backup codes?{' '}
                         <a href="mailto:support@smarter.poker" style={{ color: '#60a5fa' }}>
                             Contact support
                         </a>
@@ -315,6 +560,7 @@ const subtitleStyle = {
     color: '#94a3b8',
     fontSize: '0.9rem',
     margin: '0.5rem 0 0',
+    lineHeight: 1.5,
 };
 
 const labelStyle = {
@@ -350,6 +596,44 @@ const errorStyle = {
     borderRadius: '0.5rem',
     color: '#fca5a5',
     fontSize: '0.85rem',
+};
+
+const noticeStyle = {
+    marginTop: '0.75rem',
+    padding: '0.65rem 0.85rem',
+    background: 'rgba(34, 197, 94, 0.12)',
+    border: '1px solid rgba(34, 197, 94, 0.3)',
+    borderRadius: '0.5rem',
+    color: '#86efac',
+    fontSize: '0.85rem',
+};
+
+const warnStyle = {
+    marginBottom: '1rem',
+    padding: '0.75rem 0.9rem',
+    background: 'rgba(245, 158, 11, 0.12)',
+    border: '1px solid rgba(245, 158, 11, 0.35)',
+    borderRadius: '0.5rem',
+    color: '#fde68a',
+    fontSize: '0.82rem',
+    lineHeight: 1.5,
+};
+
+const resendRowStyle = {
+    marginTop: '0.75rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.35rem',
+    fontSize: '0.82rem',
+};
+
+const rememberBoxStyle = {
+    marginTop: '1rem',
+    padding: '0.75rem 0.85rem',
+    background: 'rgba(59, 130, 246, 0.08)',
+    border: '1px solid rgba(59, 130, 246, 0.25)',
+    borderRadius: '0.5rem',
 };
 
 const primaryBtnStyle = {
