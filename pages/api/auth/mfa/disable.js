@@ -1,22 +1,33 @@
-import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
-   2FA DISABLE API - Disable Two-Factor Authentication
-   POST /api/auth/mfa/disable
-   Body: { code } — Must provide a valid current TOTP code to disable 2FA
+   MFA DISABLE  ·  POST /api/auth/mfa/disable
+   Body: { code, challengeId? }
+
+   SMS FACTOR (Phase 6.1.27) — Aug 2026
+   ─────────────────────────────────────────────────────────────────────────
+   WHAT WAS BROKEN
+   This route demanded `code.length === 6 || code.length === 8` and verified
+   6-digit input with `speakeasy.totp.verify`. Once enrolment moved to text
+   messages the codes became 4 digits, so every SMS-enrolled user was locked
+   OUT of turning their own 2FA off — the length guard rejected a valid code
+   before anything was even checked. Backup codes still worked, which meant
+   the only way to disable 2FA was to burn a recovery code.
+
+   NOW: a 4-digit text code (request one from /api/auth/mfa/send-code) or an
+   8-character backup code. Both verified through the same shared helpers as
+   challenge.js, so the attempt counter and expiry rules cannot drift.
+
+   Turning 2FA off also CLEARS both cookies. Leaving a live 30-day
+   `mfa_trusted_device` behind after the factor is gone would let that
+   browser keep satisfying every step-up gate on an account that no longer
+   has a second factor at all.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '../../../../src/lib/supabaseServerClient';
-import speakeasy from 'speakeasy';
 import crypto from 'crypto';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
-// [Phase 6.1.26] Even though disable.js already requires a fresh TOTP /
-// backup code to execute (that's the in-body `code` check below), we also
-// want a fresh mfa_session cookie so the disable button can't be clicked
-// from an old tab whose session hasn't been re-challenged in hours.
-// Note: if the user is disabling because they've LOST their second factor,
-// they won't have a valid cookie at all — in that case the support-contact
-// recovery path applies, not this endpoint.
+import { checkSmsCode, resolveFactorPhone } from '../../../../src/lib/mfaSmsCode';
 
 let _supabase = null;
 function getSupabase() {
@@ -28,111 +39,121 @@ function getSupabase() {
     return _supabase;
 }
 
+function looksLikeBackupCode(code) {
+    return /^[0-9a-fA-F]{8}$/.test(String(code || '').trim());
+}
+
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.auth)) return;
   try {
-      if (req.method !== 'POST') {
-          return res.status(405).json({ error: 'Method not allowed' });
-      }
+    if (!applyRateLimit(req, res, LIMITS.auth)) return;
 
-      try {
-          // Get authenticated user from session
-          const authHeader = req.headers.authorization;
-          if (!authHeader) {
-              return res.status(401).json({ error: 'Not authenticated' });
-          }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-          const token = authHeader.replace('Bearer ', '');
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
+    const supabase = getSupabase();
 
-          if (authErr || !user) {
-              return res.status(401).json({ error: 'Invalid session' });
-          }
+    // ── Identity: JWT ONLY. ─────────────────────────────────────────────
+    if (!req.headers.authorization) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+    if (authErr || !user) {
+        return res.status(401).json({ error: 'Invalid session' });
+    }
 
-          // SECURITY: Require current TOTP code OR a valid backup code to disable 2FA.
-          // Without this, a stolen session token can silently disable 2FA.
-          const { code } = req.body;
-          if (!code || (code.length !== 6 && code.length !== 8)) {
-              return res.status(400).json({ error: 'Current 2FA code or backup code required to disable 2FA' });
-          }
+    // SECURITY: a current code is required. Without it a stolen session
+    // token could silently strip the second factor off the account.
+    const { code, challengeId } = req.body || {};
+    if (!code) {
+        return res.status(400).json({
+            error: 'Enter the code we texted you, or a backup code, to turn off two-factor.',
+        });
+    }
 
-          // Get stored MFA secret
-          const { data: mfaData, error: mfaError } = await getSupabase()
-              .from('user_mfa_factors')
-              .select('secret, enabled, backup_codes')
-              .eq('user_id', user.id)
-              .maybeSingle();
+    const { data: factor, error: factorError } = await supabase
+        .from('user_mfa_factors')
+        .select('enabled, backup_codes')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-          if (mfaError || !mfaData || !mfaData.enabled) {
-              return res.status(404).json({ error: '2FA is not enabled on this account' });
-          }
+    if (factorError) {
+        console.warn('[mfa/disable] Factor lookup failed:', factorError.message);
+        return res.status(503).json({ error: 'Unable to update two-factor right now. Please try again.' });
+    }
+    if (!factor || factor.enabled !== true) {
+        return res.status(404).json({ error: 'Two-factor authentication is not enabled on this account' });
+    }
 
-          let verified = false;
+    // ── Verify: backup code, or the texted 4-digit code. ────────────────
+    const useBackup = looksLikeBackupCode(code);
 
-          // Try TOTP code first (6 digits)
-          if (code.length === 6) {
-              verified = speakeasy.totp.verify({
-                  secret: mfaData.secret,
-                  encoding: 'base32',
-                  token: code,
-                  window: 2
-              });
-          }
+    if (useBackup) {
+        // Consume atomically — the RPC holds SELECT ... FOR UPDATE, closing
+        // the TOCTOU race where two concurrent disables reuse one code.
+        const hashed = crypto.createHash('sha256')
+            .update(String(code).trim().toUpperCase())
+            .digest('hex');
+        const { data: rpcResult, error: rpcError } = await supabase
+            .rpc('fn_consume_mfa_backup_code', {
+                p_user_id: user.id,
+                p_hashed_code: hashed,
+            });
+        if (rpcError) {
+            console.warn('[mfa/disable] consume RPC error:', rpcError.message);
+            return res.status(500).json({ error: 'Failed to verify backup code' });
+        }
+        const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+        if (!row?.consumed) {
+            return res.status(400).json({ error: 'Invalid or already-used backup code' });
+        }
+    } else {
+        const resolved = await resolveFactorPhone(supabase, user.id);
+        if (!resolved.ok) {
+            const { ok, status, ...rest } = resolved;
+            return res.status(status).json(rest);
+        }
+        const check = await checkSmsCode(supabase, resolved.phone, code, challengeId);
+        if (!check.ok) {
+            const { ok, status, ...rest } = check;
+            return res.status(status).json(rest);
+        }
+    }
 
-          // Try backup code (8 hex chars) — [Phase 6.1.25] consume atomically via RPC.
-          // This closes the same TOCTOU race that Phase 6.1.22 closed on the
-          // challenge endpoint: two concurrent `disable` calls with the same
-          // backup code would both have succeeded under the old select→splice→
-          // update pattern. The RPC holds a SELECT...FOR UPDATE lock across
-          // the check+update window so exactly one caller sees `consumed=true`.
-          if (!verified && code.length === 8 && mfaData.backup_codes?.length > 0) {
-              const codeHash = crypto.createHash('sha256').update(code.toUpperCase()).digest('hex');
-              const { data: rpcResult, error: rpcError } = await getSupabase()
-                  .rpc('fn_consume_mfa_backup_code', {
-                      p_user_id: user.id,
-                      p_hashed_code: codeHash,
-                  });
-              if (rpcError) {
-                  console.warn('[mfa/disable] consume RPC error:', rpcError);
-                  return res.status(500).json({ error: 'Failed to verify backup code' });
-              }
-              const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
-              verified = !!row?.consumed;
-          }
+    // ── Verified — turn the factor off and burn the backup codes. ───────
+    // Stale hashes left on the row would still be accepted by
+    // fn_consume_mfa_backup_code if 2FA were ever re-enabled without
+    // re-issuing, so they go with the factor.
+    const { error: updateError } = await supabase
+        .from('user_mfa_factors')
+        .update({
+            enabled: false,
+            disabled_at: new Date().toISOString(),
+            backup_codes: [],
+        })
+        .eq('user_id', user.id);
 
-          if (!verified) {
-              return res.status(400).json({ error: 'Invalid 2FA code. Please enter your current authenticator code or a backup code.' });
-          }
+    if (updateError) {
+        console.warn('[mfa/disable] Error disabling 2FA:', updateError.message);
+        return res.status(500).json({ error: 'Failed to turn off two-factor authentication' });
+    }
 
-          // Code verified — disable 2FA
-          const { error: updateError } = await getSupabase()
-              .from('user_mfa_factors')
-              .update({
-                  enabled: false,
-                  disabled_at: new Date().toISOString(),
-              })
-              .eq('user_id', user.id);
+    // Clear BOTH cookies. A surviving 30-day trusted device would keep
+    // satisfying every step-up gate on an account with no second factor.
+    const cookieFlags = 'Path=/; HttpOnly; Secure; SameSite=Lax';
+    res.setHeader('Set-Cookie', [
+        `mfa_session=; ${cookieFlags}; Max-Age=0`,
+        `mfa_trusted_device=; ${cookieFlags}; Max-Age=0`,
+    ]);
 
-          if (updateError) {
-              console.warn('Error disabling 2FA:', updateError);
-              return res.status(500).json({ error: 'Failed to disable 2FA' });
-          }
-
-          return res.status(200).json({
-              success: true,
-              message: '2FA has been disabled'
-          });
-
-      } catch (error) {
-          console.warn('2FA disable error:', error);
-          return res.status(500).json({ error: 'Internal server error' });
-      }
+    return res.status(200).json({
+        success: true,
+        message: 'Two-factor authentication has been turned off.',
+    });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
+    console.warn('[mfa/disable] Error:', err);
+    if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
   }
 }

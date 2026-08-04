@@ -1,29 +1,45 @@
-import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 /* ═══════════════════════════════════════════════════════════════════════════
-   MFA LOGIN CHALLENGE — Phase 6.1.21
-   POST /api/auth/mfa/challenge
-   ═══════════════════════════════════════════════════════════════════════════
+   MFA LOGIN CHALLENGE  ·  POST /api/auth/mfa/challenge
 
-   Step-2 of sign-in for users who have MFA enrolled.
+   SMS FACTOR + 30-DAY TRUSTED DEVICE (Phase 6.1.27) — Aug 2026
+   ─────────────────────────────────────────────────────────────────────────
+   Step 2 of sign-in. Step 1 (password) has already issued a Supabase
+   session; this route accepts the TEXT code that /api/auth/mfa/send-code
+   just delivered, and hands back the cookies the rest of the app checks.
 
-   The existing setup.js/verify.js endpoints handle enrolment. After a user
-   signs in with password (which issues a Supabase session), if their
-   `user_mfa_factors.enabled = true`, the client must call this endpoint
-   with a fresh TOTP code before any sensitive API route will accept the
-   session. We return a short-lived HMAC-signed MFA token cookie that
-   server-side handlers can verify via src/lib/mfaGate.js.
+   WHAT CHANGED
+   The `speakeasy.totp.verify` path is gone. There is no authenticator app,
+   no shared secret, no QR. The code is a 4-digit text message checked
+   through src/lib/mfaSmsCode.js against the same `sms_otp_codes` table the
+   rest of the site already uses.
 
-   We do NOT rely on Supabase AAL here because the MFA implementation is
-   custom (speakeasy-based TOTP in user_mfa_factors). If/when we migrate
-   to Supabase native MFA, this endpoint becomes a thin proxy over
-   supabase.auth.mfa.challenge() + verify().
+   TWO COOKIES, AND THE SECOND ONE IS THE POINT
+     • `mfa_session`        — 12h. Minted on every successful check.
+     • `mfa_trusted_device` — 30d. Minted unless the user opts OUT.
+
+   `rememberDevice` DEFAULTS TO TRUE. That is deliberate and it is the whole
+   product requirement: one code every 30 days, good for EVERYTHING — cash
+   outs, admin writes, account deletion, every step-up gate. src/lib/
+   mfaGate.js accepts this cookie in requireMfaIfEnrolled, requireMfaEnrolled
+   AND requireRecentMfa, so a valid trusted device satisfies even the
+   5-minute step-up window. Nothing re-prompts inside the 30 days.
+
+   The two cookies carry DISTINCT issued-at stamps. They used to be byte-for
+   -byte identical, which meant either could be replayed as the other and the
+   12-hour ceiling on `mfa_session` was decorative — a stolen session cookie
+   was silently good for a month.
+
+   BACKUP CODES still work here (8 hex chars, consumed atomically through
+   fn_consume_mfa_backup_code). They are the recovery path when the handset
+   is lost, and the only reason SMS-only enrolment is safe.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import speakeasy from 'speakeasy';
 import crypto from 'crypto';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { checkSmsCode, resolveFactorPhone } from '../../../../src/lib/mfaSmsCode';
 
 let _supabase = null;
 function getSupabase() {
@@ -35,10 +51,9 @@ function getSupabase() {
     return _supabase;
 }
 
-// MFA token TTL — 12 hours. Long enough that a user doesn't have to
-// re-enter TOTP every few minutes, short enough that a stolen cookie
-// doesn't grant perpetual elevated access.
-const MFA_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+// Keep these in lockstep with src/lib/mfaGate.js and middleware.ts.
+const MFA_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;              // 12 hours
+const TRUSTED_DEVICE_TTL_MS = 30 * 24 * 60 * 60 * 1000;    // 30 days
 
 function signMfaToken(userId, issuedAt, secret) {
     const payload = `${userId}.${issuedAt}`;
@@ -46,115 +61,143 @@ function signMfaToken(userId, issuedAt, secret) {
     return `${payload}.${hmac}`;
 }
 
+/** A backup code is 8 hex chars. Anything else is treated as a text code. */
+function looksLikeBackupCode(code) {
+    return /^[0-9a-fA-F]{8}$/.test(String(code || '').trim());
+}
+
 export default async function handler(req, res) {
+  try {
     if (!applyRateLimit(req, res, LIMITS.auth)) return;
-    try {
-        if (req.method !== 'POST') {
-            return res.status(405).json({ error: 'Method not allowed' });
-        }
 
-        const { code, isBackupCode, rememberDevice } = req.body || {};
-        if (!code) {
-            return res.status(400).json({ error: 'Verification code is required' });
-        }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-        // Must have a valid Supabase session to challenge MFA — step-1
-        // (password) must already have succeeded.
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
-        const token = authHeader.replace(/^Bearer\s+/i, '');
-        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        const user = authData?.user;
-        if (authErr || !user) {
-            return res.status(401).json({ error: 'Invalid session' });
-        }
+    const supabase = getSupabase();
 
-        // Load the user's MFA factor. Must be enabled.
-        const { data: factor } = await getSupabase()
-            .from('user_mfa_factors')
-            .select('secret, enabled, backup_codes')
-            .eq('user_id', user.id)
-            .maybeSingle();
+    const { code, isBackupCode, rememberDevice, challengeId } = req.body || {};
+    if (!code) {
+        return res.status(400).json({ error: 'Verification code is required' });
+    }
 
-        if (!factor || !factor.enabled) {
-            return res.status(400).json({ error: 'MFA is not enabled for this account' });
-        }
+    // ── Identity: JWT ONLY. Step 1 must already have succeeded. ─────────
+    if (!req.headers.authorization) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const { user, error: authErr } = await getServerUserWithFallback(req, supabase);
+    if (authErr || !user) {
+        return res.status(401).json({ error: 'Invalid session' });
+    }
 
-        let verified = false;
+    // ── Must be enrolled. ───────────────────────────────────────────────
+    const { data: factor, error: factorError } = await supabase
+        .from('user_mfa_factors')
+        .select('enabled, backup_codes')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (isBackupCode) {
-            // Hash the supplied code and atomically consume it via RPC.
-            // The RPC holds a SELECT ... FOR UPDATE lock so two concurrent
-            // requests with the same code can't both succeed (Phase 6.1.22).
-            const hashed = crypto.createHash('sha256').update(String(code).toUpperCase()).digest('hex');
-            const { data: rpcResult, error: rpcError } = await getSupabase()
-                .rpc('fn_consume_mfa_backup_code', {
-                    p_user_id: user.id,
-                    p_hashed_code: hashed
-                });
-            if (rpcError) {
-                console.warn('[mfa/challenge] consume RPC error:', rpcError);
-                return res.status(500).json({ error: 'Failed to verify backup code' });
-            }
-            const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
-            verified = !!row?.consumed;
-        } else {
-            verified = speakeasy.totp.verify({
-                secret: factor.secret,
-                encoding: 'base32',
-                token: String(code).replace(/\s+/g, ''),
-                window: 2
-            });
-        }
-
-        if (!verified) {
-            return res.status(400).json({ error: 'Invalid verification code' });
-        }
-
-        // Issue a short-lived HMAC-signed MFA token. The signing secret is
-        // shared with mfaGate.js — MFA_SESSION_SECRET must be set in the
-        // production env (covered by envGuard.js recommended list, upgraded
-        // to required in Phase 6.1.22).
-        const secret =
-            process.env.MFA_SESSION_SECRET ||
-            process.env.SUPABASE_JWT_SECRET ||
-            process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!secret) {
-            console.warn('[mfa/challenge] MFA_SESSION_SECRET not configured');
-            return res.status(500).json({ error: 'MFA service not configured' });
-        }
-
-        const issuedAt = Date.now();
-        const mfaToken = signMfaToken(user.id, issuedAt, secret);
-
-        // Set an HTTP-only cookie. The client's sensitive requests will
-        // automatically include it; admin endpoints read it via mfaGate.
-        const cookies = [
-            `mfa_session=${mfaToken}; Path=/; Max-Age=${MFA_TOKEN_TTL_MS / 1000}; HttpOnly; Secure; SameSite=Lax`
-        ];
-
-        if (rememberDevice) {
-            const trustedToken = signMfaToken(user.id, issuedAt, secret);
-            const TRUSTED_DEVICE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-            cookies.push(`mfa_trusted_device=${trustedToken}; Path=/; Max-Age=${TRUSTED_DEVICE_TTL_MS / 1000}; HttpOnly; Secure; SameSite=Lax`);
-        }
-
-        res.setHeader('Set-Cookie', cookies);
-
-        return res.status(200).json({
-            success: true,
-            mfaVerifiedUntil: new Date(issuedAt + MFA_TOKEN_TTL_MS).toISOString(),
-            method: isBackupCode ? 'backup_code' : 'totp'
+    if (factorError) {
+        console.warn('[mfa/challenge] Factor lookup failed:', factorError.message);
+        return res.status(503).json({ error: 'Unable to verify right now. Please try again.' });
+    }
+    if (!factor || factor.enabled !== true) {
+        return res.status(400).json({
+            error: 'Two-factor authentication is not enabled for this account',
+            code: 'MFA_NOT_ENABLED',
         });
-    } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.warn('[mfa/challenge] Error:', err);
-        if (!res.headersSent) {
-            return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    // ── Verify: backup code, or the texted 4-digit code. ────────────────
+    // `isBackupCode` is a hint from the UI, not the authority — the shape of
+    // the code decides, so a mislabelled request still lands in the right
+    // branch instead of failing with a confusing "must be 4 digits".
+    const useBackup = isBackupCode === true || looksLikeBackupCode(code);
+
+    if (useBackup) {
+        if (!looksLikeBackupCode(code)) {
+            return res.status(400).json({ error: 'Backup codes are 8 characters.' });
+        }
+        // Hash and atomically consume. The RPC holds SELECT ... FOR UPDATE so
+        // two concurrent requests with the same code can't both succeed.
+        const hashed = crypto.createHash('sha256')
+            .update(String(code).trim().toUpperCase())
+            .digest('hex');
+        const { data: rpcResult, error: rpcError } = await supabase
+            .rpc('fn_consume_mfa_backup_code', {
+                p_user_id: user.id,
+                p_hashed_code: hashed,
+            });
+        if (rpcError) {
+            console.warn('[mfa/challenge] consume RPC error:', rpcError.message);
+            return res.status(500).json({ error: 'Failed to verify backup code' });
+        }
+        const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+        if (!row?.consumed) {
+            return res.status(400).json({ error: 'Invalid or already-used backup code' });
+        }
+    } else {
+        const resolved = await resolveFactorPhone(supabase, user.id);
+        if (!resolved.ok) {
+            const { ok, status, ...rest } = resolved;
+            return res.status(status).json(rest);
+        }
+        const check = await checkSmsCode(supabase, resolved.phone, code, challengeId);
+        if (!check.ok) {
+            const { ok, status, ...rest } = check;
+            return res.status(status).json(rest);
         }
     }
+
+    // ── Mint the cookies. ───────────────────────────────────────────────
+    const secret =
+        process.env.MFA_SESSION_SECRET ||
+        process.env.SUPABASE_JWT_SECRET ||
+        process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!secret) {
+        console.warn('[mfa/challenge] MFA_SESSION_SECRET not configured');
+        return res.status(500).json({ error: 'MFA service not configured' });
+    }
+
+    const issuedAt = Date.now();
+    const cookieFlags = 'Path=/; HttpOnly; Secure; SameSite=Lax';
+
+    const cookies = [
+        `mfa_session=${signMfaToken(user.id, issuedAt, secret)}; ${cookieFlags}; Max-Age=${MFA_TOKEN_TTL_MS / 1000}`,
+    ];
+
+    // Opt-OUT, not opt-in. Only an explicit `false` declines the 30 days.
+    const trustThisDevice = rememberDevice !== false;
+    let trustedUntil = null;
+
+    if (trustThisDevice) {
+        // Distinct issued-at so the trusted token can never be replayed as a
+        // 12-hour session token, or vice versa.
+        const trustedIssuedAt = issuedAt + 1;
+        cookies.push(
+            `mfa_trusted_device=${signMfaToken(user.id, trustedIssuedAt, secret)}; ${cookieFlags}; Max-Age=${TRUSTED_DEVICE_TTL_MS / 1000}`,
+        );
+        trustedUntil = new Date(trustedIssuedAt + TRUSTED_DEVICE_TTL_MS).toISOString();
+    } else {
+        // Explicitly declining must also clear any trusted cookie already on
+        // this browser, or "don't remember me" would be a no-op.
+        cookies.push(`mfa_trusted_device=; ${cookieFlags}; Max-Age=0`);
+    }
+
+    res.setHeader('Set-Cookie', cookies);
+
+    return res.status(200).json({
+        success: true,
+        method: useBackup ? 'backup_code' : 'sms',
+        mfaVerifiedUntil: new Date(issuedAt + MFA_TOKEN_TTL_MS).toISOString(),
+        deviceTrusted: trustThisDevice,
+        deviceTrustedUntil: trustedUntil,
+    });
+
+  } catch (err) {
+    try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
+    console.warn('[mfa/challenge] Error:', err);
+    if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
+  }
 }
