@@ -83,6 +83,27 @@ const RESTRICTED_STATES = ['WA', 'ID', 'MI', 'NV', 'CA'];
 // ─────────────────────────────────────────────────────────────────────────────
 // 📝 SIGN UP PAGE — SIMPLIFIED EMAIL/PASSWORD FLOW
 // ─────────────────────────────────────────────────────────────────────────────
+const months = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+];
+const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 100 }, (_, i) => String(currentYear - i));
+const usStates = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+];
+
 export default function SignUpPage() {
   const router = useRouter();
 
@@ -938,488 +959,359 @@ export default function SignUpPage() {
                 }}
               />
 
-              {/* First Name & Last Name */}
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                required
+                            {/* Dynamic Blank Space Form Area */}
+              <div
                 style={{
-                  position: 'absolute',
-                  top: '35%',
-                  left: '31%',
-                  width: '18%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '35%',
-                  left: '51%',
-                  width: '18%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-
-              {/* Email Address */}
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '40.5%',
-                  left: '31%',
-                  width: '38%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-
-              {/* Password */}
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                minLength={PW_MIN_LENGTH}
-                style={{
-                  position: 'absolute',
-                  top: '46.5%',
-                  left: '31%',
-                  width: '35%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                style={{
-                  position: 'absolute',
-                  top: '46.5%',
-                  left: '66%',
-                  width: '3%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  zIndex: 11,
-                }}
-              />
-
-              {/* Confirm Password */}
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                required
-                minLength={PW_MIN_LENGTH}
-                style={{
-                  position: 'absolute',
-                  top: '52%',
-                  left: '31%',
-                  width: '35%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                tabIndex={-1}
-                style={{
-                  position: 'absolute',
-                  top: '52%',
-                  left: '66%',
-                  width: '3%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  zIndex: 11,
-                }}
-              />
-
-              {/* DOB (Month, Day, Year) */}
-              <select
-                value={formData.birthMonth || ''}
-                onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '56.5%',
-                  left: '31%',
-                  width: '12%',
-                  height: '2.5%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  appearance: 'none',
-                  padding: '0 8px',
+                  position: "absolute",
+                  top: "32%",
+                  left: "20%",
+                  width: "60%",
+                  height: "46%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                  overflowY: "auto",
+                  padding: "10px 15px",
+                  boxSizing: "border-box",
                 }}
               >
-                <option value="" style={{ color: '#000' }}>
-                  Month
-                </option>
-                <option value="01" style={{ color: '#000' }}>
-                  January
-                </option>
-                <option value="02" style={{ color: '#000' }}>
-                  February
-                </option>
-                <option value="03" style={{ color: '#000' }}>
-                  March
-                </option>
-                <option value="04" style={{ color: '#000' }}>
-                  April
-                </option>
-                <option value="05" style={{ color: '#000' }}>
-                  May
-                </option>
-                <option value="06" style={{ color: '#000' }}>
-                  June
-                </option>
-                <option value="07" style={{ color: '#000' }}>
-                  July
-                </option>
-                <option value="08" style={{ color: '#000' }}>
-                  August
-                </option>
-                <option value="09" style={{ color: '#000' }}>
-                  September
-                </option>
-                <option value="10" style={{ color: '#000' }}>
-                  October
-                </option>
-                <option value="11" style={{ color: '#000' }}>
-                  November
-                </option>
-                <option value="12" style={{ color: '#000' }}>
-                  December
-                </option>
-              </select>
-
-              <select
-                value={formData.birthDay || ''}
-                onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '56.5%',
-                  left: '45.5%',
-                  width: '11%',
-                  height: '2.5%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  appearance: 'none',
-                  padding: '0 8px',
-                }}
-              >
-                <option value="" style={{ color: '#000' }}>
-                  Day
-                </option>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                  <option key={day} value={String(day).padStart(2, '0')} style={{ color: '#000' }}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={formData.birthYear || ''}
-                onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '56.5%',
-                  left: '58%',
-                  width: '11%',
-                  height: '2.5%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  appearance: 'none',
-                  padding: '0 8px',
-                }}
-              >
-                <option value="" style={{ color: '#000' }}>
-                  Year
-                </option>
-                {Array.from({ length: 82 }, (_, i) => new Date().getFullYear() - 18 - i).map(
-                  (year) => (
-                    <option key={year} value={year} style={{ color: '#000' }}>
-                      {year}
-                    </option>
-                  )
-                )}
-              </select>
-
-              {/* City & State */}
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '61.5%',
-                  left: '31%',
-                  width: '20%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-              <select
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                required
-                style={{
-                  position: 'absolute',
-                  top: '61.5%',
-                  left: '52%',
-                  width: '17%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  appearance: 'none',
-                  padding: '0 8px',
-                }}
-              >
-                <option value="" style={{ color: '#000' }}>
-                  Select
-                </option>
-                {[
-                  'AL',
-                  'AK',
-                  'AZ',
-                  'AR',
-                  'CA',
-                  'CO',
-                  'CT',
-                  'DE',
-                  'FL',
-                  'GA',
-                  'HI',
-                  'ID',
-                  'IL',
-                  'IN',
-                  'IA',
-                  'KS',
-                  'KY',
-                  'LA',
-                  'ME',
-                  'MD',
-                  'MA',
-                  'MI',
-                  'MN',
-                  'MS',
-                  'MO',
-                  'MT',
-                  'NE',
-                  'NV',
-                  'NH',
-                  'NJ',
-                  'NM',
-                  'NY',
-                  'NC',
-                  'ND',
-                  'OH',
-                  'OK',
-                  'OR',
-                  'PA',
-                  'RI',
-                  'SC',
-                  'SD',
-                  'TN',
-                  'TX',
-                  'UT',
-                  'VT',
-                  'VA',
-                  'WA',
-                  'WV',
-                  'WI',
-                  'WY',
-                ].map((st) => (
-                  <option key={st} value={st} style={{ color: '#000' }}>
-                    {st}
-                  </option>
-                ))}
-              </select>
-
-              {/* Poker Alias */}
-              <input
-                type="text"
-                value={formData.pokerAlias}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, ''),
-                  })
-                }
-                required
-                minLength={3}
-                maxLength={20}
-                style={{
-                  position: 'absolute',
-                  top: '66%',
-                  left: '31%',
-                  width: '38%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color:
-                    aliasAvailable === false
-                      ? '#F02849'
-                      : aliasAvailable === true
-                        ? '#31A24C'
-                        : '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-
-              {/* Phone Number (+1 is built into the image design maybe? But we need a full input) */}
-              {/* Actually there's a +1 box in the image. I will just overlay the input on the second box */}
-              <input
-                type="tel"
-                value={formatPhone(formData.phone)}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-                disabled={phoneVerified}
-                maxLength={14}
-                style={{
-                  position: 'absolute',
-                  top: '71.5%',
-                  left: '37%',
-                  width: '20.5%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: phoneVerified ? '#31A24C' : '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                }}
-              />
-              {!phoneVerified && (
-                <button
-                  type="button"
-                  onClick={sendPhoneOtp}
-                  disabled={
-                    phoneSendingOtp ||
-                    phoneOtpCooldown > 0 ||
-                    formData.phone.replace(/\D/g, '').length !== 10
+                <style>{`
+                  /* Scrollbar styling for the form area */
+                  .dynamic-auth-form div::-webkit-scrollbar {
+                    width: 6px;
                   }
-                  title="Send Code"
-                  style={{
-                    position: 'absolute',
-                    top: '71.5%',
-                    left: '59.5%',
-                    width: '9.5%',
-                    height: '3%',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    zIndex: 10,
-                  }}
-                >
-                  {/* Text is painted on image. We just need the clickable area. */}
-                  <span style={{ color: 'transparent' }}>Send</span>
-                </button>
-              )}
+                  .dynamic-auth-form div::-webkit-scrollbar-track {
+                    background: transparent;
+                  }
+                  .dynamic-auth-form div::-webkit-scrollbar-thumb {
+                    background: rgba(0, 212, 255, 0.3);
+                    border-radius: 4px;
+                  }
+                  .dynamic-auth-form div::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 212, 255, 0.6);
+                  }
+                  
+                  /* Common Form Styles */
+                  .auth-field-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    width: 100%;
+                  }
+                  .auth-field-row {
+                    display: flex;
+                    gap: 12px;
+                    width: 100%;
+                  }
+                  .auth-label {
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 11px;
+                    font-weight: 500;
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
+                    pointer-events: none;
+                  }
+                  .auth-input-styled {
+                    width: 100%;
+                    height: 36px;
+                    background: rgba(11, 14, 20, 0.7) !important;
+                    border: 1px solid rgba(0, 212, 255, 0.2) !important;
+                    border-radius: 4px;
+                    color: #fff !important;
+                    font-size: 14px !important;
+                    padding: 0 10px !important;
+                    box-sizing: border-box;
+                    outline: none !important;
+                    transition: border-color 0.2s, box-shadow 0.2s;
+                  }
+                  .auth-input-styled:focus {
+                    border-color: rgba(0, 212, 255, 0.8) !important;
+                    box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+                  }
+                  .auth-input-styled::placeholder {
+                    color: rgba(255, 255, 255, 0.3);
+                  }
+                  select.auth-input-styled {
+                    appearance: auto !important;
+                    cursor: pointer;
+                  }
+                  option {
+                    background: #0b0e14;
+                    color: #fff;
+                  }
+                `}</style>
 
-              {/* Promo Code */}
-              <input
-                type="text"
-                value={formData.promoCode}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
-                  })
-                }
-                maxLength={20}
-                style={{
-                  position: 'absolute',
-                  top: '77%',
-                  left: '31%',
-                  width: '38%',
-                  height: '3%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  zIndex: 10,
-                  padding: '0 8px',
-                  textTransform: 'uppercase',
-                }}
-              />
+                {/* First Name & Last Name */}
+                <div className="auth-field-row">
+                  <div className="auth-field-group">
+                    <label className="auth-label">First Name</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="auth-field-group">
+                    <label className="auth-label">Last Name</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
 
-              {/* Checkbox 18+ */}
+                {/* Email Address */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Email Address</label>
+                  <input
+                    type="email"
+                    className="auth-input-styled"
+                    placeholder="Enter email address"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Password</label>
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="auth-input-styled"
+                      placeholder="Create a strong password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={PW_MIN_LENGTH}
+                      style={{ paddingRight: "50px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                      style={{
+                        position: "absolute",
+                        right: "5px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        color: "rgba(255,255,255,0.6)",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        textTransform: "uppercase"
+                      }}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Confirm Password</label>
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="auth-input-styled"
+                      placeholder="Confirm password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required
+                      minLength={PW_MIN_LENGTH}
+                      style={{ paddingRight: "50px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      tabIndex={-1}
+                      style={{
+                        position: "absolute",
+                        right: "5px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        color: "rgba(255,255,255,0.6)",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        textTransform: "uppercase"
+                      }}
+                    >
+                      {showConfirmPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date of Birth */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Date of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
+                  <div className="auth-field-row">
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthMonth || ""}
+                      onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Month</option>
+                      {months.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthDay || ""}
+                      onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Day</option>
+                      {days.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthYear || ""}
+                      onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Year</option>
+                      {years.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* City & State */}
+                <div className="auth-field-row">
+                  <div className="auth-field-group" style={{ flex: 2 }}>
+                    <label className="auth-label">City</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder="City"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="auth-field-group" style={{ flex: 1 }}>
+                    <label className="auth-label">State</label>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Select</option>
+                      {usStates.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Poker Alias */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Poker Alias <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(You Can Change This Later)</span></label>
+                  <input
+                    type="text"
+                    className="auth-input-styled"
+                    placeholder="YourPokerName"
+                    value={formData.pokerAlias}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
+                      })
+                    }
+                    required
+                    minLength={3}
+                  />
+                </div>
+
+                {/* Phone Number */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Phone Number</label>
+                  <div className="auth-field-row" style={{ alignItems: "center" }}>
+                    <span style={{ color: "#fff", fontSize: "14px", padding: "0 12px", background: "rgba(255,255,255,0.1)", height: "36px", display: "flex", alignItems: "center", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.1)" }}>+1</span>
+                    <input
+                      type="tel"
+                      className="auth-input-styled"
+                      placeholder="(555) 555-5555"
+                      value={formatPhone(formData.phone)}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                      disabled={phoneVerified}
+                      maxLength={14}
+                      style={{ color: phoneVerified ? "#31A24C" : "#fff" }}
+                    />
+                    {!phoneVerified && (
+                      <button
+                        type="button"
+                        onClick={sendPhoneOtp}
+                        disabled={
+                          phoneSendingOtp ||
+                          phoneOtpCooldown > 0 ||
+                          formData.phone.replace(/\D/g, "").length !== 10
+                        }
+                        style={{
+                          height: "36px",
+                          padding: "0 12px",
+                          background: "rgba(0, 110, 255, 0.8)",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: (phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, "").length !== 10) ? "not-allowed" : "pointer",
+                          opacity: (phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, "").length !== 10) ? 0.5 : 1,
+                          fontWeight: "bold",
+                          flexShrink: 0,
+                          fontSize: "11px",
+                          textTransform: "uppercase",
+                          transition: "opacity 0.2s"
+                        }}
+                      >
+                        {phoneSendingOtp ? "Sending..." : phoneOtpCooldown > 0 ? `Wait ${phoneOtpCooldown}s` : "Send Code"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Promo Code */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Promo Or Referral Code <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
+                  <input
+                    type="text"
+                    className="auth-input-styled"
+                    placeholder="ENTER CODE"
+                    value={formData.promoCode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                      })
+                    }
+                    maxLength={20}
+                    style={{ textTransform: "uppercase" }}
+                  />
+                </div>
+              </div>
+              
+{/* Checkbox 18+ */}
               <input
                 type="checkbox"
                 checked={ageConfirmed}
