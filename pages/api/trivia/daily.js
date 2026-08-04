@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * DAILY TRIVIA API - Fetch Today's Questions
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * Returns today's trivia roster. All dates are in CST (America/Chicago);
  * the day rolls over at midnight CST.
  *
@@ -20,7 +20,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Previously the route only ever ran query (1) against a column nothing in the
  * active codebase writes, then threw away any roster smaller than 10, so it
  * served the same 10 hardcoded questions with the same answers forever.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -35,7 +35,7 @@ import {
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
-const ROSTER_SIZE = 20;
+const ROSTER_SIZE = 10;
 const QUALITY_FLOOR = 6;
 const CANDIDATE_POOL_SIZE = 400;
 
@@ -62,11 +62,11 @@ function getSupabase() {
     return _supabase;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // FALLBACK QUESTIONS (used only when the live pool cannot fill the roster)
 // 30 curated questions; 20 are selected deterministically per CST date, so
 // even a degraded day differs from the day before instead of being identical.
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 const FALLBACK_QUESTIONS = [
     {
@@ -341,9 +341,9 @@ const FALLBACK_QUESTIONS = [
     }
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 function shuffleArray(array) {
     const arr = [...array];
@@ -448,9 +448,9 @@ async function buildRosterFromPool(supabase, today) {
     return chosen.map(({ last_used_at: _lastUsed, ...rest }) => rest);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // API HANDLER
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   try {
@@ -508,14 +508,15 @@ export default async function handler(req, res) {
               else rosterSource = `${rosterSource}+fallback`;
           }
 
-          // ─── HARD CAP AT ROSTER_SIZE ────────────────────────────────────
-          // The cron tags ROSTER_PER_CATEGORY(20) × 10 categories = 200 rows
-          // with today's daily_date, and the fetch above pulls up to 100 of
-          // them. Before this cap the endpoint served ALL of them as "daily"
-          // (and recordQuestionsSeen below burned every viewer's 60-day
-          // no-repeat pool 5× faster than the ROSTER_SIZE math allows).
-          // order_index asc + id asc means slice(0, 20) = slots 0-1 across
-          // all 10 categories → a balanced 2-per-category daily roster.
+          // ─── HARD CAP AT ROSTER_SIZE ────────────────────────────────
+          // The cron tags ROSTER_TAG_PER_CATEGORY(3) × 10 categories = 30
+          // rows with today's daily_date, and the fetch above pulls up to 100
+          // of them. Before this cap the endpoint served ALL of them as
+          // "daily" (and recordQuestionsSeen below burned every viewer's
+          // 60-day no-repeat pool faster than the ROSTER_SIZE math allows).
+          // order_index asc + id asc means slice(0, 10) = slot 0 across
+          // all 10 categories → a balanced 1-per-category daily roster
+          // (matches the "10 Questions Fresh Every Day" banner).
           questions = questions.slice(0, ROSTER_SIZE);
 
           // Real user stats if Bearer JWT present.
