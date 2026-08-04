@@ -19,21 +19,32 @@ DECLARE
   v_md_rows int;
   v_rr_tid  int;
 BEGIN
-  SELECT count(*) INTO v_ct_rows FROM public.club_tournaments;
-  IF v_ct_rows > 6 THEN
-    RAISE EXCEPTION 'club_tournaments has % rows (expected <= 6 E2E test rows) — aborting', v_ct_rows;
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'club_tournaments') THEN
+    EXECUTE 'SELECT count(*) FROM public.club_tournaments' INTO v_ct_rows;
+    IF v_ct_rows > 6 THEN
+      RAISE EXCEPTION 'club_tournaments has % rows (expected <= 6 E2E test rows) — aborting', v_ct_rows;
+    END IF;
   END IF;
-  SELECT count(*) INTO v_te_rows FROM public.tournament_entries;
-  IF v_te_rows > 0 THEN
-    RAISE EXCEPTION 'tournament_entries is not empty (% rows) — aborting', v_te_rows;
+
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tournament_entries') THEN
+    EXECUTE 'SELECT count(*) FROM public.tournament_entries' INTO v_te_rows;
+    IF v_te_rows > 0 THEN
+      RAISE EXCEPTION 'tournament_entries is not empty (% rows) — aborting', v_te_rows;
+    END IF;
   END IF;
-  SELECT count(*) INTO v_md_rows FROM public.tournament_mystery_draws;
-  IF v_md_rows > 0 THEN
-    RAISE EXCEPTION 'tournament_mystery_draws is not empty (% rows) — aborting', v_md_rows;
+
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tournament_mystery_draws') THEN
+    EXECUTE 'SELECT count(*) FROM public.tournament_mystery_draws' INTO v_md_rows;
+    IF v_md_rows > 0 THEN
+      RAISE EXCEPTION 'tournament_mystery_draws is not empty (% rows) — aborting', v_md_rows;
+    END IF;
   END IF;
-  SELECT count(*) INTO v_rr_tid FROM public.rake_records WHERE tournament_id IS NOT NULL;
-  IF v_rr_tid > 0 THEN
-    RAISE EXCEPTION 'rake_records has % rows with non-null tournament_id (expected 0) — aborting', v_rr_tid;
+
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'rake_records') THEN
+    EXECUTE 'SELECT count(*) FROM public.rake_records WHERE tournament_id IS NOT NULL' INTO v_rr_tid;
+    IF v_rr_tid > 0 THEN
+      RAISE EXCEPTION 'rake_records has % rows with non-null tournament_id (expected 0) — aborting', v_rr_tid;
+    END IF;
   END IF;
 END $$;
 

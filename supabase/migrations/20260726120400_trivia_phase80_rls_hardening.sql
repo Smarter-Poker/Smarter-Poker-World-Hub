@@ -71,7 +71,6 @@ ALTER TABLE public.trivia_scores
         score            BETWEEN 0 AND 10000000
         AND correct_count    >= 0
         AND total_questions  BETWEEN 0 AND 5000
-        AND COALESCE(xp_earned, 0)       BETWEEN 0 AND 1000000
         AND COALESCE(diamonds_earned, 0) BETWEEN 0 AND 100000
         AND COALESCE(time_spent, 0)      BETWEEN 0 AND 86400
     ) NOT VALID;

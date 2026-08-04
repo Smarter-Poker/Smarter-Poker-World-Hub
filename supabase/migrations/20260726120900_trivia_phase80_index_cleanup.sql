@@ -41,18 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_trivia_plays_user_date
 CREATE INDEX IF NOT EXISTS idx_survival_runs_user_created
     ON public.trivia_survival_runs (user_id, created_at DESC);
 
--- trivia_challenges.winner_id -> auth.users
-CREATE INDEX IF NOT EXISTS idx_trivia_challenges_winner
-    ON public.trivia_challenges (winner_id)
-    WHERE winner_id IS NOT NULL;
 
--- trivia_hint_usage: "what did this player spend on hints" is per-user + time
-CREATE INDEX IF NOT EXISTS idx_hint_usage_user_created
-    ON public.trivia_hint_usage (user_id, created_at DESC);
-
--- trivia_category_mastery is read per (user, category) by every mode's save path
-CREATE INDEX IF NOT EXISTS idx_trivia_category_mastery_lookup
-    ON public.trivia_category_mastery (user_id, category);
 
 -- The daily roster read in pages/api/trivia/daily.js:470 filters on daily_date
 -- AND the quality floor, then orders by order_index.

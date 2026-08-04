@@ -26,6 +26,7 @@ CREATE POLICY mlb_hr_bets_delete_own ON public.mlb_hr_bets FOR DELETE
 --    USING clauses -> semantically identical). service_role policy left as-is.
 DROP POLICY IF EXISTS "Agents can read own agent row" ON public.agents;
 DROP POLICY IF EXISTS agents_club_owner_read ON public.agents;
+DROP POLICY IF EXISTS agents_read_own_or_club_manager ON public.agents;
 CREATE POLICY agents_read_own_or_club_manager ON public.agents FOR SELECT
   USING (
     (SELECT auth.uid()) = user_id
