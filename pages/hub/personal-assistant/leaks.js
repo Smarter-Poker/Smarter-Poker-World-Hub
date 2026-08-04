@@ -20,8 +20,8 @@ import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
-  Activity, AlertTriangle, BarChart3, CheckCircle2, ChevronDown, ChevronRight,
-  Dumbbell, GraduationCap, Inbox, Link2, Lock, RefreshCw, RotateCcw, Search,
+  Activity, AlertTriangle, BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronRight,
+  Clock, Dumbbell, Flame, GraduationCap, Inbox, Link2, Lock, RefreshCw, RotateCcw, Search,
   Sparkles, Target, TrendingDown, TrendingUp, X, Zap,
 } from 'lucide-react';
 
@@ -41,6 +41,10 @@ import {
   PAStyles, BottomSheet, Skeleton, EmptyState, ErrorState, Segmented,
   safeStorage, usePrefersReducedMotion,
 } from '../../../src/components/sandbox/paKit';
+import {
+  dueQueueAll, reviewStats, leakToDrill, migrateRecord,
+  MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
+} from '../../../src/lib/sandbox/leakReview';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CODE-SPLIT ANALYTICS (Insights tab only — keeps them off the critical path)
@@ -61,6 +65,13 @@ const MacroLeakDetector = dynamic(
 const LeakHeatmap = dynamic(
   () => import('../../../src/components/sandbox/LeakHeatmap'),
   { ssr: false, loading: () => <PanelSkeleton label="Loading leak heatmap" /> },
+);
+
+// The review drill is the existing sandbox drill loop — never a second drill UI.
+// It is only ever mounted after a tap, so it stays off the first paint.
+const QuickSpotDrill = dynamic(
+  () => import('../../../src/components/sandbox/QuickSpotDrill'),
+  { ssr: false, loading: () => <DrillSheetSkeleton /> },
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -246,6 +257,268 @@ function PanelSkeleton({ label = 'Loading' }) {
         <Skeleton h={32} w="78%" />
       </div>
     </div>
+  );
+}
+
+/** Bottom-sheet shaped placeholder while the drill chunk downloads. */
+function DrillSheetSkeleton() {
+  return (
+    <div style={styles.drillLoadingBackdrop} role="status" aria-live="polite" aria-label="Loading review drill">
+      <div style={styles.drillLoadingSheet}>
+        <Skeleton h={16} w="45%" />
+        <Skeleton h={6} />
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} h={48} />)}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REVIEW QUEUE (spaced repetition)
+// ═══════════════════════════════════════════════════════════════════════════
+// The schedule lives in two places and both can be absent:
+//   • the server (GET/POST /api/assistant/leaks/review) — authoritative, but
+//     answers persisted:false until the leak_review_state table is migrated;
+//   • localStorage, written by QuickSpotDrill after a review run.
+// Read-through merges the two with the SERVER WINNING, so a device copy can
+// never resurrect a schedule the account has already moved on from.
+
+const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
+
+/** Local records as an array. Never throws; a corrupt blob reads as empty. */
+function readLocalReviewRecords() {
+  try {
+    const raw = safeStorage.get(REVIEW_STORE_KEY, null);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+    const map = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
+      ? parsed.records
+      : parsed;
+    if (!map || typeof map !== 'object' || Array.isArray(map)) return [];
+    return Object.keys(map)
+      .map((key) => {
+        const value = map[key];
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        return value.leakId ? value : { ...value, leakId: key };
+      })
+      .filter(Boolean);
+  } catch (e) {
+    console.warn('[LeakFinder] local review store unreadable:', e?.message || e);
+    return [];
+  }
+}
+
+/**
+ * Copy of `obj` without undefined/null values, so spreading a server row over a
+ * local record cannot blank a field the row never mentioned.
+ * (`{ ...a, ...{ x: undefined } }` sets x to undefined — silently losing a.x.)
+ */
+function definedOnly(obj) {
+  const out = {};
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out;
+  try {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value !== undefined && value !== null) out[key] = value;
+    }
+  } catch (e) {
+    return out;
+  }
+  return out;
+}
+
+/**
+ * The API row shape uses updatedAt where the scheduler expects lastReviewedAt.
+ * Mapping it keeps the streak and re-detection logic honest for server rows.
+ */
+function fromServerReviewRecord(row) {
+  if (!row || typeof row !== 'object') return null;
+  return {
+    ...row,
+    lastReviewedAt: row.updatedAt || row.createdAt || null,
+  };
+}
+
+/** 'in 3 days' / 'tomorrow' / 'on 12 Sep' — never a countdown that lies. */
+function dueInLabel(iso, nowMs) {
+  const t = new Date(iso || '').getTime();
+  if (!Number.isFinite(t) || !Number.isFinite(nowMs) || nowMs <= 0) return null;
+  const days = Math.ceil((t - nowMs) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days < 7) return `in ${days} days`;
+  try {
+    return `on ${new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+  } catch (e) {
+    return `in ${days} days`;
+  }
+}
+
+/** Why this leak is at the top of the queue — stated plainly, never inflated. */
+function queueReason(entry) {
+  if (!entry) return '';
+  if (entry.isNew) return 'Not drilled yet';
+  if (entry.revived) return 'Detected again since your last review';
+  const overdue = Math.floor(num(entry.overdueDays));
+  if (overdue >= 1) return `${overdue} day${overdue === 1 ? '' : 's'} overdue`;
+  return 'Due today';
+}
+
+function ReviewSkeletonCard() {
+  return (
+    <section style={{ ...card, marginBottom: S.md }} aria-busy="true" aria-label="Loading your review queue">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+        <Skeleton h={14} w="40%" />
+        <Skeleton h={22} w="70%" />
+        <Skeleton h={48} />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * "Due for review" — the top of the Leaks tab.
+ * Every state here is real: a count only appears when something is genuinely
+ * due, and an empty queue says when the next one lands instead of inventing a
+ * badge to drag the user back.
+ */
+function ReviewQueueCard({
+  loading, error, onRetry, queue, queueTotal, stats, nowMs,
+  hasLeaks, isDemo, isDetecting, onStart, onOpenLeak,
+}) {
+  if (loading) return <ReviewSkeletonCard />;
+
+  const heading = (
+    <div style={styles.reviewHeader}>
+      <span style={styles.reviewEyebrow}>
+        <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
+        Due for review
+      </span>
+      {num(stats?.streak) > 0 && (
+        <span style={{ ...pill('warn'), ...numeric }}>
+          <Flame size={12} strokeWidth={2.5} aria-hidden="true" />
+          {num(stats.streak)}-day streak
+        </span>
+      )}
+    </div>
+  );
+
+  const errorNote = error ? (
+    <div style={styles.reviewErrorRow} role="status">
+      <span style={{ flex: 1, minWidth: 0 }}>
+        Your saved schedule could not be loaded — showing what is on this device.
+      </span>
+      {onRetry && (
+        <button type="button" className="pa-btn" style={{ ...btn('ghost'), color: T.accent, padding: '0 10px' }} onClick={onRetry}>
+          <RefreshCw size={16} strokeWidth={2} aria-hidden="true" />
+          Retry
+        </button>
+      )}
+    </div>
+  ) : null;
+
+  // ── nothing to review because there is nothing to review FROM ──────────
+  if (!hasLeaks) {
+    return (
+      <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+        {heading}
+        {/* No button here on purpose: the detection control sits immediately
+            below, and two identical buttons a thumb apart reads as a bug. */}
+        <p style={{ ...styles.reviewBody, marginBottom: 0 }}>
+          {isDetecting
+            ? 'Detection is running — anything it finds will be waiting here as a scheduled review.'
+            : isDemo
+              ? 'Reviews start on your own hands. Run leak detection below and each leak found becomes a scheduled, repeating drill.'
+              : 'No review queue yet. Run leak detection below and each leak found becomes a scheduled, repeating drill.'}
+        </p>
+        {errorNote}
+      </section>
+    );
+  }
+
+  const list = Array.isArray(queue) ? queue : [];
+  const top = list.find(e => e && e.drill) || list[0] || null;
+
+  // ── caught up ────────────────────────────────────────────────────────────
+  if (!top) {
+    const nextLabel = dueInLabel(stats?.nextDueAt, nowMs);
+    return (
+      <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+        {heading}
+        <p style={styles.reviewCaughtUp}>
+          <CheckCircle2 size={18} strokeWidth={2} color={T.success} aria-hidden="true" />
+          <span>Nothing due right now.</span>
+        </p>
+        <p style={styles.reviewBody}>
+          {nextLabel
+            ? `Your next review is ${nextLabel}. Drilling early is fine — tap any leak below.`
+            : 'Practise any leak below and it will start a spaced-repetition schedule.'}
+        </p>
+        {errorNote}
+      </section>
+    );
+  }
+
+  const leak = top.leak || {};
+  const impact = num(top.evImpact);
+  const startable = !!top.drill;
+  // The unsliced total when the page supplies one; otherwise what we can see.
+  const total = Math.max(list.length, Math.floor(num(queueTotal)) || 0);
+
+  return (
+    <section style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+      {heading}
+
+      {/* `queue` is capped at MAX_QUEUE for the session, but the count states
+          the REAL total — exactly ten due leaks must not read as "10+". */}
+      <p style={styles.reviewCount}>
+        <span style={{ ...numeric, color: T.accent, fontWeight: 800 }}>{total}</span>
+        {' '}leak{total === 1 ? '' : 's'} ready to drill
+      </p>
+
+      <div style={styles.reviewTop}>
+        <button
+          type="button"
+          className="leak-card pa-btn"
+          onClick={() => onOpenLeak && onOpenLeak(leak)}
+          style={styles.reviewTopBtn}
+          aria-label={`First up: ${leak.title || 'this leak'}. Open details.`}
+        >
+          <span style={styles.reviewTopLabel}>First up</span>
+          <span style={styles.reviewTopTitle}>{leak.title || 'Your top leak'}</span>
+          <span style={styles.reviewTopMeta}>
+            <span style={pill(top.isNew ? 'accent' : 'warn')}>
+              <Clock size={12} strokeWidth={2} aria-hidden="true" />
+              {queueReason(top)}
+            </span>
+            {impact > 0 && (
+              <span style={{ ...styles.reviewTopEv, ...numeric }}>~{impact.toFixed(1)} BB bled</span>
+            )}
+          </span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        className="pa-btn"
+        style={{ ...btn('primary', { block: true }), minHeight: 48 }}
+        onClick={() => onStart && onStart(top)}
+      >
+        <Target size={18} strokeWidth={2} aria-hidden="true" />
+        {startable ? 'Start review' : 'Practise this leak'}
+      </button>
+
+      <p style={styles.reviewFoot}>
+        {startable
+          ? (total > 1
+            ? `A timed drill on this leak. ${total - 1} more waiting after it.`
+            : 'A timed drill on this leak — your score sets the next review date.')
+          : 'This leak has no matching drill street, so this opens the sandbox instead.'}
+      </p>
+
+      {errorNote}
+    </section>
   );
 }
 
@@ -1230,6 +1503,162 @@ export default function LeakFinderPage() {
     toast('Copy this link: ' + url);
   }, []);
 
+  // ─── Spaced-repetition review queue ──────────────────────────────────────
+  // Sources: the server schedule (authoritative) merged over the localStorage
+  // fallback QuickSpotDrill writes when the API cannot persist. The queue and
+  // the ordering come from src/lib/sandbox/leakReview — this page only renders.
+  const [reviewNowMs, setReviewNowMs] = useState(0);
+  const [reviewServerRecords, setReviewServerRecords] = useState([]);
+  const [reviewLocalRecords, setReviewLocalRecords] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  // First load only — a background refresh after a drill must not flash the
+  // whole card back to a skeleton.
+  const [reviewLoaded, setReviewLoaded] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [reviewSession, setReviewSession] = useState(null);
+
+  // A pinned clock: "due" must not be recomputed on every keystroke, but it
+  // must not go stale on a phone left open either.
+  useEffect(() => {
+    setReviewNowMs(Date.now());
+    const id = setInterval(() => setReviewNowMs(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const refreshLocalReviews = useCallback(() => {
+    setReviewLocalRecords(readLocalReviewRecords());
+  }, []);
+
+  useEffect(() => { refreshLocalReviews(); }, [refreshLocalReviews]);
+
+  const fetchReviewSchedule = useCallback(async () => {
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        // Signed out: the local fallback is the whole schedule. Not an error.
+        setReviewServerRecords([]);
+        return;
+      }
+      const res = await fetch('/api/assistant/leaks/review', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok || !ct.includes('application/json')) {
+        setReviewError(`Review schedule unavailable (HTTP ${res.status})`);
+        return;
+      }
+      const json = await res.json();
+      if (json?.success) {
+        setReviewServerRecords(Array.isArray(json.records) ? json.records : []);
+      } else {
+        setReviewError(json?.error || 'Review schedule unavailable');
+      }
+    } catch (e) {
+      console.warn('[LeakFinder] review schedule failed:', e?.message || e);
+      setReviewError('Review schedule unavailable');
+    } finally {
+      setReviewLoading(false);
+      setReviewLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => { fetchReviewSchedule(); }, [fetchReviewSchedule, userId]);
+
+  // A finished review updates both stores; re-read them rather than guessing.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onUpdated = () => {
+      refreshLocalReviews();
+      setReviewNowMs(Date.now());
+      fetchReviewSchedule();
+    };
+    window.addEventListener('pa-leak-review-updated', onUpdated);
+    return () => window.removeEventListener('pa-leak-review-updated', onUpdated);
+  }, [refreshLocalReviews, fetchReviewSchedule]);
+
+  // Server wins on every field it STATES; a local field survives only where the
+  // account row is silent about it (the mastery columns are omitted entirely
+  // until the migration lands, and adopting a zeroed streak from a row that
+  // simply cannot hold one would reset mastery on every page load).
+  const reviewRecords = useMemo(() => {
+    const rawById = new Map();
+    for (const raw of reviewLocalRecords) {
+      const rec = migrateRecord(raw);
+      if (rec && rec.leakId) rawById.set(String(rec.leakId), rec);
+    }
+    for (const raw of reviewServerRecords) {
+      const mapped = fromServerReviewRecord(raw);
+      if (!mapped) continue;
+      const id = String(mapped.leakId ?? '');
+      const rec = migrateRecord({ ...(rawById.get(id) || {}), ...definedOnly(mapped) });
+      if (rec && rec.leakId) rawById.set(String(rec.leakId), rec);
+    }
+    return Array.from(rawById.values());
+  }, [reviewLocalRecords, reviewServerRecords]);
+
+  // Sample leaks are excluded: their schedule cannot be stored against an
+  // account, and counting them would be a fake badge over data that is not yours.
+  const reviewableLeaks = useMemo(
+    () => (leaksAreDemo ? [] : activeLeaks.filter(l => !isDemoLeakId(l.id))),
+    [activeLeaks, leaksAreDemo],
+  );
+
+  // The FULL ordered queue. The card renders a session's worth (MAX_QUEUE) but
+  // needs the real total to say how much work exists without overstating it.
+  const reviewQueueAll = useMemo(() => {
+    if (!reviewNowMs) return [];
+    try {
+      return dueQueueAll(reviewRecords, reviewableLeaks, reviewNowMs) || [];
+    } catch (e) {
+      console.warn('[LeakFinder] review queue failed:', e?.message || e);
+      return [];
+    }
+  }, [reviewRecords, reviewableLeaks, reviewNowMs]);
+
+  const reviewQueue = useMemo(
+    () => reviewQueueAll.slice(0, REVIEW_MAX_QUEUE),
+    [reviewQueueAll],
+  );
+
+  // Stats are fed the SAME records the queue is fed. A row for a leak the user
+  // has since resolved (or that is filtered out) would otherwise become
+  // nextDueAt, and the caught-up card would promise a review for a leak that
+  // can never appear in the queue.
+  const reviewSummary = useMemo(() => {
+    if (!reviewNowMs) return null;
+    try {
+      const ids = new Set(reviewableLeaks.map(l => String(l?.id ?? '')));
+      const scoped = reviewRecords.filter(r => r && ids.has(String(r.leakId ?? '')));
+      return reviewStats(scoped, reviewNowMs);
+    } catch (e) {
+      console.warn('[LeakFinder] review stats failed:', e?.message || e);
+      return null;
+    }
+  }, [reviewRecords, reviewableLeaks, reviewNowMs]);
+
+  const handleStartReview = useCallback((entry) => {
+    if (!guardAction()) return;
+    const target = entry || reviewQueue[0];
+    if (!target || !target.leak) return;
+    const params = target.drill || leakToDrill(target.leak);
+    if (!params) {
+      // No street can be inferred, so a drill would serve unrelated spots.
+      // Fall back to the existing sandbox handoff instead of a dead end.
+      handlePracticeSandbox(target.leak);
+      return;
+    }
+    setReviewSession({ leakId: String(target.leakId), params });
+  }, [guardAction, reviewQueue, handlePracticeSandbox]);
+
+  const closeReviewSession = useCallback(() => {
+    setReviewSession(null);
+    refreshLocalReviews();
+    setReviewNowMs(Date.now());
+    fetchReviewSchedule();
+  }, [refreshLocalReviews, fetchReviewSchedule]);
+
   // ─── Filter / sort / paginate ────────────────────────────────────────────
   const visibleLeaks = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -1430,6 +1859,24 @@ export default function LeakFinderPage() {
 
           {tab === 'leaks' ? (
             <section id="leak-list" aria-label="Your leaks">
+              {/* Due for review — the spaced-repetition entry point */}
+              <LeakErrorBoundary label="The review queue">
+                <ReviewQueueCard
+                  loading={leaksLoading || !reviewNowMs || (reviewLoading && !reviewLoaded)}
+                  error={reviewError}
+                  onRetry={fetchReviewSchedule}
+                  queue={reviewQueue}
+                  queueTotal={reviewQueueAll.length}
+                  stats={reviewSummary}
+                  nowMs={reviewNowMs}
+                  hasLeaks={reviewableLeaks.length > 0}
+                  isDemo={leaksAreDemo}
+                  isDetecting={isDetecting}
+                  onStart={handleStartReview}
+                  onOpenLeak={(l) => l && setSelectedLeakId(l.id)}
+                />
+              </LeakErrorBoundary>
+
               {/* Detection */}
               <div style={{ ...card, marginBottom: S.md }}>
                 {detectButton(true)}
@@ -1743,6 +2190,22 @@ export default function LeakFinderPage() {
           )}
         </main>
 
+        {/* ── Review drill (the existing sandbox drill loop, not a second one) ── */}
+        {reviewSession && (
+          <LeakErrorBoundary
+            label="The review drill"
+            fallback={(err, reset) => (
+              <PanelCrash label="The review drill" error={err} onRetry={() => { reset(); setReviewSession(null); }} />
+            )}
+          >
+            <QuickSpotDrill
+              customParams={reviewSession.params}
+              reviewLeakId={reviewSession.leakId}
+              onClose={closeReviewSession}
+            />
+          </LeakErrorBoundary>
+        )}
+
         {/* ── Detail sheet ── */}
         <BottomSheet
           open={!!selectedLeak}
@@ -1946,6 +2409,138 @@ const styles = {
     fontWeight: 700,
     color: T.textMuted,
     maxWidth: '100%',
+  },
+
+  // ── Review queue ──────────────────────────────────────────────────────
+  reviewHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: S.sm,
+    flexWrap: 'wrap',
+    marginBottom: S.sm,
+  },
+  reviewEyebrow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: S.xs,
+    fontSize: F.caption,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: T.textMuted,
+  },
+  reviewCount: {
+    margin: `0 0 ${S.md}px`,
+    fontSize: F.h3,
+    fontWeight: 700,
+    color: T.text,
+    lineHeight: 1.35,
+  },
+  reviewBody: {
+    margin: `0 0 ${S.md}px`,
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    lineHeight: 1.45,
+  },
+  reviewCaughtUp: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    margin: `0 0 ${S.xs}px`,
+    fontSize: F.bodySm,
+    fontWeight: 700,
+    color: T.text,
+  },
+  reviewTop: {
+    marginBottom: S.md,
+  },
+  reviewTopBtn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: S.xs,
+    width: '100%',
+    minHeight: 44,
+    padding: S.md,
+    boxSizing: 'border-box',
+    background: T.surface2,
+    border: `1px solid ${T.border}`,
+    borderRadius: R.sm,
+    cursor: 'pointer',
+    font: 'inherit',
+    color: T.text,
+    textAlign: 'left',
+  },
+  reviewTopLabel: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: T.textDim,
+  },
+  reviewTopTitle: {
+    fontSize: F.body,
+    fontWeight: 800,
+    color: T.text,
+    lineHeight: 1.35,
+    overflowWrap: 'anywhere',
+  },
+  reviewTopMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    flexWrap: 'wrap',
+  },
+  reviewTopEv: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.danger,
+  },
+  reviewFoot: {
+    margin: `${S.sm}px 0 0`,
+    fontSize: F.caption,
+    color: T.textDim,
+    lineHeight: 1.45,
+  },
+  reviewErrorRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    marginTop: S.md,
+    padding: S.sm,
+    borderRadius: R.sm,
+    background: T.warnSoft,
+    border: '1px solid rgba(251,191,36,0.4)',
+    fontSize: F.caption,
+    color: T.warn,
+    lineHeight: 1.45,
+  },
+
+  // ── Drill chunk placeholder ───────────────────────────────────────────
+  drillLoadingBackdrop: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: Z.sheet,
+    background: T.scrim,
+    display: 'flex',
+    alignItems: 'flex-end',
+  },
+  drillLoadingSheet: {
+    width: '100%',
+    maxWidth: 760,
+    margin: '0 auto',
+    boxSizing: 'border-box',
+    background: T.surface,
+    borderRadius: R.sheet,
+    padding: S.lg,
+    paddingBottom: `calc(${S.lg}px + env(safe-area-inset-bottom, 0px))`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.sm,
   },
 
   demoBanner: {

@@ -11,10 +11,18 @@
  *   • drill rows persist evDelta:null — quiz noise is not real EV loss
  *   • distinct loading / error+retry / empty states, and a miss recap + level
  *     ladder on the finished screen
+ *
+ * SPACED REPETITION (optional) ─────────────────────────────────────────────
+ * When mounted with `reviewLeakId`, the run is a scheduled review of ONE leak:
+ * the final score is posted to /api/assistant/leaks/review, and the resulting
+ * next-review interval is shown on the finished screen so the loop is visible.
+ * Without that prop this component behaves EXACTLY as it always has — no extra
+ * request, no extra UI.
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Zap, Check, X, Flame, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Zap, Check, X, Flame, RotateCcw, AlertTriangle, CalendarDays } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { gradeReview, migrateRecord, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../../lib/sandbox/leakReview';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import {
     BottomSheet, PAStyles, Skeleton, EmptyState, ErrorState,
@@ -25,6 +33,96 @@ const DEFAULT_OPTIONS = ['Fold', 'Call', 'Raise', 'Check'];
 const DISTRACTORS = ['Fold', 'Check', 'Call', 'Bet', 'Raise', 'All-In'];
 const DURATION = 15;
 const LEVEL_KEY = 'sandbox-drill-level';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOCAL REVIEW SCHEDULE (fallback store)
+// ═══════════════════════════════════════════════════════════════════════════
+// The `leak_review_state` table may not be migrated yet, and the user may be
+// offline or signed out. In every one of those cases the API answers
+// persisted:false (or does not answer at all) and the schedule is kept here so
+// the feature still works. leaks.js reads this same key and merges it with the
+// server records, SERVER WINNING on conflict.
+//
+// The key is versioned with the record schema: a schema bump starts a clean
+// store instead of feeding stale shapes to the scheduler.
+const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
+const REVIEW_STORE_LIMIT = 200;
+
+function parseTime(value) {
+    if (typeof value !== 'string' || !value.trim()) return 0;
+    const t = Date.parse(value);
+    return Number.isFinite(t) ? t : 0;
+}
+
+/** Always returns a plain object map { [leakId]: record }; never throws. */
+function readReviewStore() {
+    try {
+        const raw = safeStorage.get(REVIEW_STORE_KEY, null);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        const records = (parsed.records && typeof parsed.records === 'object' && !Array.isArray(parsed.records))
+            ? parsed.records
+            : parsed;
+        return (records && typeof records === 'object' && !Array.isArray(records)) ? records : {};
+    } catch (e) {
+        console.warn('[QuickSpotDrill] review store unreadable:', e?.message || e);
+        return {};
+    }
+}
+
+/**
+ * Copy of `obj` with undefined/null values removed, so spreading it over a
+ * local record cannot blank a field the source simply did not mention.
+ * (`{ ...a, ...{ x: undefined } }` sets x to undefined — silently losing a.x.)
+ */
+function definedOnly(obj) {
+    const out = {};
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out;
+    try {
+        for (const key of Object.keys(obj)) {
+            const value = obj[key];
+            if (value !== undefined && value !== null) out[key] = value;
+        }
+    } catch (e) {
+        return out;
+    }
+    return out;
+}
+
+function readReviewRecord(leakId) {
+    if (!leakId) return null;
+    const store = readReviewStore();
+    const raw = store[String(leakId)];
+    return raw ? migrateRecord(raw) : null;
+}
+
+/** Best effort — a blocked/full localStorage must never break a finished drill. */
+function writeReviewRecord(leakId, record) {
+    if (!leakId || !record || typeof record !== 'object') return false;
+    try {
+        const store = readReviewStore();
+        store[String(leakId)] = record;
+        const keys = Object.keys(store);
+        if (keys.length > REVIEW_STORE_LIMIT) {
+            // Evict the least recently reviewed rows first.
+            keys.sort((a, b) => parseTime(store[a]?.lastReviewedAt) - parseTime(store[b]?.lastReviewedAt));
+            for (const k of keys.slice(0, keys.length - REVIEW_STORE_LIMIT)) delete store[k];
+        }
+        return safeStorage.set(REVIEW_STORE_KEY, JSON.stringify({ v: REVIEW_SCHEMA_VERSION, records: store }));
+    } catch (e) {
+        console.warn('[QuickSpotDrill] review store write failed:', e?.message || e);
+        return false;
+    }
+}
+
+/** "Next review in 3 days" — the whole point of the loop, in one line. */
+function intervalLabel(days) {
+    const n = Number(days);
+    if (!Number.isFinite(n) || n <= 0) return 'Next review: today';
+    const rounded = Math.max(1, Math.round(n));
+    return `Next review in ${rounded} day${rounded === 1 ? '' : 's'}`;
+}
 
 /** Promotion / demotion thresholds, surfaced to the user as a ladder. */
 function promotionTarget(level) {
@@ -94,7 +192,7 @@ function ensureAnswerable(q) {
     return { ...q, options: shuffle(repaired.slice(0, 4)), correct_answer: correct };
 }
 
-export default function QuickSpotDrill({ onClose, customParams }) {
+export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = null }) {
     const reduce = usePrefersReducedMotion();
 
     const [questions, setQuestions] = useState([]);
@@ -113,6 +211,9 @@ export default function QuickSpotDrill({ onClose, customParams }) {
     const [level, setLevel] = useState(1);
     const [levelChange, setLevelChange] = useState(null); // 'up' | 'down' | null
     const [ignoreFilters, setIgnoreFilters] = useState(false);
+    // null when this is not a review run. Otherwise:
+    // { status: 'saving' | 'done' | 'skipped' | 'error', intervalDays, persisted }
+    const [review, setReview] = useState(null);
 
     const deadlineRef = useRef(DURATION * 1000);
     const remainingRef = useRef(DURATION);
@@ -120,6 +221,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
     const currentIdxRef = useRef(0);
     const questionsRef = useRef([]);
     const abortRef = useRef(null);
+    const lastOutcomeRef = useRef(null);
 
     useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
     useEffect(() => { questionsRef.current = questions; }, [questions]);
@@ -170,6 +272,8 @@ export default function QuickSpotDrill({ onClose, customParams }) {
             setScore({ correct: 0, total: 0 });
             setMisses([]);
             setStreak(0);
+            setReview(null);
+            lastOutcomeRef.current = null;
         } catch (e) {
             if (e?.name === 'AbortError') return;
             console.warn('[QuickSpotDrill] Load error:', e?.message || e);
@@ -215,6 +319,105 @@ export default function QuickSpotDrill({ onClose, customParams }) {
             }
         }
     }, []);
+
+    // ── spaced-repetition outcome (review runs only) ──────────────────────
+    /**
+     * Posts { leakId, outcome } and shows the resulting interval.
+     *
+     * The schedule is computed SERVER-SIDE and echoed back even when it could
+     * not be stored (table not migrated, demo leak, signed out) — in that case
+     * `persisted:false` comes back and we keep the record locally instead.
+     * If the request fails outright we grade locally so the drill still ends
+     * with a real, honest next-review date rather than a dead end.
+     */
+    const submitReview = useCallback(async (correct, total) => {
+        if (!reviewLeakId || !(total > 0)) return;
+        lastOutcomeRef.current = { correct, total };
+        setReview({ status: 'saving', intervalDays: null, persisted: false });
+
+        let serverState = null;
+        let persisted = false;
+        let reached = false;
+
+        try {
+            const token = getAccessToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch('/api/assistant/leaks/review', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ leakId: reviewLeakId, outcome: { correct, total } }),
+            });
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                const json = await res.json().catch(() => null);
+                if (res.ok && json && json.success) {
+                    reached = true;
+                    serverState = json.state || json.record || null;
+                    persisted = json.persisted === true;
+                }
+            }
+        } catch (e) {
+            console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
+        }
+
+        // Build the record to keep locally.
+        //
+        // MERGE, never replace. Grade locally first — that advances reps,
+        // strongStreak and history off the record this device already holds —
+        // then let the server override every field it actually states. The
+        // server omits the mastery columns when they are not migrated yet, and
+        // a blind overwrite would zero strongStreak / retired / history on every
+        // round-trip: RETIRE_AFTER_STRONG would be unreachable and a mastered
+        // leak would be re-queued every cycle, forever.
+        let record = null;
+        try {
+            record = gradeReview(readReviewRecord(reviewLeakId), { correct, total }, new Date());
+            if (serverState) {
+                const merged = migrateRecord({
+                    ...(record || {}),
+                    ...definedOnly(serverState),
+                    leakId: reviewLeakId,
+                    lastReviewedAt: serverState.updatedAt || new Date().toISOString(),
+                });
+                if (merged) record = merged;
+            }
+            if (record) record = { ...record, leakId: String(reviewLeakId) };
+        } catch (e) {
+            console.warn('[QuickSpotDrill] review grading failed:', e?.message || e);
+            record = null;
+        }
+
+        if (!record) {
+            setReview({ status: 'error', intervalDays: null, persisted: false });
+            return;
+        }
+
+        // Always mirrored locally: leaks.js reads server-first, so a stale copy
+        // is harmless, and it is the ONLY copy when persisted:false. The write
+        // can still be refused (private mode, quota) — we say so rather than
+        // claiming a save that did not happen.
+        const stored = writeReviewRecord(reviewLeakId, record);
+
+        setReview({
+            status: 'done',
+            intervalDays: record.intervalDays,
+            persisted: persisted && reached,
+            stored,
+        });
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('pa-leak-review-updated', {
+                detail: { leakId: String(reviewLeakId), intervalDays: record.intervalDays, persisted },
+            }));
+        }
+    }, [reviewLeakId]);
+
+    const retryReview = useCallback(() => {
+        const last = lastOutcomeRef.current;
+        if (!last) return;
+        submitReview(last.correct, last.total);
+    }, [submitReview]);
 
     const recordMiss = useCallback((q, pick) => {
         setMisses(prev => [...prev, {
@@ -351,7 +554,18 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                 detail: { correct: finalCorrect, total: finalTotal, newLevel, oldLevel: level, misses: misses.length },
             }));
         }
-    }, [currentIdx, questions.length, score, level, misses.length, celebrate]);
+
+        // Review runs only. If the user dropped the leak filters mid-run the
+        // spots no longer belong to that leak, so the result is NOT allowed to
+        // move its schedule — we say so instead of quietly recording it.
+        if (reviewLeakId) {
+            if (ignoreFilters) {
+                setReview({ status: 'skipped', intervalDays: null, persisted: false });
+            } else if (finalTotal > 0) {
+                submitReview(finalCorrect, finalTotal);
+            }
+        }
+    }, [currentIdx, questions.length, score, level, misses.length, celebrate, reviewLeakId, ignoreFilters, submitReview]);
 
     // Backdrop / Esc / ✕ must not silently bin a drill in progress.
     const inProgress = !loading && !finished && questions.length > 0 && !loadError;
@@ -478,6 +692,73 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                             {score.correct} of {score.total} correct
                         </div>
                     </div>
+
+                    {/* ── review schedule (review runs only) ───────────── */}
+                    {reviewLeakId && review && (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            style={{
+                                display: 'flex', flexDirection: 'column', gap: S.xs,
+                                background: review.status === 'done' ? T.accentSoft : T.surface2,
+                                border: `1px solid ${review.status === 'done' ? 'rgba(69,153,255,0.45)' : T.border}`,
+                                borderRadius: R.sm, padding: S.md,
+                            }}
+                        >
+                            {review.status === 'saving' && (
+                                <>
+                                    <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.textMuted }}>
+                                        Scheduling your next review…
+                                    </span>
+                                    <Skeleton h={14} w="60%" />
+                                </>
+                            )}
+
+                            {review.status === 'done' && (
+                                <>
+                                    <span style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: S.sm,
+                                        fontSize: F.bodySm, fontWeight: 800, color: T.accent,
+                                    }}>
+                                        <CalendarDays size={16} strokeWidth={2} aria-hidden="true" />
+                                        {intervalLabel(review.intervalDays)}
+                                    </span>
+                                    <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
+                                        {review.persisted
+                                            ? 'Saved to your review schedule.'
+                                            : review.stored
+                                                ? 'Saved on this device for now — it will move to your account once your review schedule is available.'
+                                                : 'This browser is blocking storage, so the date above could not be saved. The leak stays in your queue.'}
+                                    </span>
+                                </>
+                            )}
+
+                            {review.status === 'skipped' && (
+                                <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
+                                    Filters were off for this run, so it has not changed this leak&apos;s review schedule.
+                                </span>
+                            )}
+
+                            {review.status === 'error' && (
+                                <>
+                                    <span style={{ fontSize: F.bodySm, fontWeight: 700, color: T.warn }}>
+                                        Could not update your review schedule
+                                    </span>
+                                    <span style={{ fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
+                                        Your answers were still saved. Try again, or carry on — the leak stays in your queue.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="pa-btn"
+                                        onClick={retryReview}
+                                        style={{ ...btn('secondary'), marginTop: S.xs, alignSelf: 'flex-start' }}
+                                    >
+                                        <RotateCcw size={18} strokeWidth={2} aria-hidden="true" /> Retry
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {levelChange === 'up' && (
                         <div style={{
