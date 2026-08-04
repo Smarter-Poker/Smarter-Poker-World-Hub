@@ -43,8 +43,8 @@ export const TRIVIA_MODES = {
     daily: {
         id: 'daily',
         name: 'Daily Trivia',
-        description: '20 Questions • Fresh Daily',
-        questionsCount: 20,
+        description: '10 Questions • Fresh Daily',
+        questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
         diamondReward: 5,
