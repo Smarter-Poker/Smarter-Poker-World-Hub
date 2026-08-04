@@ -927,7 +927,8 @@ export default function SignUpPage() {
                     </div>
                 </div>
             ) : (
-                <div style={styles.container}>
+                <>
+                    <div style={styles.container}>
                     {/* ═══════════════════════════════════════════════════════════════
                         EMAIL PENDING — ENTER VERIFICATION CODE
                         ═══════════════════════════════════════════════════════════════ */}
@@ -1065,6 +1066,7 @@ export default function SignUpPage() {
                         </>
                     )}
                 </div>
+            )}
 
                 {/* ═══════════════════════════════════════════════════════════════
                     PHONE VERIFICATION MODAL - iOS SMS AUTOFILL SUPPORT
@@ -1221,7 +1223,8 @@ export default function SignUpPage() {
                         </div>
                     </div>
                 )}
-            </div>
+                </>
+            )}
         </>
     );
 }
