@@ -101,6 +101,42 @@ export default function LoginPage() {
         setIsLoading(false);
     };
 
+    // ── [Phase 6.1.27] MFA step 2 ────────────────────────────
+    // Nothing in the app routed to /auth/mfa, so an enrolled second factor was
+    // never actually challenged at sign-in — the page existed and no code path
+    // reached it. One POST answers both questions we have at this moment:
+    //
+    //   mfaEnabled — is there a factor on this account at all?
+    //   trusted    — does this browser hold a live 30-day trusted device?
+    //
+    // Trusted also mints a fresh 12h `mfa_session` server-side, so a returning
+    // user inside their 30 days goes straight through with no code. That is
+    // the "one code every 30 days, good for everything" path.
+    //
+    // Fails OPEN: if this call errors we let the user into the hub. It only
+    // decides whether to PROMPT — every sensitive route still enforces
+    // independently via src/lib/mfaGate.js, so a skipped prompt cannot grant
+    // access to anything. Failing closed would lock everyone out on a blip.
+    const needsMfaChallenge = async (accessToken) => {
+        if (!accessToken) return false;
+        try {
+            const res = await fetch('/api/auth/mfa/check-trusted', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+            if (!res.ok) return false;
+            const json = await res.json().catch(() => ({}));
+            return json?.mfaEnabled === true && json?.trusted !== true;
+        } catch (err) {
+            console.warn('[login] MFA status check failed, continuing:', err?.message || err);
+            return false;
+        }
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -153,6 +189,13 @@ export default function LoginPage() {
                 localStorage.removeItem('smarter-poker-remember-me');
             }
 
+
+            // ── Step 2: second factor, if this browser isn't already trusted ──
+            if (await needsMfaChallenge(data?.session?.access_token)) {
+                const dest = getRedirectUrl();
+                router.push(`/auth/mfa?redirect=${encodeURIComponent(dest)}`);
+                return;
+            }
 
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
