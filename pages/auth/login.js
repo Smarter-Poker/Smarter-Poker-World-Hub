@@ -131,61 +131,7 @@ export default function LoginPage() {
                 localStorage.removeItem('smarter-poker-remember-me');
             }
 
-            // ── [Phase 6.1.23] MFA challenge gate — RE-ENABLED 2026-07-25 ──
-            // The old version was disabled because loose truthiness checks
-            // ("returned unexpected values") randomly bounced users to
-            // /auth/mfa. Hardened re-enable:
-            //   1. STRICT equality — only enabled === true / mfa_required
-            //      === true trigger the challenge. Nulls, RLS denials, query
-            //      errors, and missing rows all FAIL OPEN (no redirect), so
-            //      a broken table can never lock users out of login.
-            //   2. The whole probe is try/catch'd — a throw skips MFA rather
-            //      than blocking sign-in.
-            // Without this gate, a user who enrolls 2FA in settings gets NO
-            // challenge at login — enrollment was shipped as pure theater.
-            try {
-                const [factorRes, profileRes] = await Promise.all([
-                    supabase
-                        .from('user_mfa_factors')
-                        .select('enabled')
-                        .eq('user_id', data.user.id)
-                        .maybeSingle(),
-                    supabase
-                        .from('profiles')
-                        .select('mfa_required')
-                        .eq('id', data.user.id)
-                        .maybeSingle(),
-                ]);
-                const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
-                const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
-                if (hasMfa || mfaRequired) {
-                    // Check if they have a valid trusted device token
-                    try {
-                        const checkRes = await fetch('/api/auth/mfa/check-trusted', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${data.session.access_token}`
-                            }
-                        });
-                        if (checkRes.ok) {
-                            const checkJson = await checkRes.json();
-                            if (checkJson.trusted) {
-                                // Device is trusted! Server minted a fresh mfa_session cookie.
-                                // Safe to skip MFA challenge.
-                                sessionStorage.setItem('just_authenticated', 'true');
-                                router.push(getRedirectUrl());
-                                return;
-                            }
-                        }
-                    } catch (checkErr) {
-                        console.warn('[login] MFA trusted check failed:', checkErr);
-                    }
 
-                    const next = encodeURIComponent(getRedirectUrl());
-                    router.push(`/auth/mfa?next=${next}`);
-                    return;
-                }
-            } catch (mfaProbeErr) { console.warn('[login] MFA probe failed open:', mfaProbeErr?.message || mfaProbeErr); }
 
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
@@ -329,389 +275,212 @@ export default function LoginPage() {
 
     return (
         <div style={{
-            minHeight: '100vh',
+            position: 'relative',
+            width: '100%',
+            height: '100vh',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(180deg, #0a1628 0%, #0d1f35 50%, #0a1628 100%)',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            padding: 20,
+            alignItems: 'center',
+            backgroundColor: '#000', // Dark background for letterboxing
+            overflow: 'hidden'
         }}>
-            {/* Logo - Clean Text Brand */}
+            {/* Aspect-ratio locked container to perfectly match the dynamic image */}
             <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: 40,
+                position: 'relative',
+                width: '100%',
+                maxWidth: 'min(100vw, 80vh)', // Maintains 4:5 aspect ratio within viewport
+                aspectRatio: '4 / 5',
+                backgroundImage: `url('/images/dynamic-login-bg.jpg')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)' // Slight glow to blend letterboxing
             }}>
-                <span style={{
-                    fontSize: 32,
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.1,
-                }}>SMARTER.POKER</span>
-                <span style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: 'rgba(0, 212, 255, 0.8)',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    marginTop: 6,
-                }}>Train Smarter, Win More</span>
-            </div>
-
-            {/* Title */}
-            <h1 style={{
-                fontSize: 24,
-                fontWeight: 600,
-                color: '#ffffff',
-                marginBottom: 8,
-                letterSpacing: '-0.01em',
-            }}>
-                {mode === 'login' ? 'Welcome Back' : 'Create Account'}
-            </h1>
-
-            <p style={{
-                fontSize: 14,
-                color: 'rgba(255, 255, 255, 0.5)',
-                marginBottom: 32,
-            }}>
-                {mode === 'login' ? 'Sign In To Continue' : 'Join The Smarter.Poker Community'}
-            </p>
-
-            {/* Already signed in banner */}
-            {existingUser && (
-                <div style={{
-                    width: '100%',
-                    maxWidth: 360,
-                    padding: '16px 20px',
-                    background: 'rgba(24, 119, 242, 0.15)',
-                    border: '1px solid rgba(24, 119, 242, 0.4)',
-                    borderRadius: 12,
-                    marginBottom: 24,
-                    textAlign: 'center',
-                }}>
-                    <p style={{ fontSize: 14, color: '#fff', margin: '0 0 4px', fontWeight: 600 }}>
-                        You Are Already Signed In
-                    </p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '0 0 12px' }}>
-                        {existingUser}
-                    </p>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                
+                {/* 
+                  Interactive Elements Overlay 
+                  All elements are absolutely positioned with percentages to stay aligned 
+                  with the image's baked-in buttons on any screen size.
+                */}
+                
+                {existingUser && (
+                    <div style={{
+                        position: 'absolute', top: '30%', left: '25%', width: '50%', height: '10%',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', zIndex: 10
+                    }}>
                         <button
                             onClick={() => { sessionStorage.setItem('just_authenticated', 'true'); router.push('/hub'); }}
-                            style={{
-                                padding: '10px 20px', fontSize: 14, fontWeight: 600,
-                                background: 'linear-gradient(135deg, #1877F2, #0a5dc2)',
-                                color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer',
-                            }}
+                            style={{ width: '45%', height: '35%', background: 'transparent', border: 'none', cursor: 'pointer', color: 'transparent' }}
+                            title="Continue To Hub"
                         >
-                            Continue To Hub
+                            Continue
                         </button>
                         <button
                             onClick={handleSwitchAccount}
                             disabled={isLoading}
-                            style={{
-                                padding: '10px 20px', fontSize: 14, fontWeight: 600,
-                                background: 'transparent', color: 'rgba(255,255,255,0.7)',
-                                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer',
-                            }}
+                            style={{ width: '45%', height: '35%', background: 'transparent', border: 'none', cursor: 'pointer', color: 'transparent' }}
+                            title="Switch Account"
                         >
-                            Switch Account
+                            Switch
                         </button>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Google Sign In Button */}
-            {mode === 'login' && (
-                <>
-                    <button
-                        type="button"
-                        onClick={() => handleOAuthSignIn('google')}
-                        disabled={!!oauthLoading}
+                {mode === 'login' && (
+                    <>
+                        {/* Google OAuth Button Overlay */}
+                        <button
+                            type="button"
+                            onClick={() => handleOAuthSignIn('google')}
+                            disabled={!!oauthLoading}
+                            title="Continue With Google"
+                            style={{
+                                position: 'absolute', top: '53.5%', left: '29%', width: '42%', height: '4.5%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
+                                outline: 'none',
+                            }}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(255, 255, 255, 0.5)'}
+                            onBlur={(e) => e.target.style.boxShadow = 'none'}
+                        />
+
+                        {/* Facebook OAuth Button Overlay */}
+                        <button
+                            type="button"
+                            onClick={() => handleOAuthSignIn('facebook')}
+                            disabled={!!oauthLoading}
+                            title="Continue With Facebook"
+                            style={{
+                                position: 'absolute', top: '59%', left: '29%', width: '42%', height: '4.5%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
+                                outline: 'none',
+                            }}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(24, 119, 242, 0.8)'}
+                            onBlur={(e) => e.target.style.boxShadow = 'none'}
+                        />
+                    </>
+                )}
+
+                {/* Main Auth Form Overlay */}
+                <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="on" style={{ position: 'absolute', inset: 0, margin: 0, padding: 0 }}>
+                    
+                    {/* Error / Message Display (Positioned centrally above the form fields) */}
+                    {(error || message) && (
+                        <div style={{
+                            position: 'absolute', top: '48%', left: '25%', width: '50%',
+                            padding: '8px',
+                            background: error ? 'rgba(220, 38, 38, 0.9)' : 'rgba(34, 197, 94, 0.9)',
+                            border: `1px solid ${error ? '#f87171' : '#4ade80'}`,
+                            borderRadius: 8, color: '#fff', fontSize: '0.8rem', textAlign: 'center', zIndex: 20
+                        }}>
+                            {error || message}
+                        </div>
+                    )}
+
+                    {/* Email Input Overlay */}
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoComplete="email"
                         style={{
-                            width: '100%',
-                            maxWidth: 360,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 12,
-                            padding: '14px 24px',
-                            background: '#ffffff',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: oauthLoading ? 'wait' : 'pointer',
-                            fontSize: 16,
-                            fontWeight: 600,
-                            color: '#1f1f1f',
-                            marginBottom: 4,
-                            opacity: oauthLoading && oauthLoading !== 'google' ? 0.5 : 1,
-                            transition: 'all 0.2s ease',
+                            position: 'absolute', top: '65.5%', left: '29%', width: '42%', height: '4.5%',
+                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
+                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10
                         }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                        </svg>
-                        <span>{oauthLoading === 'google' ? 'Connecting...' : 'Continue With Google'}</span>
-                    </button>
+                        onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
+                        onBlur={(e) => e.target.style.background = 'transparent'}
+                    />
 
-                    {/* Facebook Sign In Button — mirrors Google flow */}
-                    <button
-                        type="button"
-                        onClick={() => handleOAuthSignIn('facebook')}
-                        disabled={!!oauthLoading}
-                        style={{
-                            width: '100%',
-                            maxWidth: 360,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 12,
-                            padding: '14px 24px',
-                            background: '#1877F2',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: oauthLoading ? 'wait' : 'pointer',
-                            fontSize: 16,
-                            fontWeight: 600,
-                            color: '#ffffff',
-                            marginBottom: 4,
-                            opacity: oauthLoading && oauthLoading !== 'facebook' ? 0.5 : 1,
-                            transition: 'all 0.2s ease',
-                        }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                            <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12S0 5.446 0 12.073c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.875v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                        </svg>
-                        <span>{oauthLoading === 'facebook' ? 'Connecting...' : 'Continue With Facebook'}</span>
-                    </button>
-
-                    <div style={{
-                        width: '100%',
-                        maxWidth: 360,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        margin: '8px 0',
-                    }}>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Or</span>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
-                    </div>
-                </>
-            )}
-
-            {/* Auth Form */}
-            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="off" style={{
-                width: '100%',
-                maxWidth: 360,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-            }}>
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="off"
-                    style={{
-                        padding: '14px 16px',
-                        fontSize: 16,
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: 8,
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        color: '#fff',
-                        outline: 'none',
-                    }}
-                />
-
-                <div style={{ position: 'relative' }}>
+                    {/* Password Input Overlay */}
                     <input
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        autoComplete="new-password"
+                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         style={{
-                            width: '100%',
-                            padding: '14px 48px 14px 16px',
-                            fontSize: 16,
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            borderRadius: 8,
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            outline: 'none',
-                            boxSizing: 'border-box',
+                            position: 'absolute', top: '71.5%', left: '29%', width: '38%', height: '4.5%',
+                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
+                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10
                         }}
+                        onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
+                        onBlur={(e) => e.target.style.background = 'transparent'}
                     />
+
+                    {/* Show Password Toggle (Positioned over the eye icon in the image) */}
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute',
-                            right: '12px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            position: 'absolute', top: '71.5%', left: '67%', width: '4%', height: '4.5%',
+                            background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11
                         }}
                         tabIndex={-1}
-                    >
-                        {showPassword ? (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                            </svg>
-                        ) : (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                        )}
-                    </button>
-                </div>
+                        title={showPassword ? 'Hide Password' : 'Show Password'}
+                    />
 
-                {mode === 'login' && (
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginTop: -4,
-                    }}>
-                        {/* Remember Me Checkbox */}
-                        <label style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            cursor: 'pointer',
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            fontSize: 13,
-                        }}>
+                    {mode === 'login' && (
+                        <>
+                            {/* Remember Me Checkbox Overlay */}
                             <input
                                 type="checkbox"
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 style={{
-                                    width: 16,
-                                    height: 16,
-                                    accentColor: '#1877F2',
-                                    cursor: 'pointer',
+                                    position: 'absolute', top: '77%', left: '29%', width: '1.5%', height: '2%',
+                                    opacity: 0, cursor: 'pointer', zIndex: 10
                                 }}
+                                title="Remember Me"
                             />
-                            Remember Me
-                        </label>
+
+                            {/* Forgot Password Link Overlay */}
+                            <button
+                                type="button"
+                                onClick={() => router.push('/auth/forgot-password')}
+                                style={{
+                                    position: 'absolute', top: '77%', left: '59%', width: '12%', height: '2%',
+                                    background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
+                                }}
+                                title="Forgot Password"
+                            />
+                        </>
+                    )}
+
+                    {/* Sign In / Submit Button Overlay */}
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        title={mode === 'login' ? 'Sign In' : 'Create Account'}
+                        style={{
+                            position: 'absolute', top: '80.5%', left: '29%', width: '42%', height: '4.5%',
+                            background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
+                            outline: 'none',
+                        }}
+                        onFocus={(e) => e.target.style.boxShadow = '0 0 10px 3px rgba(0, 212, 255, 0.6)'}
+                        onBlur={(e) => e.target.style.boxShadow = 'none'}
+                    />
+
+                    {/* Send Magic Link Button Overlay */}
+                    {mode === 'login' && (
                         <button
                             type="button"
-                            onClick={() => router.push('/auth/forgot-password')}
+                            onClick={handleMagicLink}
+                            disabled={isLoading}
+                            title="Send Magic Link"
                             style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                fontSize: 13,
-                                cursor: 'pointer',
+                                position: 'absolute', top: '86.5%', left: '29%', width: '42%', height: '4.5%',
+                                background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
+                                outline: 'none',
                             }}
-                        >
-                            Forgot Password?
-                        </button>
-                    </div>
-                )}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 10px 2px rgba(255, 215, 0, 0.5)'}
+                            onBlur={(e) => e.target.style.boxShadow = 'none'}
+                        />
+                    )}
+                </form>
 
-                {error && (
-                    <div style={{
-                        padding: '12px',
-                        background: 'rgba(220, 38, 38, 0.2)',
-                        border: '1px solid rgba(220, 38, 38, 0.5)',
-                        borderRadius: 8,
-                        color: '#f87171',
-                        fontSize: 14,
-                        textAlign: 'center',
-                    }}>
-                        {error}
-                    </div>
-                )}
-
-                {message && (
-                    <div style={{
-                        padding: '12px',
-                        background: 'rgba(34, 197, 94, 0.2)',
-                        border: '1px solid rgba(34, 197, 94, 0.5)',
-                        borderRadius: 8,
-                        color: '#4ade80',
-                        fontSize: 14,
-                        textAlign: 'center',
-                    }}>
-                        {message}
-                    </div>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    style={{
-                        padding: '14px 24px',
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: '#ffffff',
-                        background: isLoading
-                            ? 'rgba(100, 100, 100, 0.5)'
-                            : 'linear-gradient(135deg, #1877F2, #0a5dc2)',
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: isLoading ? 'wait' : 'pointer',
-                        transition: 'all 0.3s ease',
-                    }}
-                >
-                    {isLoading
-                        ? 'Please wait...'
-                        : mode === 'login'
-                            ? 'Sign In'
-                            : 'Create Account'}
-                </button>
-
-                {mode === 'login' && (
-                    <button
-                        type="button"
-                        onClick={handleMagicLink}
-                        disabled={isLoading}
-                        style={{
-                            padding: '14px 24px',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            background: 'transparent',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                        }}
-                    >
-                        ✨ Send Magic Link
-                    </button>
-                )}
-            </form>
-
-            {/* Toggle Mode */}
-            <p style={{
-                marginTop: 24,
-                fontSize: 14,
-                color: 'rgba(255, 255, 255, 0.6)',
-            }}>
-                {mode === 'login' ? "Don't Have An Account? " : "Already Have An Account? "}
+                {/* Mode Toggle Link Overlay (Sign Up / Sign In) */}
                 <button
                     onClick={() => {
                         setMode(mode === 'login' ? 'signup' : 'login');
@@ -719,17 +488,14 @@ export default function LoginPage() {
                         setMessage(null);
                     }}
                     style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#1877F2',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        textDecoration: 'underline',
+                        position: 'absolute', top: '92.5%', left: '35%', width: '30%', height: '2%',
+                        background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                     }}
+                    title={mode === 'login' ? 'Sign Up' : 'Sign In'}
                 >
-                    {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                    {/* The text is drawn in the image, so we leave the button empty or with transparent text if needed */}
                 </button>
-            </p>
+            </div>
 
             {/* Footer */}
             <p style={{

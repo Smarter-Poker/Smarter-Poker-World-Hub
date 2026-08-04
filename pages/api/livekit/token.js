@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const _authUser = authData?.user;
-      if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+      if (authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
       const { roomName, participantName, participantId } = req.body;
 

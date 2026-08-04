@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
         /* removed duplicate authUser */
         
-        if (authError || !authUser) {
+        if (authErr || !authUser) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 

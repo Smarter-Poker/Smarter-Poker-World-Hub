@@ -174,7 +174,7 @@ try {
         const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
         const delUser = authData?.user;
-        if (delAuthErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        if (authErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const game_id = safeQ(req.query.game_id);
 

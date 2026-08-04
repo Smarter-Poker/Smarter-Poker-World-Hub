@@ -7,10 +7,6 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables');
-}
-
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -43,7 +39,7 @@ export default async function handler(req, res) {
     const authData = { user: authUser };
           const user = authData?.user;
 
-          if (authError || !user) {
+          if (authErr || !user) {
               return res.status(401).json({ success: false, error: 'Invalid token' });
           }
 
