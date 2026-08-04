@@ -71,6 +71,13 @@ export default function TriviaGame({
     // can open its own out-of-diamonds / store modal instead of leaving
     // HintButtons' inline toast as the only feedback.
     onNeedDiamonds = null,
+    // Optional server-authoritative grader:
+    //   async ({questionId, displayIndex, questionIndex})
+    //     => {wasCorrect, correctDisplayIndex, explanation}
+    // When null (every existing mode) behavior is unchanged: questions carry
+    // correct_index and grading stays client-side. When set, questions have
+    // NO correct_index, so nothing can be revealed until the verdict returns.
+    serverGrader = null,
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -116,6 +123,17 @@ export default function TriviaGame({
     const answersRef = useRef([]); // Ref mirror of answers — avoids stale closure in auto-complete
     const streakRef = useRef(0); // Ref mirror of streak
 
+    // Server-graded verdicts keyed by questionIndex. The ref is written
+    // synchronously alongside the state so the 800ms arcade auto-advance and
+    // the timer-expiry auto-complete always score against the latest verdicts
+    // rather than a stale render's copy.
+    const [verdicts, setVerdicts] = useState({});
+    const verdictsRef = useRef({});
+    const storeVerdict = (questionIndex, verdict) => {
+        verdictsRef.current = { ...verdictsRef.current, [questionIndex]: verdict };
+        setVerdicts(verdictsRef.current);
+    };
+
     // Phase 67: track all pending setTimeouts so unmount can cancel them.
     // Without this, the 8+ ephemeral timeouts (correct-flash, combo-popup,
     // wrong-shake, streak-lost, bust, floating-diamond cleanup, auto-advance,
@@ -153,6 +171,19 @@ export default function TriviaGame({
 
     const currentQuestion = questions[currentIndex];
     const isArcadeMode = mode === 'arcade';
+
+    // Verdict-aware scoring. With a serverGrader the client never holds
+    // correct_index, so correctness is the count of server verdicts marked
+    // correct instead of an answers-vs-key comparison. Used by all three
+    // completion paths (advance, timer expiry, cash-out).
+    const scoreCurrent = (answersArr) => {
+        if (!serverGrader) return scoreAnswers(answersArr, questions);
+        let skipped = 0;
+        (answersArr || []).forEach((a) => { if (SKIP_SENTINELS.has(a)) skipped += 1; });
+        const correct = Object.values(verdictsRef.current).filter(v => v?.wasCorrect).length;
+        const total = Math.max(1, (questions?.length || 0) - skipped);
+        return { correct, skipped, total };
+    };
 
     // ── Multiplier from streak ──
     const getMultiplier = () => {
@@ -250,7 +281,7 @@ export default function TriviaGame({
         audio.bustDrop();
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const a = answersRef.current;
-        const { correct, skipped, total } = scoreAnswers(a, questions);
+        const { correct, skipped, total } = scoreCurrent(a);
         onComplete({
             answers: a, correctCount: correct, totalQuestions: total,
             skippedCount: skipped,
@@ -277,17 +308,11 @@ export default function TriviaGame({
     };
 
     // ══ ANSWER SELECTION ══
-    const selectAnswer = (index) => {
-        if (isLocked || selectedAnswer !== null) return;
-
-        audio.chipClick();
-        setSelectedAnswer(index);
-        setIsLocked(true);
-
-        const correct = index === currentQuestion.correct_index;
-        const newAnswers = [...answers, index];
-        setAnswers(newAnswers);
-
+    // Shared correct/wrong side-effect sequence for BOTH grading paths — the
+    // synchronous client-keyed one (correct_index) and the async serverGrader
+    // one. Factored out so the server path replays exactly the same effects
+    // once the verdict arrives instead of duplicating this block.
+    const applyVerdict = (correct, index, newAnswers) => {
         if (correct) {
             // ── CORRECT ──
             audio.correctChime();
@@ -370,6 +395,43 @@ export default function TriviaGame({
         }
     };
 
+    const selectAnswer = (index) => {
+        if (isLocked || selectedAnswer !== null) return;
+
+        audio.chipClick();
+        setSelectedAnswer(index);
+        setIsLocked(true);
+
+        if (serverGrader) {
+            // Server-authoritative path: the tap locks in instantly, but the
+            // verdict (and any reveal) waits for the server. answers[] is only
+            // appended on success so a failed call can be re-tapped without
+            // recording a duplicate slot; the server treats the FIRST answer
+            // per question as binding and replays the stored verdict on
+            // retry, so unlocking here is safe.
+            serverGrader({ questionId: currentQuestion.id, displayIndex: index, questionIndex: currentIndex })
+                .then((verdict) => {
+                    if (!isMountedRef.current) return;
+                    storeVerdict(currentIndex, verdict);
+                    const newAnswers = [...answersRef.current, index];
+                    setAnswers(newAnswers);
+                    applyVerdict(!!verdict?.wasCorrect, index, newAnswers);
+                })
+                .catch((err) => {
+                    console.warn('[TriviaGame] serverGrader failed, unlocking for retry:', err?.message || err);
+                    if (!isMountedRef.current) return;
+                    setSelectedAnswer(null);
+                    setIsLocked(false);
+                });
+            return;
+        }
+
+        const correct = index === currentQuestion.correct_index;
+        const newAnswers = [...answers, index];
+        setAnswers(newAnswers);
+        applyVerdict(correct, index, newAnswers);
+    };
+
     // ══ ADVANCE ══
     // advancedForIndexRef: two rapid clicks on Next both ran
     // setCurrentIndex(prev => prev + 1), skipping a question. The skipped
@@ -389,7 +451,7 @@ export default function TriviaGame({
             setIsTimerRunning(false);
             setIsGameActive(false);
             const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            const { correct, skipped, total } = scoreAnswers(currentAnswers, questions);
+            const { correct, skipped, total } = scoreCurrent(currentAnswers);
             if (correct === total) audio.victoryFanfare();
             onComplete({
                 answers: currentAnswers, correctCount: correct,
@@ -438,7 +500,7 @@ export default function TriviaGame({
         // Capture ref-based values NOW to avoid stale closure in 2s setTimeout
         const cashOutAnswers = [...answersRef.current];
         const { correct: cashOutCC, skipped: cashOutSkipped, total: cashOutTotal } =
-            scoreAnswers(cashOutAnswers, questions);
+            scoreCurrent(cashOutAnswers);
         const cashOutStreak = streakRef.current;
         const cashOutStakePot = stakePotRef.current;
         const cashOutTimeRemaining = timeLimit ? Math.floor(getPreciseTimeLeft()) : 0;
@@ -520,6 +582,17 @@ export default function TriviaGame({
     const timerPercentage = timeLimit ? (timeRemaining / timeLimit) * 100 : 100;
     const multiplier = getMultiplier();
     const canCashOut = enableStakes && currentIndex >= 5 && stakePot > 0 && selectedAnswer === null;
+
+    // With a serverGrader the answer key never reaches the client — nothing
+    // is revealed until the verdict exists (null means "no correct/incorrect
+    // classes or icons yet"). Without one this is exactly correct_index, so
+    // every existing mode reveals on tap as before.
+    const revealedCorrectIndex = serverGrader
+        ? (verdicts[currentIndex]?.correctDisplayIndex ?? null)
+        : currentQuestion.correct_index;
+    const currentExplanation = serverGrader
+        ? (verdicts[currentIndex]?.explanation ?? null)
+        : currentQuestion.explanation;
 
     return (
         <div
@@ -727,14 +800,14 @@ export default function TriviaGame({
                             const isEliminated = eliminatedOptions.includes(index);
                             let optionClass = 'option';
                             if (isEliminated) optionClass += ' eliminated';
-                            if (selectedAnswer !== null) {
-                                if (index === currentQuestion.correct_index) optionClass += ' correct';
+                            if (selectedAnswer !== null && revealedCorrectIndex !== null) {
+                                if (index === revealedCorrectIndex) optionClass += ' correct';
                                 else if (index === selectedAnswer) optionClass += ' incorrect';
                             }
 
                             const letter = String.fromCharCode(65 + index);
                             const label = toTitleCase(option);
-                            const revealed = selectedAnswer !== null;
+                            const revealed = selectedAnswer !== null && revealedCorrectIndex !== null;
 
                             return (
                                 <motion.button
@@ -755,9 +828,9 @@ export default function TriviaGame({
                                     animate={
                                         reduceMotion
                                             ? {}
-                                            : selectedAnswer === index && index !== currentQuestion.correct_index
+                                            : revealedCorrectIndex !== null && selectedAnswer === index && index !== revealedCorrectIndex
                                                 ? { x: [0, -4, 4, -4, 4, 0] }
-                                                : selectedAnswer === index && index === currentQuestion.correct_index
+                                                : selectedAnswer === index && index === revealedCorrectIndex
                                                     ? { scale: [1, 1.05, 1] }
                                                     : {}
                                     }
@@ -767,13 +840,13 @@ export default function TriviaGame({
                                     <span className="option-text" aria-hidden={isEliminated || undefined}>
                                         {isEliminated ? '---' : label}
                                     </span>
-                                    {revealed && index === currentQuestion.correct_index && (
+                                    {revealed && index === revealedCorrectIndex && (
                                         <>
                                             <CheckCircle size={20} className="result-icon correct" aria-hidden />
                                             <span className="sr-only">Correct answer</span>
                                         </>
                                     )}
-                                    {revealed && index === selectedAnswer && index !== currentQuestion.correct_index && (
+                                    {revealed && index === selectedAnswer && index !== revealedCorrectIndex && (
                                         <>
                                             <XCircle size={20} className="result-icon incorrect" aria-hidden />
                                             <span className="sr-only">Your answer, incorrect</span>
@@ -784,8 +857,10 @@ export default function TriviaGame({
                         })}
                     </div>
 
-                    {/* Hint Buttons */}
-                    {enableHints && !isArcadeMode && selectedAnswer === null && (
+                    {/* Hint Buttons. Force-disabled under a serverGrader: the
+                        50/50 hint needs the answer key client-side, which is
+                        exactly what server grading removes. */}
+                    {enableHints && !isArcadeMode && !serverGrader && selectedAnswer === null && (
                         <div className="hints-section">
                             <HintButtons
                                 userDiamonds={diamonds}
@@ -840,8 +915,9 @@ export default function TriviaGame({
                         </div>
                     )}
 
-                    {/* Explanation */}
-                    {!isArcadeMode && selectedAnswer !== null && currentQuestion.explanation && (
+                    {/* Explanation — under a serverGrader it arrives with the
+                        verdict rather than on the question row. */}
+                    {!isArcadeMode && selectedAnswer !== null && currentExplanation && (
                         <div className="explanation-section">
                             <button className="explanation-toggle" onClick={() => setShowExplanation(!showExplanation)}>
                                 {showExplanation ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -852,7 +928,7 @@ export default function TriviaGame({
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                 >
-                                    <p>{currentQuestion.explanation}</p>
+                                    <p>{currentExplanation}</p>
                                 </motion.div>
                             )}
                         </div>
