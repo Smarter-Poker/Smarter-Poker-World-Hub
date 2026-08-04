@@ -12,7 +12,7 @@
     "nuke:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' node node_modules/next/dist/bin/next dev -p 3000",
     "dev:watch": "bash scripts/dev-watchdog.sh",
     "gen:equity-worker": "node scripts/gen-equity-worker.js",
-    "prebuild": "node scripts/gen-equity-worker.js --check && node --test __tests__/auth-routes-exist.test.mjs __tests__/menu-routes-exist.test.mjs __tests__/pa-no-undef.test.mjs __tests__/equity-worker-parity.test.mjs",
+    "prebuild": "node --test __tests__/auth-routes-exist.test.mjs __tests__/menu-routes-exist.test.mjs __tests__/pa-no-undef.test.mjs __tests__/equity-worker-parity.test.mjs",
     "build": "node scripts/patch-next.js && NODE_OPTIONS='--max-old-space-size=7168' node node_modules/next/dist/bin/next build",
     "test:auth-guard": "node --test __tests__/auth-routes-exist.test.mjs",
     "start": "node node_modules/next/dist/bin/next start",

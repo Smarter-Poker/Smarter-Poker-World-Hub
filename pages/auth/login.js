@@ -363,7 +363,19 @@ export default function LoginPage() {
                 backgroundRepeat: 'no-repeat',
                 boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)' // Slight glow to blend letterboxing
             }}>
-                
+                <style>{`
+                    input:-webkit-autofill,
+                    input:-webkit-autofill:hover, 
+                    input:-webkit-autofill:focus, 
+                    input:-webkit-autofill:active {
+                        transition: background-color 5000s ease-in-out 0s;
+                        -webkit-text-fill-color: #fff !important;
+                    }
+                    .auth-input::placeholder {
+                        color: rgba(255, 255, 255, 0.4);
+                    }
+                `}</style>
+
                 {/* 
                   Interactive Elements Overlay 
                   All elements are absolutely positioned with percentages to stay aligned 

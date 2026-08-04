@@ -804,6 +804,7 @@ export default function SignUpPage() {
           }}
         >
           <div
+            className="dynamic-auth-form"
             style={{
               position: 'relative',
               width: '100%',
@@ -816,6 +817,38 @@ export default function SignUpPage() {
               boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)',
             }}
           >
+            <style>{`
+              .dynamic-auth-form input, .dynamic-auth-form select {
+                 background: transparent;
+                 border: none;
+                 color: #fff;
+                 font-size: 0.9rem;
+                 padding: 0 8px;
+                 box-sizing: border-box;
+                 outline: none;
+                 z-index: 10;
+              }
+              .dynamic-auth-form input:-webkit-autofill,
+              .dynamic-auth-form input:-webkit-autofill:hover, 
+              .dynamic-auth-form input:-webkit-autofill:focus, 
+              .dynamic-auth-form input:-webkit-autofill:active {
+                 transition: background-color 5000s ease-in-out 0s;
+                 -webkit-text-fill-color: #fff !important;
+              }
+              .dynamic-auth-form input[type="checkbox"] {
+                 cursor: pointer;
+                 opacity: 0;
+                 z-index: 20;
+              }
+              .dynamic-auth-form select {
+                 appearance: none;
+                 cursor: pointer;
+              }
+              .dynamic-auth-form option {
+                 background: #0b0e14;
+                 color: #fff;
+              }
+            `}</style>
             <form onSubmit={handleSignUp} style={{ width: '100%', height: '100%' }}>
               {/* Back Button */}
               <button
