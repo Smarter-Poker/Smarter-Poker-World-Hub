@@ -201,7 +201,7 @@ try {
           if (careerPercent > 0 && clubId && !['owner', 'admin', 'manager', 'agent'].includes(memberRole)) {
             try {
               const { HandHistoryQuery } = require('../../../../src/lib/poker-engine/HandHistory');
-              const hq = new HandHistoryQuery(supabaseAdmin);
+              const hq = new HandHistoryQuery(getSupabase());
               const stats = await hq.getPlayerStats(clubId, playerId, { limit: 100 });
               if (stats.handsPlayed >= 10 && parseFloat(stats.vpipRate) < careerPercent) {
                 // Unlock chips since we locked them above

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
           const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
           const user = authData?.user;
-          if (!error && user) {
+          if (!authErr && user) {
               userId = user.id;
           }
       }

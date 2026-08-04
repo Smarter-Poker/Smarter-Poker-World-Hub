@@ -27,7 +27,7 @@ async function requireAdmin(req, res) {
     const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
     const user = authData?.user;
-    if (authError || !user) { res.status(401).json({ error: 'Invalid token' }); return null; }
+    if (authErr || !user) { res.status(401).json({ error: 'Invalid token' }); return null; }
     const { data: profile } = await getSupabase()
         .from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
