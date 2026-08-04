@@ -932,8 +932,8 @@ export default function SignUpPage() {
                 style={{
                   position: 'absolute',
                   top: '22.5%',
-                  left: '31%',
-                  width: '38%',
+                  left: '29%',
+                  width: '42%',
                   height: '3.5%',
                   background: 'transparent',
                   border: 'none',
@@ -949,8 +949,8 @@ export default function SignUpPage() {
                 style={{
                   position: 'absolute',
                   top: '26.5%',
-                  left: '31%',
-                  width: '38%',
+                  left: '29%',
+                  width: '42%',
                   height: '3.5%',
                   background: 'transparent',
                   border: 'none',
@@ -963,15 +963,15 @@ export default function SignUpPage() {
               <div
                 style={{
                   position: "absolute",
-                  top: "32%",
-                  left: "20%",
-                  width: "60%",
-                  height: "46%",
+                  top: "31%",
+                  left: "29%",
+                  width: "42%",
+                  height: "48%",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
                   overflowY: "auto",
-                  padding: "10px 15px",
+                  padding: "0 10px",
                   boxSizing: "border-box",
                 }}
               >
@@ -1357,8 +1357,8 @@ export default function SignUpPage() {
                 style={{
                   position: 'absolute',
                   top: '84%',
-                  left: '31%',
-                  width: '38%',
+                  left: '29%',
+                  width: '42%',
                   height: '3.5%',
                   background: 'transparent',
                   border: 'none',
