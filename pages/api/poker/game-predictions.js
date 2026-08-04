@@ -119,18 +119,53 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Query per-game history from game_live_history (the additive table)
+    // Resolve a NUMERIC venue_id to the venue's name before filtering.
+    //
+    // The filter used to be `bravo_slug.eq.<venue_id>,bravo_slug.ilike.%<venue_id>%`
+    // while the only caller (BestTimeToGoWidget) passes a numeric poker_venues id.
+    // bravo_slug is a slug string, so `bravo_slug = '123'` never matched — the
+    // endpoint always returned the "not enough historical data" state — and the
+    // ilike half could match any unrelated slug containing that digit run and
+    // attribute another venue's history to this one.
+    let resolvedVenueName = safeVenue;
+    let resolvedVenueState = null;
+    const numericVenueId = safeVenueId && /^\d+$/.test(safeVenueId) ? parseInt(safeVenueId, 10) : null;
+    if (numericVenueId) {
+      const { data: venueRow } = await supabase
+        .from('poker_venues')
+        .select('id, name, state')
+        .eq('id', numericVenueId)
+        .maybeSingle();
+      if (!venueRow?.name) {
+        return res.status(200).json({
+          success: true,
+          message: 'Not enough historical data. Predictions will be available after 7+ days of tracking.',
+          predictions: [],
+          summary: null,
+        });
+      }
+      resolvedVenueName = venueRow.name;
+      resolvedVenueState = (venueRow.state || '').toUpperCase() || null;
+    }
+
+    // Query per-game history from game_live_history (the additive table).
+    // Ordered DESC so the row cap discards the OLDEST snapshots, not the newest —
+    // ascending + .limit() meant that once a venue exceeded the cap inside the
+    // 28-day window the prediction was built entirely from the stalest data and
+    // stopped responding to current traffic.
     let query = supabase
       .from('game_live_history')
       .select('venue_name, game_type, stakes, tables, waiting, snapshot_time')
       .gte('snapshot_time', fourWeeksAgo)
-      .order('snapshot_time', { ascending: true });
+      .order('snapshot_time', { ascending: false });
 
-    if (safeVenueId) {
-      // Match by bravo_slug pattern for venue_id
-      query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-    } else if (safeVenue) {
-      query = query.ilike('venue_name', `%${safeVenue}%`);
+    if (resolvedVenueName) {
+      const likeSafe = resolvedVenueName.replace(/[%_\\]/g, '').trim().slice(0, 100);
+      if (likeSafe) query = query.ilike('venue_name', `%${likeSafe}%`);
+    } else if (safeVenueId) {
+      // Non-numeric venue_id: treat it as a literal bravo_slug. Exact match only —
+      // the old `ilike %slug%` half matched unrelated venues.
+      query = query.eq('bravo_slug', safeVenueId);
     }
 
     const { data, error } = await query.limit(5000);
@@ -154,7 +189,9 @@ export default async function handler(req, res) {
 
     // Group by game type (bucketed in the venue's local time, not UTC)
     const gameTypeBuckets = {};
-    const venueTz = await resolveVenueTimezone(supabase, safeVenueId, safeVenue || data[0]?.venue_name);
+    const venueTz = resolvedVenueState && IANA_TZ[resolvedVenueState]
+      ? IANA_TZ[resolvedVenueState]
+      : await resolveVenueTimezone(supabase, safeVenueId, resolvedVenueName || data[0]?.venue_name);
 
     data.forEach(row => {
       const parts = getLocalParts(row.snapshot_time, venueTz);

@@ -80,10 +80,54 @@ const renderSkeletons = (count = 4) => (
 );
 
 /**
- * SOURCE BADGE: Shows the data source for a venue's live data.
- * Source badge shows whether data is real-time or catalog-estimated.
+ * NAVIGATION GUARD: resolve a venue id that /hub/venues/[id] can actually serve.
+ *
+ * BUG FIX: this used to be a UUID regex, but poker_venues.id is a bigint — see
+ * supabase/migrations/20260408_create_venue_daily_tournaments.sql (`venue_id bigint
+ * REFERENCES public.poker_venues(id)`) and data/all-venues.json (`"id": 2140`). The
+ * test therefore NEVER matched and every card click and every Details button in the
+ * feed was swallowed. The guard's real intent is to skip unmatched live rows, whose
+ * id falls back to the bravo_slug string — that intent is preserved here.
+ *
+ * @returns {string|null} the id to navigate to, or null when there is no detail page
  */
-function SourceBadge({ source }) {
+function resolveVenueDetailId(rawId) {
+    if (rawId === null || rawId === undefined) return null;
+    const asString = String(rawId).trim();
+    if (!asString) return null;
+    // Numeric bigint id (the normal case).
+    if (/^\d+$/.test(asString) && Number(asString) > 0) return asString;
+    // Tolerate UUID-shaped ids in case any venue source supplies one.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asString)) return asString;
+    return null; // bravo_slug fallback — no detail page available yet
+}
+
+/**
+ * SOURCE BADGE: Shows the data source for a venue's live data.
+ *
+ * BUG FIX: this used to label anything sourced 'bravo' as "LIVE DATA", but the
+ * simulator writes rows that keep source='bravo' — /api/poker/live-tables flags those
+ * separately via is_simulated / data_quality: 'modeled_estimate'. A modelled table
+ * count was therefore presented as a real-time scrape. Modelled rows now read
+ * "ESTIMATED".
+ */
+function SourceBadge({ source, isSimulated }) {
+    if (isSimulated) {
+        return (
+            <span style={{
+                fontSize: 10, letterSpacing: '0.3px',
+                color: 'rgba(245,158,11,0.95)',
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.3)',
+                padding: '2px 6px',
+                borderRadius: 4,
+                fontWeight: 800,
+                textTransform: 'uppercase',
+            }} title="Modelled from observed history — not a live scrape">
+                ESTIMATED
+            </span>
+        );
+    }
     const isLive = source === 'bravo' || source === 'pokeratlas';
     return (
         <span style={{
@@ -169,7 +213,6 @@ function LiveGamesFeed({
     const [liveData, setLiveData] = useState({}); // Mapping: bravo_slug -> live data
     const [liveLoading, setLiveLoading] = useState(true);
     const [lastRefreshTime, setLastRefreshTime] = useState(null);
-    const [refreshCountdown, setRefreshCountdown] = useState(LIVE_REFRESH_MS / 1000);
     const [isRefreshing, setIsRefreshing] = useState(false);
     // ─── SCRAPER FALLBACK STATE ───
     // When scrapers return 0 venues we NEVER wipe the feed — preserve last-known data
@@ -191,7 +234,6 @@ function LiveGamesFeed({
         savedFiltersRef.current = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
     }
     const savedFilters = savedFiltersRef.current;
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mapExpanded, setMapExpanded] = useState(savedFilters.mapExpanded ?? true);
 
     // ─── GPS LOCATION CARRYOVER — restore from localStorage when prop is null ───
@@ -394,7 +436,6 @@ function LiveGamesFeed({
                     });
                 }
                 setLastRefreshTime(new Date());
-                setRefreshCountdown(LIVE_REFRESH_MS / 1000);
                 // Check staleness
                 if (json.metadata?.last_scrape) {
                     const age = Date.now() - new Date(json.metadata.last_scrape).getTime();
@@ -427,16 +468,16 @@ function LiveGamesFeed({
     // Re-enable 2-minute polling so live data NEVER goes stale.
     // Realtime subscription handles individual row mutations; polling is the safety net
     // for full-cycle refreshes when a complete new scrape batch arrives.
+    // PERFORMANCE FIX: this was a 1-SECOND interval that committed a new
+    // `refreshCountdown` state value on every tick — re-rendering the whole feed
+    // (up to 200 venue cards) once per second, forever — even though the countdown
+    // was never displayed anywhere. It also called fetchGlobalLiveData INSIDE the
+    // setState updater, which React may double-invoke under StrictMode, firing
+    // duplicate refreshes. A plain interval at the real refresh period does the job.
     useEffect(() => {
         countdownRef.current = setInterval(() => {
-            setRefreshCountdown(prev => {
-                if (prev <= 1) {
-                    fetchGlobalLiveData(true);
-                    return LIVE_REFRESH_MS / 1000;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+            fetchGlobalLiveData(true);
+        }, LIVE_REFRESH_MS);
         return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
     }, [fetchGlobalLiveData]);
 
@@ -656,6 +697,12 @@ function LiveGamesFeed({
                 // the live feed reports no games (see the stakes fallback below).
                 stakes_cash: parentVenue?.stakes_cash || null,
                 waitEstimate: waitEst,
+                // PROVENANCE: /api/poker/live-tables publishes is_simulated (every game
+                // modelled) and has_simulated_data (some games modelled). These were
+                // dropped here, so a modelled table count rendered with a pulsing green
+                // dot and a red "LIVE DATA" badge. Carry them to the card.
+                is_simulated: !!liveEntry.is_simulated,
+                has_simulated_data: !!liveEntry.has_simulated_data,
                 _hasParentVenue: !!parentVenue,
                 _isLive: true,
             };
@@ -701,6 +748,8 @@ function LiveGamesFeed({
                     social_page_id: v.social_page_id || null,
                     stakes_cash: v.stakes_cash || null,
                     waitEstimate: null,
+                    is_simulated: false,
+                    has_simulated_data: false,
                     _hasParentVenue: true,
                     _isLive: false,
                 };
@@ -761,11 +810,22 @@ function LiveGamesFeed({
     }, [venues, liveData, filterState, filterRadius, filterSort, filterGameType, filterStakes, effectiveLocation, selectedVenue, calcDist]);
 
     // ─── SEARCH LOGIC ───
+    // While `selectedVenue` is set, mergedVenues collapses to that one venue, so
+    // searching it would return no suggestion for any other room. Keep the last
+    // un-drilled-down list to match against, so editing the query keeps working.
+    const searchPoolRef = useRef([]);
+    useEffect(() => {
+        if (!selectedVenue) searchPoolRef.current = mergedVenues;
+    }, [selectedVenue, mergedVenues]);
+
     const handleSearchInput = (value) => {
         setSearchQuery(value);
+        // Editing the query also releases the single-venue drill-down.
+        if (selectedVenue) setSelectedVenue(null);
+        const searchPool = selectedVenue ? searchPoolRef.current : mergedVenues;
         if (value.trim().length >= 2) {
             const q = value.trim().toLowerCase();
-            const matches = mergedVenues
+            const matches = searchPool
                 .filter(v => decodeHtmlEntities(v.name || '').toLowerCase().includes(q))
                 .slice(0, 8)
                 .map(v => ({ id: v.id || v.bravo_slug, bravo_slug: v.bravo_slug || v.id, name: decodeHtmlEntities(v.name), totalTables: v.totalTables || 0 }));
@@ -898,6 +958,8 @@ function LiveGamesFeed({
         // data), so a closed 30-table room was scoring HOT. Only live counts are heat.
         const heat = getHeatLevel(v._isLive ? v.totalTables : 0);
         const isFav = favorites && favorites[v.id];
+        // Modelled (simulated) rows must never be dressed up as a real-time scrape.
+        const isModelled = !!(v.is_simulated || v.has_simulated_data);
         const initColor = getInitialsColor(v.id || 0);
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const trustScore = v.trust_score || 0;
@@ -955,13 +1017,12 @@ function LiveGamesFeed({
                     flexDirection: 'column',
                 }}
                 onClick={() => {
-                    // NAVIGATION GUARD: v.id is a DB UUID for matched parents.
                     // For unmatched parents, v.id falls back to bravo_slug (e.g. 'horseshoe-hammond').
-                    // Navigating to /hub/venues/horseshoe-hammond returns 404 — only navigate for real UUIDs.
-                    const isUUID = v.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v.id));
-                    if (!isUUID) return; // Unmatched venue — no detail page available yet
-                    if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`);
-                    else if (router) router.push(`/hub/venues/${v.id}`);
+                    // Navigating to /hub/venues/horseshoe-hammond returns 404 — only navigate for real ids.
+                    const detailId = resolveVenueDetailId(v.id);
+                    if (!detailId) return; // Unmatched venue — no detail page available yet
+                    if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
+                    else if (router) router.push(`/hub/venues/${detailId}`);
                 }}
                 >
                     {/* Top accent gradient line */}
@@ -1001,7 +1062,7 @@ function LiveGamesFeed({
                                             {[v.city, v.state].filter(Boolean).join(', ')}
                                         </span>
                                     )}
-                                    <SourceBadge source={v.primarySource} />
+                                    <SourceBadge source={v.primarySource} isSimulated={isModelled} />
                                 </div>
                             </div>
                         </div>
@@ -1032,7 +1093,13 @@ function LiveGamesFeed({
                             render "{n} Tables Running" with a pulsing live dot for them —
                             a closed 30-table room advertised "30 Tables Running". Live rows
                             keep the running badge; catalog rows state capacity honestly. */}
-                        {v._isLive ? (
+                        {v._isLive && isModelled ? (
+                            /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                                title="Modelled from weeks of observed history — not a live scrape">
+                                {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
+                            </span>
+                        ) : v._isLive ? (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
                                 {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
@@ -1102,13 +1169,13 @@ function LiveGamesFeed({
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {(openVenueModal || router) && (
+                            {(openVenueModal || router) && resolveVenueDetailId(v.id) && (
                                 <button onClick={(e) => {
                                     e.stopPropagation();
-                                    const isUUID = v.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v.id));
-                                    if (!isUUID) return;
-                                    if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`);
-                                    else if (router) router.push(`/hub/venues/${v.id}`);
+                                    const detailId = resolveVenueDetailId(v.id);
+                                    if (!detailId) return;
+                                    if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
+                                    else if (router) router.push(`/hub/venues/${detailId}`);
                                 }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
@@ -1203,23 +1270,74 @@ function LiveGamesFeed({
 
     return (
         <div style={{ padding: '0 0 40px' }}>
-            {/* ─── CONTROLS (no header — attribution is on the map) ─── */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, padding: '0 16px', gap: 8 }}>
-                {/* Mobile filter toggle */}
-                <button onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="lgf-filter-toggle"
-                    style={{
-                        display: 'none', /* shown via CSS media query */
-                        alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10,
-                        background: sidebarOpen ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                        border: sidebarOpen ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                        color: sidebarOpen ? '#ffffff' : '#8b949e', fontSize: 12, fontWeight: 700,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                    }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
-                    Filters
-                </button>
-
+            {/* ─── CONTROLS ───
+                STUB FIX: this row used to hold a "Filters" button that toggled
+                `sidebarOpen`, but no element with class `lgf-sidebar` was ever rendered —
+                tapping Filters on mobile did nothing at all. The button, its state and the
+                orphan `.lgf-sidebar` CSS are gone (filters come from the parent page).
+                In its place the venue search box that handleSearchInput /
+                handleSelectSuggestion / handleClearSearch were written for — and which was
+                never bound to any input — is now rendered, so the single-venue drill-down
+                (`selectedVenue`) is reachable again. */}
+            <div style={{ marginBottom: 12, padding: '0 16px' }}>
+                <div style={{ position: 'relative', maxWidth: 420, marginLeft: 'auto' }}>
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => handleSearchInput(e.target.value)}
+                        onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }}
+                        onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
+                        placeholder="Search venues..."
+                        aria-label="Search live venues"
+                        style={{
+                            width: '100%', boxSizing: 'border-box',
+                            padding: '9px 34px 9px 12px', borderRadius: 10,
+                            background: 'rgba(22,27,34,0.9)', border: '1px solid rgba(255,255,255,0.12)',
+                            color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
+                        }}
+                    />
+                    {(searchQuery || selectedVenue) && (
+                        <button
+                            type="button"
+                            onClick={handleClearSearch}
+                            aria-label="Clear search"
+                            style={{
+                                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
+                                fontSize: 16, lineHeight: 1, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
+                            }}
+                        >
+                            ×
+                        </button>
+                    )}
+                    {showSuggestions && searchSuggestions.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
+                            background: 'rgba(13,17,23,0.98)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                        }}>
+                            {searchSuggestions.map((s) => (
+                                <button
+                                    key={s.bravo_slug || s.id}
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => handleSelectSuggestion(s)}
+                                    style={{
+                                        display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between',
+                                        gap: 8, padding: '9px 12px', background: 'transparent', border: 'none',
+                                        borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e0e8f0',
+                                        fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
+                                    }}
+                                >
+                                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                                    {s.totalTables > 0 && (
+                                        <span style={{ flexShrink: 0, fontSize: 11, color: '#3fb950', fontWeight: 700 }}>{s.totalTables}</span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* GPS Location Banner removed — now displayed at top of sidebar in parent page */}
@@ -1249,6 +1367,31 @@ function LiveGamesFeed({
                     >
                         {isRefreshing ? 'Retrying...' : 'Retry'}
                     </button>
+                </div>
+            )}
+
+            {/* ─── MODELLED DATA BANNER ───
+                /api/poker/live-tables reports metadata.data_mode ('live' | 'mixed' |
+                'estimated'). It was captured into globalStats.dataMode and then never
+                rendered, so modelled table counts were presented to users as a live
+                scrape. Surface it. */}
+            {(globalStats.dataMode === 'estimated' || globalStats.dataMode === 'mixed') && !selectedVenue && (
+                <div style={{
+                    margin: '0 16px 12px', padding: '10px 16px', borderRadius: 10,
+                    background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.22)',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
+                            {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
+                            Cards marked ESTIMATED are modelled from weeks of observed history, not a live scrape.
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -1304,7 +1447,13 @@ function LiveGamesFeed({
                             <>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '7px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.5)' }}>
                                 <span style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 600 }}>
-                                    <span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues
+                                    {/* The list below is hard-capped at 200 cards; say so
+                                        rather than reporting a total the list never reaches. */}
+                                    {mergedVenues.length > 200 ? (
+                                        <>Showing <span style={{ color: '#ef4444', fontWeight: 800 }}>200</span> of {mergedVenues.length} Live Venues</>
+                                    ) : (
+                                        <><span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues</>
+                                    )}
                                     {filterGameType !== 'all' && <span style={{ color: '#3fb950' }}> · {filterGameType.toUpperCase()}</span>}
                                     {filterStakes !== 'any' && <span style={{ color: '#ffffff' }}> · {filterStakes}/+</span>}
                                 </span>
@@ -1371,7 +1520,12 @@ function LiveGamesFeed({
                             )
                         ) : (
                             (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
+                                /* UX FIX: gridTemplateColumns was an inline
+                                   `repeat(2, 1fr)` with no media-query override, so at the
+                                   375px mobile baseline each card got ~170px — and an inline
+                                   style cannot be overridden from a stylesheet. Moved to
+                                   `.lgf-venue-grid`, which collapses to one column <= 768px. */
+                                <div className="lgf-venue-grid" style={{ display: 'grid', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
                                     {mergedVenues.slice(0, 200).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
                             )
@@ -1449,23 +1603,14 @@ function LiveGamesFeed({
                     from { opacity: 0; transform: translateY(8px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-                /* Desktop: sidebar visible */
-                @media (min-width: 769px) {
-                    .lgf-sidebar { display: block !important; }
-                    .lgf-filter-toggle { display: none !important; }
-                }
-                /* Mobile: sidebar hidden by default, shown when open */
+                /* Venue grid: two columns on desktop, single column on mobile.
+                   The orphan .lgf-sidebar / .lgf-filter-toggle rules that used to live
+                   here styled elements that were never rendered — removed with the
+                   dead Filters button. */
+                .lgf-venue-grid { grid-template-columns: repeat(2, 1fr); }
                 @media (max-width: 768px) {
                     .lgf-layout { flex-direction: column !important; }
-                    .lgf-sidebar {
-                        width: 100% !important;
-                        position: static !important;
-                        display: none !important;
-                    }
-                    .lgf-sidebar.lgf-sidebar-open {
-                        display: block !important;
-                    }
-                    .lgf-filter-toggle { display: flex !important; }
+                    .lgf-venue-grid { grid-template-columns: 1fr; }
                 }
             `}</style>
         </div>

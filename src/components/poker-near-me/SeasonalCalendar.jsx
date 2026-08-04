@@ -43,7 +43,20 @@ function parseLocalDate(dateStr) {
     return isNaN(d.getTime()) ? null : d;
 }
 
-export default function SeasonalCalendar({ series = [], tours = [] }) {
+// BUG FIX: sanitize URLs to block javascript:/data: XSS vectors and to add a
+// scheme to scraped hosts like "www.wsop.com/..." which would otherwise become
+// a relative in-app href. Mirrors NewSeriesVenueCard.jsx / SeriesCard.js.
+function safeHref(url) {
+    if (!url || typeof url !== 'string') return null;
+    const cleanUrl = url.replace(/[\x00-\x20]/g, '');
+    const lower = cleanUrl.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
+    return lower.startsWith('http://') || lower.startsWith('https://') ? cleanUrl : 'https://' + cleanUrl;
+}
+
+const dayKey = (year, month, day) => `${year}-${month}-${day}`;
+
+export default function SeasonalCalendar({ series = [], tours = [], onEventClick }) {
     const today = new Date();
     const [selectedDay, setSelectedDay] = useState(null);
     const [filterType, setFilterType] = useState('All');
@@ -106,19 +119,57 @@ export default function SeasonalCalendar({ series = [], tours = [] }) {
         });
     }, []);
 
-    // Get events for a specific date
-    const getEventsForDate = (year, month, day) => {
-        const date = new Date(year, month, day);
-        return allEvents.filter(e => {
-            if (!e.start_date) return false;
+    // PERF: this used to re-scan every event for all 366 days on every render
+    // (12 month counts x ~30 days, plus the expanded grid), allocating a Date per
+    // event per day — on the order of 100k Date allocations per render, re-run on
+    // every filter chip click, month expand and day selection.
+    // Bucket each event across its start..end range once instead.
+    const eventsByDay = useMemo(() => {
+        const map = new Map();
+        // Only bucket dates the calendar can actually show (12 months from today).
+        const rangeStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const rangeEnd = new Date(today.getFullYear(), today.getMonth() + 12, 0);
+
+        allEvents.forEach(e => {
+            if (!e.start_date) return;
             const start = parseLocalDate(e.start_date);
-            if (!start) return false;
+            if (!start) return;
             const end = parseLocalDate(e.end_date) || start;
-            const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-            const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-            return date >= startDay && date <= endDay;
+
+            let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+            if (last < rangeStart || cursor > rangeEnd) return;
+            if (cursor < rangeStart) cursor = new Date(rangeStart);
+
+            // Guard against malformed rows with an end_date decades out.
+            let guard = 0;
+            while (cursor <= last && cursor <= rangeEnd && guard < 800) {
+                const k = dayKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+                const bucket = map.get(k);
+                if (bucket) bucket.push(e);
+                else map.set(k, [e]);
+                cursor.setDate(cursor.getDate() + 1);
+                guard++;
+            }
         });
-    };
+        return map;
+    // `today` is recreated every render but only its calendar month matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allEvents]);
+
+    const EMPTY_EVENTS = useMemo(() => [], []);
+    const getEventsForDate = (year, month, day) => eventsByDay.get(dayKey(year, month, day)) || EMPTY_EVENTS;
+
+    // Days-with-events per month, precomputed from the same map.
+    const monthEventDayCounts = useMemo(() => {
+        const counts = new Map();
+        eventsByDay.forEach((_events, k) => {
+            const [y, m] = k.split('-');
+            const mk = `${y}-${m}`;
+            counts.set(mk, (counts.get(mk) || 0) + 1);
+        });
+        return counts;
+    }, [eventsByDay]);
 
     // Get events for selected day
     const selectedEvents = selectedDay
@@ -126,13 +177,7 @@ export default function SeasonalCalendar({ series = [], tours = [] }) {
         : [];
 
     // Count total events per month for quick overview
-    const getMonthEventCount = (mo) => {
-        let count = 0;
-        for (let d = 1; d <= mo.daysInMonth; d++) {
-            if (getEventsForDate(mo.year, mo.month, d).length > 0) count++;
-        }
-        return count;
-    };
+    const getMonthEventCount = (mo) => monthEventDayCounts.get(`${mo.year}-${mo.month}`) || 0;
 
     return (
         <div className="seasonal-cal">
@@ -214,11 +259,23 @@ export default function SeasonalCalendar({ series = [], tours = [] }) {
                                             const isToday = mo.year === today.getFullYear() && mo.month === today.getMonth() && dayNum === today.getDate();
                                             const isSelected = selectedDay && selectedDay.year === mo.year && selectedDay.month === mo.month && selectedDay.day === dayNum;
 
+                                            const hasEvents = dayEvents.length > 0;
+                                            const selectDay = () => hasEvents && setSelectedDay({ year: mo.year, month: mo.month, day: dayNum });
+
                                             return (
                                                 <div
                                                     key={dayNum}
-                                                    className={'sc-day' + (isToday ? ' today' : '') + (dayEvents.length > 0 ? ' has-events' : '') + (isSelected ? ' selected' : '')}
-                                                    onClick={() => dayEvents.length > 0 && setSelectedDay({ year: mo.year, month: mo.month, day: dayNum })}
+                                                    className={'sc-day' + (isToday ? ' today' : '') + (hasEvents ? ' has-events' : '') + (isSelected ? ' selected' : '')}
+                                                    // A11Y: these were plain divs with onClick — not focusable,
+                                                    // no role, no keyboard activation.
+                                                    role={hasEvents ? 'button' : undefined}
+                                                    tabIndex={hasEvents ? 0 : undefined}
+                                                    aria-pressed={hasEvents ? !!isSelected : undefined}
+                                                    aria-label={hasEvents ? `${MONTH_NAMES[mo.month]} ${dayNum}, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : undefined}
+                                                    onClick={selectDay}
+                                                    onKeyDown={hasEvents ? (e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectDay(); }
+                                                    } : undefined}
                                                 >
                                                     <span className="sc-day-num">{dayNum}</span>
                                                     {dayEvents.length > 0 && (
@@ -251,8 +308,29 @@ export default function SeasonalCalendar({ series = [], tours = [] }) {
                     <div className="sc-dp-events">
                         {selectedEvents.map((ev, i) => {
                             const color = getColor(ev.tour_code);
+                            // UX: these cards carried cursor:pointer and a hover lift but had
+                            // no onClick, href or key handler — the discovery-to-action path
+                            // dead-ended. Prefer the host's handler, otherwise open the
+                            // series' own page in a new tab; if neither exists, render an
+                            // inert card rather than faking interactivity.
+                            const externalUrl = safeHref(ev.source_url || ev.website || ev.url);
+                            const activate = onEventClick
+                                ? () => onEventClick(ev)
+                                : externalUrl
+                                    ? () => { if (typeof window !== 'undefined') window.open(externalUrl, '_blank', 'noopener,noreferrer'); }
+                                    : null;
                             return (
-                                <div key={i} className="sc-event-card" style={{ borderLeftColor: color.bg }}>
+                                <div
+                                    key={i}
+                                    className={'sc-event-card' + (activate ? '' : ' inert')}
+                                    style={{ borderLeftColor: color.bg }}
+                                    role={activate ? 'button' : undefined}
+                                    tabIndex={activate ? 0 : undefined}
+                                    onClick={activate || undefined}
+                                    onKeyDown={activate ? (e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+                                    } : undefined}
+                                >
                                     <div className="sc-ev-header">
                                         <span className="sc-ev-name">{ev.name || ev.series_name}</span>
                                         {ev.tour_code && (
@@ -316,6 +394,10 @@ export default function SeasonalCalendar({ series = [], tours = [] }) {
         .sc-dp-events { display: flex; flex-direction: column; gap: 8px; }
         .sc-event-card { padding: 14px; background: linear-gradient(160deg, rgba(18,28,45,0.7) 0%, rgba(10,16,28,0.85) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-left: 3px solid #ffffff; border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); transition: all 0.25s; cursor: pointer; }
         .sc-event-card:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.35); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
+        .sc-event-card:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+        .sc-event-card.inert { cursor: default; }
+        .sc-event-card.inert:hover { transform: none; border-color: rgba(148,163,184,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .sc-day:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
         .sc-ev-header { display: flex; justify-content: space-between; align-items: center; }
         .sc-ev-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
         .sc-ev-tour { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }

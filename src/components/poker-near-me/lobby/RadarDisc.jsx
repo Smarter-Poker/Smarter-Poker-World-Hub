@@ -15,7 +15,7 @@
  *   - Cross lines at 0.25 opacity for visual impact
  */
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   ShaderMaterial,
@@ -346,8 +346,13 @@ export function RadarDisc({ liveData }) {
     });
   }, []);
 
-  // Holographic data arc materials (for cardinal directions)
-  const dataArcMaterials = useMemo(() => {
+  // Holographic data arcs at the four cardinal directions.
+  //
+  // [AUDIT] This used to build FOUR ShaderMaterials and render FOUR full
+  // circleGeometry(3, 64) meshes — four additively-blended full-disc fragment
+  // passes just to light up four small arcs. One material with a uAngles array
+  // draws all four in a single pass.
+  const dataArcMaterial = useMemo(() => {
     const arcVertexShader = `
       varying vec2 vUv;
       void main() {
@@ -358,7 +363,7 @@ export function RadarDisc({ liveData }) {
 
     const arcFragmentShader = `
       uniform float uTime;
-      uniform float uAngle;
+      uniform float uAngles[4];
       varying vec2 vUv;
 
       void main() {
@@ -367,54 +372,91 @@ export function RadarDisc({ liveData }) {
         float dist = length(dir);
         float angle = atan(dir.y, dir.x);
 
-        // Target angle with tolerance
-        float diff = abs(mod(angle - uAngle + 3.14159, 6.28318) - 3.14159);
+        // Curved arc band at a fixed radial distance — shared by all four arcs
+        float band = smoothstep(0.08, 0.0, abs(dist - 0.35));
 
-        // Draw curved arc at specific radial distance
-        float arc = smoothstep(0.08, 0.0, abs(dist - 0.35));
-        arc *= smoothstep(0.15, 0.0, diff);
-
-        // Pulsing glow
-        float glow = sin(uTime * 2.0 + uAngle) * 0.5 + 0.5;
-        float alpha = arc * (0.6 + 0.4 * glow);
+        float arcSum = 0.0;
+        float alphaSum = 0.0;
+        for (int i = 0; i < 4; i++) {
+          float a = uAngles[i];
+          float diff = abs(mod(angle - a + 3.14159, 6.28318) - 3.14159);
+          float arc = band * smoothstep(0.15, 0.0, diff);
+          float glow = sin(uTime * 2.0 + a) * 0.5 + 0.5;
+          arcSum += arc;
+          alphaSum += arc * (0.6 + 0.4 * glow);
+        }
 
         // Bright cyan color for HUD readout
-        vec3 color = vec3(0.55, 1.2, 1.25) * arc;
+        vec3 color = vec3(0.55, 1.2, 1.25) * arcSum;
 
-        gl_FragColor = vec4(color, alpha);
+        gl_FragColor = vec4(color, alphaSum);
       }
     `;
 
-    const angles = [Math.PI / 2, 0, -Math.PI / 2, Math.PI]; // N, E, S, W
-    return angles.map(angle => new ShaderMaterial({
+    return new ShaderMaterial({
       vertexShader: arcVertexShader,
       fragmentShader: arcFragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uAngle: { value: angle },
+        // N, E, S, W
+        uAngles: { value: [Math.PI / 2, 0, -Math.PI / 2, Math.PI] },
       },
       transparent: true,
       blending: AdditiveBlending,
       side: DoubleSide,
       depthWrite: false,
-    }));
+    });
   }, []);
 
-  // Generate simulated venue marker positions
+  // [AUDIT] R3F only disposes objects it constructs from JSX. These materials are
+  // handed to meshes as props, so the reconciler does not own them and each
+  // mount/remount leaked a compiled GLSL program plus its uniform buffers.
+  useEffect(() => () => { discMaterial.dispose(); }, [discMaterial]);
+  useEffect(() => () => { sweepMaterial.dispose(); }, [sweepMaterial]);
+  useEffect(() => () => { dataArcMaterial.dispose(); }, [dataArcMaterial]);
+
+  // Venue markers, projected from REAL bearings and distances.
+  //
+  // [AUDIT] This used to take the genuine count of venues within 100 mi
+  // (liveData.venueCount) and scatter up to 12 markers at
+  // `0.4 + Math.random() * 2.2` with a synthetic angle. The count was real,
+  // every position was fabricated — and rendered inside a radar labelled with
+  // the user's own location, glowing dots at invented bearings and distances
+  // read as actual nearby rooms. Markers are now drawn ONLY from real
+  // coordinates: pass liveData.userLocation plus liveData.venues (each with
+  // latitude/longitude) and each marker lands at its true bearing, with radial
+  // distance scaled against liveData.radiusMiles. With no real data the radar
+  // stays abstract rather than inventing rooms.
   const venuePositions = useMemo(() => {
-    const count = liveData?.venueCount || 8;
-    const positions = [];
-    for (let i = 0; i < Math.min(count, 12); i++) {
-      const angle = (i / Math.min(count, 12)) * Math.PI * 2 + (i * 0.7);
-      const r = 0.4 + Math.random() * 2.2;
-      positions.push([
-        Math.cos(angle) * r,
-        0.05,
-        Math.sin(angle) * r,
-      ]);
+    const origin = liveData?.userLocation;
+    const list = Array.isArray(liveData?.venues) ? liveData.venues : null;
+    if (!origin || origin.lat == null || origin.lng == null || !list || list.length === 0) {
+      return [];
     }
-    return positions;
-  }, [liveData?.venueCount]);
+
+    const DISC_RADIUS = 2.6;           // world units — inside the 3.0 disc rim
+    const maxMiles = Number(liveData?.radiusMiles) > 0 ? Number(liveData.radiusMiles) : 100;
+    const latRad = (origin.lat * Math.PI) / 180;
+    const MILES_PER_DEG_LAT = 69.0;
+
+    return list
+      .filter(v => v && v.latitude != null && v.longitude != null)
+      .map(v => {
+        // Local equirectangular projection — accurate enough at radar scale.
+        const north = (v.latitude - origin.lat) * MILES_PER_DEG_LAT;
+        const east = (v.longitude - origin.lng) * MILES_PER_DEG_LAT * Math.cos(latRad);
+        const miles = Math.sqrt(north * north + east * east);
+        return { north, east, miles };
+      })
+      .filter(p => p.miles <= maxMiles)
+      .sort((a, b) => a.miles - b.miles)
+      .slice(0, 12)
+      .map(p => {
+        const scale = DISC_RADIUS / maxMiles;
+        // +X is east, -Z is north in this scene's disc orientation.
+        return [p.east * scale, 0.05, -p.north * scale];
+      });
+  }, [liveData?.userLocation, liveData?.venues, liveData?.radiusMiles]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -423,10 +465,8 @@ export function RadarDisc({ liveData }) {
     discMaterial.uniforms.uTime.value = t;
     sweepMaterial.uniforms.uTime.value = t;
 
-    // Update holographic data arc materials
-    dataArcMaterials.forEach(material => {
-      material.uniforms.uTime.value = t;
-    });
+    // Update the single holographic data-arc material
+    dataArcMaterial.uniforms.uTime.value = t;
 
     // Rotate sweep
     sweepAngleRef.current = t * 0.8;
@@ -450,12 +490,11 @@ export function RadarDisc({ liveData }) {
         <circleGeometry args={[3, 64]} />
       </mesh>
 
-      {/* Holographic data arc segments at cardinal directions (N, E, S, W) */}
-      {dataArcMaterials.map((material, i) => (
-        <mesh key={`arc-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} material={material}>
-          <circleGeometry args={[3, 64]} />
-        </mesh>
-      ))}
+      {/* Holographic data arc segments at cardinal directions (N, E, S, W) —
+          all four drawn in ONE pass by a single shader. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} material={dataArcMaterial}>
+        <circleGeometry args={[3, 64]} />
+      </mesh>
 
       {/* Energy pulse waves */}
       <EnergyPulseRings />

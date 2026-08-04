@@ -52,9 +52,19 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      if (!supabaseUrl || !supabaseServiceKey) {
+      // Guard on the values getSupabase() ACTUALLY uses. This used to require
+      // SUPABASE_SERVICE_ROLE_KEY at module scope with no fallback, so on any
+      // deploy without it (previews, local dev) this one endpoint hard-failed
+      // with an opaque 500 while every sibling route fell back to the anon key.
+      if (!(supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL)
+          || !(supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
           return res.status(500).json({ error: 'Server configuration error' });
       }
+
+      // This handler pages through up to 60k rows across three tables and
+      // aggregates in JS; without a cache header every single visitor re-ran
+      // the whole scan.
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
       const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const type = safeQ(req.query.type) || 'overall';
@@ -72,7 +82,18 @@ export default async function handler(req, res) {
       }
 
       try {
-          const leaders = [];
+          // Keyed by user_id. The merge used to be `leaders.find(...)` inside a
+          // forEach over every distinct user — O(n^2) on the aggregate path.
+          const leaderMap = new Map();
+          const bumpLeader = (id, field, count, weight) => {
+              let entry = leaderMap.get(id);
+              if (!entry) {
+                  entry = { user_id: id, checkins: 0, reviews: 0, posts: 0, score: 0 };
+                  leaderMap.set(id, entry);
+              }
+              entry[field] = count;
+              entry.score += count * weight;
+          };
 
           if (type === 'checkins' || type === 'overall') {
               const checkins = await fetchAllRows(() => {
@@ -113,11 +134,7 @@ export default async function handler(req, res) {
               }
 
               // Store for overall
-              Object.entries(counts || {}).forEach(([id, count]) => {
-                  const existing = leaders.find(l => l.user_id === id);
-                  if (existing) { existing.checkins = count; existing.score += count * 2; }
-                  else { leaders.push({ user_id: id, checkins: count, reviews: 0, posts: 0, score: count * 2 }); }
-              });
+              Object.entries(counts || {}).forEach(([id, count]) => bumpLeader(id, 'checkins', count, 2));
           }
 
           if (type === 'reviews' || type === 'overall') {
@@ -158,11 +175,7 @@ export default async function handler(req, res) {
                   });
               }
 
-              Object.entries(counts || {}).forEach(([id, count]) => {
-                  const existing = leaders.find(l => l.user_id === id);
-                  if (existing) { existing.reviews = count; existing.score += count * 3; }
-                  else { leaders.push({ user_id: id, checkins: 0, reviews: count, posts: 0, score: count * 3 }); }
-              });
+              Object.entries(counts || {}).forEach(([id, count]) => bumpLeader(id, 'reviews', count, 3));
           }
 
           if (type === 'activity' || type === 'overall') {
@@ -203,14 +216,11 @@ export default async function handler(req, res) {
                   });
               }
 
-              Object.entries(counts || {}).forEach(([id, count]) => {
-                  const existing = leaders.find(l => l.user_id === id);
-                  if (existing) { existing.posts = count; existing.score += count; }
-                  else { leaders.push({ user_id: id, checkins: 0, reviews: 0, posts: count, score: count }); }
-              });
+              Object.entries(counts || {}).forEach(([id, count]) => bumpLeader(id, 'posts', count, 1));
           }
 
           // Overall - return combined scores
+          const leaders = Array.from(leaderMap.values());
           leaders.sort((a, b) => b.score - a.score);
           const topLeaders = leaders.slice(0, maxLimit);
           const userIds = topLeaders.map(l => l.user_id);

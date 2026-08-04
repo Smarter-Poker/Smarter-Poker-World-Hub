@@ -7,6 +7,9 @@ import dynamic from 'next/dynamic';
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 import { MapErrorBoundary } from './VenueMap';
 
+// Helper: identify tour stops — these are MTT venues, NOT cash game venues
+const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
+
 export default function MapTabPanel({
     allVenuesForMap,
     mapFilters,
@@ -15,44 +18,44 @@ export default function MapTabPanel({
     setFilters,
     userLocation,
     mapCenter,
-    liveTableCount,
-    dailyTournaments,
     onMapVenueClick,
     requestGpsLocation,
-    selectedRoom,
-    setSelectedRoom,
-    setHasSearched,
-    fetchAllData,
     setIframeModal,
     openVenueModal,
 }) {
-    // Helper: identify tour stops — these are MTT venues, NOT cash game venues
-    const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
-
     // Apply map-specific filter chips:
     // Tours are MTTs — they survive cash-game chip filter, but NOT cash/stakes-only map chips.
-    let filteredVenues = allVenuesForMap;
-    if (mapFilters.cashGames) {
-        // Cash games chip: exclude tour stops (they have no cash tables)
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.games_offered && v.games_offered.length > 0));
-    }
-    if (mapFilters.tournaments) {
-        // Tournaments chip: tour stops ARE tournaments — include them
-        filteredVenues = filteredVenues.filter(v => isTour(v) || v.has_tournaments);
-    }
-    if (mapFilters.is24Hours) {
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
-    }
-    if (mapFilters.lowStakes) {
-        // Low stakes chip: tours have no stakes — exclude them
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.stakes_cash && v.stakes_cash.some(s => {
-            const match = s.match(/\$?(\d+)/);
-            return match && parseInt(match[1]) <= 2;
-        })));
-    }
-    if (mapFilters.topRated) {
-        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.trust_score || 0) >= 4.0);
-    }
+    // PERF: memoized — an unmemoized chain handed VenueMap a fresh array identity on every
+    // render, which tore down and rebuilt every marker (and slammed shut any open popup).
+    const filteredVenues = React.useMemo(() => {
+        let list = Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
+        if (mapFilters.cashGames) {
+            // Cash games chip: exclude tour stops (they have no cash tables).
+            // `games_offered` is the cash signal used everywhere else in the app (see the
+            // gameType === 'cash' branch of useTourMapStops.js); `stakes_cash` is optional
+            // enrichment and is left undefined for many rooms and social pages, so keying
+            // the chip off it would silently hide venues that do spread cash.
+            list = list.filter(v => !isTour(v) && (v.games_offered && v.games_offered.length > 0));
+        }
+        if (mapFilters.tournaments) {
+            // Tournaments chip: tour stops ARE tournaments — include them
+            list = list.filter(v => isTour(v) || v.has_tournaments);
+        }
+        if (mapFilters.is24Hours) {
+            list = list.filter(v => !isTour(v) && !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
+        }
+        if (mapFilters.lowStakes) {
+            // Low stakes chip: tours have no stakes — exclude them
+            list = list.filter(v => !isTour(v) && (v.stakes_cash && v.stakes_cash.some(s => {
+                const match = String(s).match(/\$?(\d+)/);
+                return match && parseInt(match[1], 10) <= 2;
+            })));
+        }
+        if (mapFilters.topRated) {
+            list = list.filter(v => isTour(v) || (v.trust_score || 0) >= 4.0);
+        }
+        return list;
+    }, [allVenuesForMap, mapFilters]);
 
     // (Sidebar filters are now applied upstream in poker-near-me.js to keep feeds in sync)
 

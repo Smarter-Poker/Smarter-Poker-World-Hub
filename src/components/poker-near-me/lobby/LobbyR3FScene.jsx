@@ -174,6 +174,11 @@ function StarField() {
     });
   }, []);
 
+  // [AUDIT] A material handed to a mesh as a prop object is not owned by the R3F
+  // reconciler and is never disposed — each mount/remount leaked a compiled GLSL
+  // program and its uniform buffers.
+  useEffect(() => () => { material.dispose(); }, [material]);
+
   useFrame(({ clock }) => {
     material.uniforms.uTime.value = clock.getElapsedTime();
     if (meshRef.current) {
@@ -245,6 +250,9 @@ function NeonGridGround() {
       depthWrite: false,
     });
   }, []);
+
+  // See the StarField note: prop-supplied materials must be disposed manually.
+  useEffect(() => () => { material.dispose(); }, [material]);
 
   useFrame(({ clock }) => {
     material.uniforms.uTime.value = clock.getElapsedTime();
@@ -627,8 +635,16 @@ function SceneFog() {
 /**
  * Performance monitor — loaded lazily from drei.
  */
-function AdaptiveQuality({ quality, setQuality, setDpr }) {
+function AdaptiveQuality({ quality, setQuality }) {
   const [PerfMon, setPerfMon] = useState(null);
+  // [AUDIT] This used to call a `setDpr` prop that SceneContentWrapper passed as
+  // `() => {}` ("DPR is managed by R3F root.configure()"), so every
+  // onDecline/onFallback DPR reduction was silently discarded: when
+  // PerformanceMonitor detected a phone dropping frames only the preset changed
+  // and the render resolution stayed pinned at its initial value — the single
+  // biggest fill-rate lever on a low-end GPU. R3F's root state exposes a real
+  // setDpr, so read it from context instead of taking it as a prop.
+  const setDpr = useThree(state => state.setDpr);
 
   useEffect(() => {
     let cancelled = false;
@@ -747,13 +763,11 @@ function ClickDetector({ propsRef }) {
 /**
  * Inner scene content — runs inside the Canvas context.
  */
-function SceneContent({ propsRef, quality, setQuality, setDpr }) {
+function SceneContent({ propsRef, quality, setQuality }) {
   const [RadarDisc, setRadarDisc] = useState(null);
-  const [FeaturePod, setFeaturePod] = useState(null);
   const [ParticleField, setParticleField] = useState(null);
   const [ParallaxCamera, setParallaxCamera] = useState(null);
   const mountedRef = useRef(true);
-  const { camera } = useThree();
 
   // Bridge props from page React tree
   const [syncedProps, setSyncedProps] = useState({
@@ -787,17 +801,14 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
     });
   }, []);
 
-  // Auto-orbit camera around Y axis for subtle parallax effect
-  useFrame(({ clock }) => {
-    if (camera) {
-      const t = clock.getElapsedTime();
-      const orbitRadius = Math.sqrt(3.0 * 3.0 + 7.0 * 7.0); // Distance from center
-      const orbitAngle = t * 0.02; // Slow rotation (0.02 radians/sec)
-      camera.position.x = Math.sin(orbitAngle) * orbitRadius;
-      camera.position.z = Math.cos(orbitAngle) * orbitRadius;
-      camera.lookAt(0, 1.5, 0);
-    }
-  });
+  // [AUDIT] SceneContent used to install its own useFrame here that hard-assigned
+  // camera.position.x/z and called camera.lookAt(0, 1.5, 0) every frame, while
+  // <ParallaxCamera /> (rendered below) lerps camera.position toward its own
+  // target and calls its own lookAt in the same frame. Two controllers writing
+  // the same transform in registration order produced jitter and cancelled
+  // ParallaxCamera's mouse-parallax and idle auto-orbit entirely. ParallaxCamera
+  // now owns the camera outright — it already implements the idle orbit this
+  // block was duplicating.
 
   return (
     <>
@@ -875,7 +886,7 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {ParallaxCamera && <ParallaxCamera />}
 
       {/* ═══ ADAPTIVE QUALITY MONITOR ═══ */}
-      <AdaptiveQuality quality={quality} setQuality={setQuality} setDpr={setDpr} />
+      <AdaptiveQuality quality={quality} setQuality={setQuality} />
 
       {/* ═══ POST-PROCESSING (lazy) ═══ */}
       <PostProcessingEffects quality={quality} />
@@ -899,7 +910,6 @@ export function SceneContentWrapper({ propsRef, initialQuality, isMobile }) {
         propsRef={propsRef}
         quality={quality}
         setQuality={setQuality}
-        setDpr={() => {}} // DPR is managed by R3F root.configure() in LobbyScene.jsx
       />
     </Suspense>
   );
@@ -953,7 +963,6 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
           propsRef={propsRef}
           quality={quality}
           setQuality={setQuality}
-          setDpr={setDpr}
         />
       </Suspense>
     </Canvas>

@@ -2,7 +2,7 @@
  * VenueReviews.jsx — Feature #9: Poker Room Reviews & Photos
  * Full Yelp-style review system with ratings and sub-category scores.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const CATEGORY_ICONS = {
     dealers: (
@@ -51,23 +51,53 @@ function timeAgo(dateStr) {
     return new Date(dateStr).toLocaleDateString();
 }
 
-function StarRating({ rating, size = 16, interactive = false, onChange }) {
+/**
+ * A11Y FIX: the interactive stars used to be bare <svg onClick> elements with no role,
+ * no tabIndex and no key handler, so the rating input could not be set without a mouse.
+ * Interactive mode now renders real radio buttons inside a radiogroup; the read-only
+ * mode stays a plain decorative row.
+ */
+function StarRating({ rating, size = 16, interactive = false, onChange, label = 'Rating' }) {
+    const starSvg = (star) => (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.1)'}
+            stroke={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.2)'}
+            strokeWidth="1"
+            aria-hidden="true"
+            style={{ display: 'block', transition: 'all 0.15s' }}
+        >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+    );
+
+    if (!interactive) {
+        return (
+            <div style={{ display: 'flex', gap: 2 }} role="img" aria-label={`${label}: ${rating || 0} out of 5`}>
+                {[1, 2, 3, 4, 5].map(star => <span key={star}>{starSvg(star)}</span>)}
+            </div>
+        );
+    }
+
     return (
-        <div style={{ display: 'flex', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 2 }} role="radiogroup" aria-label={label}>
             {[1, 2, 3, 4, 5].map(star => (
-                <svg
+                <button
                     key={star}
-                    width={size}
-                    height={size}
-                    viewBox="0 0 24 24"
-                    fill={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.1)'}
-                    stroke={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.2)'}
-                    strokeWidth="1"
-                    style={{ cursor: interactive ? 'pointer' : 'default', transition: 'all 0.15s' }}
-                    onClick={() => interactive && onChange && onChange(star)}
+                    type="button"
+                    role="radio"
+                    aria-checked={star === rating}
+                    aria-label={`${star} star${star !== 1 ? 's' : ''}`}
+                    onClick={() => onChange && onChange(star)}
+                    style={{
+                        background: 'none', border: 'none', padding: 0, margin: 0,
+                        cursor: 'pointer', lineHeight: 0, fontFamily: 'inherit',
+                    }}
                 >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
+                    {starSvg(star)}
+                </button>
             ))}
         </div>
     );
@@ -86,11 +116,27 @@ function RatingBar({ count, total, stars }) {
     );
 }
 
+const PAGE_SIZE = 25;
+
+// Category keys as the API returns them in `category_averages` (column name minus
+// the _rating suffix), mapped to the label the review form uses.
+const CATEGORY_AVG_LABELS = {
+    dealers: 'Dealers',
+    game_selection: 'Game Selection',
+    waitlist_speed: 'Waitlist Speed',
+    food_drinks: 'Food & Drinks',
+    atmosphere: 'Atmosphere',
+};
+
 export default function VenueReviews({ venueId, venueName, userId, userName, authToken, isOpen, onClose }) {
     const [reviews, setReviews] = useState([]);
     const [avgRating, setAvgRating] = useState(0);
     const [totalReviews, setTotalReviews] = useState(0);
     const [distribution, setDistribution] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+    const [categoryAverages, setCategoryAverages] = useState(null);
+    const [verifiedCount, setVerifiedCount] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [loading, setLoading] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
     const [showWriteReview, setShowWriteReview] = useState(false);
@@ -102,39 +148,91 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
     const [categoryRatings, setCategoryRatings] = useState({});
     const [submitError, setSubmitError] = useState('');
 
-    // Fetch reviews
+    // Fetch reviews.
+    // BUG FIX: this used to request `limit=50` with no `sort` and no `offset`, then
+    // re-sort that 50-row slice client-side — so for a venue with more than 50 reviews
+    // "Highest Rated" showed the best of the 50 MOST RECENT, not the best overall,
+    // while the header reported the full total_reviews count and reviews 51+ were
+    // unreachable. The API already implements `sort` and `offset`; use them.
     const fetchReviews = useCallback(async () => {
         if (!venueId) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/poker/reviews?venue_id=${venueId}&limit=50`);
+            const res = await fetch(`/api/poker/reviews?venue_id=${venueId}&limit=${PAGE_SIZE}&offset=0&sort=${encodeURIComponent(sortBy)}`);
             const data = await res.json();
             if (data.success) {
-                setReviews(data.reviews || []);
+                const list = data.reviews || [];
+                setReviews(list);
                 setAvgRating(data.avg_rating || 0);
                 setTotalReviews(data.total_reviews || 0);
                 setDistribution(data.rating_distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+                setCategoryAverages(data.category_averages || null);
+                setVerifiedCount(data.verified_count || 0);
+                setHasMore(list.length >= PAGE_SIZE);
             }
         } catch (err) {
             console.warn('Failed to fetch reviews:', err);
         } finally {
             setLoading(false);
         }
-    }, [venueId]);
+    }, [venueId, sortBy]);
 
     useEffect(() => {
         if (isOpen && venueId) fetchReviews();
     }, [isOpen, venueId, fetchReviews]);
 
-    // Sort reviews
-    const sortedReviews = [...reviews].sort((a, b) => {
-        switch (sortBy) {
-            case 'highest': return (b.rating || 0) - (a.rating || 0);
-            case 'lowest': return (a.rating || 0) - (b.rating || 0);
-            case 'helpful': return (b.helpful_count || 0) - (a.helpful_count || 0);
-            default: return new Date(b.created_at) - new Date(a.created_at);
+    // A11Y FIX: the panel could only be dismissed by clicking the backdrop or the ×.
+    // There was no dialog role, no Escape handler, no focus move on open, no focus
+    // restore on close and no body scroll lock, so keyboard and screen-reader users
+    // tabbed straight out into the page behind it.
+    const panelRef = useRef(null);
+    const openerRef = useRef(null);
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        if (typeof document === 'undefined') return undefined;
+        openerRef.current = document.activeElement;
+        if (panelRef.current) {
+            try { panelRef.current.focus(); } catch { /* focus not supported */ }
         }
-    });
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                if (onClose) onClose();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = prevOverflow;
+            const opener = openerRef.current;
+            if (opener && typeof opener.focus === 'function') {
+                try { opener.focus(); } catch { /* element gone */ }
+            }
+        };
+    }, [isOpen, onClose]);
+
+    const loadMoreReviews = async () => {
+        if (loadingMore || !hasMore || !venueId) return;
+        setLoadingMore(true);
+        try {
+            const offset = reviews.length;
+            const res = await fetch(`/api/poker/reviews?venue_id=${venueId}&limit=${PAGE_SIZE}&offset=${offset}&sort=${encodeURIComponent(sortBy)}`);
+            const data = await res.json();
+            if (data.success) {
+                const list = data.reviews || [];
+                setReviews(prev => [...prev, ...list]);
+                setHasMore(list.length >= PAGE_SIZE);
+            } else {
+                setHasMore(false);
+            }
+        } catch (err) {
+            console.warn('Failed to load more reviews:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     // Submit review
     const submitReview = async () => {
@@ -220,13 +318,21 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
     return (
         <div className="vr-overlay" onClick={onClose}>
-            <div className="vr-panel" onClick={e => e.stopPropagation()}>
+            <div
+                className="vr-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Reviews for ${venueName || 'this venue'}`}
+                tabIndex={-1}
+                ref={panelRef}
+                onClick={e => e.stopPropagation()}
+            >
                 <div className="vr-header">
                     <div>
                         <h2>Reviews</h2>
                         <p className="vr-venue-name">{venueName}</p>
                     </div>
-                    <button className="vr-close" onClick={onClose}>×</button>
+                    <button className="vr-close" aria-label="Close reviews" onClick={onClose}>×</button>
                 </div>
 
                 {/* Rating summary */}
@@ -242,6 +348,34 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         ))}
                     </div>
                 </div>
+
+                {/* GAP FIX: the form asks every reviewer to fill in five category ratings
+                    and the API returns them as `category_averages`, but nothing rendered
+                    them — the ratings were write-only from the user's point of view.
+                    `verified_count` was likewise never surfaced. */}
+                {categoryAverages && Object.keys(CATEGORY_AVG_LABELS).some(k => categoryAverages[k] != null) && (
+                    <div className="vr-cat-averages">
+                        <div className="vr-cat-averages-head">
+                            <span>Category Ratings</span>
+                            {verifiedCount > 0 && (
+                                <span className="vr-verified-count">{verifiedCount} verified player{verifiedCount !== 1 ? 's' : ''}</span>
+                            )}
+                        </div>
+                        {Object.entries(CATEGORY_AVG_LABELS).map(([key, label]) => {
+                            const val = categoryAverages[key];
+                            if (val == null) return null;
+                            return (
+                                <div key={key} className="vr-rating-bar-row">
+                                    <span className="vr-cat-avg-label">{label}</span>
+                                    <div className="vr-bar-track">
+                                        <div className="vr-bar-fill" style={{ width: `${(Number(val) / 5) * 100}%` }} />
+                                    </div>
+                                    <span className="vr-cat-avg-val">{Number(val).toFixed(1)}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Write review button */}
                 {userId && (
@@ -259,7 +393,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                     <div className="vr-write-form">
                         <div className="vr-form-group">
                             <label>Overall Rating *</label>
-                            <StarRating rating={newRating} size={28} interactive onChange={setNewRating} />
+                            <StarRating rating={newRating} size={28} interactive label="Overall rating" onChange={setNewRating} />
                         </div>
 
                         <div className="vr-form-group">
@@ -272,6 +406,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                             rating={categoryRatings[cat.key] || 0}
                                             size={16}
                                             interactive
+                                            label={cat.label}
                                             onChange={val => setCategoryRatings(prev => ({ ...prev, [cat.key]: val }))}
                                         />
                                     </div>
@@ -310,21 +445,34 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                 {/* Reviews list */}
                 <div className="vr-list">
                     {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading reviews...</span></div>}
-                    {!loading && sortedReviews.length === 0 && (
+                    {!loading && reviews.length === 0 && (
                         <div className="vr-empty">
                             <p>No reviews yet. Be the first!</p>
                         </div>
                     )}
-                    {sortedReviews.map((r, i) => (
+                    {reviews.map((r, i) => (
                         <div key={r.id || i} className="vr-review-card">
                             <div className="vr-review-header">
-                                <div className="vr-reviewer-avatar" style={{ background: `hsl(${Math.abs((r.reviewer_name || '').charCodeAt(0) * 37) % 360}, 55%, 50%)` }}>
-                                    {(r.reviewer_name || '?')[0].toUpperCase()}
-                                </div>
+                                {/* WIRING FIX: the API enriches each review with
+                                    profile.avatar_url; it was ignored in favour of a letter
+                                    monogram for everyone. */}
+                                {r.profile?.avatar_url ? (
+                                    <img src={r.profile.avatar_url} alt="" className="vr-reviewer-avatar vr-reviewer-avatar-img" loading="lazy" />
+                                ) : (
+                                    <div className="vr-reviewer-avatar" style={{ background: `hsl(${Math.abs(((r.reviewer_name || '?').charCodeAt(0) || 63) * 37) % 360}, 55%, 50%)` }}>
+                                        {(r.reviewer_name || '?')[0].toUpperCase()}
+                                    </div>
+                                )}
                                 <div className="vr-reviewer-info">
                                     <span className="vr-reviewer-name">
                                         {r.reviewer_name}
-                                        {r.metadata?.verified_player && (
+                                        {/* WIRING FIX: the canonical field is the top-level
+                                            boolean is_verified_player — what the GET selects,
+                                            what verified_count counts and what the `verified`
+                                            sort filters on. metadata.verified_player is only a
+                                            best-effort copy written on NEW inserts, so imported
+                                            and older rows never showed the badge. */}
+                                        {(r.is_verified_player ?? r.metadata?.verified_player) && (
                                             <span className="vr-verified-badge" title="Verified Player — has played at this venue">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2">
                                                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
@@ -360,6 +508,13 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             </div>
                         </div>
                     ))}
+                    {/* GAP FIX: there was no pagination at all, so reviews past the first
+                        page were unreachable while the header advertised the full total. */}
+                    {!loading && hasMore && (
+                        <button className="vr-load-more" onClick={loadMoreReviews} disabled={loadingMore}>
+                            {loadingMore ? 'Loading...' : 'Load more reviews'}
+                        </button>
+                    )}
                 </div>
 
             </div>
@@ -427,6 +582,16 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-unhelpful-btn:hover { background: rgba(239,68,68,0.06); }
         .vr-unhelpful-btn.voted { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
         .vr-verified-badge { display: inline-flex; align-items: center; margin-left: 4px; vertical-align: middle; }
+        .vr-panel:focus { outline: none; }
+        .vr-reviewer-avatar-img { object-fit: cover; }
+        .vr-cat-averages { margin-bottom: 16px; padding: 14px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; display: flex; flex-direction: column; gap: 5px; }
+        .vr-cat-averages-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .vr-verified-count { text-transform: none; letter-spacing: 0; color: #22c55e; font-weight: 600; }
+        .vr-cat-avg-label { font-size: 11px; color: rgba(255,255,255,0.6); width: 96px; flex-shrink: 0; }
+        .vr-cat-avg-val { font-size: 11px; color: rgba(255,255,255,0.75); width: 26px; text-align: right; flex-shrink: 0; }
+        .vr-load-more { width: 100%; padding: 10px; margin-top: 4px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .vr-load-more:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #ffffff; }
+        .vr-load-more:disabled { opacity: 0.5; cursor: wait; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

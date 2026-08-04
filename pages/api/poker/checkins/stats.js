@@ -1,5 +1,9 @@
+import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
+
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -15,21 +19,57 @@ function getSupabase() {
 }
 
 /**
- * GET /api/poker/checkins/stats?user_id=X
+ * GET /api/poker/checkins/stats[?user_id=X]
  * Returns aggregate check-in statistics for a user.
+ *
+ * SECURITY: totalCheckins / uniqueVenues / uniqueStates / avgPerWeek / favorite
+ * venue reconstruct an individual's physical routine — the same class of data
+ * pages/api/poker/checkins.js was hardened to protect. This used to accept an
+ * arbitrary `user_id` with no authentication and no rate limit, and user UUIDs
+ * are freely obtainable from the leaderboard endpoints. Now: JWT required, and
+ * only the caller or an accepted friend may be requested. `user_id` is optional
+ * and defaults to the caller.
  */
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+    res.setHeader('Cache-Control', 'private, no-store');
+
     const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
-    const user_id = safeQ(req.query.user_id);
-    if (!user_id) {
-        return res.status(400).json({ success: false, error: 'user_id is required' });
-    }
+    const requested_user_id = safeQ(req.query.user_id);
 
     try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Auth required to view check-in stats' });
+        }
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+        if (authErr || !authUser) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+
+        const user_id = requested_user_id || authUser.id;
+
+        if (user_id !== authUser.id) {
+            // user_id is interpolated into the PostgREST .or() filter below, so it
+            // must be a plain UUID — anything else could reshape the filter.
+            if (!UUID_RE.test(user_id)) {
+                return res.status(400).json({ success: false, error: 'user_id must be a valid UUID' });
+            }
+            const { data: friendships } = await getSupabase()
+                .from('friendships')
+                .select('user_id, friend_id')
+                .eq('status', 'accepted')
+                .or(`and(user_id.eq.${authUser.id},friend_id.eq.${user_id}),and(user_id.eq.${user_id},friend_id.eq.${authUser.id})`)
+                .limit(1);
+            if (!friendships || friendships.length === 0) {
+                return res.status(403).json({ success: false, error: 'Not authorized to view these stats' });
+            }
+        }
+
         const { data: checkins, error } = await getSupabase()
             .from('venue_checkins')
             .select('venue_id, created_at')

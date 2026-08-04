@@ -290,10 +290,19 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
         });
         // -------------------------------------------------------------------------------------------------
 
-        const filteredVenues = allVenuesForMap.filter(v => {
+        // NOTE: never mutate the venue objects held in React state — they are the
+        // same references on every recompute, so a written flag (hideOnMap) or a
+        // stale distance would survive forever. Build shallow copies instead and
+        // recompute hideOnMap/distance_mi from scratch on every pass.
+        const filteredVenues = [];
+        allVenuesForMap.forEach(v => {
             // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
             // These have coordinates but are NOT playable venues — they're tour containers
-            if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
+            if (v.venue_type === 'series' || v.venue_type === 'tour') return;
+
+            // Recomputed every pass — starts false so a venue reappears on the map
+            // as soon as its tour stop rolls past or leaves the radius.
+            let hideOnMap = false;
 
             // MAP-ONLY: if this venue is the host of a tour stop, hide its plain dot on the map
             // (the WSOP logo pin already appears there). The venue card still shows in the list.
@@ -303,21 +312,23 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
                 const nameMatch = consumedVenueNames.has(vName)
                     || (vWords.length >= 2 && consumedVenueStems.has(vWords.slice(0, 2).join(' ')))
                     || (vWords.length >= 3 && consumedVenueStems.has(vWords.slice(0, 3).join(' ')));
-                if (nameMatch) v.hideOnMap = true; // ← card stays, map pin removed
+                if (nameMatch) hideOnMap = true; // ← card stays, map pin removed
             }
-            if (!v.hideOnMap && v.latitude && v.longitude) {
+            if (!hideOnMap && v.latitude && v.longitude) {
                 for (const tp of tourPins) {
                     const dlat = (v.latitude - tp.latitude) * 69;
                     const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
-                    if (Math.sqrt(dlat * dlat + dlng * dlng) < 0.1) { v.hideOnMap = true; break; }
+                    if (Math.sqrt(dlat * dlat + dlng * dlng) < 0.1) { hideOnMap = true; break; }
                 }
             }
 
             // Charity deduplication (allow only ONE venue per charity brand)
             if (v.venue_type === 'charity' && v.id) {
-                if (!charityBestIds.has(v.id)) return false;
+                if (!charityBestIds.has(v.id)) return;
             }
-            
+
+            let distanceMi = v.distance_mi;
+
             // Radius filter + distance computation
             // Only enforce the radius when the user has a REAL location (GPS or city).
             // Skip enforcement when no real location is known or during global text searches.
@@ -327,14 +338,15 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
                     const vDlat = (v.latitude - centerLat) * 69;
                     const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
                     const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
-                    v.distance_mi = vDist;
-                    if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
+                    distanceMi = vDist;
+                    if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return;
                 } else if (hasRealLoc && !globalSearchModeRef.current) {
                     // No coordinates — can't verify distance, exclude from location-based results
-                    return false;
+                    return;
                 }
             }
-            return true;
+
+            filteredVenues.push({ ...v, hideOnMap, distance_mi: distanceMi });
         });
         const combined = [...filteredVenues, ...tourPins];
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
-import { getInitialsColor } from './pnm-utils';
+import { getInitialsColor, US_STATE_TIMEZONES } from './pnm-utils';
 
 // ─── Game type normalization ───
 function formatGameType(raw) {
@@ -39,10 +39,72 @@ function formatTime(timeStr) {
 
 
 const SOURCE_COLORS = {
-  daily:  { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
-  series: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
-  tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  daily:   { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
+  series:  { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
+  tour:    { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  charity: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60A5FA', label: 'Charity' },
+  home:    { bg: 'rgba(148, 163, 184, 0.15)', border: 'rgba(148, 163, 184, 0.4)', text: '#94A3B8', label: 'Home Game' },
 };
+
+/**
+ * BUG FIX: `SOURCE_COLORS[t.source]` was dead — /api/poker/daily-tournaments never
+ * emits a `source` field, so every card (including charity, tour-series and home-game
+ * rows the API unions in) was badged "Daily". The API does emit `venueType` /
+ * `is_home_game`, so derive the badge from those. `source` is still honoured first in
+ * case the API starts stamping it.
+ */
+function resolveSourceStyle(t) {
+  if (t && t.source && SOURCE_COLORS[t.source]) return SOURCE_COLORS[t.source];
+  const vt = String((t && t.venueType) || '').toLowerCase();
+  if ((t && t.is_home_game) || vt === 'home game') return SOURCE_COLORS.home;
+  if (vt === 'charity') return SOURCE_COLORS.charity;
+  if (vt === 'tournament series' || vt === 'series') return SOURCE_COLORS.series;
+  if (vt === 'tour' || vt === 'poker tour' || vt === 'tour stop') return SOURCE_COLORS.tour;
+  return SOURCE_COLORS.daily;
+}
+
+/**
+ * GAP FIX: the day filter compared `day_of_week` against the selected weekday name and
+ * dropped everything else. But /api/poker/daily-tournaments deliberately unions in rows
+ * whose `day_of_week` is a CALENDAR DATE, not a weekday name — charity events
+ * (`c.start_date`), tour/series events (`e.event_date`) and home games
+ * (`hg.scheduled_date`). '2026-08-15' matched neither the weekday nor 'daily', so every
+ * one of those rows was silently discarded by the client.
+ *
+ * Parsed as a LOCAL date (not `new Date('YYYY-MM-DD')`, which is UTC midnight and reads
+ * back as the previous day in every US timezone).
+ */
+function dayOfWeekMatches(rawDayOfWeek, selectedDay) {
+  if (!rawDayOfWeek) return false;
+  const dow = String(rawDayOfWeek).trim().toLowerCase();
+  if (!dow) return false;
+  if (dow === 'daily') return true;
+  if (dow === String(selectedDay).toLowerCase()) return true;
+  const dateMatch = dow.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    const d = new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]));
+    if (!isNaN(d.getTime())) {
+      return DAYS[d.getDay()].toLowerCase() === String(selectedDay).toLowerCase();
+    }
+  }
+  return false;
+}
+
+/**
+ * Single predicate chain shared by the card list and the Top-States chip counts.
+ * `includeState: false` is used for the chips so each chip reports how many results
+ * the user would ACTUALLY get by clicking it, under the filters already active.
+ */
+function matchesTournamentFilters(t, f, includeState) {
+  if (!t.day_of_week) return false;
+  if (!dayOfWeekMatches(t.day_of_week, f.selectedDay)) return false;
+  if (f.gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(f.gameType.toLowerCase())) return false;
+  if (includeState && f.selectedState && f.selectedState !== 'all' && (t.venue_state || t.state) !== f.selectedState) return false;
+  if (f.minBuyin && t.buy_in < parseInt(f.minBuyin, 10)) return false;
+  if (f.maxBuyin && t.buy_in > parseInt(f.maxBuyin, 10)) return false;
+  if (f.minGuaranteed && (t.guaranteed || 0) < parseInt(f.minGuaranteed, 10)) return false;
+  return true;
+}
 function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
 function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
 
@@ -75,25 +137,9 @@ function zonedMinutesOfDay(date, timeZone) {
   }
 }
 
-const IANA_TZ = {
-  'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix', 
-  'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
-  'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York', 
-  'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
-  'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago', 
-  'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago', 
-  'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York', 
-  'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago', 
-  'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago', 
-  'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York', 
-  'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York', 
-  'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago', 
-  'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York', 
-  'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago', 
-  'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York', 
-  'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York', 
-  'WI': 'America/Chicago', 'WY': 'America/Denver'
-};
+// State -> IANA timezone now lives in pnm-utils as the single copy (US_STATE_TIMEZONES),
+// shared with NearMeNowFeed so the two cannot drift apart.
+const IANA_TZ = US_STATE_TIMEZONES;
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 // [DTP1 FIX] Removed module-level TODAY_INDEX — it would be stale across midnight for long-lived tabs.
@@ -174,17 +220,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
   // [DTP4 FIX] Memoized — was computed inline in render body (O(N) filter ran on every re-render)
   const filtered = useMemo(() => {
-    let result = tournaments.filter(t => {
-      if (!t.day_of_week) return false;
-      const dow = t.day_of_week.toLowerCase();
-      if (dow !== selectedDay.toLowerCase() && dow !== 'daily') return false;
-      if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
-      if (selectedState && selectedState !== 'all' && (t.venue_state || t.state) !== selectedState) return false;
-      if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
-      if (maxBuyin && t.buy_in > parseInt(maxBuyin, 10)) return false;
-      if (minGuaranteed && (t.guaranteed || 0) < parseInt(minGuaranteed, 10)) return false;
-      return true;
-    });
+    const activeFilters = { selectedDay, gameType, selectedState, minBuyin, maxBuyin, minGuaranteed };
+    let result = tournaments.filter(t => matchesTournamentFilters(t, activeFilters, true));
 
     // Sort
     if (sortBy === 'buyin') result.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
@@ -259,25 +296,32 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   // Using filtered caused stale group counts when renderLimit < filtered.length.
   }, [visibleFiltered, groupByState]);
 
-  // [DTP5 FIX] State counts also memoized — iterates raw tournaments prop on every render otherwise
+  // [DTP5 FIX] State counts also memoized — iterates raw tournaments prop on every render otherwise.
+  // UX FIX: the chips used to be counted from the day filter ALONE, so with "PLO" and
+  // "Min $500" active the counter could read "3 tournaments" while the chip beside it
+  // still promised "NV (47)". Count through the same predicate chain minus the state
+  // clause, so each chip reports the result set the user actually gets by clicking it.
   const topStates = useMemo(() => {
+    const activeFilters = { selectedDay, gameType, selectedState, minBuyin, maxBuyin, minGuaranteed };
     const stateCounts = {};
-    tournaments.filter(t => {
-      const dow = (t.day_of_week || '').toLowerCase();
-      return dow === selectedDay.toLowerCase() || dow === 'daily';
-    }).forEach(t => {
+    tournaments.filter(t => matchesTournamentFilters(t, activeFilters, false)).forEach(t => {
       const st = t.venue_state || t.state;
       if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
     });
     return Object.entries(stateCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [tournaments, selectedDay]);
+  }, [tournaments, selectedDay, gameType, selectedState, minBuyin, maxBuyin, minGuaranteed]);
 
   const renderTournamentCard = (t, idx) => {
     // Combine id (or venue+time fallback) with index prevents collisions across renders
     const cardId = t.id ? String(t.id) : `${t.venue_id || 'v'}-${t.start_time || 'notime'}-${idx}`;
     const isExpanded = !!expandedCards[cardId];
     
-    const source = SOURCE_COLORS[t.source] || SOURCE_COLORS.daily;
+    const source = resolveSourceStyle(t);
+    // BUG FIX: getInitialsColor returns an OBJECT ({bg,border,text}). It used to be
+    // interpolated straight into a CSS gradient, producing
+    // "linear-gradient(135deg, [object Object]40, ...)" — a declaration the CSS parser
+    // rejects wholesale, so every logo-less card lost its gradient entirely.
+    const initialsColor = getInitialsColor(t.venue_id);
     const isTodayTab = selectedDay.toLowerCase() === DAYS[todayIndex].toLowerCase();
     
     // Generate initials fallback for venues without logos
@@ -309,7 +353,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               loading="lazy"
             />
           ) : (
-            <div className="ev-logo-fallback" style={{ background: `linear-gradient(135deg, ${getInitialsColor(t.venue_id)}40, rgba(15,23,42,0.9))` }}>
+            <div className="ev-logo-fallback" style={{ background: `linear-gradient(135deg, ${initialsColor.text}40, rgba(15,23,42,0.9))` }}>
               {initials}
             </div>
           )}

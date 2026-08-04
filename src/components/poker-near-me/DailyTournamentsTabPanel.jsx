@@ -5,12 +5,24 @@
 import React from 'react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PAGE_SIZE = 50;
 
+// Guarantees are the number players drive on — never round them UP.
+// toFixed(0) turned a $1,500 GTD into "$2K" and a $1.5M GTD into "$2M".
+// One decimal is kept whenever the value is not a clean multiple.
 function formatMoney(amount) {
     if (!amount) return '';
-    if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(0) + 'M';
-    if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
-    return '$' + amount.toLocaleString();
+    const num = Number(amount);
+    if (!Number.isFinite(num)) return '';
+    if (num >= 1000000) {
+        const m = num / 1000000;
+        return '$' + (num % 1000000 === 0 ? m.toFixed(0) : m.toFixed(1)) + 'M';
+    }
+    if (num >= 1000) {
+        const k = num / 1000;
+        return '$' + (num % 1000 === 0 ? k.toFixed(0) : k.toFixed(1)) + 'K';
+    }
+    return '$' + num.toLocaleString();
 }
 
 // Buy-in can arrive null/empty/non-numeric from the scrapers — never render a bare '$'
@@ -46,8 +58,58 @@ export default function DailyTournamentsTabPanel({
     const dtMinGtd = filters.hubDailyMinGtd || '';
     const dtSort = filters.hubDailySort || 'time';
 
+    // UX FIX: the list used to be hard-capped at 50 with no way to reach the rest,
+    // while the counter above advertised the full (unsliced) total.
+    const [renderLimit, setRenderLimit] = React.useState(PAGE_SIZE);
+
+    // UX FIX: switching days fires an async fetch with no loading signal, so the panel
+    // showed the previous day's rows (silently attributed to the new day) or flashed
+    // "No daily tournaments match your filters". Track the pending day locally and show
+    // skeletons until fresh data lands (or the safety timeout fires).
+    const [pendingDay, setPendingDay] = React.useState(null);
+    const pendingTimerRef = React.useRef(null);
+
+    const clearPending = React.useCallback(() => {
+        if (pendingTimerRef.current) {
+            clearTimeout(pendingTimerRef.current);
+            pendingTimerRef.current = null;
+        }
+        setPendingDay(null);
+    }, []);
+
+    // Fresh data arrived — drop the pending flag and start the list from the top again.
+    React.useEffect(() => {
+        clearPending();
+        setRenderLimit(PAGE_SIZE);
+    }, [dailyTournaments, clearPending]);
+
+    React.useEffect(() => () => {
+        if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    }, []);
+
+    // Filter changes re-slice the list from the top
+    React.useEffect(() => {
+        setRenderLimit(PAGE_SIZE);
+    }, [dtGameType, dtMinBuyin, dtMaxBuyin, dtMinGtd, dtSort]);
+
+    const selectDay = (day) => {
+        // Re-tapping the day already on screen refetches the same URL, which the PNM API
+        // cache answers with the SAME array instance — React bails out of that state update,
+        // so the [dailyTournaments] effect never re-runs and the skeletons would sit there
+        // until the 10s safety timeout. Only show them for an actual day change.
+        const isNewDay = day !== filters.selectedDay;
+        setFilters(f => ({ ...f, selectedDay: day }));
+        if (isNewDay) {
+            setPendingDay(day);
+            if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+            // Safety net: a failed/short-circuited fetch must never strand the skeletons
+            pendingTimerRef.current = setTimeout(() => setPendingDay(null), 10000);
+        }
+        fetchDailyTournaments(day);
+    };
+
     // Apply client-side filters
-    let filtered = dailyTournaments;
+    let filtered = Array.isArray(dailyTournaments) ? dailyTournaments : [];
     if (dtGameType !== 'all') {
         filtered = filtered.filter(t => {
             const gt = (t.game_type || '').toLowerCase();
@@ -66,6 +128,8 @@ export default function DailyTournamentsTabPanel({
     if (dtSort === 'buyin') filtered = [...filtered].sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
     else if (dtSort === 'guaranteed') filtered = [...filtered].sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
 
+    const shown = filtered.slice(0, renderLimit);
+
     return (
         <>
             {/* Day selector */}
@@ -74,10 +138,7 @@ export default function DailyTournamentsTabPanel({
                     <button
                         key={day}
                         className={'day-btn' + (filters.selectedDay === day ? ' active' : '')}
-                        onClick={() => {
-                            setFilters(f => ({ ...f, selectedDay: day }));
-                            fetchDailyTournaments(day);
-                        }}
+                        onClick={() => selectDay(day)}
                     >
                         {day.slice(0, 3)}
                     </button>
@@ -118,16 +179,32 @@ export default function DailyTournamentsTabPanel({
             {/* Result count */}
             <div className="results-bar" style={{ marginBottom: 8 }}>
                 <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
+                {!pendingDay && filtered.length > shown.length && (
+                    <span className="results-showing">Showing {shown.length} of {filtered.length}</span>
+                )}
             </div>
 
-            {filtered.length === 0 ? (
+            {pendingDay ? (
+                <div className="card-grid daily-grid">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={'skel-' + i} className="entity-card skeleton-card">
+                            <div className="skel skel-header"></div>
+                            <div className="skel skel-title"></div>
+                            <div className="skel skel-text"></div>
+                            <div className="skel skel-tags"></div>
+                            <div className="skel skel-footer"></div>
+                        </div>
+                    ))}
+                </div>
+            ) : filtered.length === 0 ? (
                 <div className="empty-state">
                     <p>No daily tournaments match your filters for {filters.selectedDay}</p>
                     <button onClick={() => setFilters(f => ({ ...f, hubDailyGameType: 'all', hubDailyMinBuyin: '', hubDailyMaxBuyin: '', hubDailyMinGtd: '' }))}>Clear Daily Filters</button>
                 </div>
             ) : (
+                <>
                 <div className="card-grid daily-grid">
-                    {filtered.slice(0, 50).map((t, i) => (
+                    {shown.map((t, i) => (
                         <div key={t.id || i} className="entity-card daily-card">
                             <div className="card-header">
                                 <span className="time-badge">{t.start_time}</span>
@@ -154,6 +231,14 @@ export default function DailyTournamentsTabPanel({
                         </div>
                     ))}
                 </div>
+                {filtered.length > shown.length && (
+                    <div className="load-more">
+                        <button className="load-more-btn" onClick={() => setRenderLimit(l => l + PAGE_SIZE)}>
+                            Load More ({filtered.length - shown.length} remaining)
+                        </button>
+                    </div>
+                )}
+                </>
             )}
         </>
     );

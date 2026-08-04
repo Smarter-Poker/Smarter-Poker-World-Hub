@@ -156,6 +156,50 @@ export default async function handler(req, res) {
 
         // ── POST: vouch (idempotent) ──────────────────────────────────────────
         if (method === 'POST') {
+            // ELIGIBILITY GATE.
+            // A vouch is presented to visitors as a strong trust signal ("These
+            // players have personally vouched for this home game") and feeds the
+            // reputation badge through quality_score. Unrestricted, a host can
+            // farm it from throwaway accounts. Two rules:
+            //   1. The host cannot vouch for their own group.
+            //   2. Everyone else must actually be in the group — an approved
+            //      commander_home_members row (status 'approved' or 'active';
+            //      'pending' and 'banned' do NOT count).
+            const { data: groupRow, error: groupErr } = await supabase
+                .from('commander_home_groups')
+                .select('id, owner_id')
+                .eq('id', page.linked_entity_id)
+                .maybeSingle();
+            if (groupErr) throw groupErr;
+            if (!groupRow) {
+                return res.status(404).json({ success: false, error: 'Home game not found' });
+            }
+
+            if (String(groupRow.owner_id) === String(user.id)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'You cannot vouch for your own home game.',
+                });
+            }
+
+            const { data: membership, error: memErr } = await supabase
+                .from('commander_home_members')
+                .select('status')
+                .eq('group_id', page.linked_entity_id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+            if (memErr) throw memErr;
+
+            const ELIGIBLE_MEMBER_STATUSES = ['approved', 'active'];
+            if (!membership || !ELIGIBLE_MEMBER_STATUSES.includes(membership.status)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Only approved members of this home game can vouch for it.',
+                    code: 'NOT_A_MEMBER',
+                    member_status: membership?.status || 'none',
+                });
+            }
+
             const { error: insErr } = await supabase
                 .from('home_game_vouches')
                 .insert({ group_id: page.linked_entity_id, user_id: user.id });
@@ -181,12 +225,18 @@ export default async function handler(req, res) {
 
         // ── DELETE: remove vouch (idempotent) ────────────────────────────────
         if (method === 'DELETE') {
+            // A failed delete must NOT report success:true — the row would
+            // still be there, the UI would flip the button to "Vouch" and the
+            // count would snap back on the next reload.
             const { error: err_home_game_vouches_c800y } = await supabase
               .from('home_game_vouches')
               .delete()
                 .eq('group_id', page.linked_entity_id)
                 .eq('user_id', user.id);
-            if (err_home_game_vouches_c800y) console.warn('[Supabase] Silent mutation failed in home_game_vouches:', err_home_game_vouches_c800y.message);
+            if (err_home_game_vouches_c800y) {
+                console.warn('[vouch] delete failed:', err_home_game_vouches_c800y.message);
+                return res.status(500).json({ success: false, error: 'Failed to remove vouch' });
+            }
 
             const { data: group } = await supabase
                 .from('commander_home_groups')

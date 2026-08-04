@@ -121,20 +121,24 @@ function safeSetItem(key, value) {
     if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
       // Evict largest known cache blobs and retry once
       const EVICT_KEYS = ['sp-offline-venues', 'sp-search-analytics', 'poker-near-me-map-filters'];
-      let freed = false;
+      // BUG FIX: `wrote` only flips inside the successful retry. Previously a
+      // `freed` flag was set right after removeItem, so a retry that ALSO threw
+      // still suppressed the terminal warning — the write was lost silently
+      // after a cache blob had already been discarded for nothing.
+      let wrote = false;
       for (const evictKey of EVICT_KEYS) {
         if (evictKey !== key && localStorage.getItem(evictKey)) {
           localStorage.removeItem(evictKey);
-          freed = true;
           try {
             localStorage.setItem(key, value);
+            wrote = true;
             return;
           } catch (_) {
             console.warn('[App] Handled exception:', _?.message || _);
           }
         }
       }
-      if (!freed) console.warn('[PNM] localStorage quota exhausted — could not write:', key);
+      if (!wrote) console.warn('[PNM] localStorage quota exhausted — could not write:', key);
     }
   }
 }
@@ -170,6 +174,73 @@ function trackSearchEvent(eventName, data) {
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// ─── SHARED GAME-TYPE / STAKES PREDICATES ────────────────────────────────────
+// BUG FIX: the Stakes and Game Type dropdowns used to mean different things to
+// the map than to the venue list — useTourMapStops branched on 'cash'|'mtt' and
+// on `stakes_cash` (which only a minority of venues have), while the card list
+// branched on 'nlh'|'plo' and had its stakes block commented out entirely. One
+// control produced two contradictory results side by side. Both surfaces now go
+// through these two predicates.
+//
+// Missing data means UNKNOWN, not "no match" — a venue with no games_offered /
+// stakes_cash is never excluded, which is what kept charity and home games (and
+// every tour pin) on the map.
+function venueMatchesGameType(venue, gameType) {
+  if (!gameType || gameType === 'all') return true;
+  const games = venue?.games_offered || [];
+  if (!Array.isArray(games) || games.length === 0) return true; // unknown — keep
+  const nameOf = (g) => (g?.game_type || g?.name || g || '').toString().toLowerCase();
+  const hasNLH = games.some((g) => {
+    const name = nameOf(g);
+    return name.includes('nlh') || name.includes('hold') || name.includes('holdem');
+  });
+  const hasPLO = games.some((g) => {
+    const name = nameOf(g);
+    return name.includes('plo') || name.includes('omaha') || name.includes('pot limit');
+  });
+  const hasMixed = games.some((g) => {
+    const name = nameOf(g);
+    return (
+      name.includes('mix') ||
+      name.includes('horse') ||
+      name.includes('hors') ||
+      name.includes('8-game') ||
+      name.includes('dealer')
+    );
+  });
+  const hasPLO8 = games.some((g) => {
+    const name = nameOf(g);
+    return (
+      name.includes('plo8') ||
+      name.includes('omaha hi') ||
+      name.includes('o8') ||
+      name.includes('big o')
+    );
+  });
+  const hasStud = games.some((g) => nameOf(g).includes('stud'));
+  if (gameType === 'nlh') return hasNLH;
+  if (gameType === 'plo') return hasPLO;
+  if (gameType === 'plo8') return hasPLO8;
+  if (gameType === 'mixed') return hasMixed || (hasNLH && hasPLO);
+  if (gameType === 'stud') return hasStud;
+  if (gameType === 'cash') return games.length > 0;
+  if (gameType === 'mtt') return !!venue?.has_tournaments;
+  if (gameType === 'other') return !hasNLH && !hasPLO && !hasPLO8 && !hasStud;
+  return true; // unknown/future filter keys — show all
+}
+
+function venueMatchesStakes(venue, stakes) {
+  if (!stakes || stakes === 'all' || stakes === 'any') return true;
+  const st = venue?.stakes_cash;
+  if (!Array.isArray(st) || st.length === 0) return true; // unknown — keep
+  const has = (...needles) =>
+    st.some((s) => needles.some((n) => String(s || '').includes(n)));
+  if (stakes === '$1/2') return has('1/2', '1/3');
+  if (stakes === '$2/5') return has('2/5');
+  if (stakes === '$5/10+') return has('5/10', '10/20', '25/50');
+  return true;
+}
+
 function getCurrentDay() {
   return DAYS_OF_WEEK[new Date().getDay()];
 }
@@ -193,13 +264,21 @@ function FavLiveToast({ message, onClick }) {
 
   if (!visible) return null;
 
+  // A11Y FIX: was a clickable <div> — the "jump to your live favorites" action
+  // was mouse-only (no role, no tabIndex, no key handler). A real <button> gets
+  // focus, Enter/Space and screen-reader semantics for free.
   return (
-    <div className={`pnm-fav-toast${exiting ? ' pnm-fav-toast-exit' : ''}`} onClick={onClick}>
+    <button
+      type="button"
+      className={`pnm-fav-toast${exiting ? ' pnm-fav-toast-exit' : ''}`}
+      onClick={onClick}
+      style={{ font: 'inherit', cursor: 'pointer' }}
+    >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="none">
         <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
       </svg>
       <span>{message}</span>
-    </div>
+    </button>
   );
 }
 
@@ -220,6 +299,9 @@ class TabErrorBoundary extends React.Component {
       return React.createElement(
         'div',
         {
+          // A11Y FIX: announce the crash to assistive tech instead of silently
+          // swapping the tab contents for text nobody is told about.
+          role: 'alert',
           style: { textAlign: 'center', padding: 60, color: 'rgba(200,214,229,0.6)' },
         },
         React.createElement(
@@ -282,6 +364,8 @@ export default function PokerNearMePage() {
   // [BUG FIX] fetchVenuesRef avoids temporal dead zone: fetchVenues is declared later
   // as a const, so useVenueRealtime cannot reference it directly at mount time.
   const fetchVenuesRef = useRef(null);
+  // Same temporal-dead-zone dodge for fetchLiveCount (declared further down).
+  const fetchLiveCountRef = useRef(null);
   // Persists the last confirmed 2-letter US state ('IL', 'NV', etc.) for GPS user.
   // Unlike gpsLocationLabel (which temporarily becomes raw coordinates when fresh GPS fires
   // before reverseGeocode resolves), this ref is never cleared — it ensures user_state=IL
@@ -292,9 +376,27 @@ export default function PokerNearMePage() {
   // BUG FIX: Prevent global DDOS vector! Previously `useVenueRealtime` monitored all global
   // changes to poker_venues, venue_daily_tournaments, etc and indiscriminately spammed fetchVenues()
   // across all 10,000+ connected users for a single tournament add. Now we use surgical injection!
+  // WIRING FIX: useVenueRealtime is no longer a postgres_changes subscription —
+  // it is a 5-minute poller that always invokes this callback with `null` (on
+  // mount, on every tick and on tab-visibility recovery). The old first line
+  // (`if (!payload || payload.table !== 'poker_venues') return;`) therefore
+  // returned on 100% of invocations, which killed the entire background refresh.
+  // `null` now means "no specific row — revalidate". The very first (mount)
+  // invocation is skipped because the page already does its own mount fetch via
+  // fetchAllData({ includeVenues: true }); firing here too would double-request.
+  const realtimeMountSkipRef = useRef(false);
   useVenueRealtime((payload) => {
-    // Drop manual reconnect hard refreshes given we map to filter scopes.
-    if (!payload || payload.table !== 'poker_venues') return;
+    if (!payload) {
+      if (!realtimeMountSkipRef.current) {
+        realtimeMountSkipRef.current = true; // mount tick — page fetches on its own
+        return;
+      }
+      if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+      if (fetchLiveCountRef.current) fetchLiveCountRef.current();
+      return;
+    }
+    // Surgical path — kept for the day a row-level payload is delivered again.
+    if (payload.table !== 'poker_venues') return;
 
     const { eventType, new: newRec } = payload;
     if (eventType === 'UPDATE' && newRec) {
@@ -337,7 +439,9 @@ export default function PokerNearMePage() {
     activeMoreTab: 'overview',
     sortBy: 'distance',
     seriesViewMode: 'grid',
-    venueViewMode: 'list',
+    // NOTE: venueViewMode was declared/derived/persisted here but never consumed —
+    // VenuesTabPanel has no list/grid toggle prop. Removed so we stop writing a
+    // dead key to localStorage on every session.
   });
 
   // HARDENED: Reset 'live' tab back to 'map' on every mount — live tab is ephemeral
@@ -350,7 +454,6 @@ export default function PokerNearMePage() {
   const activeMoreTab = uiFilters.activeMoreTab || 'overview';
   const sortBy = uiFilters.sortBy;
   const seriesViewMode = uiFilters.seriesViewMode;
-  const venueViewMode = uiFilters.venueViewMode || 'list';
 
   // Ephemeral live tab state — never persisted across sessions. Starts always false.
   const [showLiveTab, setShowLiveTab] = React.useState(false);
@@ -384,7 +487,6 @@ export default function PokerNearMePage() {
   const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
   const setSortBy = (val) => setUiFilter('sortBy', val);
   const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
-  const setVenueViewMode = (val) => setUiFilter('venueViewMode', val);
 
   // ─── HARDENING: Sync Next.js route parameter to LocalStorage active tabs ───
   // WIRING FIX: this page has no data-fetching exports, so the old `initialTab` prop
@@ -442,6 +544,8 @@ export default function PokerNearMePage() {
   // While the Bravo live scraper is intentionally off, the count is modelled
   // from weeks of real observed history and must be labelled approximate.
   const [liveDataMode, setLiveDataMode] = useState(null);
+  // metadata.data_age_minutes — qualifies the figure in the page subtitle.
+  const [liveDataAgeMinutes, setLiveDataAgeMinutes] = useState(null);
 
   // UI states
   const [loading, setLoading] = useState(true);
@@ -472,35 +576,88 @@ export default function PokerNearMePage() {
   const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
   const pnmReviewStatsRef = useRef(pnmReviewStatsMap);
   pnmReviewStatsRef.current = pnmReviewStatsMap;
+  // PERF FIX: this used to request ONE 50-id chunk per effect run and depend on
+  // pnmReviewStatsMap, so each response re-ran the effect for the next chunk —
+  // up to 10 strictly sequential round trips for a 500-venue list, with star
+  // ratings trickling in over several seconds. The server caps a request at 50
+  // ids (reviews.js), so chunking is required, but the chunks are now issued in
+  // parallel with a small concurrency bound and merged in a single setState.
+  const reviewStatsInFlightRef = useRef(false);
   useEffect(() => {
-    if (venues.length === 0) return;
-    const newIds = venues
+    if (venues.length === 0) return undefined;
+    if (reviewStatsInFlightRef.current) return undefined;
+    const missing = venues
       .map((v) => v.id)
-      .filter((id) => id && !pnmReviewStatsRef.current[String(id)])
-      .slice(0, 50);
-    if (newIds.length === 0) return;
-    fetch('/api/poker/reviews?stats_only=true&venue_ids=' + newIds.join(','))
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.stats) setPnmReviewStatsMap((prev) => ({ ...prev, ...j.stats }));
-      })
-      .catch((e) => {
-        console.warn('[App] Handled promise rejection:', e?.message || e);
-      });
-    // pnmReviewStatsMap is a dep so the next 50-id chunk is requested once a batch
-    // resolves (venues can be up to 500). The newIds.length === 0 early-return
-    // terminates the chain — already-fetched ids are excluded, so no infinite loop.
-  }, [venues, pnmReviewStatsMap]);
+      .filter((id) => id && !pnmReviewStatsRef.current[String(id)]);
+    if (missing.length === 0) return undefined;
+
+    const CHUNK = 50;
+    const CONCURRENCY = 4;
+    const chunks = [];
+    for (let i = 0; i < missing.length; i += CHUNK) chunks.push(missing.slice(i, i + CHUNK));
+
+    let cancelled = false;
+    reviewStatsInFlightRef.current = true;
+
+    const runChunk = (ids) =>
+      fetch('/api/poker/reviews?stats_only=true&venue_ids=' + ids.join(','))
+        .then((r) => r.json())
+        .then((j) => (j && j.success && j.stats ? j.stats : null))
+        .catch((e) => {
+          console.warn('[App] Handled promise rejection:', e?.message || e);
+          return null;
+        });
+
+    (async () => {
+      const merged = {};
+      for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+        if (cancelled) break;
+        const batch = await Promise.all(chunks.slice(i, i + CONCURRENCY).map(runChunk));
+        batch.forEach((stats) => {
+          if (stats) Object.assign(merged, stats);
+        });
+      }
+      reviewStatsInFlightRef.current = false;
+      if (!cancelled && Object.keys(merged).length > 0) {
+        setPnmReviewStatsMap((prev) => ({ ...prev, ...merged }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      reviewStatsInFlightRef.current = false;
+    };
+    // Deliberately NOT depending on pnmReviewStatsMap any more — every missing id
+    // is requested in this single pass, so there is no chunk-chaining re-run.
+  }, [venues]);
 
   // ─── Live Cash Game Data Merger ───
   // Fetches /api/poker/live-tables on mount AND every 15 minutes (matching scraper cadence)
   // to keep VenueCard live_data counts fresh. LiveGamesFeed has its own 2-min polling;
   // this is a lightweight background sync for the Venues tab cards only.
   const [liveDataMap, setLiveDataMap] = useState({}); // bravo_slug/normalized_name → live_data
+  // Staleness threshold published by /api/poker/live-tables (metadata.stale_threshold_hours).
+  // Anything older than this is no longer presentable as "running right now".
+  const liveStaleMsRef = useRef(3 * 60 * 60 * 1000);
+  // Consecutive-miss counter per map key, so a single flaky response doesn't wipe
+  // the map but a venue that has genuinely stopped reporting does age out.
+  const liveMissCountRef = useRef({});
+  const LIVE_MAX_MISSES = 3; // ~45 min at the 15-minute poll cadence
+
+  const isLiveEntryFresh = useCallback((entry) => {
+    if (!entry) return false;
+    const ts = entry.last_updated ? new Date(entry.last_updated).getTime() : entry._seen_at;
+    if (!ts || isNaN(ts)) return false;
+    return Date.now() - ts <= liveStaleMsRef.current;
+  }, []);
+
   const buildLiveDataMap = useCallback(() => {
     fetch('/api/poker/live-tables')
       .then((r) => r.json())
       .then((json) => {
+        if (json && json.metadata && typeof json.metadata.stale_threshold_hours === 'number') {
+          liveStaleMsRef.current = json.metadata.stale_threshold_hours * 3600000;
+        }
         if (!json.venues) return;
         const map = {};
         json.venues.forEach((v) => {
@@ -519,23 +676,44 @@ export default function PokerNearMePage() {
             players_waiting: totalWaiting,
             games: v.games || [],
             last_updated: v.last_updated,
+            is_stale: v.is_stale === true,
+            _seen_at: Date.now(),
             bravo_slug: v.bravo_slug,
           };
           if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
           if (normName) map[normName] = liveEntry;
         });
         setLiveDataMap((prev) => {
-          // POLICY: Never overwrite good data with empty data.
-          // If the new fetch returns fewer venues, preserve entries from
-          // previous fetch that aren't in the new response.
-          const merged = { ...prev, ...map };
+          // POLICY (retained): a single empty/partial response never wipes good data.
+          // GAP FIX: but it can no longer grow forever either. Entries missing from
+          // the newest response survive LIVE_MAX_MISSES consecutive polls, and any
+          // entry older than the feed's own stale threshold is dropped outright —
+          // otherwise a venue that stopped spreading games advertised "N tables
+          // running" indefinitely.
+          const merged = {};
+          const misses = liveMissCountRef.current;
+          Object.keys(prev).forEach((key) => {
+            if (map[key]) return; // refreshed below
+            const carried = prev[key];
+            const missCount = (misses[key] || 0) + 1;
+            if (missCount <= LIVE_MAX_MISSES && isLiveEntryFresh(carried)) {
+              misses[key] = missCount;
+              merged[key] = carried;
+            } else {
+              delete misses[key];
+            }
+          });
+          Object.keys(map).forEach((key) => {
+            delete misses[key];
+            merged[key] = map[key];
+          });
           return merged;
         });
       })
       .catch((e) => {
         console.warn('[App] Handled promise rejection:', e?.message || e);
       });
-  }, []);
+  }, [isLiveEntryFresh]);
   useEffect(() => {
     buildLiveDataMap(); // Initial fetch on mount
     const refreshTimer = setInterval(buildLiveDataMap, 15 * 60 * 1000); // 15-min refresh
@@ -550,9 +728,12 @@ export default function PokerNearMePage() {
   // FIXED: was guarded by _liveMerged one-shot flag that permanently prevented re-merging.
   // Now always re-merges when liveDataMap updates, using last_updated timestamp to skip
   // venues where the data hasn't actually changed (avoids unnecessary re-renders).
+  // GAP FIX: the map can now shrink (see pruning above), so this effect must be
+  // allowed to run when it empties — that is exactly the case where a card is
+  // still advertising tables that are no longer running.
   useEffect(() => {
-    if (Object.keys(liveDataMap || {}).length === 0) return;
     setVenues((prev) => {
+      if (prev.length === 0) return prev;
       let changed = false;
       const next = prev.map((venue) => {
         const normName = (venue.name || '')
@@ -565,9 +746,9 @@ export default function PokerNearMePage() {
           .trim();
         const liveEntry =
           (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
-        // POLICY: Never strip live_data from venue cards.
-        // Even when scraper is down and tables_running=0, show games list
-        // (stakes offered, game types). Only strip if the entry has zero games.
+        // POLICY (retained): while the scraper is up but reporting 0 tables we
+        // still show the games list (stakes offered, game types). Only an entry
+        // with zero games counts as "nothing to show".
         const hasGameData = liveEntry && (liveEntry.games || []).length > 0;
         const newLiveData = hasGameData ? liveEntry : null;
         // Skip if timestamp hasn't changed (avoid unnecessary object churn)
@@ -575,18 +756,23 @@ export default function PokerNearMePage() {
         const newTs = newLiveData?.last_updated;
         if (!newLiveData && !venue.live_data) return venue; // no change
         if (curTs && newTs && curTs === newTs) return venue; // same data
-        // POLICY: Never replace existing live_data with null.
-        // If the new data is empty but we had data before, keep the old data.
-        // (Must be checked BEFORE flagging `changed` — otherwise a scraper outage
-        // marked every venue changed while returning identical objects, forcing a
-        // full list re-render every 15-minute cycle.)
-        if (!newLiveData && venue.live_data) return venue;
+        // GAP FIX: the old policy was "never replace existing live_data with
+        // null", full stop — so a card kept rendering the last-seen table counts
+        // forever once a venue dropped out of the feed. Now a scraper blip is
+        // still absorbed (data that is still within the feed's stale window is
+        // kept), but data older than that window is cleared rather than shown
+        // as current.
+        if (!newLiveData && venue.live_data) {
+          if (isLiveEntryFresh(venue.live_data)) return venue; // transient miss — keep
+          changed = true;
+          return { ...venue, live_data: null }; // aged out — stop advertising it
+        }
         changed = true;
         return { ...venue, live_data: newLiveData };
       });
       return changed ? next : prev; // referential equality guard
     });
-  }, [liveDataMap]);
+  }, [liveDataMap, isLiveEntryFresh]);
 
   const [checkinCounts, setCheckinCounts] = useState({});
   useEffect(() => {
@@ -625,16 +811,54 @@ export default function PokerNearMePage() {
   // Review panel state (Feature #9)
   const [reviewVenue, setReviewVenue] = useState(null);
 
+  // ─── Session JWT for authenticated child components ───
+  // `user` from AvatarContext is a Supabase User object; Supabase puts the JWT on
+  // the SESSION, so `user?.access_token` is undefined here. Resolve the real token
+  // through the sanctioned authUtils helper (repo rule: never call the Supabase
+  // client's auth session getters directly from page/client code). Same workaround
+  // MoreTabPanel documents — VenueReviews had no fallback of its own.
+  const [sessionToken, setSessionToken] = useState(null);
+  useEffect(() => {
+    if (user?.access_token) {
+      setSessionToken(user.access_token);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getFreshAccessToken } = await import('../../../src/lib/authUtils');
+        const token = await getFreshAccessToken();
+        if (!cancelled) setSessionToken(token || null);
+      } catch (e) {
+        console.warn('[App] Handled promise rejection:', e?.message || e);
+        if (!cancelled) setSessionToken(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.access_token, userId]);
+
   // Pin-to-card highlight state
   const [highlightedVenueId, setHighlightedVenueId] = useState(null);
   const highlightTimeoutRef = useRef(null);
   // GPS 20s-failsafe timeout — kept in a ref so unmount can clear it
   const gpsFailsafeTimeoutRef = useRef(null);
-  // Clear pending timeouts on unmount (highlight + GPS failsafe)
+  // LEAK FIX: the mount GPS auto-request timer and the post-GPS refetch timer were
+  // never cancelled, and the reverseGeocode continuation had no cancellation at
+  // all — all three could setState (and re-fetch) on an unmounted tree.
+  const gpsMountTimerRef = useRef(null);
+  const gpsRefetchTimerRef = useRef(null);
+  const pageUnmountedRef = useRef(false);
+  // Clear pending timeouts on unmount (highlight + GPS failsafe + GPS timers)
   useEffect(() => {
+    pageUnmountedRef.current = false;
     return () => {
+      pageUnmountedRef.current = true;
       if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
       if (gpsFailsafeTimeoutRef.current) clearTimeout(gpsFailsafeTimeoutRef.current);
+      if (gpsMountTimerRef.current) clearTimeout(gpsMountTimerRef.current);
+      if (gpsRefetchTimerRef.current) clearTimeout(gpsRefetchTimerRef.current);
     };
   }, []);
 
@@ -688,16 +912,19 @@ export default function PokerNearMePage() {
   }, []);
   
   // ─── Tab-specific tutorial state ───
-  const [tabTutorialsSeen, setTabTutorialsSeen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return JSON.parse(localStorage.getItem('pnm_tab_tutorials_seen') || '{}');
-      } catch {
-        return {};
-      }
+  // HYDRATION FIX: server-safe default, hydrated in a mount effect (same pattern
+  // already used for `filters` and inside usePersistedFilters). Reading
+  // localStorage in the initializer made the first client render differ from the
+  // server HTML — React error #418.
+  const [tabTutorialsSeen, setTabTutorialsSeen] = useState({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pnm_tab_tutorials_seen');
+      if (raw) setTabTutorialsSeen(JSON.parse(raw) || {});
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
     }
-    return {};
-  });
+  }, []);
   const [showTabTutorial, setShowTabTutorial] = useState(false);
   const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
 
@@ -821,41 +1048,48 @@ export default function PokerNearMePage() {
   // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
   // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
   // Tour pins offset slightly from venue pins so both are visible simultaneously.
-  // Fix (2026-04-14): code-splitting refactor dropped ALL upstream declarations
-  // this hook depends on. Each needs a sensible default that makes the map
-  // degrade gracefully (no crash during SSR, no visual regression from the
-  // point before code-splitting happened — these inputs only affect dedup
-  // and styling enhancements, none of the core rendering).
-  const centerLat = userLocation?.lat ?? selectedCity?.latitude ?? null;
-  const centerLng = userLocation?.lng ?? selectedCity?.longitude ?? null;
-  const effRad =
-    filters && (filters.radius === 'any' || String(filters.radius).toLowerCase() === 'any')
-      ? 25000
-      : filters && typeof filters.radius === 'number'
-        ? filters.radius
-        : 50;
-  const consumedVenueNames = typeof Set !== 'undefined' ? new Set() : {};
-  const consumedVenueStems = typeof Set !== 'undefined' ? new Set() : {};
-  const charityBestIds = typeof Set !== 'undefined' ? new Set() : {};
-  const tourPins = [];
-  const filteredVenues = Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
-  const allVenuesWithTours = useTourMapStops({
+  //
+  // STUB FIX: centerLat/centerLng/effRad plus three fresh Sets, an empty array
+  // and a `filteredVenues` alias used to be recomputed on every render and passed
+  // in — and useTourMapStops shadows every one of them internally (it recomputes
+  // effRad with a DIFFERENT 'any' value, recomputes centerLat/centerLng, and
+  // declares its own tourPins / consumedVenueNames / consumedVenueStems /
+  // charityBestIds / filteredVenues). Pure dead code plus per-render allocations,
+  // so they are gone; the hook's real inputs are the seven below.
+  //
+  // BUG FIX (map vs list divergence): the hook ALSO applies its own gameType and
+  // stakes filters, branching on 'cash'|'mtt' (the filter bar emits 'nlh'|'plo')
+  // and on `stakes_cash`, a field most venues lack — so choosing '$1/2' silently
+  // removed most pins while the card list underneath was untouched. Game/stakes
+  // filtering now happens in exactly one place: the shared predicates, applied to
+  // the hook's OUTPUT (the hook still sees the full venue list, which it needs to
+  // resolve tour-stop coordinates) and to venueCardList.
+  const mapStopFilters = useMemo(
+    () => ({ ...filters, gameType: 'all', stakes: 'all' }),
+    [filters]
+  );
+  const rawVenuesWithTours = useTourMapStops({
     tours,
     allVenuesForMap,
     userLocation,
     selectedCity,
-    filters,
+    filters: mapStopFilters,
     globalSearchModeRef,
     hasSearched,
-    centerLat,
-    centerLng,
-    effRad,
-    consumedVenueNames,
-    consumedVenueStems,
-    charityBestIds,
-    tourPins,
-    filteredVenues,
   });
+  const allVenuesWithTours = useMemo(() => {
+    const list = Array.isArray(rawVenuesWithTours) ? rawVenuesWithTours : [];
+    if (
+      (!filters.gameType || filters.gameType === 'all') &&
+      (!filters.stakes || filters.stakes === 'all')
+    ) {
+      return list;
+    }
+    return list.filter(
+      (v) =>
+        venueMatchesGameType(v, filters.gameType) && venueMatchesStakes(v, filters.stakes)
+    );
+  }, [rawVenuesWithTours, filters.gameType, filters.stakes]);
 
   const filterSyncPrevStrRef = useRef(null);
   useEffect(() => {
@@ -889,13 +1123,27 @@ export default function PokerNearMePage() {
         }
       }
     };
-    const handleBusSync = (payload) => {
-      if (payload && typeof window !== 'undefined') {
-        const currentStr = JSON.stringify(filtersRef.current);
-        const newStr = JSON.stringify(payload);
-        if (currentStr !== newStr) {
-          setFilters(payload);
-        }
+    // BUG FIX: eventBus.on() delivers the full envelope — { type, payload,
+    // timestamp, source } — not the bare payload (see UniversalHeader.js and
+    // lobby.js, which both unwrap it). This handler treated the envelope AS the
+    // filters object, so setFilters() replaced `filters` with the envelope:
+    // radius/venueType/gameType all became undefined, the localStorage blob was
+    // poisoned for the next visit, and because this page also LISTENS to its own
+    // PNM_FILTERS_UPDATED emission each corrupted write produced a new, deeper
+    // envelope that differed again — a self-feeding re-render loop with
+    // exponentially growing JSON.
+    const handleBusSync = (event) => {
+      if (typeof window === 'undefined') return;
+      const next = event?.payload || event;
+      if (!next || typeof next !== 'object' || Array.isArray(next)) return;
+      // Shape guard: a real filters payload always carries at least one known key.
+      if (next.radius === undefined && next.venueType === undefined && next.gameType === undefined)
+        return;
+      const newStr = JSON.stringify(next);
+      // Ignore our own emission (filterSyncPrevStrRef holds what we last emitted).
+      if (newStr === filterSyncPrevStrRef.current) return;
+      if (JSON.stringify(filtersRef.current) !== newStr) {
+        setFilters(next);
       }
     };
     const handleStorage = (e) => {
@@ -924,25 +1172,33 @@ export default function PokerNearMePage() {
   // NOTE: the old page-level live-venue-search cluster (liveGames, liveVenueList,
   // selectedLiveVenue, fetchLiveGames, etc.) was removed — the Live tab renders
   // LiveGamesFeed, which does its own fetching and polling.
-  const [favorites, setFavorites] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const favs = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
-        try {
-          const seriesIds = JSON.parse(localStorage.getItem('followed-series') || '[]');
-          seriesIds.forEach((id) => {
-            favs['series-' + id] = true;
-          });
-        } catch (e) {
-          console.warn('[App] Handled exception:', e);
-        }
-        return favs;
-      } catch {
-        return {};
-      }
+  // HYDRATION FIX: `favorites` is read during render (the FavLiveToast block), so
+  // seeding it from localStorage in the useState initializer made the first client
+  // render differ from the server HTML — the exact React #418 hazard this file
+  // already fixed for `filters`. Server-safe default + mount hydration instead.
+  // `favoritesPersistSkipRef` makes the persist effect below ignore its first run
+  // so the empty default is never written back over the stored blob.
+  const [favorites, setFavorites] = useState({});
+  const favoritesPersistSkipRef = useRef(true);
+  useEffect(() => {
+    let favs = {};
+    try {
+      favs = JSON.parse(localStorage.getItem('sp-favorites') || '{}') || {};
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+      favs = {};
     }
-    return {};
-  });
+    try {
+      const seriesIds = JSON.parse(localStorage.getItem('followed-series') || '[]');
+      (seriesIds || []).forEach((id) => {
+        favs['series-' + id] = true;
+      });
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+    }
+    // Merge rather than replace — Supabase favorites may have landed already.
+    setFavorites((prev) => ({ ...favs, ...prev }));
+  }, []);
   const [displayCount, setDisplayCount] = useState({
     venues: PAGE_SIZE,
     tours: PAGE_SIZE,
@@ -950,50 +1206,60 @@ export default function PokerNearMePage() {
     daily: PAGE_SIZE_DAILY,
     live: PAGE_SIZE_LIVE,
   });
-  const [searchHistory, setSearchHistory] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = JSON.parse(localStorage.getItem('sp-search-history') || '[]');
-        // Prune entries older than 30 days (if stored with timestamps)
-        const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        const pruned = raw.filter((entry) => {
-          if (typeof entry === 'object' && entry.ts) return now - entry.ts < MAX_AGE_MS;
-          return true; // Legacy string entries are kept
-        });
-        if (pruned.length !== raw.length) {
-          localStorage.setItem('sp-search-history', JSON.stringify(pruned));
-        }
-        return pruned;
-      } catch {
-        return [];
+  // HYDRATION FIX: same pattern — server-safe default, hydrate on mount.
+  const [searchHistory, setSearchHistory] = useState([]);
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('sp-search-history') || '[]');
+      // Prune entries older than 30 days (if stored with timestamps)
+      const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const pruned = (raw || []).filter((entry) => {
+        if (typeof entry === 'object' && entry.ts) return now - entry.ts < MAX_AGE_MS;
+        return true; // Legacy string entries are kept
+      });
+      if (pruned.length !== (raw || []).length) {
+        safeSetItem('sp-search-history', JSON.stringify(pruned));
       }
+      if (pruned.length > 0) setSearchHistory(pruned);
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
     }
-    return [];
-  });
+  }, []);
   const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
   // Map view filters (for enhanced map-first experience)
-  const [mapFilters, setMapFilters] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('poker-near-me-map-filters');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-    return {
-      cashGames: false,
-      tournaments: false,
-      is24Hours: false,
-      lowStakes: false,
-      topRated: false,
-    };
+  // HYDRATION FIX: server-safe default, hydrated on mount. mapFiltersPersistSkipRef
+  // makes the persist effect below ignore its first run so the default is never
+  // written over the saved blob before hydration lands.
+  const [mapFilters, setMapFilters] = useState({
+    cashGames: false,
+    tournaments: false,
+    is24Hours: false,
+    lowStakes: false,
+    topRated: false,
   });
+  const mapFiltersPersistSkipRef = useRef(true);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('poker-near-me-map-filters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') setMapFilters(parsed);
+      }
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Skip the very first run: it fires with the server-safe default, BEFORE the
+      // hydration effect above has applied the saved blob, and would overwrite it.
+      if (mapFiltersPersistSkipRef.current) {
+        mapFiltersPersistSkipRef.current = false;
+        return;
+      }
       safeSetItem('poker-near-me-map-filters', JSON.stringify(mapFilters));
       window.dispatchEvent(
         new CustomEvent('poker-near-me-map-filters-sync', { detail: mapFilters })
@@ -1075,6 +1341,9 @@ export default function PokerNearMePage() {
     if (typeof window === 'undefined') return;
     const CACHE_KEY = 'sp-offline-venues';
     let hadCacheHit = false;
+    let idleHandle = null;
+    let idleTimer = null;
+    let cancelledCacheWrite = false;
 
     const setGlobalVenues = (activeArr) => {
       setAllVenuesForMap(activeArr);
@@ -1124,11 +1393,30 @@ export default function PokerNearMePage() {
           return venue.is_active !== false && venue.id !== 3109;
         });
         setGlobalVenues(activeArr);
-        // Cache for offline use (cache the filtered list)
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
-        } catch (e) {
-          console.warn('[App] Handled exception:', e?.message || e);
+        // PERF FIX: all-venues.json is ~1.7 MB. This used to JSON.stringify the
+        // whole filtered array straight back into localStorage on the main thread
+        // during first paint, on EVERY mount, even when the cache we had just read
+        // was still inside its TTL — and it bypassed safeSetItem, so a quota
+        // failure was swallowed with no eviction attempt.
+        //   1. Skip the rewrite entirely when a fresh cache was already served
+        //      (the file only changes once a day; the cache TTL is one hour).
+        //   2. Defer the write to idle time so it never competes with first paint.
+        //   3. Route it through safeSetItem so quota pressure evicts cache blobs
+        //      instead of silently dropping the write.
+        if (!hadCacheHit) {
+          const writeCache = () => {
+            if (cancelledCacheWrite) return;
+            try {
+              safeSetItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
+            } catch (e) {
+              console.warn('[App] Handled exception:', e?.message || e);
+            }
+          };
+          if (typeof window.requestIdleCallback === 'function') {
+            idleHandle = window.requestIdleCallback(writeCache, { timeout: 5000 });
+          } else {
+            idleTimer = setTimeout(writeCache, 1500);
+          }
         }
 
         // ─── [HOME-GAMES MERGE REMOVED] ──────────────────────────────
@@ -1141,6 +1429,14 @@ export default function PokerNearMePage() {
           setFetchError('Unable to load venue data. Check your connection.');
         }
       });
+
+    return () => {
+      cancelledCacheWrite = true;
+      if (idleHandle !== null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (idleTimer !== null) clearTimeout(idleTimer);
+    };
   }, []);
 
   const fetchLiveCount = useCallback(async () => {
@@ -1151,13 +1447,22 @@ export default function PokerNearMePage() {
       if (!res.ok) return;
       const json = await res.json();
       if (json && json.metadata) {
-        if (json.metadata.data_mode) setLiveDataMode(json.metadata.data_mode);
-        if (typeof json.metadata.total_tables_running === 'number') {
-          // POLICY: Never decrease live count to 0.
-          // If API returns 0 (scraper down), keep the last known count.
+        const meta = json.metadata;
+        if (meta.data_mode) setLiveDataMode(meta.data_mode);
+        if (typeof meta.data_age_minutes === 'number' || meta.data_age_minutes === null) {
+          setLiveDataAgeMinutes(meta.data_age_minutes);
+        }
+        if (typeof meta.total_tables_running === 'number') {
+          // POLICY (retained): a transient scraper blip does not blank the badge.
+          // BUG FIX: but 'none' / stale data must be allowed to fall to 0 — the old
+          // rule "never decrease to 0" kept a stale non-zero figure on screen under
+          // the plain "Live Tables" label indefinitely after the feed had emptied,
+          // because setLiveDataMode always overwrote while the count never could.
+          const feedEmpty = meta.data_mode === 'none' || meta.stale === true;
           setLiveTableCount((prev) => {
-            if (json.metadata.total_tables_running > 0) return json.metadata.total_tables_running;
-            return prev > 0 ? prev : 0; // keep previous if new is 0
+            if (meta.total_tables_running > 0) return meta.total_tables_running;
+            if (feedEmpty) return 0;
+            return prev > 0 ? prev : 0; // transient 0 — keep last known
           });
         }
       }
@@ -1165,6 +1470,10 @@ export default function PokerNearMePage() {
       console.warn('[App] Handled exception:', e?.message || e);
     }
   }, []);
+
+  // Ref mirror so the useVenueRealtime poll callback (declared above fetchLiveCount)
+  // can trigger a live-count refresh without a temporal-dead-zone reference.
+  fetchLiveCountRef.current = fetchLiveCount;
 
   // Fetch live table count for map stats header
   useEffect(() => {
@@ -1280,12 +1589,22 @@ export default function PokerNearMePage() {
     // Request fresh GPS — silent refresh if we already have saved GPS location
     // SKIP entirely if a saved city was restored (user chose a city, not GPS)
     if (!hasSavedCity && typeof navigator !== 'undefined' && navigator.geolocation) {
-      setTimeout(
+      // LEAK FIX: this timer (up to 2s) and the geolocation callback it schedules
+      // used to survive unmount — navigating away inside the window still fired
+      // requestGpsLocation()/getCurrentPosition, whose success handler called
+      // setSearchQuery/setUserLocation/setGpsLoading on an unmounted tree. The
+      // timer is now cleared on cleanup and the callbacks are guarded.
+      gpsMountTimerRef.current = setTimeout(
         () => {
+          gpsMountTimerRef.current = null;
+          if (pageUnmountedRef.current) return;
           if (hasSavedLocation) {
             // Silent refresh — don't show alerts, just update if GPS is available
             navigator.geolocation.getCurrentPosition(
-              (pos) => handleGpsSuccess(pos, true),
+              (pos) => {
+                if (pageUnmountedRef.current) return;
+                handleGpsSuccess(pos, true);
+              },
               () => {
                 /* silent fail — saved location is still active */
               },
@@ -1298,6 +1617,13 @@ export default function PokerNearMePage() {
         hasSavedLocation ? 2000 : 600
       );
     }
+
+    return () => {
+      if (gpsMountTimerRef.current) {
+        clearTimeout(gpsMountTimerRef.current);
+        gpsMountTimerRef.current = null;
+      }
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // GPS fallback — if GPS loading finishes without a location, show all venues
@@ -1313,6 +1639,39 @@ export default function PokerNearMePage() {
   // ---------- Geofence monitoring ----------
   const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
   const gfModulesRef = useRef(null); // Cache dynamic imports to avoid re-importing
+
+  // WIRING FIX: every geofence arrival ping used to POST to /api/venues/record-geofence
+  // with no Authorization header. pages/api/venues/[...slug].js mounts a blanket auth
+  // middleware that 401s when no user resolves, and this app keeps the session in the
+  // `smarter-poker-auth` localStorage key (not a cookie), so an unauthenticated fetch
+  // could never succeed: the 12-hour cooldown row was never written and no push ever
+  // fired. `.catch(console.warn)` only catches network errors, so a 401 was invisible.
+  // The JWT now comes from the sanctioned authUtils helper and non-2xx is reported.
+  const recordGeofenceArrival = useCallback(async (venue) => {
+    if (!venue || !venue.id) return;
+    try {
+      const { getFreshAccessToken } = await import('../../../src/lib/authUtils');
+      const token = await getFreshAccessToken();
+      if (!token) {
+        console.warn('[PNM] Geofence ping skipped — no signed-in session');
+        return;
+      }
+      const res = await fetch('/api/venues/record-geofence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        console.warn('[PNM] Geofence ping rejected:', res.status, String(detail).slice(0, 200));
+      }
+    } catch (e) {
+      console.warn('[PNM] Geofence ping error:', e?.message || e);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1331,11 +1690,7 @@ export default function PokerNearMePage() {
       geofenceRef.current.start(allVenuesForMap, function (venue) {
         if (pushMod) pushMod.showVenueAlert(venue, 'checkin');
         setGeofenceAlert(venue);
-        fetch('/api/venues/record-geofence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
-        }).catch(console.warn);
+        recordGeofenceArrival(venue);
       });
     } else {
       // First initialization — dynamic import (SSR safe)
@@ -1366,11 +1721,7 @@ export default function PokerNearMePage() {
                 pushMod.showVenueAlert(venue, 'checkin');
                 setGeofenceAlert(venue);
 
-                fetch('/api/venues/record-geofence', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
-                }).catch(console.warn);
+                recordGeofenceArrival(venue);
               });
 
               setGeofenceStatus('active');
@@ -1380,11 +1731,7 @@ export default function PokerNearMePage() {
               gfModulesRef.current = { pushMod: null };
               gfService.start(allVenuesForMap, function (venue) {
                 setGeofenceAlert(venue);
-                fetch('/api/venues/record-geofence', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name }),
-                }).catch(console.warn);
+                recordGeofenceArrival(venue);
               });
               setGeofenceStatus('active');
             });
@@ -1416,18 +1763,27 @@ export default function PokerNearMePage() {
 
     // Extract social pages
     const socialWithCoords = venues.filter((v) => v.is_social_page && v.latitude && v.longitude);
+    // GAP FIX (home groups): standalone home games arrive from the venues API's
+    // top-level `home_groups` key and are tagged `is_home_group` by fetchVenues.
+    // They are absent from the static all-venues.json the map is built from, so
+    // without this they showed on the card list but never got a pin.
+    const homeGroupsWithCoords = venues.filter(
+      (v) => v.is_home_group && v.latitude && v.longitude
+    );
 
     // Build a map of updated standard venues from the live fetch
     const liveUpdates = {};
     venues.forEach((v) => {
-      if (!v.is_social_page && v.id) {
+      if (!v.is_social_page && !v.is_home_group && v.id) {
         liveUpdates[String(v.id)] = v;
       }
     });
 
     setAllVenuesForMap((prev) => {
-      // 1. Remove previously merged social pages
-      const withoutSocial = prev.filter((v) => !String(v.id).startsWith('sp-'));
+      // 1. Remove previously merged social pages and home groups
+      const withoutSocial = prev.filter(
+        (v) => !String(v.id).startsWith('sp-') && !v.is_home_group
+      );
 
       // 2. Overwrite standard venues with fresh live data (to sync has_tournaments, etc)
       const syncedStandard = withoutSocial.map((v) => {
@@ -1435,8 +1791,8 @@ export default function PokerNearMePage() {
         return fresh ? { ...v, ...fresh } : v;
       });
 
-      // 3. Append fresh social pages
-      return [...syncedStandard, ...socialWithCoords];
+      // 3. Append fresh social pages + standalone home groups
+      return [...syncedStandard, ...socialWithCoords, ...homeGroupsWithCoords];
     });
   }, [venues]);
 
@@ -1445,6 +1801,13 @@ export default function PokerNearMePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Favorites now start empty and hydrate from localStorage in a mount effect
+      // (hydration-mismatch fix). Skip the very first run — it fires with the empty
+      // default, before hydration has applied, and would erase the stored blob.
+      if (favoritesPersistSkipRef.current) {
+        favoritesPersistSkipRef.current = false;
+        return;
+      }
       const spFavs = {};
       const seriesFavs = [];
       Object.keys(favorites || {}).forEach((k) => {
@@ -1926,11 +2289,19 @@ export default function PokerNearMePage() {
         console.warn('[App] Handled exception:', e?.message || e);
       }
       // Re-fetch location-dependent data (daily tournaments, tours); venues handled by userLocation useEffect
-      setTimeout(() => {
+      // LEAK FIX: this timer and the reverseGeocode continuation below (which can
+      // resolve ~2s later and re-fetch venues) used to run unconditionally after
+      // unmount. Both are now cancellable: the timer via gpsRefetchTimerRef, the
+      // geocode continuation via pageUnmountedRef.
+      if (gpsRefetchTimerRef.current) clearTimeout(gpsRefetchTimerRef.current);
+      gpsRefetchTimerRef.current = setTimeout(() => {
+        gpsRefetchTimerRef.current = null;
+        if (pageUnmountedRef.current) return;
         fetchAllData({ includeVenues: false, overrideLocation: loc });
       }, 0);
       // Resolve city/state asynchronously and persist label
       reverseGeocode(loc.lat, loc.lng).then((label) => {
+        if (pageUnmountedRef.current) return;
         if (label) {
           setGpsLocationLabel(label);
           // Update gpsStateRef with confirmed state so future fetchVenues always have user_state
@@ -2179,6 +2550,51 @@ export default function PokerNearMePage() {
       const data = json.data;
       let filteredData = data || [];
 
+      // GAP FIX: /api/poker/venues returns standalone home games under a separate
+      // top-level `home_groups` key (its own comment says the key exists precisely
+      // because "standalone groups (no linked social page) never reached the
+      // frontend"). Nothing read it, so the API-side fix was inert and those home
+      // games appeared on neither the list nor the map. They already arrive in
+      // venue shape (name, venue_type:'home_game', latitude/longitude, stakes_cash,
+      // games_offered), so they only need appending — minus the ones that are
+      // already present via their linked social page, which would otherwise show
+      // up twice.
+      const homeGroups = Array.isArray(json.home_groups) ? json.home_groups : [];
+      if (homeGroups.length > 0) {
+        const presentIds = new Set(filteredData.map((v) => String(v.id)));
+        // The API ALSO folds standalone groups straight into `data` (see the
+        // "Standalone home groups" block in /api/poker/venues.js) — but without a
+        // discriminator the map-merge effect below cannot tell them apart from
+        // static poker_venues rows, so they still get no pin. Tag the ones that
+        // arrived that way; the append below then only handles what `data` missed.
+        const homeGroupIds = new Set(
+          homeGroups.filter((g) => g && g.id).map((g) => String(g.id))
+        );
+        if (homeGroupIds.size > 0) {
+          filteredData = filteredData.map((v) =>
+            v && !v.is_social_page && homeGroupIds.has(String(v.id))
+              ? { ...v, is_home_group: true }
+              : v
+          );
+        }
+        const newHomeGroups = homeGroups.filter((g) => {
+          if (!g || !g.id) return false;
+          if (presentIds.has(String(g.id))) return false;
+          if (g.social_page_id && presentIds.has('sp-' + g.social_page_id)) return false;
+          return true;
+        });
+        if (newHomeGroups.length > 0) {
+          filteredData = filteredData.concat(
+            newHomeGroups.map((g) => ({
+              ...g,
+              venue_type: g.venue_type || 'home_game',
+              // Tag so the map-merge effect can append (and later replace) them.
+              is_home_group: true,
+            }))
+          );
+        }
+      }
+
       // Merge live data immediately to prevent extra renders
       filteredData = filteredData.map((venue) => {
         const normName = (venue.name || '')
@@ -2200,9 +2616,6 @@ export default function PokerNearMePage() {
       });
 
       setVenues(filteredData);
-
-      // ─── [HOME-GAMES MERGE REMOVED] ──────────────────────────────
-      // Home games are now merged in the backend via /api/poker/venues.js
 
       // Update stats from response (only update states, leave global total alone)
       if (json.total) {
@@ -2664,12 +3077,37 @@ export default function PokerNearMePage() {
     }
   }, []);
 
+  // PERF FIX: this used to call setPullDistance() on EVERY touchmove, re-rendering
+  // this 3,500-line page component (and every unmemoized tab panel and the whole
+  // filter bar beneath it) once per frame of a drag. The value only ever drove the
+  // indicator's inline height/opacity and its label, so the drag is now animated
+  // imperatively against the indicator node; state is written only on the mount
+  // transition (0 -> pulling) and on release.
+  const pullIndicatorRef = useRef(null);
+  const pullLabelRef = useRef(null);
+  const pullPastThresholdRef = useRef(false);
+
   const handlePullMove = useCallback((e) => {
     if (pullStartRef.current === null) return;
     const diff = e.touches[0].clientY - pullStartRef.current;
     if (diff > 0 && diff < 150) {
       pullDistanceRef.current = diff;
-      setPullDistance(diff);
+      const el = pullIndicatorRef.current;
+      if (!el) {
+        // Indicator isn't mounted yet — one state write to render it, then the
+        // subsequent frames of this drag are handled imperatively below.
+        setPullDistance(diff);
+        return;
+      }
+      el.style.height = `${diff * 0.5}px`;
+      el.style.opacity = String(Math.min(diff / 80, 1));
+      const past = diff > 80;
+      if (past !== pullPastThresholdRef.current) {
+        pullPastThresholdRef.current = past;
+        if (pullLabelRef.current) {
+          pullLabelRef.current.textContent = past ? '↑ Release to refresh' : '↓ Pull to refresh';
+        }
+      }
     }
   }, []);
 
@@ -2679,6 +3117,7 @@ export default function PokerNearMePage() {
 
   const handlePullEnd = useCallback(() => {
     const dist = pullDistanceRef.current;
+    pullPastThresholdRef.current = false;
     if (dist > 80 && !isRefreshing) {
       setIsRefreshing(true);
       setPullDistance(0);
@@ -2718,6 +3157,29 @@ export default function PokerNearMePage() {
     }
   }, []);
 
+  // BUG FIX: clearing the location used to wipe React state only. 'sp-user-gps',
+  // 'pnm_last_location' and 'pnm_location_enabled' survived, so the mount restore
+  // effect re-applied the very same location on the next visit (and fired a fresh
+  // silent getCurrentPosition) — a user who deliberately cleared their location to
+  // browse another city found it snapped back with no explanation. Both the X
+  // button on the location pill and clearFilters now go through this.
+  const clearPersistedLocation = useCallback(() => {
+    try {
+      localStorage.removeItem('sp-user-gps');
+      localStorage.removeItem('pnm_last_location');
+      localStorage.removeItem('pnm_last_city');
+      localStorage.removeItem('pnm_last_state');
+      localStorage.removeItem('pnm_last_selected_city');
+      localStorage.setItem('pnm_location_enabled', '0');
+      // Tell the other pages that read these keys (lobby etc.) to follow.
+      window.dispatchEvent(new Event('sp_user_gps_updated'));
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+    }
+    // Stop sending a stale user_state on the next fetch.
+    gpsStateRef.current = '';
+  }, []);
+
   const clearFilters = useCallback(() => {
     setSelectedCity(null);
     setUserLocation(null);
@@ -2745,13 +3207,9 @@ export default function PokerNearMePage() {
       gameType: 'all',
       selectedState: 'all',
     });
-    // Clear persisted city selection so it doesn't ghost-restore on next visit
-    try {
-      localStorage.removeItem('pnm_last_selected_city');
-    } catch (e) {
-      console.warn('[App] Handled exception:', e?.message || e);
-    }
-  }, []);
+    // Clear the persisted city AND GPS keys so nothing ghost-restores next visit
+    clearPersistedLocation();
+  }, [clearPersistedLocation]);
 
   // Loading skeleton component
   const renderSkeletons = (count = 8) => (
@@ -2780,64 +3238,25 @@ export default function PokerNearMePage() {
     const uniqueTourStops = tourStops.filter((t) => !venueIds.has(String(t.id)));
     let combined = [...venues, ...uniqueTourStops];
 
-    // ─── CLIENT-SIDE: Auto-filter by gameType (nlh/plo/mixed) ───
-    // venueType is server-side; gameType and stakes are applied client-side instantly.
-    // Values match the dropdown: 'nlh' | 'plo' | 'mixed' | 'all'
-    if (filters.gameType && filters.gameType !== 'all') {
-      combined = combined.filter((v) => {
-        const games = v.games_offered || [];
-        const hasNLH = games.some((g) => {
-          const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-          return (
-            name.includes('nlh') ||
-            name.includes('hold') ||
-            name.includes('holdem') ||
-            name === 'no limit holdem'
-          );
-        });
-        const hasPLO = games.some((g) => {
-          const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-          return name.includes('plo') || name.includes('omaha') || name.includes('pot limit');
-        });
-        const hasMixed = games.some((g) => {
-          const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-          return (
-            name.includes('mix') ||
-            name.includes('horse') ||
-            name.includes('hors') ||
-            name.includes('dealer')
-          );
-        });
-        const hasPLO8 = games.some((g) => {
-          const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-          return (
-            name.includes('plo8') ||
-            name.includes('omaha hi') ||
-            name.includes('o8') ||
-            name.includes('big o')
-          );
-        });
-        const hasStud = games.some((g) => {
-          const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-          return name.includes('stud');
-        });
-        if (filters.gameType === 'nlh') return hasNLH;
-        if (filters.gameType === 'plo') return hasPLO;
-        if (filters.gameType === 'plo8') return hasPLO8;
-        if (filters.gameType === 'mixed') return hasMixed || (hasNLH && hasPLO);
-        if (filters.gameType === 'stud') return hasStud;
-        if (filters.gameType === 'other') return !hasNLH && !hasPLO && !hasPLO8 && !hasStud;
-        return true; // unknown/future filter keys — show all
-      });
+    // ─── CLIENT-SIDE: gameType + stakes ───
+    // venueType is server-side; gameType and stakes are applied client-side.
+    // BUG FIX: this block used to hold its own copy of the game-type matching
+    // logic while useTourMapStops applied a DIFFERENT one to the map (and the
+    // stakes block right below it was commented out entirely, making the Stakes
+    // dropdown a no-op for the list while it silently deleted most map pins).
+    // Both surfaces now share venueMatchesGameType / venueMatchesStakes, which
+    // treat missing games_offered / stakes_cash as "unknown — do not exclude"
+    // rather than "no match" (that is what used to hide every charity and home
+    // game from the map).
+    if (
+      (filters.gameType && filters.gameType !== 'all') ||
+      (filters.stakes && filters.stakes !== 'all')
+    ) {
+      combined = combined.filter(
+        (v) =>
+          venueMatchesGameType(v, filters.gameType) && venueMatchesStakes(v, filters.stakes)
+      );
     }
-
-    // ─── CLIENT-SIDE: Stakes filter ───
-    // NOTE: The catalog's `games_offered` stores game type names (["NLH","PLO"]) with no
-    // stake data, so `.includes('1/2')` will NEVER match → every catalog venue gets hidden.
-    // Stakes filtering is only valid in the LiveGamesFeed where Bravo/PA data includes
-    // actual stake strings per game. Skip catalog stakes filter to prevent blank page.
-    // TODO: Enable once `poker_venues.games_offered` includes per-game stake ranges.
-    // if (filters.stakes && filters.stakes !== 'all' && filters.stakes !== 'any') { ... }
 
     return combined;
   }, [venues, allVenuesWithTours, filters.gameType, filters.stakes]);
@@ -2919,6 +3338,9 @@ export default function PokerNearMePage() {
               Cash Games Near Me
             </h2>
           </div>
+          {/* WIRING FIX: LiveGamesFeed declares `checkinCounts = {}` and the page
+              holds a populated map, but it was never passed — the Live tab showed
+              no check-in activity while the Venues tab did. */}
           <LiveGamesFeed
             venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
             userLocation={userLocation}
@@ -2929,6 +3351,7 @@ export default function PokerNearMePage() {
             handleToggleFavorite={(venueId, venueData) =>
               toggleFavorite('venue', venueId, null, venueData)
             }
+            checkinCounts={checkinCounts}
             router={router}
             openVenueModal={openVenueModal}
             setSelectedVenueForReview={setReviewVenue}
@@ -2979,8 +3402,17 @@ export default function PokerNearMePage() {
     // For venues tab: show search landing if no search yet, skip skeleton
     if (activeTab === 'venues' && !hasSearched) return venuesTabJsx;
 
-    // Show loading — skeletons for all data-driven tabs
-    if ((activeTab === 'venues' && venueLoading) || loading) {
+    // Show loading — skeletons for the CARD-LIST tabs only.
+    // UX FIX: this used to read `|| loading`, which is the global flag set by
+    // fetchAllData for the tours/series/daily fetches — so on first load and after
+    // every pull-to-refresh the Map tab (the default) and the Saved tab were
+    // replaced by a grid of venue-card skeletons before popping back. The Map and
+    // Saved tabs return above this point now; the remaining tabs are the ones the
+    // skeletons actually describe.
+    if (
+      (activeTab === 'venues' && (venueLoading || loading)) ||
+      (activeTab === 'events' && loading)
+    ) {
       return renderSkeletons(activeTab === 'events' ? 6 : 8);
     }
 
@@ -3021,7 +3453,12 @@ export default function PokerNearMePage() {
             );
           case 'calendar':
             return (
-              <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />
+              // WIRING FIX: SeasonalCalendar's signature is ({ series, tours }) —
+              // dailyTournaments was silently dropped, so the prop only implied a
+              // daily schedule that was never rendered. Removed rather than faked;
+              // folding daily tournaments into the calendar needs a change in
+              // SeasonalCalendar.jsx, which is outside this file.
+              <SeasonalCalendar series={series} tours={tours} />
             );
           case 'daily':
           default:
@@ -3156,8 +3593,21 @@ export default function PokerNearMePage() {
             ) : (
               <>
                 {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues &nbsp;&bull;&nbsp;
-                {liveTableCount.toLocaleString()}{' '}
-                {liveDataMode === 'estimated' ? 'Tables (Approx.)' : 'Live Tables'}
+                {/* UX FIX: 'mixed' means the published total is real observations
+                    PLUS simulator output, so it must carry the approximate label
+                    too; and when data_mode is 'none' there is nothing live to
+                    report, so the figure renders as 0 rather than a stale count
+                    under a "Live Tables" heading. data_age_minutes qualifies it. */}
+                {liveDataMode === 'none' ? '0' : liveTableCount.toLocaleString()}{' '}
+                {liveDataMode === 'estimated' || liveDataMode === 'mixed'
+                  ? 'Tables (Approx.)'
+                  : 'Live Tables'}
+                {typeof liveDataAgeMinutes === 'number' && liveDataAgeMinutes > 60 && (
+                  <span style={{ opacity: 0.6 }}>
+                    {' '}
+                    ({Math.round(liveDataAgeMinutes / 60)}h Old)
+                  </span>
+                )}
                 {dbStats.tournaments > 0 && (
                   <>
                     &nbsp;&bull;&nbsp;
@@ -3167,6 +3617,49 @@ export default function PokerNearMePage() {
               </>
             )}
           </p>
+        </div>
+
+        {/* ═══ PRIMARY TAB STRIP ═══
+            UX FIX: TAB_ORDER declares six primary tabs but the page rendered no
+            persistent tab affordance at all — only the inline "Live Games" button
+            and a "Venues" button that appeared solely while the Map tab was
+            active. Events, Saved and More were reachable only by touch swipe (the
+            swipe handler is the sole in-page navigation and is mobile-only) or via
+            the hamburger menu, so on desktop most of the feature set was hidden.
+            Uses the existing .pnm-top-tabs / .pnm-top-tab styles. */}
+        <div
+          className="pnm-top-tabs"
+          role="tablist"
+          aria-label="Poker Near Me sections"
+          style={{ flexWrap: 'wrap', justifyContent: 'center', gap: 6, padding: '0 12px 10px' }}
+        >
+          {[
+            { id: 'venues', label: 'Venues' },
+            { id: 'events', label: 'Events' },
+            { id: 'live', label: 'Live' },
+            { id: 'map', label: 'Map' },
+            { id: 'saved', label: 'Saved' },
+            { id: 'more', label: 'More' },
+          ].map((tab) => {
+            const selected = showLiveTab ? tab.id === 'live' : tab.id === activeTab;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={
+                  'pnm-top-tab' +
+                  (tab.id === 'live' ? ' live' : '') +
+                  (selected ? ' active' : '')
+                }
+                onClick={() => activateTab(tab.id)}
+              >
+                {tab.id === 'live' && <span className="pnm-live-dot" />}
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* ═══ FAVORITE VENUE LIVE TOAST (5s delay, 2s visible) ═══ */}
@@ -3198,12 +3691,17 @@ export default function PokerNearMePage() {
                     <span className="pnm-location-city">{gpsLocationLabel}</span>
                     <button
                       className="pnm-location-clear"
+                      type="button"
                       onClick={() => {
                         setUserLocation(null);
                         setGpsLocationLabel(null);
                         setHasSearched(false);
                         setVenues([]);
                         setNearestDistance(null);
+                        // BUG FIX: also drop the persisted GPS keys — clearing only
+                        // React state let the mount restore effect snap the same
+                        // location back on the next visit.
+                        clearPersistedLocation();
                       }}
                       aria-label="Clear location"
                     >
@@ -3233,9 +3731,17 @@ export default function PokerNearMePage() {
                   </button>
                 )}
               </div>
+              {/* A11Y FIX: each filter label is now tied to its select with
+                  htmlFor/id (plus an aria-label fallback) — previously they were
+                  bare <label> elements and screen readers announced four
+                  unlabelled comboboxes. */}
               <div className="pnm-filter-group">
-                <label className="pnm-filter-label">Radius</label>
+                <label className="pnm-filter-label" htmlFor="pnm-filter-radius">
+                  Radius
+                </label>
                 <select
+                  id="pnm-filter-radius"
+                  aria-label="Search radius"
                   className="pnm-filter-select"
                   value={filters.radius}
                   onChange={(e) =>
@@ -3259,8 +3765,12 @@ export default function PokerNearMePage() {
                 </select>
               </div>
               <div className="pnm-filter-group">
-                <label className="pnm-filter-label">Venue Type</label>
+                <label className="pnm-filter-label" htmlFor="pnm-filter-venue-type">
+                  Venue Type
+                </label>
                 <select
+                  id="pnm-filter-venue-type"
+                  aria-label="Venue type"
                   className="pnm-filter-select"
                   value={filters.venueType}
                   onChange={(e) => setFilters((f) => ({ ...f, venueType: e.target.value }))}
@@ -3273,8 +3783,12 @@ export default function PokerNearMePage() {
                 </select>
               </div>
               <div className="pnm-filter-group">
-                <label className="pnm-filter-label">Game Type</label>
+                <label className="pnm-filter-label" htmlFor="pnm-filter-game-type">
+                  Game Type
+                </label>
                 <select
+                  id="pnm-filter-game-type"
+                  aria-label="Game type"
                   className="pnm-filter-select"
                   value={filters.gameType}
                   onChange={(e) => setFilters((f) => ({ ...f, gameType: e.target.value }))}
@@ -3286,8 +3800,12 @@ export default function PokerNearMePage() {
                 </select>
               </div>
               <div className="pnm-filter-group">
-                <label className="pnm-filter-label">Stakes</label>
+                <label className="pnm-filter-label" htmlFor="pnm-filter-stakes">
+                  Stakes
+                </label>
                 <select
+                  id="pnm-filter-stakes"
+                  aria-label="Stakes"
                   className="pnm-filter-select"
                   value={filters.stakes}
                   onChange={(e) => setFilters((f) => ({ ...f, stakes: e.target.value }))}
@@ -3299,8 +3817,11 @@ export default function PokerNearMePage() {
                 </select>
               </div>
 
-              {/* Live Games button */}
+              {/* Live Games button — A11Y FIX: on/off state was conveyed only by a
+                  CSS class, so assistive tech could not tell it was a toggle. */}
               <button
+                type="button"
+                aria-pressed={showLiveTab}
                 className={
                   'pnm-top-tab live pnm-live-games-inline' + (showLiveTab ? ' active' : '')
                 }
@@ -3338,16 +3859,19 @@ export default function PokerNearMePage() {
                 handlePullEnd();
               }}
             >
-              {/* Pull-to-refresh indicator */}
+              {/* Pull-to-refresh indicator — height/opacity/label are mutated
+                  imperatively by handlePullMove via these refs so a drag no longer
+                  re-renders the whole page once per frame. */}
               {(pullDistance > 0 || isRefreshing) && (
                 <div
+                  ref={pullIndicatorRef}
                   className="pull-indicator"
                   style={{
                     height: isRefreshing ? 40 : pullDistance * 0.5,
                     opacity: isRefreshing ? 1 : Math.min(pullDistance / 80, 1),
                   }}
                 >
-                  <span className={isRefreshing ? 'pull-spinner' : ''}>
+                  <span ref={pullLabelRef} className={isRefreshing ? 'pull-spinner' : ''}>
                     {isRefreshing
                       ? '↻ Refreshing...'
                       : pullDistance > 80
@@ -3357,10 +3881,16 @@ export default function PokerNearMePage() {
                 </div>
               )}
 
-              {/* Fetch error retry banner */}
+              {/* Fetch error retry banner — A11Y FIX: this was a clickable <div>,
+                  which made the page's primary recovery affordance unreachable by
+                  keyboard. aria-live announces the failure without overriding the
+                  button role (role="alert" would have replaced it). */}
               {fetchError && (
-                <div
+                <button
+                  type="button"
+                  aria-live="assertive"
                   className="fetch-error-banner"
+                  style={{ font: 'inherit', cursor: 'pointer', width: '100%' }}
                   onClick={() => {
                     setFetchError(null);
                     fetchAllData({ includeVenues: true });
@@ -3379,7 +3909,7 @@ export default function PokerNearMePage() {
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   {fetchError}
-                </div>
+                </button>
               )}
 
               {/* Push notification setup moved to the 'more' settings tab */}
@@ -3455,7 +3985,40 @@ export default function PokerNearMePage() {
               setFilters((f) => ({ ...f, minBuyin: parsed.filters.minBuyin }));
             if (parsed.filters.maxBuyin)
               setFilters((f) => ({ ...f, maxBuyin: parsed.filters.maxBuyin }));
-            if (parsed.filters.tab) setActiveTab(parsed.filters.tab);
+            // BUG FIX: VoiceSearch emits filters.tab = 'daily' for any
+            // tournament/tourney/mtt transcript, and this used to set activeTab
+            // straight to it. 'daily' is not in TAB_ORDER and matches no case in
+            // renderContent, so the user landed on the venues fallback, swipe
+            // navigation broke (TAB_ORDER.indexOf returned -1), the deep-link
+            // writer fell through to /venues — and the bad value was persisted,
+            // so it survived reload. Voice tab hints now go through the same slug
+            // table the router uses, and anything unrecognised is ignored.
+            if (parsed.filters.tab) {
+              const VOICE_TAB_SLUGS = {
+                venues: { tab: 'venues' },
+                map: { tab: 'map' },
+                saved: { tab: 'saved' },
+                favorites: { tab: 'saved' },
+                more: { tab: 'more' },
+                events: { tab: 'events' },
+                tours: { tab: 'events', sub: 'tours' },
+                series: { tab: 'events', sub: 'series' },
+                daily: { tab: 'events', sub: 'daily' },
+                'daily-tournaments': { tab: 'events', sub: 'daily' },
+                calendar: { tab: 'events', sub: 'calendar' },
+                'events-calendar': { tab: 'events', sub: 'calendar' },
+              };
+              const target = VOICE_TAB_SLUGS[String(parsed.filters.tab).toLowerCase()];
+              if (target && TAB_ORDER.includes(target.tab)) {
+                setActiveTab(target.tab);
+                if (target.sub) setActiveEventTab(target.sub);
+              } else if (
+                String(parsed.filters.tab).toLowerCase() === 'live' ||
+                String(parsed.filters.tab).toLowerCase() === 'live-games'
+              ) {
+                setShowLiveTab(true);
+              }
+            }
             setHasSearched(true);
             fetchAllData({ includeVenues: true });
           }}
@@ -3469,13 +4032,22 @@ export default function PokerNearMePage() {
           title={iframeModal.title}
         />
 
-        {/* Venue Reviews Panel (Feature #9) */}
+        {/* Venue Reviews Panel (Feature #9)
+            BUG FIX: authToken used to be `user?.access_token`. `user` comes from
+            AvatarContext and is a Supabase User object — the JWT lives on the
+            SESSION, not the user, so that expression is always undefined.
+            VenueReviews sends the Authorization header unconditionally on POST, so
+            the server received the literal "Bearer undefined" and returned 401
+            ("Could not submit review (401)"); the PATCH vote path omitted the
+            header entirely and the optimistic vote was silently rolled back. The
+            token now comes from getFreshAccessToken (see sessionToken above), the
+            same workaround MoreTabPanel documents. */}
         <VenueReviews
           venueId={reviewVenue?.id}
           venueName={reviewVenue?.name}
           userId={userId}
           userName={user?.display_name || user?.email}
-          authToken={user?.access_token}
+          authToken={user?.access_token || sessionToken || undefined}
           isOpen={!!reviewVenue}
           onClose={() => setReviewVenue(null)}
         />

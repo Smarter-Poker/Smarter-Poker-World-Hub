@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getFreshAccessToken } from '../../lib/authUtils';
 
 // ─── Haversine distance (miles) ───────────────────────────────────────────────
 function haversineMiles(lat1, lon1, lat2, lon2) {
@@ -94,9 +94,9 @@ function StarRow({ rating, size = 22, onChange }) {
 }
 
 // ─── Geo Lock Screen ──────────────────────────────────────────────────────────
-function GeoLockScreen({ venue, userLocation, distanceMiles, onClose }) {
+function GeoLockScreen({ venue, userLocation, distanceMiles, onClose, noCoords = false }) {
     const noGps = !userLocation;
-    const tooFar = !noGps && distanceMiles > GEO_RADIUS_MILES;
+    const tooFar = !noGps && !noCoords && Number.isFinite(distanceMiles) && distanceMiles > GEO_RADIUS_MILES;
 
     return (
         <div style={{ textAlign: 'center', padding: '32px 24px' }}>
@@ -122,12 +122,14 @@ function GeoLockScreen({ venue, userLocation, distanceMiles, onClose }) {
             </div>
 
             <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
-                {noGps ? 'Location Required' : 'Geo-Restricted'}
+                {noGps ? 'Location Required' : noCoords ? 'Venue Not Mapped' : 'Geo-Restricted'}
             </h3>
             <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.6)', margin: '0 0 6px', lineHeight: 1.55 }}>
                 {noGps
                     ? 'You must share your location to report a live game. This verifies you are actually at the venue.'
-                    : `You must be inside the venue to report a game. You are currently ${distanceMiles < 10 ? distanceMiles.toFixed(1) : Math.round(distanceMiles)} miles away from ${venue?.name || 'this venue'}.`
+                    : noCoords
+                        ? `We do not have coordinates on file for ${venue?.name || 'this venue'}, so we cannot verify you are there. Live game reports are geo-verified, so this venue cannot accept reports yet.`
+                        : `You must be inside the venue to report a game. You are currently ${distanceMiles < 10 ? distanceMiles.toFixed(1) : Math.round(distanceMiles)} miles away from ${venue?.name || 'this venue'}.`
                 }
             </p>
             {tooFar && (
@@ -165,26 +167,43 @@ export default function ReportGameModal({
     const [showReview, setShowReview] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [step, setStep] = useState('game'); // 'game' | 'review' | 'success'
 
     // ─── Venue selector state (when no venue pre-selected) ───
     const [selectedVenue, setSelectedVenue] = useState(null);
     const [venueSearch, setVenueSearch] = useState('');
     const [showVenueDropdown, setShowVenueDropdown] = useState(false);
     const venueInputRef = useRef(null);
+    const panelRef = useRef(null);
+    // Holds the successful live-game response so a review retry does not
+    // re-report the game, and tracks whether onSubmit already fired.
+    const reportedGameRef = useRef(null);
+    const notifiedRef = useRef(false);
 
     // Resolve the active venue (prop wins over selection)
     const activeVenue = venue || selectedVenue;
 
     // ─── Geo distance ───
-    const distanceMiles = useMemo(() => {
-        if (!userLocation || !activeVenue) return Infinity;
-        const lat = activeVenue.latitude ?? activeVenue.lat;
-        const lng = activeVenue.longitude ?? activeVenue.lng;
-        return haversineMiles(userLocation.lat, userLocation.lng, lat, lng);
-    }, [userLocation, activeVenue]);
+    // Resolve the coordinate pair once. Venue rows appear here keyed either
+    // latitude/longitude or lat/lng depending on the call site.
+    const venueCoords = useMemo(() => {
+        if (!activeVenue) return null;
+        const lat = Number(activeVenue.latitude ?? activeVenue.lat);
+        const lng = Number(activeVenue.longitude ?? activeVenue.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return null;
+        return { lat, lng };
+    }, [activeVenue]);
 
-    const isGeoLocked = !userLocation || (activeVenue && activeVenue.latitude && distanceMiles > GEO_RADIUS_MILES);
+    const distanceMiles = useMemo(() => {
+        if (!userLocation || !venueCoords) return Infinity;
+        return haversineMiles(userLocation.lat, userLocation.lng, venueCoords.lat, venueCoords.lng);
+    }, [userLocation, venueCoords]);
+
+    // SECURITY: the previous check only inspected `activeVenue.latitude`, so a
+    // venue keyed lat/lng — or any row with a null latitude — made the middle
+    // term falsy and opened the gate purely because GPS was on, while the
+    // "Location Verified" badge printed a distance the check had ignored.
+    // A venue with no usable coordinates is now locked, not unlocked.
+    const isGeoLocked = !userLocation || !venueCoords || distanceMiles > GEO_RADIUS_MILES;
 
     // ─── Venue search / filter ───
     const filteredVenues = useMemo(() => {
@@ -209,11 +228,63 @@ export default function ReportGameModal({
             setReviewForm(INITIAL_REVIEW);
             setShowReview(false);
             setError('');
-            setStep('game');
             setSelectedVenue(null);
             setVenueSearch('');
             setShowVenueDropdown(false);
+            reportedGameRef.current = null;
+            notifiedRef.current = false;
         }
+    }, [isOpen]);
+
+    // Keep the latest onClose in a ref. The call site passes an inline arrow, so
+    // depending on it directly would re-run the effect below on every parent
+    // render (LiveGamesFeed refreshes on a timer) and yank focus back into the
+    // panel while the user is typing in the notes field.
+    const onCloseRef = useRef(onClose);
+    useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+    // ─── Dialog behaviour: Escape to close, body scroll lock, initial focus ───
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current?.(); return; }
+            if (e.key !== 'Tab') return;
+            // Trap Tab inside the panel so focus does not walk into the page behind.
+            const root = panelRef.current;
+            if (!root) return;
+            const focusables = root.querySelectorAll(
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown, true);
+
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const focusTimer = setTimeout(() => {
+            try {
+                if (venueInputRef.current) venueInputRef.current.focus();
+                else panelRef.current?.focus?.({ preventScroll: true });
+            } catch (_) { /* ignore */ }
+        }, 40);
+
+        return () => {
+            document.removeEventListener('keydown', onKeyDown, true);
+            document.body.style.overflow = prevOverflow;
+            clearTimeout(focusTimer);
+        };
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -246,39 +317,54 @@ export default function ReportGameModal({
         setError('');
 
         try {
-            const token = getAccessToken() || '';
+            // getAccessToken() returns whatever is sitting in localStorage with no
+            // expiry check; a tab left open for an hour sent a stale JWT and got a
+            // 401 with no recovery path. getFreshAccessToken decodes exp and
+            // refreshes when needed.
+            const token = (await getFreshAccessToken()) || '';
 
             // ── Step 1: Report the live game ──────────────────────────────────
-            const gameRes = await fetch('/api/public/live-games', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                    venue_id: activeVenue.id,
-                    game_type: gameForm.game_type,
-                    stakes,
-                    seats_open: parseInt(gameForm.seats_open) || 0,
-                    waitlist_size: parseInt(gameForm.waitlist_size) || 0,
-                    table_count: parseInt(gameForm.table_count) || 1,
-                    game_quality: gameForm.game_quality || null,
-                    notes: gameForm.notes || null,
-                    // Geo evidence — server does a secondary check with 1 mi tolerance
-                    reporter_lat: userLocation?.lat,
-                    reporter_lng: userLocation?.lng,
-                }),
-            });
+            // Skipped when a previous attempt already reported it and only the
+            // review leg failed, so retrying the review cannot double-report.
+            let gameData = reportedGameRef.current;
+            if (!gameData) {
+                const gameRes = await fetch('/api/public/live-games', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        venue_id: activeVenue.id,
+                        game_type: gameForm.game_type,
+                        stakes,
+                        seats_open: parseInt(gameForm.seats_open) || 0,
+                        waitlist_size: parseInt(gameForm.waitlist_size) || 0,
+                        table_count: parseInt(gameForm.table_count) || 1,
+                        game_quality: gameForm.game_quality || null,
+                        notes: gameForm.notes || null,
+                        // Geo evidence — server does a secondary check with 1 mi tolerance
+                        reporter_lat: userLocation?.lat,
+                        reporter_lng: userLocation?.lng,
+                    }),
+                });
 
-            const gameData = await gameRes.json();
-            if (!gameRes.ok) {
-                if (gameData.error === 'GEO_RESTRICTED') {
-                    throw new Error('Location check failed on server. Please ensure you are at the venue.');
+                const body = await gameRes.json().catch(() => ({}));
+                if (!gameRes.ok) {
+                    if (body.error === 'GEO_RESTRICTED') {
+                        throw new Error('Location check failed on server. Please ensure you are at the venue.');
+                    }
+                    throw new Error(body.error || 'Failed to report game');
                 }
-                throw new Error(gameData.error || 'Failed to report game');
+                gameData = body;
+                reportedGameRef.current = body;
             }
 
             // ── Step 2: Submit venue review (if filled) ───────────────────────
+            // The response used to be discarded entirely, so a 401/400/500
+            // silently threw the user's review away while the modal reported
+            // success and closed.
+            let reviewFailed = false;
             if (showReview && reviewForm.rating > 0 && reviewForm.reviewText.trim()) {
                 try {
-                    await fetch('/api/poker/reviews', {
+                    const reviewRes = await fetch('/api/poker/reviews', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({
@@ -289,12 +375,29 @@ export default function ReportGameModal({
                             category_ratings: reviewForm.categoryRatings,
                         }),
                     });
+                    if (!reviewRes.ok) {
+                        reviewFailed = true;
+                        console.warn('[ReportGameModal] Review submission rejected:', reviewRes.status);
+                    }
                 } catch (reviewErr) {
+                    reviewFailed = true;
                     console.warn('[ReportGameModal] Review submission failed (non-fatal):', reviewErr);
                 }
             }
 
-            onSubmit?.(gameData.game);
+            if (!notifiedRef.current) {
+                notifiedRef.current = true;
+                onSubmit?.(gameData.game);
+            }
+
+            if (reviewFailed) {
+                // Keep the modal open so the review text the user just wrote is
+                // not silently discarded. Retrying only re-sends the review.
+                setError('Game reported, but your review could not be saved. Press Submit again to retry the review, or close to keep just the game report.');
+                setShowReview(true);
+                return;
+            }
+
             onClose();
 
         } catch (err) {
@@ -534,12 +637,17 @@ export default function ReportGameModal({
             }}
         >
             <div
+                ref={panelRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="rgm-title"
+                tabIndex={-1}
                 onClick={e => e.stopPropagation()}
                 style={{
                     background: 'linear-gradient(160deg, #0e1523 0%, #0a0f1a 100%)',
                     border: '1px solid rgba(110,231,239,0.2)',
                     borderRadius: 18, width: '100%', maxWidth: 500,
-                    maxHeight: '92vh', overflow: 'auto',
+                    maxHeight: '92vh', overflow: 'auto', outline: 'none',
                     boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(110,231,239,0.06)',
                     animation: 'rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
                 }}
@@ -550,14 +658,14 @@ export default function ReportGameModal({
                     padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+                        <h2 id="rgm-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
                             Report Live Game
                         </h2>
                         <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(110,231,239,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             Geo-Verified · Members Only
                         </p>
                     </div>
-                    <button onClick={onClose} style={{
+                    <button type="button" onClick={onClose} aria-label="Close report game dialog" style={{
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
@@ -581,6 +689,7 @@ export default function ReportGameModal({
                             venue={activeVenue}
                             userLocation={userLocation}
                             distanceMiles={distanceMiles}
+                            noCoords={!!userLocation && !venueCoords}
                             onClose={onClose}
                         />
                     ) : activeVenue ? (

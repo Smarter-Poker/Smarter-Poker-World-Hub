@@ -154,61 +154,185 @@ async function handleGet(req, res, venueId, user, manager) {
     }
 }
 
+// ── PATCH field model ────────────────────────────────────────────────────
+//
+// Two problems this table solves.
+//
+// 1. COLUMN-NAME DRIFT. The old whitelist wrote `zip`, `has_food` and
+//    `description` straight into poker_venues, but the public read path for
+//    the same table selects `zip_code`, `has_food_service` and `about`.
+//    Postgres rejects an UPDATE that names any unknown column, so one stale
+//    field in the payload killed the ENTIRE save and the owner got a generic
+//    500 naming nothing. Incoming names are now mapped to the real columns.
+//    Only exact synonyms are aliased — `has_parking` is deliberately NOT
+//    mapped to `has_valet` (valet is a different, paid service; silently
+//    turning "we have parking" into "we have valet" would publish a false
+//    amenity). It falls through to `unknown_fields` instead, and the rest of
+//    the payload still saves.
+//
+// 2. UNGATED FIELDS. Permission checks only covered name/address/city/state/
+//    phone/website/description, hours and games/stakes — so `zip`,
+//    `amenities`, `social_links`, `image_url`, `gallery_images` and
+//    `has_tournaments` could be rewritten by any active manager regardless of
+//    their can_edit_* flags. Every writable field now sits in exactly one
+//    permission bucket; a field with no bucket is not writable at all.
+
+// Incoming field name -> real poker_venues column.
+const FIELD_ALIASES = {
+    zip: 'zip_code',
+    has_food: 'has_food_service',
+    description: 'about',
+};
+
+// Real column -> the venue_managers permission flag that gates it.
+const FIELD_PERMISSIONS = {
+    // can_edit_info
+    name: 'can_edit_info',
+    address: 'can_edit_info',
+    city: 'can_edit_info',
+    state: 'can_edit_info',
+    zip_code: 'can_edit_info',
+    phone: 'can_edit_info',
+    website: 'can_edit_info',
+    about: 'can_edit_info',
+    tagline: 'can_edit_info',
+    amenities: 'can_edit_info',
+    social_links: 'can_edit_info',
+    image_url: 'can_edit_info',
+    gallery_images: 'can_edit_info',
+    profile_photo_url: 'can_edit_info',
+    cover_photo_url: 'can_edit_info',
+    has_food_service: 'can_edit_info',
+    has_hotel: 'can_edit_info',
+    has_valet: 'can_edit_info',
+    // can_edit_hours
+    hours: 'can_edit_hours',
+    hours_json: 'can_edit_hours',
+    hours_weekday: 'can_edit_hours',
+    hours_weekend: 'can_edit_hours',
+    // can_edit_games
+    games_offered: 'can_edit_games',
+    stakes_cash: 'can_edit_games',
+    stakes_tournament: 'can_edit_games',
+    has_tournaments: 'can_edit_games',
+};
+
+const PERMISSION_ERRORS = {
+    can_edit_info: 'No permission to edit venue info',
+    can_edit_hours: 'No permission to edit hours',
+    can_edit_games: 'No permission to edit games',
+};
+
+// Pull the offending column out of an "unknown column" error. Postgres raises
+// 42703 ('column "x" of relation "poker_venues" does not exist'); PostgREST
+// raises PGRST204 ("Could not find the 'x' column of 'poker_venues' in the
+// schema cache") when the payload key isn't in its schema cache at all.
+function missingColumnFromError(err) {
+    const text = `${err?.message || ''} ${err?.details || ''} ${err?.hint || ''}`;
+    const m = text.match(/column "([^"]+)"/) || text.match(/'([^']+)' column/);
+    return m ? m[1] : null;
+}
+
+/**
+ * UPDATE that survives column drift. If the table turns out not to have one of
+ * the columns we sent, that single key is dropped and the update is retried,
+ * instead of the whole save dying with an opaque 500. Every dropped column is
+ * returned so the caller can be told exactly what did not persist.
+ */
+async function updateVenueTolerant(venueId, payload) {
+    const attempt = { ...payload };
+    const dropped = [];
+
+    for (let i = 0; i < 8; i++) {
+        const { data, error } = await getSupabase()
+            .from('poker_venues')
+            .update(attempt)
+            .eq('id', venueId)
+            .select()
+            .maybeSingle();
+
+        if (!error) return { venue: data, dropped };
+
+        const isUnknownColumn = error.code === '42703' || error.code === 'PGRST204';
+        const col = isUnknownColumn ? missingColumnFromError(error) : null;
+        if (!col || !(col in attempt)) return { error, dropped };
+
+        delete attempt[col];
+        dropped.push(col);
+        console.warn(`[venue-manage] poker_venues has no column "${col}" — dropped from update`);
+
+        if (Object.keys(attempt).filter((k) => k !== 'updated_at').length === 0) {
+            return { error: null, venue: null, dropped, nothingLeft: true };
+        }
+    }
+
+    return { error: new Error('Too many unknown columns in update payload'), dropped };
+}
+
 async function handlePatch(req, res, venueId, user, manager) {
     try {
-        const updates = req.body;
+        const updates = req.body || {};
 
-        // Validate permissions for different update types
-        const updateFields = Object.keys(updates || {});
-        const infoFields = ['name', 'address', 'city', 'state', 'phone', 'website', 'description'];
-        const hoursFields = ['hours', 'hours_json'];
-        const gamesFields = ['games_offered', 'stakes_cash', 'stakes_tournament'];
-
-        // Check permissions
-        if (updateFields.some(f => infoFields.includes(f)) && !manager.can_edit_info) {
-            return res.status(403).json({ success: false, error: 'No permission to edit venue info' });
-        }
-        if (updateFields.some(f => hoursFields.includes(f)) && !manager.can_edit_hours) {
-            return res.status(403).json({ success: false, error: 'No permission to edit hours' });
-        }
-        if (updateFields.some(f => gamesFields.includes(f)) && !manager.can_edit_games) {
-            return res.status(403).json({ success: false, error: 'No permission to edit games' });
-        }
-
-        // Whitelist allowed fields
-        const allowedFields = [
-            'name', 'address', 'city', 'state', 'zip', 'phone', 'website',
-            'description', 'hours', 'hours_json',
-            'games_offered', 'stakes_cash', 'stakes_tournament',
-            'has_tournaments', 'has_food', 'has_hotel', 'has_parking',
-            'amenities', 'social_links', 'image_url', 'gallery_images'
-        ];
-
+        // Map incoming names onto real columns; anything with no mapping is
+        // not writable through this endpoint.
         const filteredUpdates = {};
-        for (const field of allowedFields) {
-            if (updates[field] !== undefined) {
-                filteredUpdates[field] = updates[field];
+        const ignoredFields = [];
+        const requiredPermissions = new Set();
+
+        for (const field of Object.keys(updates)) {
+            if (updates[field] === undefined) continue;
+            const column = FIELD_ALIASES[field] || field;
+            const permission = FIELD_PERMISSIONS[column];
+            if (!permission) {
+                ignoredFields.push(field);
+                continue;
             }
+            filteredUpdates[column] = updates[field];
+            requiredPermissions.add(permission);
         }
 
-        if (Object.keys(filteredUpdates || {}).length === 0) {
-            return res.status(400).json({ success: false, error: 'No valid fields to update' });
+        if (Object.keys(filteredUpdates).length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No valid fields to update',
+                // Name them: the old handler said only "No valid fields" and
+                // left the owner guessing which key was wrong.
+                unknown_fields: ignoredFields,
+            });
+        }
+
+        // Permission gate — every field in the write set, not just a subset.
+        for (const permission of requiredPermissions) {
+            if (!manager[permission]) {
+                return res.status(403).json({
+                    success: false,
+                    error: PERMISSION_ERRORS[permission] || 'No permission to edit this venue',
+                    fields: Object.keys(filteredUpdates).filter(
+                        (c) => FIELD_PERMISSIONS[c] === permission
+                    ),
+                });
+            }
         }
 
         // Add updated_at
         filteredUpdates.updated_at = new Date().toISOString();
 
         // Update venue
-        const { data: venue, error: updateError } = await getSupabase()
-            .from('poker_venues')
-            .update(filteredUpdates)
-            .eq('id', parseInt(venueId))
-            .select()
-            .maybeSingle();
+        const { venue, error: updateError, dropped, nothingLeft } =
+            await updateVenueTolerant(parseInt(venueId), filteredUpdates);
 
         if (updateError) {
             console.warn('Error updating venue:', updateError);
             return res.status(500).json({ success: false, error: 'Failed to update venue' });
+        }
+
+        if (nothingLeft) {
+            return res.status(400).json({
+                success: false,
+                error: 'None of the submitted fields exist on this venue',
+                unsupported_fields: dropped,
+                unknown_fields: ignoredFields,
+            });
         }
 
         // Log the update
@@ -219,7 +343,10 @@ async function handlePatch(req, res, venueId, user, manager) {
                 action: 'info_updated',
                 performed_by: user.id,
                 details: {
-                    fields_updated: Object.keys(filteredUpdates || {}).filter(f => f !== 'updated_at')
+                    // Log what actually persisted, not what was submitted.
+                    fields_updated: Object.keys(filteredUpdates || {})
+                        .filter(f => f !== 'updated_at' && !dropped.includes(f)),
+                    fields_dropped: dropped,
                 }
             });
         if (err_venue_verification_log_hb4g1) console.warn('[Supabase] Silent mutation failed in venue_verification_log:', err_venue_verification_log_hb4g1.message);
@@ -227,7 +354,13 @@ async function handlePatch(req, res, venueId, user, manager) {
         return res.status(200).json({
             success: true,
             venue,
-            message: 'Venue updated successfully'
+            // Surfaced so the owner is told what did NOT save instead of
+            // seeing a success toast over a partially-applied update.
+            ...(dropped.length ? { unsupported_fields: dropped } : {}),
+            ...(ignoredFields.length ? { unknown_fields: ignoredFields } : {}),
+            message: dropped.length || ignoredFields.length
+                ? 'Venue updated. Some fields could not be saved.'
+                : 'Venue updated successfully'
         });
 
     } catch (error) {

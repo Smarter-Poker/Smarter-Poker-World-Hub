@@ -18,6 +18,79 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Exact rating distribution + average for a review table.
+ *
+ * The previous implementation SELECTed up to 100 `overall_rating` rows and
+ * averaged those, while `total` came from an exact count — so every venue past
+ * 100 reviews displayed a star average and a distribution that contradicted
+ * its own review count. Five head-only COUNT queries (one per star bucket, run
+ * in parallel) give the exact numbers without transferring a single row, and
+ * the average is the count-weighted mean of the buckets.
+ *
+ * Errors are logged and degrade to zeros rather than failing the request: the
+ * reviews themselves have already been fetched and are worth serving.
+ */
+async function fetchRatingStats(table, keyColumn, keyValue) {
+    const buckets = [5, 4, 3, 2, 1];
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+    const counts = await Promise.all(buckets.map(async (stars) => {
+        const { count, error } = await getSupabase()
+            .from(table)
+            .select('id', { count: 'exact', head: true })
+            .eq(keyColumn, keyValue)
+            .eq('is_published', true)
+            .eq('overall_rating', stars);
+        if (error) {
+            console.warn(`[venue-reviews] rating count failed (${table}, ${stars} star):`, error.message);
+            return 0;
+        }
+        return count || 0;
+    }));
+
+    let weighted = 0;
+    let rated = 0;
+    buckets.forEach((stars, i) => {
+        distribution[stars] = counts[i];
+        weighted += stars * counts[i];
+        rated += counts[i];
+    });
+
+    return { distribution, average: rated > 0 ? weighted / rated : 0 };
+}
+
+/**
+ * Resolve reviewer display info for a set of reviews in ONE query.
+ * Was one `profiles` round trip per review inside Promise.all — up to `limit`
+ * requests to render a single page.
+ */
+async function attachReviewers(rows) {
+    const reviewerIds = Array.from(new Set((rows || []).map((r) => r.reviewer_id).filter(Boolean)));
+    let byId = {};
+    if (reviewerIds.length) {
+        const { data: profiles, error } = await getSupabase()
+            .from('profiles')
+            .select('id, display_name, username, avatar_url')
+            .in('id', reviewerIds);
+        if (error) {
+            console.warn('[venue-reviews] reviewer profile batch failed:', error.message);
+        }
+        (profiles || []).forEach((p) => { byId[p.id] = p; });
+    }
+    return (rows || []).map((r) => {
+        const p = byId[r.reviewer_id];
+        return {
+            ...r,
+            reviewer: {
+                id: r.reviewer_id,
+                display_name: p ? (p.display_name || p.username || 'Anonymous') : 'Anonymous',
+                avatar_url: p ? p.avatar_url : null,
+            },
+        };
+    });
+}
+
 export default async function handler(req, res) {
   try {
     // CDN cache: fresh for 60s, serve stale up to 300s
@@ -36,8 +109,17 @@ export default async function handler(req, res) {
       const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const id = safeQ(req.query.id);
       const sort = safeQ(req.query.sort) || 'recent';
-      const limit = safeQ(req.query.limit) || 20;
-      const offset = safeQ(req.query.offset) || 0;
+
+      // Clamp paging to sane integers. Unvalidated `parseInt` let `?limit=abc`
+      // through as NaN — `.range(0, NaN)` 500s — and `?limit=100000` through as
+      // a request to serialize every review a venue has ever received.
+      const clampInt = (raw, def, min, max) => {
+        const n = parseInt(raw, 10);
+        if (!Number.isFinite(n)) return def;
+        return Math.min(Math.max(n, min), max);
+      };
+      const limit = clampInt(safeQ(req.query.limit), 20, 1, 100);
+      const offset = clampInt(safeQ(req.query.offset), 0, 0, 100000);
 
       if (!id) {
         return res.status(400).json({
@@ -85,7 +167,7 @@ export default async function handler(req, res) {
       }
 
       const { data: reviews, error, count } = await query
-        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+        .range(offset, offset + limit - 1);
 
       // Gracefully handle type mismatch (UUID passed to integer column for social pages)
       // Fall back to social_page_reviews for social pages
@@ -118,82 +200,44 @@ export default async function handler(req, res) {
           }
 
           const { data: spReviews, count: spCount } = await spQuery
-            .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+            .range(offset, offset + limit - 1);
 
-          // Enrich with reviewer profiles
-          const enrichedReviews = await Promise.all((spReviews || []).map(async (r) => {
-            const { data: profile } = await getSupabase()
-              .from('profiles')
-              .select('display_name, username, avatar_url')
-              .eq('id', r.reviewer_id)
-              .maybeSingle();
-            return {
-              ...r,
-              reviewer: profile ? {
-                id: r.reviewer_id,
-                display_name: profile.display_name || profile.username || 'Anonymous',
-                avatar_url: profile.avatar_url
-              } : { id: r.reviewer_id, display_name: 'Anonymous', avatar_url: null }
-            };
-          }));
-
-          // Calculate distribution from social page reviews
-          const { data: allSpReviews } = await getSupabase()
-            .from('social_page_reviews')
-            .select('overall_rating')
-            .eq('page_id', id)
-            .eq('is_published', true)
-                .limit(100);
-
-          const spDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-          let spTotal = 0;
-          (allSpReviews || []).forEach(r => {
-            spDist[r.overall_rating] = (spDist[r.overall_rating] || 0) + 1;
-            spTotal += r.overall_rating;
-          });
-          const spAvg = allSpReviews?.length > 0 ? spTotal / allSpReviews.length : 0;
+          // Reviewer profiles (one batched query) and the exact rating stats
+          // are independent — run them together.
+          const [enrichedReviews, spStats] = await Promise.all([
+            attachReviewers(spReviews),
+            fetchRatingStats('social_page_reviews', 'page_id', id),
+          ]);
 
           return res.status(200).json({
             success: true,
             data: {
               reviews: enrichedReviews,
               total: spCount || 0,
-              average_rating: parseFloat(spAvg.toFixed(1)),
-              distribution: spDist,
-              limit: parseInt(limit),
-              offset: parseInt(offset)
+              average_rating: parseFloat(spStats.average.toFixed(1)),
+              distribution: spStats.distribution,
+              limit,
+              offset
             }
           });
         }
         throw error;
       }
 
-      // Calculate rating distribution
-      const { data: allReviews } = await getSupabase()
-        .from('commander_venue_reviews')
-        .select('overall_rating')
-        .eq('venue_id', id)
-        .eq('is_published', true)
-            .limit(100);
-
-      const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-      let totalRating = 0;
-      (allReviews || []).forEach(r => {
-        distribution[r.overall_rating] = (distribution[r.overall_rating] || 0) + 1;
-        totalRating += r.overall_rating;
-      });
-
-      const averageRating = allReviews?.length > 0 ? totalRating / allReviews.length : 0;
+      // Exact rating distribution + average across ALL published reviews.
+      const { distribution, average } = await fetchRatingStats(
+        'commander_venue_reviews', 'venue_id', id
+      );
 
       return res.status(200).json({
         success: true,
         data: {
           reviews: reviews || [],
           total: count,
-          average_rating: parseFloat(averageRating.toFixed(1)),
+          average_rating: parseFloat(average.toFixed(1)),
           distribution,
-          limit: parseInt(limit),
-          offset: parseInt(offset)
+          limit,
+          offset
         }
       });
     } catch (error) {

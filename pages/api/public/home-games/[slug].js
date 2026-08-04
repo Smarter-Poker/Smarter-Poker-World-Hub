@@ -128,6 +128,12 @@ export default async function handler(req, res) {
             city: group.city,
             state: group.state,
             member_count: group.member_count || 0,
+            // Present-but-zero rather than absent: the public page renders a
+            // stat row from this field, and an undefined value paints a blank
+            // number with the label still under it. The real count stays
+            // withheld — activity volume is part of what a private group is
+            // hiding — but the card now renders coherently.
+            games_hosted: 0,
           },
           host: group.profiles
             ? { id: group.profiles.id, display_name: group.profiles.display_name, avatar_url: group.profiles.avatar_url }

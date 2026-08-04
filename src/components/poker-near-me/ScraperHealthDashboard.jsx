@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { busEmit, EventType } from '../../engine/EventBus';
+import { getAuthUserId } from '../../lib/authUtils';
 const AUTO_REFRESH_MS = 30000;
 
 const STATUS_COLORS = {
@@ -103,12 +104,20 @@ export default function ScraperHealthDashboard() {
   const [metrics, setMetrics] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
   const [showAlertHistory, setShowAlertHistory] = useState(false);
+  // 'checking' | 'allowed' | 'denied' — this dashboard exposes internal
+  // infrastructure state (batch ids, anomaly counts, raw operator alert
+  // messages), so it is not rendered for non-admins.
+  const [access, setAccess] = useState('checking');
 
   const fetchHealth = useCallback(async () => {
     try {
       const res = await fetch(`/api/poker/scraper-health?_t=${Date.now()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      // The API deliberately answers 503 WITH a full health payload when the
+      // overall status is critical — exactly the case this dashboard exists
+      // for. Only treat a response as an error when it carries no payload.
+      const data = await res.json().catch(() => null);
+      const hasPayload = !!data && (data.status || data.scrapers);
+      if (!hasPayload) throw new Error(`HTTP ${res.status}`);
       setHealth(data);
       setError(null);
       setLastChecked(new Date());
@@ -128,20 +137,52 @@ export default function ScraperHealthDashboard() {
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
-  useEffect(() => { fetchHealth(); fetchMetrics(); }, [fetchHealth, fetchMetrics]);
+  // Admin gate — the pod is registered in POD_FEATURES with no role check, so
+  // any anonymous visitor could open ?pod=scraperhealth. Resolve the caller's
+  // profiles.is_admin flag before fetching or subscribing to anything.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const uid = getAuthUserId();
+      if (!uid) { if (mounted) { setAccess('denied'); setLoading(false); } return; }
+      try {
+        const { data, error: profErr } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', uid)
+          .maybeSingle();
+        if (!mounted) return;
+        if (profErr || !data?.is_admin) { setAccess('denied'); setLoading(false); return; }
+        setAccess('allowed');
+      } catch (_) {
+        if (mounted) { setAccess('denied'); setLoading(false); }
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
-    let interval = null;
+    if (access !== 'allowed') return;
+    fetchHealth();
+    fetchMetrics();
+  }, [access, fetchHealth, fetchMetrics]);
+
+  // Auto-refresh polling only. Kept separate from the realtime subscription so
+  // toggling the button no longer tears down and rebuilds the socket.
+  useEffect(() => {
+    if (access !== 'allowed' || !autoRefresh) return undefined;
+    const interval = setInterval(() => {
+      fetchHealth();
+      fetchMetrics();
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [access, autoRefresh, fetchHealth, fetchMetrics]);
+
+  // ── NATIVE REAL-TIME PUSH ENABLED ──
+  useEffect(() => {
+    if (access !== 'allowed') return undefined;
     let debounceTimer = null;
 
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        fetchHealth();
-        fetchMetrics();
-      }, AUTO_REFRESH_MS);
-    }
-
-    // ── NATIVE REAL-TIME PUSH ENABLED ──
     const channel = supabase.channel(`scraper-health-monitor-${Date.now()}`)
       .on(
         'postgres_changes',
@@ -160,14 +201,29 @@ export default function ScraperHealthDashboard() {
       .subscribe();
 
     return () => {
-      if (interval) clearInterval(interval);
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [autoRefresh, fetchHealth, fetchMetrics]);
+  }, [access, fetchHealth, fetchMetrics]);
 
   const overallStatus = health?.status || 'unknown';
   const overallCfg = STATUS_COLORS[overallStatus] || STATUS_COLORS.unknown;
+
+  if (access !== 'allowed') {
+    return (
+      <div style={{ padding: '20px', maxWidth: 800, margin: '0 auto', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+        <div style={{
+          padding: '20px 24px', borderRadius: 12, textAlign: 'center',
+          background: 'linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92))',
+          border: '1.5px solid rgba(148,163,184,0.15)', color: 'rgba(200,214,229,0.6)', fontSize: 13,
+        }}>
+          {access === 'checking'
+            ? 'Checking access...'
+            : 'Scraper Health is an internal operations view and is restricted to administrators.'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '20px', maxWidth: 800, margin: '0 auto', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
@@ -224,8 +280,21 @@ export default function ScraperHealthDashboard() {
 
       {health && (
         <>
+          {/* The real-time (Bravo) source was retired 2026-05-23 and the API no
+              longer emits a `bravo` key, so the panel silently vanished. Render
+              it only if the API ever reports it again, and state the retirement
+              explicitly rather than showing a single unexplained source. */}
           <SourcePanel name="Real-Time Engine" data={health.scrapers?.bravo} />
           <SourcePanel name="Catalog Engine" data={health.scrapers?.pokeratlas} />
+          {!health.scrapers?.bravo && (
+            <div style={{
+              padding: '10px 16px', marginBottom: 12, borderRadius: 10,
+              background: 'rgba(139,148,158,0.06)', border: '1px solid rgba(139,148,158,0.2)',
+              color: 'rgba(200,214,229,0.5)', fontSize: 12,
+            }}>
+              Real-Time Engine: retired. Cash-game activity is published from modelled history, so there is no live scrape to monitor.
+            </div>
+          )}
 
           {health.issues && health.issues.length > 0 && (
             <div style={{ padding: '14px 18px', borderRadius: 12, marginTop: 8, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -251,10 +320,14 @@ export default function ScraperHealthDashboard() {
 
           {showMetrics && metrics && (
             <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(0,212,255,0.1)' }}>
+              {/* The metrics API always returns an empty `bravo` bucket, which
+                  rendered a "Real-Time Engine" card of 0 cycles / 0 records for
+                  a source that no longer exists. Skip buckets with no cycles. */}
               {['bravo', 'pokeratlas'].map(source => {
                 const src = metrics[source];
                 if (!src) return null;
                 const s = src.summary;
+                if (source === 'bravo' && !(s?.cycles > 0)) return null;
                 const hist = src.history || [];
                 const maxDur = Math.max(...hist.map(h => h.duration || 0), 1);
                 return (

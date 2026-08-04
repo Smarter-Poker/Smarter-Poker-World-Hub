@@ -581,9 +581,26 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Saved', '/hub/poker-near-me/saved'),
             createMenuItem.divider(),
             createMenuItem.section('More Tools'),
-            createMenuItem.navigation('Game Trends', '/hub/poker-near-me/more?feature=trends'),
-            createMenuItem.navigation('Peak Activity', '/hub/poker-near-me/more?feature=heatmap'),
-            createMenuItem.navigation('Compare Venues', '/hub/poker-near-me/more?feature=compare'),
+            // Game Trends / Peak Activity / Compare Venues are lobby pods — the only
+            // place GameTrendsDashboard, PeakActivityHeatmap and VenueCompare are
+            // mounted. They are NOT More-tab sub-tabs (MORE_SUB_TABS in
+            // pages/hub/poker-near-me/[pnmTab].js is overview/roadtrip/social/alerts/
+            // nearmenow/tripcost), so the old '/more?feature=' links landed on the
+            // More overview with the param silently stripped by that page's deep-link
+            // writer. The lobby reads ?pod= on mount (POD_FEATURES) and preserves it
+            // in its own URL write-back.
+            // hardNav: true is required, not cosmetic. This menu is rendered BY the
+            // lobby (lobby.js builds getMenuConfig('poker-near-me')), and the lobby's
+            // ?pod= reader is a mount-only effect with a [] dep list that reads
+            // window.location.search — nothing there watches router.query. A <Link>
+            // click from the lobby to the lobby with a different query string is a
+            // same-route client transition: the page component never unmounts, the
+            // reader never re-runs, and the item is a dead click. A real document
+            // load remounts the page so the pod panel actually opens. Same reason the
+            // club-arena deep links below opt in.
+            createMenuItem.navigation('Game Trends', '/hub/poker-near-me/lobby?pod=gametrends', null, null, null, { hardNav: true }),
+            createMenuItem.navigation('Peak Activity', '/hub/poker-near-me/lobby?pod=peakheatmap', null, null, null, { hardNav: true }),
+            createMenuItem.navigation('Compare Venues', '/hub/poker-near-me/lobby?pod=compare', null, null, null, { hardNav: true }),
             createMenuItem.navigation('Trip Cost Calculator', '/hub/poker-near-me/roadtrip'),
             createMenuItem.navigation('Game Alerts', '/hub/poker-near-me/alerts'),
             createMenuItem.divider(),

@@ -147,6 +147,7 @@ export function mergeVenueData(tables) {
         sources: new Set(),
         games: [],
         total_tables: 0,
+        game_rows: 0,
       };
     }
 
@@ -163,7 +164,11 @@ export function mergeVenueData(tables) {
     entry.original_names.add(table.venue_name);
     entry.sources.add(table.source);
     entry.games.push(table);
-    entry.total_tables += (table.tables_running || 1);
+    // `|| 1` counted a row whose tables_running is 0 (a game listed but not
+    // currently running, which the scraper does emit) as one running table,
+    // padding the OBSERVED side of the count. Row count is tracked separately.
+    entry.total_tables += (table.tables_running ?? 0);
+    entry.game_rows += 1;
   });
 
   // Re-key by the display name so the returned shape stays { canonical_name: {...} }
@@ -179,6 +184,7 @@ export function mergeVenueData(tables) {
       merged[key].sources = [...new Set([...merged[key].sources, ...v.sources])];
       merged[key].games = merged[key].games.concat(v.games);
       merged[key].total_tables += v.total_tables;
+      merged[key].game_rows += v.game_rows;
     } else {
       merged[key] = v;
     }

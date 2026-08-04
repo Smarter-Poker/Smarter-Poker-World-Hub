@@ -162,6 +162,51 @@ export function getZonedNow(timeZone, at) {
 }
 
 /**
+ * US state -> IANA timezone. Best-effort: 12 states are split across zones, so this
+ * is only a fallback for rows where poker_venues.timezone is NULL. Kept here as the
+ * single copy so DailyTournamentsPanel and NearMeNowFeed cannot drift apart.
+ */
+export const US_STATE_TIMEZONES = {
+    'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix',
+    'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
+    'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York',
+    'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
+    'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago',
+    'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago',
+    'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York',
+    'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago',
+    'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago',
+    'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York',
+    'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York',
+    'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago',
+    'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York',
+    'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago',
+    'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York',
+    'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York',
+    'WI': 'America/Chicago', 'WY': 'America/Denver',
+};
+
+/**
+ * Resolve the timezone to use for a venue's wall-clock math.
+ * Prefers the authoritative poker_venues.timezone column, falls back to the venue's
+ * state. Returns null when neither is usable so callers can suppress rather than
+ * silently use the VIEWER's clock (which is wrong for a nationwide directory).
+ *
+ * @param {object} venue - object with optional `timezone` and `state`
+ * @returns {string|null} IANA timezone identifier, or null
+ */
+export function resolveVenueTimeZone(venue) {
+    if (!venue) return null;
+    if (typeof venue.timezone === 'string' && venue.timezone.trim()) return venue.timezone.trim();
+    const state = venue.state || venue.venue_state;
+    if (typeof state === 'string') {
+        const tz = US_STATE_TIMEZONES[state.trim().toUpperCase()];
+        if (tz) return tz;
+    }
+    return null;
+}
+
+/**
  * The "we cannot tell" open status. A wrong badge is worse than no badge, so
  * this is returned instead of guessing whenever the venue timezone is missing
  * or invalid.
@@ -206,7 +251,10 @@ export function getOpenStatus(venue) {
     // "Now" in the ROOM's timezone, not the viewer's. null = zone unknown/invalid.
     const zoned = getZonedNow(venue.timezone);
 
-    // Pick the right hours string
+    // Pick the right hours string.
+    // `hasPostedHours` tracks whether the venue posts ANY hours at all — a venue that
+    // posts hours but none that apply to the resolved day is "unknown", never 24/7.
+    const hasPostedHours = !!(venue.hours_weekend || venue.hours_weekday || venue.hours);
     let hoursStr = null;
     if (zoned) {
         const dayOfWeek = zoned.dayOfWeek; // 0=Sun, 6=Sat
@@ -235,6 +283,11 @@ export function getOpenStatus(venue) {
     }
 
     if (!hoursStr || hoursStr === '24/7') {
+        // BUG FIX: a venue that posts ONLY hours_weekend (common for weekend-only
+        // clubs) resolved hoursStr to null on a weekday and then fell through to the
+        // "assume 24/7" branch — a room explicitly closed Mon-Fri advertised
+        // "Open 24/7". The 24/7 assumption is only safe when NOTHING is posted.
+        if (!hoursStr && hasPostedHours) return unknownOpenStatus();
         // For charity/home_game: no hours data = show nothing (never assume 24/7)
         if (isNever24) return null;
         // For casinos/card_rooms/poker_clubs: safe to assume 24/7
@@ -358,7 +411,9 @@ export function estimateWaitTime(playersWaiting, tablesRunning = 1) {
     if (minutes <= 15) return { minutes, label: '~15 min' };
     if (minutes <= 30) return { minutes, label: '~30 min' };
     if (minutes <= 60) return { minutes, label: '~1 hour' };
-    return { minutes, label: `~${Math.round(minutes / 60)}h ${minutes % 60}m` };
+    // BUG FIX: Math.round on the hours component double-counted the remainder that
+    // `minutes % 60` already prints — 90 minutes rendered as "~2h 30m". Floor it.
+    return { minutes, label: `~${Math.floor(minutes / 60)}h ${minutes % 60}m` };
 }
 
 /**
@@ -543,7 +598,17 @@ export function fuzzyMatchScore(query, target) {
     const t = target.toLowerCase().trim();
     
     if (t === q) return 0;
-    if (t.includes(q)) return q.length / t.length; // 0.1 to 0.9 depending on coverage
+    if (t.includes(q)) {
+        // BUG FIX: this used to return q.length / t.length, which — with "lower is
+        // better" — ranked the MOST verbose name best: "bell" scored
+        // "Bellagio Poker Room Las Vegas" (0.14) ahead of "Bellagio" (0.5).
+        // Score by match position first (prefix matches win) then by how much of the
+        // target the query covers. Stays inside 0.05-0.45 so a whole-string hit
+        // always outranks the flat 0.5 returned by the word-level hit below.
+        const positionPenalty = t.indexOf(q) / t.length;   // 0 for a prefix match
+        const coveragePenalty = 1 - (q.length / t.length); // 0 when the query IS the target
+        return 0.05 + (0.2 * positionPenalty) + (0.2 * coveragePenalty);
+    }
     
     // Check if any word in target matches query closely
     const targetWords = t.split(/\s+/);

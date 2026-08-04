@@ -3,8 +3,8 @@
  * Shows friends checked in at venues with geofence integration.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getFreshAccessToken } from '../../lib/authUtils';
 
-const REFRESH_INTERVAL = 60000; // 1 minute
 // Friend check-ins older than this are history, not "at the venue right now".
 const CHECKIN_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -39,15 +39,48 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     const [loading, setLoading] = useState(true);
     const [inviteModal, setInviteModal] = useState(null);
     const [inviteCopied, setInviteCopied] = useState(false);
-    const refreshRef = useRef(null);
+    const [refreshing, setRefreshing] = useState(false);
     const abortRef = useRef(null);
+    // BUG FIX: fetchFriendCheckins used to reuse fetchFriends' controller, so a
+    // re-run of fetchFriends aborted the in-flight check-in requests and the venue
+    // map silently collapsed to empty. Each request group now owns its controller.
+    const checkinsAbortRef = useRef(null);
     const isMounted = useRef(true);
+
+    // WIRING FIX: the lobby call site renders <SocialLayer> with no authToken prop, so
+    // every request here ran unauthenticated — and /api/poker/checkins requires a Bearer
+    // token on both the friends branch and the user_id branch. Fall back to the client's
+    // own session token (getFreshAccessToken) when the prop is absent.
+    const [resolvedToken, setResolvedToken] = useState(authToken || null);
+    useEffect(() => {
+        let cancelled = false;
+        if (authToken) {
+            setResolvedToken(authToken);
+            return () => { cancelled = true; };
+        }
+        if (!userId) return undefined;
+        (async () => {
+            try {
+                const token = await getFreshAccessToken();
+                if (!cancelled && token) setResolvedToken(token);
+            } catch (err) {
+                console.warn('[SocialLayer] Could not resolve access token:', err?.message || err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [authToken, userId]);
+
+    const authHeaders = useCallback(
+        () => (resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
+        [resolvedToken]
+    );
 
     useEffect(() => {
         isMounted.current = true;
         return () => {
             isMounted.current = false;
             if (abortRef.current) abortRef.current.abort();
+            if (checkinsAbortRef.current) checkinsAbortRef.current.abort();
         };
     }, []);
 
@@ -63,8 +96,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             return;
         }
         try {
-            const headers = {};
-            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            const headers = authHeaders();
             // WIRING FIX: '/api/friends/list' has no handler (verified against the full
             // repo — only pages/api/friends/index.js exists), so this 404'd on every load
             // and the Friends feed was permanently empty. The real contract is
@@ -89,11 +121,14 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             console.warn('Failed to fetch friends:', err);
             setLoading(false);
         }
-    }, [userId, authToken]);
+    }, [userId, authHeaders]);
 
     // Fetch recent check-ins from friends
     const fetchFriendCheckins = useCallback(async () => {
         if (!userId) return;
+        if (checkinsAbortRef.current) checkinsAbortRef.current.abort();
+        const checkinsController = new AbortController();
+        checkinsAbortRef.current = checkinsController;
         try {
             // Get all recent checkins and filter to friends
             const friendIds = friendsList.map(f => f.friend_id || f.id);
@@ -112,16 +147,25 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             // trips); NearMeNowFeed already uses Promise.allSettled for the same job.
             const cutoffMs = Date.now() - CHECKIN_WINDOW_MS;
             const since = new Date(cutoffMs).toISOString();
+            // WIRING FIX 3: these requests carried NO Authorization header, but
+            // /api/poker/checkins hard-requires a Bearer token on the user_id branch
+            // (it is a physical location log). Every call 401'd, the 401 was swallowed
+            // by the `r.ok ? ... : { checkins: [] }` fallback, and "Friends at Venues"
+            // rendered its empty state even when friends were checked in.
+            const headers = authHeaders();
             const targets = friendIds.slice(0, 50);
             const results = await Promise.allSettled(
                 targets.map(fid =>
-                    fetch(`/api/poker/checkins?user_id=${fid}&since=${encodeURIComponent(since)}`, { signal: abortRef.current?.signal })
+                    fetch(`/api/poker/checkins?user_id=${fid}&since=${encodeURIComponent(since)}`, {
+                        headers,
+                        signal: checkinsController.signal,
+                    })
                         .then(r => (r.ok ? r.json() : { checkins: [] }))
                         .then(data => ({ fid, checkins: data.checkins || [] }))
                         .catch(() => ({ fid, checkins: [] }))
                 )
             );
-            if (!isMounted.current) return;
+            if (!isMounted.current || checkinsController.signal.aborted) return;
 
             const allCheckins = [];
             results.forEach(result => {
@@ -159,15 +203,18 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 venueMap[vid].checkins.push(c);
             });
 
-            if (!isMounted.current) return;
+            if (!isMounted.current || checkinsController.signal.aborted) return;
             setFriendCheckins(Object.values(venueMap || {}));
         } catch (err) {
             if (!isMounted.current) return;
             console.warn('Failed to fetch friend checkins:', err);
         } finally {
-            if (isMounted.current) setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+                setRefreshing(false);
+            }
         }
-    }, [userId, friendsList, venues]);
+    }, [userId, friendsList, venues, authHeaders]);
 
     useEffect(() => {
         fetchFriends();
@@ -176,11 +223,46 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     useEffect(() => {
         if (friendsList.length > 0) {
             fetchFriendCheckins();
-            // Disabled auto-refresh per user request!
-            // refreshRef.current = setInterval(fetchFriendCheckins, REFRESH_INTERVAL);
         }
-        return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
+        // Auto-refresh stays disabled per product decision; the header Refresh button
+        // below replaces it (the old setInterval/clearInterval pair was dead code).
     }, [friendsList, fetchFriendCheckins]);
+
+    // A11Y: the invite modal had no dialog role, no Escape handler and no focus move,
+    // so keyboard and screen-reader users tabbed straight past it into the page behind.
+    const inviteModalRef = useRef(null);
+    const inviteOpenerRef = useRef(null);
+    useEffect(() => {
+        if (!inviteModal) return undefined;
+        if (typeof document === 'undefined') return undefined;
+        inviteOpenerRef.current = document.activeElement;
+        if (inviteModalRef.current) {
+            try { inviteModalRef.current.focus(); } catch { /* focus not supported */ }
+        }
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                setInviteModal(null);
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = prevOverflow;
+            const opener = inviteOpenerRef.current;
+            if (opener && typeof opener.focus === 'function') {
+                try { opener.focus(); } catch { /* element gone */ }
+            }
+        };
+    }, [inviteModal]);
+
+    const handleManualRefresh = useCallback(() => {
+        if (refreshing) return;
+        setRefreshing(true);
+        fetchFriendCheckins();
+    }, [refreshing, fetchFriendCheckins]);
 
     // Generate invite link
     const generateInviteLink = (venueId) => {
@@ -221,6 +303,17 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 <h2>Friends at Venues</h2>
                 {totalFriendsActive > 0 && (
                     <span className="sl-badge">{totalFriendsActive} active</span>
+                )}
+                {userId && friendsList.length > 0 && (
+                    <button
+                        type="button"
+                        className="sl-refresh-btn"
+                        onClick={handleManualRefresh}
+                        disabled={refreshing}
+                        title="Refresh friend check-ins"
+                    >
+                        {refreshing ? 'Refreshing...' : 'Refresh'}
+                    </button>
                 )}
             </div>
 
@@ -325,10 +418,18 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             {/* Invite Modal */}
             {inviteModal && (
                 <div className="sl-modal-overlay" onClick={() => setInviteModal(null)}>
-                    <div className="sl-modal" onClick={e => e.stopPropagation()}>
+                    <div
+                        className="sl-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Invite a friend to ${inviteModal.venueName}`}
+                        tabIndex={-1}
+                        ref={inviteModalRef}
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="sl-modal-header">
                             <h3>Invite to Table</h3>
-                            <button className="sl-modal-close" onClick={() => setInviteModal(null)}>×</button>
+                            <button className="sl-modal-close" aria-label="Close" onClick={() => setInviteModal(null)}>×</button>
                         </div>
                         <p className="sl-modal-text">
                             Share this link to invite someone to join you at <strong>{inviteModal.venueName}</strong>:
@@ -348,6 +449,10 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .sl-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
         .sl-badge { padding: 4px 12px; border-radius: 20px; background: rgba(34,197,94,0.15); border: 1.5px solid rgba(34,197,94,0.3); color: #22c55e; font-size: 12px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(34,197,94,0.1); }
+        .sl-refresh-btn { padding: 4px 12px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.2); color: rgba(226,232,240,0.9); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .sl-refresh-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); color: #ffffff; }
+        .sl-refresh-btn:disabled { opacity: 0.5; cursor: wait; }
+        .sl-modal:focus { outline: none; }
         .sl-login-prompt, .sl-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
         .sl-login-prompt p, .sl-empty p { color: rgba(148,163,184,0.5); font-size: 14px; margin: 12px 0 0; }
         .sl-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }

@@ -1,4 +1,5 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -23,6 +24,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+    // The ranking changes slowly; without a cache header every visitor re-ran
+    // the whole scan.
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+
     const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const period = safeQ(req.query.period) || 'month';
 
@@ -31,17 +38,32 @@ export default async function handler(req, res) {
         if (period === 'week') since = new Date(Date.now() - 7 * 86400000).toISOString();
         else if (period === 'month') since = new Date(Date.now() - 30 * 86400000).toISOString();
 
-        let query = getSupabase()
-            .from('venue_checkins')
-            .select('user_id, user_name');
+        // The old query had NO .order() and a flat .limit(5000): Postgres returns
+        // rows in unspecified order, so for period=all the "top players" ranking
+        // and totalCheckins were derived from an arbitrary subset that could
+        // differ between two identical requests. Page deterministically through
+        // the whole window instead (ordered by created_at) so the aggregate is
+        // over every row, not whichever 5,000 came back first.
+        const PAGE = 1000;
+        const MAX_PAGES = 50; // 50k check-ins
+        let checkins = [];
+        let truncated = false;
+        for (let page = 0; page < MAX_PAGES; page++) {
+            let query = getSupabase()
+                .from('venue_checkins')
+                .select('user_id, user_name')
+                .order('created_at', { ascending: false });
+            if (since) query = query.gte('created_at', since);
 
-        if (since) query = query.gte('created_at', since);
-
-        const { data: checkins, error } = await query.limit(5000);
-
-        if (error) {
-            console.warn('Global leaderboard query error:', error);
-            return res.status(500).json({ success: false, error: 'Internal server error' });
+            const { data: pageRows, error } = await query.range(page * PAGE, (page + 1) * PAGE - 1);
+            if (error) {
+                console.warn('Global leaderboard query error:', error);
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            if (!pageRows || pageRows.length === 0) break;
+            checkins = checkins.concat(pageRows);
+            if (pageRows.length < PAGE) break;
+            if (page === MAX_PAGES - 1) truncated = true;
         }
 
         if (!checkins || checkins.length === 0) {
@@ -88,6 +110,9 @@ export default async function handler(req, res) {
             success: true,
             leaders: sorted,
             totalCheckins: checkins.length,
+            // True when the 50k paging ceiling was hit, so the counts are a
+            // most-recent-window aggregate rather than the full period.
+            truncated,
             period,
         });
 

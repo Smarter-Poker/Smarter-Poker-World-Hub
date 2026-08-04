@@ -6,7 +6,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Body: { host_id, game_id, game_name, message }
  * Auth: Bearer token required
  *
- * Anti-spam: 1 initial outreach per game per user per 24h.
+ * Anti-spam: 1 initial outreach per host per user per 24h, measured on the
+ * shared 1:1 DM thread (see the note at the check itself).
  * After first contact, users chat freely in Messenger.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -144,29 +145,49 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'message too long (max 2000 chars)' });
         }
 
-        // Anti-spam: Check if user already messaged this host about this game in last 24h
-        const contextTag = `[HOME_GAME_INQUIRY:${game_id}]`;
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-        const { data: recentMessages } = await getSupabase()
-            .from('social_messages')
-            .select('id')
-            .eq('sender_id', userId)
-            .ilike('content', `%${contextTag}%`)
-            .gte('created_at', twentyFourHoursAgo)
-            .limit(1);
-
-        if (recentMessages && recentMessages.length > 0) {
-            return res.status(429).json({
-                success: false,
-                error: "You've already messaged this host today. Check your Messenger for their reply.",
-                alreadyMessaged: true,
-            });
-        }
-
         // Find or create a DM conversation between user and host
         // Step 1: Check for an existing 1:1 DM.
         let conversationId = await findSharedDmConversationId(userId, host_id);
+
+        // Anti-spam: one outreach per host per 24h.
+        //
+        // This used to be keyed on a `[HOME_GAME_INQUIRY:<game_id>]` marker
+        // matched with ilike against social_messages.content — which meant the
+        // marker had to be concatenated onto the body, and the host read the
+        // raw internal token at the end of every first-contact message. There
+        // is no metadata column on social_messages to move the marker into and
+        // fn_send_message only takes (conversation, sender, content), so the
+        // window is now keyed on the DM thread itself: if this user already
+        // sent anything into their 1:1 thread with this host in the last 24h,
+        // the thread is open and further outreach belongs in Messenger, not in
+        // another injected inquiry. Slightly stricter than per-game (a second
+        // inquiry about a different game inside the same day is deferred to
+        // Messenger) and it leaks nothing into the conversation.
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        if (conversationId) {
+            const { data: recentMessages, error: recentErr } = await getSupabase()
+                .from('social_messages')
+                .select('id')
+                .eq('conversation_id', conversationId)
+                .eq('sender_id', userId)
+                .gte('created_at', twentyFourHoursAgo)
+                .limit(1);
+
+            // Log rather than swallow: a failed lookup silently disables the
+            // anti-spam window, and that should be visible.
+            if (recentErr) {
+                console.warn('[MessageHost] Anti-spam lookup failed:', recentErr.message);
+            }
+
+            if (recentMessages && recentMessages.length > 0) {
+                return res.status(429).json({
+                    success: false,
+                    error: "You've already messaged this host today. Check your Messenger for their reply.",
+                    alreadyMessaged: true,
+                    conversationId,
+                });
+            }
+        }
 
         // Step 2: Create new conversation if none exists
         if (!conversationId) {
@@ -203,7 +224,8 @@ export default async function handler(req, res) {
             if (settledId) conversationId = settledId;
         }
 
-        // Step 3: Send the message with context tag.
+        // Step 3: Send the message. Nothing internal is appended — the host
+        // reads exactly what the player wrote.
         // Use the authoritative title from the game row. body.game_name is
         // caller-controlled and unbounded — it must never be interpolated raw,
         // or it bypasses the 2000-char cap enforced on `message`.
@@ -214,8 +236,8 @@ export default async function handler(req, res) {
             ? gameRow.title.trim().slice(0, 120)
             : (safeGameName || 'a home game');
         const userMessage = message?.trim()
-            ? `${message.trim()}\n\n${contextTag}`
-            : `Hey! I'm interested in joining ${gameName}. Is there room for a new player? ${contextTag}`;
+            ? message.trim()
+            : `Hey! I'm interested in joining ${gameName}. Is there room for a new player?`;
 
         const { data: msgId, error: msgErr } = await getSupabase().rpc('fn_send_message', {
             p_conversation_id: conversationId,

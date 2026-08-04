@@ -98,20 +98,34 @@ try {
       const limitNum = Math.min(parseInt(rawLimit, 10) || 30, 100);
       const offsetNum = Math.min(parseInt(rawOffset, 10) || 0, 5000);
 
+      // PAGINATION: two independent sources are merged, sorted and sliced, so
+      // each source must be read from row 0 up to the END of the requested page
+      // — not from `offset`. Applying the same offset to both dropped every item
+      // that sorted into page 1 from one source and page 2 from the other, so
+      // those rows were never returned at all. The trailing `.limit(100)` calls
+      // also silently clobbered `.range()` whenever page_type/page_id was
+      // supplied, which is why a caller asking for limit=200 got at most 100.
+      const mergeWindow = Math.min(offsetNum + limitNum, 1000); // PostgREST per-response ceiling
+
       let query = getSupabase()
         .from('page_activity')
         .select('*')
         .eq('activity_type', 'promotion')
         .order('created_at', { ascending: false })
-        .range(offsetNum, offsetNum + limitNum - 1);
+        .range(0, mergeWindow - 1);
+
+      let countQuery = getSupabase()
+        .from('page_activity')
+        .select('id', { count: 'exact', head: true })
+        .eq('activity_type', 'promotion');
 
       if (page_type && page_type !== 'all') {
-        query = query.eq('page_type', page_type)
-            .limit(100);
+        query = query.eq('page_type', page_type);
+        countQuery = countQuery.eq('page_type', page_type);
       }
       if (page_id) {
-        query = query.eq('page_id', page_id)
-            .limit(100);
+        query = query.eq('page_id', page_id);
+        countQuery = countQuery.eq('page_id', page_id);
       }
 
       const { data, error } = await query;
@@ -127,21 +141,36 @@ try {
         .select('*')
         .eq('notification_type', 'promotion')
         .order('created_at', { ascending: false })
-        .range(offsetNum, offsetNum + limitNum - 1);
+        .range(0, mergeWindow - 1);
+
+      let notifCountQuery = getSupabase()
+        .from('page_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('notification_type', 'promotion');
 
       if (page_type && page_type !== 'all') {
-        notifQuery = notifQuery.eq('page_type', page_type)
-            .limit(100);
+        notifQuery = notifQuery.eq('page_type', page_type);
+        notifCountQuery = notifCountQuery.eq('page_type', page_type);
       }
       if (page_id) {
-        notifQuery = notifQuery.eq('page_id', page_id)
-            .limit(100);
+        notifQuery = notifQuery.eq('page_id', page_id);
+        notifCountQuery = notifCountQuery.eq('page_id', page_id);
       }
 
       const { data: notifData, error: notifError } = await notifQuery;
 
       if (notifError) {
         console.warn('Error fetching promotion notifications:', notifError);
+      }
+
+      // Exact row counts so a client knows when to stop paging. `total` used to
+      // be the size of the merged PAGE, which never told the caller anything.
+      let totalCount = null;
+      try {
+        const [{ count: actCount }, { count: nCount }] = await Promise.all([countQuery, notifCountQuery]);
+        totalCount = (actCount || 0) + (nCount || 0);
+      } catch (countErr) {
+        console.warn('[promotions] exact count failed (non-fatal):', countErr?.message || countErr);
       }
 
       // Build name lookups for enrichment
@@ -171,10 +200,14 @@ try {
         })),
       ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+      const pagedPromotions = promotions.slice(offsetNum, offsetNum + limitNum);
+
       return res.status(200).json({
         success: true,
-        promotions: promotions.slice(0, limitNum),
-        total: promotions.length,
+        promotions: pagedPromotions,
+        total: totalCount != null ? totalCount : promotions.length,
+        offset: offsetNum,
+        limit: limitNum,
       });
     } catch (err) {
       console.warn('Promotions API error:', err);

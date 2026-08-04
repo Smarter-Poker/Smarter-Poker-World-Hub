@@ -33,16 +33,48 @@ function parseLocalDate(value) {
     return isNaN(d.getTime()) ? null : d;
 }
 
+const MONTHS_PER_PAGE = 4;
+
 function SeriesCalendar({ series, router, openVenueModal }) {
     const today = new Date();
+    // IMPROVEMENT: the calendar was hard-locked to 4 months forward from today with no
+    // controls, so a series running since last month was invisible and anything past the
+    // window (the horizon players book WSOP/WPT travel on) could not be browsed at all.
+    const [monthOffset, setMonthOffset] = React.useState(0);
+    // The "+N" overflow indicator is now a real control — clicking a day expands the cell.
+    const [expandedDay, setExpandedDay] = React.useState(null);
+
     const months = [];
-    for (let m = 0; m < 4; m++) {
-        const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+    for (let m = 0; m < MONTHS_PER_PAGE; m++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + monthOffset + m, 1);
         months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
     }
 
+    const shiftMonths = (delta) => {
+        setExpandedDay(null);
+        setMonthOffset(prev => Math.max(-24, Math.min(24, prev + delta)));
+    };
+
     return (
         <div className="calendar-view">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <button type="button" className="view-btn" onClick={() => shiftMonths(-MONTHS_PER_PAGE)} aria-label="Show earlier months">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+                    Earlier
+                </button>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>
+                    {months[0].label} - {months[months.length - 1].label}
+                </span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    {monthOffset !== 0 && (
+                        <button type="button" className="view-btn" onClick={() => { setExpandedDay(null); setMonthOffset(0); }}>Today</button>
+                    )}
+                    <button type="button" className="view-btn" onClick={() => shiftMonths(MONTHS_PER_PAGE)} aria-label="Show later months">
+                        Later
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+                    </button>
+                </div>
+            </div>
             {months.map((mo, mi) => {
                 const daysInMonth = new Date(mo.year, mo.month + 1, 0).getDate();
                 const firstDay = new Date(mo.year, mo.month, 1).getDay();
@@ -79,10 +111,13 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                                         dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
                                 });
                                 const isToday = dayDate.toDateString() === today.toDateString();
+                                const cellKey = `${mo.year}-${mo.month}-${dayNum}`;
+                                const isExpanded = expandedDay === cellKey;
+                                const visibleSeries = isExpanded ? daySeries : daySeries.slice(0, 2);
                                 return (
                                     <div key={dayNum} className={'cal-cell' + (isToday ? ' today' : '') + (daySeries.length > 0 ? ' has-events' : '')}>
                                         <span className="cal-day-num">{dayNum}</span>
-                                        {daySeries.slice(0, 2).map((s, si) => {
+                                        {visibleSeries.map((s, si) => {
                                             const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
                                             return (
                                                 <div key={s.id || si} className="cal-event"
@@ -98,7 +133,22 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                                                 </div>
                                             );
                                         })}
-                                        {daySeries.length > 2 && <div className="cal-more">+{daySeries.length - 2}</div>}
+                                        {daySeries.length > 2 && (
+                                            <div className="cal-more"
+                                                role="button"
+                                                tabIndex={0}
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => setExpandedDay(isExpanded ? null : cellKey)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        setExpandedDay(isExpanded ? null : cellKey);
+                                                    }
+                                                }}
+                                                title={isExpanded ? 'Show fewer' : `Show all ${daySeries.length} series`}>
+                                                {isExpanded ? 'Less' : `+${daySeries.length - 2}`}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

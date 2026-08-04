@@ -86,39 +86,35 @@ export default async function handler(req, res) {
 
       if (venueError || !venue) {
         // Fallback: check social_pages by UUID (clubs, charities, home games)
-        let socialPage = null;
-        const { data: spById, error: spError } = await getSupabase()
-          .from('social_pages')
-          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (!spError && spById) {
-          socialPage = spById;
-        } else {
-          // Second fallback: check if id is a linked_venue_id (integer venue ID → social page)
-          const { data: spByLinked, error: linkedError } = await getSupabase()
-            .from('social_pages')
-            .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
-            .eq('linked_venue_id', id)
-            .limit(1)
-            .maybeSingle();
-
-          if (!linkedError && spByLinked) {
-            socialPage = spByLinked;
-          } else {
-            // Final fallback: try slug-based lookup
-            const { data: spBySlug, error: slugError } = await getSupabase()
-              .from('social_pages')
-              .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at')
-              .eq('slug', id)
-              .maybeSingle();
-
-            if (!slugError && spBySlug) {
-              socialPage = spBySlug;
-            }
+        //
+        // Three lookups, run TOGETHER instead of one-after-the-other. They
+        // cannot be collapsed into a single `.or(id.eq.X,slug.eq.X,
+        // linked_venue_id.eq.X)`: `id` is a uuid column and `linked_venue_id`
+        // an integer, so a slug or an integer id makes the whole OR fail with
+        // 22P02 (invalid input syntax) and the page 404s. Running them in
+        // parallel and tolerating per-query errors keeps that safety while
+        // cutting up to two round trips off every social-page request.
+        // Priority on a tie is unchanged: id, then linked_venue_id, then slug.
+        const SP_COLUMNS = 'id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, linked_entity_id, linked_entity_type, created_at';
+        const spLookup = async (column, value, extra) => {
+          try {
+            let q = getSupabase().from('social_pages').select(SP_COLUMNS).eq(column, value);
+            if (extra === 'limit1') q = q.limit(1);
+            const { data, error } = await q.maybeSingle();
+            if (error) return null;
+            return data || null;
+          } catch (_spErr) {
+            return null;
           }
-        }
+        };
+
+        const [spById, spByLinked, spBySlug] = await Promise.all([
+          spLookup('id', id),
+          spLookup('linked_venue_id', id, 'limit1'),
+          spLookup('slug', id),
+        ]);
+
+        const socialPage = spById || spByLinked || spBySlug || null;
 
         if (!socialPage) {
           return res.status(404).json({
@@ -145,16 +141,34 @@ export default async function handler(req, res) {
         // code only checks `if (lv)` the whole Commander bridge (live games,
         // tournaments, trust score, hours, followers) silently never rendered.
         // Errors are logged now so the next drift is visible.
-        if (linkedVenueId) {
-          const { data: lv, error: lvErr } = await getSupabase()
-            .from('poker_venues')
-            .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, has_tournaments')
-            .eq('id', linkedVenueId)
-            .eq('is_active', true)
-            .maybeSingle();
-          if (lvErr) console.warn('[venue-detail] linked venue lookup failed:', lvErr.message);
-          if (lv) linkedVenue = lv;
-        }
+        //
+        // The linked-venue lookup and the home-group lookup are independent —
+        // run them in the same wave rather than back to back.
+        const [lvById, homeGroupRow] = await Promise.all([
+          (async () => {
+            if (!linkedVenueId) return null;
+            const { data: lv, error: lvErr } = await getSupabase()
+              .from('poker_venues')
+              .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, has_tournaments')
+              .eq('id', linkedVenueId)
+              .eq('is_active', true)
+              .maybeSingle();
+            if (lvErr) console.warn('[venue-detail] linked venue lookup failed:', lvErr.message);
+            return lv || null;
+          })(),
+          (async () => {
+            // Bridge: if it's a home game, grab its home group to extract
+            // settings for games/stakes/tournaments.
+            if (socialPage.page_type !== 'home_game' || !socialPage.linked_entity_id) return null;
+            const { data: hg } = await getSupabase()
+              .from('commander_home_groups')
+              .select('id, settings, default_game_type, default_stakes')
+              .eq('id', socialPage.linked_entity_id)
+              .maybeSingle();
+            return hg || null;
+          })(),
+        ]);
+        if (lvById) linkedVenue = lvById;
 
         if (!linkedVenue) {
           // Fallback: find poker_venue by name match
@@ -172,55 +186,69 @@ export default async function handler(req, res) {
           }
         }
 
-        // Bridge: if it's a home game, grab its home group to extract settings for games/stakes/tournaments
-        let homeGroup = null;
-        if (socialPage.page_type === 'home_game' && socialPage.linked_entity_id) {
-          const { data: hg } = await getSupabase()
-            .from('commander_home_groups')
-            .select('id, settings, default_game_type, default_stakes')
-            .eq('id', socialPage.linked_entity_id)
-            .maybeSingle();
-          homeGroup = hg;
-        }
+        const homeGroup = homeGroupRow;
 
         const commanderEnabled = linkedVenue?.commander_enabled || false;
         const venueIdForCommander = linkedVenueId;
 
-        // Fetch Commander live games if linked venue has Commander enabled
-        let liveGames = [];
-        if (commanderEnabled && venueIdForCommander) {
-          try {
-            const { data: games } = await getSupabase()
-              .from('commander_games')
-              .select('id, game_type, stakes, current_players, max_players, status, started_at')
-              .eq('venue_id', venueIdForCommander)
-              .in('status', ['running', 'waiting'])
-              .order('started_at', { ascending: false })
-                  .limit(100);
-            liveGames = games || [];
-          } catch (cmdErr) {
-            console.warn('[venue-detail] Commander live games query failed:', cmdErr.message);
-            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-live-games', venue_id: String(venueIdForCommander) } });
-          }
-        }
+        // ── PARALLEL FAN-OUT (social_pages path) ────────────────────────
+        // Live games, tournaments and the waitlist head-count all key off the
+        // same linked venue id and none depends on the others' results, so
+        // they run together instead of as three sequential round trips.
+        const [liveGames, commanderTournaments, waitingCount] = await Promise.all([
+          (async () => {
+            if (!commanderEnabled || !venueIdForCommander) return [];
+            try {
+              const { data: games } = await getSupabase()
+                .from('commander_games')
+                .select('id, game_type, stakes, current_players, max_players, status, started_at')
+                .eq('venue_id', venueIdForCommander)
+                .in('status', ['running', 'waiting'])
+                .order('started_at', { ascending: false })
+                .limit(100);
+              return games || [];
+            } catch (cmdErr) {
+              console.warn('[venue-detail] Commander live games query failed:', cmdErr.message);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-live-games', venue_id: String(venueIdForCommander) } });
+              return [];
+            }
+          })(),
+          (async () => {
+            if (!commanderEnabled || !venueIdForCommander) return [];
+            try {
+              const { data: tourneys } = await getSupabase()
+                .from('commander_tournaments')
+                .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool, players_remaining')
+                .eq('venue_id', venueIdForCommander)
+                .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
+                .order('scheduled_start', { ascending: true })
+                .limit(20);
+              return tourneys || [];
+            } catch (cmdErr) {
+              console.warn('[venue-detail] Commander tournaments query failed:', cmdErr.message);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-tournaments', venue_id: String(venueIdForCommander) } });
+              return [];
+            }
+          })(),
+          (async () => {
+            if (!commanderEnabled || !venueIdForCommander) return null;
+            try {
+              const { count } = await getSupabase()
+                .from('commander_waitlist')
+                .select('*', { count: 'exact', head: true })
+                .eq('venue_id', venueIdForCommander)
+                .eq('status', 'waiting')
+                .limit(100);
+              return count || 0;
+            } catch (cmdErr) {
+              console.warn('[venue-detail] Waitlist query failed (sp path):', cmdErr.message);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'sp-waitlist', venue_id: String(venueIdForCommander) } });
+              return 0;
+            }
+          })(),
+        ]);
 
-        // Fetch Commander tournaments if linked venue exists (including live/running)
-        let upcomingTournaments = [];
-        if (commanderEnabled && venueIdForCommander) {
-          try {
-            const { data: tourneys } = await getSupabase()
-              .from('commander_tournaments')
-              .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool, players_remaining')
-              .eq('venue_id', venueIdForCommander)
-              .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
-              .order('scheduled_start', { ascending: true })
-              .limit(20);
-            upcomingTournaments = tourneys || [];
-          } catch (cmdErr) {
-            console.warn('[venue-detail] Commander tournaments query failed:', cmdErr.message);
-            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-tournaments', venue_id: String(venueIdForCommander) } });
-          }
-        }
+        let upcomingTournaments = commanderTournaments;
 
         // Fallback: look up Club Arena tournaments via owner_id
         if (upcomingTournaments.length === 0 && socialPage.owner_id) {
@@ -272,32 +300,15 @@ export default async function handler(req, res) {
           }
         }
 
-        // Calculate waitlist stats if Commander is enabled
-        let waitlistStats = null;
-        if (commanderEnabled && venueIdForCommander) {
-          try {
-            const { count: waitingCount } = await getSupabase()
-              .from('commander_waitlist')
-              .select('*', { count: 'exact', head: true })
-              .eq('venue_id', venueIdForCommander)
-              .eq('status', 'waiting')
-                  .limit(100);
-
-            waitlistStats = {
+        // Waitlist stats derive from the head-count fetched above plus the
+        // live games we already have in hand.
+        const waitlistStats = (commanderEnabled && venueIdForCommander)
+          ? {
               total_waiting: waitingCount || 0,
               games_running: liveGames.filter(g => g.status === 'running').length,
               tables_available: liveGames.filter(g => g.status === 'waiting').length
-            };
-          } catch (cmdErr) {
-            console.warn('[venue-detail] Waitlist query failed (sp path):', cmdErr.message);
-            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'sp-waitlist', venue_id: String(venueIdForCommander) } });
-            waitlistStats = {
-              total_waiting: 0,
-              games_running: liveGames.filter(g => g.status === 'running').length,
-              tables_available: liveGames.filter(g => g.status === 'waiting').length
-            };
-          }
-        }
+            }
+          : null;
 
         // Extract home game settings if available
         let hgGames = linkedVenue?.games_offered || [];
@@ -388,141 +399,165 @@ export default async function handler(req, res) {
         });
       }
 
-      // Fetch active games if Commander is enabled
-      let liveGames = [];
-      if (venue.commander_enabled) {
-        try {
-          const { data: games } = await getSupabase()
-            .from('commander_games')
-            .select(`
-              id,
-              game_type,
-              stakes,
-              current_players,
-              max_players,
-              status,
-              started_at
-            `)
-            .eq('venue_id', id)
-            .in('status', ['running', 'waiting'])
-            .order('started_at', { ascending: false })
-                .limit(100);
-
-          liveGames = games || [];
-        } catch (cmdErr) {
-          console.warn('[venue-detail] Commander live games query failed (pv path):', cmdErr.message);
-          captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-live-games', venue_id: String(id) } });
-        }
-      }
-
-      // Fetch upcoming + live tournaments
-      let tournaments = [];
-      try {
-        const { data: tourneysData } = await getSupabase()
-          .from('commander_tournaments')
-          .select(`
-            id,
-            name,
-            tournament_type,
-            buyin_amount,
-            scheduled_start,
-            status,
-            current_entries,
-            max_entries,
-            guaranteed_pool,
-            players_remaining
-          `)
-          .eq('venue_id', id)
-          .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
-          .order('scheduled_start', { ascending: true })
-          .limit(20);
-        tournaments = tourneysData || [];
-      } catch (cmdErr) {
-        console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
-        captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-tournaments', venue_id: String(id) } });
-      }
-
-      // Fetch daily tournament schedule
-      let dailyTournaments = [];
-      try {
-        const { data: dtData } = await getSupabase()
-          .from('venue_daily_tournaments')
-          .select('*')
-          .eq('venue_id', id)
-          .eq('is_active', true)
-          .order('day_of_week')
+      // ── PARALLEL FAN-OUT (pv path) ────────────────────────────────────
+      // None of these six reads depends on any of the others, and this is the
+      // most-hit public endpoint on the site. They used to be awaited one
+      // after another: six sequential Supabase round trips stacked into the
+      // response time of every venue page view. Each keeps its own try/catch
+      // so one failing table still degrades to an empty section instead of
+      // taking the whole payload down.
+      const [
+        liveGames,
+        tournaments,
+        dailyTournaments,
+        promotions,
+        venueNews,
+        waitingCount,
+      ] = await Promise.all([
+        // Active games, if Commander is enabled
+        (async () => {
+          if (!venue.commander_enabled) return [];
+          try {
+            const { data: games } = await getSupabase()
+              .from('commander_games')
+              .select(`
+                id,
+                game_type,
+                stakes,
+                current_players,
+                max_players,
+                status,
+                started_at
+              `)
+              .eq('venue_id', id)
+              .in('status', ['running', 'waiting'])
+              .order('started_at', { ascending: false })
               .limit(100);
-        dailyTournaments = dtData || [];
-      } catch (cmdErr) {
-        console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
-        captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-daily-schedule', venue_id: String(id) } });
-      }
+            return games || [];
+          } catch (cmdErr) {
+            console.warn('[venue-detail] Commander live games query failed (pv path):', cmdErr.message);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-live-games', venue_id: String(id) } });
+            return [];
+          }
+        })(),
 
-      // Fetch active promotions
-      let promotions = [];
-      try {
-        const { data: promosData } = await getSupabase()
-          .from('commander_promotions')
-          .select(`
-            id,
-            name,
-            description,
-            promo_type,
-            start_time,
-            end_time,
-            days_active
-          `)
-          .eq('venue_id', id)
-          .eq('is_active', true)
-          .limit(5);
-        promotions = promosData || [];
-      } catch (cmdErr) {
-        console.warn('[venue-detail] Promotions query failed (pv path):', cmdErr.message);
-        captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });
-      }
+        // Upcoming + live tournaments
+        (async () => {
+          try {
+            const { data: tourneysData } = await getSupabase()
+              .from('commander_tournaments')
+              .select(`
+                id,
+                name,
+                tournament_type,
+                buyin_amount,
+                scheduled_start,
+                status,
+                current_entries,
+                max_entries,
+                guaranteed_pool,
+                players_remaining
+              `)
+              .eq('venue_id', id)
+              .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
+              .order('scheduled_start', { ascending: true })
+              .limit(20);
+            return tourneysData || [];
+          } catch (cmdErr) {
+            console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-tournaments', venue_id: String(id) } });
+            return [];
+          }
+        })(),
 
-      // Fetch scraped venue news (from venue scraper pipeline)
-      let venueNews = [];
-      try {
-        const { data: newsData } = await getSupabase()
-          .from('venue_news')
-          .select('id, title, content, source_url, image_url, published_at, scraped_at')
-          .eq('venue_id', id)
-          .eq('is_active', true)
-          .order('scraped_at', { ascending: false })
-          .limit(10);
-        venueNews = newsData || [];
-      } catch (newsErr) {
-        console.warn('[venue-detail] Venue news query failed (pv path):', newsErr.message);
-      }
+        // Daily tournament schedule
+        (async () => {
+          try {
+            const { data: dtData } = await getSupabase()
+              .from('venue_daily_tournaments')
+              .select('*')
+              .eq('venue_id', id)
+              .eq('is_active', true)
+              .order('day_of_week')
+              .limit(100);
+            return dtData || [];
+          } catch (cmdErr) {
+            console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-daily-schedule', venue_id: String(id) } });
+            return [];
+          }
+        })(),
 
-      // Calculate waitlist stats if Commander enabled
-      let waitlistStats = null;
-      if (venue.commander_enabled) {
-        try {
-          const { count: waitingCount } = await getSupabase()
-            .from('commander_waitlist')
-            .select('*', { count: 'exact', head: true })
-            .eq('venue_id', id)
-            .eq('status', 'waiting')
-                .limit(100);
+        // Active promotions
+        (async () => {
+          try {
+            const { data: promosData } = await getSupabase()
+              .from('commander_promotions')
+              .select(`
+                id,
+                name,
+                description,
+                promo_type,
+                start_time,
+                end_time,
+                days_active
+              `)
+              .eq('venue_id', id)
+              .eq('is_active', true)
+              .limit(5);
+            return promosData || [];
+          } catch (cmdErr) {
+            console.warn('[venue-detail] Promotions query failed (pv path):', cmdErr.message);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });
+            return [];
+          }
+        })(),
 
-          waitlistStats = {
+        // Scraped venue news (from venue scraper pipeline)
+        (async () => {
+          try {
+            const { data: newsData } = await getSupabase()
+              .from('venue_news')
+              .select('id, title, content, source_url, image_url, published_at, scraped_at')
+              .eq('venue_id', id)
+              .eq('is_active', true)
+              .order('scraped_at', { ascending: false })
+              .limit(10);
+            return newsData || [];
+          } catch (newsErr) {
+            console.warn('[venue-detail] Venue news query failed (pv path):', newsErr.message);
+            return [];
+          }
+        })(),
+
+        // Waitlist head-count. Only the DERIVED stats below need liveGames,
+        // the count itself does not — so it runs in the same wave.
+        (async () => {
+          if (!venue.commander_enabled) return null;
+          try {
+            const { count } = await getSupabase()
+              .from('commander_waitlist')
+              .select('*', { count: 'exact', head: true })
+              .eq('venue_id', id)
+              .eq('status', 'waiting')
+              .limit(100);
+            return count || 0;
+          } catch (cmdErr) {
+            console.warn('[venue-detail] Waitlist stats query failed (pv path):', cmdErr.message);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-waitlist', venue_id: String(id) } });
+            // Still return partial stats from the live games we already have
+            return 0;
+          }
+        })(),
+      ]);
+
+      const waitlistStats = venue.commander_enabled
+        ? {
             total_waiting: waitingCount || 0,
             games_running: liveGames.filter(g => g.status === 'running').length,
             tables_available: liveGames.filter(g => g.status === 'waiting').length
-          };
-        } catch (cmdErr) {
-          console.warn('[venue-detail] Waitlist stats query failed (pv path):', cmdErr.message);
-          captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-waitlist', venue_id: String(id) } });
-          // Still return partial stats from the live games we already have
-          waitlistStats = {
-            total_waiting: 0,
-            games_running: liveGames.filter(g => g.status === 'running').length,
-            tables_available: liveGames.filter(g => g.status === 'waiting').length
-          };
-        }
-      }
+          }
+        : null;
 
       return res.status(200).json({
         success: true,

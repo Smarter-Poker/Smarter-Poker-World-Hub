@@ -15,6 +15,47 @@ import { createClient } from '@supabase/supabase-js';
 import { stateCodeToName, stateCodeToSlug, US_STATES_BY_CODE } from '../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 
+// Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
+// and from in/[state]/index.js.
+const HOME_GROUP_INACTIVITY_DAYS = 45;
+
+// Hard ceiling on the national page scan so the totals can never silently
+// truncate against PostgREST's implicit max-rows cap. If the directory ever
+// grows past this we want an explicit, known boundary rather than a number
+// that quietly stops growing.
+const PAGE_FETCH_CAP = 5000;
+
+// PostgREST `in.(...)` filters are URL-encoded into the query string, so the
+// id list is chunked to keep every request well under the URL length limit.
+const GROUP_ID_CHUNK = 400;
+
+// A home group is publicly listable only while it is active, not private, and
+// showing signs of life. Kept byte-identical to the copy in
+// in/[state]/index.js and in/[state]/[city].js — the state and city pages
+// already filter on this, so counting raw social_pages rows here advertised
+// totals that no drill-down page could ever show.
+function isGroupPubliclyVisible(g) {
+  if (!g || !g.id) return false;
+  if (g.is_active === false) return false;
+  if (g.is_private === true) return false;
+
+  const now = Date.now();
+  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
+  const ts = (v) => {
+    if (!v) return null;
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? null : t;
+  };
+
+  const lastActivity = ts(g.last_activity_at);
+  if (lastActivity != null && lastActivity >= cutoff) return true;
+  const created = ts(g.created_at);
+  if (created != null && created >= cutoff) return true;
+  const override = ts(g.visibility_override_until);
+  if (override != null && override > now) return true;
+  return false;
+}
+
 export async function getServerSideProps({ res }) {
   // 30s fresh, 5min SWR — this page changes only when a new state gets its
   // first home game or an existing one becomes inactive, so cache aggressively.
@@ -30,22 +71,46 @@ export async function getServerSideProps({ res }) {
   // (b) it's already indexed by page_type.
   const { data: pages, error } = await supabase
     .from('social_pages')
-    .select('location_state, location_city')
+    .select('location_state, location_city, linked_entity_id')
     .eq('page_type', 'home_game')
     .eq('is_public', true)
-    .not('location_state', 'is', null);
+    .not('location_state', 'is', null)
+    .limit(PAGE_FETCH_CAP);
 
   if (error) {
     console.warn('[home-games/in] fetch failed:', error.message);
     return { props: { states: [], totalGames: 0 } };
   }
 
+  // Resolve the linked groups so the same visibility rule the state and city
+  // pages apply is applied here too. Without this a state whose groups are all
+  // auto-hidden still advertised a game count that its own page showed as zero.
+  const groupIds = Array.from(
+    new Set((pages || []).map(p => p.linked_entity_id).filter(Boolean).map(String))
+  );
+  const groupMap = {};
+  for (let i = 0; i < groupIds.length; i += GROUP_ID_CHUNK) {
+    const slice = groupIds.slice(i, i + GROUP_ID_CHUNK);
+    const { data: groups, error: groupErr } = await supabase
+      .from('commander_home_groups')
+      .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+      .in('id', slice);
+    if (groupErr) {
+      console.warn('[home-games/in] group fetch failed:', groupErr.message);
+      continue;
+    }
+    for (const g of groups || []) groupMap[String(g.id)] = g;
+  }
+
   const byState = new Map();
+  let visibleTotal = 0;
   for (const p of pages || []) {
     const code = String(p.location_state || '').toUpperCase();
     if (!US_STATES_BY_CODE[code]) continue;
+    if (!isGroupPubliclyVisible(groupMap[String(p.linked_entity_id)])) continue;
     const rec = byState.get(code) || { code, count: 0, cities: new Set() };
     rec.count += 1;
+    visibleTotal += 1;
     if (p.location_city) rec.cities.add(p.location_city);
     byState.set(code, rec);
   }
@@ -63,7 +128,9 @@ export async function getServerSideProps({ res }) {
   return {
     props: {
       states,
-      totalGames: (pages || []).length,
+      // Only the games a visitor can actually reach — this is the number the
+      // hero copy calls "active poker home games".
+      totalGames: visibleTotal,
     },
   };
 }
@@ -113,7 +180,10 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://smarter.poker' },
-                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games' },
+                // /hub/home-games has no index route — near-me is the real
+                // Home Games landing surface. Pointing this node at the bare
+                // path published a 404 to Google as a named breadcrumb.
+                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games/near-me' },
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
               ],
             }).replace(/</g, '\\u003c'),
@@ -127,7 +197,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
-            <Link href="/hub/home-games" className="hover:text-white transition-colors">Home Games</Link>
+            <Link href="/hub/home-games/near-me" className="hover:text-white transition-colors">Home Games</Link>
             <span>/</span>
             <span className="text-white">By State</span>
           </nav>
@@ -149,7 +219,7 @@ export default function HomeGamesByStateIndex({ states, totalGames }) {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/hub/home-games"
+                href="/hub/home-games/near-me"
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium text-sm transition-colors"
               >
                 Browse all home games

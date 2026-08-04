@@ -27,6 +27,13 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+// Hoisted out of getVenueInfo's inner loop — this used to run twice per
+// candidate comparison on the hot path.
+const VENUE_NOISE_WORDS = /\b(casino|resort|hotel|poker|room|card)\b/g;
+function stripVenueWords(s) {
+  return (s || '').replace(VENUE_NOISE_WORDS, '').trim().replace(/\s+/g, ' ');
+}
+
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
@@ -306,6 +313,11 @@ async function handler(req, res) {
     // ──────────────────────────────────────────────────────────────
     let venueLocations = {};
     let venueNamesList = [];
+    // Per-source degradation flags. A failed PostgREST query used to be
+    // indistinguishable from "no tournaments anywhere": the loops destructured
+    // only `{ data }`, so an error produced `undefined`, the loop broke, and the
+    // response still said success:true / total:0.
+    const sourceDegraded = { venues: false, daily: false, series: false, tour: false };
     try {
       // [EC4 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
       // Paginate across up to 3 pages (3,000 venues) to handle full venue table.
@@ -316,34 +328,56 @@ async function handler(req, res) {
       if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
       // Paginate: 3 pages × 1000 = 3000 rows ceiling
       for (let page = 0; page < 3; page++) {
-        const { data: venueRows } = await venueQ.range(page * 1000, (page + 1) * 1000 - 1);
+        const { data: venueRows, error: venueErr } = await venueQ.range(page * 1000, (page + 1) * 1000 - 1);
+        if (venueErr) {
+          sourceDegraded.venues = true;
+          console.warn('[events-calendar] poker_venues page', page, 'failed:', venueErr.message);
+          break;
+        }
         if (!venueRows || venueRows.length === 0) break;
         for (const v of venueRows) {
           venueLocations[v.id] = v;
           if (v.name) {
             const cleanName = v.name.toLowerCase().trim();
             venueLocations[cleanName] = v;
-            venueNamesList.push({ name: cleanName, venue: v });
+            venueNamesList.push({ name: cleanName, venue: v, stripped: stripVenueWords(cleanName) });
           }
         }
         if (venueRows.length < 1000) break; // no more pages
       }
-    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+    } catch (_) {
+      sourceDegraded.venues = true;
+      console.warn('[App] Handled exception:', _?.message || _);
+    }
+
+    // Index the stripped venue names once. `getVenueInfo` is called once per
+    // tournament row (up to 10,000) and once per series row; on a direct-lookup
+    // miss it used to linearly scan up to 3,000 venues and re-run the strip
+    // regex on the candidate name inside that loop — tens of millions of regex
+    // operations per uncached request. Exact stripped-name hits are now a hash
+    // lookup; only the genuinely partial matches fall through to a scan, and
+    // that scan no longer recomputes anything.
+    const strippedIndex = new Map();
+    for (const vf of venueNamesList) {
+      if (vf.stripped && vf.stripped.length > 3 && !strippedIndex.has(vf.stripped)) {
+        strippedIndex.set(vf.stripped, vf.venue);
+      }
+    }
 
     const getVenueInfo = (venueId, venueName) => {
       const vNameClean = venueName ? venueName.toLowerCase().trim() : null;
       if (venueLocations[venueId]) return venueLocations[venueId];
       if (vNameClean && venueLocations[vNameClean]) return venueLocations[vNameClean];
-      
+
       // Fuzzy fallback match for when tournament venue_name omits suffixes like "Las Vegas"
       if (vNameClean && vNameClean.length > 3) {
-        const stripWords = (s) => s.replace(/\b(casino|resort|hotel|poker|room|card)\b/g, '').trim().replace(/\s+/g, ' ');
-        const s1 = stripWords(vNameClean);
-        
+        const s1 = stripVenueWords(vNameClean);
         if (s1.length > 3) {
+          const exact = strippedIndex.get(s1);
+          if (exact) return exact;
           for (const vf of venueNamesList) {
-            const s2 = stripWords(vf.name);
-            if (s2.length > 3 && (s1.includes(s2) || s2.includes(s1))) {
+            const s2 = vf.stripped;
+            if (s2 && s2.length > 3 && (s1.includes(s2) || s2.includes(s1))) {
               return vf.venue;
             }
           }
@@ -359,7 +393,10 @@ async function handler(req, res) {
     if (eventType === 'all' || eventType === 'daily') {
       try {
         let dq = sb.from('venue_daily_tournaments')
-          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, is_recurring')
+          // `is_recurring` was selected but never read — recurrence is recomputed
+          // below as `!t.event_date`. Dropped so a schema drift on that column
+          // cannot fail the whole query.
+          .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date')
           .eq('is_active', true)
           .or('is_suppressed.is.null,is_suppressed.eq.false');
 
@@ -379,7 +416,12 @@ async function handler(req, res) {
         // Paginate across up to 10 pages (10,000 row ceiling) to retrieve all active tournaments.
         let allDtRows = [];
         for (let page = 0; page < 10; page++) {
-          const { data: pageRows } = await dq.range(page * 1000, (page + 1) * 1000 - 1);
+          const { data: pageRows, error: pageErr } = await dq.range(page * 1000, (page + 1) * 1000 - 1);
+          if (pageErr) {
+            sourceDegraded.daily = true;
+            console.warn('[events-calendar] venue_daily_tournaments page', page, 'failed:', pageErr.message);
+            break;
+          }
           if (!pageRows || pageRows.length === 0) break;
           allDtRows = allDtRows.concat(pageRows);
           if (pageRows.length < 1000) break; // no more pages
@@ -471,7 +513,11 @@ async function handler(req, res) {
         // For series we always want ALL within range — no smart-agg needed (series aren't recurring)
         // [EC2 FIX] Was .limit(1000) — switched to .range(0,999) for consistency with series.js fix.
         // poker_series currently has 208 rows, but will grow. Range is explicit about intent.
-        const { data: seriesRows } = await sq.range(0, 999);
+        const { data: seriesRows, error: seriesErr } = await sq.range(0, 999);
+        if (seriesErr) {
+          sourceDegraded.series = true;
+          console.warn('[events-calendar] poker_series query failed:', seriesErr.message);
+        }
 
         if (seriesRows) {
           for (const s of seriesRows) {
@@ -569,7 +615,12 @@ async function handler(req, res) {
         // Paginate across up to 2 pages (2000 row ceiling) to retrieve all active tour events.
         let allTourRows = [];
         for (let page = 0; page < 2; page++) {
-          const { data: trPage } = await tq.range(page * 1000, (page + 1) * 1000 - 1);
+          const { data: trPage, error: trErr } = await tq.range(page * 1000, (page + 1) * 1000 - 1);
+          if (trErr) {
+            sourceDegraded.tour = true;
+            console.warn('[events-calendar] tour_stop_events page', page, 'failed:', trErr.message);
+            break;
+          }
           if (!trPage || trPage.length === 0) break;
           allTourRows = allTourRows.concat(trPage);
           if (trPage.length < 1000) break;
@@ -693,10 +744,30 @@ async function handler(req, res) {
       }
     }
 
-    // Stats
-    const buyIns = allEvents.map(e => e.buy_in).filter(b => b != null && b > 0);
+    // Stats — single pass. `Math.min(...buyIns)` / `Math.max(...buyIns)` spread
+    // an array that reaches tens of thousands of entries on the default 30-day
+    // range (each 'Daily' row projects to 30 dates), which can blow the argument
+    // limit with 'RangeError: Maximum call stack size exceeded' and turn the
+    // whole calendar into a 500.
+    let buyInCount = 0;
+    let buyInSum = 0;
+    let buyInMin = 0;
+    let buyInMax = 0;
     const gameTypes = {};
-    allEvents.forEach(e => { gameTypes[e.game_type || 'Unknown'] = (gameTypes[e.game_type || 'Unknown'] || 0) + 1; });
+    for (const e of allEvents) {
+      const b = e.buy_in;
+      if (b != null && b > 0) {
+        if (buyInCount === 0) { buyInMin = b; buyInMax = b; }
+        else {
+          if (b < buyInMin) buyInMin = b;
+          if (b > buyInMax) buyInMax = b;
+        }
+        buyInCount++;
+        buyInSum += b;
+      }
+      const gt = e.game_type || 'Unknown';
+      gameTypes[gt] = (gameTypes[gt] || 0) + 1;
+    }
     const sourceCounts = { daily: dailyEvents.length, series: seriesEvents.length, tour: tourEvents.length };
 
     const responsePayload = {
@@ -712,16 +783,26 @@ async function handler(req, res) {
       dateCounts: dateCountMap,
       stats: {
         sources: sourceCounts,
+        // True when a source's query actually errored, so the UI can say
+        // "tournaments unavailable" instead of "no results".
+        degraded: sourceDegraded,
         totalBeforeDedup: dailyEvents.length + seriesEvents.length + tourEvents.length,
-        avgBuyin: buyIns.length > 0 ? Math.round(buyIns.reduce((s, b) => s + b, 0) / buyIns.length) : 0,
-        minBuyin: buyIns.length > 0 ? Math.min(...buyIns) : 0,
-        maxBuyin: buyIns.length > 0 ? Math.max(...buyIns) : 0,
+        avgBuyin: buyInCount > 0 ? Math.round(buyInSum / buyInCount) : 0,
+        minBuyin: buyInCount > 0 ? buyInMin : 0,
+        maxBuyin: buyInCount > 0 ? buyInMax : 0,
         byGameType: gameTypes,
       },
     };
 
+    // A degraded body must not be pinned at the edge or in the process cache —
+    // it would keep serving a partial feed long after the DB recovered.
+    const isDegraded = Object.values(sourceDegraded).some(Boolean);
+    if (isDegraded) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+
     // Store in node-memory cache if not explicitly avoiding it
-    if (!req.query._rt) {
+    if (!req.query._rt && !isDegraded) {
       const cacheKey = JSON.stringify(req.query);
       routeCache.set(cacheKey, { time: Date.now(), data: responsePayload });
       

@@ -17,6 +17,7 @@
  * Sources: pokeratlas only. Bravo was removed permanently (2026-05-23).
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -37,40 +38,53 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Unauthenticated and uncacheable, this used to be a full-table read that
+  // anyone could hammer. Rate-limit it and let the edge hold the answer briefly.
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   try {
     const supabase = getSupabase();
     const now = new Date();
     const issues = [];
 
-    // Single query to get all live tables data instead of 6 separate queries
-    const { data: allData, error } = await supabase
-      .from('venue_live_tables')
-      .select('source, bravo_slug, tables_running, players_waiting, scrape_timestamp, scrape_batch_id')
-      .limit(10000); // Override Supabase 1000-row default truncation
-
-    if (error) {
-      throw new Error(`Failed to fetch live tables: ${error.message}`);
-    }
-
-    // Group the data by source
     // 'bravo' is no longer scraped (removed 2026-05-23) — monitoring it emitted a
     // permanent "bravo: NO DATA FOUND" issue that could never clear.
     const sources = ['pokeratlas'];
-    const buckets = {};
-    sources.forEach(src => { buckets[src] = []; });
-    if (allData) {
-      allData.forEach(row => {
-        if (buckets[row.source]) {
-          buckets[row.source].push(row);
-        }
-      });
-    }
     const health = {};
 
     for (const source of sources) {
-      const sourceData = buckets[source];
+      // Latest scrape for this source — one row, not 10,000.
+      const { data: latestRows, error: latestErr } = await supabase
+        .from('venue_live_tables')
+        .select('scrape_timestamp, scrape_batch_id')
+        .eq('source', source)
+        .order('scrape_timestamp', { ascending: false })
+        .limit(1);
+      if (latestErr) {
+        throw new Error(`Failed to fetch live tables: ${latestErr.message}`);
+      }
+      const latestRecord = (latestRows || [])[0] || null;
 
-      if (!sourceData || sourceData.length === 0) {
+      // Total rows for the source, straight from Postgres.
+      const { count: totalRecords } = await supabase
+        .from('venue_live_tables')
+        .select('bravo_slug', { count: 'exact', head: true })
+        .eq('source', source);
+
+      // Only the CURRENT batch is aggregated — that is the set the health of the
+      // scraper is actually about, and it is a fraction of the table.
+      let sourceData = [];
+      if (latestRecord?.scrape_batch_id) {
+        const { data: batchRows } = await supabase
+          .from('venue_live_tables')
+          .select('bravo_slug, tables_running, players_waiting')
+          .eq('source', source)
+          .eq('scrape_batch_id', latestRecord.scrape_batch_id)
+          .limit(10000);
+        sourceData = batchRows || [];
+      }
+
+      if (!latestRecord) {
         health[source] = {
           status: 'dead',
           last_scrape: null,
@@ -85,16 +99,10 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Find the most recent scrape timestamp from the grouped data
-      let latestRecord = sourceData[0];
-      for (const row of sourceData) {
-        if (row.scrape_timestamp > latestRecord.scrape_timestamp) {
-          latestRecord = row;
-        }
-      }
-
       const lastScrape = new Date(latestRecord.scrape_timestamp);
       const minutesAgo = Math.round((now - lastScrape) / 60000);
+      // `records` is now the size of the LATEST BATCH, which is what the anomaly
+      // rule is meant to judge. It used to be every live row for the source.
       const records = sourceData.length;
 
       // Count unique venues + aggregate stats
@@ -109,7 +117,13 @@ export default async function handler(req, res) {
       } else if (minutesAgo > 30) {
         status = 'stale';
         issues.push(`${source}: data is ${minutesAgo} min old (>30 min = STALE)`);
-      } else if (records < 10 || records > 5000) {
+      } else if (records < 10) {
+        // The old rule also fired on `records > 5000`. That ceiling was measured
+        // against EVERY live row for the source, so as venue coverage expanded
+        // the endpoint would permanently report 'anomaly' and return HTTP 503 —
+        // paging whatever external monitor watches it, forever, over growth.
+        // Only the low side (a batch that produced almost nothing) is a real
+        // scraper failure signal.
         status = 'anomaly';
         issues.push(`${source}: anomaly detected structurally compromised table counts (${records} tables)`);
       }
@@ -119,6 +133,7 @@ export default async function handler(req, res) {
         last_scrape: latestRecord.scrape_timestamp,
         minutes_ago: minutesAgo,
         records,
+        total_records: typeof totalRecords === 'number' ? totalRecords : null,
         venues,
         tables_running: tablesRunning,
         players_waiting: playersWaiting,
@@ -147,7 +162,9 @@ export default async function handler(req, res) {
     // Return 200 for healthy/stale (operational), 503 only for dead/critical
     // This prevents external monitors from flagging normal staleness as outages
     const httpStatus = overallStatus === 'critical' ? 503 : 200;
-    res.setHeader('Cache-Control', 'no-store');
+    // Short edge cache: still fresh enough for a monitor, but a burst of
+    // requests no longer becomes a burst of queries.
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     return res.status(httpStatus).json({
       status: overallStatus,
       checked_at: now.toISOString(),
@@ -163,6 +180,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Scraper health check error:', err);
-    return res.status(500).json({ error: 'Health check failed', details: err.message });
+    return res.status(500).json({ error: 'Health check failed' });
   }
 }

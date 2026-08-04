@@ -11,7 +11,29 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
+import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+/**
+ * Bucket a snapshot by the VENUE's local hour/day instead of UTC.
+ *
+ * Snapshots are stored in UTC and were bucketed with getUTCHours()/getUTCDay()
+ * and then formatted as bare local times ("Fri at 7 PM", "Usually opens Sat
+ * 6 PM"). For a Las Vegas venue a 7 PM PT peak was published as 2 AM the next
+ * day, and Friday-night traffic was attributed to Saturday. The sibling
+ * game-predictions.js was already fixed for this; the batch endpoint was not.
+ */
+function getLocalParts(value, timeZone) {
+  const dt = new Date(value);
+  if (isNaN(dt.getTime())) return null;
+  if (timeZone) {
+    try {
+      const local = new Date(dt.toLocaleString('en-US', { timeZone }));
+      if (!isNaN(local.getTime())) return { hour: local.getHours(), day: local.getDay() };
+    } catch (_tzErr) { /* fall through to UTC */ }
+  }
+  return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -35,7 +57,7 @@ function formatHour(h) {
 /**
  * Analyze a set of snapshot rows and produce a compact prediction summary.
  */
-function analyzeVenueData(rows) {
+function analyzeVenueData(rows, timeZone) {
   if (!rows || rows.length === 0) return null;
 
   // === Aggregate by game type ===
@@ -44,9 +66,9 @@ function analyzeVenueData(rows) {
   const dayCounts = {};   // Global day aggregation
 
   rows.forEach(row => {
-    const dt = new Date(row.snapshot_time);
-    const hour = dt.getUTCHours();
-    const day = dt.getUTCDay();
+    const parts = getLocalParts(row.snapshot_time, timeZone);
+    if (!parts) return;
+    const { hour, day } = parts;
     const gameType = gameShortLabel(row.game_type || 'Unknown');
     const tables = row.tables || 1;
 
@@ -277,6 +299,25 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, predictions: {} });
     }
 
+    // Resolve each venue's timezone so the buckets below are venue-local.
+    // Prefers poker_venues.timezone, falls back to the state map.
+    const tzByVenueId = {};
+    try {
+      const numericIds = ids.map(id => parseInt(id, 10)).filter(n => !isNaN(n) && n > 0);
+      if (numericIds.length > 0) {
+        const { data: venueRows } = await supabase
+          .from('poker_venues')
+          .select('id, state, timezone')
+          .in('id', numericIds);
+        (venueRows || []).forEach(v => {
+          const tz = resolveVenueTimeZone(v);
+          if (tz) tzByVenueId[Number(v.id)] = tz;
+        });
+      }
+    } catch (tzErr) {
+      console.warn('venue-predictions-batch: timezone lookup failed (non-fatal):', tzErr?.message || tzErr);
+    }
+
     // Fetch history for all these venues by name from game_live_history
     let historyData = [];
     // Batch in chunks of 20 venue names to avoid query limits
@@ -287,7 +328,11 @@ export default async function handler(req, res) {
         .select('venue_name, game_type, tables, waiting, snapshot_time')
         .gte('snapshot_time', fourWeeksAgo)
         .in('venue_name', batch)
-        .order('snapshot_time', { ascending: true })
+        // DESCENDING: with ascending order the row cap discarded the most
+        // RECENT snapshots first, so once a venue set exceeded the cap inside
+        // the 28-day window "best time to go" was computed entirely from the
+        // oldest data and stopped responding to current traffic patterns.
+        .order('snapshot_time', { ascending: false })
         .limit(10000);
 
       if (error) {
@@ -322,9 +367,12 @@ export default async function handler(req, res) {
         predictions[id] = { has_data: false };
         return;
       }
-      const analysis = analyzeVenueData(rows);
+      const analysis = analyzeVenueData(rows, tzByVenueId[intId] || null);
       predictions[id] = analysis || { has_data: false };
-      if (analysis) predictions[id].venue_id = intId;
+      if (analysis) {
+        predictions[id].venue_id = intId;
+        predictions[id].timezone = tzByVenueId[intId] || null;
+      }
     });
 
     // Cache aggressively — this data updates slowly

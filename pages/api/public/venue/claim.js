@@ -28,10 +28,14 @@ function generateVerificationCode() {
 
 export default async function handler(req, res) {
   try {
-    // CDN cache: fresh for 60s, serve stale up to 300s
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    }
+    // NEVER shared-cache this endpoint. The GET body varies by the
+    // Authorization header: `user_claim` (claim id, status, timestamps) and
+    // `is_manager` are computed from the caller's JWT. A CDN keys on the URL
+    // alone, so under `public, s-maxage=60` one owner's claim payload would be
+    // served to the next visitor of ?venue_id=N — and a cached anonymous
+    // response would hide a real owner's claim from them. Same reasoning as
+    // the sibling [id]/manage.js.
+    res.setHeader('Cache-Control', 'private, no-store');
 
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;

@@ -225,8 +225,14 @@ export default async function handler(req, res) {
     // Vegas/LA. Push a cheap lat/lng bounding box into the query so the
     // fetched window is local, and raise the ceiling in GPS mode so the
     // app-side radius filter + distance sort have a real candidate pool.
-    // Groups with no coordinates are still included (they surface at the end
-    // of the list), matching the pre-existing app-side behavior below.
+    //
+    // Groups with NO coordinates are excluded in GPS mode. They used to be
+    // OR'd back in (`latitude.is.null,longitude.is.null`) and then kept by the
+    // app-side radius filter, so an ungeocoded group in Miami was returned to a
+    // user searching 10 miles around Chicago, counted in "N games found within
+    // 10 miles", and rendered with no distance chip. A group we cannot place is
+    // not a group we can honestly claim is nearby. Non-GPS requests are
+    // unaffected — they never had a radius to lie about.
     let dbLimit = limit;
     if (hasGps) {
       // Pad by 1 mile: the distance we filter on is measured from the
@@ -241,17 +247,18 @@ export default async function handler(req, res) {
       const lngMin = parsedLng - dLng;
       const lngMax = parsedLng + dLng;
 
-      const clauses = ['latitude.is.null', 'longitude.is.null'];
+      // Plain range predicates (not an OR block): NULL latitude/longitude
+      // fails `gte`/`lte`, so ungeocoded groups drop out here exactly as
+      // intended.
+      q = q.gte('latitude', latMin).lte('latitude', latMax);
       // Skip the longitude half of the box near the antimeridian rather than
-      // emitting an out-of-range window that would match nothing.
+      // emitting an out-of-range window that would match nothing. Rows still
+      // need a non-null longitude to be considered locatable.
       if (lngMin >= -180 && lngMax <= 180) {
-        clauses.push(
-          `and(latitude.gte.${latMin},latitude.lte.${latMax},longitude.gte.${lngMin},longitude.lte.${lngMax})`
-        );
+        q = q.gte('longitude', lngMin).lte('longitude', lngMax);
       } else {
-        clauses.push(`and(latitude.gte.${latMin},latitude.lte.${latMax})`);
+        q = q.not('longitude', 'is', null);
       }
-      q = q.or(clauses.join(','));
 
       // Fetch ceiling for GPS mode. The caller's `limit` is applied AFTER the
       // radius filter + distance sort (see below) so it means "closest N",
@@ -298,16 +305,12 @@ export default async function handler(req, res) {
               : null;
           return { g, raw };
         })
-        // Groups without coords are kept and surface at the end of the list.
-        .filter((e) => e.raw == null || e.raw <= parsedRadius)
-        .sort((a, b) => {
-          if (a.raw == null && b.raw == null) {
-            return (b.g.member_count || 0) - (a.g.member_count || 0);
-          }
-          if (a.raw == null) return 1;
-          if (b.raw == null) return -1;
-          return a.raw - b.raw;
-        })
+        // A group we cannot place is never "within N miles" — drop it rather
+        // than pad the result set with unlocatable rows the UI counts as
+        // nearby. (The bounding box above already excludes them at the DB
+        // level; this is the app-side backstop.)
+        .filter((e) => e.raw != null && e.raw <= parsedRadius)
+        .sort((a, b) => a.raw - b.raw)
         .slice(0, limit)
         .map((e) => e.g);
     }
@@ -444,21 +447,14 @@ export default async function handler(req, res) {
     // exactly as the user expects — the rounding only affects what we
     // EXPOSE (see F33 privacy fix in the map block above).
     if (hasGps) {
-      // Filter out groups outside the radius (those without coords are kept;
-      // they have _rawDistanceMiles=null and surface at the end of the list).
+      // Filter out groups outside the radius. Groups with no usable
+      // coordinate are dropped too — "N games found within {radius} miles"
+      // must only ever count games we can actually place inside that radius.
       out = out.filter((g) =>
-        g._rawDistanceMiles == null || g._rawDistanceMiles <= parsedRadius
+        g._rawDistanceMiles != null && g._rawDistanceMiles <= parsedRadius
       );
-      // Sort: groups with distance first (ascending), groups without
-      // coords after, tie-breaking on member_count.
-      out.sort((a, b) => {
-        if (a._rawDistanceMiles == null && b._rawDistanceMiles == null) {
-          return (b.member_count || 0) - (a.member_count || 0);
-        }
-        if (a._rawDistanceMiles == null) return 1;
-        if (b._rawDistanceMiles == null) return -1;
-        return a._rawDistanceMiles - b._rawDistanceMiles;
-      });
+      // Sort by real distance, nearest first.
+      out.sort((a, b) => a._rawDistanceMiles - b._rawDistanceMiles);
     }
 
     // Strip the internal field before returning so clients can't recover

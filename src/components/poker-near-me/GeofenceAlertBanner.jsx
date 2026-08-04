@@ -10,14 +10,18 @@ const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 
 export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
   const [visible, setVisible] = useState(true);
-  const venueId = venue?.id ?? null;
+  // BUG FIX: this used to be `venue?.id ?? null`, and the effect below bailed out when
+  // it was falsy. Both call sites can pass a SOCIAL-PAGE geofence target (they branch on
+  // is_social_page / social_page_id), and such a record may carry no `id` at all — so no
+  // auto-dismiss timer was ever armed and this fixed, full-width, z-index 9999 banner
+  // covered the bottom of the screen indefinitely until manually dismissed.
+  const venueKey = venue ? (venue.id ?? venue.social_page_id ?? venue.name ?? 'venue') : null;
 
-  // BUG FIX: `visible` was only ever flipped to false (dismiss / 30s timeout) and
-  // never reset, so once the first alert expired the banner stayed null forever —
-  // driving into range of a different venue rendered nothing. Re-arm on venue change
-  // and key the auto-dismiss timer to the venue so each venue gets its own 30s window.
+  // `visible` is also re-armed here: it was only ever flipped to false (dismiss / 30s
+  // timeout) and never reset, so once the first alert expired the banner stayed null
+  // forever — driving into range of a different venue rendered nothing.
   useEffect(() => {
-    if (!venueId) return undefined;
+    if (!venueKey) return undefined;
     setVisible(true);
     const timer = setTimeout(() => {
       setVisible(false);
@@ -25,7 +29,7 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
     }, GEOFENCE_ALERT_TIMEOUT_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venueId]);
+  }, [venueKey]);
 
   if (!visible || !venue) return null;
 

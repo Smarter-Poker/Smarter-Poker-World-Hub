@@ -90,7 +90,17 @@ export default function HomeGamesNearMePage() {
   const [groups, setGroups]   = useState([]);
   const [radius, setRadius]   = useState(50);
 
-  // Manual fallback for users who deny geolocation
+  // Which search the results on screen belong to. Geolocation used to be a
+  // one-way door: once `coords` was set the manual form unmounted forever and
+  // there was no way to browse another city (the single most common secondary
+  // intent on a nationwide directory). `mode` decouples "we know where you are"
+  // from "you are currently browsing near yourself".
+  const [mode, setMode] = useState('nearby'); // 'nearby' | 'manual'
+  // User explicitly opened the "search another city" panel while a GPS fix is held.
+  const [manualOpen, setManualOpen] = useState(false);
+
+  // Manual search — the fallback when geolocation is denied, and the explicit
+  // "search another city" path when it was granted.
   const [manualState, setManualState] = useState('');
   const [manualCity,  setManualCity]  = useState('');
 
@@ -144,6 +154,7 @@ export default function HomeGamesNearMePage() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
+        setMode('nearby');
         search({ lat, lng, radiusMiles: radius });
       },
       (err) => {
@@ -176,7 +187,7 @@ export default function HomeGamesNearMePage() {
   // search ('error') — otherwise the pill highlight moves but nothing
   // happens and the only way out is a full page reload.
   useEffect(() => {
-    if (coords && (status === 'ready' || status === 'error')) {
+    if (mode === 'nearby' && coords && (status === 'ready' || status === 'error')) {
       search({ lat: coords.lat, lng: coords.lng, radiusMiles: radius });
     }
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -184,11 +195,30 @@ export default function HomeGamesNearMePage() {
 
   function handleManualSearch(e) {
     e.preventDefault();
+    // Switch the whole surface into manual mode so the header copy, the radius
+    // pills and the empty state all describe the query the user actually ran.
+    setMode('manual');
     search({
       state: manualState || undefined,
       city:  manualCity || undefined,
     });
   }
+
+  // Back to "near me" without re-prompting for permission — we already hold
+  // the fix in `coords`.
+  function handleUseMyLocation() {
+    if (!coords) {
+      requestGeolocation();
+      return;
+    }
+    setMode('nearby');
+    search({ lat: coords.lat, lng: coords.lng, radiusMiles: radius });
+  }
+
+  // The manual form is always reachable: as the fallback when we have no fix,
+  // and on demand (via "Search another city") when we do.
+  const showManualForm = (!coords && status !== 'locating') || mode === 'manual' || manualOpen;
+  const isNearbyMode = mode === 'nearby' && !!coords;
 
   const isLoading = status === 'locating' || status === 'searching';
 
@@ -228,8 +258,8 @@ export default function HomeGamesNearMePage() {
           </div>
         </div>
 
-        {/* Radius selector (only when GPS granted) */}
-        {coords && (
+        {/* Radius selector (only while browsing near the user's own position) */}
+        {isNearbyMode && (
           <div className="cmd-panel p-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
@@ -253,16 +283,37 @@ export default function HomeGamesNearMePage() {
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setManualOpen(true)}
+                className="text-xs font-semibold text-[#22D3EE] hover:text-white underline underline-offset-2"
+              >
+                Search another city
+              </button>
             </div>
           </div>
         )}
 
-        {/* Manual fallback — shown whenever we have no GPS fix, not just on the
-            first denial. Keyed off `coords` so the form survives a manual
-            search (which flips status to searching/ready/error) and the user
-            can refine or run another query without reloading the page. */}
-        {!coords && status !== 'locating' && (
+        {/* Manual search — the fallback when we have no GPS fix, and an
+            always-available escape hatch once we do. Granting location used to
+            unmount this form permanently, leaving no way to browse another
+            city (for a trip, say) short of a full page reload. */}
+        {showManualForm && (
           <div className="cmd-panel p-5">
+            {coords && (
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <p className="text-sm font-medium text-white">Search another city</p>
+                <button
+                  type="button"
+                  onClick={() => { setManualOpen(false); handleUseMyLocation(); }}
+                  disabled={isLoading}
+                  className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  Back to near me
+                </button>
+              </div>
+            )}
             {status === 'denied' && (
               <div className="flex items-start gap-2 mb-4">
                 <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
@@ -332,7 +383,7 @@ export default function HomeGamesNearMePage() {
             <Home className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
             <h3 className="text-base font-semibold text-white">No home games found nearby</h3>
             <p className="text-sm text-[#64748B] mt-1">
-              {coords ? `Try expanding your radius or starting one yourself.` : 'Try a different state or city.'}
+              {isNearbyMode ? 'Try expanding your radius or starting one yourself.' : 'Try a different state or city.'}
             </p>
             <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-10 px-5 text-sm inline-flex items-center gap-2 mt-4">
               Host a Home Game
@@ -344,7 +395,11 @@ export default function HomeGamesNearMePage() {
           <div className="space-y-3">
             <p className="text-xs text-[#64748B] font-medium">
               {groups.length} {groups.length === 1 ? 'game' : 'games'} found
-              {coords ? ` within ${radius} miles` : (manualState ? ` in ${manualState}` : '')}
+              {isNearbyMode
+                ? ` within ${radius} miles`
+                : (manualCity || manualState
+                  ? ` in ${[manualCity, manualState].filter(Boolean).join(', ')}`
+                  : '')}
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">

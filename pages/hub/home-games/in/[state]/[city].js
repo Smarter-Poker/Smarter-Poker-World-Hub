@@ -17,6 +17,38 @@ import {
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 
+// Phase 18 auto-hide window, mirrored from /api/public/home-games/discover
+// and from the sibling state page (in/[state]/index.js).
+const HOME_GROUP_INACTIVITY_DAYS = 45;
+
+// A home group is publicly listable only while it is active, not private, and
+// showing signs of life: engagement in the last 45 days, inside its new-group
+// grace window, or covered by a host visibility override. Kept byte-identical
+// to the copy in in/[state]/index.js — without it this page kept advertising
+// deactivated / private / auto-hidden groups (and emitting them into the
+// ItemList JSON-LD) long after every other surface stopped returning them.
+function isGroupPubliclyVisible(g) {
+  if (!g || !g.id) return false;
+  if (g.is_active === false) return false;
+  if (g.is_private === true) return false;
+
+  const now = Date.now();
+  const cutoff = now - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000;
+  const ts = (v) => {
+    if (!v) return null;
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? null : t;
+  };
+
+  const lastActivity = ts(g.last_activity_at);
+  if (lastActivity != null && lastActivity >= cutoff) return true;
+  const created = ts(g.created_at);
+  if (created != null && created >= cutoff) return true;
+  const override = ts(g.visibility_override_until);
+  if (override != null && override > now) return true;
+  return false;
+}
+
 export async function getServerSideProps({ params, res }) {
   const stateCode = stateSlugToCode(params?.state);
   const citySlug = String(params?.city || '').toLowerCase();
@@ -60,23 +92,23 @@ export async function getServerSideProps({ params, res }) {
   const matching = (pages || []).filter(p => cityTitleToSlug(p.location_city) === citySlug);
   if (matching.length === 0) return { notFound: true };
 
-  // Canonical city title from the DB (first match's stored capitalization)
-  const cityTitle = matching[0].location_city || citySlugToTitle(citySlug);
-
-  // Enrich with group data
+  // Enrich with group data. is_active / is_private / last_activity_at /
+  // created_at / visibility_override_until drive isGroupPubliclyVisible().
   const groupIds = matching.map(p => p.linked_entity_id).filter(Boolean);
   let groupMap = {};
   if (groupIds.length > 0) {
     const { data: groups } = await supabase
       .from('commander_home_groups')
-      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, latitude, longitude')
+      .select('id, default_stakes, typical_buyin_min, typical_buyin_max, frequency, typical_day, member_count, latitude, longitude, is_active, is_private, last_activity_at, created_at, visibility_override_until')
       .in('id', groupIds);
     groupMap = Object.fromEntries((groups || []).map(g => [String(g.id), g]));
   }
 
   const games = matching
     .map(p => {
-      const g = groupMap[String(p.linked_entity_id)] || {};
+      const g = groupMap[String(p.linked_entity_id)] || null;
+      // Drop pages whose group is missing, inactive, private, or auto-hidden.
+      if (!isGroupPubliclyVisible(g)) return null;
       return {
         id: p.id,
         name: p.name,
@@ -95,7 +127,20 @@ export async function getServerSideProps({ params, res }) {
         longitude: g.longitude ? Number(g.longitude) : null,
       };
     })
-    .sort((a, b) => (b.member_count - a.member_count) || a.name.localeCompare(b.name));
+    .filter(Boolean)
+    // member_count is 0 for plenty of rows, so the tie-break branch is the
+    // common path, not the rare one — guard the names the same way the state
+    // page does or one null name 500s the whole city.
+    .sort((a, b) => (b.member_count - a.member_count) || String(a.name || '').localeCompare(String(b.name || '')));
+
+  // Every game in this city is hidden (inactive / private / auto-hidden) —
+  // this is a real 404, not an empty listing page for Google to index.
+  if (games.length === 0) return { notFound: true };
+
+  // Canonical city title from the DB (first visible match's stored capitalization)
+  const cityTitle =
+    matching.find(p => String(p.id) === String(games[0].id))?.location_city
+    || citySlugToTitle(citySlug);
 
   return {
     props: {
@@ -204,7 +249,10 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://smarter.poker' },
-                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games' },
+                // /hub/home-games has no index route — near-me is the real
+                // Home Games landing surface. Pointing the breadcrumb node at
+                // the bare path published a 404 to Google on every city page.
+                { '@type': 'ListItem', position: 2, name: 'Home Games', item: 'https://smarter.poker/hub/home-games/near-me' },
                 { '@type': 'ListItem', position: 3, name: 'By State', item: 'https://smarter.poker/hub/home-games/in' },
                 { '@type': 'ListItem', position: 4, name: stateName, item: `https://smarter.poker/hub/home-games/in/${stateSlug}` },
                 { '@type': 'ListItem', position: 5, name: cityTitle, item: canonical },
@@ -219,7 +267,7 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
           <nav aria-label="Breadcrumb" className="text-xs text-[#64748B] mb-6 flex items-center gap-2 flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
-            <Link href="/hub/home-games" className="hover:text-white transition-colors">Home Games</Link>
+            <Link href="/hub/home-games/near-me" className="hover:text-white transition-colors">Home Games</Link>
             <span>/</span>
             <Link href="/hub/home-games/in" className="hover:text-white transition-colors">By State</Link>
             <span>/</span>

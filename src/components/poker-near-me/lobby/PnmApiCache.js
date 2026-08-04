@@ -49,17 +49,42 @@ export function cachedFetch(url, ttl = API_CACHE_TTL) {
 }
 
 /**
- * Fetch with exponential backoff retry (max 3 attempts)
+ * True when an HTTP status is worth retrying.
+ *
+ * [AUDIT] fetchWithRetry used to throw on ANY !res.ok and then retry with
+ * exponential backoff regardless of status. A 400 (invalid GPS coordinates —
+ * /api/poker/venues returns exactly this), 404 or 422 was retried three times
+ * with 500ms + 1000ms sleeps, so the user waited ~1.5s to be told the request
+ * was malformed and the origin took three hits for a deterministic failure.
+ * Only 408 (timeout), 429 (rate limited) and 5xx can change on a retry.
+ */
+function isRetryableStatus(status) {
+  if (status === 408 || status === 429) return true;
+  return status >= 500;
+}
+
+/**
+ * Fetch with exponential backoff retry (max 3 attempts).
+ * Network/transport errors are always retried; HTTP errors only when the
+ * status is retryable.
  */
 export async function fetchWithRetry(url, options = {}, maxRetries = 3) {
   let lastError;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    let retryable = true;
     try {
       const res = await fetch(url, options);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        retryable = isRetryableStatus(res.status);
+        const httpErr = new Error(`HTTP ${res.status}`);
+        httpErr.status = res.status;
+        throw httpErr;
+      }
       return await res.json();
     } catch (err) {
       lastError = err;
+      // A non-retryable 4xx fails fast — retrying cannot change the answer.
+      if (!retryable) break;
       if (attempt < maxRetries - 1) {
         await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
       }
@@ -69,10 +94,20 @@ export async function fetchWithRetry(url, options = {}, maxRetries = 3) {
 }
 
 /**
- * Clear a specific URL from the cache (useful after mutations)
+ * Clear cached entries by URL PREFIX (useful after mutations).
+ *
+ * [AUDIT] This was an exact-key delete, so callers that passed a bare path to
+ * "bust the cache for ALL daily-tournament URLs" left every query-string
+ * variant ('/api/poker/daily-tournaments?day=Monday', ...) cached and stale.
+ * Any key that starts with `urlPrefix` is now removed, which subsumes the old
+ * exact-match behaviour.
  */
-export function invalidateCache(url) {
-  delete apiCache[url];
+export function invalidateCache(urlPrefix) {
+  if (!urlPrefix) return;
+  delete apiCache[urlPrefix];
+  Object.keys(apiCache).forEach(k => {
+    if (k.startsWith(urlPrefix)) delete apiCache[k];
+  });
 }
 
 /**

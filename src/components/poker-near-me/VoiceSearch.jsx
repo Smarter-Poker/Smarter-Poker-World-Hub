@@ -4,6 +4,12 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
+// Phrases that mean "use my GPS position", not "search for a city by this name".
+const NEAR_ME_TOKENS = new Set([
+    'me', 'my location', 'my current location', 'my position',
+    'here', 'my area', 'us', 'myself',
+]);
+
 // Parse natural language into filter object
 function parseVoiceQuery(transcript) {
     const lower = transcript.toLowerCase().trim();
@@ -42,10 +48,19 @@ function parseVoiceQuery(transcript) {
     else if (/\bclub\b|poker.?club/.test(lower)) result.filters.venueType = 'poker_club';
     else if (/\btour\b/.test(lower)) result.filters.venueType = 'poker_tour';
 
-    // Extract city name (look for "in {city}" or "near {city}")
+    // Extract city name (look for "in {city}" or "near {city}").
+    // BUG FIX: "poker near me" / "casinos around me" used to capture the word
+    // "me" as a city and run a text search for the literal string, which is the
+    // single most natural phrase for this product. Those tokens now set the
+    // GPS/radius flag instead of a search term.
     const cityMatch = lower.match(/(?:in|near|around)\s+([a-z\s]+?)(?:\s*$|,|\s+within|\s+\d)/);
     if (cityMatch) {
-        result.searchQuery = cityMatch[1].trim();
+        const candidate = cityMatch[1].trim().replace(/\s+/g, ' ');
+        if (NEAR_ME_TOKENS.has(candidate)) {
+            result.filters.useMyLocation = true;
+        } else {
+            result.searchQuery = candidate;
+        }
     }
 
     // Extract tournament keyword
@@ -59,36 +74,26 @@ function parseVoiceQuery(transcript) {
     return result;
 }
 
-// Highlight matched keywords in transcript
-function highlightText(text, filters) {
-    let highlighted = text;
-    const keywords = [];
-
-    if (filters.gameType) keywords.push(filters.gameType.toLowerCase(), ...['nlh', 'plo', 'mixed', 'holdem', 'omaha'].filter(k => text.toLowerCase().includes(k)));
-    if (filters.stakes) keywords.push(filters.stakes);
-    if (filters.radius) keywords.push(`${filters.radius}`);
-    if (filters.venueType) keywords.push(filters.venueType.replace('_', ' '));
-    if (filters.minBuyin) keywords.push(`$${filters.minBuyin}`);
-    if (filters.maxBuyin) keywords.push(`$${filters.maxBuyin}`);
-
-    return { text, keywords: [...new Set(keywords)] };
-}
-
-export default function VoiceSearch({ onResult, isListening: externalListening }) {
+/**
+ * VoiceSearch
+ *
+ * @param {function} onResult - receives the parsed query object
+ * @param {'floating'|'embedded'} variant - 'embedded' renders static (non-fixed)
+ *        markup for call sites that already wrap this in their own modal. The
+ *        default floating variant is the bottom-left FAB plus popover.
+ */
+export default function VoiceSearch({ onResult, variant = 'floating' }) {
+    const embedded = variant === 'embedded';
     const [listening, setListening] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [supported, setSupported] = useState(true);
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(embedded);
     const [animPhase, setAnimPhase] = useState(0);
     const recognitionRef = useRef(null);
     const animFrameRef = useRef(null);
     const transcriptRef = useRef('');
-    const onResultRef = useRef(onResult);
-
-    // Keep refs in sync
-    useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
     // Cleanup on unmount — abort recognition & cancel animation
     useEffect(() => {
@@ -124,6 +129,13 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
 
     const startListening = useCallback(() => {
         if (!supported) { setError('Speech recognition not supported in this browser'); return; }
+
+        // Abort any in-flight instance first — rapid taps used to leak the
+        // previous SpeechRecognition object (and its live microphone stream).
+        if (recognitionRef.current) {
+            try { recognitionRef.current.abort(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+            recognitionRef.current = null;
+        }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -183,9 +195,12 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
     const applyResult = useCallback(() => {
         if (result && onResult) {
             onResult(result);
-            setIsExpanded(false);
+            if (!embedded) setIsExpanded(false);
         }
-    }, [result, onResult]);
+    }, [result, onResult, embedded]);
+
+    // In embedded mode the host modal owns open/close, so the panel is always shown.
+    const panelOpen = embedded || isExpanded;
 
     // Generate waveform bars
     const waveformBars = Array.from({ length: 20 }, (_, i) => {
@@ -196,13 +211,13 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
     });
 
     return (
-        <>
-            {/* Floating mic button */}
+        <div className={'voice-search-root' + (embedded ? ' embedded' : '')}>
+            {/* Mic button — floating FAB by default, inline when embedded */}
             <button
                 className={'voice-fab' + (listening ? ' listening' : '')}
                 onClick={() => {
                     if (listening) stopListening();
-                    else if (isExpanded) setIsExpanded(false);
+                    else if (!embedded && isExpanded) setIsExpanded(false);
                     else startListening();
                 }}
                 aria-label="Voice Search"
@@ -223,12 +238,14 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
             </button>
 
             {/* Expanded panel */}
-            {isExpanded && (
+            {panelOpen && (
                 <div className="voice-panel">
-                    <div className="voice-panel-header">
-                        <h3>Voice Search</h3>
-                        <button className="voice-panel-close" onClick={() => setIsExpanded(false)}>×</button>
-                    </div>
+                    {!embedded && (
+                        <div className="voice-panel-header">
+                            <h3>Voice Search</h3>
+                            <button className="voice-panel-close" onClick={() => setIsExpanded(false)}>×</button>
+                        </div>
+                    )}
 
                     {/* Waveform visualization */}
                     {listening && (
@@ -265,6 +282,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
                                 {result.filters.venueType && <span className="voice-tag type">{result.filters.venueType.replace('_', ' ')}</span>}
                                 {result.filters.minBuyin && <span className="voice-tag buyin">Min ${result.filters.minBuyin}</span>}
                                 {result.filters.maxBuyin && <span className="voice-tag buyin">Max ${result.filters.maxBuyin}</span>}
+                                {result.filters.useMyLocation && <span className="voice-tag radius">Near my location</span>}
                                 {result.searchQuery && <span className="voice-tag search">○ {result.searchQuery}</span>}
                             </div>
                             <button className="voice-apply-btn" onClick={applyResult}>Apply Filters</button>
@@ -335,7 +353,11 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
         .voice-example-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
         .voice-example { text-align: left; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; font-style: italic; transition: all 0.2s; }
         .voice-example:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+        .voice-search-root.embedded { display: block; width: 100%; }
+        .voice-search-root.embedded .voice-fab { position: static; margin: 0 auto 14px; }
+        .voice-search-root.embedded .voice-fab:hover { transform: none; }
+        .voice-search-root.embedded .voice-panel { position: static; width: 100%; max-width: 100%; padding: 0; background: transparent; backdrop-filter: none; border: none; border-radius: 0; box-shadow: none; animation: none; }
       `}</style>
-        </>
+        </div>
     );
 }

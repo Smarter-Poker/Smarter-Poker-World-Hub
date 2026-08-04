@@ -1,4 +1,11 @@
 /**
+ * NOT CURRENTLY MOUNTED. A repo-wide grep finds no import of this component, so it —
+ * and the two endpoints only it calls (/api/poker/game-predictions and
+ * /api/poker/venue-predictions-batch) — are unreachable from the UI. It is kept intact
+ * (rather than deleted) because reviving it means editing the venue detail page,
+ * pages/hub/poker-near-me/[pnmTab].js, which is outside this change's file ownership.
+ * The live all-zero-heatmap bug below is fixed either way.
+ *
  * BestTimeToGoWidget — Intelligence widget for venue detail pages
  * v2.0 — Enhanced with:
  *   - Quiet Hours natural language analysis
@@ -49,7 +56,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
       ]).then(([predData, heatData, batchData]) => {
         if (!mounted) return;
         if (predData?.success) setPredictions(predData);
-        if (heatData?.heatmap) setHeatmapData(heatData);
+        if (heatData?.heatmap?.length) setHeatmapData(heatData);
         // Merge batch data into predictions for quiet hours / game ETA
         if (batchData?.success && batchData.predictions?.[venueId]) {
           setPredictions(prev => ({
@@ -77,7 +84,12 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
   }, [venueId, venueName, selectedGame]);
 
   const heatmapGrid = useMemo(() => {
-    if (!heatmapData?.heatmap) return [];
+    // BUG FIX: `!heatmapData?.heatmap` passes for `heatmap: []` (an empty array is
+    // truthy), so the loops below still built a full 7x24 grid of zero-intensity cells,
+    // `hasHeatmap` became true, and the widget presented a completely dead heatmap as
+    // though the venue genuinely had zero activity every hour of the week.
+    // PeakActivityHeatmap.jsx gets this right with `!data?.heatmap?.length`.
+    if (!heatmapData?.heatmap?.length) return [];
     const grid = [];
     for (let d = 0; d < 7; d++) {
       const row = [];

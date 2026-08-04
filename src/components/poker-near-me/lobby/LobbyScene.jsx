@@ -27,13 +27,38 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-// ─── Detect device quality ONCE at module load (not inside a component) ───
-const IS_MOBILE = typeof window !== 'undefined' && (
-  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  || window.innerWidth < 768
-);
-const INITIAL_QUALITY = IS_MOBILE ? 'low' : 'high';
-const INITIAL_DPR = IS_MOBILE ? 0.75 : 1.5;
+// ─── Detect device quality ───
+// [AUDIT] This used to be a UA regex plus `window.innerWidth < 768` evaluated
+// ONCE at module load, so an iPad in landscape or a rotated phone was classed
+// 'high' and got DPR 1.5 with shadows on, and a narrow desktop window was
+// classed 'low' forever. Use actual capability signals (core count, device
+// memory, coarse pointer) and honour prefers-reduced-motion, evaluated when the
+// singleton is first initialised rather than at import time.
+function detectDeviceProfile() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return { isLowPower: true, quality: 'low', dpr: 0.75, reducedMotion: false };
+  }
+  const cores = navigator.hardwareConcurrency || 4;
+  const memory = navigator.deviceMemory || 4;
+  const coarsePointer = typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
+  const reducedMotion = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Low power: few cores, little RAM, or a touch-primary device.
+  const isLowPower = cores <= 4 || memory <= 4 || coarsePointer;
+
+  if (reducedMotion || isLowPower) {
+    return { isLowPower: true, quality: 'low', dpr: 0.75, reducedMotion };
+  }
+  const highEnd = cores >= 8 && memory >= 8;
+  return {
+    isLowPower: false,
+    quality: highEnd ? 'high' : 'medium',
+    dpr: highEnd ? 1.5 : 1,
+    reducedMotion,
+  };
+}
 
 // ─── Module-level singleton for the R3F scene ───
 // Uses R3F's own createRoot API — NOT ReactDOM.createRoot.
@@ -44,6 +69,10 @@ let singletonWrapper = null;   // Wrapper div for positioning
 let singletonPropsRef = null;  // Shared ref for latest props
 let singletonInitialized = false;
 let singletonError = null;
+let singletonGl = null;        // The WebGL context created in initSingleton
+let singletonProfile = null;   // Device profile chosen at init time
+let singletonConfig = null;    // The exact options passed to root.configure()
+let singletonState = null;     // R3F root state captured in onCreated
 
 /**
  * Initialize the R3F singleton using R3F's own createRoot API.
@@ -53,6 +82,7 @@ async function initSingleton(propsRef) {
   if (singletonInitialized) return;
   singletonInitialized = true;
   singletonPropsRef = propsRef;
+  singletonProfile = detectDeviceProfile();
 
   console.debug('[LobbyScene] Initializing R3F singleton via createRoot API...');
 
@@ -70,7 +100,11 @@ async function initSingleton(propsRef) {
     // the context first (with defaults), alpha:true can never be changed.
     // By creating it here with alpha:false, R3F will reuse this context.
     // antialias: false — post-processing SMAA handles anti-aliasing
-    singletonCanvas.getContext('webgl2', {
+    // [AUDIT] Keep the handle. destroySingleton used to re-query
+    // getContext('webgl2') to reach WEBGL_lose_context; on some drivers that
+    // returns null when the original context was created with different
+    // attributes, and the context was then never explicitly lost.
+    singletonGl = singletonCanvas.getContext('webgl2', {
       alpha: false,
       antialias: false,
       powerPreference: 'high-performance',
@@ -107,8 +141,12 @@ async function initSingleton(propsRef) {
     // It will reuse the pre-created WebGL context with alpha:false
     singletonR3FRoot = createRoot(singletonCanvas);
 
-    // Configure the R3F root with all Canvas-equivalent settings
-    singletonR3FRoot.configure({
+    // Configure the R3F root with all Canvas-equivalent settings.
+    // The object is kept in `singletonConfig` because root.configure() applies
+    // DEFAULTS for every key it is not given (shadows:false, dpr:[1,2], ...) —
+    // a later configure({ frameloop }) alone would silently disable shadows and
+    // reset the device-pixel-ratio. See setSingletonFrameloop.
+    singletonConfig = {
       gl: {
         antialias: false, // SMAA handles AA via post-processing
         alpha: false,
@@ -121,25 +159,30 @@ async function initSingleton(propsRef) {
         near: 0.1,
         far: 100,
       },
-      dpr: INITIAL_DPR,
+      dpr: singletonProfile.dpr,
       frameloop: 'always',
-      shadows: INITIAL_QUALITY === 'high',
+      shadows: singletonProfile.quality === 'high',
       events: r3f.createPointerEvents,
       onCreated: (state) => {
+        // Keep the root state — it exposes setFrameloop, which pauses the loop
+        // without re-running configure() and its defaults.
+        singletonState = state;
         console.debug('[LobbyScene] R3F root created! Renderer:', state.gl.constructor.name);
         console.debug('[LobbyScene] Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height);
         state.gl.setClearColor(0x030818, 1);
         state.gl.toneMapping = 4; // ACESFilmicToneMapping
         state.gl.toneMappingExposure = 1.2; // Phase 1: brighter cinematic exposure
       },
-    });
+    };
+
+    singletonR3FRoot.configure(singletonConfig);
 
     // Render the scene content (no <Canvas> wrapper needed!)
     singletonR3FRoot.render(
       <SceneContentWrapper
         propsRef={singletonPropsRef}
-        initialQuality={INITIAL_QUALITY}
-        isMobile={IS_MOBILE}
+        initialQuality={singletonProfile.quality}
+        isMobile={singletonProfile.isLowPower}
       />
     );
 
@@ -167,12 +210,17 @@ function destroySingleton() {
     singletonR3FRoot = null;
   }
 
-  // Force-lose the WebGL context to free GPU memory
-  if (singletonCanvas) {
-    const gl = singletonCanvas.getContext('webgl2') || singletonCanvas.getContext('webgl');
-    if (gl) {
+  // Force-lose the WebGL context to free GPU memory. Prefer the context handle
+  // captured at creation time — re-querying getContext() can return null when the
+  // original attributes differ.
+  const gl = singletonGl
+    || (singletonCanvas && (singletonCanvas.getContext('webgl2') || singletonCanvas.getContext('webgl')));
+  if (gl) {
+    try {
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
+    } catch (e) {
+      console.warn('[LobbyScene] Could not force-lose WebGL context:', e);
     }
   }
 
@@ -184,8 +232,43 @@ function destroySingleton() {
   singletonWrapper = null;
   singletonR3FRoot = null;
   singletonPropsRef = null;
+  singletonGl = null;
+  singletonProfile = null;
+  singletonConfig = null;
+  singletonState = null;
   singletonInitialized = false;
   singletonError = null;
+}
+
+/**
+ * Pause / resume the render loop without tearing down the WebGL context.
+ *
+ * [AUDIT] The unmount cleanup deliberately only DETACHES the wrapper and never
+ * unmounts the R3F root. The root is configured with frameloop:'always', so the
+ * render loop, every useFrame callback, the particle CPU loop and the whole
+ * post-processing chain kept executing against an OFF-DOM canvas indefinitely —
+ * burning GPU and battery with nothing visible — for any unmount that was not a
+ * Next route change (hydration recovery, a conditional render, StrictMode's
+ * double-invoke). Flipping frameloop to 'never' on detach costs nothing and is
+ * fully reversible on re-attach.
+ */
+function setSingletonFrameloop(mode) {
+  try {
+    // Preferred: the root state's own setter — touches nothing else.
+    if (singletonState && typeof singletonState.setFrameloop === 'function') {
+      singletonState.setFrameloop(mode);
+      return;
+    }
+    // Fallback: re-issue the FULL original configuration with only frameloop
+    // changed. Passing `{ frameloop }` on its own would let configure() apply
+    // its own defaults for every omitted key (shadows:false, dpr:[1,2], ...)
+    // and quietly downgrade the scene on every detach/re-attach.
+    if (singletonR3FRoot && singletonConfig) {
+      singletonR3FRoot.configure({ ...singletonConfig, frameloop: mode });
+    }
+  } catch (e) {
+    console.warn('[LobbyScene] Could not set frameloop:', e);
+  }
 }
 
 /**
@@ -228,6 +311,7 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
     // Attach the R3F wrapper to our container
     if (singletonWrapper && singletonWrapper.parentNode !== container) {
       container.appendChild(singletonWrapper);
+      setSingletonFrameloop('always');
       console.debug('[LobbyScene] R3F singleton canvas attached to DOM');
     }
 
@@ -235,6 +319,7 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
     const attachInterval = setInterval(() => {
       if (singletonWrapper && singletonWrapper.parentNode !== container) {
         container.appendChild(singletonWrapper);
+        setSingletonFrameloop('always');
         console.debug('[LobbyScene] R3F singleton canvas attached to DOM (deferred)');
         clearInterval(attachInterval);
       } else if (singletonWrapper?.parentNode === container) {
@@ -244,11 +329,13 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
 
     return () => {
       clearInterval(attachInterval);
-      // On unmount: just detach, do NOT destroy
-      // This preserves the WebGL context across hydration remounts
+      // On unmount: detach and PAUSE the loop, but do NOT destroy — this
+      // preserves the WebGL context across hydration remounts while making sure
+      // an off-DOM canvas never renders at 60 fps.
       if (singletonWrapper && singletonWrapper.parentNode === container) {
         container.removeChild(singletonWrapper);
-        console.debug('[LobbyScene] R3F singleton canvas detached from DOM (preserved)');
+        setSingletonFrameloop('never');
+        console.debug('[LobbyScene] R3F singleton canvas detached from DOM (paused, preserved)');
       }
     };
   }, []);
@@ -268,11 +355,24 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
     };
   }, []);
 
-  // Clean up singleton on full page unload
+  // Clean up singleton on full page unload.
+  // [AUDIT] 'beforeunload' alone is unreliable on iOS Safari and on Android
+  // Chrome (bfcache), so a mobile tab switch or close left the WebGL context
+  // alive until the browser reclaimed it. 'pagehide' fires in those cases.
+  // When the page is only being frozen into the bfcache (event.persisted) we
+  // pause the loop instead of destroying, so a back-navigation still restores.
   useEffect(() => {
     const handleUnload = () => destroySingleton();
+    const handlePageHide = (e) => {
+      if (e.persisted) setSingletonFrameloop('never');
+      else destroySingleton();
+    };
     window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
   }, []);
 
   return (

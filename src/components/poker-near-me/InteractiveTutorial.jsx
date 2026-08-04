@@ -28,6 +28,31 @@ const TOOLTIP_MAX_WIDTH = 480;
 const TOOLTIP_MIN_WIDTH = 340;
 const MIN_TARGET_SIZE = 20; // Minimum px size to consider an element "visible"
 
+// Sub-pixel-tolerant comparisons so the position poll only triggers a re-render
+// when the layout actually moved.
+function sameRect(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return Math.abs(a.top - b.top) < 0.5
+    && Math.abs(a.left - b.left) < 0.5
+    && Math.abs(a.width - b.width) < 0.5
+    && Math.abs(a.height - b.height) < 0.5;
+}
+
+function shallowEqual(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  return ka.every(k => {
+    const va = a[k];
+    const vb = b[k];
+    if (typeof va === 'number' && typeof vb === 'number') return Math.abs(va - vb) < 0.5;
+    return va === vb;
+  });
+}
+
 /**
  * Compute the bounding rect of a target element by data-tutorial-id.
  * If the element has zero/tiny dimensions (transparent grid buttons),
@@ -310,7 +335,7 @@ function ArrowSVG({ arrowData }) {
  * TooltipCard — Mobile-Optimized Tutorial Tooltip
  * Features prominent close button, scrollable content, compact mobile layout
  */
-function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip, onDontShow }) {
+function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip, onDontShow, cardRef }) {
   if (!step) return null;
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
@@ -349,11 +374,16 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
 
   return (
     <motion.div
+      ref={cardRef}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="pnm-tutorial-title"
+      tabIndex={-1}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      style={mobileStyles}
+      style={{ ...mobileStyles, outline: 'none' }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
@@ -443,7 +473,7 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
             </span>
           </div>
           <div>
-            <h3 style={{
+            <h3 id="pnm-tutorial-title" style={{
               fontSize: isMobile ? '18px' : 'clamp(22px, 4vw, 28px)', fontWeight: 800, color: '#fff',
               margin: 0, letterSpacing: '-0.5px',
               lineHeight: 1.2,
@@ -578,25 +608,30 @@ export default function InteractiveTutorial({
   const [tooltipPos, setTooltipPos] = useState({ top: '50%', left: '50%', arrowDir: 'none' });
   const [arrowData, setArrowData] = useState(null);
 
+  const tooltipRef = useRef(null);
+
   const step = steps[currentStep];
 
-  // Recalculate target position on step change and on resize/scroll
+  // Recalculate target position on step change and on resize/scroll.
+  // PERF: every setState below used to receive a fresh object literal, so the
+  // 600ms poll re-rendered the overlay, glow border, SVG arrow and tooltip
+  // twice a second on a completely static page. Only commit real changes.
   const recalculate = useCallback(() => {
     if (!step || !visible) return;
 
     const rect = getTargetRect(step.targetId);
-    setTargetRect(rect);
+    setTargetRect(prev => (sameRect(prev, rect) ? prev : rect));
 
     const tooltipH = 380;
     const tooltipW = Math.min(TOOLTIP_MAX_WIDTH, window.innerWidth - 32);
     const pos = getTooltipPosition(rect, tooltipW, tooltipH);
-    setTooltipPos(pos);
+    setTooltipPos(prev => (shallowEqual(prev, pos) ? prev : pos));
 
     if (rect) {
       const arrow = getArrowPath(rect, pos, pos.arrowDir);
-      setArrowData(arrow);
+      setArrowData(prev => (shallowEqual(prev, arrow) ? prev : arrow));
     } else {
-      setArrowData(null);
+      setArrowData(prev => (prev === null ? prev : null));
     }
   }, [step, visible]);
 
@@ -606,15 +641,35 @@ export default function InteractiveTutorial({
     // Delay initial calculation to let layout settle
     const initialTimer = setTimeout(recalculate, 100);
 
-    const handleResize = () => recalculate();
+    // Coalesce resize/scroll bursts into one recalculation per animation frame.
+    // The scroll listener is capture-phase (it has to see scrolling containers,
+    // not just the window), so on a phone it can fire many times per frame and
+    // each pass re-measures the target and re-renders the framer-motion overlay.
+    let rafId = null;
+    const handleResize = () => {
+      if (rafId != null) return;
+      rafId = window.requestAnimationFrame(() => { rafId = null; recalculate(); });
+    };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize, true);
 
-    // Recalculate periodically for dynamic layouts
-    const interval = setInterval(recalculate, 600);
+    // PERF: a 600ms setInterval used to run for the whole tutorial. Prefer a
+    // ResizeObserver on the document so a static page costs nothing, and keep a
+    // slow safety poll for layouts that shift without resizing (lazy images,
+    // late-mounting pods).
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined' && document.body) {
+      observer = new ResizeObserver(handleResize);
+      observer.observe(document.body);
+    }
+    const interval = setInterval(recalculate, 2000);
 
     return () => {
       clearTimeout(initialTimer);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+      if (observer) observer.disconnect();
       clearInterval(interval);
     };
   }, [visible, recalculate]);
@@ -674,9 +729,12 @@ export default function InteractiveTutorial({
     if (visible) setCurrentStep(0);
   }, [visible]);
 
-  // ─── BELT-AND-SUSPENDERS: Never render on mobile/tablet regardless of props ───
-  // The parent pages should gate this via their own width checks, but this prevents
-  // accidental full-page blocking if a parent misses the check.
+  // ─── NARROW VIEWPORTS: bottom-sheet instead of a full-page block ───
+  // This used to return null below 900px, which made the entire mobile
+  // bottom-sheet layout in TooltipCard dead code and left phone and tablet
+  // users with no onboarding at all. Render the sheet (which deliberately
+  // leaves the page visible and interactive above it) and skip only the
+  // full-viewport dark overlay that would trap taps.
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window !== 'undefined') return window.innerWidth < 900;
     return false;
@@ -689,7 +747,27 @@ export default function InteractiveTutorial({
     }
   }, []);
 
-  if (!visible || !step || steps.length === 0 || isMobileView) return null;
+  // Escape dismisses the tutorial; without it keyboard users had no way out.
+  useEffect(() => {
+    if (!visible) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); handleSkip(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [visible, handleSkip]);
+
+  // Move focus into the tooltip on each step so screen readers announce it and
+  // Tab starts inside the dialog rather than in the page behind it.
+  useEffect(() => {
+    if (!visible || !step) return;
+    const t = setTimeout(() => {
+      try { tooltipRef.current?.focus?.({ preventScroll: true }); } catch (_) { /* ignore */ }
+    }, 60);
+    return () => clearTimeout(t);
+  }, [visible, step, currentStep]);
+
+  if (!visible || !step || steps.length === 0) return null;
 
   const clipPath = targetRect ? buildClipPath(targetRect) : null;
 
@@ -707,7 +785,10 @@ export default function InteractiveTutorial({
         }
       `}</style>
 
-      {/* Dark Overlay With Spotlight Cutout */}
+      {/* Dark Overlay With Spotlight Cutout — desktop only. On narrow
+          viewports the bottom-sheet tooltip is shown over a live page instead
+          of a full-viewport click-trap. */}
+      {!isMobileView && (
       <AnimatePresence mode="wait">
         <motion.div
           key={`overlay-${currentStep}`}
@@ -749,6 +830,7 @@ export default function InteractiveTutorial({
           </svg>
         </motion.div>
       </AnimatePresence>
+      )}
 
       {/* Glow Border Around Target */}
       <AnimatePresence>
@@ -768,6 +850,7 @@ export default function InteractiveTutorial({
       <AnimatePresence mode="wait">
         <TooltipCard
           key={`tooltip-${currentStep}`}
+          cardRef={tooltipRef}
           step={step}
           currentIndex={currentStep}
           totalSteps={steps.length}
@@ -790,7 +873,7 @@ export default function InteractiveTutorial({
 export const LOBBY_TUTORIAL_STEPS = [
   { targetId: 'pod-nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius — Sorted By Distance When GPS Is Active. Tap To Browse All 700+ Venues Across The US.', tip: 'Enable GPS For Automatic Distance Sorting And Nearby Venue Discovery.' },
   { targetId: 'pod-homegames', title: 'Home Games', desc: 'Search For Home Games Nearby Or List Your Own Private Game For Other Players To Find. Perfect For Building Your Local Poker Network.', tip: 'Home Games Are Verified By The Community For Safety And Fairness.' },
-  { targetId: 'pod-livegames', title: 'Live Games', desc: 'See What Tables Are Running RIGHT NOW — Real-Time Data Scraped From Bravo Poker Live. Updated Every 2 Minutes.', tip: 'Green Indicators Mean The Data Was Refreshed Within The Last 5 Minutes.' },
+  { targetId: 'pod-livegames', title: 'Live Games', desc: 'See Which Games Are Likely Running — Table Activity Is Estimated From Each Room\'s Own History, Plus Live Games Reported By Players On The Ground.', tip: 'Counts Marked Estimated Are Modelled, Not Observed. Player Reports Are The Freshest Signal.' },
   { targetId: 'pod-tours', title: 'Poker Tours', desc: 'Browse Upcoming Stops On Major Tours Like WSOP, WPT, MSPT, RGPS, And More. Never Miss A Tournament Series Near You.', tip: 'Tour Badges Are Color-Coded By Organization For Quick Identification.' },
   { targetId: 'pod-mapview', title: 'Map View', desc: 'Interactive Map Showing All Poker Venues With Filters For Game Type, Stakes, And Operating Hours. Zoom To Discover Hidden Gems.', tip: 'Tap Any Marker To See Venue Details, Live Game Counts, And Directions.' },
   { targetId: 'pod-calendar', title: 'Calendar', desc: 'Monthly View Of Upcoming Tournaments And Series In Your Area. Plan Your Poker Schedule Weeks In Advance.', tip: 'Sync With Your Saved Venues To Highlight Events At Your Favorite Rooms.' },
@@ -817,7 +900,7 @@ export const PNM_TAB_TUTORIALS = {
     { targetId: 'subtab-daily', title: 'Daily Tournaments', desc: 'Filter Daily Tournaments By Day Of Week, Buy-In Range, And Game Type. Perfect For Finding Tonight\'s Action.', tip: 'Select Different Days To Plan Your Entire Tournament Week.' },
   ],
   live: [
-    { targetId: 'tab-live', title: 'Live Games', desc: 'Real-Time Table Data Scraped From Bravo Poker Live. See Exactly What\'s Running At Venues Across The Country Right Now.', tip: 'Data Refreshes Every 2 Minutes. Green Dots = Fresh Data.' },
+    { targetId: 'tab-live', title: 'Live Games', desc: 'Table Activity Across The Country, Modelled From Each Room\'s Historical Patterns And Combined With Live Games Reported By Players.', tip: 'Estimated Counts Are Labelled As Such. Report A Game You Are Sitting In To Help Other Players.' },
   ],
   map: [
     { targetId: 'tab-map', title: 'Map View', desc: 'Interactive Map Showing All Poker Venues. Zoom, Pan, And Filter To Discover Rooms Near Any Location.', tip: 'Enable GPS To Center The Map On Your Current Location.' },

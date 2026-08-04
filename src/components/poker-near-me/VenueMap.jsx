@@ -17,7 +17,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
-import { openNativeMaps, getMapProviderName } from '../../utils/openNativeMaps';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
 
 // ─── Constants ───
@@ -235,43 +235,8 @@ const LEAFLET_CUSTOM_CSS = `
   font-weight: 500;
 }
 
-/* ═══ NAVIGATE TO NEAREST BUTTON ═══ */
-.navigate-nearest-btn {
-  position: absolute;
-  bottom: 32px;
-  right: 10px;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(10,14,25,0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Inter', -apple-system, sans-serif;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.2);
-  transition: all 0.2s;
-  -webkit-appearance: none;
-  appearance: none;
-  max-width: 280px;
-}
-.navigate-nearest-btn:hover {
-  background: rgba(20,28,45,0.95);
-  border-color: rgba(255,255,255,0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 2px rgba(255,255,255,0.3);
-}
-.navigate-nearest-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* (The .navigate-nearest-* rules were removed with the never-rendered
+   "Navigate to Nearest" button they styled.) */
 
 /* ═══ VENUE COUNT BADGE ═══ */
 .map-venue-count-badge {
@@ -456,7 +421,8 @@ const TOUR_MARKER_COLORS = {
 function createTourLogoIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ffffff';
   const tourLogoUrl = venue.logo_url || '';
-  const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
+  // tour_code comes from external scrapers — escape before it reaches innerHTML
+  const tourCode = escapeHtml(String(venue.tour_code || 'TOUR').slice(0, 4));
 
   // Circle sizing
   const circleSize = 36;
@@ -503,9 +469,11 @@ function buildTourPopupHtml(venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ffffff';
   // Poker tours always use red ring — they are poker tour stops, not regular venues
   const ringColor = '#ef4444';
+  // tour_code comes from external scrapers — escape before it reaches innerHTML
+  const tourCodeInitials = escapeHtml(String(venue.tour_code || '').slice(0, 4));
   const logoHtml = venue.logo_url
-    ? `<img src="${escapeHtml(venue.logo_url)}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`
-    : `<div style="display:flex;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`;
+    ? `<img src="${escapeHtml(venue.logo_url)}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.08);padding:0px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${tourCodeInitials}</div>`
+    : `<div style="display:flex;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${tourCodeInitials}</div>`;
 
   const statusBadge = venue.is_running
     ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;letter-spacing:0.3px;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
@@ -602,9 +570,9 @@ function buildPopupHtml(venue) {
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
       <span style="padding:3px 10px;border-radius:6px;background:${colors.badgeBg || 'rgba(255,255,255,0.15)'};color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
       ${openBadge}
-      ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
+      ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${escapeHtml(String(hours))}</span>` : ''}
     </div>
-    ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
+    ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${escapeHtml(games)}</div>` : ''}
     ${venue._isLive && venue.totalTables > 0 ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span style="padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:0.4px;border:1px solid rgba(239,68,68,0.25);">LIVE DATA</span><span style="font-size:11px;color:#4ade80;font-weight:700;">${venue.totalTables} Tables Running</span></div>` : ''}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
@@ -621,7 +589,6 @@ function buildPopupHtml(venue) {
 // ─── Main Map Component ───
 export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, isFavorited }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
-  const [nearestVenue, setNearestVenue] = useState(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const mapContainerRef = useRef(null);
   const mountedRef = useRef(true);
@@ -639,10 +606,17 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
   const onOpenIframeModalRef = useRef(onOpenIframeModal);
+  // WIRING FIX: `onVenueClick` was destructured and never used, so map pin → venue card
+  // sync (scroll + highlight, implemented on the page) could never fire. Held in a ref so
+  // wiring it does not add a marker-rebuild trigger.
+  const onVenueClickRef = useRef(onVenueClick);
+  // Content signature of the markers currently drawn — see the marker effect below.
+  const renderedSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Keep the ref current without triggering re-init
+  // Keep the refs current without triggering re-init
   useEffect(() => { onOpenIframeModalRef.current = onOpenIframeModal; }, [onOpenIframeModal]);
+  useEffect(() => { onVenueClickRef.current = onVenueClick; }, [onVenueClick]);
 
   // Dynamically load Leaflet scripts
   useEffect(() => {
@@ -911,6 +885,9 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     circlesGroup.addTo(map);
     circlesGroupRef.current = circlesGroup;
 
+    // Fresh, empty layers — force the marker effect's signature guard to redraw.
+    renderedSignatureRef.current = null;
+
     function updateCircles() {
       circlesGroup.clearLayers();
       const zoom = map.getZoom();
@@ -982,16 +959,41 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     const circlesGroup = circlesGroupRef.current;
     const tourLayer = tourLayerRef.current;
 
+    // PERF FIX: two of this effect's deps change identity on EVERY parent render —
+    // `isFavorited` is a bare arrow re-created each render, and `venues` is rebuilt inline
+    // by the panels (sort/filter in the render body). Rebuilding every marker on every
+    // parent state change re-ran buildPopupHtml for the whole dataset and snapped shut any
+    // popup the user had open. Compare a content signature of everything the pins and
+    // popups actually display and bail out when nothing meaningful changed.
+    const drawnVenues = (venues || []).filter(function(v) { return v && v.latitude && v.longitude && !v.hideOnMap; });
+    const signature = [
+      drawnVenues.map(function(v) {
+        const fav = isFavorited && isFavorited('venue', v.id) ? 1 : 0;
+        return [
+          v.id || '', v.name || '', v.latitude, v.longitude, v.venue_type || '', v.tour_code || '',
+          v.is_running ? 1 : 0, v._isLive ? 1 : 0, v.totalTables || 0, v.logo_url || '',
+          v.trust_score || '', v.is_24_hours ? 1 : 0,
+          Array.isArray(v.games_offered) ? v.games_offered.length : 0, fav,
+        ].join(':');
+      }).join('|'),
+      uniformColor || '',
+      userLocation ? `${userLocation.lat},${userLocation.lng}` : '',
+    ].join('#');
+    if (signature === renderedSignatureRef.current) return;
+    renderedSignatureRef.current = signature;
+
     // Clear existing markers
     clusterGroup.clearLayers();
     if (circlesGroup) circlesGroup.clearLayers();
     // ← Always clear tour layer too
     if (tourLayer) tourLayer.clearLayers();
 
-    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude && !v.hideOnMap; });
+    const validVenues = drawnVenues;
 
     // [VM3 FIX] Compute distances into a local Map — do NOT mutate prop objects in place.
     // Mutating v._distanceMi directly bypasses React change detection since object refs stay identical.
+    // (The full nearest-venue sort that used to live here fed a `nearestVenue` state nothing
+    // ever read — the "Navigate to Nearest" button was never rendered — so it is gone.)
     const distanceMap = new Map();
     if (userLocation) {
       validVenues.forEach(function(v) {
@@ -999,11 +1001,6 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         const dlng = (v.longitude - userLocation.lng) * 69 * Math.cos(userLocation.lat * Math.PI / 180);
         distanceMap.set(v.id, Math.sqrt(dlat * dlat + dlng * dlng));
       });
-      // Find nearest venue (sort by computed distance, not mutated prop)
-      const sorted = [...validVenues].sort((a, b) => (distanceMap.get(a.id) || 9999) - (distanceMap.get(b.id) || 9999));
-      if (sorted.length > 0) {
-        setNearestVenue(sorted[0]);
-      }
     }
 
     // Update visible count
@@ -1034,12 +1031,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         ? buildTourPopupHtml(venueWithDist)
         : buildPopupHtml(venueWithDist);
 
-      // Tour pins get a visible offset so they appear alongside (not buried under) the venue dot.
-      // +0.012 lat / -0.008 lng ≈ 1.3km offset — clearly visible at typical map zoom levels.
-      const markerLat = isTourStop ? venue.latitude + 0.012 : venue.latitude;
-      const markerLng = isTourStop ? venue.longitude - 0.008 : venue.longitude;
-
-      const marker = L.marker([markerLat, markerLng], { icon: finalIcon, zIndexOffset: isTourStop ? 1000 : isFav ? 500 : 0 })
+      // UX FIX: tour pins used to be drawn +0.012 lat / -0.008 lng (~1.3km) away from the
+      // venue they represent, which put the pin in a different neighbourhood at city zoom
+      // and left it visibly detached from its own geofence circle (drawn at true coords).
+      // Visual precedence is already guaranteed by the never-clustered tourLayer plus the
+      // zIndexOffset below, so tour pins now render at their real position.
+      const marker = L.marker([venue.latitude, venue.longitude], { icon: finalIcon, zIndexOffset: isTourStop ? 1000 : isFav ? 500 : 0 })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       if (!isTourStop) {
@@ -1058,17 +1055,35 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
       marker._venueData = venue;
 
-      // Hover preview on desktop
-      marker.on('mouseover', function() {
-        marker.openPopup();
-      });
+      // Hover preview on desktop only — `mouseover` is synthesised on tap, so on touch it
+      // double-fired with the click handler below. A short open delay keeps popups from
+      // flickering as the cursor crosses a dense cluster; `mouseout` only cancels a
+      // still-pending open. It must NOT close an already-open popup: the popup sits above
+      // the pin, so moving the cursor toward it fires `mouseout` and the user could never
+      // reach the View Details / Directions buttons inside it. Leaflet popups are
+      // autoClose by default, so opening another pin's popup still closes this one.
+      const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
+      if (!isTouchDevice) {
+        let hoverTimer = null;
+        marker.on('mouseover', function() {
+          if (hoverTimer) clearTimeout(hoverTimer);
+          hoverTimer = setTimeout(function() { marker.openPopup(); }, 140);
+        });
+        marker.on('mouseout', function() {
+          if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+        });
+      }
 
       // Touch preview on mobile — first tap opens popup instead of requiring double tap
       marker.on('click', function(e) {
-        if ('ontouchstart' in window) {
+        if (isTouchDevice) {
           e.originalEvent?.preventDefault?.();
           marker.openPopup();
         }
+        // WIRING FIX: notify the page so it can scroll to and highlight the matching card.
+        // Tour stops are excluded (they render as tour cards under a different DOM id),
+        // matching how the sibling VenueMapPanel wires its own onVenueSelect.
+        if (!isTourStop && onVenueClickRef.current) onVenueClickRef.current(venue);
       });
 
       if (isTourStop) {

@@ -107,8 +107,29 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
         dedupingInterval: 300_000,
     });
 
+    // PERFORMANCE FIX (partial): both requests were previously fired with no loading
+    // state, so while they were in flight a card with NO registry payload showed a bare
+    // header with no LIVE NOW / stops section and then reflowed. TourCardSkeleton was
+    // written for exactly this gap and was never rendered — render it now.
+    // IMPORTANT: only when there is nothing to show yet. `venue.tour_card_data` is the
+    // registry snapshot useTourMapStops attaches (name, type, buy-ins, regions,
+    // website); `displayTour` below is explicitly designed to render it while the live
+    // requests are in flight, so swapping a fully populated card for a skeleton would
+    // REMOVE content that used to paint immediately.
+    // NOT FIXED HERE: each card still issues its own pair of requests (N+1 across a
+    // list of tours). Collapsing that needs a batch endpoint / `tour_codes=` list param
+    // on /api/poker/tours + /api/poker/tour-schedule, which is outside this file.
+    const hasRegistryFallback = !!(venue.tour_card_data && Object.keys(venue.tour_card_data).length > 0);
+    const isLoadingLiveData = !!tourCode
+        && !hasRegistryFallback
+        && (swrData === undefined || scheduleData === undefined);
+
     const tour = swrData?.data?.[0] || null;
     const allStops = scheduleData?.stops || [];
+    // When tour-schedule falls back to registry data it answers `events` with no
+    // `stops` key, so allStops is silently [] and the card showed no stop information
+    // at all with no explanation. Say so explicitly.
+    const isRegistryFallback = scheduleData?.data_source === 'registry_fallback' && allStops.length === 0;
     const currentStop = allStops.find(s => s.stop_type === 'current') || allStops.find(s => s.stop_type === 'next') || null;
     const currentStopType = currentStop?.stop_type || null;
 
@@ -132,6 +153,10 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     const buyinText = buyins && (buyins.min || buyins.max)
         ? [buyins.min && formatMoney(buyins.min), buyins.max && formatMoney(buyins.max)].filter(Boolean).join(' – ')
         : null;
+
+    if (isLoadingLiveData) {
+        return <TourCardSkeleton venue={venue} />;
+    }
 
     return (
         <div
@@ -267,6 +292,14 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                             border: '1px solid rgba(100,116,139,0.2)'
                         }}>{r}</span>
                     ))}
+                </div>
+            )}
+
+            {/* Schedule not published yet — the API answered from the registry fallback,
+                which carries no stops. Without this the card just showed nothing. */}
+            {isRegistryFallback && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                    Schedule not yet published
                 </div>
             )}
 

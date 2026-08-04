@@ -153,11 +153,30 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
                 {DAY_LABELS[dayIndex]}
               </div>
               <div style={{ display: 'flex', flex: 1, gap: 1 }}>
+                {/* UX/A11Y FIX: each cell used to be a plain <div> with only
+                    onMouseEnter/onMouseLeave, so on touch devices (no hover) the
+                    "Sun at 7p — Avg: N tables" readout never appeared and the grid was a
+                    decorative block of coloured squares with no way to read a value.
+                    There was no title, role, tabIndex or aria-label either, so the whole
+                    dataset was invisible to assistive tech. */}
                 {row.map((cell, hourIndex) => (
                   <div
                     key={hourIndex}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
+                    title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} — Avg: ${cell.avg_tables} tables`}
                     onMouseEnter={() => setHoveredCell(cell)}
                     onMouseLeave={() => setHoveredCell(null)}
+                    onClick={() => setHoveredCell(cell)}
+                    onFocus={() => setHoveredCell(cell)}
+                    onBlur={() => setHoveredCell(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setHoveredCell(cell);
+                      }
+                    }}
                     style={{
                       flex: 1, height: 20, borderRadius: 3,
                       background: intensityColor(cell.intensity),

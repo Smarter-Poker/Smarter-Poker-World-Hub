@@ -16,7 +16,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
-import dailyTournamentData from '../../../data/daily-tournament-schedules.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -93,6 +92,53 @@ const BUILTIN_CITY_COORDS = {
     'henderson, nv':   { lat: 36.0395, lng: -114.9817 },
 };
 
+// --- Geocode memo for city searches not covered by BUILTIN_CITY_COORDS ---
+// The Nominatim call used to sit uncached and untimed directly in the venue
+// search request path: a slow/throttled upstream stalled the whole request up
+// to the platform timeout, and every cache miss re-geocoded the same suburb.
+// Negative results are memoised too so a bad term is only ever attempted once
+// per lambda lifetime (Nominatim's usage policy caps automated use ~1 req/s).
+const GEOCODE_TTL = 24 * 60 * 60 * 1000; // 24h
+const GEOCODE_TIMEOUT_MS = 1500;
+const GEOCODE_MAX_ENTRIES = 500;
+const _geocodeCache = new Map();
+
+async function geocodeCity(cityName, stateCode) {
+    const key = `${cityName.toLowerCase()}, ${stateCode.toLowerCase()}`;
+    const cached = _geocodeCache.get(key);
+    if (cached && (Date.now() - cached.at) < GEOCODE_TTL) return cached.coords;
+
+    let coords = null;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS) : null;
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(cityName)}`
+            + `&state=${encodeURIComponent(stateCode)}&country=us&format=json&limit=1`;
+        const gResp = await fetch(url, {
+            headers: { 'User-Agent': 'SmarterPoker/1.0', 'Accept-Language': 'en-US,en' },
+            signal: controller ? controller.signal : undefined,
+        });
+        if (gResp.ok) {
+            const data = await gResp.json();
+            if (Array.isArray(data) && data.length > 0 && data[0].lat && data[0].lon) {
+                coords = { lat: data[0].lat, lng: data[0].lon };
+            }
+        }
+    } catch (e) {
+        console.warn('[venues] Dynamic geocode failed:', e?.message || e);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+
+    // Bound the memo so a long-lived lambda cannot grow it without limit.
+    if (_geocodeCache.size >= GEOCODE_MAX_ENTRIES) {
+        const oldest = _geocodeCache.keys().next().value;
+        if (oldest !== undefined) _geocodeCache.delete(oldest);
+    }
+    _geocodeCache.set(key, { coords, at: Date.now() });
+    return coords;
+}
+
 // --- In-memory cache for JSON venue data with Map index ---
 const CACHE_TTL = 60000; // 60 seconds
 let _jsonVenueCache = null;
@@ -117,6 +163,69 @@ function toTitleCase(str) {
     return str.replace(/\w\S*/g, (txt) => {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
+}
+
+const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/** Current day-of-week index in US Eastern, so Vercel's UTC clock doesn't drift the schedule. */
+function easternTodayIndex() {
+    const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    return new Date(localCurrentTime).getDay();
+}
+
+/**
+ * Resolve a charity social page's `metadata.run_schedule` into today's event
+ * (if any) plus the next upcoming event.
+ *
+ * This used to be inlined inside the `missedLinkedPages` loop, which meant it
+ * only ever ran for pages that HAD a linked_venue_id the JSON dataset simply
+ * did not carry. Genuinely unlinked charity pages reached the mapper with
+ * both fields undefined and were dropped from every result set. Hoisted here
+ * so every charity page gets the computation.
+ */
+function computeCharitySchedule(schedule) {
+    const sched = schedule || {};
+    const todayIdx = easternTodayIndex();
+    const todayKey = DAYS_ORDER[todayIdx];
+
+    // Fallback buy-in from any scheduled day, used when today's row omits one.
+    const schedBuyIns = Object.values(sched)
+        .map(d => d?.buy_in)
+        .filter(b => b != null && b > 0 && b < 10000);
+    const fallbackBuyIn = schedBuyIns.length > 0 ? schedBuyIns[0] : null;
+
+    const today = sched[todayKey];
+    if (today && today.open && today.location) {
+        return {
+            isOpenToday: true,
+            todayLocation: today.location.trim(),
+            todayStartTime: today.start_time || null,
+            todayBuyIn: (today.buy_in > 0 ? today.buy_in : fallbackBuyIn) || null,
+            nextEvent: null,
+        };
+    }
+
+    for (let i = 1; i <= 7; i++) {
+        const nextDayStr = DAYS_ORDER[(todayIdx + i) % 7];
+        const nextDayData = sched[nextDayStr];
+        if (nextDayData && nextDayData.open && nextDayData.location) {
+            return {
+                isOpenToday: false,
+                todayLocation: null,
+                todayStartTime: null,
+                todayBuyIn: null,
+                nextEvent: {
+                    day: nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1),
+                    days_away: i,
+                    location: nextDayData.location.trim(),
+                    start_time: nextDayData.start_time || null,
+                    buy_in: (nextDayData.buy_in > 0 ? nextDayData.buy_in : fallbackBuyIn) || null,
+                },
+            };
+        }
+    }
+
+    return { isOpenToday: false, todayLocation: null, todayStartTime: null, todayBuyIn: null, nextEvent: null };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -382,56 +491,53 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
     });
 }
 
+// NOTE: the former `findDailyTournaments` fuzzy matcher was removed.
+// Its only data source (data/daily-tournament-schedules.json) has been an
+// empty array for a long time, so the matcher returned null on its very
+// first line and the four-pass scan below it was unreachable. The single
+// venue path now flags `schedule_unavailable` instead, so the venue page
+// can render "schedule not yet published" rather than an empty list.
+
 /**
- * Fuzzy match a venue name against tournament schedule venue names.
- * Returns the best matching tournament entry or null.
+ * Cap a result list while preserving relevance order.
+ *
+ * The poker_venues query is already capped by .range(), but the social-page /
+ * home-group merge appends up to 500 more entries afterwards and nothing ever
+ * sliced the combined array — so `?limit=5` (the typeahead) came back with
+ * hundreds of rows.
+ *
+ * IMPORTANT: only the MERGED entries may be trimmed. The core rows have already
+ * been paged upstream (`.range(offset, offset + maxResults - 1)` for Supabase,
+ * `.slice(offset, offset + maxResults)` for the JSON fallback), and the client
+ * asks for the next page at `offset + limit` in that same underlying source —
+ * so any core row dropped here would be skipped over by the following request
+ * and never rendered at all. Merged entries are appended after paging and only
+ * on the first page, so trimming those loses nothing that a later page would
+ * have carried.
+ *
+ * Entries are identified by the `_merged_social` marker attached at concat time
+ * (not by `is_social_page`, which the linked-page enrichment also sets on real
+ * poker_venues rows). The marker is stripped before the response is sent.
  */
-function findDailyTournaments(venueName, venueCity, venueState) {
-    if (!venueName || !dailyTournamentData?.tournaments) return null;
+function capVenues(list, max) {
+    if (!Array.isArray(list) || !(max > 0) || list.length <= max) return list;
 
-    const normalizedName = venueName.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    const tournaments = dailyTournamentData.tournaments;
-
-    // Pass 1: Exact name match (case-insensitive)
-    let match = tournaments.find(
-        t => t.venue_name.toLowerCase().trim() === venueName.toLowerCase().trim()
-    );
-    if (match) return match;
-
-    // Pass 2: Normalized match (strip punctuation)
-    match = tournaments.find(t => {
-        const normalized = t.venue_name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-        return normalized === normalizedName;
-    });
-    if (match) return match;
-
-    // Pass 3: One name contains the other (same state)
-    match = tournaments.find(t => {
-        if (venueState && t.state && t.state.toUpperCase() !== venueState.toUpperCase()) return false;
-        const tName = t.venue_name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-        return tName.includes(normalizedName) || normalizedName.includes(tName);
-    });
-    if (match) return match;
-
-    // Pass 4: Significant word overlap (same state, at least 2 shared words of length >= 3)
-    const venueWords = normalizedName.split(/\s+/).filter(w => w.length >= 3);
-    if (venueWords.length > 0) {
-        let bestScore = 0;
-        let bestMatch = null;
-        for (const t of tournaments) {
-            if (venueState && t.state && t.state.toUpperCase() !== venueState.toUpperCase()) continue;
-            const tWords = t.venue_name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/).filter(w => w.length >= 3);
-            const shared = venueWords.filter(w => tWords.includes(w)).length;
-            const score = shared / Math.max(venueWords.length, tWords.length);
-            if (shared >= 2 && score > bestScore) {
-                bestScore = score;
-                bestMatch = t;
-            }
-        }
-        if (bestMatch) return bestMatch;
+    const merged = [];
+    const core = [];
+    for (const v of list) {
+        if (v && v._merged_social === true) merged.push(v);
+        else core.push(v);
     }
+    if (merged.length === 0) return list.slice(0, max);
 
-    return null;
+    // Reserve roughly 30% of the requested page size for clubs / charities /
+    // home games so they are not crowded out, without ever evicting a core row.
+    const mergedQuota = Math.max(1, Math.ceil(max * 0.3));
+    if (core.length <= max && merged.length <= mergedQuota) return list;
+
+    const kept = new Set(core.slice(0, max));
+    merged.slice(0, mergedQuota).forEach(v => kept.add(v));
+    return list.filter(v => kept.has(v));
 }
 
 /**
@@ -538,6 +644,11 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 
 export default async function handler(req, res) {
   let homeGroups = [];
+  // Captured as soon as the query string is parsed so the degraded fallback in
+  // the catch below can honour the caller's filters instead of answering every
+  // failure with the entire nationwide list.
+  let requestFilters = null;
+  let requestMaxResults = 1000;
   try {
     // CDN cache: fresh for 120s, serve stale up to 600s
     if (req.method === 'GET') {
@@ -616,23 +727,14 @@ export default async function handler(req, res) {
                   // aren't stuck with 0 venues when searching for their city.
                   const cityMatch = rawSearch.match(/^([^,]{2,}),\s*([a-z]{2})$/);
                   if (cityMatch) {
-                      try {
-                          const cityName = encodeURIComponent(cityMatch[1].trim());
-                          const stateCode = encodeURIComponent(cityMatch[2].trim());
-                          const url = `https://nominatim.openstreetmap.org/search?city=${cityName}&state=${stateCode}&country=us&format=json&limit=1`;
-                          const gResp = await fetch(url, { headers: { 'User-Agent': 'SmarterPoker/1.0', 'Accept-Language': 'en-US,en' } });
-                          if (gResp.ok) {
-                              const data = await gResp.json();
-                              if (data && data.length > 0) {
-                                  effectiveLat = String(data[0].lat);
-                                  effectiveLng = String(data[0].lon);
-                                  effectiveRadius = effectiveRadius || '50';
-                                  console.debug(`[venues] Geocoded search to coordinates.`);
-                              }
-                          }
-                      } catch (e) {
-                          console.warn('[venues] Dynamic geocode failed for:', rawSearch, e.message);
+                      const geo = await geocodeCity(cityMatch[1].trim(), cityMatch[2].trim());
+                      if (geo) {
+                          effectiveLat = String(geo.lat);
+                          effectiveLng = String(geo.lng);
+                          effectiveRadius = effectiveRadius || '50';
                       }
+                      // On a miss/timeout we simply fall through to the state/city
+                      // filter path below rather than stalling the whole request.
                   }
               }
           }
@@ -642,6 +744,8 @@ export default async function handler(req, res) {
           const offset = parseInt(req.query.offset, 10) || 0;
           // Merge 'type' and 'venue_type' so both ?type=casino and ?venue_type=casino work
           const effectiveType = type || venue_type || null;
+          requestMaxResults = maxResults;
+          requestFilters = { id, state, city, type: effectiveType, tournaments, search, featured };
           let venues = [];
 
           if (id) {
@@ -947,6 +1051,20 @@ export default async function handler(req, res) {
               }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
+              // The JSON fallback ignored `limit` and `offset` entirely and returned
+              // the whole nationwide file on every request. Page it the same way the
+              // Supabase branch is paged (which happens in .range()).
+              if (!usedSupabase) {
+                  venues = venues.slice(offset, offset + maxResults);
+              }
+
+              // Only `poker_venues` is paginated (the .range() above). The
+              // social-page / home-group merge below is NOT — it used to run on
+              // every page of an infinite scroll and re-append the same up-to-500
+              // entries each time, duplicating every club/charity/home-game card
+              // (and keeping `hasMore` true forever because the page always came
+              // back full). The merged entries belong to the first page only.
+              if (offset === 0) {
                   // --- Merge public social pages (clubs, charities, home games) ---
                   // Linked pages enrich their parent JSON venue; unlinked pages create new entries
                   try {
@@ -1203,46 +1321,10 @@ export default async function handler(req, res) {
                               const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
 
                               // Calculate Charity Open/Next Event Status
-                              let isOpenToday = false;
-                              let nextEvent = null;
-                              let todayLocation = null;
-                              let todayStartTime = null;
-                              let todayBuyIn = null;
-                              if (sp.page_type === 'charity') {
-                                  const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                                  const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-                                  const todayIdx = new Date(localCurrentTime).getDay();
-                                  const todayKey = DAYS_ORDER[todayIdx];
-                                  // Compute fallback buy-in from all schedule days
-                                  const unlinkedSchedBuyIns = Object.values(schedule || {}).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
-                                  const unlinkedFallbackBuyIn = unlinkedSchedBuyIns.length > 0 ? unlinkedSchedBuyIns[0] : null;
-
-                                  if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
-                                      isOpenToday = true;
-                                      todayLocation = schedule[todayKey].location.trim();
-                                      // Bug-9 fix: also capture today's start_time + buy_in
-                                      todayStartTime = schedule[todayKey].start_time || null;
-                                      todayBuyIn = (schedule[todayKey].buy_in > 0 ? schedule[todayKey].buy_in : unlinkedFallbackBuyIn) || null;
-                                  } else {
-                                      // Find the next available event date
-                                      for (let i = 1; i <= 7; i++) {
-                                          const nextIdx = (todayIdx + i) % 7;
-                                          const nextDayStr = DAYS_ORDER[nextIdx];
-                                          const nextDayData = schedule[nextDayStr];
-                                          if (nextDayData && nextDayData.open && nextDayData.location) {
-                                              const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
-                                              nextEvent = {
-                                                  day: dayLabel,
-                                                  days_away: i,
-                                                  location: nextDayData.location.trim(),
-                                                  start_time: nextDayData.start_time || null,
-                                                  buy_in: (nextDayData.buy_in > 0 ? nextDayData.buy_in : unlinkedFallbackBuyIn) || null,
-                                              };
-                                              break;
-                                          }
-                                      }
-                                  }
-                              }
+                              const charitySched = sp.page_type === 'charity'
+                                  ? computeCharitySchedule(schedule)
+                                  : { isOpenToday: false, todayLocation: null, todayStartTime: null, todayBuyIn: null, nextEvent: null };
+                              const { isOpenToday, todayLocation, todayStartTime, todayBuyIn, nextEvent } = charitySched;
 
                               unlinkedPages.push({
                                   ...sp,
@@ -1285,10 +1367,25 @@ export default async function handler(req, res) {
                               const isFeatured = sp._resolvedIsFeatured || false;
 
                               if (sp.page_type === 'charity') {
+                                  // Every charity page gets the schedule computation — not only the
+                                  // ones promoted out of missedLinkedPages. A charity that registers
+                                  // a page with a full metadata.run_schedule but no linked_venue_id
+                                  // used to arrive here with both flags undefined and was silently
+                                  // dropped from every result set.
+                                  const cs = sp._charityIsOpenToday !== undefined
+                                      ? {
+                                          isOpenToday: sp._charityIsOpenToday,
+                                          todayLocation: sp._charityTodayLocation,
+                                          todayStartTime: sp._charityTodayStartTime,
+                                          todayBuyIn: sp._charityTodayBuyIn,
+                                          nextEvent: sp._charityNextEvent,
+                                      }
+                                      : computeCharitySchedule(schedule);
+
                                   // Unlinked charities: display if they have an event today OR a future event
-                                  if (sp._charityIsOpenToday || sp._charityNextEvent) {
-                                      const isOpen = sp._charityIsOpenToday;
-                                      const locKey = isOpen ? sp._charityTodayLocation : sp._charityNextEvent.location;
+                                  if (cs.isOpenToday || cs.nextEvent) {
+                                      const isOpen = cs.isOpenToday;
+                                      const locKey = isOpen ? cs.todayLocation : cs.nextEvent.location;
                                       const coords = geocoded[locKey] || null;
                                       
                                       // Inherit the latitude/longitude if missing from coords dictionary
@@ -1318,11 +1415,11 @@ export default async function handler(req, res) {
                                           // Bug-9 fix: populate today_event so card can show start_time + buy_in
                                           today_event: isOpen ? {
                                               location: locKey,
-                                              start_time: sp._charityTodayStartTime || null,
-                                              buy_in: sp._charityTodayBuyIn || null,
+                                              start_time: cs.todayStartTime || null,
+                                              buy_in: cs.todayBuyIn || null,
                                               state: locKey.split(',')[1]?.trim() || sp.location_state || null,
                                           } : null,
-                                          next_event: sp._charityNextEvent
+                                          next_event: cs.nextEvent
                                       });
                                   }
                               } else {
@@ -1429,7 +1526,10 @@ export default async function handler(req, res) {
                                   });
                               }
                           }
-                          venues = venues.concat(mappedPages);
+                          // Marker used by capVenues: these entries are appended
+                          // AFTER the core page was cut, so they are the only ones
+                          // safe to trim when the caller asked for a small limit.
+                          venues = venues.concat(mappedPages.map(p => ({ ...p, _merged_social: true })));
 
                           addBreadcrumb({
                               category: 'poker-venues',
@@ -1442,6 +1542,27 @@ export default async function handler(req, res) {
                   console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
                   captureError(spErr, { tags: { api: 'poker-venues', stage: 'social-merge' }, level: 'warning' });
               }
+
+              // --- Standalone home groups ---
+              // Home groups that DO have a linked social page are already emitted by
+              // the mapper above (as `sp-<id>` entries). Groups with no social page
+              // were only ever exposed through the top-level `home_groups` envelope,
+              // which no frontend reads — so they never rendered anywhere. Fold them
+              // into `data` where the list/map components (which already understand
+              // the `venue_type: 'home_game'` discriminator) will pick them up.
+              try {
+                  const standaloneGroups = homeGroups.filter(hg => !hg.social_page_id);
+                  if (standaloneGroups.length > 0) {
+                      const seenIds = new Set(venues.map(v => String(v.id)));
+                      const additions = standaloneGroups
+                          .filter(hg => !seenIds.has(String(hg.id)))
+                          .map(hg => ({ ...hg, is_social_page: false, _merged_social: true }));
+                      venues = venues.concat(additions);
+                  }
+              } catch (hgErr) {
+                  console.warn('[venues] Standalone home group merge failed (non-fatal):', hgErr?.message || hgErr);
+              }
+              } // end offset === 0 social/home-group merge
           }
 
           // --- GPS-based distance calculation and filtering ---
@@ -1531,6 +1652,9 @@ export default async function handler(req, res) {
                       .select('*')
                       .eq('venue_id', parseInt(id, 10))
                       .eq('is_active', true)
+                      // Match daily-tournaments.js / venue-tournament-calendar.js so a
+                      // venue page never shows rows those surfaces already retired.
+                      .eq('data_quality', 'scraped_verified')
                       .or('is_suppressed.is.null,is_suppressed.eq.false')
                       .order('day_of_week')
                       .limit(100);
@@ -1587,15 +1711,14 @@ export default async function handler(req, res) {
                   console.warn('[venues] Live tournament DB query failed, using static fallback:', dbErr.message);
               }
 
-              // === STATIC JSON FALLBACK ===
+              // === NO PUBLISHED SCHEDULE ===
+              // There is no static fallback dataset any more. Rather than serving
+              // an empty array (indistinguishable from "this venue runs nothing"),
+              // flag it so the venue page can say the schedule is not yet published.
               if (!usedLiveData) {
-                  const tournamentMatch = findDailyTournaments(venue.name, venue.city, venue.state);
-                  if (tournamentMatch) {
-                      venue.daily_tournaments = tournamentMatch.schedules || [];
-                      venue.daily_tournaments_source = tournamentMatch.source_url || null;
-                  } else {
-                      venue.daily_tournaments = [];
-                  }
+                  venue.daily_tournaments = [];
+                  venue.daily_tournaments_source = null;
+                  venue.schedule_unavailable = true;
               }
 
               // === VENUE NEWS from Supabase ===
@@ -1756,6 +1879,7 @@ export default async function handler(req, res) {
                               .select('venue_id, venue_name, day_of_week, start_time, buy_in, tournament_name, starting_stack')
                               .in('venue_id', charityIds)
                               .eq('is_active', true)
+                              .eq('data_quality', 'scraped_verified')
                               .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                       charityNames.length > 0
@@ -1765,6 +1889,7 @@ export default async function handler(req, res) {
                               .is('venue_id', null)
                               .in('venue_name', charityNames)
                               .eq('is_active', true)
+                              .eq('data_quality', 'scraped_verified')
                               .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                   ]);
@@ -1910,6 +2035,7 @@ export default async function handler(req, res) {
                           .select('venue_id, day_of_week, start_time, buy_in, tournament_name, game_type, guaranteed')
                           .in('venue_id', regularIds)
                           .eq('is_active', true)
+                          .eq('data_quality', 'scraped_verified')
                           .or('is_suppressed.is.null,is_suppressed.eq.false')
                           .order('start_time', { ascending: true });
 
@@ -1970,9 +2096,13 @@ export default async function handler(req, res) {
           // --- Apply limit and return ---
           // Only count physical playable venues in the total — series and tours are NOT counted as venues
           const total = venues.filter(v => !['series', 'tour'].includes(v.venue_type)).length;
-          // No cap — return all venues (dataset is manageable size)
-          const limited = venues.map(v => {
+          // Honour `limit`. This used to be a bare .map() — despite the variable
+          // name nothing sliced, so the social-page merge blew straight past the
+          // requested limit (`?limit=5` returned hundreds of entries).
+          const limited = capVenues(venues, maxResults).map(v => {
               if (v.name) v.name = toTitleCase(v.name);
+              // Internal capVenues marker — never part of the public shape.
+              if (v._merged_social !== undefined) delete v._merged_social;
               return v;
           });
 
@@ -2000,15 +2130,26 @@ export default async function handler(req, res) {
 
           // Last resort: JSON data, but still gated through applyFilters so
           // is_active=false / is_suppressed=true venues stay hidden.
+          //
+          // This used to call applyFilters(getJsonVenues(), {}) — an EMPTY filter
+          // object — so a failure on `?lat=..&lng=..&state=IL` answered 200 OK with
+          // every venue in the country, and the s-maxage header set at the top of
+          // the handler let the CDN pin that wrong body against the filtered URL.
+          // Now: the caller's filters are honoured, the result is capped, the
+          // response is marked degraded, and it is explicitly not cacheable.
           let fallbackVenues = [];
           try {
-              fallbackVenues = applyFilters(getJsonVenues(), {}).map(v => ({ ...v }));
+              fallbackVenues = applyFilters(getJsonVenues(), requestFilters || {})
+                  .slice(0, requestMaxResults)
+                  .map(v => ({ ...v }));
           } catch (fallbackErr) {
               console.warn('[venues] fallback filter failed:', fallbackErr?.message || fallbackErr);
               fallbackVenues = [];
           }
+          if (!res.headersSent) res.setHeader('Cache-Control', 'no-store');
           return res.status(200).json({
               success: true,
+              degraded: true,
               data: fallbackVenues,
               home_groups: [],
               total: fallbackVenues.length,

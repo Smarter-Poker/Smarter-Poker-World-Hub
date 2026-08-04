@@ -1,8 +1,9 @@
 import React from 'react';
 import { TourBadge, formatDate } from './TourCard';
 
-// BUG FIX: Use local formatMoney so freerolls (amount=0) show 'Free' not '$0'
-// TourCard's formatMoney(0) returns '$0' — this one is correct
+// Local formatMoney so freerolls (amount=0) show 'Free'.
+// (The note that used to sit here claiming TourCard's formatMoney(0) returns '$0' is
+// stale — TourCard.js also returns 'Free' for 0 now.)
 function formatMoney(amount) {
     if (amount === null || amount === undefined || amount === '') return '';
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -20,7 +21,12 @@ function safeHref(url) {
     const cleanUrl = url.replace(/[\x00-\x20]/g, '');
     const lower = cleanUrl.toLowerCase();
     if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
-    return cleanUrl;
+    // BUG FIX: this returned cleanUrl unchanged, so a scraped source_url of
+    // "www.wsop.com/..." (very common in scraped rows) became a RELATIVE href and the
+    // "Source" button navigated to /hub/poker-near-me/www.wsop.com/... — a 404 inside
+    // the app instead of the external site. Both sibling copies (SeriesCard.js line 16,
+    // TourCard.js line 138) already add the scheme; match them.
+    return lower.startsWith('http://') || lower.startsWith('https://') ? cleanUrl : 'https://' + cleanUrl;
 }
 
 // Tour logo fallback map — matches /public/images/tours/ assets

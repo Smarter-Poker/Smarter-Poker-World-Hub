@@ -68,17 +68,36 @@ export async function getServerSideProps({ params, res, req }) {
   const proto = String(rawProto).split(',')[0].trim();
   const base = host ? `${proto}://${host}` : SITE_URL;
 
+  // Forward the visitor's originating IP to the API.
+  //
+  // The handler calls applyRateLimit(req, res, LIMITS.read), and
+  // src/lib/apiRateLimit.js keys its bucket on x-real-ip, then the rightmost
+  // x-forwarded-for value, then socket.remoteAddress. This SSR fetch carries
+  // none of the visitor's headers, so without this every SSR render for every
+  // visitor collapsed into a single shared bucket per lambda instance — one
+  // crawler burst tripped it and real users started getting error pages.
+  // Passing the client IP through gives each visitor their own bucket again.
+  const clientIp = String(req.headers['x-real-ip'] || '').split(',')[0].trim();
+  const fwdFor = String(req.headers['x-forwarded-for'] || '').trim();
+  const ssrHeaders = { 'User-Agent': 'sp-ssr' };
+  if (clientIp) ssrHeaders['x-real-ip'] = clientIp;
+  if (fwdFor) ssrHeaders['x-forwarded-for'] = fwdFor;
+  else if (clientIp) ssrHeaders['x-forwarded-for'] = clientIp;
+
   try {
     const apiRes = await fetch(`${base}/api/public/home-games/${encodeURIComponent(slug)}`, {
-      headers: { 'User-Agent': 'sp-ssr' },
+      headers: ssrHeaders,
     });
 
     if (apiRes.status === 404) {
       return { notFound: true };
     }
     if (!apiRes.ok) {
-      // On 5xx, surface a real 500 rather than a blank client render.
-      res.statusCode = 500;
+      // Upstream is throttled or broken — 503 + Retry-After, not 500. A 500
+      // tells a crawler the URL itself is broken and it gets dropped from the
+      // index; a 503 is the "come back shortly" signal this actually is.
+      res.statusCode = apiRes.status === 429 ? 503 : 500;
+      if (apiRes.status === 429) res.setHeader('Retry-After', '60');
       return { props: { data: null, serverError: true } };
     }
 
@@ -147,8 +166,19 @@ function buildJsonLd(data) {
         addressCountry: page.country || 'US',
       }
       : undefined,
-    aggregateRating: group.member_count
-      ? { '@type': 'AggregateRating', ratingCount: group.member_count, ratingValue: '5', bestRating: '5' }
+    // NO aggregateRating. There is no review system for home groups —
+    // member_count is a membership count, not a rating count, and the old
+    // hardcoded ratingValue '5' published a fabricated 5-star review card for
+    // every group on the platform. Google treats unsubstantiated review markup
+    // as spam and issues sitewide manual actions for it. member_count is
+    // factually a join count, so it is emitted as interactionStatistic
+    // instead; restore aggregateRating only when real ratings exist.
+    interactionStatistic: group.member_count
+      ? {
+        '@type': 'InteractionCounter',
+        interactionType: 'https://schema.org/JoinAction',
+        userInteractionCount: group.member_count,
+      }
       : undefined,
   };
 
@@ -249,6 +279,13 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // Seat-picker modal state (phase 41 — replaces old yes/maybe/no request-seat flow)
   const [seatEvent, setSeatEvent] = useState(null);        // event object when picker is open
   const [currentUserId, setCurrentUserId] = useState(null);
+
+  // Non-member seat request. The live seat grid is member-gated, so visitors
+  // arriving from search (the entire audience of this page) get the
+  // request-a-seat flow instead of an error box with no way forward.
+  const [seatRequestBusy, setSeatRequestBusy] = useState(false);
+  const [seatRequestNote, setSeatRequestNote] = useState('');
+  const [seatRequestResult, setSeatRequestResult] = useState(null); // { response, membership }
 
   // Synchronous locks to prevent rapid-fire race conditions
   const followLockRef = useRef(false);
@@ -535,30 +572,53 @@ export default function PublicHomeGamePage({ data, serverError }) {
       router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
       return;
     }
+    setSeatRequestResult(null);
+    setSeatRequestNote('');
     setSeatEvent(gameObj);
   };
 
   const closeRequestSeat = () => {
     setSeatEvent(null);
+    setSeatRequestResult(null);
+    setSeatRequestNote('');
+  };
+
+  // Open the seat modal for a tournament card. TournamentList hands back its
+  // own normalized record, so map it back to the original upcoming_games row
+  // (which carries title / game_type / stakes for the modal header).
+  const openRequestSeatForTournament = (t) => {
+    if (!t?.id) return;
+    const original = (data?.upcoming_games || []).find((g) => String(g.id) === String(t.id));
+    openRequestSeat(original || t);
   };
 
   // Auto-open the seat picker after a post-login redirect. `?seatEvent=<id>`
   // in the URL means the user clicked Pick a Seat while signed out, logged
   // in, and came back. Match the id against the upcoming games list.
+  //
+  // BUG-FIX: this used to depend on `seatEvent` and rely on
+  // window.history.replaceState() to clear the trigger. Native replaceState
+  // does NOT update next/router's internal `query`, so router.query.seatEvent
+  // still held the id — the moment the user closed the modal the effect
+  // re-ran, saw `!seatEvent`, matched the same id and reopened it. The user
+  // was trapped until a full page reload. Each id is now auto-opened at most
+  // once per mount, so closing always sticks.
+  const autoOpenedSeatIdsRef = useRef(new Set());
   useEffect(() => {
     const q = router?.query?.seatEvent;
     if (!q || typeof q !== 'string') return;
+    if (autoOpenedSeatIdsRef.current.has(String(q))) return;
     const games = data?.upcoming_games || [];
     const match = games.find((g) => String(g.id) === String(q));
-    if (match && (!seatEvent || seatEvent.id !== match.id)) {
-      setSeatEvent(match);
-      // Clean the query string so a refresh doesn't re-open the modal.
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState(null, '', cleanUrl);
-      }
+    if (!match) return;
+    autoOpenedSeatIdsRef.current.add(String(q));
+    setSeatEvent(match);
+    // Clean the query string so a refresh doesn't re-open the modal.
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState(null, '', cleanUrl);
     }
-  }, [router?.query?.seatEvent, data?.upcoming_games, seatEvent]);
+  }, [router?.query?.seatEvent, data?.upcoming_games]);
 
   // ── Add Friend status ───────────────────────────────────────────────────────
   // Check friend status on mount, then allow sending a request (handler lives
@@ -591,6 +651,82 @@ export default function PublicHomeGamePage({ data, serverError }) {
     })();
     return () => { cancelled = true; };
   }, [hostIdForFriendCheck, currentUserId]);
+
+  // ── Modal accessibility ─────────────────────────────────────────────────
+  // All three dialogs on this page (vouchers, share, seat picker) declare
+  // role="dialog" aria-modal="true" but had no keyboard handling at all: no
+  // Escape, no focus move, no focus trap, no focus restore, no scroll lock.
+  // Keyboard and screen-reader users could tab straight out of a dialog that
+  // claims the rest of the page is inert, and could not dismiss it.
+  //
+  // HOOKS-ORDER: must stay above the `serverError || !data` early return.
+  const modalRef = useRef(null);
+  const prevFocusRef = useRef(null);
+  const closeTopModalRef = useRef(() => {});
+  const isModalOpen = vouchersModalOpen || shareModalOpen || !!seatEvent;
+
+  // Kept in a ref so the keydown listener never needs re-binding.
+  closeTopModalRef.current = () => {
+    if (seatEvent) { closeRequestSeat(); return; }
+    if (shareModalOpen) { setShareModalOpen(false); return; }
+    if (vouchersModalOpen) { setVouchersModalOpen(false); }
+  };
+
+  useEffect(() => {
+    if (!isModalOpen || typeof document === 'undefined') return;
+
+    const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    prevFocusRef.current = document.activeElement;
+
+    const node = modalRef.current;
+    if (node) {
+      const first = node.querySelector(FOCUSABLE);
+      try { (first || node).focus(); } catch { /* non-fatal */ }
+    }
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeTopModalRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const n = modalRef.current;
+      if (!n) return;
+      const items = Array.from(n.querySelectorAll(FOCUSABLE));
+      if (items.length === 0) {
+        e.preventDefault();
+        try { n.focus(); } catch { /* non-fatal */ }
+        return;
+      }
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      const active = document.activeElement;
+      if (!n.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? lastEl : firstEl).focus();
+      } else if (e.shiftKey && active === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && active === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.body.style.overflow = prevOverflow;
+      const prev = prevFocusRef.current;
+      if (prev && typeof prev.focus === 'function') {
+        try { prev.focus(); } catch { /* non-fatal */ }
+      }
+    };
+  }, [isModalOpen]);
 
   // Server-error fallback (rare — API returned 5xx)
   if (serverError || !data) {
@@ -664,8 +800,16 @@ export default function PublicHomeGamePage({ data, serverError }) {
       if (res.ok) {
         setSharePosted(true);
         setTimeout(() => { setSharePosted(false); setShareModalOpen(false); }, 2000);
+      } else {
+        // Was a silent no-op on every non-2xx (expired session, validation,
+        // 5xx) — the button simply did nothing and the user kept tapping it.
+        const json = await res.json().catch(() => ({}));
+        toast.error(json.error || 'Could not post to your feed.');
       }
-    } catch { /* non-fatal */ }
+    } catch (err) {
+      console.warn('Share to feed error:', err);
+      toast.error('Could not post to your feed.');
+    }
   };
 
   // ── Message Host ────────────────────────────────────────────────────────────
@@ -744,6 +888,68 @@ export default function PublicHomeGamePage({ data, serverError }) {
       friendLockRef.current = false;
     }
   };
+
+  // ── Non-member seat request ─────────────────────────────────────────────
+  // WIRING FIX: the seat grid rendered by HomeGamesSeatReservation is
+  // member-gated (rpc_hg_list_tables_and_reservations), so a signed-in
+  // non-member who clicked "Pick a Seat" hit "Follow or join this home game to
+  // see the seat list" with no join, follow or request affordance anywhere in
+  // the modal — the conversion funnel of this SEO page dead-ended. This posts
+  // to the purpose-built public endpoint, which upserts a pending membership,
+  // creates the RSVP (or waitlists it when the game is full) and notifies the
+  // host by push + DM.
+  const submitSeatRequest = async () => {
+    if (!seatEvent?.id || seatRequestBusy) return;
+    const token = await getAccessToken();
+    if (!token) {
+      const returnTo = typeof window !== 'undefined'
+        ? `${window.location.pathname}?seatEvent=${encodeURIComponent(seatEvent.id)}`
+        : `/hub/home-games/${page.slug}?seatEvent=${encodeURIComponent(seatEvent.id)}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    setSeatRequestBusy(true);
+    try {
+      const note = seatRequestNote.trim().slice(0, 500);
+      const res = await fetch(
+        `/api/public/home-games/${encodeURIComponent(page.slug)}/events/${encodeURIComponent(seatEvent.id)}/request-seat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(note ? { message: note } : {}),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Could not send your seat request.');
+      }
+      const response = json.data?.rsvp?.response || 'yes';
+      const membership = json.data?.membership?.status || 'pending';
+      setSeatRequestResult({ response, membership });
+      if (membership && membership !== 'active') setMemberStatus(membership);
+      toast.success(
+        response === 'waitlist'
+          ? 'You are on the waitlist. The host has been notified.'
+          : 'Seat request sent. The host has been notified.'
+      );
+    } catch (err) {
+      console.warn('Seat request error:', err);
+      toast.error(err.message || 'Could not send your seat request.');
+    } finally {
+      setSeatRequestBusy(false);
+    }
+  };
+
+  const isOwnerViewing = !!currentUserId && (currentUserId === host?.id || currentUserId === group?.owner_id);
+
+  // Membership gate for the live seat grid. GET /api/home-games/tables goes
+  // through rpc_hg_list_tables_and_reservations, which is member-only.
+  // The host/owner is included explicitly: owners do not always have a
+  // commander_home_members row (see the same note in ./[slug]/dashboard.js),
+  // so gating on memberStatus alone offered the host a "Request a Seat"
+  // panel — which would file a pending membership request against their own
+  // group — instead of the seat grid they saw before.
+  const canSeeSeatList = isOwnerViewing || memberStatus === 'active' || memberStatus === 'approved';
 
   return (
     <>
@@ -828,6 +1034,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
             })()}
           </div>
           <div className="hgs-cta-row">
+            {/* Host Dashboard had no entry point anywhere in the app — a host
+                could only reach their own dashboard by typing the /dashboard
+                suffix. Owners get it as the primary action on their own page. */}
+            {isOwnerViewing && (
+              <Link href={`/hub/home-games/${page.slug}/dashboard`} className="hgs-primary-btn">
+                Host Dashboard
+              </Link>
+            )}
             {memberStatus === 'banned' ? null : (
               <button
                 className={memberStatus === 'active' || memberStatus === 'approved' ? 'hgs-ghost-btn' : 'hgs-primary-btn'}
@@ -907,10 +1121,15 @@ export default function PublicHomeGamePage({ data, serverError }) {
                 the shared TournamentList component which renders structure,
                 buy-in, starting stack, and entries-cap. The Upcoming Games
                 section below now shows only cash games to avoid duplication. */}
+            {/* onView is required: TournamentList's public-mode footer renders
+                only when `hostHref || onView`, so without it every tournament
+                card was informational with no button at all — cash games got
+                "Pick a Seat" and tournaments got a dead end. */}
             <TournamentList
               tournaments={(upcoming_games || []).filter((g) => g.format === 'tournament')}
               mode="public"
               title="Upcoming Tournaments"
+              onView={openRequestSeatForTournament}
             />
 
             <section className="hgs-section">
@@ -1116,7 +1335,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             aria-label="Players who vouched"
             onClick={(e) => { if (e.target === e.currentTarget) setVouchersModalOpen(false); }}
           >
-            <div className="hgs-vouchers-modal">
+            <div className="hgs-vouchers-modal" ref={modalRef} tabIndex={-1}>
               <div className="hgs-seat-header">
                 <h2 className="hgs-seat-title" style={{fontSize:'18px'}}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2.5" style={{marginRight:8,verticalAlign:'middle'}}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1171,7 +1390,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             aria-label="Share this home game"
             onClick={(e) => { if (e.target === e.currentTarget) setShareModalOpen(false); }}
           >
-            <div className="hgs-vouchers-modal" style={{ maxWidth: '380px' }}>
+            <div className="hgs-vouchers-modal" style={{ maxWidth: '380px' }} ref={modalRef} tabIndex={-1}>
               <div className="hgs-seat-header">
                 <h2 className="hgs-seat-title" style={{ fontSize: '18px' }}>Share {page.name}</h2>
                 <button className="hgs-seat-close" onClick={() => setShareModalOpen(false)} aria-label="Close">×</button>
@@ -1239,7 +1458,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             aria-labelledby="hgs-seat-title"
             onClick={(e) => { if (e.target === e.currentTarget) closeRequestSeat(); }}
           >
-            <div className="hgs-seat-modal hgs-seat-modal-wide">
+            <div className="hgs-seat-modal hgs-seat-modal-wide" ref={modalRef} tabIndex={-1}>
               <div className="hgs-seat-header">
                 <div>
                   <h2 id="hgs-seat-title" className="hgs-seat-title">
@@ -1260,11 +1479,71 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   ×
                 </button>
               </div>
-              <HomeGamesSeatReservation
-                gameId={seatEvent.id}
-                currentUserId={currentUserId}
-                isHost={false}
-              />
+              {canSeeSeatList ? (
+                <HomeGamesSeatReservation
+                  gameId={seatEvent.id}
+                  currentUserId={currentUserId}
+                  isHost={false}
+                />
+              ) : memberStatus === 'banned' ? (
+                <div className="hgs-seat-request">
+                  <p className="hgs-seat-request-lead">
+                    You can&apos;t request a seat at this home game.
+                  </p>
+                </div>
+              ) : memberStatus === null ? (
+                <div className="hgs-seat-request">
+                  <p className="hgs-seat-request-lead">Checking your membership…</p>
+                </div>
+              ) : seatRequestResult ? (
+                <div className="hgs-seat-request">
+                  <p className="hgs-seat-request-lead">
+                    {seatRequestResult.response === 'waitlist'
+                      ? 'You are on the waitlist for this game.'
+                      : 'Your seat request has been sent.'}
+                  </p>
+                  <p className="hgs-seat-request-note">
+                    {seatRequestResult.membership === 'active'
+                      ? 'The host has been notified and will confirm your seat.'
+                      : 'The host has been notified. Once they approve you, the live seat list opens up here.'}
+                  </p>
+                  <button type="button" className="hgs-ghost-btn hgs-full" onClick={closeRequestSeat}>
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <div className="hgs-seat-request">
+                  <p className="hgs-seat-request-lead">
+                    {memberStatus === 'pending'
+                      ? 'Your membership is awaiting host approval.'
+                      : 'The live seat list is for members of this home game.'}
+                  </p>
+                  <p className="hgs-seat-request-note">
+                    Request a seat and the host gets your request straight away. They&apos;ll
+                    approve you and confirm your seat — no need to join first.
+                  </p>
+                  <label className="hgs-seat-request-label" htmlFor="hgs-seat-request-note">
+                    Add a note for the host (optional)
+                  </label>
+                  <textarea
+                    id="hgs-seat-request-note"
+                    className="hgs-seat-request-input"
+                    value={seatRequestNote}
+                    onChange={(e) => setSeatRequestNote(e.target.value.slice(0, 500))}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Anything the host should know?"
+                  />
+                  <button
+                    type="button"
+                    className="hgs-primary-btn hgs-full"
+                    onClick={submitSeatRequest}
+                    disabled={seatRequestBusy}
+                  >
+                    {seatRequestBusy ? 'Sending…' : 'Request a Seat'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1340,6 +1619,11 @@ const pageStyles = `
 .hgs-seat-label > span{display:block;margin-bottom:6px}
 .hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:11px;color:rgba(255,255,255,.4)}
 .hgs-seat-textarea{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;min-height:72px}
+.hgs-seat-request{display:flex;flex-direction:column;gap:12px;padding:4px 0 2px}
+.hgs-seat-request-lead{margin:0;font-size:15px;font-weight:700;color:#fff;line-height:1.4}
+.hgs-seat-request-note{margin:0;font-size:13px;color:rgba(255,255,255,.6);line-height:1.5}
+.hgs-seat-request-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.7)}
+.hgs-seat-request-input{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical}
 .hgs-seat-textarea:focus{outline:none;border-color:rgba(139,92,246,.6);background:rgba(0,0,0,.4)}
 .hgs-seat-error{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
 .hgs-seat-summary{margin:0 0 20px;padding:12px 14px;background:rgba(0,0,0,.25);border-radius:8px}

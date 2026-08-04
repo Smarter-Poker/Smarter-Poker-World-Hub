@@ -12,27 +12,33 @@
  * "More Tools" are accessible via the hamburger menu.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutorial';
 
-// 12 clickable areas laid over the single dynamic image, in a 4×3 grid.
+// 12 clickable areas laid over the single dynamic image, in a 4x3 grid.
 // Each entry defines the pod ID that gets opened when the hotspot is tapped.
+//
+// `href` mirrors POD_ROUTES in pages/hub/poker-near-me/lobby.js. Rendering the
+// hotspots as real anchors (instead of bare <button>s) gives crawlers twelve
+// followable internal links out of the lobby and gives keyboard/screen-reader
+// users a real link target, without changing the visuals: the click handler
+// still preventDefaults and routes through the SPA router.
 const GRID_HOTSPOTS = [
   // Row 1
-  { id: 'nearme', label: 'Poker Near Me' },
-  { id: 'homegames', label: 'Home Games' },
-  { id: 'livegames', label: 'Live Games' },
-  { id: 'tours', label: 'Poker Tours' },
+  { id: 'nearme', label: 'Poker Near Me', href: '/hub/poker-near-me/venues' },
+  { id: 'homegames', label: 'Home Games', href: '/hub/home-games' },
+  { id: 'livegames', label: 'Live Games', href: '/hub/poker-near-me/live-games' },
+  { id: 'tours', label: 'Poker Tours', href: '/hub/poker-tours' },
   // Row 2
-  { id: 'mapview', label: 'Map View' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'series', label: 'Poker Series' },
-  { id: 'roadtrip', label: 'Trip Planner' },
+  { id: 'mapview', label: 'Map View', href: '/hub/poker-near-me/map' },
+  { id: 'calendar', label: 'Calendar', href: '/hub/events-calendar' },
+  { id: 'series', label: 'Poker Series', href: '/hub/poker-near-me/series' },
+  { id: 'roadtrip', label: 'Trip Planner', href: '/hub/poker-near-me/roadtrip' },
   // Row 3
-  { id: 'daily', label: 'Daily Grind' },
-  { id: 'favorites', label: 'Saved Venues' },
-  { id: 'social', label: 'Friends' },
-  { id: 'alerts', label: 'Tournament Alerts' },
+  { id: 'daily', label: 'Daily Grind', href: '/hub/daily-tournaments' },
+  { id: 'favorites', label: 'Saved Venues', href: '/hub/poker-near-me/saved' },
+  { id: 'social', label: 'Friends', href: '/hub/friends' },
+  { id: 'alerts', label: 'Tournament Alerts', href: '/hub/poker-near-me/alerts' },
 ];
 
 
@@ -72,6 +78,10 @@ export default function LobbyOverlay({
     if (venueCount <= 0) return '0';
     return venueCount.toLocaleString();
   }, [venueCount]);
+
+  // If the grid bitmap 404s or is blocked, the twelve hotspots would otherwise
+  // sit over empty space with nothing visible to click.
+  const [gridImageFailed, setGridImageFailed] = useState(false);
 
 
 
@@ -196,8 +206,10 @@ export default function LobbyOverlay({
 
           {/* GPS Location Status Indicator — shown INLINE to the RIGHT of the search bar */}
           {gpsActive && (locationCity || locationState) && (
-            <div
+            <button
+              type="button"
               onClick={onManualLocation}
+              aria-label={`Change location. Current location ${locationCity}${locationState ? `, ${locationState}` : ''}`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 cursor: 'pointer', pointerEvents: 'auto', flexShrink: 0,
@@ -208,6 +220,8 @@ export default function LobbyOverlay({
                 padding: '7px 16px 7px 12px',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+                textAlign: 'left',
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
@@ -217,7 +231,7 @@ export default function LobbyOverlay({
                 {locationCity}{locationState ? `, ${locationState}` : ''}
               </span>
               <span style={{ fontSize: 15, color: 'rgba(200,214,229,0.45)', marginLeft: 4, fontWeight: 500 }}>Change</span>
-            </div>
+            </button>
           )}
         </div>
 
@@ -226,8 +240,10 @@ export default function LobbyOverlay({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, width: 'min(440px, calc(100vw - 32px))', pointerEvents: 'auto' }}>
               {/* Use Saved Location — quick restore from previous session */}
               {savedLocation?.lat && savedLocation?.lng && savedLocationCity && onUseSavedLocation && (
-                <div
+                <button
+                  type="button"
                   onClick={onUseSavedLocation}
+                  aria-label={`Use saved location ${savedLocationCity}${savedLocationState ? `, ${savedLocationState}` : ''}`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     cursor: 'pointer', pointerEvents: 'auto',
@@ -236,6 +252,7 @@ export default function LobbyOverlay({
                     border: '1.5px solid rgba(255,255,255,0.2)',
                     borderRadius: 14,
                     transition: 'all 0.3s',
+                    width: '100%', textAlign: 'left', fontFamily: 'inherit',
                   }}
                 >
                   <div style={{
@@ -261,10 +278,11 @@ export default function LobbyOverlay({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
-                </div>
+                </button>
               )}
               {/* Enable Location — GPS fresh */}
-              <div
+              <button
+                type="button"
                 onClick={() => {
                   if (onShowEnablePopup) {
                     onShowEnablePopup();
@@ -274,6 +292,7 @@ export default function LobbyOverlay({
                     onGpsClick();
                   }
                 }}
+                aria-label="Enable location to find poker rooms, live games and events near you"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   cursor: 'pointer', pointerEvents: 'auto',
@@ -282,6 +301,7 @@ export default function LobbyOverlay({
                   border: '1px solid rgba(34,197,94,0.2)',
                   borderRadius: 14,
                   transition: 'all 0.3s',
+                  width: '100%', textAlign: 'left', fontFamily: 'inherit',
                 }}
               >
                 <div style={{
@@ -307,7 +327,7 @@ export default function LobbyOverlay({
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
-              </div>
+              </button>
             </div>
         )}
 
@@ -348,10 +368,11 @@ export default function LobbyOverlay({
               alt="Poker Near Me Feature Grid"
               loading="eager"
               fetchPriority="high"
+              onError={() => setGridImageFailed(true)}
               style={{
                 width: '100%',
                 height: 'auto',
-                display: 'block',
+                display: gridImageFailed ? 'none' : 'block',
                 borderRadius: 12,
               }}
             />
@@ -359,24 +380,36 @@ export default function LobbyOverlay({
 
           {/* Transparent clickable hotspot grid overlaid on top of the image */}
           <div style={{
-            position: 'absolute',
-            top: '2.5%',
-            left: '2%',
-            right: '2%',
-            bottom: '2%',
+            // Inset only applies while the grid is absolutely positioned over the
+            // bitmap. In the image-failure fallback the grid becomes the flow
+            // content itself, where `left`/`top` would just nudge it off-centre
+            // (and `right`/`bottom` are ignored for a relatively positioned box).
+            top: gridImageFailed ? undefined : '2.5%',
+            left: gridImageFailed ? undefined : '2%',
+            right: gridImageFailed ? undefined : '2%',
+            bottom: gridImageFailed ? undefined : '2%',
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gridTemplateRows: 'repeat(3, 1fr)',
-            gap: 0,
+            gap: gridImageFailed ? 8 : 0,
             overflow: 'visible',
             pointerEvents: showTutorial ? 'none' : 'auto',
-          }}>
+            minHeight: gridImageFailed ? 260 : undefined,
+            position: gridImageFailed ? 'relative' : 'absolute',
+          }}
+          className={gridImageFailed ? 'lobby-hotspots lobby-hotspots-fallback' : 'lobby-hotspots'}
+          >
             {GRID_HOTSPOTS.map((hotspot) => (
-              <button
+              <a
                 key={hotspot.id}
+                href={hotspot.href}
                 data-tutorial-id={`pod-${hotspot.id}`}
-                onClick={() => {
-                  try { navigator.vibrate?.([10, 30, 10]); } catch (e) { console.warn('[App] Handled exception:', e); }
+                className="lobby-hotspot"
+                onClick={(e) => {
+                  // Let modified clicks (new tab / new window) behave natively.
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  e.preventDefault();
+                  try { navigator.vibrate?.([10, 30, 10]); } catch (err) { console.warn('[App] Handled exception:', err); }
                   onPodSelect?.(hotspot.id);
                 }}
                 aria-label={`Open ${hotspot.label}`}
@@ -389,9 +422,17 @@ export default function LobbyOverlay({
                   position: 'relative',
                   overflow: 'visible',
                   WebkitTapHighlightColor: 'transparent',
-                  outline: 'none',
+                  display: 'block',
+                  textDecoration: 'none',
                 }}
-              />
+              >
+                {/* Text label. Icon names live only inside the bitmap, so they
+                    are not translatable, selectable or zoomable and there is no
+                    fallback when the image 404s. This label is always in the DOM
+                    (readable by assistive tech and crawlers) and fades in on
+                    hover/focus so the visual design is unchanged at rest. */}
+                <span className="lobby-hotspot-label">{hotspot.label}</span>
+              </a>
             ))}
           </div>
         </div>
@@ -416,7 +457,10 @@ export default function LobbyOverlay({
         }}>
           {[
             { value: formattedVenueCount, label: 'Venues', color: '#6ee7ef' },
-            { value: liveData?.liveGameCount || 0, label: 'Live Tables', color: '#3fb950' },
+            // Label comes from /api/poker/live-tables metadata.data_mode via the
+            // page: 'Est. Tables' when the published number is modelled rather
+            // than observed. Never present an estimate as live data.
+            { value: liveData?.liveGameCount || 0, label: liveData?.liveGameLabel || 'Live Tables', color: '#3fb950' },
             { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#ffffff' },
           ].map((stat, i) => (
             <div key={i} style={{
@@ -456,6 +500,58 @@ export default function LobbyOverlay({
 
       </div>
     </div>
+
+    <style>{`
+      /* Hotspot labels: always present in the DOM (assistive tech + crawlers),
+         visually revealed on hover/focus so the artwork reads unchanged at rest. */
+      .lobby-hotspot-label {
+        position: absolute;
+        inset: auto 4px 6px 4px;
+        display: block;
+        padding: 2px 4px;
+        border-radius: 6px;
+        font-family: Inter, system-ui, sans-serif;
+        font-size: clamp(8px, 1.2vw, 11px);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-align: center;
+        color: #e0e8f0;
+        background: rgba(6, 15, 28, 0.82);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        pointer-events: none;
+      }
+      .lobby-hotspot:hover .lobby-hotspot-label,
+      .lobby-hotspot:focus-visible .lobby-hotspot-label {
+        opacity: 1;
+      }
+      /* [AUDIT] outline:none used to be set inline on every hotspot, so keyboard
+         users tabbing through twelve transparent buttons got no indication of
+         where they were. */
+      .lobby-hotspot:focus-visible {
+        outline: 2px solid #6ee7ef;
+        outline-offset: -2px;
+        border-radius: 8px;
+      }
+      /* Image-failure fallback: show real tiles instead of invisible buttons. */
+      .lobby-hotspots-fallback .lobby-hotspot {
+        border: 1px solid rgba(110,231,239,0.25) !important;
+        border-radius: 10px;
+        background: rgba(10,18,32,0.85) !important;
+        min-height: 64px;
+      }
+      .lobby-hotspots-fallback .lobby-hotspot-label {
+        opacity: 1;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .lobby-hotspot-label { transition: none; }
+      }
+    `}</style>
     </>
   );
 }

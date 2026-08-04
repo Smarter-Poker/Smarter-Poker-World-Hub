@@ -69,14 +69,20 @@ export function usePersistedFilters(pageKey, defaults, options = {}) {
   // ── Override from URL query params on first mount ────────────────────
   useEffect(() => {
     if (hydrated.current) return;
-    hydrated.current = true;
 
+    // Must wait for the router to populate query params. On statically
+    // optimized/dynamic routes isReady is false on the first client render,
+    // so the flag is only latched AFTER readiness — otherwise the effect
+    // marks itself hydrated on the first pass and the overrides never apply.
     if (!router.isReady) return;
+    hydrated.current = true;
 
     const overrides = {};
     let hasOverrides = false;
     keysToSync.forEach((key) => {
-      const qVal = router.query[key];
+      const raw = router.query[key];
+      // Repeated params arrive as arrays — take the first value.
+      const qVal = Array.isArray(raw) ? raw[0] : raw;
       if (qVal !== undefined && qVal !== null) {
         overrides[key] = qVal;
         hasOverrides = true;

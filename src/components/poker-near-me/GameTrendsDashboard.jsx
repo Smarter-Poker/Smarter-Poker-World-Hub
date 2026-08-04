@@ -8,12 +8,21 @@ import { eventBus, EventType } from '../../engine/EventBus';
 function TrendIcon({ trend, changePct }) {
   if (trend === 'up') return <span style={{ color: '#4ade80', fontWeight: 'bold' }}>▲ +{changePct}%</span>;
   if (trend === 'down') return <span style={{ color: '#f87171', fontWeight: 'bold' }}>▼ {changePct}%</span>;
+  // BUG FIX: /api/poker/game-trends emits four values — 'up', 'down', 'stable' AND
+  // 'new' (a game type that just appeared, the most interesting signal the endpoint
+  // produces). 'new' fell through to "— Stable", i.e. it was reported as unchanged.
+  if (trend === 'new') return <span style={{ color: '#00d4ff', fontWeight: 'bold' }}>NEW</span>;
   return <span style={{ color: '#64748b' }}>— Stable</span>;
 }
 
 export default function GameTrendsDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // BUG FIX: there was no error state — a failed or 500 response rendered the full
+  // chrome with "0 tables active" and an empty list, indistinguishable from a
+  // genuinely empty dataset.
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -21,9 +30,17 @@ export default function GameTrendsDashboard() {
 
     const fetchTrends = () => {
       fetch('/api/poker/game-trends', { signal: controller.signal })
-        .then(r => r.json())
-        .then(d => { if (mounted) { setData(d); setLoading(false); } })
-        .catch(e => { if (mounted && e.name !== 'AbortError') setLoading(false); });
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(d => { if (mounted) { setData(d); setError(null); setLoading(false); } })
+        .catch(e => {
+          if (mounted && e.name !== 'AbortError') {
+            setError(e?.message || 'Could not load trends');
+            setLoading(false);
+          }
+        });
     };
 
     fetchTrends();
@@ -39,7 +56,7 @@ export default function GameTrendsDashboard() {
       controller.abort();
       if (typeof unsub === 'function') unsub();
     };
-  }, []);
+  }, [reloadKey]);
 
   if (loading) {
     return (
@@ -52,8 +69,35 @@ export default function GameTrendsDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
+        borderRadius: 16, padding: 24, border: '1px solid rgba(245,158,11,0.25)',
+      }}>
+        <h3 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16 }}>Game Type Trends</h3>
+        <div style={{ color: '#f59e0b', fontSize: 13, marginBottom: 14 }}>
+          Trend data could not be loaded.
+        </div>
+        <button
+          onClick={() => { setError(null); setLoading(true); setReloadKey(k => k + 1); }}
+          style={{
+            padding: '8px 16px', borderRadius: 8, background: 'rgba(245,158,11,0.12)',
+            border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const trends = data?.trends || [];
-  const maxTables = Math.max(...trends.map(t => t.current_tables), 1);
+  // BUG FIX: a row missing current_tables made Math.max return NaN, which propagated
+  // into every bar's width. Coerce once, here.
+  const tableCount = (t) => Number(t?.current_tables) || 0;
+  const maxTables = Math.max(...trends.map(tableCount), 1);
 
   return (
     <div style={{
@@ -101,14 +145,14 @@ export default function GameTrendsDashboard() {
                 {trend.game}
               </div>
               <div style={{ color: '#64748b', fontSize: 11 }}>
-                {trend.current_tables} table{trend.current_tables !== 1 ? 's' : ''} running
+                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''} running
               </div>
             </div>
 
             {/* Bar */}
             <div style={{ width: 80, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>
               <div style={{
-                width: `${(trend.current_tables / maxTables) * 100}%`,
+                width: `${(tableCount(trend) / maxTables) * 100}%`,
                 height: '100%', borderRadius: 3,
                 background: trend.trend === 'up' ? '#4ade80' : trend.trend === 'down' ? '#f87171' : '#00d4ff',
                 transition: 'width 0.5s ease',
