@@ -37,6 +37,20 @@ node    scripts/table-reference/shot.mjs
 python3 scripts/table-reference/banddiff.py         # the scorecard
 ```
 
+To score what production is actually serving rather than the local file, swap
+the third command for `shot_prod.mjs` and rerun `banddiff.py`:
+
+```bash
+node    scripts/table-reference/shot_prod.mjs       # https://smarter.poker/...
+python3 scripts/table-reference/banddiff.py
+```
+
+That is the check that catches a stale CDN copy, a portrait that 404s in
+production but not locally, or a commit that never actually landed. It fails
+loudly on any response >= 400 or any `<img>` that decodes to zero width. Last
+run against production: **all 10 images decoded, no 4xx, 13.230 / 255** —
+identical to the local build, so the deployed page is the measured one.
+
 `banddiff.py` prints the overall mean and a mean per 153px band, then names the
 worst band. Zoom that band, find the specific defect, measure it, fit the CSS to
 the measurement, rebuild. Repeat until the worst band stops moving.
@@ -51,6 +65,7 @@ Measurement scripts, all reading the same template/screenshot pair via
 | `cardmeas.py` | hole-card white bbox and pixel count, hero artwork top edge |
 | `fitart.py` | best `--ph` / `--ax` / `--po` per portrait, by masked cross-correlation |
 | `seatzoom.py` | a 2× contact sheet of all nine seats: template \| build \| overlay |
+| `shot.mjs` / `shot_prod.mjs` | screenshot the local build / the deployed page at 873×1224 and 390×844 |
 
 The red/cyan overlay is the fastest read in the set: template luminance goes into
 R, build luminance into G+B, so **red is template-only ink, cyan is build-only
@@ -104,8 +119,12 @@ Output goes to two places:
 - `portraits_webp.json` — the same images as base64 data URLs
 
 The script is **deterministic from files already in the repo**: rerunning it
-reproduces every `.webp` byte for byte. That is deliberate. The generated
-binaries and the JSON are gitignored; if you need them, run the script.
+reproduces every `.webp` byte for byte, on any machine — that was checked by
+running it in two environments and comparing md5s, not assumed. So the nine
+`public/avatars/portrait/*.webp` are committed (the page needs them at runtime)
+but they are also regenerable, and `cutout.py` is the source of truth if they
+ever drift. Everything else it emits — `portraits3/`, `portraits_webp.json`,
+`shots/`, and the inline `table-reference.html` — is gitignored scratch.
 
 `build_table.py` has two modes to match:
 
