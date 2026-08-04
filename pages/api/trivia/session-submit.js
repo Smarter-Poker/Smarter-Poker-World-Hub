@@ -21,8 +21,17 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Any `score`, `correctCount` or `diamonds` in the request body is ignored -
  * this route does not even read those fields.
  *
- * Body: { sessionId, answers: [{ questionId, displayIndex }] }
+ * Body: { sessionId, answers: [{ questionId, displayIndex }], cashedOut? }
  * Auth: Bearer token or session cookie (getServerUserWithFallback).
+ *
+ * -- SERVER-RECORDED ANSWERS TAKE PRECEDENCE ------------------------------
+ * When a run went through /api/trivia/session-answer (per-answer verdicts),
+ * every revealed answer is already stored on the session row. Those stored
+ * answers are BINDING here: the client's copy is only consulted for
+ * questions that never went through session-answer. Otherwise "see the
+ * verdict, then submit a corrected answer" would defeat the whole flow.
+ * Arcade's stake pot is likewise recomputed from the stored answer SEQUENCE
+ * (ordinal 'n'), never taken from the client.
  *
  * Returns:
  *   200 { success, correct, total, score, diamondsAwarded, newBalance,
@@ -42,6 +51,7 @@ import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tour
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS, getModeConfig } from '../../../src/lib/trivia/triviaEngine';
+import { computeStakePot, ARCADE_MAX_RUN_PAYOUT, CASH_OUT_MIN_ANSWERED } from '../../../src/lib/trivia/arcadeStakes';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -112,7 +122,7 @@ export default async function handler(req, res) {
         const userId = authUser.id;
 
         // --- INPUT -------------------------------------------------------
-        const { sessionId, answers } = req.body || {};
+        const { sessionId, answers, cashedOut } = req.body || {};
         if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
             return res.status(400).json({ success: false, error: 'invalid_session_id' });
         }
@@ -123,7 +133,7 @@ export default async function handler(req, res) {
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, permutations, status, created_at')
+            .select('id, user_id, mode, question_ids, permutations, status, created_at, answers')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -168,12 +178,23 @@ export default async function handler(req, res) {
         // submit.js grades whatever ids the client sends, so a client could
         // hand it a hand-picked list of questions it already knew. Here an id
         // that was not served in THIS session is simply not gradeable.
+        //
+        // Precedence: answers recorded through /api/trivia/session-answer are
+        // BINDING (their verdicts were already revealed); the client-sent
+        // array only fills in questions that never went through that route.
+        const serverAnswers = (session.answers && typeof session.answers === 'object')
+            ? session.answers
+            : {};
         const byId = new Map();
+        for (const qid of rosterIds) {
+            const rec = serverAnswers[qid];
+            if (rec && Number.isInteger(rec.d)) byId.set(qid, rec.d);
+        }
         for (const a of answers) {
             const qid = a?.questionId ?? a?.question_id ?? a?.id;
             const idx = a?.displayIndex ?? a?.display_index ?? a?.index;
             if (typeof qid !== 'string' || !rosterSet.has(qid)) continue;
-            if (byId.has(qid)) continue; // first answer per question wins
+            if (byId.has(qid)) continue; // server-recorded or first answer wins
             byId.set(qid, Number.isInteger(idx) ? idx : -1);
         }
 
@@ -242,7 +263,33 @@ export default async function handler(req, res) {
             ? Math.max(0, limit - elapsedSec)
             : 0;
 
-        const rawDiamonds = Math.max(0, Math.floor(calculateDiamonds(mode, correct, total, timeRemaining) || 0));
+        // Arcade is a STAKES mode: the pot (build on correct, bust on wrong,
+        // cash out from question CASH_OUT_MIN_ANSWERED) IS the reward. It is
+        // recomputed here from the server-recorded answer sequence - never
+        // read from the client. An arcade run abandoned mid-way without a
+        // legitimate cash-out pays nothing, exactly like the game UI says.
+        let rawDiamonds;
+        const verdictById = new Map(perQuestion.map(p => [p.questionId, p.wasCorrect]));
+        const recordedSeq = rosterIds
+            .map(qid => ({ qid, rec: serverAnswers[qid] }))
+            .filter(x => x.rec && Number.isInteger(x.rec.n))
+            .sort((a, b) => a.rec.n - b.rec.n)
+            .map(x => ({
+                questionIndex: rosterIds.indexOf(x.qid),
+                result: (Number.isInteger(x.rec.d) && x.rec.d >= 0)
+                    ? (verdictById.get(x.qid) ? 'correct' : 'wrong')
+                    : 'skip',
+            }));
+        if (mode === 'arcade' && recordedSeq.length > 0) {
+            const { pot, answered } = computeStakePot(recordedSeq);
+            const runComplete = recordedSeq.length >= rosterIds.length;
+            const legitimateCashOut = cashedOut === true && answered >= CASH_OUT_MIN_ANSWERED;
+            rawDiamonds = (runComplete || legitimateCashOut)
+                ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(pot)))
+                : 0;
+        } else {
+            rawDiamonds = Math.max(0, Math.floor(calculateDiamonds(mode, correct, total, timeRemaining) || 0));
+        }
 
         let diamonds = 0;
         const cap = DAILY_DIAMOND_CAPS[mode];
