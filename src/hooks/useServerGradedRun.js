@@ -44,7 +44,7 @@ import { useCallback, useRef, useState } from 'react';
  * the bundle diff during rollout, and so a page cannot be flipped on for some
  * users and off for others mid-run.
  */
-export const SERVER_GRADING_ENABLED = false;
+export const SERVER_GRADING_ENABLED = true;
 
 /** Modes that pay out through their own settlement routes, never through this one. */
 const SELF_SETTLING_MODES = new Set(['pvp', 'tournaments']);
