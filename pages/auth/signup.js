@@ -573,12 +573,6 @@ export default function SignUpPage() {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords Do Not Match');
-      setLoading(false);
-      return;
-    }
-
     // Birthdate validation - must be 18+ (using dropdown values)
     if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
       setError('Please Select Your Complete Birth Date');
@@ -963,13 +957,13 @@ export default function SignUpPage() {
               <div
                 style={{
                   position: "absolute",
-                  top: "31%",
+                  top: "36.5%",
                   left: "29%",
                   width: "42%",
-                  height: "48%",
+                  height: "43%",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
+                  gap: "8px",
                   overflowY: "auto",
                   padding: "0 10px",
                   boxSizing: "border-box",
@@ -1083,77 +1077,15 @@ export default function SignUpPage() {
                 {/* Password */}
                 <div className="auth-field-group">
                   <label className="auth-label">Password</label>
-                  <div style={{ position: "relative", width: "100%" }}>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className="auth-input-styled"
-                      placeholder="Create a strong password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={PW_MIN_LENGTH}
-                      style={{ paddingRight: "50px" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      style={{
-                        position: "absolute",
-                        right: "5px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "transparent",
-                        border: "none",
-                        color: "rgba(255,255,255,0.6)",
-                        cursor: "pointer",
-                        padding: "4px 8px",
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        textTransform: "uppercase"
-                      }}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Confirm Password</label>
-                  <div style={{ position: "relative", width: "100%" }}>
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      className="auth-input-styled"
-                      placeholder="Confirm password"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      required
-                      minLength={PW_MIN_LENGTH}
-                      style={{ paddingRight: "50px" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      tabIndex={-1}
-                      style={{
-                        position: "absolute",
-                        right: "5px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "transparent",
-                        border: "none",
-                        color: "rgba(255,255,255,0.6)",
-                        cursor: "pointer",
-                        padding: "4px 8px",
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        textTransform: "uppercase"
-                      }}
-                    >
-                      {showConfirmPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    className="auth-input-styled"
+                    placeholder="Create a strong password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    minLength={PW_MIN_LENGTH}
+                  />
                 </div>
 
                 {/* Date of Birth */}
@@ -1242,6 +1174,11 @@ export default function SignUpPage() {
                     required
                     minLength={3}
                   />
+                  {formData.pokerAlias.length >= 3 && aliasAvailable !== null && (
+                    <div style={{ fontSize: "11px", fontWeight: "bold", color: aliasAvailable ? "#4ade80" : "#f87171" }}>
+                      {aliasAvailable ? "User Name Is Available" : "Username Not Available"}
+                    </div>
+                  )}
                 </div>
 
                 {/* Phone Number */}
