@@ -6,6 +6,39 @@
  * Includes "Currently Running" live context section.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getFreshAccessToken } from '../../lib/authUtils';
+import { normalizeGameName } from './normalize-game';
+
+// Venue display names differ between poker_venues (alert rows) and the
+// live-tables feed (resolveVenueName(cleanVenueName(...))). Compare on a
+// punctuation/whitespace-insensitive key instead of the raw string.
+function venueKey(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(the|a|an|casino|resort|hotel|poker|room|club|spa)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// GAME_TYPES uses the site's short codes. normalizeGameName() recognises "NLH"
+// and "PLO" but has no pattern for the bare "LHE" prefix, so "LHE 3/6" resolved
+// to type 'Unknown' and could never equal the 'LHE' a live "3/6 Limit Hold'em"
+// row resolves to. Expand the prefix to the long form the parser understands
+// before normalizing the alert side.
+const ALERT_TYPE_ALIASES = {
+  LHE: 'Limit Holdem',
+  NLH: 'No Limit Holdem',
+  PLO: 'Pot Limit Omaha',
+};
+
+function expandAlertGameType(gameType) {
+  return String(gameType || '').replace(
+    /^(LHE|NLH|PLO)\b/i,
+    (m) => ALERT_TYPE_ALIASES[m.toUpperCase()] || m
+  );
+}
 
 export default function VenueGameAlerts({ userId, venues = [] }) {
   const [alerts, setAlerts] = useState([]);
@@ -20,20 +53,37 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const GAME_TYPES = ['NLH 1/2', 'NLH 1/3', 'NLH 2/5', 'NLH 5/10', 'PLO 1/2', 'PLO 1/3', 'PLO 2/5', 'LHE 3/6', 'LHE 4/8', 'LHE 6/12', 'Mixed Game'];
 
-  const loadAlerts = useCallback((signal, mounted = { current: true }) => {
-    if (!userId) return;
-    fetch(`/api/poker/venue-alerts?user_id=${userId}`, signal ? { signal } : undefined)
-      .then(r => r.json())
-      .then(d => { if (mounted.current) { setAlerts(d.alerts || []); setLoading(false); } })
-      .catch(e => { if (mounted.current && e.name !== 'AbortError') setLoading(false); });
+  // The API derives identity from the Bearer JWT and ignores any client-supplied
+  // user_id, so every request must carry a fresh access token.
+  const loadAlerts = useCallback(async (signal, mounted = { current: true }) => {
+    if (!userId) { if (mounted.current) { setAlerts([]); setLoading(false); } return; }
+    try {
+      const token = await getFreshAccessToken();
+      if (!token) { if (mounted.current) { setAlerts([]); setLoading(false); } return; }
+      const res = await fetch('/api/poker/venue-alerts', {
+        headers: { Authorization: `Bearer ${token}` },
+        ...(signal ? { signal } : {}),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!mounted.current) return;
+      if (res.ok) setAlerts(d.alerts || []);
+      setLoading(false);
+    } catch (e) {
+      if (mounted.current && e?.name !== 'AbortError') setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
     const controller = new AbortController();
     const mounted = { current: true };
-    loadAlerts(controller.signal, mounted);
+    if (!userId) {
+      setAlerts([]);
+      setLoading(false);
+    } else {
+      loadAlerts(controller.signal, mounted);
+    }
     return () => { mounted.current = false; controller.abort(); };
-  }, [loadAlerts]);
+  }, [loadAlerts, userId]);
 
   // Fetch live game data for context
   useEffect(() => {
@@ -47,7 +97,16 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
         (d.venues || []).forEach(v => {
           (v.games || []).forEach(g => {
             if (g.tables_running > 0) {
-              games.push({ venue: v.venue_name, game: g.game || g.game_name, tables: g.tables_running });
+              // Carry the modelled-data flags through: live-tables tags every
+              // estimated row with is_simulated and every venue with data_mode
+              // so consumers never present modelled counts as observed reality.
+              games.push({
+                venue: v.venue_name,
+                game: g.game || g.game_name,
+                tables: g.tables_running,
+                isSimulated: !!g.is_simulated,
+                dataMode: v.data_mode || null,
+              });
             }
           });
         });
@@ -58,34 +117,53 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
     return () => { mounted = false; controller.abort(); };
   }, []);
 
-  // Count unique game types currently running for quick-add buttons
+  // Count unique game types currently running for quick-add buttons.
+  // Rows tagged is_simulated are modelled from history, not observed, so the
+  // chip is labelled "est." rather than asserted as a live table count.
   const liveGameTypes = useMemo(() => {
     const counts = {};
     liveGames.forEach(g => {
       const key = g.game || 'Unknown';
-      counts[key] = (counts[key] || 0) + g.tables;
+      if (!counts[key]) counts[key] = { tables: 0, observed: 0 };
+      counts[key].tables += g.tables;
+      if (!g.isSimulated) counts[key].observed += g.tables;
     });
-    return Object.entries(counts || {})
-      .sort((a, b) => b[1] - a[1])
+    return Object.entries(counts)
+      .map(([game, c]) => ({ game, count: c.tables, estimated: c.observed === 0 }))
+      .sort((a, b) => b.count - a.count)
       .slice(0, 8);
   }, [liveGames]);
+
+  const hasObservedGames = useMemo(
+    () => liveGames.some(g => !g.isSimulated),
+    [liveGames]
+  );
 
   const createAlert = async () => {
     if (!selectedVenue || !selectedGame || !userId) return;
     setCreating(true);
     try {
+      const token = await getFreshAccessToken();
+      if (!token) {
+        setFeedback({ type: 'error', msg: 'Sign in again to create alerts.' });
+        setCreating(false);
+        setTimeout(() => setFeedback(null), 3000);
+        return;
+      }
       const res = await fetch('/api/poker/venue-alerts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, venue_name: selectedVenue, game_type: selectedGame }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ venue_name: selectedVenue, game_type: selectedGame }),
       });
-      const data = await res.json();
-      if (data.alert) {
-        setFeedback({ type: 'success', msg: 'Alert created. You will be notified when this game starts.' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setFeedback({ type: 'success', msg: data.message || 'Alert created. You will be notified when this game starts.' });
         setShowCreate(false);
         setSelectedVenue('');
         setSelectedGame('');
         loadAlerts();
+      } else {
+        setFeedback({ type: 'error', msg: data.error || 'Failed to create alert' });
       }
     } catch (err) {
       setFeedback({ type: 'error', msg: 'Failed to create alert' });
@@ -96,26 +174,54 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const deleteAlert = async (alertId) => {
     try {
-      await fetch('/api/poker/venue-alerts', {
+      const token = await getFreshAccessToken();
+      if (!token) {
+        setFeedback({ type: 'error', msg: 'Sign in again to remove alerts.' });
+        setTimeout(() => setFeedback(null), 3000);
+        return;
+      }
+      const res = await fetch('/api/poker/venue-alerts', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: alertId, user_id: userId }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: alertId }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setFeedback({ type: 'error', msg: data.error || 'Failed to remove alert' });
+        setTimeout(() => setFeedback(null), 3000);
+        return;
+      }
       loadAlerts();
     } catch (err) {
       console.warn('Delete alert failed:', err);
+      setFeedback({ type: 'error', msg: 'Failed to remove alert' });
+      setTimeout(() => setFeedback(null), 3000);
     }
   };
 
   // Unique venue names from current live data
   const venueOptions = [...new Set(venues.map(v => v.venue_name || v.name).filter(Boolean))].sort();
 
-  // Check if alerted game is currently running
-  const isGameRunning = (venueName, gameType) => {
-    return liveGames.some(g => 
-      g.venue?.toLowerCase().trim() === venueName?.toLowerCase().trim() &&
-      g.game?.toLowerCase().includes(gameType?.toLowerCase())
-    );
+  // Check if an alerted game is currently running.
+  // Alert game types come from GAME_TYPES ("NLH 1/2"); live rows carry raw
+  // scraped names ("1/2 No Limit Hold'em"). Substring matching never matched,
+  // so normalize both sides and compare type (+ stakes when the alert has them).
+  // Returns 'live' for observed rows, 'estimated' for modelled rows, null otherwise.
+  const getRunningState = (venueName, gameType) => {
+    const vKey = venueKey(venueName);
+    if (!vKey || !gameType) return null;
+    const want = normalizeGameName(expandAlertGameType(gameType));
+    if (want.type === 'Unknown') return null;
+    let estimated = false;
+    for (const g of liveGames) {
+      if (venueKey(g.venue) !== vKey) continue;
+      const have = normalizeGameName(g.game);
+      if (have.type !== want.type) continue;
+      if (want.stakes && have.stakes && want.stakes !== have.stakes) continue;
+      if (!g.isSimulated) return 'live';
+      estimated = true;
+    }
+    return estimated ? 'estimated' : null;
   };
 
   return (
@@ -217,17 +323,20 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {alerts.map(alert => {
-            const running = isGameRunning(alert.venue_name, alert.game_type);
+            const state = getRunningState(alert.venue_name, alert.game_type);
+            const running = state === 'live';
+            const estimated = state === 'estimated';
+            const dot = running ? '#4ade80' : estimated ? '#fbbf24' : '#64748b';
             return (
               <div key={alert.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 10,
-                background: running ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
-                border: running ? '1px solid rgba(34,197,94,0.15)' : '1px solid transparent',
+                background: running ? 'rgba(34,197,94,0.06)' : estimated ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.03)',
+                border: running ? '1px solid rgba(34,197,94,0.15)' : estimated ? '1px solid rgba(251,191,36,0.15)' : '1px solid transparent',
               }}>
                 <div style={{
                   width: 8, height: 8, borderRadius: '50%',
-                  background: running ? '#4ade80' : '#64748b', flexShrink: 0,
+                  background: dot, flexShrink: 0,
                   boxShadow: running ? '0 0 6px rgba(34,197,94,0.5)' : 'none',
                   animation: running ? 'vga-pulse 2s infinite' : 'none',
                 }} />
@@ -240,6 +349,12 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                         fontSize: 10, color: '#4ade80', fontWeight: 700,
                         background: 'rgba(34,197,94,0.15)', padding: '1px 6px', borderRadius: 4,
                       }}>LIVE NOW</span>
+                    )}
+                    {estimated && (
+                      <span style={{
+                        fontSize: 10, color: '#fbbf24', fontWeight: 700,
+                        background: 'rgba(251,191,36,0.12)', padding: '1px 6px', borderRadius: 4,
+                      }} title="Modelled from historical activity, not a live count">LIKELY RUNNING (EST.)</span>
                     )}
                   </div>
                 </div>
@@ -266,18 +381,25 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
             fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)',
             textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8,
           }}>
-            Popular Games Running Now
+            {hasObservedGames ? 'Popular Games Running Now' : 'Popular Games - Estimated Activity'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {liveGameTypes.map(([game, count]) => (
+            {liveGameTypes.map(({ game, count, estimated }) => (
               <div key={game} style={{
                 padding: '4px 10px', borderRadius: 6, fontSize: 11,
-                background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)',
+                background: estimated ? 'rgba(251,191,36,0.07)' : 'rgba(0,212,255,0.08)',
+                border: `1px solid ${estimated ? 'rgba(251,191,36,0.18)' : 'rgba(0,212,255,0.15)'}`,
                 color: '#94a3b8', cursor: 'default',
-              }}>
-                {game} <span style={{ color: '#00d4ff', fontWeight: 600 }}>({count})</span>
+              }} title={estimated ? 'Estimated from historical activity' : 'Reported table count'}>
+                {game}{' '}
+                <span style={{ color: estimated ? '#fbbf24' : '#00d4ff', fontWeight: 600 }}>
+                  ({count}{estimated ? ' est.' : ''})
+                </span>
               </div>
             ))}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(148,163,184,0.55)' }}>
+            Counts marked &quot;est.&quot; are modelled from historical activity, not a live table count.
           </div>
         </div>
       )}

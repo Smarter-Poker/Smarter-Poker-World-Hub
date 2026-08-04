@@ -17,8 +17,13 @@
  *    the previous version had under concurrent follows.
  *
  *  Privacy / safety:
- *    Private pages are hidden entirely. Follower identities are never leaked
- *    to anonymous callers.
+ *    Unlisted pages (`social_pages.is_public === false`) cannot be followed:
+ *    POST returns 404 so a stale slug can no longer add followers to a page
+ *    the host has taken down, inflate its follower_count, or push a
+ *    notification to the host. GET and DELETE stay open on purpose — an
+ *    existing follower must always be able to see their state and unfollow,
+ *    and neither of those leaks anything about the page. Follower identities
+ *    are never leaked to anonymous callers.
  */
 
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
@@ -125,6 +130,15 @@ export default async function handler(req, res) {
 
         // ── POST: follow (idempotent) ─────────────────────────────────────
         if (method === 'POST') {
+            // Unlisted pages accept no new followers. `is_public === false`
+            // (not `!is_public`) on purpose: the column defaults to true and is
+            // set explicitly to false when a host unlists their page, so this
+            // catches the real unlisted case without blocking rows where the
+            // column happens to be NULL. Same 404 the page itself would give.
+            if (page.is_public === false) {
+                return res.status(404).json({ success: false, error: 'Home game not found' });
+            }
+
             const { data: existing } = await supabase
                 .from('social_page_followers')
                 .select('id, status')

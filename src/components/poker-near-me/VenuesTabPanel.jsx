@@ -11,6 +11,7 @@ const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false });
 
 const RADIUS_TIERS = [50, 100, 150]; // max 150mi matches lobby + API caps
+const PAGE_SIZE = 20; // mirrors PAGE_SIZE in pages/hub/poker-near-me/[pnmTab].js
 
 export default function VenuesTabPanel({
     venues,
@@ -44,6 +45,20 @@ export default function VenuesTabPanel({
     // Defensive guard — venues may be null/undefined during initial load or after a crash
     const safeVenues = Array.isArray(venues) ? venues : [];
 
+    // BUG FIX: the page's loadMore('venues') paginates off the RAW venues array while this
+    // panel renders `venues` + deduped tour stops, so "Show More Results (N Remaining)" was a
+    // no-op (or silently widened the radius) whenever the remainder was tour-stop cards.
+    // A local floor keeps the promised cards reachable no matter which branch the page takes;
+    // Math.max means a normal page-side page-in does NOT double-advance the list.
+    const [localShown, setLocalShown] = React.useState(0);
+    const pageShownRef = React.useRef(displayCount.venues);
+    React.useEffect(() => {
+        // The page resets displayCount.venues to PAGE_SIZE on a fresh search / radius bump —
+        // drop the local floor with it so a new result set starts from the top.
+        if (displayCount.venues < pageShownRef.current) setLocalShown(0);
+        pageShownRef.current = displayCount.venues;
+    }, [displayCount.venues]);
+
     if (safeVenues.length === 0 && !venueLoading && !loading) {
         return (
             <div className="empty-state">
@@ -55,9 +70,15 @@ export default function VenuesTabPanel({
         );
     }
 
+    const shownCount = Math.max(displayCount.venues, localShown);
     const sorted = getSortedVenues(safeVenues);
-    const displayed = sorted.slice(0, displayCount.venues);
+    const displayed = sorted.slice(0, shownCount);
     const remaining = sorted.length - displayed.length;
+
+    const showMoreResults = () => {
+        setLocalShown(shownCount + PAGE_SIZE);
+        loadMore('venues');
+    };
 
     return (
         <>
@@ -113,7 +134,12 @@ export default function VenuesTabPanel({
                 </div>
 
                 <span className="results-showing">
-                    {(userLocation || nearestDistance) ? `Nearest: ${nearestDistance || '0'} Miles` : `Showing ${displayed.length} of ${safeVenues.length}`}
+                    {/* UX FIX: these used to be mutually exclusive, so GPS users (the default
+                        path, and the ones with the most results) never saw how much of the list
+                        was rendered. The distance clause is dropped entirely when unknown —
+                        "Nearest: 0 Miles" claimed a venue sat on top of the user. */}
+                    {nearestDistance ? `Nearest: ${nearestDistance} Miles - ` : ''}
+                    {`Showing ${displayed.length} of ${sorted.length}`}
                 </span>
                 
                 {!mapFullscreen && (
@@ -179,7 +205,7 @@ export default function VenuesTabPanel({
                     if (hasMoreToShow) {
                         return (
                             <div className="load-more">
-                                <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                <button className="load-more-btn" onClick={showMoreResults}>
                                     Show More Results ({remaining} Remaining)
                                 </button>
                             </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { haversineMiles, getNearestTourDistance } from '../pnm-utils';
 
@@ -32,7 +32,8 @@ const PodVenueSearchEngine = ({
   router,
   triggerSearch,
   fetchError,
-  onRetry
+  onRetry,
+  hasMore,
 }) => {
   const pState = filters[`${prefix}State`] || 'all';
   const pVenueType = filters[`${prefix}VenueType`] || 'all';
@@ -46,60 +47,94 @@ const PodVenueSearchEngine = ({
   const pMinBuyin = showBuyIn ? (filters[`${prefix}MinBuyin`] || '') : '';
   const pMaxBuyin = showBuyIn ? (filters[`${prefix}MaxBuyin`] || '') : '';
 
-  let results = venues || [];
-  if (pState !== 'all') results = results.filter(v => v.state === pState);
-  if (pVenueType !== 'all') results = results.filter(v => {
-    if (pVenueType === 'poker_club') return v.venue_type === 'poker_club' || v.venue_type === 'card_room';
-    if (pVenueType === 'poker_tour') return v.venue_type === 'poker_tour' || v.venue_type === 'tour_stop' || v.venue_type === 'tour';
-    return v.venue_type === pVenueType;
-  });
-  
-  if (pGameType !== 'all') {
-    results = results.filter(v => {
-      const g = (v.games_offered || []).join(' ').toLowerCase();
-      if (pGameType === 'nlh') return g.includes('nlh') || g.includes('hold');
-      if (pGameType === 'plo') return g.includes('plo') || g.includes('omaha');
-      if (pGameType === 'mixed') return g.includes('mix') || g.includes('horse');
-      return true;
-    });
-  }
-  
-  const pDist = (v) => {
-    if (!userLocation || !v.latitude || !v.longitude) return 99999;
-    return haversineMiles(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
-  };
-  
-  if (userLocation && pRadius !== 'any') results = results.filter(v => pDist(v) <= Number(pRadius));
-  
-  if (pSort === 'distance' && userLocation) results = [...results].sort((a, b) => pDist(a) - pDist(b));
-  else if (pSort === 'trust') results = [...results].sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
-  else if (pSort === 'name') results = [...results].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  // [AUDIT] Everything below used to run unconditionally in the render body on
+  // every pass: up to four array filters, a full sort whose comparator called
+  // haversine twice per comparison, and two more sorts that each called
+  // getNearestTourDistance twice per comparison. With 200 venues plus a tours
+  // list that is thousands of trig evaluations per keystroke in the buy-in
+  // inputs. React.memo on the export does not help because `filters` is a fresh
+  // object on every setFilters and `venues` gets a new identity on every
+  // live-data merge. Each derived list is now memoised on the specific fields it
+  // reads, and distances are precomputed once per item (Schwartzian transform)
+  // instead of being recomputed inside comparators.
+  const userLat = userLocation?.lat ?? null;
+  const userLng = userLocation?.lng ?? null;
 
-  const pTournaments = dailyTournaments ? dailyTournaments.filter(t => {
+  const pDist = useCallback((v) => {
+    if (userLat == null || userLng == null || !v.latitude || !v.longitude) return 99999;
+    return haversineMiles(userLat, userLng, v.latitude, v.longitude);
+  }, [userLat, userLng]);
+
+  const results = useMemo(() => {
+    let out = venues || [];
+    if (pState !== 'all') out = out.filter(v => v.state === pState);
+    if (pVenueType !== 'all') out = out.filter(v => {
+      if (pVenueType === 'poker_club') return v.venue_type === 'poker_club' || v.venue_type === 'card_room';
+      if (pVenueType === 'poker_tour') return v.venue_type === 'poker_tour' || v.venue_type === 'tour_stop' || v.venue_type === 'tour';
+      return v.venue_type === pVenueType;
+    });
+
+    if (pGameType !== 'all') {
+      out = out.filter(v => {
+        const g = (v.games_offered || []).join(' ').toLowerCase();
+        if (pGameType === 'nlh') return g.includes('nlh') || g.includes('hold');
+        if (pGameType === 'plo') return g.includes('plo') || g.includes('omaha');
+        if (pGameType === 'mixed') return g.includes('mix') || g.includes('horse');
+        return true;
+      });
+    }
+
+    const hasLoc = userLat != null && userLng != null;
+    // One haversine per venue, reused by both the radius filter and the sort.
+    let decorated = out.map(v => ({ v, d: hasLoc ? pDist(v) : 99999 }));
+    if (hasLoc && pRadius !== 'any') {
+      const limit = Number(pRadius);
+      decorated = decorated.filter(x => x.d <= limit);
+    }
+
+    if (pSort === 'distance' && hasLoc) decorated.sort((a, b) => a.d - b.d);
+    else if (pSort === 'trust') decorated.sort((a, b) => (b.v.trust_score || 0) - (a.v.trust_score || 0));
+    else if (pSort === 'name') decorated.sort((a, b) => (a.v.name || '').localeCompare(b.v.name || ''));
+
+    return decorated.map(x => x.v);
+  }, [venues, pState, pVenueType, pGameType, pRadius, pSort, userLat, userLng, pDist]);
+
+  const pTournaments = useMemo(() => (dailyTournaments ? dailyTournaments.filter(t => {
     if (pMinBuyin && (t.buy_in || 0) < Number(pMinBuyin)) return false;
     if (pMaxBuyin && (t.buy_in || 0) > Number(pMaxBuyin)) return false;
     return true;
-  }) : [];
+  }) : []), [dailyTournaments, pMinBuyin, pMaxBuyin]);
 
   const handleSearch = () => {
     triggerSearch();
   };
 
-  const nearbyTours = userLocation ? tours.filter(t => {
-    const d = getNearestTourDistance(t, userLocation);
-    if (d === null) return false;
-    return pRadius === 'any' || d <= Number(pRadius);
-  // FIX: getNearestTourDistance can return null for tours with no coordinate data.
-  // null - null = 0 (wrong, pushes no-location tours to top), null - 5 = -5 (incorrect order).
-  // Coerce null → Infinity so they sort to the bottom, not the top.
-  }).sort((a, b) => (getNearestTourDistance(a, userLocation) ?? Infinity) - (getNearestTourDistance(b, userLocation) ?? Infinity)) : [];
-  
-  const nearbySeries = userLocation ? series.filter(s => {
-    if (!s.latitude || !s.longitude) return false;
-    const d = haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
-    return pRadius === 'any' || d <= Number(pRadius);
-  }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
-  
+  // Distance per tour is computed ONCE, not twice per comparison.
+  // getNearestTourDistance can return null for tours with no coordinate data —
+  // coerce null to Infinity so those sort to the bottom, not the top
+  // (null - null === 0 and null - 5 === -5 both order incorrectly).
+  const nearbyTours = useMemo(() => {
+    if (userLat == null || userLng == null) return [];
+    const loc = { lat: userLat, lng: userLng };
+    const limit = pRadius === 'any' ? Infinity : Number(pRadius);
+    return (tours || [])
+      .map(t => ({ t, d: getNearestTourDistance(t, loc) }))
+      .filter(x => x.d !== null && x.d <= limit)
+      .sort((a, b) => (a.d ?? Infinity) - (b.d ?? Infinity))
+      .map(x => x.t);
+  }, [tours, userLat, userLng, pRadius]);
+
+  const nearbySeries = useMemo(() => {
+    if (userLat == null || userLng == null) return [];
+    const limit = pRadius === 'any' ? Infinity : Number(pRadius);
+    return (series || [])
+      .filter(s => s.latitude && s.longitude)
+      .map(s => ({ s, d: haversineMiles(userLat, userLng, s.latitude, s.longitude) }))
+      .filter(x => x.d <= limit)
+      .sort((a, b) => a.d - b.d)
+      .map(x => x.s);
+  }, [series, userLat, userLng, pRadius]);
+
   const nearbyTourSeriesCount = nearbyTours.length + nearbySeries.length;
 
   return (
@@ -191,7 +226,7 @@ const PodVenueSearchEngine = ({
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
             <span style={{ fontSize: 13, color: '#c9d1d9' }}>
-              <span style={{ color: '#d4a853', fontWeight: 800 }}>{results.length}</span> venue{results.length !== 1 ? 's' : ''}
+              <span style={{ color: '#d4a853', fontWeight: 800 }}>{results.length.toLocaleString()}</span> venue{results.length !== 1 ? 's' : ''}
               {nearbyTourSeriesCount > 0 && <span> · <span style={{ color: '#f59e0b', fontWeight: 700 }}>{nearbyTourSeriesCount}</span> tour{nearbyTourSeriesCount !== 1 ? 's/series' : ''}</span>}
               {userLocation && pRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{pRadius} mi</span></span>}
               {showBuyIn && pTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{pTournaments.length}</span> tournaments</span>}
@@ -219,8 +254,31 @@ const PodVenueSearchEngine = ({
                   );
                 })}
               </div>
-              {/* NOTE: no client-side "Load More" here — `results` is fully
-                  rendered above (it's a client-filtered list, not a page). */}
+              {/* [AUDIT] `results` is a client-side filter over the venues the
+                  page has LOADED, not over the catalogue. The page maintained
+                  `hasMore` / `loadMore` for exactly this control and no UI ever
+                  rendered it, so a user in a dense market (Las Vegas, LA, South
+                  Florida) was silently capped at the first page of results with
+                  no indication that more existed. */}
+              {hasMore && typeof loadMore === 'function' && (
+                <div style={{ marginTop: -12, marginBottom: 24, textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loading}
+                    style={{
+                      padding: '10px 26px', borderRadius: 12,
+                      border: '1px solid rgba(212,168,83,0.35)',
+                      background: 'linear-gradient(135deg, rgba(212,168,83,0.1), rgba(212,168,83,0.03))',
+                      color: '#d4a853', fontSize: 13, fontWeight: 700,
+                      cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? 'Loading...' : 'Load More Venues'}
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>

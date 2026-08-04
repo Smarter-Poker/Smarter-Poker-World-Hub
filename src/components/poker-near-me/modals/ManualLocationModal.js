@@ -2,8 +2,14 @@ import React from 'react';
 
 export default function ManualLocationModal({
 showManualLocation, setShowManualLocation, manualCity, setManualCity, manualState, setManualState,
-handleManualLocationSet, gpsLoading, gpsError, handleGpsClick, dismissLocationPrompt
+handleManualLocationSet, gpsLoading, gpsError, handleGpsClick, dismissLocationPrompt,
+// WIRING FIX: the lobby has always passed `manualGeocoding` (true for the whole
+// geocode round-trip) but the prop was not accepted here, so "Set Location"
+// stayed fully enabled and unlabelled while the request was in flight and
+// repeat presses were silently dropped by the caller's guard.
+manualGeocoding = false
 }) {
+    const canSubmit = !!manualCity.trim() && !manualGeocoding;
     return (
         <div style={{
             position: 'fixed', inset: 0, zIndex: 150,
@@ -71,7 +77,7 @@ handleManualLocationSet, gpsLoading, gpsError, handleGpsClick, dismissLocationPr
                   <input
                     type="text" placeholder="e.g. Chicago" value={manualCity} maxLength={100}
                     onChange={(e) => setManualCity(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleManualLocationSet(); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && canSubmit) handleManualLocationSet(); }}
                     autoFocus
                     autoComplete="off"
                     style={{
@@ -102,17 +108,26 @@ handleManualLocationSet, gpsLoading, gpsError, handleGpsClick, dismissLocationPr
 
                 {/* Set Location Button */}
                 <button onClick={handleManualLocationSet}
-                  disabled={!manualCity.trim()}
+                  disabled={!canSubmit}
                   style={{
                     width: '100%', padding: '13px 0', borderRadius: 12,
                     border: '1.5px solid rgba(212,168,83,0.4)',
-                    background: manualCity.trim() ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(212,168,83,0.08)',
-                    color: manualCity.trim() ? '#ffffff' : 'rgba(200,214,229,0.4)',
-                    fontSize: 15, fontWeight: 800, cursor: manualCity.trim() ? 'pointer' : 'not-allowed',
-                    fontFamily: 'inherit', boxShadow: manualCity.trim() ? '0 4px 16px rgba(31,111,235,0.3)' : 'none',
+                    background: canSubmit ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(212,168,83,0.08)',
+                    color: canSubmit ? '#ffffff' : 'rgba(200,214,229,0.4)',
+                    fontSize: 15, fontWeight: 800,
+                    cursor: manualGeocoding ? 'wait' : canSubmit ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit', boxShadow: canSubmit ? '0 4px 16px rgba(31,111,235,0.3)' : 'none',
                     transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
-                  Set Location
+                  {manualGeocoding ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
+                      </svg>
+                      Locating...
+                    </>
+                  ) : 'Set Location'}
                 </button>
               </div>
             </div>

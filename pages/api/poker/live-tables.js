@@ -403,6 +403,21 @@ export default async function handler(req, res) {
       }
       vd.is_simulated = vd._hasSimulatedData && !vd._hasRealData;
       vd.has_simulated_data = vd._hasSimulatedData;
+
+      // Per-venue provenance split, pre-summed.
+      // Consumers were doing `v.games.reduce((s, g) => s + (g.tables_running || 0), 0)`
+      // with no is_simulated check and rendering the result as "LIVE NOW: N Tables".
+      // Publishing the split (and a per-venue data_mode mirroring the top-level
+      // one) means a consumer no longer has to reconstruct provenance from the
+      // per-game flags to label the number honestly.
+      const vSim = vd.games.reduce((s, g) => s + (g.is_simulated ? (g.tables_running || 0) : 0), 0);
+      const vReal = vd.games.reduce((s, g) => s + (g.is_simulated ? 0 : (g.tables_running || 0)), 0);
+      vd.tables_running_observed = vReal;
+      vd.tables_running_simulated = vSim;
+      vd.tables_running_total = vReal + vSim;
+      vd.data_mode = vReal > 0
+        ? (vSim > 0 ? 'mixed' : 'live')
+        : (vSim > 0 ? 'estimated' : 'none');
     }
 
     const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _hasSimulatedData, _hasRealData, _sources, ...v }) => v);

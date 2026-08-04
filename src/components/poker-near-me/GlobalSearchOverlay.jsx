@@ -10,7 +10,7 @@
  *  - ESC closes detail modal first, then overlay
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
@@ -485,6 +485,11 @@ export default function GlobalSearchOverlay({
   const debounceRef = useRef(null);
   // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
   const abortControllerRef = useRef(null);
+  // Monotonic submit counter — only the newest submit may clear the loading flag
+  const submitSeqRef = useRef(0);
+  // A11Y: dialog element (focus trap) + the control that had focus before opening
+  const dialogRef = useRef(null);
+  const restoreFocusRef = useRef(null);
 
   // Load recent searches and GPS from localStorage on mount
   useEffect(() => {
@@ -566,6 +571,51 @@ export default function GlobalSearchOverlay({
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  // A11Y FIX: the shell declares role="dialog" aria-modal="true" and locks body scroll, but
+  // nothing constrained Tab — a keyboard or screen-reader user tabbing past the last result
+  // landed on the scroll-locked page behind the overlay. Cycle Tab inside the dialog and
+  // hand focus back to whatever opened it on close.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof document !== 'undefined') {
+      restoreFocusRef.current = document.activeElement;
+    }
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const handleTab = (e) => {
+      if (e.key !== 'Tab') return;
+      const root = dialogRef.current;
+      if (!root) return;
+      const items = Array.from(root.querySelectorAll(FOCUSABLE)).filter(
+        el => el.offsetParent !== null || el === document.activeElement
+      );
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (!root.contains(active)) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleTab, true);
+    return () => {
+      document.removeEventListener('keydown', handleTab, true);
+      const prev = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      if (prev && typeof prev.focus === 'function' && document.contains(prev)) {
+        try { prev.focus(); } catch { /* ignore */ }
+      }
+    };
   }, [isOpen]);
 
   // In-memory fuzzy match tours
@@ -670,6 +720,12 @@ export default function GlobalSearchOverlay({
     inputRef.current?.blur();
     setPhase('results');
     setIsLoading(true);
+    // BUG FIX: an aborted search used to `return` from inside the try block, skipping
+    // setIsLoading(false) — the skeleton loaders then spun forever (typing one more
+    // character after submitting aborts the submit's controller via the input debounce).
+    // The sequence guard makes sure only the newest submit ever clears the flag.
+    const mySeq = ++submitSeqRef.current;
+    const isCurrentSubmit = () => submitSeqRef.current === mySeq;
     setCitySuggestions([]);
     setDetailItem(null);
 
@@ -709,7 +765,11 @@ export default function GlobalSearchOverlay({
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         data = await r.json();
       }
-      if (signal.aborted) return;
+      if (signal.aborted) {
+        // Stale response — drop the results, but never strand the loading flag.
+        if (isCurrentSubmit()) setIsLoading(false);
+        return;
+      }
       const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       // Apply a specific game-type intent (PLO / Hold'em / Mixed) against games_offered.
       // Only keep the narrowed list when it still has results — sparse game data must not
@@ -721,8 +781,14 @@ export default function GlobalSearchOverlay({
       }
       setVenueResults(list);
     } catch (err) {
-      if (err?.name !== 'AbortError') console.warn('[GlobalSearch] Venue search failed:', err);
-      setVenueResults([]);
+      if (err?.name !== 'AbortError') {
+        console.warn('[GlobalSearch] Venue search failed:', err);
+        setVenueResults([]);
+      } else {
+        // Aborted mid-flight — same rule as above: clear the spinner, keep the results.
+        if (isCurrentSubmit()) setIsLoading(false);
+        return;
+      }
     }
 
     // For tours/series — use the full raw query for broader matching
@@ -737,7 +803,7 @@ export default function GlobalSearchOverlay({
     setNlIntent(intent.isNaturalLanguage && (applied.stateCode || applied.timeWindow || applied.gameType)
       ? { ...intent, applied }
       : null);
-    setIsLoading(false);
+    if (isCurrentSubmit()) setIsLoading(false);
 
     // Save to recents
     const normalized = rawQuery.toLowerCase();
@@ -811,6 +877,32 @@ export default function GlobalSearchOverlay({
   const totalResults = venueResults.length + tourResults.length + seriesResults.length;
   const hasResults = totalResults > 0;
 
+  // UX FIX: this panel used to render TWO sections both headed "Recent Searches" — the local
+  // `pnm_recent_searches` list and the account-backed `searchHistory` prop — with overlapping
+  // entries, and only the first was keyboard-selectable. The account list is now deduped
+  // against the local one and labelled for what it is.
+  const accountHistory = useMemo(() => {
+    const seen = new Set((recentSearches || []).map(r => String(r).toLowerCase().trim()));
+    const out = [];
+    (searchHistory || []).forEach(item => {
+      const q = (item && item.search_query) || item;
+      if (!q || typeof q !== 'string') return;
+      const key = q.toLowerCase().trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+    return out.slice(0, 8);
+  }, [searchHistory, recentSearches]);
+
+  // A11Y: id of the row the arrow keys currently point at (recents / cities are the rows
+  // that carry ids — the richer result cards keep their visual selected state).
+  const activeDescendantId = (() => {
+    if (selectedIndex < 0 || phase !== 'input') return undefined;
+    if (!localQuery.trim()) return selectedIndex < recentSearches.length ? `gso-opt-${selectedIndex}` : undefined;
+    return selectedIndex < citySuggestions.length ? `gso-opt-${selectedIndex}` : undefined;
+  })();
+
   if (!isOpen) return null;
 
   return (
@@ -839,6 +931,7 @@ export default function GlobalSearchOverlay({
 
       {/* ───── OVERLAY SHELL ───── */}
       <div
+        ref={dialogRef}
         style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(4,10,20,0.98)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', display: 'flex', flexDirection: 'column', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', animation: 'gso-in 0.22s ease', overflow: 'hidden' }}
         role="dialog" aria-modal="true" aria-label="Search Poker Venues, Tours, and Series"
       >
@@ -859,6 +952,8 @@ export default function GlobalSearchOverlay({
                 ref={inputRef} type="text" value={localQuery} onChange={handleInputChange} onKeyDown={handleKeyDown}
                 placeholder="Search City, Venue, Tour, Series, Tournament..."
                 autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                role="combobox" aria-expanded={phase === 'input'} aria-autocomplete="list"
+                aria-controls="gso-suggestions" aria-activedescendant={activeDescendantId}
                 style={{ width: '100%', paddingLeft: 30, paddingRight: localQuery ? 36 : 0, paddingTop: 8, paddingBottom: 8, background: 'transparent', border: 'none', outline: 'none', fontSize: 18, fontWeight: 500, color: '#e0e8f0', letterSpacing: '-0.3px', fontFamily: 'inherit', caretColor: '#6ee7ef' }}
               />
               <div style={{ position: 'absolute', bottom: -2, left: 30, right: 0, height: 2, background: 'linear-gradient(90deg,#6ee7ef,#a78bfa)', borderRadius: 2, animation: 'gso-underline 0.3s ease' }} />
@@ -910,7 +1005,7 @@ export default function GlobalSearchOverlay({
 
           {/* INPUT phase — suggestions */}
           {phase === 'input' && (
-            <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 80px' }}>
+            <div id="gso-suggestions" style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 80px' }}>
 
               {/* Recent searches */}
               {!localQuery.trim() && recentSearches.length > 0 && (
@@ -919,9 +1014,10 @@ export default function GlobalSearchOverlay({
                     icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
                     label="Recent Searches" count={recentSearches.length}
                   />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} role="listbox" aria-label="Recent Searches">
                     {recentSearches.map((rec, i) => (
-                      <button key={`${rec}-${i}`} className="gso-city-btn" onClick={() => handleHistoryClick(rec)}
+                      <button key={`${rec}-${i}`} id={`gso-opt-${i}`} role="option" aria-selected={selectedIndex === i}
+                        className="gso-city-btn" onClick={() => handleHistoryClick(rec)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === i ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === i ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <span style={{ textTransform: 'capitalize' }}>{rec}</span>
@@ -938,9 +1034,10 @@ export default function GlobalSearchOverlay({
                     icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>}
                     label="Cities" count={citySuggestions.length}
                   />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} role="listbox" aria-label="City Suggestions">
                     {citySuggestions.map((city, ci) => (
-                      <button key={city} className="gso-city-btn" onClick={() => handleSuggestionClick(city)}
+                      <button key={city} id={`gso-opt-${cityOffset + ci}`} role="option" aria-selected={selectedIndex === cityOffset + ci}
+                        className="gso-city-btn" onClick={() => handleSuggestionClick(city)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === cityOffset + ci ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === cityOffset + ci ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         {city}
@@ -989,15 +1086,15 @@ export default function GlobalSearchOverlay({
                 </div>
               )}
 
-              {/* Recent history */}
-              {searchHistory.length > 0 && !localQuery && (
+              {/* Account-backed history (deduped against the local recents above) */}
+              {accountHistory.length > 0 && !localQuery && (
                 <div style={{ marginBottom: 20 }}>
                   <SectionHeader
                     icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                    label="Recent Searches"
+                    label="Saved To Your Account"
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {searchHistory.slice(0, 8).map((item, i) => (
+                    {accountHistory.map((item, i) => (
                       <button key={item.id || i} className="gso-hist-btn" onClick={() => handleHistoryClick(item.search_query || item)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 8, color: 'rgba(200,214,229,0.65)', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.25)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1009,7 +1106,7 @@ export default function GlobalSearchOverlay({
               )}
 
               {/* Empty state */}
-              {!localQuery && searchHistory.length === 0 && recentSearches.length === 0 && (
+              {!localQuery && accountHistory.length === 0 && recentSearches.length === 0 && (
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.25)' }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Search Anything</div>

@@ -173,6 +173,13 @@ function ParticleLayer({
     return mat;
   }, [glowTexture]);
 
+  // [AUDIT] R3F disposes objects it constructs from JSX, but a geometry or
+  // material handed in as a PROP object is not owned by the reconciler and is
+  // never disposed. Every rebuild of these memos previously leaked a GPU buffer
+  // set and a compiled GLSL program. Dispose them explicitly.
+  useEffect(() => () => { geometry.dispose(); }, [geometry]);
+  useEffect(() => () => { material.dispose(); }, [material]);
+
   useFrame(({ clock }) => {
     if (!pointsRef.current) return;
     const posAttr = pointsRef.current.geometry.attributes.position;
@@ -251,6 +258,16 @@ const GOLD_PALETTE = [
  * @param {number} count - Base particle count (distributed across layers)
  * @param {number} spread - Bounding volume radius
  */
+// [AUDIT] These size ranges used to be inline array literals in the JSX below.
+// `sizeRange` and `palette` are in ParticleLayer's geometry useMemo dep array,
+// so a fresh literal on every render made the dep comparison fail every time:
+// each re-render of ParticleField rebuilt five Float32Arrays and a whole new
+// BufferGeometry per layer (up to 1200 particles at high quality) and leaked the
+// previous GPU buffers. Module-level constants keep the identity stable.
+const MAIN_SIZE_RANGE = [0.20, 0.55];
+const DEEP_SIZE_RANGE = [0.12, 0.35];
+const GOLD_SIZE_RANGE = [0.18, 0.45];
+
 export function ParticleField({ count = 500, spread = 16 }) {
   const textureRef = useRef(null);
 
@@ -283,7 +300,7 @@ export function ParticleField({ count = 500, spread = 16 }) {
         count={mainCount}
         spread={spread * 0.7}
         ySpread={0.45}
-        sizeRange={[0.20, 0.55]}
+        sizeRange={MAIN_SIZE_RANGE}
         speedScale={1.0}
         palette={CYAN_PALETTE}
         warmChance={0.06}
@@ -295,7 +312,7 @@ export function ParticleField({ count = 500, spread = 16 }) {
         count={deepCount}
         spread={spread * 1.2}
         ySpread={0.6}
-        sizeRange={[0.12, 0.35]}
+        sizeRange={DEEP_SIZE_RANGE}
         speedScale={0.4}
         palette={DEEP_PALETTE}
         warmChance={0.04}
@@ -307,7 +324,7 @@ export function ParticleField({ count = 500, spread = 16 }) {
         count={goldCount}
         spread={spread * 0.6}
         ySpread={0.3}
-        sizeRange={[0.18, 0.45]}
+        sizeRange={GOLD_SIZE_RANGE}
         speedScale={0.7}
         palette={GOLD_PALETTE}
         warmChance={0.35}

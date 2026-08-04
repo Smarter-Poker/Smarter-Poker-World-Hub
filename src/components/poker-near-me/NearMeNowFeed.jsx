@@ -4,7 +4,7 @@
  * v2.0 — Enhanced with CTA-rich empty states and skeleton loading
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { haversineMiles, timeAgo } from './pnm-utils';
+import { haversineMiles, timeAgo, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 
 const FEED_REFRESH_MS = 60000; // 1 minute
 
@@ -132,10 +132,22 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
 
         try {
             // Live games
-            const liveRes = await fetch('/api/poker/live-games?limit=50&active=true', { signal });
+            const liveRes = await fetch('/api/poker/live-games?active=true', { signal });
             if (!liveRes.ok) throw new Error(`Live games: HTTP ${liveRes.status}`);
             const liveData = await liveRes.json();
-            (liveData.games || liveData.data || []).forEach(g => {
+            // WIRING FIX: the active=true branch of /api/poker/live-games answers
+            // { success, venues: { [venue_id]: [game, ...] } } — `games` is only returned
+            // by the venue_id branch. Reading `liveData.games || liveData.data` was always
+            // undefined, so the live_game feed type (the first filter chip) was always
+            // empty. Read the grouped shape, keeping the flat keys as a fallback.
+            // (`limit` was also dropped from the request: the handler hardcodes .limit(100).)
+            const liveGames = Array.isArray(liveData.games)
+                ? liveData.games
+                : (Array.isArray(liveData.data)
+                    ? liveData.data
+                    : Object.values(liveData.venues || {}).flat());
+            liveGames.forEach(g => {
+                if (!g) return;
                 const venue = venues.find(v => String(v.id) === String(g.venue_id));
                 if (venue && isWithinRadius(venue)) {
                     items.push({
@@ -155,7 +167,17 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             // Recent check-ins (from all venues) — parallel fetch to avoid O(N) serial timeout
             const now = new Date();
             const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
-            const nearbyVenues = venues.filter(isWithinRadius).slice(0, 20);
+            // BUG FIX: this used to be `venues.filter(isWithinRadius).slice(0, 20)`.
+            // isWithinRadius keeps every venue that has no lat/lng, and nothing sorted the
+            // survivors, so the 20 sampled venues were whatever happened to sit first in
+            // array order — the user's own local room was frequently never queried while
+            // rooms 2,000 miles away filled the stream. Sort nearest-first (unknown last).
+            const nearbyVenues = venues
+                .filter(isWithinRadius)
+                .map(v => ({ v, d: computeDistance(v) }))
+                .sort((a, b) => (a.d === null ? Infinity : a.d) - (b.d === null ? Infinity : b.d))
+                .slice(0, 20)
+                .map(entry => entry.v);
             
             // [NMF1 FIX] Was a serial for-of loop that could fire setFeedItems after unmount between iterations.
             // Now parallel via Promise.allSettled with a single isMounted guard after all settle.
@@ -168,7 +190,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 )
             );
             
-            if (!isMounted.current) return;
+            if (!isMounted.current || ac.signal.aborted) return;
             checkinResults.forEach(result => {
                 if (result.status !== 'fulfilled') return;
                 const { v, checkins } = result.value;
@@ -186,7 +208,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             });
         } catch { /* continue */ }
 
-        if (!isMounted.current) return;
+        if (!isMounted.current || ac.signal.aborted) return;
         try {
             // Upcoming tournament starts.
             // GAP FIX: TYPE_COLORS/FEED_ICONS have always defined a 'tournament' type
@@ -197,7 +219,6 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             if (!tourneyRes.ok) throw new Error(`Daily tournaments: HTTP ${tourneyRes.status}`);
             const tourneyData = await tourneyRes.json();
             const nowDate = new Date();
-            const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
             (tourneyData.tournaments || tourneyData.data || []).forEach(t => {
                 const venue = venues.find(v =>
                     String(v.id) === String(t.venue_id) ||
@@ -206,12 +227,26 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 if (!venue || !isWithinRadius(venue)) return;
                 const startMinutes = parseStartMinutes(t.start_time);
                 if (startMinutes === null) return;
+                // BUG FIX: "now" used to be the BROWSER's clock (nowDate.getHours()), but
+                // start_time is the venue's posted LOCAL time. On a nationwide directory
+                // that is wrong by the whole timezone offset — an East-Coast user saw a
+                // 7:00 PM Las Vegas tournament as three hours past (and the minsAway < -30
+                // filter dropped it). Compare wall clocks inside the VENUE's zone.
+                const venueTz = resolveVenueTimeZone({
+                    timezone: venue.timezone,
+                    state: venue.state || t.venue_state || t.state,
+                });
+                const zoned = venueTz ? getZonedNow(venueTz, nowDate) : null;
+                // No usable zone means we cannot honestly say how far away the start is.
+                if (!zoned) return;
+                const nowMinutes = zoned.minutes;
                 const minsAway = startMinutes - nowMinutes;
                 // Only surface starts still ahead of us (or just underway) today.
                 if (minsAway < -30 || minsAway > TOURNAMENT_LOOKAHEAD_MIN) return;
                 const buyIn = Number(t.buy_in) || 0;
-                const startDate = new Date(nowDate);
-                startDate.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+                // Absolute instant of the start, derived from the venue-local offset
+                // (setHours would re-anchor it to the viewer's clock and undo the fix).
+                const startDate = new Date(nowDate.getTime() + minsAway * 60000);
                 const hoursAway = Math.floor(Math.abs(minsAway) / 60);
                 items.push({
                     type: 'tournament',
@@ -235,7 +270,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             });
         } catch { /* continue */ }
 
-        if (!isMounted.current) return;
+        if (!isMounted.current || ac.signal.aborted) return;
         try {
             // Promotions
             const promoRes = await fetch('/api/poker/promotions?limit=30', { signal });
@@ -244,13 +279,23 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             if (!promoRes.ok) throw new Error(`Promotions: HTTP ${promoRes.status}`);
             const promoData = await promoRes.json();
             (promoData.promotions || promoData.data || []).forEach(p => {
-                const venue = venues.find(v => String(v.id) === String(p.page_id) || String(v.id) === String(p.venue_id));
+                // WIRING FIX: page_id is only a venue id when page_type === 'venue'.
+                // Matching it unconditionally misattributed a tour/series promotion to
+                // whichever venue happened to share that numeric id.
+                const venue = venues.find(v =>
+                    (p.venue_id != null && String(v.id) === String(p.venue_id)) ||
+                    (p.page_type === 'venue' && String(v.id) === String(p.page_id))
+                );
                 if (venue && isWithinRadius(venue)) {
                     items.push({
                         type: 'promotion',
-                        title: p.title || 'Promotion',
+                        // WIRING FIX: /api/poker/promotions emits { title, content, ... } —
+                        // there is no `description` key, so every promotion rendered with an
+                        // empty body, and activity-sourced rows (title hardcoded null) showed
+                        // only the generic literal "Promotion".
+                        title: p.title || p.page_name || 'Promotion',
                         subtitle: venue.name,
-                        detail: p.description || '',
+                        detail: p.content || p.description || '',
                         venue,
                         time: p.created_at || new Date().toISOString(),
                         id: `promo-${p.id}`,
@@ -259,7 +304,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             });
         } catch { /* continue */ }
 
-        if (!isMounted.current) return;
+        if (!isMounted.current || ac.signal.aborted) return;
         // Sort by time descending
         items.sort((a, b) => new Date(b.sortTime || b.time) - new Date(a.sortTime || a.time));
         setFeedItems(items);

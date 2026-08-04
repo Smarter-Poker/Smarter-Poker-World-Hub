@@ -4,7 +4,8 @@
  * Shows busiest hours, busiest days, and optimal visit times.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
+import { normalizeGameName } from '../../../src/components/poker-near-me/normalize-game';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -78,6 +79,11 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+
+  // This was the only route in this directory with no rate limit, while it runs
+  // a 5,000-row history scan plus in-process aggregation on every hit.
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const venue = safeQ(req.query.venue);
   const venue_id = safeQ(req.query.venue_id);
@@ -91,12 +97,37 @@ export default async function handler(req, res) {
   
   try {
     const supabase = getSupabase();
-    
+
     // Get last 14 days of history
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    
+
+    // Resolve a NUMERIC venue_id to the venue's name. venue_live_history and
+    // game_live_history are keyed on bravo_slug (a slug string); matching a
+    // numeric poker_venues id against it never hit, and the `ilike %id%` half
+    // could match an unrelated slug containing that digit run.
+    let resolvedVenueName = safeVenue;
+    const numericVenueId = safeVenueId && /^\d+$/.test(safeVenueId) ? parseInt(safeVenueId, 10) : null;
+    if (numericVenueId) {
+      const { data: venueRow } = await supabase
+        .from('poker_venues')
+        .select('id, name')
+        .eq('id', numericVenueId)
+        .maybeSingle();
+      if (venueRow?.name) resolvedVenueName = venueRow.name;
+    }
+    const venueNameLike = resolvedVenueName
+      ? resolvedVenueName.replace(/[%_\\]/g, '').trim().slice(0, 100)
+      : null;
+
+    const applyVenueFilter = (query) => {
+      if (venueNameLike) return query.ilike('venue_name', `%${venueNameLike}%`);
+      // Non-numeric venue_id: treat it as a literal bravo_slug, exact match only.
+      if (safeVenueId) return query.eq('bravo_slug', safeVenueId);
+      return query;
+    };
+
     let data, error;
-    
+
     // If game_type is specified, use game_live_history for per-game heatmaps
     if (game_type) {
       let query = supabase
@@ -104,21 +135,34 @@ export default async function handler(req, res) {
         .select('venue_name, game_type, tables, snapshot_time')
         .gte('snapshot_time', twoWeeksAgo)
         .order('snapshot_time', { ascending: true });
-      
-      if (safeVenueId) {
-        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-      } else if (safeVenue) {
-        query = query.ilike('venue_name', `%${safeVenue}%`);
-      }
-      
+
+      query = applyVenueFilter(query);
+
       const result = await query.limit(5000);
       data = result.data;
       error = result.error;
-      
-      // Filter by the canonical game type and map columns to match expected shape
+
+      // Filter by game type and map columns to match expected shape.
+      //
+      // This used to compare gameShortLabel(row.game_type) — which is the
+      // CANONICAL label and carries stakes ("NLH 1/3") — against the caller's
+      // raw, unsanitised `game_type` parameter. Unless the two strings happened
+      // to agree byte for byte the filter emptied `data` and the widget showed
+      // its "not enough data" state. Compare on the normalized type instead, and
+      // only compare stakes when the caller actually asked for a stake level.
       if (data) {
+        const wanted = normalizeGameName(safeGameType || '');
+        const wantedCanonical = (wanted.canonical || '').toLowerCase();
+        const matchesWanted = (raw) => {
+          const rowNorm = normalizeGameName(raw || '');
+          if (wanted.stakes) return (rowNorm.canonical || '').toLowerCase() === wantedCanonical;
+          if (wanted.type && wanted.type !== 'Unknown') return rowNorm.type === wanted.type;
+          // Unrecognised parameter: fall back to a plain substring comparison
+          // rather than silently returning nothing.
+          return (raw || '').toLowerCase().includes((safeGameType || '').toLowerCase());
+        };
         data = data
-          .filter(row => gameShortLabel(row.game_type || '') === game_type)
+          .filter(row => matchesWanted(row.game_type))
           .map(row => ({
             venue_name: row.venue_name,
             total_tables: row.tables || 0,
@@ -133,14 +177,10 @@ export default async function handler(req, res) {
         .gte('snapshot_time', twoWeeksAgo)
         .order('snapshot_time', { ascending: true });
       
-      if (safeVenueId) {
-        // venue_live_history is keyed on bravo_slug — it has no venue_id column,
-        // so the old .eq('venue_id', parseInt(...)) always errored (and NaN'd on slugs).
-        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
-      } else if (safeVenue) {
-        query = query.ilike('venue_name', `%${safeVenue}%`);
-      }
-      
+      // venue_live_history is keyed on bravo_slug — it has no venue_id column.
+      // A numeric venue_id is resolved to the venue name above.
+      query = applyVenueFilter(query);
+
       const result = await query.limit(5000);
       data = result.data;
       error = result.error;
@@ -181,7 +221,7 @@ export default async function handler(req, res) {
     const heatmap = {};     // { "day-hour": { totalTables, count } }
     
     // Bucket in venue-local time (falls back to Eastern for multi-venue queries)
-    const venueTz = await resolveVenueTimezone(supabase, safeVenue || data[0]?.venue_name);
+    const venueTz = await resolveVenueTimezone(supabase, resolvedVenueName || data[0]?.venue_name);
 
     data.forEach(row => {
       const parts = getLocalParts(row.snapshot_time, venueTz);
@@ -253,7 +293,7 @@ export default async function handler(req, res) {
     const bestDay = peakDays[0];
     
     res.status(200).json({
-      venue_filter: safeVenue || safeVenueId || 'all',
+      venue_filter: resolvedVenueName || safeVenueId || 'all',
       data_points: data.length,
       period: '14 days',
       timezone: venueTz,
@@ -266,7 +306,8 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Peak activity error:', err);
-    res.status(500).json({ error: err.message });
+    // Never echo the raw DB/driver message back to the client.
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 

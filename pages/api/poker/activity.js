@@ -15,6 +15,13 @@ function getSupabase() {
 
 
 
+// page_id is arbitrary caller-chosen text (POST /api/poker/follow accepts any
+// string). It is interpolated into a raw PostgREST .or() filter below, so a
+// value containing ')' or ',' reshapes the filter — or simply 500s the feed.
+// Only ids matching this charset are queryable; anything else is skipped.
+const SAFE_PAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const SAFE_PAGE_TYPE = /^[A-Za-z0-9_]{1,32}$/;
+
 /** Helper: extract verified user ID from JWT, or null */
 async function getVerifiedUserId(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -106,25 +113,47 @@ try {
         const offsetNum = Math.min(Math.max(parseInt(rawOffset, 10) || 0, 0), 10000);
 
         // User feed mode: get activities from pages the user follows
-        if (user_id && feed === 'true') {
+        if (feed === 'true') {
+          // IDENTITY: this is a per-user feed (what venues and clubs someone
+          // follows). It used to take `user_id` straight off the query string
+          // with no JWT check, so anyone holding a user id — they appear in
+          // review and check-in payloads — could read another user's follow
+          // graph. Identity now comes from the bearer token only.
+          const verifiedUserId = await getVerifiedUserId(req);
+          if (!verifiedUserId) {
+            return res.status(401).json({ success: false, error: 'Authentication required for the personalised feed' });
+          }
+          if (user_id && user_id !== verifiedUserId) {
+            return res.status(403).json({ success: false, error: 'Cannot read another user feed' });
+          }
+          // A per-user response must never sit in the shared edge cache.
+          res.setHeader('Cache-Control', 'private, no-store');
+
           // First get pages the user follows
           const { data: follows, error: followError } = await getSupabase()
             .from('page_followers')
             .select('page_type, page_id')
-            .eq('user_id', user_id)
+            .eq('user_id', verifiedUserId)
                 .limit(100);
 
           if (followError) {
             console.warn('Error fetching follows:', followError);
-            return res.status(500).json({ success: false, error: followError.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           if (!follows || follows.length === 0) {
             return res.status(200).json({ success: true, activities: [], total: 0 });
           }
 
-          // Build OR filter for all followed pages
-          const orConditions = follows.map(
+          // Build OR filter for all followed pages — skipping any row whose
+          // page_type/page_id cannot be safely interpolated (see SAFE_PAGE_ID).
+          const safeFollows = follows.filter(
+            (f) => SAFE_PAGE_TYPE.test(String(f.page_type || '')) && SAFE_PAGE_ID.test(String(f.page_id || ''))
+          );
+          if (safeFollows.length === 0) {
+            return res.status(200).json({ success: true, activities: [], total: 0 });
+          }
+          const orConditions = safeFollows.map(
             (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
           ).join(',');
 

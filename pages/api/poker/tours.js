@@ -290,7 +290,25 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// findVenueCoords performs up to four linear scans of the 658-entry all-venues
+// array per stop, and it is called once per stop of every tour on every request.
+// Memoise on the fields it actually reads — the venue dataset is static per
+// deploy, so a repeat lookup can never produce a different answer.
+const _venueCoordsCache = new Map();
+
 function findVenueCoords(stop) {
+    const _cacheKey = [stop.venue, stop.name, stop.location, stop.city, stop.state]
+        .map(v => (v == null ? '' : String(v).toLowerCase()))
+        .join('|');
+    if (_venueCoordsCache.has(_cacheKey)) return _venueCoordsCache.get(_cacheKey);
+    const _result = _findVenueCoordsUncached(stop);
+    // Bound the memo so a long-lived lambda cannot grow it without limit.
+    if (_venueCoordsCache.size >= 2000) _venueCoordsCache.clear();
+    _venueCoordsCache.set(_cacheKey, _result);
+    return _result;
+}
+
+function _findVenueCoordsUncached(stop) {
     const venueName = (stop.venue || stop.name || '').toLowerCase();
     const location = (stop.location || '').toLowerCase();
     const city = (stop.city || '').toLowerCase();
@@ -417,6 +435,10 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
+      // This was the only GET in this directory with no Cache-Control header, so
+      // every rendered tour card re-ran the whole registry + coordinate build.
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+
       try {
           const type = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
           const region = Array.isArray(req.query.region) ? req.query.region[0] : req.query.region;
@@ -435,6 +457,46 @@ export default async function handler(req, res) {
           // eslint-disable-next-line prefer-const
           let { tours: toursRaw, registryTours, source } = await getMergedToursData(excludeStationary);
           let tours = toursRaw;
+
+          // ── Narrow the working set FIRST ───────────────────────────────
+          // These filters used to run AFTER the per-stop coordinate resolution
+          // below, so a single-tour card request (RichTourCard issues one per
+          // card rendered) still ran findVenueCoords for every stop of every
+          // tour before discarding all but one.
+
+          // Filter by tour type
+          if (type) {
+              tours = tours.filter(t => t.tour_type === type);
+          }
+
+          // Filter by region
+          if (region) {
+              tours = tours.filter(t =>
+                  t.regions?.includes(region) ||
+                  t.regions?.includes(region.toUpperCase())
+              );
+          }
+
+          // Search by name
+          if (search) {
+              const searchLower = search.toLowerCase();
+              tours = tours.filter(t =>
+                  t.tour_name?.toLowerCase().includes(searchLower) ||
+                  t.tour_code?.toLowerCase().includes(searchLower) ||
+                  t.headquarters?.toLowerCase().includes(searchLower)
+              );
+          }
+
+          // Get specific tour
+          if (tour_code) {
+              tours = tours.filter(t =>
+                  t.tour_code === tour_code.toUpperCase()
+              );
+          }
+
+          // Upcoming series from registry data. Computed ONCE — it was being
+          // built twice per request (fallback-coordinates block + summary stats).
+          const allUpcoming = getUpcomingSeries(null, registryTours);
 
           // Calculate distance if coordinates provided
           if (!isNaN(userLat) && !isNaN(userLng)) {
@@ -479,7 +541,6 @@ export default async function handler(req, res) {
               tours.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
               // Find fallback coordinates for the map
-              const allUpcoming = getUpcomingSeries(null, registryTours);
               const upcomingByTour = {};
               allUpcoming.forEach(s => {
                   if (!upcomingByTour[s.tour]) upcomingByTour[s.tour] = [];
@@ -503,38 +564,8 @@ export default async function handler(req, res) {
           }
 
 
-          // Filter by tour type
-          if (type) {
-              tours = tours.filter(t => t.tour_type === type);
-          }
-
-          // Filter by region
-          if (region) {
-              tours = tours.filter(t =>
-                  t.regions?.includes(region) ||
-                  t.regions?.includes(region.toUpperCase())
-              );
-          }
-
-          // Search by name
-          if (search) {
-              const searchLower = search.toLowerCase();
-              tours = tours.filter(t =>
-                  t.tour_name?.toLowerCase().includes(searchLower) ||
-                  t.tour_code?.toLowerCase().includes(searchLower) ||
-                  t.headquarters?.toLowerCase().includes(searchLower)
-              );
-          }
-
-          // Get specific tour
-          if (tour_code) {
-              tours = tours.filter(t =>
-                  t.tour_code === tour_code.toUpperCase()
-              );
-          }
-
-          // Get upcoming series from registry data (used for both series-per-tour and summary stats)
-          const allUpcoming = getUpcomingSeries(null, registryTours);
+          // (type / region / search / tour_code filters are applied above,
+          // before the coordinate work, and allUpcoming is computed there too.)
 
           // Attach upcoming series per tour
           if (include_series === 'true') {

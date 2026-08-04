@@ -132,16 +132,21 @@ try {
 
         // All active games grouped by venue
         if (active === 'true') {
+          // `limit` was accepted by callers (NearMeNowFeed sends limit=50) but the
+          // handler hardcoded 100 and ignored it. Clamp to 1..100.
+          const parsedLimit = parseInt(safeQ(req.query.limit), 10);
+          const maxRows = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 100, 1), 100);
+
           let query = getSupabase()
             .from('live_games')
             .select('*')
             .gt('expires_at', now)
             .order('created_at', { ascending: false })
-                .limit(100);
+                .limit(maxRows);
 
           if (game_type) {
             query = query.eq('game_type', game_type)
-                .limit(100);
+                .limit(maxRows);
           }
 
           const { data, error } = await query;
@@ -161,7 +166,12 @@ try {
             grouped[game.venue_id].push(game);
           });
 
-          return res.status(200).json({ success: true, venues: grouped });
+          // `venues` is the grouped-by-venue map this branch has always returned.
+          // `games` is the same rows as a flat array: the Near Me Now feed reads
+          // `liveData.games || liveData.data`, found neither key, and so rendered
+          // an empty live-games section on every load. Both shapes are published
+          // so neither consumer has to change to see data.
+          return res.status(200).json({ success: true, venues: grouped, games: enriched, total: enriched.length });
         }
 
         return res.status(400).json({ success: false, error: 'venue_id or active=true is required' });

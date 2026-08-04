@@ -6,11 +6,35 @@
 
 let _audioCtx = null;
 
+/**
+ * Lazily construct (and unlock) the shared AudioContext.
+ *
+ * [AUDIT] On Safari/iOS — and on Chrome before any user gesture is registered —
+ * a freshly constructed AudioContext starts in state 'suspended'. Every
+ * osc.start()/stop() then schedules against a clock that is not running, so
+ * nothing is ever heard. All three play* helpers are invoked from click
+ * handlers, which is exactly the moment a resume() is allowed to unlock audio,
+ * so the resume happens here on every call.
+ */
 function getAudioCtx() {
   if (!_audioCtx && typeof AudioContext !== 'undefined') {
     _audioCtx = new AudioContext();
   }
+  if (_audioCtx && _audioCtx.state === 'suspended') {
+    // resume() returns a promise; failures (no user gesture yet) are non-fatal.
+    try { _audioCtx.resume()?.catch?.(() => {}); } catch { /* ignore */ }
+  }
   return _audioCtx;
+}
+
+/**
+ * Release the shared AudioContext (e.g. on full teardown). Safe to call twice —
+ * the next play* call lazily rebuilds it.
+ */
+export function closeAudioCtx() {
+  if (!_audioCtx) return;
+  try { _audioCtx.close()?.catch?.(() => {}); } catch { /* ignore */ }
+  _audioCtx = null;
 }
 
 /** Short click feedback — descending 800→600 Hz sine */

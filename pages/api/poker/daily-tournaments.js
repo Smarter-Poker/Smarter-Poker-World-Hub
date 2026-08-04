@@ -245,7 +245,13 @@ async function handler(req, res) {
           // [B2 FIX v2] Use .range(0, 4999) to bypass Supabase project-level max_rows=1000 cap.
           // .limit() alone is bounded by the project setting; .range() uses the Range header
           // which PostgREST serves up to the specified ceiling regardless of the project default.
-          const parsedLimit = parseInt(limit, 10) || 999;
+          const rawLimit = parseInt(limit, 10);
+          const parsedLimit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 999, 1), 5000);
+          // The fetch ceiling deliberately stays at 5000 rather than tracking
+          // `limit`: the state/type/time-floor filters below run in JS (state is
+          // resolved from poker_venues, not a column on this table), so narrowing
+          // the fetch to the requested page size would make `?state=IL&limit=50`
+          // miss Illinois venues that sort past the first 50 nationwide rows.
           query = query.range(0, 4999); // Bypasses Supabase 1000-row project limit
 
           const { data: dbTournaments, error } = await query;
@@ -380,18 +386,52 @@ async function handler(req, res) {
                   }
               }
               
-              // Enrich with venue data from source of truth
+              // Enrich with venue data.
+              //
+              // data/tournament-venues.json only carries ~206 venues while
+              // venue_daily_tournaments spans 324+, so every tournament whose
+              // venue_name was not an exact lowercase match in that file got
+              // state:null — and the ?state= filter further down then deleted it.
+              // State-filtered queries silently omitted venues that exist in the
+              // DB, and groupByState bucketed them as 'Unknown'.
+              //
+              // poker_venues is now the primary source for state/city (resolved by
+              // the numeric venue_id the rows already carry); the static file is
+              // only a fallback for rows with no venue_id.
               const venueMap = new Map();
               tournamentVenues.venues.forEach(v => {
                   venueMap.set(v.name.toLowerCase(), v);
               });
 
+              const dbVenueInfoById = new Map();
+              const clusterVenueIds = [...new Set(
+                  clusteredTournaments
+                      .map(t => t.venue_id)
+                      .filter(vid => vid != null && !isNaN(Number(vid)) && Number(vid) > 0)
+                      .map(vid => Number(vid))
+              )];
+              if (clusterVenueIds.length > 0) {
+                  try {
+                      const CHUNK = 300;
+                      for (let i = 0; i < clusterVenueIds.length; i += CHUNK) {
+                          const { data: pvRows } = await getSupabase()
+                              .from('poker_venues')
+                              .select('id, state, city')
+                              .in('id', clusterVenueIds.slice(i, i + CHUNK));
+                          (pvRows || []).forEach(v => dbVenueInfoById.set(Number(v.id), v));
+                      }
+                  } catch (pvErr) {
+                      console.warn('[daily-tournaments] poker_venues state/city resolve failed (non-fatal):', pvErr?.message || pvErr);
+                  }
+              }
+
               tournaments = clusteredTournaments.map(t => {
                   const venueInfo = venueMap.get(t.venue_name?.toLowerCase()) || {};
+                  const dbInfo = dbVenueInfoById.get(Number(t.venue_id)) || {};
                   return {
                       ...t,
-                      state: venueInfo.state || null,
-                      city: venueInfo.city || null,
+                      state: dbInfo.state || venueInfo.state || null,
+                      city: dbInfo.city || venueInfo.city || null,
                       venueType: venueInfo.type || 'Unknown',
                       pokerAtlasUrl: venueInfo.pokerAtlasUrl || t.source_url
                   };
@@ -682,19 +722,45 @@ async function handler(req, res) {
           } else if (sort === 'guaranteed') {
               tournaments.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
           } else {
-              // Default: sort by time
-              tournaments.sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
+              // Default: sort by time. parseTime returns -1 for null/TBD start
+              // times (charity + tour-series rows deliberately emit null), which
+              // used to float every TBD event above the 10 AM tournaments.
+              // Sort them last instead.
+              const timeKey = (t) => {
+                  const mins = parseTime(t.start_time);
+                  return mins < 0 ? Number.MAX_SAFE_INTEGER : mins;
+              };
+              tournaments.sort((a, b) => timeKey(a) - timeKey(b));
           }
+
+          // Apply `limit` ONCE, before the groupings are derived. Previously the
+          // slice was applied only to `tournaments` while byTimeSlot / byState /
+          // stats were built over the full untruncated set — the same objects
+          // appeared up to three times in one (CDN-cached) body and stats.total
+          // reported a number the paginating client could never reach.
+          tournaments = tournaments.slice(0, parsedLimit);
 
           // Group by time slot
           const byTimeSlot = groupByTimeSlot(tournaments);
 
+          // Coverage stats derived from the data actually being served, rather
+          // than from constants frozen inside data/tournament-venues.json (which
+          // under-reported the venue count by a third and advertised a
+          // months-old refresh timestamp on a 72h scrape cycle).
+          const distinctVenues = new Set(
+              tournaments.map(t => (t.venue_id != null ? String(t.venue_id) : (t.venue_name || ''))).filter(Boolean)
+          ).size;
+          let lastUpdated = null;
+          for (const t of tournaments) {
+              if (t.last_scraped && (!lastUpdated || t.last_scraped > lastUpdated)) lastUpdated = t.last_scraped;
+          }
+
           return res.status(200).json({
               success: true,
               day: targetDay,
-              totalVenues: tournamentVenues.metadata.totalVenues,
-              lastUpdated: tournamentVenues.metadata.lastUpdated,
-              tournaments: tournaments.slice(0, parsedLimit),
+              totalVenues: distinctVenues,
+              lastUpdated,
+              tournaments,
               byTimeSlot,
               byState: groupByState(tournaments),
               stats: {
@@ -723,7 +789,7 @@ async function handler(req, res) {
               success: false,
               error: 'Daily tournaments query failed',
               tournaments: [],
-              byTimeSlot: { morning: [], afternoon: [], evening: [] },
+              byTimeSlot: { morning: [], afternoon: [], evening: [], tbd: [] },
               byState: {},
               stats: { total: 0 }
           });
@@ -742,12 +808,17 @@ function groupByTimeSlot(tournaments) {
     const slots = {
         morning: [],   // Before 12pm
         afternoon: [], // 12pm - 5pm
-        evening: []    // 5pm+
+        evening: [],   // 5pm+
+        tbd: []        // No published start time
     };
 
     tournaments.forEach(t => {
         const time = parseTime(t.start_time);
-        if (time < 720) slots.morning.push(t);
+        // parseTime returns -1 for null/unparseable times. Charity events and
+        // tour-series events deliberately emit start_time:null to mean TBD, and
+        // those were all being presented to the user as morning tournaments.
+        if (time < 0) slots.tbd.push(t);
+        else if (time < 720) slots.morning.push(t);
         else if (time < 1020) slots.afternoon.push(t);
         else slots.evening.push(t);
     });

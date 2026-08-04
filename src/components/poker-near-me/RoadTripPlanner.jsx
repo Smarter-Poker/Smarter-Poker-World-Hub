@@ -72,12 +72,66 @@ const POPULAR_CITIES_GEO = {
     'tunica, ms': { lat: 34.6846, lng: -90.3829 },
 };
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// day_of_week from /api/poker/daily-tournaments is mixed-case ('saturday',
+// 'MONDAY'), the literal 'Daily' for recurring events, or a raw date string for
+// charity / tour / home-game rows. Resolve it to one of DAY_NAMES, 'DAILY', or
+// null, plus the concrete calendar date when the value was a date.
+function normalizeDayToken(value) {
+    if (value == null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const lower = raw.toLowerCase();
+    if (lower === 'daily' || lower === 'everyday' || lower === 'every day') return 'DAILY';
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+        const dt = new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));
+        if (!Number.isNaN(dt.getTime())) return DAY_NAMES[dt.getUTCDay()];
+    }
+    const idx = DAY_NAMES.findIndex(d => lower.startsWith(d.toLowerCase()));
+    if (idx >= 0) return DAY_NAMES[idx];
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return DAY_NAMES[parsed.getDay()];
+    return null;
+}
+
+// Returns a Date when day_of_week held a concrete calendar date, else null.
+function dayTokenAsDate(value) {
+    if (value == null) return null;
+    const raw = String(value).trim();
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!iso) return null;
+    const dt = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+// Split "Portland, ME" into { city: 'portland', state: 'me' }.
+function splitCityState(value) {
+    const parts = String(value || '').toLowerCase().trim().split(',');
+    return {
+        city: (parts[0] || '').trim(),
+        state: (parts[1] || '').trim(),
+    };
+}
+
 async function geocodeCity(query) {
     const key = query.toLowerCase().trim();
     if (POPULAR_CITIES_GEO[key]) return POPULAR_CITIES_GEO[key];
-    // Try partial match
-    for (const [k, v] of Object.entries(POPULAR_CITIES_GEO || {})) {
-        if (k.includes(key) || key.includes(k.split(',')[0])) return v;
+    // Partial match against the built-in table.
+    // BUG FIX: the old check accepted a city-name match while ignoring the
+    // state entirely, so "Portland, ME" resolved to Portland, OR and
+    // "Kansas City, KS" to the Missouri entry. A partial match is now only
+    // accepted when the state token matches too (or the user gave no state);
+    // anything else falls through to Nominatim, which resolves it correctly.
+    const wanted = splitCityState(key);
+    if (wanted.city) {
+        for (const [k, v] of Object.entries(POPULAR_CITIES_GEO || {})) {
+            const entry = splitCityState(k);
+            if (entry.city !== wanted.city) continue;
+            if (wanted.state && entry.state && wanted.state !== entry.state) continue;
+            return v;
+        }
     }
     // Fallback: Nominatim (free, no API key)
     try {
@@ -100,6 +154,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [mapExpanded, setMapExpanded] = useState(true);
     const [savedTripsOpen, setSavedTripsOpen] = useState(false);
     const [savedTrips, setSavedTrips] = useState([]);
+    const [mapStatus, setMapStatus] = useState('idle'); // idle | loading | ready | error
+    const [shareStatus, setShareStatus] = useState(null);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const originAutoRef = useRef(false);
@@ -109,6 +165,23 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         try {
             const trips = JSON.parse(localStorage.getItem('pnm_saved_trips') || '[]');
             setSavedTrips(trips);
+        } catch { /* silent */ }
+    }, []);
+
+    // Restore a shared trip from the URL (?from=&to=&corridor=). The lobby's
+    // deep-link reader only consumes pod/q/state/game/sort/radius, so nothing
+    // else in the app reads these — the planner has to read them itself or the
+    // "Share Trip" link restores nothing.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const from = params.get('from');
+            const to = params.get('to');
+            const corridor = parseInt(params.get('corridor'), 10);
+            if (from) { setOrigin(from); originAutoRef.current = true; }
+            if (to) setDestination(to);
+            if (CORRIDOR_OPTIONS.includes(corridor)) setCorridorMi(corridor);
         } catch { /* silent */ }
     }, []);
 
@@ -170,15 +243,22 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 const venueIds = new Set(nearbyVenues.map(v => String(v.id)));
                 // Build set of day abbreviations within travel window
                 const travelDays = new Set();
-                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                    travelDays.add(dayNames[d.getDay()]);
+                    travelDays.add(DAY_NAMES[d.getDay()]);
                 }
                 matchingTournaments = dailyTournaments.filter(t => {
                     if (!venueIds.has(String(t.venue_id))) return false;
-                    // Match day_of_week against travel window days
-                    const tDay = t.day_of_week || '';
-                    return travelDays.has(tDay) || travelDays.size === 0;
+                    if (travelDays.size === 0) return true;
+                    // BUG FIX: day_of_week is mixed-case ('saturday'/'MONDAY'), the
+                    // literal 'Daily' for recurring events, or a raw date string for
+                    // charity/tour/home rows. Exact-string comparison against
+                    // 'Sun'..'Sat' never matched any of those.
+                    const exactDate = dayTokenAsDate(t.day_of_week);
+                    if (exactDate) return exactDate >= startDate && exactDate <= endDate;
+                    const tDay = normalizeDayToken(t.day_of_week);
+                    if (tDay === 'DAILY') return true;
+                    if (!tDay) return false;
+                    return travelDays.has(tDay);
                 });
             }
 
@@ -213,49 +293,80 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         }
     }, [origin, destination, waypoints, corridorMi, dateRange, venues, dailyTournaments, series]);
 
-    // Render Leaflet route map when result is available
+    // Render Leaflet route map when result is available.
+    // BUG FIX: this used to bail out unless `window.L` existed. Only VenueMap.jsx
+    // ever sets that global (via a CDN script tag) and the lobby renders this pod
+    // without it, so the map silently stayed an empty box. Load the npm `leaflet`
+    // module here instead — the same approach VenueMapPanel.jsx uses.
     useEffect(() => {
-        if (!routeResult || !mapRef.current || typeof window === 'undefined' || !window.L) return;
-        if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+        if (!routeResult || typeof window === 'undefined') return undefined;
 
-        const L = window.L;
-        const map = L.map(mapRef.current, { zoomControl: true, attributionControl: false });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+        let cancelled = false;
+        setMapStatus('loading');
 
-        // Draw route polyline
-        const latlngs = routeResult.routePoints.map(p => [p.lat, p.lng]);
-        L.polyline(latlngs, { color: '#ffffff', weight: 3, opacity: 0.8, dashArray: '8, 6' }).addTo(map);
+        const buildMap = async () => {
+            try {
+                if (!document.querySelector('link[href*="leaflet"]')) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                    document.head.appendChild(link);
+                }
 
-        // Stop markers
-        routeResult.stops.forEach((stop, i) => {
-            const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
-            const icon = L.divIcon({
-                className: 'trip-stop-marker',
-                html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
-                iconSize: [20, 20], iconAnchor: [10, 10],
-            });
-            L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
-        });
+                const L = window.L || (await import('leaflet')).default;
+                if (cancelled || !mapRef.current) return;
 
-        // Venue markers along route
-        routeResult.venues.forEach(v => {
-            const icon = L.divIcon({
-                className: 'route-venue-marker',
-                html: '<div style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:2px solid #fff;box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>',
-                iconSize: [14, 14], iconAnchor: [7, 7],
-            });
-            L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], { icon })
-                .addTo(map)
-                .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${esc(v.name)}</b><br/>${esc(v.city)}, ${esc(v.state)}</div>`);
-        });
+                if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
 
-        // Fit bounds
-        if (latlngs.length > 0) {
-            map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
-        }
+                const map = L.map(mapRef.current, { zoomControl: true, attributionControl: false });
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
 
-        mapInstanceRef.current = map;
-        return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
+                // Draw route polyline
+                const latlngs = routeResult.routePoints.map(p => [p.lat, p.lng]);
+                L.polyline(latlngs, { color: '#ffffff', weight: 3, opacity: 0.8, dashArray: '8, 6' }).addTo(map);
+
+                // Stop markers
+                routeResult.stops.forEach((stop, i) => {
+                    const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
+                    const icon = L.divIcon({
+                        className: 'trip-stop-marker',
+                        html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
+                        iconSize: [20, 20], iconAnchor: [10, 10],
+                    });
+                    L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
+                });
+
+                // Venue markers along route
+                routeResult.venues.forEach(v => {
+                    const icon = L.divIcon({
+                        className: 'route-venue-marker',
+                        html: '<div style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:2px solid #fff;box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>',
+                        iconSize: [14, 14], iconAnchor: [7, 7],
+                    });
+                    L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], { icon })
+                        .addTo(map)
+                        .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${esc(v.name)}</b><br/>${esc(v.city)}, ${esc(v.state)}</div>`);
+                });
+
+                // Fit bounds
+                if (latlngs.length > 0) {
+                    map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
+                }
+
+                mapInstanceRef.current = map;
+                setMapStatus('ready');
+            } catch (err) {
+                console.warn('Route map failed to load:', err);
+                if (!cancelled) setMapStatus('error');
+            }
+        };
+
+        buildMap();
+
+        return () => {
+            cancelled = true;
+            if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+        };
     }, [routeResult]);
 
     return (
@@ -410,11 +521,11 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     <div className="rtp-stats-bar">
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{Math.round(routeResult.totalDistance)}</span>
-                            <span className="rtp-stat-label">miles</span>
+                            <span className="rtp-stat-label">miles (straight-line)</span>
                         </div>
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{Math.floor(routeResult.totalDriveTime / 60)}h {routeResult.totalDriveTime % 60}m</span>
-                            <span className="rtp-stat-label">drive time</span>
+                            <span className="rtp-stat-label">est. drive time</span>
                         </div>
                         <div className="rtp-stat">
                             <span className="rtp-stat-value">{routeResult.venues.length}</span>
@@ -424,6 +535,12 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             <span className="rtp-stat-value">{routeResult.stops.length}</span>
                             <span className="rtp-stat-label">stops</span>
                         </div>
+                    </div>
+
+                    {/* Distance is great-circle between stop centroids, not routed
+                        road mileage, so it under-reports a real drive. Say so. */}
+                    <div className="rtp-estimate-note">
+                        Distance and drive time are straight-line estimates at 55 mph. Actual road mileage is typically 15-30 percent higher.
                     </div>
 
                     {/* Save / Share Actions */}
@@ -446,17 +563,28 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             Save Trip
                         </button>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
+                                // The planner pod lives on the lobby route, and the
+                                // clipboard write is async — reporting success before
+                                // it resolved told users a link was copied when the
+                                // write had been rejected.
                                 try {
                                     const params = new URLSearchParams();
                                     params.set('pod', 'roadtrip');
                                     if (origin) params.set('from', origin);
                                     if (destination) params.set('to', destination);
                                     if (corridorMi !== 50) params.set('corridor', String(corridorMi));
-                                    const url = `${window.location.origin}/hub/poker-near-me?${params.toString()}`;
-                                    navigator.clipboard.writeText(url);
-                                    alert('Trip link copied to clipboard!');
-                                } catch { alert('Failed to copy link.'); }
+                                    const basePath = window.location.pathname.includes('/hub/poker-near-me')
+                                        ? window.location.pathname
+                                        : '/hub/poker-near-me/lobby';
+                                    const url = `${window.location.origin}${basePath}?${params.toString()}`;
+                                    if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+                                    await navigator.clipboard.writeText(url);
+                                    setShareStatus({ ok: true, msg: 'Trip link copied to clipboard.' });
+                                } catch {
+                                    setShareStatus({ ok: false, msg: 'Could not copy the link. Copy the page URL instead.' });
+                                }
+                                setTimeout(() => setShareStatus(null), 4000);
                             }}
                             style={{ flex: 1, padding: '8px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
@@ -475,6 +603,12 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         </button>
                     </div>
 
+                    {shareStatus && (
+                        <div className={'rtp-share-status' + (shareStatus.ok ? ' ok' : ' fail')} role="status">
+                            {shareStatus.msg}
+                        </div>
+                    )}
+
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
                         <button className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>
@@ -486,7 +620,16 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </button>
-                        <div ref={mapRef} className="rtp-map" style={{ display: mapExpanded ? 'block' : 'none' }} />
+                        <div className="rtp-map-shell" style={{ display: mapExpanded ? 'block' : 'none' }}>
+                            <div ref={mapRef} className="rtp-map" />
+                            {mapStatus !== 'ready' && (
+                                <div className="rtp-map-overlay">
+                                    {mapStatus === 'error'
+                                        ? 'Route map could not be loaded. The stop and venue lists below are unaffected.'
+                                        : 'Loading route map...'}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Venues along route */}
@@ -528,6 +671,28 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             )}
                         </div>
                     </div>
+
+                    {/* Tournaments during travel dates — this list was computed
+                        and then thrown away; the Travel Dates inputs appeared to
+                        filter tournaments while rendering nothing. */}
+                    {routeResult.tournaments.length > 0 && (
+                        <div className="rtp-series-section">
+                            <h3>Tournaments During Your Trip</h3>
+                            {routeResult.tournaments.slice(0, 20).map((t, i) => (
+                                <div key={t.id || i} className="rtp-series-card">
+                                    <div className="rtp-series-name">{t.name || t.tournament_name || 'Tournament'}</div>
+                                    <div className="rtp-series-dates">
+                                        {[t.day_of_week, t.start_time, t.buy_in > 0 ? `$${t.buy_in}` : null]
+                                            .filter(Boolean).join(' - ')}
+                                    </div>
+                                    {t.venue_name && <div className="rtp-series-venue">{t.venue_name}</div>}
+                                </div>
+                            ))}
+                            {routeResult.tournaments.length > 20 && (
+                                <div className="rtp-more">+{routeResult.tournaments.length - 20} more tournaments</div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Series during travel dates */}
                     {routeResult.series.length > 0 && (
@@ -585,8 +750,14 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-map-wrapper { margin-bottom: 20px; }
         .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(200,214,229,0.04)); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
         @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
+        .rtp-map-shell { position: relative; }
         .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(148,163,184,0.12); background: #0d1117; }
         @media (max-width: 600px) { .rtp-map { height: 250px; } }
+        .rtp-map-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 12px; background: rgba(13,17,23,0.92); color: rgba(148,163,184,0.75); font-size: 13px; pointer-events: none; }
+        .rtp-estimate-note { margin: -6px 0 14px; font-size: 11px; color: rgba(148,163,184,0.55); line-height: 1.5; }
+        .rtp-share-status { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
+        .rtp-share-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+        .rtp-share-status.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
         .rtp-venue-card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
         .rtp-venue-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
         .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }

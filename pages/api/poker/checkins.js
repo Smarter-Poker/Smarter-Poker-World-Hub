@@ -33,16 +33,57 @@ try {
         /* removed duplicate authUser */
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { venue_id, user_name, message } = req.body;
+        const { venue_id, message } = req.body;
         const user_id = authUser.id;
 
-        if (!venue_id || !user_name) {
-          return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_name' });
+        if (!venue_id) {
+          return res.status(400).json({ success: false, error: 'Missing required field: venue_id' });
         }
 
         const venueIdNum = parseInt(venue_id, 10);
         if (isNaN(venueIdNum) || venueIdNum < 1) {
           return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+        }
+
+        // IDENTITY: the display name is derived server-side from the caller's
+        // profile, the same way pages/api/venues/[...slug].js does for reviews.
+        // It used to be taken verbatim from the request body, so a user could
+        // check in under any name they liked — and that string is what
+        // whos-here, the venue leaderboards and the Near Me Now feed render.
+        // Falls back to the account's own metadata (which is what the client used
+        // to read before sending it) so a user whose profiles row has no name yet
+        // is not rendered as "Anonymous" in every public feed. Both sources are
+        // account-scoped, so neither can be varied per request the way the old
+        // body field could.
+        const meta = authUser.user_metadata || {};
+        let resolvedUserName =
+          meta.display_name
+          || meta.full_name
+          || meta.username
+          || (authUser.email ? String(authUser.email).split('@')[0] : null)
+          || 'Anonymous';
+        try {
+          const { data: profileRow } = await getSupabase()
+            .from('profiles')
+            .select('username, full_name')
+            .eq('id', user_id)
+            .maybeSingle();
+          resolvedUserName = profileRow?.full_name || profileRow?.username || resolvedUserName;
+        } catch (_profileErr) { /* keep the metadata-derived name */ }
+
+        // Cap the free-text message. It had no length bound at all and is
+        // rendered in public feeds.
+        const MESSAGE_MAX = 280;
+        let safeMessage = null;
+        if (message !== undefined && message !== null) {
+          if (typeof message !== 'string' && typeof message !== 'number') {
+            return res.status(400).json({ success: false, error: 'message must be a string' });
+          }
+          const trimmed = String(message).trim();
+          if (trimmed.length > MESSAGE_MAX) {
+            return res.status(400).json({ success: false, error: `message must be ${MESSAGE_MAX} characters or fewer` });
+          }
+          safeMessage = trimmed || null;
         }
 
         // Check for recent check-in at same venue within 4 hours
@@ -68,11 +109,11 @@ try {
         const insertData = {
           venue_id: String(venueIdNum),
           user_id,
-          user_name,
+          user_name: resolvedUserName,
           created_at: new Date().toISOString(),
         };
-        if (message !== undefined && message !== null) {
-          insertData.message = message;
+        if (safeMessage !== null) {
+          insertData.message = safeMessage;
         }
 
         const { data, error } = await getSupabase()
@@ -151,7 +192,20 @@ try {
             return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
           }
 
-          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          // `since` was only honoured on the user_id branch. The Near Me Now feed
+          // asks each nearby venue for check-ins since ~2h ago and then renders
+          // them as current activity — with the window hardcoded at 24h it was
+          // showing day-old check-ins as "now". Honour it here, clamped to the
+          // 24h ceiling this branch has always enforced.
+          const twentyFourHoursAgoMs = Date.now() - 24 * 60 * 60 * 1000;
+          let windowStartMs = twentyFourHoursAgoMs;
+          if (since) {
+            const sinceMs = new Date(since).getTime();
+            if (!isNaN(sinceMs)) {
+              windowStartMs = Math.min(Math.max(sinceMs, twentyFourHoursAgoMs), Date.now());
+            }
+          }
+          const twentyFourHoursAgo = new Date(windowStartMs).toISOString();
 
           if (count_only === 'true') {
             const { count, error } = await getSupabase()

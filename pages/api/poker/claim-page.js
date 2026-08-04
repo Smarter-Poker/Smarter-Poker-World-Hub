@@ -45,17 +45,25 @@ try {
 
         const pageIdStr = String(page_id);
 
-        // Check if claim already exists for this page
+        // Check whether a LIVE claim already exists for this page.
+        //
+        // The status filter matters: this check used to match ANY existing row,
+        // so a single rejected, withdrawn or malicious claim locked the venue
+        // forever — the real owner got "A claim already exists for this page"
+        // with no path forward. Only pending / under_review / approved rows
+        // block a new claim.
+        const BLOCKING_CLAIM_STATUSES = ['pending', 'under_review', 'approved'];
         const { data: existingClaim, error: checkError } = await getSupabase()
           .from('page_claims')
           .select('id, status, user_id')
           .eq('page_type', page_type)
           .eq('page_id', pageIdStr)
+          .in('status', BLOCKING_CLAIM_STATUSES)
           .limit(1);
 
         if (checkError) {
           console.warn('Error checking existing claim:', checkError);
-          return res.status(500).json({ success: false, error: checkError.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (existingClaim && existingClaim.length > 0) {

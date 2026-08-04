@@ -54,12 +54,13 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState('auto');
   const panelRef = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     setSelected(getStoredPreference());
   }, []);
 
-  // Close on outside click
+  // Close on outside click or Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e) => {
@@ -67,8 +68,19 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
         setIsOpen(false);
       }
     };
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setIsOpen(false);
+        try { triggerRef.current?.focus?.(); } catch (_) { /* ignore */ }
+      }
+    };
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [isOpen]);
 
   const handleSelect = useCallback((id) => {
@@ -91,10 +103,14 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
     <div ref={panelRef} className="map-pref-wrapper" style={posStyle}>
       {/* Gear trigger button */}
       <button
+        ref={triggerRef}
+        type="button"
         className="map-pref-trigger"
         onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
         title="Map App Preference"
         aria-label="Choose preferred map app"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
@@ -106,12 +122,17 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
       {isOpen && (
         <div
           className={`map-pref-panel ${dropDirection}`}
+          role="menu"
+          aria-label="Preferred map app"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="map-pref-title">Preferred Map App</div>
           {MAP_OPTIONS.map((opt) => (
             <button
               key={opt.id}
+              type="button"
+              role="menuitemradio"
+              aria-checked={selected === opt.id}
               className={`map-pref-option ${selected === opt.id ? 'active' : ''}`}
               onClick={() => handleSelect(opt.id)}
             >
@@ -292,12 +313,18 @@ export function showMapToast(message) {
     transition: opacity 0.25s ease, transform 0.25s ease;
     pointer-events: none;
   `;
-  toast.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="3 11 22 2 13 21 11 13 3 11" />
-    </svg>
-    ${message}
-  `;
+  // SECURITY: the caller's message used to be interpolated into innerHTML, so a
+  // scraped venue name such as `<img src=x onerror=...>` would execute. Build the
+  // icon as static markup and append the message as text.
+  const iconWrap = document.createElement('span');
+  iconWrap.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>';
+  iconWrap.style.display = 'inline-flex';
+  toast.appendChild(iconWrap);
+
+  const label = document.createElement('span');
+  label.textContent = String(message == null ? '' : message);
+  toast.appendChild(label);
+
   document.body.appendChild(toast);
 
   // Animate in

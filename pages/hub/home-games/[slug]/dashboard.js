@@ -13,11 +13,31 @@ import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
 
 let _sb = null;
-function getSb() {
-  if (!_sb) _sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  );
+let _sbToken = null;
+// Anon-key client scoped to the caller's session by attaching their bearer
+// token to every PostgREST request.
+//
+// BUG-FIX: this client is created fresh in the browser and never picks up the
+// app session (the app stores it under the custom `smarter-poker-auth` key, not
+// this client's default storage key). Without the Authorization header every
+// query below ran as the `anon` Postgres role, so RLS hid the caller's own
+// commander_home_members row, `role` stayed null, and every non-owner co-host
+// was rejected by the host guard. Same shape as getUserScopedClient() in
+// src/lib/home-games/rpcBridge.js (not imported here — that module pulls in
+// server-only helpers).
+function getSb(token) {
+  const key = token || null;
+  if (!_sb || _sbToken !== key) {
+    _sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+        ...(key ? { global: { headers: { Authorization: `Bearer ${key}` } } } : {}),
+      }
+    );
+    _sbToken = key;
+  }
   return _sb;
 }
 
@@ -75,31 +95,59 @@ function OnboardingChecklist({ group }) {
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────
+// The overview list is a preview, not a full page of events. Kept as a
+// constant so the tile below can tell "exactly N" from "at least N".
+const EVENTS_PREVIEW_LIMIT = 5;
+
 function OverviewTab({ group, token }) {
-  const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
+  // Total events reported by the API when it sends one, otherwise null so the
+  // tile can fall back to the number of rows we actually received.
+  const [eventCount, setEventCount] = useState(null);
 
   useEffect(() => {
     if (!token || !group?.id) return;
+    let cancelled = false;
     // Fetch upcoming events
-    apiFetch(`/api/commander/home-games/events?group_id=${group.id}&limit=5`, token)
-      .then(d => setEvents(d.events || []))
+    apiFetch(`/api/commander/home-games/events?group_id=${group.id}&limit=${EVENTS_PREVIEW_LIMIT}`, token)
+      .then(d => {
+        if (cancelled) return;
+        setEvents(d.events || []);
+        setEventCount(typeof d.total === 'number' ? d.total : (typeof d.count === 'number' ? d.count : null));
+      })
       .catch(() => {});
-    // Basic stats from group itself
-    setStats({ members: group.member_count || 0, posts: group.post_count || 0 });
+    return () => { cancelled = true; };
   }, [token, group?.id]);
+
+  // BUG-FIX: the tiles used to read group.event_count / group.post_count, which
+  // the group payload never returns, so both rendered 0 forever even when the
+  // events fetch above came back with rows. Events is now derived from the
+  // events we actually loaded; Posts is only shown when the payload really
+  // carries a count instead of advertising a permanent zero.
+  const statTiles = [
+    { label: 'Members', value: group?.member_count || 0, color: C.teal },
+    {
+      label: 'Events',
+      // Without a server-side total the fallback is the preview itself, which
+      // is capped — render "5+" rather than asserting a host with 20 upcoming
+      // games has exactly 5.
+      value: eventCount != null
+        ? eventCount
+        : (events.length >= EVENTS_PREVIEW_LIMIT ? `${EVENTS_PREVIEW_LIMIT}+` : events.length),
+      color: C.cyan,
+    },
+  ];
+  if (typeof group?.post_count === 'number') {
+    statTiles.push({ label: 'Posts', value: group.post_count, color: '#8b5cf6' });
+  }
 
   return (
     <div>
       <OnboardingChecklist group={group} />
 
       {/* Quick Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
-        {[
-          { label: 'Members', value: group?.member_count || 0, color: C.teal },
-          { label: 'Events', value: group?.event_count || 0, color: C.cyan },
-          { label: 'Posts', value: group?.post_count || 0, color: '#8b5cf6' },
-        ].map(s => (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${statTiles.length}, 1fr)`, gap: 12, marginBottom: 20 }}>
+        {statTiles.map(s => (
           <div key={s.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{s.label}</div>
@@ -307,7 +355,7 @@ export default function HomeGameDashboard() {
     (async () => {
       try {
         // Auth check
-        const { data: { user } } = await getSb().auth.getUser(token);
+        const { data: { user } } = await getSb(token).auth.getUser(token);
         if (!user) { router.replace(`/auth/login?redirect=${encodeURIComponent(`/hub/home-games/${slug}/dashboard`)}`); return; }
 
         // Load group
@@ -323,7 +371,7 @@ export default function HomeGameDashboard() {
         // case no membership row was ever written for them.
         let role = g.owner_id && g.owner_id === user.id ? 'host' : null;
         if (!role) {
-          const { data: mem } = await getSb()
+          const { data: mem } = await getSb(token)
             .from('commander_home_members')
             .select('role')
             .eq('group_id', g.id)

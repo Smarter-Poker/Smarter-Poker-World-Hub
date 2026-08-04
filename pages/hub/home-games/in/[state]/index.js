@@ -53,6 +53,102 @@ function isGroupPubliclyVisible(g) {
   return false;
 }
 
+// Land-border adjacency (plus the closest mainland states for AK/HI, which
+// have none). Used for the "Nearby states" internal-linking block — the old
+// code sliced the first eight entries of US_STATES_BY_CODE, so every state
+// page in the country linked to the same alphabetical head (Alabama, Alaska,
+// Arizona, ...) regardless of where the reader actually was.
+const NEIGHBOR_STATES = {
+  AL: ['FL', 'GA', 'TN', 'MS'],
+  AK: ['WA', 'OR', 'CA', 'HI'],
+  AZ: ['CA', 'NV', 'UT', 'CO', 'NM'],
+  AR: ['MO', 'TN', 'MS', 'LA', 'TX', 'OK'],
+  CA: ['OR', 'NV', 'AZ'],
+  CO: ['WY', 'NE', 'KS', 'OK', 'NM', 'UT'],
+  CT: ['NY', 'MA', 'RI'],
+  DE: ['MD', 'PA', 'NJ'],
+  DC: ['MD', 'VA'],
+  FL: ['GA', 'AL'],
+  GA: ['FL', 'AL', 'TN', 'NC', 'SC'],
+  HI: ['CA', 'WA', 'NV', 'AZ'],
+  ID: ['WA', 'OR', 'NV', 'UT', 'WY', 'MT'],
+  IL: ['WI', 'IA', 'MO', 'KY', 'IN'],
+  IN: ['IL', 'KY', 'OH', 'MI'],
+  IA: ['MN', 'WI', 'IL', 'MO', 'NE', 'SD'],
+  KS: ['NE', 'MO', 'OK', 'CO'],
+  KY: ['IN', 'OH', 'WV', 'VA', 'TN', 'MO', 'IL'],
+  LA: ['TX', 'AR', 'MS'],
+  ME: ['NH', 'MA', 'VT'],
+  MD: ['DE', 'PA', 'WV', 'VA', 'DC'],
+  MA: ['RI', 'CT', 'NY', 'NH', 'VT'],
+  MI: ['WI', 'IN', 'OH'],
+  MN: ['WI', 'IA', 'SD', 'ND'],
+  MS: ['LA', 'AR', 'TN', 'AL'],
+  MO: ['IA', 'IL', 'KY', 'TN', 'AR', 'OK', 'KS', 'NE'],
+  MT: ['ID', 'WY', 'SD', 'ND'],
+  NE: ['SD', 'IA', 'MO', 'KS', 'CO', 'WY'],
+  NV: ['CA', 'OR', 'ID', 'UT', 'AZ'],
+  NH: ['ME', 'MA', 'VT'],
+  NJ: ['NY', 'PA', 'DE'],
+  NM: ['AZ', 'UT', 'CO', 'OK', 'TX'],
+  NY: ['NJ', 'PA', 'CT', 'MA', 'VT'],
+  NC: ['VA', 'TN', 'GA', 'SC'],
+  ND: ['MN', 'SD', 'MT'],
+  OH: ['MI', 'IN', 'KY', 'WV', 'PA'],
+  OK: ['KS', 'MO', 'AR', 'TX', 'NM', 'CO'],
+  OR: ['WA', 'ID', 'NV', 'CA'],
+  PA: ['NY', 'NJ', 'DE', 'MD', 'WV', 'OH'],
+  RI: ['CT', 'MA'],
+  SC: ['GA', 'NC'],
+  SD: ['ND', 'MN', 'IA', 'NE', 'WY', 'MT'],
+  TN: ['KY', 'VA', 'NC', 'GA', 'AL', 'MS', 'AR', 'MO'],
+  TX: ['NM', 'OK', 'AR', 'LA'],
+  UT: ['ID', 'WY', 'CO', 'NM', 'AZ', 'NV'],
+  VT: ['NY', 'NH', 'MA'],
+  VA: ['NC', 'TN', 'KY', 'WV', 'MD', 'DC'],
+  WA: ['ID', 'OR'],
+  WV: ['OH', 'PA', 'MD', 'VA', 'KY'],
+  WI: ['MN', 'IA', 'IL', 'MI'],
+  WY: ['MT', 'SD', 'NE', 'CO', 'UT', 'ID'],
+};
+
+// PostgREST `in.(...)` filters ride in the query string — chunk the id list.
+const GROUP_ID_CHUNK = 400;
+
+// Resolve which of `codes` actually have at least one publicly-visible home
+// game, so the sidebar never links to a "Be the first to host" dead end.
+async function countVisibleGamesByState(supabase, codes) {
+  const counts = new Map();
+  if (!codes || codes.length === 0) return counts;
+
+  const { data: nPages, error: nErr } = await supabase
+    .from('social_pages')
+    .select('location_state, linked_entity_id')
+    .eq('page_type', 'home_game')
+    .eq('is_public', true)
+    .in('location_state', codes);
+  if (nErr || !nPages || nPages.length === 0) return counts;
+
+  const groupIds = Array.from(
+    new Set(nPages.map(p => p.linked_entity_id).filter(Boolean).map(String))
+  );
+  const groupMap = {};
+  for (let i = 0; i < groupIds.length; i += GROUP_ID_CHUNK) {
+    const { data: groups } = await supabase
+      .from('commander_home_groups')
+      .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+      .in('id', groupIds.slice(i, i + GROUP_ID_CHUNK));
+    for (const g of groups || []) groupMap[String(g.id)] = g;
+  }
+
+  for (const p of nPages) {
+    if (!isGroupPubliclyVisible(groupMap[String(p.linked_entity_id)])) continue;
+    const c = String(p.location_state || '').toUpperCase();
+    counts.set(c, (counts.get(c) || 0) + 1);
+  }
+  return counts;
+}
+
 export async function getServerSideProps({ params, res }) {
   const raw = params?.state;
   const code = stateSlugToCode(raw);
@@ -102,7 +198,7 @@ export async function getServerSideProps({ params, res }) {
     console.warn(`[home-games/in/${code}] fetch failed:`, error.message);
     // stateSlug must be present even on the failure path — the canonical URL
     // and every city link are built from it.
-    return { props: { stateCode: code, stateName: stateCodeToName(code), stateSlug: stateCodeToSlug(code), games: [], cities: [] } };
+    return { props: { stateCode: code, stateName: stateCodeToName(code), stateSlug: stateCodeToSlug(code), games: [], cities: [], neighborStates: [] } };
   }
 
   // Fetch matching groups for the enrichment (stakes, frequency, etc.)
@@ -155,6 +251,19 @@ export async function getServerSideProps({ params, res }) {
     .map(c => ({ name: c.name, slug: cityTitleToSlug(c.name), count: c.count }))
     .sort((a, b) => (b.count - a.count) || a.name.localeCompare(b.name));
 
+  // Neighbouring states that actually have something to show. Bounded to the
+  // adjacency list (at most 8 codes), so this is a cheap pair of queries.
+  const neighborCodes = (NEIGHBOR_STATES[code] || []).filter(c => US_STATES_BY_CODE[c] && c !== code);
+  const neighborCounts = await countVisibleGamesByState(supabase, neighborCodes);
+  const neighborStates = neighborCodes
+    .filter(c => (neighborCounts.get(c) || 0) > 0)
+    .map(c => ({
+      code: c,
+      name: stateCodeToName(c),
+      slug: stateCodeToSlug(c),
+      count: neighborCounts.get(c) || 0,
+    }));
+
   return {
     props: {
       stateCode: code,
@@ -162,6 +271,7 @@ export async function getServerSideProps({ params, res }) {
       stateSlug: stateCodeToSlug(code),
       games,
       cities,
+      neighborStates,
     },
   };
 }
@@ -235,7 +345,10 @@ function GameCard({ game, stateSlug }) {
   );
 }
 
-export default function HomeGamesByState({ stateCode, stateName, stateSlug, games, cities }) {
+// stateCode is still supplied by getServerSideProps (canonical URL / analytics)
+// but is no longer read here — the sidebar now uses the pre-resolved
+// neighborStates list instead of filtering the full state map client-side.
+export default function HomeGamesByState({ stateName, stateSlug, games, cities, neighborStates = [] }) {
   const pageTitle = `Poker Home Games in ${stateName} - Cash Games & Tournaments`;
   const pageDescription = games.length > 0
     ? `Browse ${games.length} active poker home game${games.length === 1 ? '' : 's'} in ${stateName}. Find weekly cash games, tournaments, and friendly home games across ${cities.length} ${cities.length === 1 ? 'city' : 'cities'}.`
@@ -373,23 +486,26 @@ export default function HomeGamesByState({ stateCode, stateName, stateSlug, game
                 </div>
               )}
 
-              {/* Neighboring states teaser: pick a handful alphabetically close */}
+              {/* Neighbouring states that genuinely have listings — resolved in
+                  getServerSideProps from the adjacency map, so the internal
+                  links point at pages with content instead of the same
+                  alphabetical head on every state page. */}
               <div className="rounded-xl bg-[#132240]/60 border border-[#1E293B] p-4">
-                <h2 className="text-xs uppercase tracking-wider text-[#94A3B8] mb-3">Other states</h2>
+                <h2 className="text-xs uppercase tracking-wider text-[#94A3B8] mb-3">
+                  {neighborStates.length > 0 ? 'Nearby states' : 'Other states'}
+                </h2>
                 <ul className="space-y-1.5 text-sm">
-                  {Object.entries(US_STATES_BY_CODE || {})
-                    .filter(([c]) => c !== stateCode)
-                    .slice(0, 8)
-                    .map(([code, name]) => (
-                      <li key={code}>
-                        <Link
-                          href={`/hub/home-games/in/${code.toLowerCase()}`}
-                          className="block py-1 hover:text-[#C4B5FD] transition-colors"
-                        >
-                          {name}
-                        </Link>
-                      </li>
-                    ))}
+                  {neighborStates.map(n => (
+                    <li key={n.code}>
+                      <Link
+                        href={`/hub/home-games/in/${n.slug}`}
+                        className="flex items-baseline justify-between py-1 hover:text-[#C4B5FD] transition-colors"
+                      >
+                        <span>{n.name}</span>
+                        <span className="text-xs text-[#64748B]">{n.count}</span>
+                      </Link>
+                    </li>
+                  ))}
                   <li>
                     <Link
                       href="/hub/home-games/in"

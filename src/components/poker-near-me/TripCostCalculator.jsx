@@ -88,9 +88,22 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
     const costs = useMemo(() => {
         if (!selectedVenue) return null;
 
-        // Distance & gas
-        const distance = (userLocation && selectedVenue.latitude && selectedVenue.longitude)
-            ? haversineMiles(userLocation.lat, userLocation.lng, parseFloat(selectedVenue.latitude), parseFloat(selectedVenue.longitude))
+        // Distance & gas.
+        // BUG FIX: when GPS was off or the venue row had no coordinates this fell
+        // back to 0, which silently priced gas at $0 and understated the total.
+        // Track why it is unavailable so the breakdown can say so.
+        const vLat = parseFloat(selectedVenue.latitude ?? selectedVenue.lat);
+        const vLng = parseFloat(selectedVenue.longitude ?? selectedVenue.lng);
+        const hasVenueCoords = Number.isFinite(vLat) && Number.isFinite(vLng) && !(vLat === 0 && vLng === 0);
+        const distanceKnown = !!userLocation && hasVenueCoords;
+        const distanceUnavailableReason = distanceKnown
+            ? null
+            : !userLocation
+                ? 'Enable GPS to include gas in this estimate'
+                : 'We do not have coordinates for this venue, so gas is not included';
+
+        const distance = distanceKnown
+            ? haversineMiles(userLocation.lat, userLocation.lng, vLat, vLng)
             : 0;
         const roundTripMiles = distance * 2;
         const gallons = roundTripMiles / AVG_MPG;
@@ -107,7 +120,10 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         const cityKey = (selectedVenue.city || '').toLowerCase();
         const nightlyRate = CITY_TIER[cityKey] || DEFAULT_HOTEL_NIGHT;
         const hotelRate = isPremium ? nightlyRate * 1.8 : nightlyRate;
-        const hotelTotal = hotelRate * Math.max(days - 1, 1); // nights = days - 1
+        // BUG FIX: Math.max(days - 1, 1) billed one hotel night for a 1-day trip,
+        // so a day trip to the local room showed $130-$180 the user will not spend.
+        const nights = Math.max(days - 1, 0);
+        const hotelTotal = hotelRate * nights;
 
         // Meals
         const mealsDaily = isPremium ? MEALS_PER_DAY * PREMIUM_MEAL_MULT : MEALS_PER_DAY;
@@ -121,8 +137,11 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
             roundTripMiles: Math.round(roundTripMiles),
             driveTime,
             gasCost,
+            distanceKnown,
+            distanceUnavailableReason,
             typicalBuyIn,
             buyInSpend,
+            nights,
             hotelRate: Math.round(hotelRate),
             hotelTotal: Math.round(hotelTotal),
             mealsDaily: Math.round(mealsDaily),
@@ -252,9 +271,15 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                             <div className="tc-break-icon gas"><BreakIcon kind="gas" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Gas</span>
-                                <span className="tc-break-detail">{costs.roundTripMiles} mi round trip · {Math.round(costs.driveTime / 60)}h {costs.driveTime % 60}m</span>
+                                <span className="tc-break-detail">
+                                    {costs.distanceKnown
+                                        ? `${costs.roundTripMiles} mi round trip · ${Math.round(costs.driveTime / 60)}h ${costs.driveTime % 60}m (straight-line)`
+                                        : costs.distanceUnavailableReason}
+                                </span>
                             </div>
-                            <span className="tc-break-amount">${Math.round(costs.gasCost).toLocaleString()}</span>
+                            <span className="tc-break-amount">
+                                {costs.distanceKnown ? `$${Math.round(costs.gasCost).toLocaleString()}` : 'Unavailable'}
+                            </span>
                         </div>
 
                         <div className="tc-break-item">
@@ -270,7 +295,11 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                             <div className="tc-break-icon hotel"><BreakIcon kind="hotel" /></div>
                             <div className="tc-break-info">
                                 <span className="tc-break-label">Hotel</span>
-                                <span className="tc-break-detail">${costs.hotelRate}/night × {Math.max(days - 1, 1)} night{days > 2 ? 's' : ''}</span>
+                                <span className="tc-break-detail">
+                                    {costs.nights > 0
+                                        ? `$${costs.hotelRate}/night × ${costs.nights} night${costs.nights > 1 ? 's' : ''}`
+                                        : 'Day trip - no overnight stay'}
+                                </span>
                             </div>
                             <span className="tc-break-amount">${costs.hotelTotal.toLocaleString()}</span>
                         </div>
@@ -285,10 +314,10 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         </div>
                     </div>
 
-                    {!userLocation && (
+                    {!costs.distanceKnown && (
                         <div className="tc-no-gps">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
-                            Enable GPS for accurate gas estimates
+                            {costs.distanceUnavailableReason}. The total below excludes travel.
                         </div>
                     )}
                 </div>

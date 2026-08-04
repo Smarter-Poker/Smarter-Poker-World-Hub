@@ -33,7 +33,21 @@ function getSupabase() {
 // UUID v4 format check — page_followers.user_id is UUID type
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// The three JSON-backed builders below map static, per-deploy data. They were
+// being re-run on every request — and buildVenuePages, which maps the whole
+// 1.7MB all-venues.json, ran TWICE per request (once for the feed, once for the
+// summary block). Memoise them at module scope.
+let _venuePagesCache = null;
+let _tourPagesCache = null;
+const _seriesPagesCache = new Map(); // `${today}|${includeExpired}` -> pages
+
 function buildVenuePages() {
+    if (_venuePagesCache) return _venuePagesCache;
+    _venuePagesCache = buildVenuePagesUncached();
+    return _venuePagesCache;
+}
+
+function buildVenuePagesUncached() {
     const venues = allVenuesData.venues || [];
     return venues.map(v => ({
         page_type: 'venue',
@@ -52,6 +66,12 @@ function buildVenuePages() {
 }
 
 function buildTourPages() {
+    if (_tourPagesCache) return _tourPagesCache;
+    _tourPagesCache = buildTourPagesUncached();
+    return _tourPagesCache;
+}
+
+function buildTourPagesUncached() {
     const tours = [];
     for (const [code, tour] of Object.entries(tourRegistry.tours || {})) {
         if (tour.is_active === false) continue;
@@ -72,6 +92,17 @@ function buildTourPages() {
 }
 
 function buildSeriesPages(includeExpired = false) {
+    // Keyed on the CST date so the cache rolls over with the day.
+    const cacheKey = `${getTodayCST()}|${includeExpired ? 1 : 0}`;
+    const cached = _seriesPagesCache.get(cacheKey);
+    if (cached) return cached;
+    if (_seriesPagesCache.size > 8) _seriesPagesCache.clear();
+    const built = buildSeriesPagesUncached(includeExpired);
+    _seriesPagesCache.set(cacheKey, built);
+    return built;
+}
+
+function buildSeriesPagesUncached(includeExpired = false) {
     const allSeries = tourSeriesData.series_2026 || [];
     const today = getTodayCST(); // Phase 77 — CST anchor: don't expire today's series at 6pm CST
     return allSeries
@@ -203,16 +234,28 @@ export default async function handler(req, res) {
           let userFollows = new Set();
 
           try {
-              // Get follower counts for all page types
-              const { data: countData } = await getSupabase()
-                  .from('page_followers')
-                  .select('page_type, page_id');
-
-              if (countData) {
+              // Follower counts. This was a single unfiltered, unpaginated select
+              // of the whole page_followers table — PostgREST caps that at 1000
+              // rows, so once the table grew past 1000 the counts on every page
+              // card were simply wrong. Page through instead.
+              const FOLLOWER_PAGE = 1000;
+              const FOLLOWER_MAX_PAGES = 20; // 20k follow rows
+              for (let page = 0; page < FOLLOWER_MAX_PAGES; page++) {
+                  const { data: countData, error: countErr } = await getSupabase()
+                      .from('page_followers')
+                      .select('page_type, page_id')
+                      .order('id', { ascending: true })
+                      .range(page * FOLLOWER_PAGE, (page + 1) * FOLLOWER_PAGE - 1);
+                  if (countErr) {
+                      console.warn('[pages] follower count page', page, 'failed:', countErr.message);
+                      break;
+                  }
+                  if (!countData || countData.length === 0) break;
                   countData.forEach(row => {
                       const key = `${row.page_type}:${row.page_id}`;
                       followerCounts[key] = (followerCounts[key] || 0) + 1;
                   });
+                  if (countData.length < FOLLOWER_PAGE) break;
               }
 
               // Get user's follows if user_id provided (must be valid UUID for Supabase)
@@ -267,18 +310,36 @@ export default async function handler(req, res) {
           }
 
           const total = pages.length;
-          pages = pages.slice(0, parseInt(limit));
+
+          // Summary reflects the FILTERED set (computed before the slice).
+          // The old expression was `total - pages.filter(...).length <= total
+          // ? buildVenuePages().length : 0` — the comparison is always true
+          // because the subtracted length can never be negative, so the ternary
+          // was dead code that always reported the full nationwide venue count
+          // regardless of the active category or filters.
+          const summary = {
+              venues: pages.filter(p => p.page_type === 'venue').length,
+              tours: pages.filter(p => p.page_type === 'tour').length,
+              series: pages.filter(p => p.page_type === 'series').length,
+              user_following: userFollows.size,
+          };
+
+          // `?limit=abc` used to yield NaN (empty array, UI shows "no results")
+          // and `?limit=999999` dumped all ~3,000 venues in one response.
+          const parsedLimit = parseInt(limit, 10);
+          const limitNum = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 60, 1), 200);
+          const parsedOffset = parseInt(safeQ(req.query.offset), 10);
+          const offsetNum = Math.max(Number.isFinite(parsedOffset) ? parsedOffset : 0, 0);
+
+          pages = pages.slice(offsetNum, offsetNum + limitNum);
 
           return res.status(200).json({
               success: true,
               data: pages,
               total,
-              summary: {
-                  venues: total - pages.filter(p => p.page_type !== 'venue').length <= total ? buildVenuePages().length : 0,
-                  tours: buildTourPages().length,
-                  series: buildSeriesPages().length,
-                  user_following: userFollows.size,
-              },
+              offset: offsetNum,
+              limit: limitNum,
+              summary,
           });
 
       } catch (error) {

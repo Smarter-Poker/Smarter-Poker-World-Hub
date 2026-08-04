@@ -28,6 +28,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../src/lib/pushAlerts';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getGrokClient } from '../../../src/lib/grokClient';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -36,6 +37,33 @@ const safeBody = (v) => {
   if (typeof v === 'string' || typeof v === 'number') return v;
   return v !== undefined ? String(v) : null;
 };
+
+// ─── Anti-farming constants ───────────────────────────────────────────────
+// POST /checkin used to accept any venue_id from the client with no proof of
+// presence, and POST /reviews awarded 50 diamonds for any check-in row. With
+// ~3,000 venues in the directory a script could check in to each and post a
+// one-character review, minting 150,000 diamonds — twice a day, because the
+// dedup window is 12h per venue.
+const CHECKIN_MAX_DISTANCE_M = 1000;   // generous vs the 200-500m geofence radii
+const REVIEW_REWARDS_PER_DAY = 3;      // diamond-earning reviews per user per 24h
+
+/** Haversine distance in metres. */
+function distanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Parse a body coordinate into a finite number in range, or null. */
+function parseCoord(value, max) {
+  const n = parseFloat(value);
+  if (!Number.isFinite(n) || n < -max || n > max) return null;
+  return n;
+}
 
 // ─── Hono app ─────────────────────────────────────────────────────────────
 const app = new Hono().basePath('/api/venues');
@@ -96,7 +124,47 @@ app.post('/checkin', async (c) => {
     return c.json({ success: false, error: 'venue_id required' }, 400);
   }
 
+  const userLat = parseCoord(safeBody(body.lat ?? body.latitude), 90);
+  const userLng = parseCoord(safeBody(body.lng ?? body.longitude), 180);
+
   try {
+    // ── Proof of presence ────────────────────────────────────────────────
+    // A check-in row is what unlocks the 50-diamond review reward, so it must
+    // not be assertable from anywhere in the world. When the venue has
+    // coordinates on file the caller has to be near them; when it does not
+    // there is nothing to verify against and the check-in is allowed through.
+    let locationVerified = false;
+    const venueIdNumForGeo = parseInt(venue_id, 10);
+    if (!isNaN(venueIdNumForGeo) && venueIdNumForGeo > 0) {
+      const { data: venueGeo } = await supabase
+        .from('poker_venues')
+        .select('id, latitude, longitude')
+        .eq('id', venueIdNumForGeo)
+        .maybeSingle();
+
+      const vLat = venueGeo ? parseCoord(venueGeo.latitude, 90) : null;
+      const vLng = venueGeo ? parseCoord(venueGeo.longitude, 180) : null;
+
+      if (vLat != null && vLng != null) {
+        if (userLat == null || userLng == null) {
+          return c.json({
+            success: false,
+            error: 'Location required to check in to this venue.',
+            code: 'LOCATION_REQUIRED',
+          }, 400);
+        }
+        const metres = distanceMeters(userLat, userLng, vLat, vLng);
+        if (metres > CHECKIN_MAX_DISTANCE_M) {
+          return c.json({
+            success: false,
+            error: 'You must be at the venue to check in.',
+            code: 'TOO_FAR',
+          }, 403);
+        }
+        locationVerified = true;
+      }
+    }
+
     const { data: recentCheckin } = await supabase
       .from('user_venue_checkins')
       .select('id, checkin_time')
@@ -126,7 +194,7 @@ app.post('/checkin', async (c) => {
       return c.json({ success: false, error: 'Failed to record checkin' }, 500);
     }
 
-    return c.json({ success: true, checkin_id: newCheckin.id });
+    return c.json({ success: true, checkin_id: newCheckin.id, location_verified: locationVerified });
   } catch (err) {
     console.warn('[venues/checkin] Error:', err);
     return c.json({ success: false, error: 'Internal server error' }, 500);
@@ -238,6 +306,35 @@ app.post('/reviews', async (c) => {
       return c.json({ success: false, error: 'rating must be an integer between 1 and 5' }, 400);
     }
 
+    // Same Grok auto-triage /api/poker/reviews applies. Reviews written on this
+    // path used to bypass moderation and the is_flagged column entirely, so a
+    // farmed 5-star review landed straight in the public feed.
+    let is_flagged = false;
+    let flag_reason = null;
+    if (reviewBody && process.env.XAI_API_KEY) {
+      try {
+        const grok = getGrokClient();
+        const aiResult = await grok.chat.completions.create({
+          model: 'gpt-4o',  // maps to grok-3 via grokClient
+          messages: [{
+            role: 'system',
+            content: 'You are an automated moderation system. Analyze this poker venue user review. If it contains hate speech, extreme profanity, discrimination, or spam, respond with ONLY the word "FLAG". If acceptable, respond with ONLY "PASS".'
+          }, {
+            role: 'user',
+            content: reviewBody
+          }],
+          temperature: 0,
+          max_tokens: 10
+        });
+        if (aiResult.choices?.[0]?.message?.content?.trim() === 'FLAG') {
+          is_flagged = true;
+          flag_reason = 'AI auto-flagged for toxicity';
+        }
+      } catch (aiErr) {
+        console.warn('[Moderation AI] error:', aiErr);
+      }
+    }
+
     const { error: reviewErr } = await adminSupabase
       .from('venue_reviews')
       .insert({
@@ -246,12 +343,27 @@ app.post('/reviews', async (c) => {
         rating: ratingNum,
         review_text: reviewBody || null,
         reviewer_name: reviewerName,
+        // This path always has a check-in behind it, and that check-in is now
+        // proximity-verified when the venue has coordinates.
+        is_verified_player: true,
+        is_flagged,
+        flag_reason,
         created_at: new Date().toISOString(),
       });
 
     if (reviewErr) {
       console.warn('[Venue Reviews] Insert error:', reviewErr);
       return c.json({ success: false, error: 'Failed to insert review' }, 500);
+    }
+
+    // Keep the venue's trust_score in step with the review average, exactly as
+    // /api/poker/reviews does. Omitting it here let this path move the public
+    // rating without ever recomputing the score built from it.
+    try {
+      const { error: trustScoreErr } = await adminSupabase.rpc('recalculate_venue_trust_score', { p_venue_id: String(venue_id) });
+      if (trustScoreErr) throw trustScoreErr;
+    } catch (rpcErr) {
+      console.warn('[Venue Reviews] trust_score recalc failed (non-fatal):', rpcErr?.message || rpcErr);
     }
 
     await adminSupabase
@@ -269,6 +381,32 @@ app.post('/reviews', async (c) => {
         .eq('id', venueIdNum)
         .maybeSingle();
       if (venueRow?.name) venueName = venueRow.name;
+    }
+
+    // Daily reward cap. The review itself is always saved; only the diamond
+    // award is rate-limited, so a genuine reviewer is never blocked from
+    // writing but a script cannot mint diamonds venue by venue.
+    let rewardsToday = 0;
+    try {
+      const { count } = await adminSupabase
+        .from('venue_reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      rewardsToday = count || 0;
+    } catch (capErr) {
+      console.warn('[Venue Reviews] Daily cap lookup failed — treating as at cap:', capErr?.message || capErr);
+      rewardsToday = REVIEW_REWARDS_PER_DAY;
+    }
+
+    // The review just inserted is included in the count above, so the Nth
+    // review of the day is the last one that earns.
+    if (rewardsToday > REVIEW_REWARDS_PER_DAY) {
+      return c.json({
+        success: true,
+        message: 'Review saved. Daily review reward limit reached.',
+        diamonds_awarded: 0,
+      });
     }
 
     // Atomic award + ledger entry in one statement (the old read-modify-write on

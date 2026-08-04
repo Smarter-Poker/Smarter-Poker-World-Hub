@@ -19,7 +19,7 @@ const COMPARE_FIELDS = [
   { key: 'phone', label: 'Phone' },
 ];
 
-function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
+function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading = false) {
   // Multi-key live data lookup: bravo_slug → normalized name
   const findLive = (v) => {
     if (v.bravo_slug && liveDataMap[v.bravo_slug]) return liveDataMap[v.bravo_slug];
@@ -40,12 +40,16 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
       return d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`;
     case 'live_games': {
       const live = findLive(venue);
+      // UX FIX: while the live-tables fetch is in flight this used to render the same
+      // em-dash as "this venue has no live data".
+      if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
       if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
       const active = live.reduce((sum, g) => sum + (parseInt(g.tables_running) || 0), 0);
       return active > 0 ? <span style={{ color: '#3fb950', fontWeight: 700 }}>{active} Running</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
     case 'waiting_list': {
       const live = findLive(venue);
+      if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
       if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
       const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
       return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
@@ -77,6 +81,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [liveData, setLiveData] = useState({});
+  const [liveLoading, setLiveLoading] = useState(true);
   // BUG FIX: the picker used to unmount as soon as 2 venues were selected, so the
   // advertised 2-3 venue comparison was capped at 2 and '+ Add Venue' dead-clicked
   // (its onClick was `setSelectedIds(prev => prev)` — a no-op).
@@ -99,6 +104,11 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             }));
             // Key by bravo_slug
             if (v.bravo_slug) map[v.bravo_slug] = games;
+            // findLive() also probes liveDataMap[venue.slug] (catalog venues carry a
+            // `slug` column). /api/poker/live-tables publishes `bravo_slug` only, so
+            // this extra key is a forward-compatible no-op today — the name key below
+            // is what actually resolves a catalog venue to its live row.
+            if (v.slug && !map[v.slug]) map[v.slug] = games;
             // Key by venue_name (lowered) for fuzzy match
             if (v.venue_name) {
               const normalized = v.venue_name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -107,8 +117,12 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
           });
           setLiveData(map);
         }
+        setLiveLoading(false);
       })
-      .catch(err => console.warn('Failed to load live data for compare:', err));
+      .catch(err => {
+        console.warn('Failed to load live data for compare:', err);
+        if (mounted) setLiveLoading(false);
+      });
     return () => { mounted = false; };
   }, []);
 
@@ -141,6 +155,27 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
 
   return (
     <div>
+      {/* STUB FIX: `onClose` was destructured from props and then never used anywhere —
+          there was no close control and no Escape handler, so a caller that passed it had
+          no way for the user to dismiss the panel. Rendered only when a caller supplies
+          it (the current lobby call site does not). */}
+      {onClose && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close comparison"
+            style={{
+              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+              border: '1.5px solid rgba(148,163,184,0.2)', background: 'transparent',
+              color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      )}
+
       {/* Selection area */}
       {(selectedVenues.length < 2 || showPicker) && (
         <div style={{ marginBottom: 16 }}>
@@ -256,7 +291,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                   </td>
                   {selectedVenues.map(v => (
                     <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e2e8f0', borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
-                      {getFieldValue(v, field.key, userLocation, liveData)}
+                      {getFieldValue(v, field.key, userLocation, liveData, liveLoading)}
                     </td>
                   ))}
                 </tr>

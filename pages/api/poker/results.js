@@ -14,11 +14,7 @@ function getSupabase() {
     return _supabase;
 }
 
-function setCorsHeaders(res) {
-    
-    
-    
-}
+// setCorsHeaders was an empty leftover from the applyCors migration — removed.
 
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, OPTIONS', headers: 'Content-Type, x-user-id' })) return;
@@ -26,8 +22,6 @@ export default async function handler(req, res) {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-
-      setCorsHeaders(res);
 
       try {
           if (req.method === 'GET') {
@@ -109,25 +103,36 @@ async function handleGet(req, res) {
 
     // --- Search by player name (case-insensitive partial match) ------------
     if (player_name) {
-        const searchTerm = player_name.toLowerCase();
+        // Escape LIKE metacharacters. Without this a bare '%' or '_' turned the
+        // search into a wildcard that matched (and returned) everything.
+        const searchTerm = player_name.toLowerCase().replace(/[\\%_]/g, '\\$&').trim().slice(0, 100);
+        if (!searchTerm) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        // Only the columns the search UI renders — `select('*')` pulled the full
+        // nested results_json blob of every matching event, twice.
+        // Column list mirrors the POST insert payload for this table minus
+        // results_json.
+        const SEARCH_COLUMNS = 'id, series_id, tour_code, event_name, event_number, event_date, buy_in, prize_pool, total_entries, winner_name, winner_prize';
 
         // 1. Match against winner_name using ilike
         const { data: winnerRows, error: winnerError } = await getSupabase()
             .from('tournament_results')
-            .select('*')
+            .select(SEARCH_COLUMNS)
             .ilike('winner_name', `%${searchTerm}%`)
             .order('event_date', { ascending: false })
                 .limit(100);
 
         if (winnerError) {
             console.warn('[Tournament Results API] GET player_name (winner) error:', winnerError);
-            return res.status(500).json({ success: false, error: winnerError.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // 2. Match inside results_json – cast JSONB to text and search with ilike
         const { data: jsonRows, error: jsonError } = await getSupabase()
             .from('tournament_results')
-            .select('*')
+            .select(SEARCH_COLUMNS)
             .filter('results_json::text', 'ilike', `%${searchTerm}%`)
             .order('event_date', { ascending: false })
                 .limit(100);
@@ -270,18 +275,25 @@ function computeLeaderboard(rows) {
     const playerMap = {}; // key: lowercased player name -> { name, totalEarnings, cashes, wins }
 
     for (const row of rows) {
-        // Count the winner
-        addToLeaderboard(playerMap, row.winner_name, parseFloat(row.winner_prize) || 0, true);
+        // winner_name is NULL on imported / in-progress events. It used to be
+        // passed straight into addToLeaderboard (which calls name.toLowerCase())
+        // and dereferenced again below, so one such row threw a TypeError that
+        // the outer catch turned into a 500 for the ENTIRE series results page.
+        const winnerName = typeof row.winner_name === 'string' ? row.winner_name : null;
+        if (winnerName) {
+            addToLeaderboard(playerMap, winnerName, parseFloat(row.winner_prize) || 0, true);
+        }
+        const winnerKey = winnerName ? winnerName.toLowerCase() : null;
 
         // Walk individual results stored in results_json
         if (Array.isArray(row.results_json)) {
             for (const entry of row.results_json) {
-                const name = entry.player_name;
+                const name = entry && typeof entry.player_name === 'string' ? entry.player_name : null;
                 if (!name) continue;
                 const prize = parseFloat(entry.prize) || 0;
                 const isWinner = entry.place === 1 || entry.place === '1';
                 // Avoid double-counting the winner if they also appear in results_json
-                if (name.toLowerCase() === row.winner_name.toLowerCase()) continue;
+                if (winnerKey && name.toLowerCase() === winnerKey) continue;
                 addToLeaderboard(playerMap, name, prize, isWinner);
             }
         }
@@ -292,6 +304,7 @@ function computeLeaderboard(rows) {
 }
 
 function addToLeaderboard(map, name, prize, isWin) {
+    if (typeof name !== 'string' || !name.trim()) return;
     const key = name.toLowerCase();
     if (!map[key]) {
         map[key] = { name, totalEarnings: 0, cashes: 0, wins: 0 };

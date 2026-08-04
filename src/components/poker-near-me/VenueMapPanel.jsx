@@ -304,6 +304,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   // Signature of the rendered venue set — lets us skip a full marker rebuild + fitBounds
   // when the parent re-renders with a new array holding the same venues.
   const renderedSignatureRef = useRef(null);
+  // Geography-only signature — gates fitBounds independently of pin/popup content refreshes
+  const fittedGeoSignatureRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Keep callback ref current without triggering marker re-render
@@ -424,7 +426,10 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         if (fspTrigger) {
           e.preventDefault();
           const url = fspTrigger.getAttribute('data-url');
-          if (url) window.location.href = url;
+          // SECURITY: only ever navigate to a same-origin relative path — never let a
+          // scheme or protocol-relative URL out of a popup attribute turn this into an
+          // open-redirect.
+          if (url && /^\/(?!\/)/.test(url)) window.location.href = url;
           return;
         }
         // Directions trigger — open native maps
@@ -473,16 +478,32 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     // Parents recompute the venues array inline on every render, so identity changes alone
     // must not rebuild markers or re-fit bounds — that would yank the viewport out from
     // under a user who is panning/zooming. Compare a stable content signature instead.
-    const signature = [
-      validVenues
-        .map(v => `${v.id || v.name || ''}:${v.latitude},${v.longitude}`)
-        .sort()
-        .join('|'),
+    // BUG FIX: the signature used to track only id + coordinates, so a venue going live,
+    // a tour stop flipping to is_running, a logo landing after enrichment or a table count
+    // changing left the pin and popup stale until something moved. Every field the pins
+    // and popups render is part of the signature now.
+    // The GEOGRAPHY signature still gates fitBounds on its own, so refreshing pin content
+    // (a room going live, a logo landing) never yanks the viewport of a user who is panning.
+    const geoSignature = [
+      validVenues.map(v => `${v.id || v.name || ''}:${v.latitude},${v.longitude}`).sort().join('|'),
       userLocation ? `${userLocation.lat},${userLocation.lng}` : '',
       radiusMiles == null ? '' : String(radiusMiles),
     ].join('#');
+    const signature = [
+      geoSignature,
+      validVenues
+        .map(v => [
+          v.id || v.name || '', v.venue_type || '', v.tour_code || '',
+          v.is_running ? 1 : 0, v.totalTables || 0, v.logo_url || v.profile_photo_url || '',
+          Array.isArray(v.games) ? v.games.length : 0, v.is_social_page ? 1 : 0,
+        ].join(':'))
+        .sort()
+        .join('|'),
+    ].join('##');
     if (signature === renderedSignatureRef.current) return;
     renderedSignatureRef.current = signature;
+    const geoChanged = geoSignature !== fittedGeoSignatureRef.current;
+    fittedGeoSignatureRef.current = geoSignature;
 
     // Clear existing markers
     layer.clearLayers();
@@ -504,9 +525,12 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         const colors = VENUE_TYPE_COLORS[v.venue_type] || DEFAULT_VENUE_COLOR;
         const typeBadge = VENUE_TYPE_LABELS[v.venue_type] || v.venue_type || '';
         const tables = v.totalTables || 0;
+        // SECURITY: these ids reach innerHTML inside a data-url attribute (and then
+        // window.location.href) — encode them so a quote in an id cannot break out of the
+        // attribute. Mirrors VenueMap.jsx.
         const detailPath = v.is_social_page
-          ? '/club/' + v.social_page_id
-          : '/hub/venues/' + v.id;
+          ? '/club/' + encodeURIComponent(v.social_page_id || '')
+          : '/hub/venues/' + encodeURIComponent(v.id || '');
 
         // Build logo/initials badge
         const logoUrl = v.logo_url || v.profile_photo_url || '';
@@ -582,7 +606,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
     }
 
-    // Fit bounds to show ALL venue markers — auto-expands when search widens
+    // Fit bounds to show ALL venue markers — auto-expands when search widens.
+    // Only when the geography actually changed (see geoSignature above).
+    if (!geoChanged) return;
     if (validVenues.length > 0) {
       const bounds = L.latLngBounds(validVenues.map(v => [v.latitude, v.longitude]));
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);

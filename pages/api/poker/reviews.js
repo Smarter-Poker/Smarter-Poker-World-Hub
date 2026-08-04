@@ -202,16 +202,34 @@ try {
           const ids = venue_ids.split(',').map(v => v.trim()).filter(Boolean).slice(0, 50);
           if (ids.length === 0) return res.status(200).json({ success: true, stats: {} });
 
-          const { data: allRatings, error: rErr } = await getSupabase()
-            .from('venue_reviews')
-            .select('venue_id, rating')
-            .in('venue_id', ids)
-            // Moderation: AI-flagged reviews must not count toward public ratings
-            .or('is_flagged.is.null,is_flagged.eq.false');
+          // PostgREST caps a single response at the project max (1000 rows), and
+          // this query had no .limit()/.range() at all — so once a busy set of
+          // venues held more than 1000 reviews between them the card ratings on
+          // the Poker Near Me grid became an arbitrary partial average. Page
+          // through instead of taking whatever the first response happened to
+          // contain.
+          const PAGE = 1000;
+          const MAX_PAGES = 20; // 20,000 reviews across the 50 requested venues
+          let allRatings = [];
+          let rErr = null;
+          for (let page = 0; page < MAX_PAGES; page++) {
+            const { data: ratingPage, error: pageErr } = await getSupabase()
+              .from('venue_reviews')
+              .select('venue_id, rating')
+              .in('venue_id', ids)
+              // Moderation: AI-flagged reviews must not count toward public ratings
+              .or('is_flagged.is.null,is_flagged.eq.false')
+              .order('id', { ascending: true })
+              .range(page * PAGE, (page + 1) * PAGE - 1);
+            if (pageErr) { rErr = pageErr; break; }
+            if (!ratingPage || ratingPage.length === 0) break;
+            allRatings = allRatings.concat(ratingPage);
+            if (ratingPage.length < PAGE) break;
+          }
 
           if (rErr) {
             console.warn('Error fetching bulk stats:', rErr);
-            return res.status(500).json({ success: false, error: rErr.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           const stats = {};
@@ -242,69 +260,106 @@ try {
         const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
         const offsetNum = parseInt(offset, 10) || 0;
 
-        // Fetch all reviews for stats computation
-        const { data: allReviews, error: reviewError } = await getSupabase()
-          .from('venue_reviews')
-          .select('id, user_id, venue_id, rating, review_text, reviewer_name, is_verified_player, helpful_count, unhelpful_count, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating, created_at, metadata')
-          .eq('venue_id', venueIdStr)
-          // Moderation: hide AI-flagged reviews from the public feed. Older rows
-          // predating the moderation columns have is_flagged NULL, so keep those.
-          .or('is_flagged.is.null,is_flagged.eq.false')
-          .order('created_at', { ascending: false })
-          .limit(200);
-
-        if (reviewError) {
-          console.warn('Error fetching reviews:', reviewError);
-          return res.status(500).json({ success: false, error: reviewError.message });
+        // ── STATS: computed over EVERY review, not the first 200 ─────────────
+        // The old code pulled 200 full rows, reported `total_reviews =
+        // reviews.length` and averaged those 200 — so a venue with 500 reviews
+        // permanently displayed "200 reviews" with a stale average, and
+        // offset > 200 returned an empty page. Stats now page over the
+        // lightweight rating columns only, and the review list is paginated
+        // separately in SQL.
+        const STAT_PAGE = 1000;
+        const STAT_MAX_PAGES = 20;
+        let statRows = [];
+        for (let page = 0; page < STAT_MAX_PAGES; page++) {
+          const { data: statPage, error: statErr } = await getSupabase()
+            .from('venue_reviews')
+            .select('rating, is_verified_player, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating')
+            .eq('venue_id', venueIdStr)
+            // Moderation: hide AI-flagged reviews from the public feed. Older rows
+            // predating the moderation columns have is_flagged NULL, so keep those.
+            .or('is_flagged.is.null,is_flagged.eq.false')
+            .order('id', { ascending: true })
+            .range(page * STAT_PAGE, (page + 1) * STAT_PAGE - 1);
+          if (statErr) {
+            console.warn('Error fetching review stats:', statErr);
+            return res.status(500).json({ success: false, error: 'Internal server error' });
+          }
+          if (!statPage || statPage.length === 0) break;
+          statRows = statRows.concat(statPage);
+          if (statPage.length < STAT_PAGE) break;
         }
 
-        const reviews = allReviews || [];
-        const total_reviews = reviews.length;
-        const avg_rating = total_reviews > 0
-          ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / total_reviews).toFixed(2))
+        // Exact total straight from Postgres, so it stays right even past the
+        // stat-paging ceiling.
+        let total_reviews = statRows.length;
+        try {
+          const { count: exactCount } = await getSupabase()
+            .from('venue_reviews')
+            .select('id', { count: 'exact', head: true })
+            .eq('venue_id', venueIdStr)
+            .or('is_flagged.is.null,is_flagged.eq.false');
+          if (typeof exactCount === 'number') total_reviews = exactCount;
+        } catch (countErr) {
+          console.warn('[Reviews] exact count failed (non-fatal):', countErr?.message || countErr);
+        }
+
+        const avg_rating = statRows.length > 0
+          ? parseFloat((statRows.reduce((sum, r) => sum + r.rating, 0) / statRows.length).toFixed(2))
           : 0;
 
         // Rating distribution
         const rating_distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-        reviews.forEach((r) => {
+        statRows.forEach((r) => {
           rating_distribution[r.rating] = (rating_distribution[r.rating] || 0) + 1;
         });
 
         // Category averages
         const category_averages = {};
         for (const col of CATEGORY_COLUMNS) {
-          const vals = reviews.map(r => r[col]).filter(v => v != null && v >= 1 && v <= 5);
+          const vals = statRows.map(r => r[col]).filter(v => v != null && v >= 1 && v <= 5);
           category_averages[col.replace('_rating', '')] = vals.length > 0
             ? parseFloat((vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2))
             : null;
         }
 
         // Verified count
-        const verified_count = reviews.filter(r => r.is_verified_player).length;
+        const verified_count = statRows.filter(r => r.is_verified_player).length;
 
-        // Sort
-        let sortedReviews = [...reviews];
+        // ── LIST: sorted and paged in SQL ────────────────────────────────────
+        let listQuery = getSupabase()
+          .from('venue_reviews')
+          .select('id, user_id, venue_id, rating, review_text, reviewer_name, is_verified_player, helpful_count, unhelpful_count, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating, created_at, metadata')
+          .eq('venue_id', venueIdStr)
+          .or('is_flagged.is.null,is_flagged.eq.false');
+
         switch (sort) {
           case 'highest':
-            sortedReviews.sort((a, b) => b.rating - a.rating || new Date(b.created_at) - new Date(a.created_at));
+            listQuery = listQuery.order('rating', { ascending: false }).order('created_at', { ascending: false });
             break;
           case 'lowest':
-            sortedReviews.sort((a, b) => a.rating - b.rating || new Date(b.created_at) - new Date(a.created_at));
+            listQuery = listQuery.order('rating', { ascending: true }).order('created_at', { ascending: false });
             break;
           case 'helpful':
-            sortedReviews.sort((a, b) => (b.helpful_count || 0) - (a.helpful_count || 0));
+            listQuery = listQuery.order('helpful_count', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false });
             break;
           case 'verified':
-            sortedReviews = sortedReviews.filter(r => r.is_verified_player);
+            listQuery = listQuery.eq('is_verified_player', true).order('created_at', { ascending: false });
             break;
           case 'newest':
           default:
-            // Already sorted by created_at DESC
+            listQuery = listQuery.order('created_at', { ascending: false });
             break;
         }
 
-        // Paginate
-        const paginatedReviews = sortedReviews.slice(offsetNum, offsetNum + limitNum);
+        const { data: listRows, error: reviewError } = await listQuery
+          .range(offsetNum, offsetNum + limitNum - 1);
+
+        if (reviewError) {
+          console.warn('Error fetching reviews:', reviewError);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+
+        const paginatedReviews = listRows || [];
 
         // Fetch reviewer profiles (batch)
         const userIds = [...new Set(paginatedReviews.map(r => r.user_id).filter(Boolean))];

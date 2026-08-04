@@ -31,6 +31,12 @@ function getSupabase() {
 // UUID v4 format check — page_followers.user_id is UUID type
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// page_id is written here and later interpolated into raw PostgREST .or()
+// filters by notifications.js / activity.js. Values outside this charset can
+// reshape those filters (or crash them on a bare comma), so they are rejected
+// at the point of entry as well as being skipped at read time.
+const SAFE_PAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
   try {
@@ -67,16 +73,44 @@ async function handleGet(req, res) {
 
     // Get all follows for a user
     if (user_id) {
+        // SECURITY: a user's follow list is an interest/affiliation profile keyed
+        // to a UUID that is trivially harvested from the leaderboard and presence
+        // endpoints. It used to be readable by anyone who supplied the id. A JWT
+        // is required now, and callers only ever get their OWN follows.
+        // (Per-page follower COUNTS stay public — that is the branch below.)
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Authentication required to read a follow list' });
+        }
+        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+        if (authErr || !authUser) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+        if (user_id !== authUser.id) {
+            return res.status(403).json({ success: false, error: 'Cannot read another user follow list' });
+        }
+
         // Anonymous/non-UUID user IDs can't be in page_followers (UUID column)
         if (!UUID_RE.test(user_id)) {
             return res.status(200).json({ success: true, data: [], total: 0 });
         }
 
-        const { data, error } = await getSupabase()
+        res.setHeader('Cache-Control', 'private, no-store');
+
+        // The old .limit(100) silently truncated: a user following more than 100
+        // pages saw the rest render as "not following", and clicking follow came
+        // back 'already_following' with no UI change. Paginate with an exact total.
+        const rawLimit = parseInt(safeQ(req.query.limit), 10);
+        const rawOffset = parseInt(safeQ(req.query.offset), 10);
+        const limitNum = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 500, 1), 1000);
+        const offsetNum = Math.max(Number.isFinite(rawOffset) ? rawOffset : 0, 0);
+
+        const { data, error, count } = await getSupabase()
             .from('page_followers')
-            .select('*')
+            .select('*', { count: 'exact' })
             .eq('user_id', user_id)
-            .limit(100);
+            .order('id', { ascending: true })
+            .range(offsetNum, offsetNum + limitNum - 1);
 
         if (error) {
             console.warn('Error fetching follows:', error);
@@ -86,7 +120,9 @@ async function handleGet(req, res) {
         return res.status(200).json({
             success: true,
             data: data || [],
-            total: (data || []).length,
+            total: typeof count === 'number' ? count : (data || []).length,
+            offset: offsetNum,
+            limit: limitNum,
         });
     }
 
@@ -213,6 +249,10 @@ async function handlePost(req, res) {
 
     // Normalize tour page_id to uppercase (tour registry uses uppercase codes like WPT, WSOP)
     const pageIdStr = page_type === 'tour' ? String(page_id).toUpperCase() : String(page_id);
+
+    if (!SAFE_PAGE_ID.test(pageIdStr)) {
+        return res.status(400).json({ success: false, error: 'invalid_page_id' });
+    }
 
     if (action === 'follow') {
         // Upsert - insert if not exists

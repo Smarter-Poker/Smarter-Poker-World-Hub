@@ -7,6 +7,9 @@ import dynamic from 'next/dynamic';
 
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 
+// Guard rail: never fire more than this many single-venue lookups for one favourites view.
+const MAX_HYDRATE = 30;
+
 export default function FavoritesTabPanel({
     allVenuesForMap,
     venues,
@@ -20,7 +23,95 @@ export default function FavoritesTabPanel({
     router,
     openVenueModal,
 }) {
-    const favVenues = (allVenuesForMap.length > 0 ? allVenuesForMap : venues).filter(v => isFavorited('venue', v.id));
+    // BUG FIX: favourites used to be rendered by INTERSECTING the favourites map with
+    // whatever the current search had loaded, so a saved room outside the active radius
+    // (social pages and home groups are only ever merged in from the live search) showed
+    // the "you have saved nothing" empty state. Favourites are durable, so drive the list
+    // off the favourites map itself and fetch anything the loaded pool cannot resolve.
+    const safeMap = Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
+    const safeVenues = Array.isArray(venues) ? venues : [];
+
+    const favIds = React.useMemo(() => {
+        const keys = Object.keys(favorites || {});
+        const ids = keys
+            .filter(k => k.startsWith('venue-') && favorites[k])
+            .map(k => k.slice('venue-'.length))
+            .filter(Boolean);
+        return Array.from(new Set(ids));
+    }, [favorites]);
+
+    const pool = React.useMemo(() => {
+        const byId = new Map();
+        [...safeMap, ...safeVenues].forEach(v => {
+            if (v && v.id != null && !byId.has(String(v.id))) byId.set(String(v.id), v);
+        });
+        return byId;
+    }, [safeMap, safeVenues]);
+
+    const [hydrated, setHydrated] = React.useState({});
+    const attemptedRef = React.useRef(new Set());
+    const [hydrating, setHydrating] = React.useState(false);
+
+    const missingIds = React.useMemo(
+        () => favIds.filter(id => !pool.has(String(id)) && !hydrated[String(id)]),
+        [favIds, pool, hydrated]
+    );
+
+    React.useEffect(() => {
+        const todo = missingIds
+            .filter(id => !attemptedRef.current.has(String(id)))
+            .slice(0, MAX_HYDRATE);
+        if (todo.length === 0) return;
+        todo.forEach(id => attemptedRef.current.add(String(id)));
+
+        let cancelled = false;
+        setHydrating(true);
+        Promise.all(
+            todo.map(id =>
+                fetch(`/api/poker/venues?id=${encodeURIComponent(id)}`)
+                    .then(r => (r.ok ? r.json() : null))
+                    .then(json => {
+                        const rows = json && (json.data || json.venues);
+                        const found = Array.isArray(rows) ? rows[0] : rows;
+                        return found && found.id != null ? found : null;
+                    })
+                    .catch(() => null)
+            )
+        )
+            .then(results => {
+                if (cancelled) return;
+                const next = {};
+                results.forEach(v => {
+                    if (v) next[String(v.id)] = v;
+                });
+                if (Object.keys(next).length > 0) setHydrated(prev => ({ ...prev, ...next }));
+            })
+            .finally(() => {
+                if (!cancelled) setHydrating(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [missingIds]);
+
+    const favVenues = favIds
+        .map(id => pool.get(String(id)) || hydrated[String(id)])
+        .filter(Boolean);
+
+    // Still resolving saved venues that are outside the current search — do not claim
+    // the user has saved nothing while the lookups are in flight. `hydrating` only flips
+    // true after the effect runs (post-paint), so the not-yet-attempted check below covers
+    // the first frame too; once every id has been attempted both are false and the real
+    // empty state renders, so this can never stick on "Loading".
+    const hydratePending = missingIds.some(id => !attemptedRef.current.has(String(id)));
+    if (favVenues.length === 0 && favIds.length > 0 && (hydrating || hydratePending)) {
+        return (
+            <div className="empty-state" style={{ padding: '60px 20px' }}>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Loading Your Saved Venues...</p>
+            </div>
+        );
+    }
 
     if (favVenues.length === 0) {
         return (

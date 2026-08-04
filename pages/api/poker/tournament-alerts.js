@@ -18,6 +18,17 @@ function getSupabase() {
     return _supabase;
 }
 
+/** Great-circle distance in miles. */
+function haversineMiles(lat1, lng1, lat2, lng2) {
+    const R = 3959;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 
 
 export default async function handler(req, res) {
@@ -43,12 +54,6 @@ try {
 
               // If match=true, return matching tournaments
               if (match === 'true') {
-                  // Fetch daily tournaments
-                  const tournamentsRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/poker/daily-tournaments?limit=100`);
-                  if (!tournamentsRes.ok) throw new Error(`Request failed (${tournamentsRes.status})`);
-                  const tournamentsData = await tournamentsRes.json();
-                  const tournaments = tournamentsData.tournaments || tournamentsData.data || [];
-
                   // Fetch user prefs from Supabase (or return empty)
                   const { data: prefs, error: prefsErr } = await getSupabase()
                       .from('tournament_alert_preferences')
@@ -66,22 +71,91 @@ try {
                       return res.status(200).json({ success: true, matches: [], prefs: null });
                   }
 
-                  // Match tournaments against prefs
-                  const matches = tournaments.filter(t => {
+                  // `enabled` is persisted by the POST below but was never read.
+                  if (prefs.enabled === false) {
+                      return res.status(200).json({ success: true, matches: [], prefs });
+                  }
+
+                  // Query the tournaments table DIRECTLY.
+                  //
+                  // This used to `fetch()` this app's own public URL from inside
+                  // the serverless handler — a full round trip out through the
+                  // CDN and back into another function, with no timeout and no
+                  // abort, and on preview deploys (NEXT_PUBLIC_SITE_URL unset)
+                  // it read PRODUCTION data.
+                  let tq = getSupabase()
+                      .from('venue_daily_tournaments')
+                      .select('id, venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, source_url')
+                      .eq('is_active', true)
+                      .eq('data_quality', 'scraped_verified')
+                      .or('is_suppressed.is.null,is_suppressed.eq.false');
+
+                  if (prefs.min_buyin != null) tq = tq.gte('buy_in', prefs.min_buyin);
+                  if (prefs.max_buyin != null) tq = tq.lte('buy_in', prefs.max_buyin);
+
+                  const { data: tournaments, error: tErr } = await tq
+                      .order('start_time', { ascending: true })
+                      .limit(500);
+
+                  if (tErr) {
+                      console.warn('[tournament-alerts] tournament query failed:', tErr.message);
+                      return res.status(200).json({ success: true, matches: [], prefs, degraded: true });
+                  }
+
+                  // `days` was persisted and then ignored by the matcher.
+                  const wantedDays = Array.isArray(prefs.days)
+                      ? prefs.days.map(d => String(d).toLowerCase().trim()).filter(Boolean)
+                      : [];
+
+                  let matches = (tournaments || []).filter(t => {
                       // Game type
                       const gameTypes = prefs.game_types || [];
                       if (gameTypes.length > 0) {
-                          const tGame = (t.game_type || t.game || '').toLowerCase();
-                          if (!gameTypes.some(g => tGame.includes(g.toLowerCase()))) return false;
+                          const tGame = (t.game_type || t.tournament_name || '').toLowerCase();
+                          if (!gameTypes.some(g => tGame.includes(String(g).toLowerCase()))) return false;
                       }
-                      // Buy-in range
-                      const buyIn = t.buy_in || t.buyin || 0;
-                      if (prefs.min_buyin && buyIn < prefs.min_buyin) return false;
-                      if (prefs.max_buyin && buyIn > prefs.max_buyin) return false;
+                      // Day of week ('Daily' rows always qualify)
+                      if (wantedDays.length > 0) {
+                          const tDay = String(t.day_of_week || '').toLowerCase().trim();
+                          if (tDay !== 'daily' && !wantedDays.includes(tDay)) return false;
+                      }
                       return true;
                   });
 
-                  return res.status(200).json({ success: true, matches, prefs });
+                  // Distance: only applicable when the caller supplies their
+                  // position. `distance_mi` was persisted but had nothing to
+                  // measure against on the server.
+                  const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
+                  const userLat = parseFloat(safeQ(req.query.lat));
+                  const userLng = parseFloat(safeQ(req.query.lng));
+                  const maxMiles = Number.isFinite(prefs.distance_mi) ? prefs.distance_mi : null;
+                  let distanceApplied = false;
+
+                  if (Number.isFinite(userLat) && Number.isFinite(userLng) && maxMiles) {
+                      const venueIds = [...new Set(
+                          matches.map(t => Number(t.venue_id)).filter(n => Number.isFinite(n) && n > 0)
+                      )];
+                      if (venueIds.length > 0) {
+                          const coordsById = new Map();
+                          for (let i = 0; i < venueIds.length; i += 300) {
+                              const { data: venueRows } = await getSupabase()
+                                  .from('poker_venues')
+                                  .select('id, latitude, longitude')
+                                  .in('id', venueIds.slice(i, i + 300));
+                              (venueRows || []).forEach(v => coordsById.set(Number(v.id), v));
+                          }
+                          matches = matches.filter(t => {
+                              const v = coordsById.get(Number(t.venue_id));
+                              const vLat = v ? parseFloat(v.latitude) : NaN;
+                              const vLng = v ? parseFloat(v.longitude) : NaN;
+                              if (!Number.isFinite(vLat) || !Number.isFinite(vLng)) return false;
+                              return haversineMiles(userLat, userLng, vLat, vLng) <= maxMiles;
+                          });
+                          distanceApplied = true;
+                      }
+                  }
+
+                  return res.status(200).json({ success: true, matches, prefs, distance_applied: distanceApplied });
               }
 
               // Default: return just the prefs

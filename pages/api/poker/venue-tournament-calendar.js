@@ -10,6 +10,7 @@
  * GET ?venue_id=1234&days=60  — dated events up to 60 days out (default: all)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -60,6 +61,10 @@ function formatMoney(n) {
 async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
+    // Every other route in this directory rate-limits; this one did not, so the
+    // per-request work above could be repeated freely.
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     // Cache: fresh 5 min, stale 30 min (tournament schedules don't change hourly)
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
 
@@ -77,8 +82,12 @@ async function handler(req, res) {
     const venueId = parseInt(rawVenueId, 10);
     if (isNaN(venueId) || venueId < 1) return res.status(400).json({ success: false, error: 'Invalid venue_id' });
 
+    // `days` drives generateDatedInstances, which loops once per day and
+    // filters + sorts + dedups + enriches the recurring set inside every
+    // iteration. Unbounded, `?days=1000000` was a one-request CPU burn.
     let parsedDays = parseInt(rawDays, 10);
     if (isNaN(parsedDays) || parsedDays < 1) parsedDays = 45;
+    parsedDays = Math.min(parsedDays, 180);
 
     try {
         const sb = getSupabase();

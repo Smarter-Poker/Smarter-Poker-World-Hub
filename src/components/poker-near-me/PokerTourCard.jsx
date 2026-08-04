@@ -1,11 +1,55 @@
+/**
+ * NOT CURRENTLY MOUNTED. A repo-wide grep finds no import of PokerTourCard — the
+ * rendered tour card is RichTourCard. It is kept (rather than deleted) in case it is
+ * revived, with the structural defects below fixed so a revival does not ship them.
+ */
 import React from 'react';
 import { useRouter } from 'next/router';
 
-export default function PokerTourCard({ tourPin }) {
+// BUG FIX: `colors` and `typeInfo` were hardcoded literals despite the comment
+// "Default to circuit styling as fallback", so every tour rendered in identical
+// colours and was labelled "Tour Stop" whatever its type. Derive from tour_type.
+const TOUR_TYPE_STYLES = {
+    major:       { colors: { bg: '#3b1f05', border: '#a16207', text: '#fbbf24' }, label: 'Major Tour', color: '#fbbf24' },
+    circuit:     { colors: { bg: '#101742', border: '#25359a', text: '#93a5ff' }, label: 'Circuit', color: '#60a5fa' },
+    regional:    { colors: { bg: '#052e26', border: '#047857', text: '#6ee7b7' }, label: 'Regional', color: '#34d399' },
+    high_roller: { colors: { bg: '#2e1065', border: '#5b21b6', text: '#c4b5fd' }, label: 'High Roller', color: '#a78bfa' },
+    grassroots:  { colors: { bg: '#1f2937', border: '#4b5563', text: '#d1d5db' }, label: 'Grassroots', color: '#9ca3af' },
+    charity:     { colors: { bg: '#172554', border: '#1d4ed8', text: '#93c5fd' }, label: 'Charity', color: '#60a5fa' },
+};
+const DEFAULT_TOUR_STYLE = { colors: { bg: '#101742', border: '#25359a', text: '#93a5ff' }, label: 'Tour Stop', color: '#60a5fa' };
+
+/** True only when today falls inside the stop's own date range. */
+function isStopLiveNow(tourPin) {
+    const startRaw = tourPin?.stop_start_date || tourPin?.start_date;
+    if (!startRaw) return false;
+    // Parse as a LOCAL date — new Date('YYYY-MM-DD') is UTC midnight and reads back
+    // as the previous day in every US timezone.
+    const toLocalDate = (raw) => {
+        const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return null;
+        const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        return isNaN(d.getTime()) ? null : d;
+    };
+    const start = toLocalDate(startRaw);
+    if (!start) return false;
+    const end = toLocalDate(tourPin?.stop_end_date || tourPin?.end_date) || start;
+    end.setHours(23, 59, 59, 999);
+    const now = new Date();
+    return now >= start && now <= end;
+}
+
+export default function PokerTourCard({ tourPin = {} }) {
     const router = useRouter();
-    // Default to circuit styling as fallback
-    const colors = { bg: '#101742', border: '#25359a', text: '#93a5ff' }; 
-    const typeInfo = { label: 'Tour Stop', color: '#60a5fa' };
+    const style = TOUR_TYPE_STYLES[tourPin.tour_type] || DEFAULT_TOUR_STYLE;
+    const colors = style.colors;
+    const typeInfo = { label: style.label, color: style.color };
+    // BUG FIX: the green "LIVE NOW" badge was unconditional, with no date check —
+    // every tour claimed to be running right now.
+    const liveNow = isStopLiveNow(tourPin);
+    // BUG FIX: `tourPin.city + ', ' + tourPin.state` printed the literal
+    // "undefined, undefined" whenever those fields were absent.
+    const locationText = tourPin.location || [tourPin.city, tourPin.state].filter(Boolean).join(', ');
 
     return (
         <div 
@@ -39,16 +83,20 @@ export default function PokerTourCard({ tourPin }) {
 
             {/* Current Location (Live) */}
             <div className="tour-card-location-live" style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
-                        LIVE NOW
-                    </span>
-                </div>
+                {liveNow && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                            LIVE NOW
+                        </span>
+                    </div>
+                )}
                 {tourPin.stop_venue && <span className="tour-stop-venue" style={{ display: 'block', fontSize: 15, fontWeight: 600, marginTop: 4 }}>{tourPin.stop_venue}</span>}
-                <span className="tour-stop-location" style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>{tourPin.location || (tourPin.city + ', ' + tourPin.state)}</span>
+                {locationText && (
+                    <span className="tour-stop-location" style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>{locationText}</span>
+                )}
             </div>
 
             {/* Card Footer */}

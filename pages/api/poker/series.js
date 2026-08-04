@@ -156,6 +156,7 @@ async function handler(req, res) {
         start_date,
         end_date,
         limit = 70,
+        include_events,
       } = req.query;
 
       // BUG FIX: Array Query Injection Vector
@@ -169,6 +170,7 @@ async function handler(req, res) {
       start_date = safeString(start_date);
       end_date = safeString(end_date);
       limit = safeString(limit);
+      include_events = safeString(include_events);
 
       // [S-P2 FIX] Validate date params — invalid format causes PostgREST cast errors (500).
       // Silently null out any date that isn't a strict YYYY-MM-DD ISO date string.
@@ -499,7 +501,16 @@ async function handler(req, res) {
       const total = seriesData.length;
       const limited = seriesData.slice(0, parsedLimit);
 
-      // Enrich each series with events from poker_events table
+      // Enrich each series with events from poker_events.
+      //
+      // The list endpoint used to attach the FULL event row of every event of
+      // every series (select('*'), up to 5 x 999 rows) and then fall back to
+      // attaching the entire JSON event file for anything still empty — a
+      // multi-megabyte body pinned at the edge for 15 minutes by s-maxage=900,
+      // for card grids that only render name, dates, venue and event count.
+      // Full events are now opt-in via ?include_events=true; the default path
+      // fetches only the series_uid column and derives events_count from it.
+      const wantEvents = include_events === 'true';
       try {
         const seriesUids = limited
           .map(s => s.series_uid)
@@ -512,7 +523,7 @@ async function handler(req, res) {
           for (let page = 0; page < 5; page++) {
             const { data: evtPage } = await getSupabase()
               .from('poker_events')
-              .select('*')
+              .select(wantEvents ? '*' : 'series_uid')
               .in('series_uid', seriesUids)
               .order('start_date', { ascending: true })
               .range(page * PAGE, (page + 1) * PAGE - 1);
@@ -532,15 +543,18 @@ async function handler(req, res) {
             }
             for (const s of limited) {
               if (s.series_uid && eventsBySeries[s.series_uid]) {
-                const seriesVenue = s.venue || s.venue_name || '';
-                const seriesVenueId = s.venue_id || null;
-                // Propagate series venue to events missing venue_name
-                s.events = eventsBySeries[s.series_uid].map(evt => ({
-                  ...evt,
-                  venue_name: (evt.venue_name && evt.venue_name !== 'Unknown') ? evt.venue_name : seriesVenue,
-                  venue_id: evt.venue_id || seriesVenueId,
-                }));
-                s.events_count = s.events.length;
+                const rows = eventsBySeries[s.series_uid];
+                s.events_count = rows.length;
+                if (wantEvents) {
+                  const seriesVenue = s.venue || s.venue_name || '';
+                  const seriesVenueId = s.venue_id || null;
+                  // Propagate series venue to events missing venue_name
+                  s.events = rows.map(evt => ({
+                    ...evt,
+                    venue_name: (evt.venue_name && evt.venue_name !== 'Unknown') ? evt.venue_name : seriesVenue,
+                    venue_id: evt.venue_id || seriesVenueId,
+                  }));
+                }
               }
             }
           }
@@ -549,11 +563,11 @@ async function handler(req, res) {
 
       // For series without DB events, try JSON fallback
       for (const s of limited) {
-        if (!s.events || s.events.length === 0) {
+        if (!s.events_count && (!s.events || s.events.length === 0)) {
           const jsonEvents = loadEventsForSeries(s);
           if (jsonEvents && jsonEvents.length > 0) {
-            s.events = jsonEvents;
             s.events_count = jsonEvents.length;
+            if (wantEvents) s.events = jsonEvents;
           }
         }
       }

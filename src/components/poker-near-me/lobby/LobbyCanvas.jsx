@@ -34,8 +34,7 @@ function AnimatedOverlay() {
           height: '100%',
           borderRadius: '50%',
           background: 'conic-gradient(from 0deg, transparent 0deg, rgba(110,231,239,0.10) 20deg, rgba(110,231,239,0.03) 40deg, transparent 60deg)',
-          animation: 'lobbySweep 7s linear infinite',
-        }} />
+        }} className="lobby-radar-sweep" />
       </div>
 
       {/* Sonar pulse ring 1 */}
@@ -48,10 +47,9 @@ function AnimatedOverlay() {
         transform: 'translate(-50%, -50%)',
         borderRadius: '50%',
         border: '1px solid rgba(110,231,239,0.14)',
-        animation: 'lobbyPulse 5s ease-out infinite',
         pointerEvents: 'none',
         zIndex: 2,
-      }} />
+      }} className="lobby-sonar-ring lobby-sonar-ring-1" />
 
       {/* Sonar pulse ring 2 (offset) */}
       <div style={{
@@ -63,12 +61,17 @@ function AnimatedOverlay() {
         transform: 'translate(-50%, -50%)',
         borderRadius: '50%',
         border: '1px solid rgba(110,231,239,0.08)',
-        animation: 'lobbyPulse 5s ease-out 2.5s infinite',
         pointerEvents: 'none',
         zIndex: 2,
-      }} />
+      }} className="lobby-sonar-ring lobby-sonar-ring-2" />
 
-      {/* CSS keyframes */}
+      {/* CSS keyframes.
+          [AUDIT] The sweep and the two sonar rings used to run as unconditional
+          inline `animation` styles. They are permanently looping, large-area
+          motion behind all page content, with no prefers-reduced-motion guard —
+          exactly the pattern that triggers vestibular symptoms. The animations
+          are now opt-in via `prefers-reduced-motion: no-preference`, with an
+          explicit `reduce` block so a user preference always wins. */}
       <style>{`
         @keyframes lobbySweep {
           from { transform: rotate(0deg); }
@@ -77,6 +80,15 @@ function AnimatedOverlay() {
         @keyframes lobbyPulse {
           0% { width: 80px; height: 80px; opacity: 0.45; }
           100% { width: 550px; height: 550px; opacity: 0; }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .lobby-radar-sweep { animation: lobbySweep 7s linear infinite; }
+          .lobby-sonar-ring-1 { animation: lobbyPulse 5s ease-out infinite; }
+          .lobby-sonar-ring-2 { animation: lobbyPulse 5s ease-out 2.5s infinite; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lobby-radar-sweep,
+          .lobby-sonar-ring { animation: none; }
         }
       `}</style>
     </>
@@ -87,12 +99,20 @@ function AnimatedOverlay() {
 export default function LobbyCanvas() {
   const [bgLoaded, setBgLoaded] = useState(false);
 
-  // Preload background image
+  // Preload background image.
+  // The cancelled flag stops setBgLoaded firing after unmount (the decode can
+  // easily outlive a fast route change).
   useEffect(() => {
+    let cancelled = false;
     const img = new Image();
-    img.onload = () => setBgLoaded(true);
+    img.onload = () => { if (!cancelled) setBgLoaded(true); };
     img.onerror = () => console.warn('[LobbyCanvas] Background image failed to load, using fallback gradient');
     img.src = '/images/lobby-bg/default.png';
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
   }, []);
 
   return (
