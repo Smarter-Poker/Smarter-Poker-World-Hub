@@ -43,6 +43,7 @@ the third command for `shot_prod.mjs` and rerun `banddiff.py`:
 ```bash
 node    scripts/table-reference/shot_prod.mjs       # https://smarter.poker/...
 python3 scripts/table-reference/banddiff.py
+node    scripts/table-reference/verify_prod.mjs     # structural checks, live
 ```
 
 That is the check that catches a stale CDN copy, a portrait that 404s in
@@ -65,7 +66,9 @@ Measurement scripts, all reading the same template/screenshot pair via
 | `cardmeas.py` | hole-card white bbox and pixel count, hero artwork top edge |
 | `fitart.py` | best `--ph` / `--ax` / `--po` per portrait, by masked cross-correlation |
 | `seatzoom.py` | a 2× contact sheet of all nine seats: template \| build \| overlay |
+| `plateprofile.py` | plate ink edges by profile shape — the non-circular version of `measure2.py` |
 | `shot.mjs` / `shot_prod.mjs` | screenshot the local build / the deployed page at 873×1224 and 390×844 |
+| `verify_prod.mjs` | structural DOM checks on the live page; exits non-zero with the reason |
 
 The red/cyan overlay is the fastest read in the set: template luminance goes into
 R, build luminance into G+B, so **red is template-only ink, cyan is build-only
@@ -103,6 +106,29 @@ compare numbers produced inside a single script's run.
 reported y=900 for both template and build, which is the top of the window, not
 the top of the art. Print the whole row profile before believing a single
 extremum.
+
+**And a window can return its own bounds on every side at once.** `measure2.py`
+searches for the hero plate inside (392,1022)–(492,1084), which *is* the box it
+is looking for. The plate's glow and the felt behind it are both gold, so the
+mask fills the window and the answer comes back as the window — for template and
+build alike. Two numbers agreeing because both are the search bounds is not
+evidence. `plateprofile.py` is the fix: the window is at least 30px clear of the
+plate on every side, an edge is called where the gold-count profile crosses 45%
+of its own peak, and the same rule runs on both images. Template and build agree
+to **1px or better** on every edge it can isolate. It refuses to report two edges
+rather than fake them — the plate top (the portrait sits directly above it in the
+same columns, and warm art passes any gold test, so hue cannot separate them) and
+the wizard plate (the mid ring crosses x 232–248 where the plate spans 162–242,
+overlapping in both axes).
+
+**Ink bounds and layout boxes are different things, and both are right.** The
+coordinates in the table below are gold-ink extents, so they include the plate's
+box-shadow glow: about 10px past the border box each side, 5px top and bottom.
+`getBoundingClientRect` returns the border box. The hero plate reads 100 × 62 as
+ink and 76 × 57 as a rect; neither is an error, and comparing one against the
+other manufactures a 24px "failure". `verify_prod.mjs` therefore asserts only
+what the DOM can state — what is beside what, which images actually loaded, how
+many seats exist — and leaves ink-versus-ink to `plateprofile.py`.
 
 ## Portraits
 
