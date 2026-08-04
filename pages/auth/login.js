@@ -384,24 +384,20 @@ export default function LoginPage() {
                 
                 {existingUser && (
                     <div style={{
-                        position: 'absolute', top: '30%', left: '25%', width: '50%', height: '10%',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', zIndex: 10
+                        position: 'absolute', top: '48.5%', left: '30.5%', width: '39%', height: '3.5%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10
                     }}>
                         <button
                             onClick={() => { sessionStorage.setItem('just_authenticated', 'true'); router.push('/hub'); }}
-                            style={{ width: '45%', height: '35%', background: 'transparent', border: 'none', cursor: 'pointer', color: 'transparent' }}
+                            style={{ width: '48%', height: '100%', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none' }}
                             title="Continue To Hub"
-                        >
-                            Continue
-                        </button>
+                        />
                         <button
                             onClick={handleSwitchAccount}
                             disabled={isLoading}
-                            style={{ width: '45%', height: '35%', background: 'transparent', border: 'none', cursor: 'pointer', color: 'transparent' }}
+                            style={{ width: '48%', height: '100%', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none' }}
                             title="Switch Account"
-                        >
-                            Switch
-                        </button>
+                        />
                     </div>
                 )}
 
@@ -414,7 +410,7 @@ export default function LoginPage() {
                             disabled={!!oauthLoading}
                             title="Continue With Google"
                             style={{
-                                position: 'absolute', top: '53.5%', left: '29%', width: '42%', height: '4.5%',
+                                position: 'absolute', top: '54.5%', left: '29%', width: '42%', height: '4.5%',
                                 background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
                                 outline: 'none',
                             }}
@@ -429,7 +425,7 @@ export default function LoginPage() {
                             disabled={!!oauthLoading}
                             title="Continue With Facebook"
                             style={{
-                                position: 'absolute', top: '59%', left: '29%', width: '42%', height: '4.5%',
+                                position: 'absolute', top: '60.5%', left: '29%', width: '42%', height: '4.5%',
                                 background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
                                 outline: 'none',
                             }}
@@ -463,7 +459,7 @@ export default function LoginPage() {
                         required
                         autoComplete="email"
                         style={{
-                            position: 'absolute', top: '65.5%', left: '29%', width: '42%', height: '4.5%',
+                            position: 'absolute', top: '66.5%', left: '29%', width: '42%', height: '4.5%',
                             background: email ? '#0b0e14' : 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
                             padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10,
                             borderRadius: '4px'
@@ -510,7 +506,7 @@ export default function LoginPage() {
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 style={{
-                                    position: 'absolute', top: '77%', left: '29%', width: '1.5%', height: '2%',
+                                    position: 'absolute', top: '74.5%', left: '29%', width: '1.5%', height: '2%',
                                     opacity: 0, cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Remember Me"
@@ -521,7 +517,7 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={() => router.push('/auth/forgot-password')}
                                 style={{
-                                    position: 'absolute', top: '77%', left: '59%', width: '12%', height: '2%',
+                                    position: 'absolute', top: '74.5%', left: '59%', width: '12%', height: '2%',
                                     background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Forgot Password"
@@ -535,7 +531,7 @@ export default function LoginPage() {
                         disabled={isLoading}
                         title={mode === 'login' ? 'Sign In' : 'Create Account'}
                         style={{
-                            position: 'absolute', top: '80.5%', left: '29%', width: '42%', height: '4.5%',
+                            position: 'absolute', top: '77.5%', left: '29%', width: '42%', height: '4.5%',
                             background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
                             outline: 'none',
                         }}
@@ -551,7 +547,7 @@ export default function LoginPage() {
                             disabled={isLoading}
                             title="Send Magic Link"
                             style={{
-                                position: 'absolute', top: '86.5%', left: '29%', width: '42%', height: '4.5%',
+                                position: 'absolute', top: '83.5%', left: '29%', width: '42%', height: '4.5%',
                                 background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
                                 outline: 'none',
                             }}
@@ -569,7 +565,7 @@ export default function LoginPage() {
                         setMessage(null);
                     }}
                     style={{
-                        position: 'absolute', top: '92.5%', left: '35%', width: '30%', height: '2%',
+                        position: 'absolute', top: '88.5%', left: '35%', width: '30%', height: '2%',
                         background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                     }}
                     title={mode === 'login' ? 'Sign Up' : 'Sign In'}
