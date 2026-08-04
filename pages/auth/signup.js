@@ -436,36 +436,49 @@ export default function SignUpPage() {
     // ─────────────────────────────────────────────────────────────────────────
     const handleSignUp = async (e) => {
         e.preventDefault();
+        // [2026-08-04] Guard against double-submit: the HIBP password check
+        // below is an up-to-3s network call. Previously `loading` stayed
+        // false until AFTER it resolved, so a second click launched a
+        // concurrent signUp — the loser saw "already registered" and got
+        // dumped into the email_pending dead-end mid-flow.
+        if (loading) return;
+        setLoading(true);
         setError('');
 
         // Validate first and last name
         if (!formData.firstName.trim()) {
             setError('Please Enter Your First Name');
+            setLoading(false);
             return;
         }
         if (!formData.lastName.trim()) {
             setError('Please Enter Your Last Name');
+            setLoading(false);
             return;
         }
 
         // Validate alias availability
         if (aliasAvailable === false) {
             setError('Please Choose A Different Poker Alias');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length < 3) {
             setError('Poker Alias Must Be At Least 3 Characters');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length > 20) {
             setError('Poker Alias Must Be 20 Characters Or Less');
+            setLoading(false);
             return;
         }
 
         if (!isValidEmail(formData.email)) {
             setError('Please Enter A Valid Email Address');
+            setLoading(false);
             return;
         }
 
@@ -483,32 +496,49 @@ export default function SignUpPage() {
 
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords Do Not Match');
+            setLoading(false);
             return;
         }
 
         // Birthdate validation - must be 18+ (using dropdown values)
         if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
             setError('Please Select Your Complete Birth Date');
+            setLoading(false);
             return;
         }
-        const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
+        
+        const birthYearInt = parseInt(formData.birthYear, 10);
+        const birthMonthInt = parseInt(formData.birthMonth, 10);
+        const birthDayInt = parseInt(formData.birthDay, 10);
+        const birthDate = new Date(birthYearInt, birthMonthInt - 1, birthDayInt);
+        
+        // JS Date auto-wraps (e.g. Feb 31 -> Mar 2 or Mar 3). We must verify the month/day didn't change!
+        if (birthDate.getFullYear() !== birthYearInt || birthDate.getMonth() !== birthMonthInt - 1 || birthDate.getDate() !== birthDayInt) {
+            setError('Please Enter A Valid Birth Date');
+            setLoading(false);
+            return;
+        }
+
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (age < 18 || (age === 18 && monthDiff < 0) || (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             setError('You Must Be 18 Years Or Older To Create An Account');
+            setLoading(false);
             return;
         }
 
         // 18+ Age Verification Check
         if (!ageConfirmed) {
             setError('You Must Confirm You Are 18+ Years Of Age');
+            setLoading(false);
             return;
         }
 
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
             setError('Please Enter A Valid 10-Digit Phone Number');
+            setLoading(false);
             return;
         }
 
@@ -521,8 +551,10 @@ export default function SignUpPage() {
 
         try {
             // Step 1: Create auth user with email/password
+            // [2026-08-04] Normalize the email the same way login.js does —
+            // "Dan@X.com " and "dan@x.com" must be the same account.
             const { data: authData, error: signUpError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
                 options: {
                     data: {
@@ -533,6 +565,7 @@ export default function SignUpPage() {
                         city: formData.city,
                         state: formData.state,
                         birth_year: parseInt(formData.birthYear),
+                        birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
                     },
                     // Enable email confirmation - redirect to /auth/callback after verification
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -542,6 +575,14 @@ export default function SignUpPage() {
             if (signUpError) throw signUpError;
 
             console.log('Auth user created:', authData);
+
+            // ── Save pending promo/referral for after email verification ──
+            if (formData.promoCode && promoValid && !isReferralCode) {
+                localStorage.setItem('smarter-poker-pending-promo', formData.promoCode);
+            }
+            if (isReferralCode && referralValid && referralDetails) {
+                localStorage.setItem('smarter-poker-pending-referral', JSON.stringify(referralDetails));
+            }
 
             // ── [Phase 5.1.2] PostHog activation-funnel: signup event ───────
             // Fire client-side so the SDK can auto-populate the UTM / referrer
@@ -561,188 +602,7 @@ export default function SignUpPage() {
                 }
             } catch (_analyticsErr) { console.warn('[App] Handled exception:', _analyticsErr?.message || _analyticsErr); }
 
-            // Step 2: Create profile directly
-            if (authData.user) {
-                const cleanPhoneFormatted = '+1' + cleanPhone;
 
-                // Try RPC first
-                try {
-                    const { data: profileData, error: rpcError } = await supabase
-                        .rpc('initialize_player_profile', {
-                            p_user_id: authData.user.id,
-                            p_full_name: cleanFullName,
-                            p_email: formData.email,
-                            p_phone: cleanPhoneFormatted,
-                            p_city: formData.city,
-                            p_state: formData.state,
-                            p_username: formData.pokerAlias,
-                        });
-
-                    if (rpcError) {
-                        console.log('RPC failed, trying direct insert:', rpcError);
-                        throw rpcError;
-                    }
-
-                    if (profileData && profileData.length > 0) {
-                        setAssignedPlayerNumber(profileData[0].player_number);
-                    }
-
-                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
-                    const { error: err_user_diamond_balance_qf0e1 } = await supabase
-                      .from('user_diamond_balance')
-                      .upsert({
-                            user_id: authData.user.id,
-                            balance: 500, // Welcome diamond bonus (matches profile)
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                        }, {
-                            onConflict: 'user_id',
-                        });
-                    if (err_user_diamond_balance_qf0e1) console.warn('[Supabase] Silent mutation failed in user_diamond_balance:', err_user_diamond_balance_qf0e1.message);
-
-                    // RPC doesn't accept birthday params — persist it separately
-                    if (formData.birthYear && formData.birthMonth && formData.birthDay) {
-                        const { error: err_profiles_p53n7 } = await supabase
-                          .from('profiles')
-                          .update({
-                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                birth_year: parseInt(formData.birthYear),
-                            })
-                            .eq('id', authData.user.id);
-                        if (err_profiles_p53n7) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_p53n7.message);
-                    }
-                } catch (rpcErr) {
-                    console.warn('[App] Handled exception:', rpcErr?.message || rpcErr);
-
-                    // Fallback: query current max player_number using numeric cast RPC
-                    // (avoid lexicographic sort bug: '999' > '1500' on TEXT column)
-                    try {
-                        const { data: maxNum } = await supabase
-                            .rpc('get_max_player_number');
-
-                        const nextPlayerNumber = Math.max(1500, (parseInt(maxNum, 10) || 1499) + 1);
-                        console.log('Updating profile for user:', authData.user.id);
-
-                        // UPDATE the profile created by the database trigger
-                        // The trigger creates the profile with correct id = auth.user.id
-                        // We just need to add/update the additional fields
-                        // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({
-                                full_name: cleanFullName,
-                                first_name: cleanFirstName,
-                                last_name: cleanLastName,
-                                phone: cleanPhoneFormatted,
-                                city: formData.city,
-                                state: formData.state,
-                                username: formData.pokerAlias,
-                                player_number: nextPlayerNumber,
-                                // NOTE (Diamond Rewards v2): diamonds, diamond_multiplier, is_vip,
-                                // vip_tier and vip_expires_at are deliberately NOT written here.
-                                // Migration 20260726120000 locks those columns to service_role — a
-                                // browser-side write would now be rejected and would have let any
-                                // user self-grant VIP and an arbitrary balance. The welcome package
-                                // (30-day VIP + welcome diamonds) is granted server-side by the
-                                // handle_new_user trigger and /api/auth/ensure-profile.
-                                streak_count: 0,
-                                skill_tier: 'Newcomer',
-                                access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                last_login: new Date().toISOString(),
-                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                birth_year: parseInt(formData.birthYear),
-                            })
-                            .eq('id', authData.user.id);
-
-                        if (updateError) {
-                            console.warn('Profile update error:', updateError);
-                            // If update fails (profile doesn't exist yet), try insert as fallback
-                            const { error: insertError } = await supabase
-                                .from('profiles')
-                                .insert({
-                                    id: authData.user.id,
-                                    full_name: cleanFullName,
-                                    first_name: cleanFirstName,
-                                    last_name: cleanLastName,
-                                    email: formData.email,
-                                    phone: cleanPhoneFormatted,
-                                    city: formData.city,
-                                    state: formData.state,
-                                    username: formData.pokerAlias,
-                                    player_number: nextPlayerNumber,
-                                    // See note above — economic columns are server-granted only.
-                                    streak_count: 0,
-                                    skill_tier: 'Newcomer',
-                                    access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                                    created_at: new Date().toISOString(),
-                                    last_login: new Date().toISOString(),
-                                    birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                                    birth_year: parseInt(formData.birthYear),
-                                });
-
-                            if (insertError) {
-                                console.warn('Profile insert fallback error:', insertError);
-                            }
-                        }
-
-                        // Set the assigned player number
-                        setAssignedPlayerNumber(nextPlayerNumber);
-                    } catch (fallbackErr) {
-                        console.warn('[Signup] Profile fallback error:', fallbackErr?.message || fallbackErr);
-                    }
-                }
-
-                // ── CRITICAL: Persist phone_verified to Supabase ─────────────
-                // The signup form verifies the phone via verify-otp WITHOUT userId,
-                // so verify-otp does NOT set phone_verified on the profile.
-                // We must do it here to prevent the VIP popup from re-firing.
-                if (phoneVerified) {
-                    try {
-                        const { error: err_profiles_gh469 } = await supabase
-                          .from('profiles')
-                          .update({ phone_verified: true })
-                            .eq('id', authData.user.id);
-                        if (err_profiles_gh469) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_gh469.message);
-                        console.log('[Signup] phone_verified persisted to profile');
-                    } catch (pvErr) {
-                        console.warn('[Signup] phone_verified persist error (non-blocking):', pvErr);
-                    }
-                }
-            }
-
-            // Redeem promo code if provided and valid
-            if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
-                try {
-                    await fetch('/api/promo/redeem-promo-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            code: formData.promoCode,
-                            userId: authData.user.id,
-                        }),
-                    });
-                    console.log('Promo code redeemed:', formData.promoCode);
-                } catch (promoErr) {
-                    console.warn('Promo redemption error (non-blocking):', promoErr);
-                }
-            }
-
-            // Award referral bonus to referrer if referral code was used
-            if (isReferralCode && referralValid && referralDetails && authData.user) {
-                try {
-                    await fetch('/api/rewards/referral', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            referrerId: referralDetails.referrerId,
-                            referredUserId: authData.user.id,
-                        }),
-                    });
-                    console.log('Referral reward sent to:', referralDetails.referrerId);
-                } catch (refErr) {
-                    console.warn('Referral reward error (non-blocking):', refErr);
-                }
-            }
 
             // [2026-05-03] Deferred SIGNUP funnel event. Fire AFTER the
             // full provisioning attempt so orphaned auth.users rows (no
@@ -864,493 +724,210 @@ export default function SignUpPage() {
                 canonical="/auth/signup"
             />
 
-            <div style={styles.container}>
+            
+            {step === 'info' ? (
+                <div style={{
+                    position: 'relative', width: '100%', height: '100vh',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    backgroundColor: '#000', overflow: 'hidden'
+                }}>
+                    <div style={{
+                        position: 'relative', width: '100%', maxWidth: 'min(100vw, 71.4vh)',
+                        aspectRatio: '10 / 14', backgroundImage: `url('/images/dynamic-signup-bg.jpg')`,
+                        backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+                        boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)'
+                    }}>
+                        <form onSubmit={handleSignUp} style={{width: '100%', height: '100%'}}>
+                            
+                            {/* Back Button */}
+                            <button type="button" onClick={() => router.push('/')} title="Back" style={{
+                                position: 'absolute', top: '3.5%', left: '3.5%', width: '8%', height: '3%',
+                                background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
+                            }} />
 
-
-                {/* Back to Home */}
-                <button onClick={() => router.push('/')} style={styles.backButton}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                    <span>Back</span>
-                </button>
-
-                {/* Auth Card */}
-                <div style={styles.authCard}>
-                    <div style={styles.logoSection}>
-                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage} />
-                        <h1 style={styles.title}>
-                            {step === 'info' && 'Create Account'}
-                            {step === 'email_pending' && 'Verify Your Email'}
-                            {step === 'success' && 'Welcome!'}
-                        </h1>
-                        <p style={styles.subtitle}>
-                            {step === 'info' && 'Start Your GTO Training Journey'}
-                            {step === 'email_pending' && 'Enter The Code From Your Email'}
-                            {step === 'success' && 'Your Account Has Been Created'}
-                        </p>
-                    </div>
-
-                    {error && (
-                        <div style={styles.errorBox}>
-                            {error}
-                        </div>
-                    )}
-
-                    {/* ═══════════════════════════════════════════════════════════════
-                        STEP 1: USER INFORMATION + PASSWORD
-                        ═══════════════════════════════════════════════════════════════ */}
-                    {step === 'info' && (
-                        <form onSubmit={handleSignUp} style={styles.form}>
-                            {/* Social Sign-In Buttons — Frictionless Path */}
-                            <div style={styles.socialButtons}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleOAuthSignIn('google')}
-                                    disabled={!!oauthLoading}
-                                    style={{
-                                        ...styles.socialButton,
-                                        ...styles.googleButton,
-                                        opacity: oauthLoading && oauthLoading !== 'google' ? 0.5 : 1,
-                                    }}
-                                >
-                                    <svg width="20" height="20" viewBox="0 0 24 24">
-                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                                    </svg>
-                                    <span>{oauthLoading === 'google' ? 'Connecting...' : 'Continue With Google'}</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => handleOAuthSignIn('facebook')}
-                                    disabled={!!oauthLoading}
-                                    style={{
-                                        ...styles.socialButton,
-                                        ...styles.facebookButton,
-                                        opacity: oauthLoading && oauthLoading !== 'facebook' ? 0.5 : 1,
-                                    }}
-                                >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12S0 5.446 0 12.073c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.875v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                    </svg>
-                                    <span>{oauthLoading === 'facebook' ? 'Connecting...' : 'Continue With Facebook'}</span>
-                                </button>
-
-                            </div>
-
-                            {/* Divider */}
-                            <div style={styles.socialDivider}>
-                                <div style={styles.socialDividerLine} />
-                                <span style={styles.socialDividerText}>Or Sign Up With Email</span>
-                                <div style={styles.socialDividerLine} />
-                            </div>
-                            {/* First Name + Last Name */}
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <div style={{ ...styles.inputGroup, flex: 1 }}>
-                                    <label style={styles.label}>First Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.firstName}
-                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                        placeholder=""
-                                        style={styles.inputSingle}
-                                        required
-                                    />
-                                </div>
-                                <div style={{ ...styles.inputGroup, flex: 1 }}>
-                                    <label style={styles.label}>Last Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.lastName}
-                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                        placeholder=""
-                                        style={styles.inputSingle}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Email */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Email Address</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder=""
-                                    style={styles.inputSingle}
-                                    required
-                                />
-                            </div>
-
-                            {/* Password */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Password</label>
-                                <div style={styles.passwordWrapper}>
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder=""
-                                        style={styles.inputSingle}
-                                        minLength={PW_MIN_LENGTH}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        style={styles.eyeButton}
-                                        tabIndex={-1}
-                                    >
-                                        {showPassword ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                                                <line x1="1" y1="1" x2="23" y2="23" />
-                                            </svg>
-                                        ) : (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Confirm Password */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Confirm Password</label>
-                                <div style={styles.passwordWrapper}>
-                                    <input
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        placeholder=""
-                                        style={styles.inputSingle}
-                                        minLength={PW_MIN_LENGTH}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        style={styles.eyeButton}
-                                        tabIndex={-1}
-                                    >
-                                        {showConfirmPassword ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                                                <line x1="1" y1="1" x2="23" y2="23" />
-                                            </svg>
-                                        ) : (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Birthdate - 18+ Verification - Dropdown Selectors */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Date Of Birth <span style={styles.labelHint}>(Must Be 18+)</span></label>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    {/* Month Dropdown */}
-                                    <select
-                                        value={formData.birthMonth || ''}
-                                        onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
-                                        style={{ ...styles.selectInput, flex: 1.5 }}
-                                        required
-                                    >
-                                        <option value="">Month</option>
-                                        <option value="01">January</option>
-                                        <option value="02">February</option>
-                                        <option value="03">March</option>
-                                        <option value="04">April</option>
-                                        <option value="05">May</option>
-                                        <option value="06">June</option>
-                                        <option value="07">July</option>
-                                        <option value="08">August</option>
-                                        <option value="09">September</option>
-                                        <option value="10">October</option>
-                                        <option value="11">November</option>
-                                        <option value="12">December</option>
-                                    </select>
-                                    {/* Day Dropdown */}
-                                    <select
-                                        value={formData.birthDay || ''}
-                                        onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
-                                        style={{ ...styles.selectInput, flex: 1 }}
-                                        required
-                                    >
-                                        <option value="">Day</option>
-                                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                            <option key={day} value={String(day).padStart(2, '0')}>{day}</option>
-                                        ))}
-                                    </select>
-                                    {/* Year Dropdown */}
-                                    <select
-                                        value={formData.birthYear || ''}
-                                        onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
-                                        style={{ ...styles.selectInput, flex: 1.2 }}
-                                        required
-                                    >
-                                        <option value="">Year</option>
-                                        {Array.from({ length: 82 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* City & State */}
-                            <div style={styles.rowGroup}>
-                                <div style={{ ...styles.inputGroup, flex: 2 }}>
-                                    <label style={styles.label}>City</label>
-                                    <input
-                                        type="text"
-                                        value={formData.city}
-                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        placeholder=""
-                                        style={styles.inputSingle}
-                                        required
-                                    />
-                                </div>
-                                <div style={{ ...styles.inputGroup, flex: 1 }}>
-                                    <label style={styles.label}>State</label>
-                                    <select
-                                        value={formData.state}
-                                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                        style={styles.selectInput}
-                                        required
-                                    >
-                                        <option value="">Select</option>
-                                        {US_STATES.map(st => (
-                                            <option key={st} value={st}>{st}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Poker Alias */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>
-                                    Poker Alias
-                                    <span style={styles.labelHint}>(You Can Change This Later)</span>
-                                </label>
-                                <div style={styles.aliasInputWrapper}>
-                                    <input
-                                        type="text"
-                                        value={formData.pokerAlias}
-                                        onChange={(e) => setFormData({ ...formData, pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
-                                        placeholder="YourPokerName"
-                                        style={{
-                                            ...styles.inputSingle,
-                                            borderColor: aliasAvailable === false ? '#F02849' :
-                                                aliasAvailable === true ? '#31A24C' :
-                                                    '#3E4042',
-                                        }}
-                                        minLength={3}
-                                        maxLength={20}
-                                        required
-                                    />
-                                    {aliasChecking && (
-                                        <span style={styles.aliasStatus}>Checking...</span>
-                                    )}
-                                    {!aliasChecking && aliasAvailable === true && (
-                                        <span style={{ ...styles.aliasStatus, color: '#31A24C' }}>✓ Available</span>
-                                    )}
-                                    {!aliasChecking && aliasAvailable === false && (
-                                        <span style={{ ...styles.aliasStatus, color: '#F02849' }}>✗ Taken</span>
-                                    )}
-                                </div>
-                                {aliasError && (
-                                    <span style={styles.fieldError}>{aliasError}</span>
-                                )}
-                            </div>
-
-                            {/* Phone Number with SMS Verification */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>
-                                    Phone Number
-                                    {phoneVerified && <span style={{ color: '#31A24C', marginLeft: '8px' }}>✓ Verified</span>}
-                                </label>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <div style={{ ...styles.phoneInput, flex: 1 }}>
-                                        <span style={styles.phonePrefix}>+1</span>
-                                        <input
-                                            type="tel"
-                                            value={formatPhone(formData.phone)}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder=""
-                                            style={{
-                                                ...styles.input,
-                                                borderColor: phoneVerified ? '#31A24C' : '#3E4042',
-                                            }}
-                                            maxLength={14}
-                                            required
-                                            disabled={phoneVerified}
-                                        />
-                                    </div>
-                                    {!phoneVerified && (
-                                        <button
-                                            type="button"
-                                            onClick={sendPhoneOtp}
-                                            disabled={phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, '').length !== 10}
-                                            style={{
-                                                padding: '12px 16px',
-                                                background: phoneOtpCooldown > 0 ? 'rgba(100, 100, 100, 0.5)' : '#1877F2',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                color: '#fff',
-                                                fontWeight: '600',
-                                                fontSize: '13px',
-                                                cursor: phoneSendingOtp || phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
-                                                whiteSpace: 'nowrap',
-                                                opacity: formData.phone.replace(/\D/g, '').length !== 10 ? 0.5 : 1,
-                                            }}
-                                        >
-                                            {phoneSendingOtp ? 'Sending...' : phoneOtpCooldown > 0 ? `Resend (${phoneOtpCooldown}s)` : phoneOtpSent ? 'Resend Code' : 'Send Code'}
-                                        </button>
-                                    )}
-                                </div>
-                                {/* OTP verification moved to modal popup */}
-
-                                {/* Phone Error Message */}
-                                {phoneError && (
-                                    <span style={{ color: '#F02849', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
-                                )}
-                            </div>
-
-                            {/* Promo Code or Referral Code (Optional) */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>
-                                    Promo Or Referral Code
-                                    <span style={styles.labelHint}>(Optional)</span>
-                                </label>
-                                <div style={styles.aliasInputWrapper}>
-                                    <input
-                                        type="text"
-                                        value={formData.promoCode}
-                                        onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-                                        placeholder=""
-                                        style={{
-                                            ...styles.inputSingle,
-                                            borderColor: promoValid === false ? '#F02849' :
-                                                promoValid === true ? '#31A24C' :
-                                                    '#3E4042',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '2px',
-                                            fontWeight: 600,
-                                        }}
-                                        maxLength={20}
-                                    />
-                                    {promoChecking && (
-                                        <span style={styles.aliasStatus}>Checking...</span>
-                                    )}
-                                    {!promoChecking && promoValid === true && (
-                                        <span style={{ ...styles.aliasStatus, color: '#31A24C' }}>✓ Valid</span>
-                                    )}
-                                    {!promoChecking && promoValid === false && (
-                                        <span style={{ ...styles.aliasStatus, color: '#F02849' }}>✗ Invalid</span>
-                                    )}
-                                </div>
-                                {/* Promo code success message */}
-                                {promoValid && promoDetails && !isReferralCode && (
-                                    <div style={{
-                                        marginTop: '6px',
-                                        padding: '8px 12px',
-                                        background: 'rgba(49, 162, 76, 0.15)',
-                                        border: '1px solid rgba(49, 162, 76, 0.3)',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        color: '#31A24C',
-                                    }}>
-                                        🎉 {promoDetails.description || `Bonus: ${promoDetails.value} ${promoDetails.type === 'vip_trial' ? 'day VIP trial' : 'diamonds'}`}
-                                    </div>
-                                )}
-                                {/* Referral code success message */}
-                                {referralValid && referralDetails && isReferralCode && (
-                                    <div style={{
-                                        marginTop: '6px',
-                                        padding: '8px 12px',
-                                        background: 'rgba(255, 255, 255, 0.08)',
-                                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        color: '#FFFFFF',
-                                    }}>
-                                        Referred by Player #{referralDetails.playerNumber} ({referralDetails.referrerName})
-                                    </div>
-                                )}
-                                {promoError && (
-                                    <span style={styles.fieldError}>{promoError}</span>
-                                )}
-                            </div>
-
-                            {/* RESTRICTED STATE NOTICE */}
-                            {isRestrictedState && (
-                                <div style={styles.restrictedNotice}>
-                                    <span style={styles.restrictedIcon}>⚠️</span>
-                                    <div>
-                                        <strong style={styles.restrictedTitle}>Restricted State Notice</strong>
-                                        <p style={styles.restrictedText}>
-                                            Residents of {formData.state} have full access to Training, Social, and Hub features.
-                                            Diamond Arena prize redemptions are not available in your state.
-                                        </p>
-                                    </div>
+                            {/* Floating Error Toast */}
+                            {error && (
+                                <div style={{
+                                    position: 'absolute', top: '15%', left: '10%', width: '80%', padding: '10px',
+                                    background: 'rgba(240, 40, 73, 0.9)', color: 'white', textAlign: 'center',
+                                    borderRadius: '8px', zIndex: 50, fontSize: '14px', fontWeight: 'bold'
+                                }}>
+                                    {error}
                                 </div>
                             )}
 
-                            {/* 18+ AGE VERIFICATION CHECKBOX */}
-                            <div style={styles.ageCheckbox}>
-                                <label style={styles.ageLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={ageConfirmed}
-                                        onChange={(e) => setAgeConfirmed(e.target.checked)}
-                                        style={styles.checkbox}
-                                        required
-                                    />
-                                    <span style={styles.ageLabelText}>
-                                        I Confirm That I Am <strong>18 Years Of Age Or Older</strong> And Agree
-                                        To The Platform's Terms.
-                                    </span>
-                                </label>
-                            </div>
+                            {/* Social Buttons */}
+                            <button type="button" onClick={() => handleOAuthSignIn('google')} disabled={!!oauthLoading} title="Continue With Google" style={{
+                                position: 'absolute', top: '22.5%', left: '31%', width: '38%', height: '3.5%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10
+                            }} />
+                            <button type="button" onClick={() => handleOAuthSignIn('facebook')} disabled={!!oauthLoading} title="Continue With Facebook" style={{
+                                position: 'absolute', top: '26.5%', left: '31%', width: '38%', height: '3.5%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10
+                            }} />
 
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    opacity: loading || aliasAvailable === false || !ageConfirmed || !phoneVerified ? 0.7 : 1,
-                                }}
-                                disabled={loading || aliasAvailable === false || !ageConfirmed || !phoneVerified}
-                            >
-                                {loading ? 'Creating Account...' : 'Create Account'}
-                            </button>
+                            {/* First Name & Last Name */}
+                            <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required style={{
+                                position: 'absolute', top: '35%', left: '31%', width: '18%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required style={{
+                                position: 'absolute', top: '35%', left: '51%', width: '18%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
 
-                            {/* Security Trust Badge */}
-                            <div style={styles.securityBadge}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                    <path d="M7 11V7a5 5 0 0110 0v4" />
+                            {/* Email Address */}
+                            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required style={{
+                                position: 'absolute', top: '40.5%', left: '31%', width: '38%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+
+                            {/* Password */}
+                            <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength={PW_MIN_LENGTH} style={{
+                                position: 'absolute', top: '46.5%', left: '31%', width: '35%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1} style={{
+                                position: 'absolute', top: '46.5%', left: '66%', width: '3%', height: '3%',
+                                background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11
+                            }} />
+
+                            {/* Confirm Password */}
+                            <input type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required minLength={PW_MIN_LENGTH} style={{
+                                position: 'absolute', top: '52%', left: '31%', width: '35%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} tabIndex={-1} style={{
+                                position: 'absolute', top: '52%', left: '66%', width: '3%', height: '3%',
+                                background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11
+                            }} />
+
+                            {/* DOB (Month, Day, Year) */}
+                            <select value={formData.birthMonth || ''} onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })} required style={{
+                                position: 'absolute', top: '56.5%', left: '31%', width: '12%', height: '2.5%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, appearance: 'none', padding: '0 8px'
+                            }}>
+                                <option value="" style={{color: '#000'}}>Month</option>
+                                <option value="01" style={{color: '#000'}}>January</option>
+                                <option value="02" style={{color: '#000'}}>February</option>
+                                <option value="03" style={{color: '#000'}}>March</option>
+                                <option value="04" style={{color: '#000'}}>April</option>
+                                <option value="05" style={{color: '#000'}}>May</option>
+                                <option value="06" style={{color: '#000'}}>June</option>
+                                <option value="07" style={{color: '#000'}}>July</option>
+                                <option value="08" style={{color: '#000'}}>August</option>
+                                <option value="09" style={{color: '#000'}}>September</option>
+                                <option value="10" style={{color: '#000'}}>October</option>
+                                <option value="11" style={{color: '#000'}}>November</option>
+                                <option value="12" style={{color: '#000'}}>December</option>
+                            </select>
+                            
+                            <select value={formData.birthDay || ''} onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })} required style={{
+                                position: 'absolute', top: '56.5%', left: '45.5%', width: '11%', height: '2.5%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, appearance: 'none', padding: '0 8px'
+                            }}>
+                                <option value="" style={{color: '#000'}}>Day</option>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                    <option key={day} value={String(day).padStart(2, '0')} style={{color: '#000'}}>{day}</option>
+                                ))}
+                            </select>
+                            
+                            <select value={formData.birthYear || ''} onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })} required style={{
+                                position: 'absolute', top: '56.5%', left: '58%', width: '11%', height: '2.5%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, appearance: 'none', padding: '0 8px'
+                            }}>
+                                <option value="" style={{color: '#000'}}>Year</option>
+                                {Array.from({ length: 82 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
+                                    <option key={year} value={year} style={{color: '#000'}}>{year}</option>
+                                ))}
+                            </select>
+
+                            {/* City & State */}
+                            <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} required style={{
+                                position: 'absolute', top: '61.5%', left: '31%', width: '20%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            <select value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} required style={{
+                                position: 'absolute', top: '61.5%', left: '52%', width: '17%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, appearance: 'none', padding: '0 8px'
+                            }}>
+                                <option value="" style={{color: '#000'}}>Select</option>
+                                {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                                  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+                                  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+                                  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                                  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(st => (
+                                    <option key={st} value={st} style={{color: '#000'}}>{st}</option>
+                                ))}
+                            </select>
+
+                            {/* Poker Alias */}
+                            <input type="text" value={formData.pokerAlias} onChange={(e) => setFormData({ ...formData, pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })} required minLength={3} maxLength={20} style={{
+                                position: 'absolute', top: '66%', left: '31%', width: '38%', height: '3%',
+                                background: 'transparent', border: 'none', color: aliasAvailable === false ? '#F02849' : (aliasAvailable === true ? '#31A24C' : '#fff'), fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            
+                            {/* Phone Number (+1 is built into the image design maybe? But we need a full input) */}
+                            {/* Actually there's a +1 box in the image. I will just overlay the input on the second box */}
+                            <input type="tel" value={formatPhone(formData.phone)} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required disabled={phoneVerified} maxLength={14} style={{
+                                position: 'absolute', top: '71.5%', left: '37%', width: '20.5%', height: '3%',
+                                background: 'transparent', border: 'none', color: phoneVerified ? '#31A24C' : '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px'
+                            }} />
+                            {!phoneVerified && (
+                                <button type="button" onClick={sendPhoneOtp} disabled={phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, '').length !== 10} title="Send Code" style={{
+                                    position: 'absolute', top: '71.5%', left: '59.5%', width: '9.5%', height: '3%',
+                                    background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
+                                }}>
+                                    {/* Text is painted on image. We just need the clickable area. */}
+                                    <span style={{color: 'transparent'}}>Send</span>
+                                </button>
+                            )}
+
+                            {/* Promo Code */}
+                            <input type="text" value={formData.promoCode} onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} maxLength={20} style={{
+                                position: 'absolute', top: '77%', left: '31%', width: '38%', height: '3%',
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', zIndex: 10, padding: '0 8px', textTransform: 'uppercase'
+                            }} />
+
+                            {/* Checkbox 18+ */}
+                            <input type="checkbox" checked={ageConfirmed} onChange={(e) => setAgeConfirmed(e.target.checked)} required style={{
+                                position: 'absolute', top: '80.5%', left: '31%', width: '2%', height: '2%',
+                                opacity: 0.01, cursor: 'pointer', zIndex: 10
+                            }} />
+                            {/* Render a checkmark if ageConfirmed is true, since the native checkbox is hidden */}
+                            {ageConfirmed && (
+                                <svg style={{ position: 'absolute', top: '80.5%', left: '31%', width: '2%', height: '2%', pointerEvents: 'none', zIndex: 11 }} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
-                                <span>256-bit SSL Encrypted</span>
-                            </div>
+                            )}
 
-                            <p style={styles.terms}>
-                                By Signing Up, You Agree To Our{' '}
-                                <a href="/terms" target="_blank" style={styles.termsLink}>Terms Of Service</a>
-                                {' '}And{' '}
-                                <a href="/terms" target="_blank" style={styles.termsLink}>Privacy Policy</a>
-                            </p>
+                            {/* Create Account Button */}
+                            <button type="submit" disabled={loading || aliasAvailable === false || !ageConfirmed || !phoneVerified} title="Create Account" style={{
+                                position: 'absolute', top: '84%', left: '31%', width: '38%', height: '3.5%',
+                                background: 'transparent', border: 'none', cursor: (loading || aliasAvailable === false || !ageConfirmed || !phoneVerified) ? 'not-allowed' : 'pointer', zIndex: 10
+                            }} />
+
+                            {/* Terms & Privacy */}
+                            <a href="/terms" target="_blank" style={{
+                                position: 'absolute', top: '89.5%', left: '47%', width: '5%', height: '1%',
+                                background: 'transparent', zIndex: 10, cursor: 'pointer'
+                            }} />
+                            <a href="/terms" target="_blank" style={{
+                                position: 'absolute', top: '89.5%', left: '58%', width: '4%', height: '1%',
+                                background: 'transparent', zIndex: 10, cursor: 'pointer'
+                            }} />
+
+                            {/* Sign In Link */}
+                            <button type="button" onClick={() => router.push('/auth/login')} title="Sign In" style={{
+                                position: 'absolute', top: '94.5%', left: '56%', width: '5%', height: '1.5%',
+                                background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
+                            }} />
+
                         </form>
-                    )}
-
+                    </div>
+                </div>
+            ) : (
+                <div style={styles.container}>
                     {/* ═══════════════════════════════════════════════════════════════
                         EMAIL PENDING — ENTER VERIFICATION CODE
                         ═══════════════════════════════════════════════════════════════ */}
@@ -1361,7 +938,7 @@ export default function SignUpPage() {
                             <h2 style={styles.successTitle}>Verify Your Email</h2>
 
                             <p style={styles.emailPendingText}>
-                                We've sent a 4-digit verification code to:
+                                We've sent a 6-digit verification code to:
                             </p>
                             <p style={styles.emailHighlight}>{formData.email}</p>
 

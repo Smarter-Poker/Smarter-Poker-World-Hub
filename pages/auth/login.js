@@ -37,9 +37,31 @@ export default function LoginPage() {
     // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
     const getRedirectUrl = () => {
         const r = router.query.redirect;
-        // Only allow internal redirects (prevent open redirect attacks)
-        if (r && typeof r === 'string' && r.startsWith('/')) return r;
+        // Only allow internal redirects (prevent open redirect attacks).
+        // '//evil.com' is protocol-relative and WOULD leave the site — block it.
+        if (r && typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r;
         return '/hub';
+    };
+
+    // ── [2026-08-04] Server-side error visibility ────────────────────────────
+    // Client Sentry is disabled (OOM workaround), so console.warn in these
+    // catch blocks was invisible in production — a big reason auth failures
+    // looked "silent". Fire-and-forget POST to the capture endpoint; never
+    // let telemetry break the auth flow itself.
+    const reportAuthError = (flow, err) => {
+        try {
+            fetch('/api/auth/log-client-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    flow,
+                    message: err?.message || String(err),
+                    stack: err?.stack,
+                    code: err?.code || err?.status,
+                    url: typeof window !== 'undefined' ? window.location.href : '',
+                }),
+            }).catch(() => { /* telemetry is best-effort */ });
+        } catch (_e) { /* never throw from telemetry */ }
     };
 
     // Load remembered email on mount
@@ -132,12 +154,12 @@ export default function LoginPage() {
             }
 
 
-
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
             router.push(getRedirectUrl());
         } catch (err) {
             console.warn('Login error:', err);
+            reportAuthError('login_form_submit', err);
 
             // ── [Phase 6.1.19] Account enumeration defense ──────────────────
             // Supabase normalises both "email not found" and "wrong password"
@@ -222,6 +244,7 @@ export default function LoginPage() {
             setMessage('Magic link sent! Check your email.');
         } catch (err) {
             console.warn('Magic link error:', err);
+            reportAuthError('magic_link_send', err);
             setError(err.message || 'Failed to send magic link');
         } finally {
             setIsLoading(false);
@@ -255,6 +278,7 @@ export default function LoginPage() {
             if (error) throw error;
         } catch (err) {
             console.warn(`${provider} sign in error:`, err);
+            reportAuthError('login_oauth_init', err);
             setError(err.message || `Failed to sign in with ${provider}`);
             setOauthLoading('');
         }
