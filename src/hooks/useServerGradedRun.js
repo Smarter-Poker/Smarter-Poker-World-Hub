@@ -116,12 +116,43 @@ export default function useServerGradedRun(mode, opts = {}) {
     }, [isEnabled, mode, opts.accessToken]);
 
     /**
+     * Record ONE answer mid-run and get its verdict back
+     * (/api/trivia/session-answer). The first answer per question is binding
+     * server-side, so this is safe to retry: a repeat call returns the same
+     * verdict for the stored answer. displayIndex < 0 records a skip.
+     *
+     * @param {{questionId: string, displayIndex: number}} arg
+     * @returns {Promise<{wasCorrect: boolean, correctDisplayIndex: number,
+     *           storedDisplayIndex: number, fresh: boolean,
+     *           explanation: string|null}>}
+     */
+    const answer = useCallback(async ({ questionId, displayIndex } = {}) => {
+        if (!isEnabled) throw new Error('server_grading_disabled');
+        const id = sessionRef.current;
+        if (!id) throw new Error('no_open_session');
+        if (typeof questionId !== 'string') throw new Error('missing_question_id');
+        return postJson(
+            '/api/trivia/session-answer',
+            {
+                sessionId: id,
+                questionId,
+                displayIndex: Number.isInteger(displayIndex) ? displayIndex : -1,
+            },
+            opts.accessToken
+        );
+    }, [isEnabled, opts.accessToken]);
+
+    /**
      * @param {Array<{questionId: string, displayIndex: number}>} answers
      * Unanswered questions may be omitted - the server scores over the roster
      * it served, so omitting one counts it wrong rather than shrinking the
      * denominator.
+     * @param {object} [submitOpts]
+     * @param {boolean} [submitOpts.cashedOut] Arcade: the player locked the
+     *        stake pot instead of finishing the run. The server only honours
+     *        it past the cash-out floor and recomputes the pot itself.
      */
-    const submit = useCallback(async (answers) => {
+    const submit = useCallback(async (answers, submitOpts = {}) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
         const id = sessionRef.current;
         if (!id) throw new Error('no_open_session');
@@ -138,7 +169,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 }));
             const json = await postJson(
                 '/api/trivia/session-submit',
-                { sessionId: id, answers: clean },
+                { sessionId: id, answers: clean, cashedOut: submitOpts.cashedOut === true },
                 opts.accessToken
             );
             // The session is single-use; clear it so a retry cannot re-submit.
@@ -166,5 +197,5 @@ export default function useServerGradedRun(mode, opts = {}) {
         setError(null);
     }, []);
 
-    return { isEnabled, sessionId, isStarting, isSubmitting, error, start, submit, reset };
+    return { isEnabled, sessionId, isStarting, isSubmitting, error, start, answer, submit, reset };
 }
