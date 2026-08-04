@@ -171,8 +171,16 @@ export async function middleware(request: NextRequest) {
             // already covered by the Bearer check + handler-level auth.
             const method = request.method.toUpperCase();
             if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+                // [2026-08-04] Either factor satisfies the edge gate:
+                //   - `mfa_session`        — 12h, minted on every code check
+                //   - `mfa_trusted_device` — 30d, minted when the user asks
+                //                            to remember this browser
+                // One text code every 30 days must cover every gate, so a
+                // live trusted device is accepted here exactly as a fresh
+                // session cookie is.
                 const mfaCookie = request.cookies.get('mfa_session')?.value;
-                if (!mfaCookie) {
+                const trustedCookie = request.cookies.get('mfa_trusted_device')?.value;
+                if (!mfaCookie && !trustedCookie) {
                     return NextResponse.json(
                         {
                             error: 'MFA challenge required for admin write actions.',
@@ -182,22 +190,31 @@ export async function middleware(request: NextRequest) {
                     );
                 }
 
-                // Lightweight edge-safe shape check. Full HMAC verification
-                // happens in the handler via requireMfaEnrolled() from
-                // src/lib/mfaGate.js — we can't use Node crypto in edge
-                // runtime without bundling subtle-crypto wrappers, and
-                // doing it twice (edge + handler) is belt-and-braces.
-                const parts = mfaCookie.split('.');
-                if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
-                    return NextResponse.json(
-                        { error: 'Malformed MFA token.', requiresMfa: true },
-                        { status: 403 }
-                    );
-                }
+                // Lightweight edge-safe shape + expiry check. Full HMAC
+                // verification happens in the handler via
+                // requireMfaEnrolled() from src/lib/mfaGate.js — we can't
+                // use Node crypto in edge runtime without bundling
+                // subtle-crypto wrappers, and doing it twice (edge +
+                // handler) is belt-and-braces.
+                //
+                // Token shape (both cookies):
+                //   <userId>.<issuedAtMs>.<hmac>
+                const MFA_TTL_MS = 12 * 60 * 60 * 1000;         // 12h
+                const TRUSTED_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30d
 
-                const issuedAt = parseInt(parts[1], 10);
-                const MFA_TTL_MS = 12 * 60 * 60 * 1000;
-                if (!Number.isFinite(issuedAt) || Date.now() - issuedAt > MFA_TTL_MS) {
+                const isLiveToken = (token: string | undefined, ttlMs: number): boolean => {
+                    if (!token) return false;
+                    const parts = token.split('.');
+                    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return false;
+                    const issuedAt = parseInt(parts[1], 10);
+                    if (!Number.isFinite(issuedAt)) return false;
+                    return Date.now() - issuedAt <= ttlMs;
+                };
+
+                const trustedOk = isLiveToken(trustedCookie, TRUSTED_TTL_MS);
+                const sessionOk = isLiveToken(mfaCookie, MFA_TTL_MS);
+
+                if (!trustedOk && !sessionOk) {
                     return NextResponse.json(
                         {
                             error: 'MFA session expired — please re-verify.',
