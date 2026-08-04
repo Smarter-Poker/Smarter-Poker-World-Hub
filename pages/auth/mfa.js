@@ -61,6 +61,29 @@ export default function MfaChallengePage() {
                 router.replace(`/auth/login?redirect=${encodeURIComponent('/auth/mfa')}`);
                 return;
             }
+
+            // ── [2026-08-04] DEAD-END GUARD ─────────────────────────────────
+            // If this user has NO enabled MFA factor, there is no TOTP secret
+            // to verify against — every code they type will fail and this
+            // page is an unpassable wall (the exact mechanism of the 525-user
+            // login lockout). Detect that state and pass the user through to
+            // their destination instead of trapping them. Fail open: if the
+            // probe errors (RLS, network), we keep the normal challenge UI.
+            if (!isStepUp) {
+                try {
+                    const { data: factor, error: fErr } = await supabase
+                        .from('user_mfa_factors')
+                        .select('enabled')
+                        .eq('user_id', s.user.id)
+                        .maybeSingle();
+                    if (!fErr && factor?.enabled !== true) {
+                        console.warn('[mfa] No enrolled factor for this user — challenge is unpassable. Passing through.');
+                        router.replace(getNextUrl());
+                        return;
+                    }
+                } catch (_probeErr) { /* keep challenge UI on probe failure */ }
+            }
+
             setSession(s);
             setCheckingSession(false);
             // Focus the code field once we're past the gate

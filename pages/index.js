@@ -238,7 +238,8 @@ export default function LandingPage() {
 
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { background: #0a0e17; overflow-x: hidden; }
+        html, body { background: #0a0e17; }
+        #__next { overflow-x: hidden; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0e17; }
         ::-webkit-scrollbar-thumb { background: #1a2a44; border-radius: 3px; }

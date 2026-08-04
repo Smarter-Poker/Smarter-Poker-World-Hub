@@ -436,36 +436,49 @@ export default function SignUpPage() {
     // ─────────────────────────────────────────────────────────────────────────
     const handleSignUp = async (e) => {
         e.preventDefault();
+        // [2026-08-04] Guard against double-submit: the HIBP password check
+        // below is an up-to-3s network call. Previously `loading` stayed
+        // false until AFTER it resolved, so a second click launched a
+        // concurrent signUp — the loser saw "already registered" and got
+        // dumped into the email_pending dead-end mid-flow.
+        if (loading) return;
+        setLoading(true);
         setError('');
 
         // Validate first and last name
         if (!formData.firstName.trim()) {
             setError('Please Enter Your First Name');
+            setLoading(false);
             return;
         }
         if (!formData.lastName.trim()) {
             setError('Please Enter Your Last Name');
+            setLoading(false);
             return;
         }
 
         // Validate alias availability
         if (aliasAvailable === false) {
             setError('Please Choose A Different Poker Alias');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length < 3) {
             setError('Poker Alias Must Be At Least 3 Characters');
+            setLoading(false);
             return;
         }
 
         if (formData.pokerAlias.length > 20) {
             setError('Poker Alias Must Be 20 Characters Or Less');
+            setLoading(false);
             return;
         }
 
         if (!isValidEmail(formData.email)) {
             setError('Please Enter A Valid Email Address');
+            setLoading(false);
             return;
         }
 
@@ -483,12 +496,14 @@ export default function SignUpPage() {
 
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords Do Not Match');
+            setLoading(false);
             return;
         }
 
         // Birthdate validation - must be 18+ (using dropdown values)
         if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
             setError('Please Select Your Complete Birth Date');
+            setLoading(false);
             return;
         }
         const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
@@ -497,18 +512,21 @@ export default function SignUpPage() {
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (age < 18 || (age === 18 && monthDiff < 0) || (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             setError('You Must Be 18 Years Or Older To Create An Account');
+            setLoading(false);
             return;
         }
 
         // 18+ Age Verification Check
         if (!ageConfirmed) {
             setError('You Must Confirm You Are 18+ Years Of Age');
+            setLoading(false);
             return;
         }
 
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
             setError('Please Enter A Valid 10-Digit Phone Number');
+            setLoading(false);
             return;
         }
 
@@ -521,8 +539,10 @@ export default function SignUpPage() {
 
         try {
             // Step 1: Create auth user with email/password
+            // [2026-08-04] Normalize the email the same way login.js does —
+            // "Dan@X.com " and "dan@x.com" must be the same account.
             const { data: authData, error: signUpError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
                 options: {
                     data: {
@@ -713,7 +733,9 @@ export default function SignUpPage() {
             // Redeem promo code if provided and valid
             if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
                 try {
-                    await fetch('/api/promo/redeem-promo-code', {
+                    // [2026-08-04] Check res.ok — a 4xx/5xx here previously
+                    // still logged "redeemed" and the user silently got nothing.
+                    const promoRes = await fetch('/api/promo/redeem-promo-code', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -721,7 +743,12 @@ export default function SignUpPage() {
                             userId: authData.user.id,
                         }),
                     });
-                    console.log('Promo code redeemed:', formData.promoCode);
+                    if (promoRes.ok) {
+                        console.log('Promo code redeemed:', formData.promoCode);
+                    } else {
+                        const body = await promoRes.text().catch(() => '');
+                        console.warn('Promo redemption failed (non-blocking):', promoRes.status, body.slice(0, 200));
+                    }
                 } catch (promoErr) {
                     console.warn('Promo redemption error (non-blocking):', promoErr);
                 }
@@ -730,7 +757,8 @@ export default function SignUpPage() {
             // Award referral bonus to referrer if referral code was used
             if (isReferralCode && referralValid && referralDetails && authData.user) {
                 try {
-                    await fetch('/api/rewards/referral', {
+                    // [2026-08-04] Check res.ok — see promo note above.
+                    const refRes = await fetch('/api/rewards/referral', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -738,7 +766,12 @@ export default function SignUpPage() {
                             referredUserId: authData.user.id,
                         }),
                     });
-                    console.log('Referral reward sent to:', referralDetails.referrerId);
+                    if (refRes.ok) {
+                        console.log('Referral reward sent to:', referralDetails.referrerId);
+                    } else {
+                        const body = await refRes.text().catch(() => '');
+                        console.warn('Referral reward failed (non-blocking):', refRes.status, body.slice(0, 200));
+                    }
                 } catch (refErr) {
                     console.warn('Referral reward error (non-blocking):', refErr);
                 }
@@ -1361,7 +1394,7 @@ export default function SignUpPage() {
                             <h2 style={styles.successTitle}>Verify Your Email</h2>
 
                             <p style={styles.emailPendingText}>
-                                We've sent a 4-digit verification code to:
+                                We've sent a 6-digit verification code to:
                             </p>
                             <p style={styles.emailHighlight}>{formData.email}</p>
 
