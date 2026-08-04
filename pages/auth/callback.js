@@ -56,6 +56,24 @@ export default function AuthCallback() {
             setTimeout(() => router.replace('/auth/login'), 1500);
         };
 
+        // [2026-08-04] Server-side error capture — client Sentry is disabled,
+        // so console.warn here was invisible in prod. Best-effort, never throws.
+        const reportAuthError = (flow, err) => {
+            try {
+                fetch('/api/auth/log-client-error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        flow,
+                        message: err?.message || String(err),
+                        stack: err?.stack,
+                        code: err?.code || err?.status,
+                        url: typeof window !== 'undefined' ? window.location.href : '',
+                    }),
+                }).catch(() => { /* best-effort */ });
+            } catch (_e) { /* never throw from telemetry */ }
+        };
+
         const handleCallback = async () => {
             try {
                 // ── 0. Wait for router to be ready so query/hash are populated ──
@@ -82,6 +100,7 @@ export default function AuthCallback() {
                     const { error: exchErr } = await supabase.auth.exchangeCodeForSession(codeStr);
                     if (exchErr) {
                         console.warn('[auth-callback] exchangeCodeForSession failed:', exchErr);
+                        reportAuthError('signup_oauth_callback', exchErr);
                         return goLogin('Could not complete sign-in. Please try again.');
                     }
                 }
@@ -177,10 +196,15 @@ export default function AuthCallback() {
                         // A subsequent app load will retry ensure-profile.
                         const body = await resp.text().catch(() => '');
                         console.warn('[auth-callback] ensure-profile non-200:', resp.status, body);
+                        reportAuthError('profile_provision', {
+                            message: `ensure-profile ${resp.status}: ${String(body).slice(0, 300)}`,
+                            status: resp.status,
+                        });
                     }
                 } catch (epErr) {
                     // Non-blocking
                     console.warn('[auth-callback] ensure-profile error (non-blocking):', epErr);
+                    reportAuthError('profile_provision', epErr);
                 }
 
                 // ── 7. Decide where to send the user ──
@@ -208,14 +232,21 @@ export default function AuthCallback() {
                 // user's enabled second factor. STRICT === true checks: any
                 // error / null / RLS denial fails OPEN so a broken table can
                 // never strand a sign-in on this screen.
+                //
+                // [2026-08-04] LOCKOUT FIX: challenge ONLY when an enabled
+                // factor is actually enrolled. profiles.mfa_required was
+                // force-set to TRUE for 525 users (VIP/admin trigger) while
+                // ZERO users had an enrolled factor — the challenge page was
+                // unpassable and sign-ins silently dead-ended. mfa_required
+                // alone must never gate a sign-in.
                 try {
-                    const [factorRes, profileRes] = await Promise.all([
-                        supabase.from('user_mfa_factors').select('enabled').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('profiles').select('mfa_required').eq('id', user.id).maybeSingle(),
-                    ]);
+                    const factorRes = await supabase
+                        .from('user_mfa_factors')
+                        .select('enabled')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
                     const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
-                    const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
-                    if (hasMfa || mfaRequired) {
+                    if (hasMfa) {
                         setStatus('Two-factor check…');
                         return setTimeout(() => router.replace(`/auth/mfa?next=${encodeURIComponent(dest)}`), 300);
                     }

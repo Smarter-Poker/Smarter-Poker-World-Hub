@@ -37,9 +37,31 @@ export default function LoginPage() {
     // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
     const getRedirectUrl = () => {
         const r = router.query.redirect;
-        // Only allow internal redirects (prevent open redirect attacks)
-        if (r && typeof r === 'string' && r.startsWith('/')) return r;
+        // Only allow internal redirects (prevent open redirect attacks).
+        // '//evil.com' is protocol-relative and WOULD leave the site — block it.
+        if (r && typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) return r;
         return '/hub';
+    };
+
+    // ── [2026-08-04] Server-side error visibility ────────────────────────────
+    // Client Sentry is disabled (OOM workaround), so console.warn in these
+    // catch blocks was invisible in production — a big reason auth failures
+    // looked "silent". Fire-and-forget POST to the capture endpoint; never
+    // let telemetry break the auth flow itself.
+    const reportAuthError = (flow, err) => {
+        try {
+            fetch('/api/auth/log-client-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    flow,
+                    message: err?.message || String(err),
+                    stack: err?.stack,
+                    code: err?.code || err?.status,
+                    url: typeof window !== 'undefined' ? window.location.href : '',
+                }),
+            }).catch(() => { /* telemetry is best-effort */ });
+        } catch (_e) { /* never throw from telemetry */ }
     };
 
     // Load remembered email on mount
@@ -143,22 +165,25 @@ export default function LoginPage() {
             //      than blocking sign-in.
             // Without this gate, a user who enrolls 2FA in settings gets NO
             // challenge at login — enrollment was shipped as pure theater.
+            //
+            // ── [2026-08-04] LOCKOUT FIX — challenge requires an ENROLLED factor ──
+            // Incident: fn_sync_mfa_required_on_role_change set
+            // profiles.mfa_required=TRUE for every VIP/admin profile touch.
+            // 525 of 1005 users had mfa_required=TRUE with ZERO enrolled
+            // factors platform-wide — the challenge page was unpassable
+            // (no TOTP secret exists), so login "silently failed" for half
+            // the user base. mfa_required alone must NEVER gate login;
+            // it only matters when the user actually has an enabled factor
+            // to verify against. (DB was also fixed: flag cleared for all
+            // factor-less users + trigger now checks enrollment first.)
             try {
-                const [factorRes, profileRes] = await Promise.all([
-                    supabase
-                        .from('user_mfa_factors')
-                        .select('enabled')
-                        .eq('user_id', data.user.id)
-                        .maybeSingle(),
-                    supabase
-                        .from('profiles')
-                        .select('mfa_required')
-                        .eq('id', data.user.id)
-                        .maybeSingle(),
-                ]);
+                const factorRes = await supabase
+                    .from('user_mfa_factors')
+                    .select('enabled')
+                    .eq('user_id', data.user.id)
+                    .maybeSingle();
                 const hasMfa = factorRes?.error == null && factorRes?.data?.enabled === true;
-                const mfaRequired = profileRes?.error == null && profileRes?.data?.mfa_required === true;
-                if (hasMfa || mfaRequired) {
+                if (hasMfa) {
                     // Check if they have a valid trusted device token
                     try {
                         const checkRes = await fetch('/api/auth/mfa/check-trusted', {
@@ -192,6 +217,7 @@ export default function LoginPage() {
             router.push(getRedirectUrl());
         } catch (err) {
             console.warn('Login error:', err);
+            reportAuthError('login_form_submit', err);
 
             // ── [Phase 6.1.19] Account enumeration defense ──────────────────
             // Supabase normalises both "email not found" and "wrong password"
@@ -276,6 +302,7 @@ export default function LoginPage() {
             setMessage('Magic link sent! Check your email.');
         } catch (err) {
             console.warn('Magic link error:', err);
+            reportAuthError('magic_link_send', err);
             setError(err.message || 'Failed to send magic link');
         } finally {
             setIsLoading(false);
@@ -309,6 +336,7 @@ export default function LoginPage() {
             if (error) throw error;
         } catch (err) {
             console.warn(`${provider} sign in error:`, err);
+            reportAuthError('login_oauth_init', err);
             setError(err.message || `Failed to sign in with ${provider}`);
             setOauthLoading('');
         }
@@ -508,7 +536,7 @@ export default function LoginPage() {
             )}
 
             {/* Auth Form */}
-            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="off" style={{
+            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="on" style={{
                 width: '100%',
                 maxWidth: 360,
                 display: 'flex',
@@ -521,7 +549,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    autoComplete="off"
+                    autoComplete="email"
                     style={{
                         padding: '14px 16px',
                         fontSize: 16,
@@ -541,7 +569,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        autoComplete="new-password"
+                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         style={{
                             width: '100%',
                             padding: '14px 48px 14px 16px',

@@ -33,10 +33,12 @@ export default async function handler(req, res) {
         const token = authHeader.replace('Bearer ', '');
         
         // Verify caller
+        // [2026-08-04] FIX: this previously destructured `authErr` but tested
+        // `authError` — an undeclared identifier. Every request threw
+        // ReferenceError into the outer catch → 100% of calls returned
+        // 500 "Internal server error", even fully valid ones.
         const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        /* removed duplicate authUser */
-        
+
         if (authErr || !authUser) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }

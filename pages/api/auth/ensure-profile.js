@@ -83,6 +83,20 @@ export default async function handler(req, res) {
               .eq('id', user_id)
               .maybeSingle();
 
+          // [2026-08-04] If the existence check itself errored (transient DB
+          // failure, RLS misconfig), we previously fell through to the CREATE
+          // path — the insert then hit a duplicate-PK error against the row
+          // we couldn't see, and the handler returned 500 FAILED even though
+          // a perfectly good profile existed. Bail out with 503 instead so
+          // the client's non-blocking retry path can try again later.
+          if (checkError) {
+              console.error('[ensure-profile] existence check failed:', checkError.message);
+              return res.status(503).json({
+                  status: 'RETRY',
+                  error: 'Profile lookup temporarily unavailable',
+              });
+          }
+
           if (existingProfile) {
               // Profile exists - optionally update last_login
               const { error: err_profiles_rzlwk } = await getSupabase()
@@ -122,7 +136,13 @@ export default async function handler(req, res) {
                   // the column wasn't selected — silently overwriting existing
                   // users' custom avatars with their Google picture.
                   .select('id, username, full_name, email, avatar_url, created_at')
-                  .ilike('email', email.trim())
+                  // [2026-08-04] Escape ILIKE wildcards. '_' is a legal and
+                  // common email character but a single-char wildcard in
+                  // ILIKE — 'john_doe@x.com' matched 'johnadoe@x.com' and
+                  // this handler then updated the WRONG USER'S profile and
+                  // nullified the new user's email. Escaping %, _ and \
+                  // makes this a case-insensitive exact match.
+                  .ilike('email', email.trim().replace(/([\\%_])/g, '\\$1'))
                   .maybeSingle();
 
               if (emailMatch && !emailCheckError) {
