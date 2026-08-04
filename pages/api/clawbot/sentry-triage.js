@@ -306,7 +306,7 @@ async function createGithubIssues(errors) {
         user_count: error.user_count,
       });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(err, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
       console.warn(`[CB-01] Failed to create GitHub issue for ${error.sentry_issue_id}:`, err.message);
       await logAudit(TASK_IDS.SENTRY_TRIAGE, 'github_issue_creation_failed', {
         sentry_id: error.sentry_issue_id,

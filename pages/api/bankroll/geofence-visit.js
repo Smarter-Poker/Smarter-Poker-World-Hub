@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
     const _authUser = authData?.user;
-    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });

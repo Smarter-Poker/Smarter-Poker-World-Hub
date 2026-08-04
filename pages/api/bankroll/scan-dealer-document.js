@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
       const user = authData?.user;
-      if (authError || !user) {
+      if (authErr || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 
@@ -150,7 +150,7 @@ If any field is not visible or not relevant to the document type, use null. Be s
         try {
             return JSON.parse(jsonMatch[0]);
         } catch (e) {
-            try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+            try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             console.warn('OCR Vault JSON Parse Error:', e);
             throw new Error('Failed to parse structured data from AI response.');
         }

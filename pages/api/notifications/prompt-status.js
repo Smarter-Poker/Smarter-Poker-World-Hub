@@ -204,7 +204,7 @@ async function ensureTable() {
         tableExists = true;
         return true;
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(err, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         tableChecked = true;
         return false;
     }

@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
     const user = authData?.user;
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { cashoutId, action, note } = req.body;
     if (!cashoutId || !['approve', 'cancel'].includes(action)) {
@@ -311,7 +311,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       });
     }
   } catch (e) {
-      try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[approve-cashout] Push notification failed:', e.message);
   }
 }
