@@ -1,6 +1,15 @@
 /**
  * GET /api/sandbox/custom-drill
- * W6-3: Fetches training_questions filtered by custom parameters (street, hero_position).
+ * W6-3: Fetches drill questions filtered by custom parameters (street, position).
+ *
+ * Source of truth is `training_question_cache` (27k+ rows in production), NOT
+ * `training_questions` (0 rows — querying it made every custom drill empty and
+ * broke the spaced-repetition review loop). The payload lives in the
+ * `question_data` jsonb: street/position under `question_data->scenario`,
+ * options as [{ id, text }], and `correctAnswer` holding an option *id* while
+ * the client (QuickSpotDrill.mapDrillRow → ensureAnswerable) matches the
+ * correct answer against option *text*. mapCacheRow below resolves all of that
+ * server-side into the mapped pool shape the client already understands.
  *
  * Response contract (QuickSpotDrill.jsx):
  *   { success: true, pool: [...], questions: [...] }  — both keys hold the same rows.
@@ -40,6 +49,50 @@ function shuffle(arr) {
     return out;
 }
 
+/**
+ * Maps a training_question_cache row to the pool shape QuickSpotDrill expects:
+ * { id, scenario_text, hero_hand, hero_position, street, options, correct_answer, gto_explanation }
+ *
+ * Options arrive as [{ id, text, frequency? }] and `correctAnswer` is the
+ * option id (e.g. "b16" or "d"). The client repairs any question whose
+ * correct_answer isn't among its option texts by splicing the raw value in as
+ * a new option — so resolving id → text here is correctness, not cosmetics.
+ * Returns null for rows that can't produce an answerable question; the caller
+ * filters those out rather than shipping a guaranteed-wrong drill.
+ */
+function mapCacheRow(row) {
+    const qd = row && row.question_data;
+    if (!qd || typeof qd !== 'object') return null;
+
+    const scen = (qd.scenario && typeof qd.scenario === 'object') ? qd.scenario : {};
+    const rawOptions = Array.isArray(qd.options) ? qd.options : [];
+    const optionTexts = rawOptions
+        .map((o) => (o && typeof o === 'object' ? o.text : o))
+        .map((o) => (o == null ? '' : String(o).trim()))
+        .filter(Boolean);
+    if (optionTexts.length < 2) return null;
+
+    const answerId = qd.correctAnswer == null ? '' : String(qd.correctAnswer).trim();
+    const answerFromId = rawOptions.find(
+        (o) => o && typeof o === 'object' && String(o.id).trim().toLowerCase() === answerId.toLowerCase()
+    );
+    const correctAnswer = (qd.correctAnswerText && String(qd.correctAnswerText).trim())
+        || (answerFromId && answerFromId.text ? String(answerFromId.text).trim() : '')
+        || answerId;
+    if (!correctAnswer) return null;
+
+    return {
+        id: row.id ?? null,
+        scenario_text: qd.question || scen.context || scen.title || 'What is the GTO play here?',
+        hero_hand: qd.heroHand || scen.heroHand || null,
+        hero_position: scen.heroPosition || null,
+        street: scen.street || null,
+        options: optionTexts,
+        correct_answer: correctAnswer,
+        gto_explanation: qd.explanation || null,
+    };
+}
+
 export default async function handler(req, res) {
   try {
       if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
@@ -56,16 +109,18 @@ export default async function handler(req, res) {
           const n = Math.min(Math.max(parseInt(limit, 10) || 10, 1), MAX_DRILL_LIMIT);
 
           let query = supabase
-              .from('training_questions')
-              .select('id, context, question_type, metadata, correct_answer')
-              .eq('status', 'active');
+              .from('training_question_cache')
+              .select('id, question_data');
 
-          // Apply filters
+          // Apply filters. Stored values are lowercase ("flop", "BTN") while
+          // the builder sends "Flop"/"BTN" — ilike is case-insensitive, and a
+          // filter on a null jsonb path excludes the row, which correctly
+          // drops SCENARIO (psychology) rows from street/position drills.
           if (street && street !== 'Any') {
-              query = query.ilike('metadata->>street', `${String(street).slice(0, 20)}%`);
+              query = query.ilike('question_data->scenario->>street', `${String(street).slice(0, 20)}%`);
           }
           if (position && position !== 'Any') {
-              query = query.ilike('metadata->>hero_position', `${String(position).slice(0, 20)}%`);
+              query = query.ilike('question_data->scenario->>heroPosition', `${String(position).slice(0, 20)}%`);
           }
 
           // Random sampling from a bounded candidate window, not the whole table.
@@ -77,7 +132,7 @@ export default async function handler(req, res) {
               throw error;
           }
 
-          const pool = shuffle(data || []).slice(0, n);
+          const pool = shuffle((data || []).map(mapCacheRow).filter(Boolean)).slice(0, n);
 
           // `pool` is what QuickSpotDrill reads; `questions` kept for parity with
           // the training route's response shape.
