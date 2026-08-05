@@ -1,6 +1,6 @@
 /**
  * LEAK REVIEW — spaced-repetition scheduling brain for leak drilling
- * ═══════════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════
  * PURE. DEPENDENCY-FREE. DETERMINISTIC.
  *
  *   • no React, no fetch, no storage, no `Date.now()` inside the maths —
@@ -34,9 +34,9 @@
  * a Supabase JSON column, both of which can hand back garbage.
  */
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // SCHEMA
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * Bump this whenever the persisted record shape changes, and teach
@@ -78,10 +78,10 @@ const DAY_MS = 86400000;
 /** Beyond this the Date constructor produces Invalid Date. */
 const MAX_TIME_MS = 8.64e15;
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // SMALL SAFE HELPERS — every one of these exists because a real record broke
 // something. None of them throw.
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 function num(value, fallback) {
     const n = typeof value === 'number' ? value : Number(value);
@@ -169,7 +169,7 @@ function isPlainRecordish(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // LEAK -> DRILL
 // The contract is set by QuickSpotDrill.jsx, which does
 // `new URLSearchParams(customParams)` and hits
@@ -187,7 +187,7 @@ function isPlainRecordish(value) {
 // Only these three keys are emitted. URLSearchParams stringifies undefined as
 // the literal "undefined", which would filter the pool down to nothing — so no
 // key is ever emitted with a non-string-safe value.
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 export const DRILL_STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
 export const DRILL_POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -327,9 +327,9 @@ export function leakToDrill(leak) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // RECORDS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 function blankRecord(leakId, nowMs, leakType) {
     const at = toIso(nowMs);
@@ -447,9 +447,9 @@ export function initialReview(leak, now) {
     return record;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // GRADING
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * Session size weighting. A 2-spot session is weak evidence about a leak that
@@ -534,7 +534,7 @@ export function gradeReview(record, outcome, now) {
     const evNudge = hasEvDelta ? clamp(-clamp(evDeltaRaw, -100, 100) * 0.1, -0.15, 0.15) : 0;
     const ease = clamp(prev.ease + (EASE_DELTA[band] || 0) + evNudge, MIN_EASE, MAX_EASE);
 
-    // ── reps / lapses / streak ────────────────────────────────────────────
+    // ── reps / lapses / streak ──────────────────────────────────────────────
     let reps = prev.reps;
     let lapses = prev.lapses;
     let strongStreak = prev.strongStreak;
@@ -592,9 +592,9 @@ export function gradeReview(record, outcome, now) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // DUE / QUEUE
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * A retired card is not due. A card with an UNREADABLE due date IS due —
@@ -733,9 +733,9 @@ export function dueQueue(records, leaks, now) {
     return dueQueueAll(records, leaks, now).slice(0, MAX_QUEUE);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // STATS
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 /**
  * Header numbers for the review UI.
@@ -801,4 +801,71 @@ export function reviewStats(records, now) {
         activeCount,
         totalCount: list.length,
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PROGRESS TO RESOLUTION
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * How far a leak is from provisional mastery, derived ONLY from graded drill
+ * outcomes already in the record — never estimated, never fabricated.
+ *
+ * The scheduler's actual retirement condition is: interval at MAX_INTERVAL_DAYS
+ * AND strongStreak >= RETIRE_AFTER_STRONG. Progress mirrors that condition
+ * directly: 75% of the bar is interval growth (the long haul — weeks of spaced
+ * repetition), 25% is the strong-session streak at the cap (the finishing
+ * move). 100% is therefore reachable only via `retired`, exactly like the
+ * schedule itself.
+ *
+ * `trend` compares the latest session's score with the mean of up to three
+ * sessions before it: 'improving' | 'steady' | 'slipping', or null when there
+ * are fewer than two graded sessions (one data point has no direction). A
+ * latest-session fail is always 'slipping' — the interval just hard-reset,
+ * and a bar that says otherwise would be lying.
+ *
+ * Pure and deterministic: same record in, same answer out. No clock.
+ *
+ * @param {object|null} record  review record in any schema version, or junk
+ * @returns {{ started: boolean, retired: boolean, percent: number,
+ *            stage: 'not-started'|'early'|'on-track'|'nearly-there'|'mastered',
+ *            trend: 'improving'|'steady'|'slipping'|null, sessions: number }}
+ */
+export function resolutionProgress(record) {
+    const rec = migrateRecord(record);
+    const none = { started: false, retired: false, percent: 0, stage: 'not-started', trend: null, sessions: 0 };
+    if (!rec) return none;
+
+    const sessions = rec.history.length;
+    const started = sessions > 0 || rec.reps > 0 || rec.lastReviewedAt !== null;
+    if (!started && !rec.retired) return none;
+
+    // ── trend ─────────────────────────────────────────────────────────────
+    let trend = null;
+    if (sessions >= 2) {
+        const scores = rec.history
+            .map(h => num(h && h.score, NaN))
+            .filter(Number.isFinite);
+        if (scores.length >= 2) {
+            const latest = scores[scores.length - 1];
+            const prior = scores.slice(-4, -1);
+            const priorMean = prior.reduce((a, b) => a + b, 0) / prior.length;
+            const latestBand = str(rec.history[rec.history.length - 1] && rec.history[rec.history.length - 1].band);
+            if (latestBand === 'fail') trend = 'slipping';
+            else if (latest - priorMean >= 0.1) trend = 'improving';
+            else if (latest - priorMean <= -0.1) trend = 'slipping';
+            else trend = 'steady';
+        }
+    }
+
+    if (rec.retired) {
+        return { started: true, retired: true, percent: 100, stage: 'mastered', trend, sessions };
+    }
+
+    const intervalProgress = clamp(rec.intervalDays / MAX_INTERVAL_DAYS, 0, 1);
+    const streakProgress = clamp(rec.strongStreak / RETIRE_AFTER_STRONG, 0, 1);
+    const percent = Math.round(75 * intervalProgress + 25 * streakProgress);
+
+    const stage = percent >= 75 ? 'nearly-there' : (percent >= 35 ? 'on-track' : 'early');
+    return { started: true, retired: false, percent, stage, trend, sessions };
 }

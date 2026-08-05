@@ -1,6 +1,6 @@
 /**
  * LEAK REVIEW SCHEDULER — UNIT TESTS
- * ─────────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────
  * `src/lib/sandbox/leakReview.js` is the scheduling brain behind drilling a
  * user's own detected leaks on a spaced-repetition cadence. It is pure and
  * deterministic ON PURPOSE — no Date.now(), no fetch, no React — precisely so
@@ -54,6 +54,7 @@ import {
     streetFromHint,
     positionFromHint,
     drillLength,
+    resolutionProgress,
 } from '../src/lib/sandbox/leakReview.js';
 
 const DAY = 86400000;
@@ -680,7 +681,7 @@ test('no exported function reads the wall clock', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // THE API ROUND-TRIP
-// ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
 // Everything above tests the module against ITSELF. That is exactly why two
 // real bugs stayed invisible: the module's own signature was always honoured
 // in the tests, and the persisted row was never modelled at all.
@@ -883,7 +884,7 @@ test('the route reads and writes the mastery columns', () => {
     }
 });
 
-// ── one set of ease bounds ─────────────────────────────────────────────────
+// ── one set of ease bounds ────────────────────────────────────────────────
 
 test('the route takes its ease bounds from the scheduler, not its own literals', () => {
     for (const name of ['MIN_EASE', 'MAX_EASE', 'DEFAULT_EASE']) {
@@ -899,7 +900,7 @@ test('the route takes its ease bounds from the scheduler, not its own literals',
     assert.doesNotMatch(ROUTE_SRC, /const EASE_MIN = [\d.]+;/);
 });
 
-// ── queue totals ───────────────────────────────────────────────────────────
+// ── queue totals ─────────────────────────────────────────────────────────────
 
 test('dueQueueAll reports the true total while dueQueue caps the session', () => {
     const leaks = [];
@@ -923,4 +924,90 @@ test('dueQueueAll reports the true total while dueQueue caps the session', () =>
         dueQueue([], leaks, T0).map(r => r.leakId),
         all.slice(0, MAX_QUEUE).map(r => r.leakId),
     );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// resolutionProgress() — progress to resolution
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('resolutionProgress: junk and empty records read as not started, never throw', () => {
+    for (const junk of [null, undefined, 42, 'x', [], { leakId: null }]) {
+        const p = resolutionProgress(junk);
+        assert.equal(p.started, false);
+        assert.equal(p.percent, 0);
+        assert.equal(p.stage, 'not-started');
+        assert.equal(p.trend, null);
+    }
+    // A freshly created record with no graded sessions is also not started.
+    const fresh = initialReview({ id: 'leak-a', leakType: 'x' }, T0);
+    const p = resolutionProgress(fresh);
+    assert.equal(p.started, false);
+    assert.equal(p.percent, 0);
+});
+
+test('resolutionProgress: percent grows monotonically across passed reviews and is bounded', () => {
+    let rec = initialReview({ id: 'leak-b' }, T0);
+    let prevPercent = 0;
+    for (let i = 0; i < 12; i++) {
+        rec = gradeReview(rec, { correct: 10, total: 10 }, T0 + i * 21 * DAY);
+        const p = resolutionProgress(rec);
+        assert.ok(Number.isFinite(p.percent));
+        assert.ok(p.percent >= 0 && p.percent <= 100, `percent in range (got ${p.percent})`);
+        assert.ok(p.percent >= prevPercent, `never regresses on a pass (${prevPercent} -> ${p.percent})`);
+        prevPercent = p.percent;
+    }
+    // A long run of perfect sessions must retire the leak — and read 100%.
+    const done = resolutionProgress(rec);
+    assert.equal(done.retired, true);
+    assert.equal(done.percent, 100);
+    assert.equal(done.stage, 'mastered');
+});
+
+test('resolutionProgress: 100% is reachable ONLY via retirement', () => {
+    // Interval at cap + streak just below the retire threshold: high, not 100.
+    const rec = migrateRecord({
+        leakId: 'leak-c',
+        intervalDays: MAX_INTERVAL_DAYS,
+        strongStreak: RETIRE_AFTER_STRONG - 1,
+        reps: 6,
+        retired: false,
+        lastReviewedAt: new Date(T0).toISOString(),
+        history: [{ at: new Date(T0).toISOString(), correct: 9, total: 10, score: 0.9, band: 'strong', intervalDays: MAX_INTERVAL_DAYS }],
+    });
+    const p = resolutionProgress(rec);
+    assert.equal(p.retired, false);
+    assert.ok(p.percent < 100, `not-yet-retired must be < 100 (got ${p.percent})`);
+    assert.ok(p.percent >= 75, 'interval at cap should read as nearly there');
+    assert.equal(p.stage, 'nearly-there');
+});
+
+test('resolutionProgress: a failed latest session reads as slipping', () => {
+    let rec = initialReview({ id: 'leak-d' }, T0);
+    rec = gradeReview(rec, { correct: 9, total: 10 }, T0);
+    rec = gradeReview(rec, { correct: 9, total: 10 }, T0 + 1 * DAY);
+    rec = gradeReview(rec, { correct: 1, total: 10 }, T0 + 4 * DAY); // fail
+    const p = resolutionProgress(rec);
+    assert.equal(p.trend, 'slipping');
+    assert.ok(p.percent >= 0 && p.percent <= 100);
+});
+
+test('resolutionProgress: rising scores read as improving; one session has no trend', () => {
+    let rec = initialReview({ id: 'leak-e' }, T0);
+    rec = gradeReview(rec, { correct: 5, total: 10 }, T0);
+    assert.equal(resolutionProgress(rec).trend, null, 'a single session has no direction');
+    rec = gradeReview(rec, { correct: 6, total: 10 }, T0 + 1 * DAY);
+    rec = gradeReview(rec, { correct: 9, total: 10 }, T0 + 4 * DAY);
+    assert.equal(resolutionProgress(rec).trend, 'improving');
+});
+
+test('resolutionProgress: retired record reports mastered even with junk history entries', () => {
+    const rec = {
+        leakId: 'leak-f',
+        retired: true,
+        history: [null, 'garbage', { score: 'NaN' }, { at: new Date(T0).toISOString(), correct: 10, total: 10, score: 1, band: 'strong', intervalDays: 21 }],
+    };
+    const p = resolutionProgress(rec);
+    assert.equal(p.retired, true);
+    assert.equal(p.percent, 100);
+    assert.equal(p.stage, 'mastered');
 });
