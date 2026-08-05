@@ -246,7 +246,7 @@ export default async function handler(req, res) {
       // Build typical open time range
       const activeHours = hourEntries.filter(h => h.frequency >= 2).map(h => h.hour).sort((a, b) => a - b);
       const openRange = activeHours.length >= 2
-        ? `${formatHour(activeHours[0])} \\u2013 ${formatHour(activeHours[activeHours.length - 1])}`
+        ? `${formatHour(activeHours[0])} \u2013 ${formatHour(activeHours[activeHours.length - 1])}`
         : null;
 
       // Textual prediction
