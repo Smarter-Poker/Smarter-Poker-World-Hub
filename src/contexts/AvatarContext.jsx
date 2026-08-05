@@ -11,6 +11,7 @@ import { getAuthUser } from '../lib/authUtils';
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 import { busEmit } from '../engine/EventBus';
 import { useProfileRealtime } from '../hooks/useProfileRealtime';
+import { writeVipProof, readVipProof, clearVipProof } from '../lib/gates/vipCache';
 
 const AvatarContext = createContext();
 
@@ -41,12 +42,16 @@ export function AvatarProvider({ children }) {
         } catch (_) { return null; }
     });
     const [loading, setLoading] = useState(true);
-    const [isVip, setIsVip] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try { return localStorage.getItem('sp-vip-status') === 'true'; } catch (e) { return false; }
-        }
-        return false;
-    });
+    // SECURITY (2026-08-05): isVip must NOT be seeded from localStorage.
+    // `sp-vip-status` is devtools-writable, and isVip is the signal every
+    // feature gate now trusts, so seeding from it handed out VIP for free for
+    // the whole window before /api/vip/check-status answered. Consumers that
+    // must not paywall a real VIP should wait on `vipResolved` rather than
+    // reading a cache: an unresolved VIP state means "unknown", not "no".
+    const [isVip, setIsVip] = useState(false);
+    // False until a server answer (or an explicit signed-out state) has settled
+    // the question. Gates treat unresolved as loading, never as not-VIP.
+    const [vipResolved, setVipResolved] = useState(false);
     // CRITICAL: Track auth initialization to prevent race condition
     // This stays true until INITIAL_SESSION event fires from Supabase
     const [initializing, setInitializing] = useState(true);
@@ -57,6 +62,7 @@ export function AvatarProvider({ children }) {
     async function fetchVipStatus(userId) {
         if (!userId) {
             setIsVip(false);
+            setVipResolved(true);
             return;
         }
         try {
@@ -81,27 +87,24 @@ export function AvatarProvider({ children }) {
                 const data = await response.json();
                 const vipStatus = data.isVip === true;
                 setIsVip(vipStatus);
-                // Sync to localStorage for optimistic rendering via useVIP hook
-                try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                // Server-verified in both directions: record it as the offline
+                // fallback on true, and clear the fallback on false so a lapsed
+                // membership cannot keep granting access from cache.
+                writeVipProof(userId, vipStatus);
             } else {
-                // BULLETPROOF: Fallback to localStorage instead of getUser()
-                const localUser = getAuthUser();
-                setIsVip(localUser?.user_metadata?.is_vip || false);
+                // The server answered, but not with a usable body (5xx, HTML
+                // error page, ...). user_metadata is NOT consulted here: it is
+                // writable by the user via supabase.auth.updateUser, so it was
+                // a second free VIP switch. Fall back to the user-bound,
+                // expiring cache written by an earlier verified answer.
+                setIsVip(readVipProof(userId));
             }
         } catch (err) {
             console.warn('Error fetching VIP status:', err);
-            // BULLETPROOF: Fallback to localStorage on any error
-            try {
-                const cachedVip = localStorage.getItem('sp-vip-status') === 'true';
-                if (cachedVip) {
-                    setIsVip(true);
-                } else {
-                    const localUser = getAuthUser();
-                    setIsVip(localUser?.user_metadata?.is_vip || false);
-                }
-            } catch {
-                setIsVip(false);
-            }
+            // Network failed entirely — degraded fallback only.
+            setIsVip(readVipProof(userId));
+        } finally {
+            setVipResolved(true);
         }
     }
 
@@ -232,8 +235,9 @@ export function AvatarProvider({ children }) {
             if (event === 'SIGNED_OUT') {
                 setUser(null);
                 setIsVip(false);
+                setVipResolved(true);
                 // Clear VIP cache so next user doesn't get stale VIP status
-                try { localStorage.removeItem('sp-vip-status'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                clearVipProof();
                 return;
             }
 
@@ -272,10 +276,17 @@ export function AvatarProvider({ children }) {
     useEffect(() => {
         function handleVipChange(e) {
             console.debug('[AvatarContext] VIP status change event received:', e.detail);
-            const vipGranted = e.detail?.vipGranted !== false;
-            setIsVip(vipGranted);
-            try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-            // Also re-fetch from server to confirm (non-blocking)
+            // SECURITY (2026-08-05): this used to grant VIP optimistically from
+            // the event detail. Any page script could fire
+            //   window.dispatchEvent(new CustomEvent('vip-status-changed',
+            //       { detail: { vipGranted: true } }))
+            // and unlock every gate. The event is now only a hint to re-ask the
+            // server; revocation still applies immediately because losing VIP is
+            // never the unsafe direction.
+            if (e.detail?.vipGranted === false) {
+                setIsVip(false);
+                clearVipProof();
+            }
             if (user?.id) {
                 fetchVipStatus(user.id);
             }
@@ -327,8 +338,10 @@ export function AvatarProvider({ children }) {
     // ═══════════════════════════════════════════════════════════════════
     useProfileRealtime(user?.id, {
         onVipUpdate: (vipStatus) => {
-            setIsVip(vipStatus);
-            try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            // Sourced from a Postgres realtime row change, not from the client.
+            setIsVip(vipStatus === true);
+            setVipResolved(true);
+            writeVipProof(user?.id, vipStatus === true);
         },
     });
 
@@ -531,6 +544,11 @@ export function AvatarProvider({ children }) {
         loading,
         user,
         isVip,
+        // False until the server has settled the VIP question. Gates must treat
+        // this as "unknown" (keep showing a loading state) rather than as
+        // "not VIP", so a paying member is never briefly paywalled — that need
+        // is what the old devtools-writable localStorage seed was serving.
+        vipResolved,
         initializing, // CRITICAL: Consumers must check this before showing "not logged in" UI
         showWelcomeModal,
         dismissWelcomeModal,

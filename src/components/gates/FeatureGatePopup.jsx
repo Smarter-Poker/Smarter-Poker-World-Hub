@@ -75,7 +75,7 @@ export function ActivePassCountdown({ expiresAt, label = "Pass" }) {
 // If user has access, the action runs. Otherwise, the popup shows.
 // ═══════════════════════════════════════════════════════════════════════════
 export function useFeatureGate(featureKey) {
-    const { user, isVip: contextIsVip, initializing } = useAvatar();
+    const { user, isVip: contextIsVip, vipResolved, initializing } = useAvatar();
     const userId = user?.id;
 
     const [hasAccess, setHasAccess] = useState(false);
@@ -87,17 +87,21 @@ export function useFeatureGate(featureKey) {
     // TRIPLE-FALLBACK VIP CHECK — never lock out a VIP user
     // Memoized to prevent infinite useEffect re-triggers
     // ═══════════════════════════════════════════════════════════════
-    const isVipTriple = useMemo(() => {
-        if (contextIsVip) return true;
-        if (typeof window !== 'undefined') {
-            try { if (localStorage.getItem('sp-vip-status') === 'true') return true; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-        }
-        if (user?.user_metadata?.is_vip) return true;
-        return false;
-    }, [contextIsVip, user?.user_metadata?.is_vip]);
+    // SECURITY (2026-08-05): the two former fallbacks here were both writable
+    // by the user — localStorage from devtools, and user_metadata via
+    // supabase.auth.updateUser({ data: { is_vip: true } }). Either one granted
+    // every gated feature with no server call. AvatarContext.isVip is the only
+    // server-verified signal, so it is now the only one that unlocks eagerly;
+    // the offline cache is consulted by checkFeatureAccess below, but only
+    // after every server path has failed (and it comes back `degraded: true`).
+    const isVipTriple = useMemo(() => contextIsVip === true, [contextIsVip]);
 
     useEffect(() => {
-        if (initializing) {
+        // `vipResolved === false` means the server has not answered yet. That is
+        // "unknown", not "not VIP" — hold the loading state instead of flashing
+        // a paywall at a paying member. (This is what the old localStorage seed
+        // was really for; it just paid for it with a free VIP switch.)
+        if (initializing || (user?.id && vipResolved === false)) {
             setLoading(true);
             return;
         }
@@ -124,7 +128,7 @@ export function useFeatureGate(featureKey) {
             setHasAccess(false);
             setLoading(false);
         }
-    }, [userId, featureKey, contextIsVip, initializing, isVipTriple]);
+    }, [userId, featureKey, contextIsVip, vipResolved, initializing, isVipTriple]);
 
     // ═══════════════════════════════════════════════════════════════
     // BUS LISTENER: React to cross-component access changes in real time
