@@ -42,8 +42,10 @@ import {
   safeStorage, usePrefersReducedMotion,
 } from '../../../src/components/sandbox/paKit';
 import {
-  dueQueueAll, reviewStats, leakToDrill, migrateRecord,
+  dueQueueAll, reviewStats, leakToDrill, migrateRecord, resolutionProgress,
   MAX_QUEUE as REVIEW_MAX_QUEUE, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION,
+  MAX_INTERVAL_DAYS as REVIEW_MAX_INTERVAL_DAYS,
+  RETIRE_AFTER_STRONG as REVIEW_RETIRE_AFTER_STRONG,
 } from '../../../src/lib/sandbox/leakReview';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -803,7 +805,52 @@ function BleedSummary({ leaks, isDemo }) {
 // LEAK CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
-function LeakCard({ leak, onOpen, onPractice, selected, demo }) {
+/**
+ * Compact fix-progress row shared by the card list. Derived entirely from
+ * graded drill sessions (resolutionProgress) — renders nothing until the leak
+ * has actually been drilled, so a bar can never claim progress that was not
+ * earned.
+ */
+function progressTone(progress) {
+  if (!progress) return T.accent;
+  if (progress.retired) return T.success;
+  if (progress.trend === 'slipping') return T.warn;
+  return T.accent;
+}
+
+function progressLabel(progress) {
+  if (!progress || !progress.started) return null;
+  if (progress.retired) return 'Mastered';
+  const trendWord = progress.trend === 'improving' ? ' · improving'
+    : progress.trend === 'slipping' ? ' · slipping'
+      : progress.trend === 'steady' ? ' · holding'
+        : '';
+  return `Fix progress ${progress.percent}%${trendWord}`;
+}
+
+function LeakCardProgress({ progress }) {
+  if (!progress || !progress.started) return null;
+  const tone = progressTone(progress);
+  return (
+    <span style={styles.leakCardProgress}>
+      <span
+        style={styles.progressTrack}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress.percent}
+        aria-label={`Fix progress ${progress.percent} percent`}
+      >
+        <span style={{ ...styles.progressFill, width: `${progress.percent}%`, background: tone }} />
+      </span>
+      <span style={{ ...styles.leakCardProgressLabel, color: progress.retired ? T.success : T.textMuted }}>
+        {progressLabel(progress)}
+      </span>
+    </span>
+  );
+}
+
+function LeakCard({ leak, onOpen, onPractice, selected, demo, progress }) {
   const ev = Math.abs(num(leak.evLossBB));
   const occ = Math.max(0, num(leak.occurrenceCount));
   const total = ev * occ;
@@ -837,6 +884,8 @@ function LeakCard({ leak, onOpen, onPractice, selected, demo }) {
           <span style={styles.leakCardMetricDim}>{occ} spot{occ === 1 ? '' : 's'}</span>
           <span style={styles.leakCardMetricStrong}>~{total.toFixed(1)} BB total</span>
         </span>
+
+        <LeakCardProgress progress={progress} />
 
         <span style={styles.leakCardBadges}>
           <LeakStatusBadge status={leak.status} />
@@ -907,9 +956,128 @@ function AutoGuidanceToggle({ value, onChange }) {
   );
 }
 
+const BAND_COLOR = {
+  strong: T.success,
+  pass: T.accent,
+  shaky: T.warn,
+  fail: T.danger,
+};
+
+const STAGE_COPY = {
+  'not-started': 'No drills yet. Your first review sets the baseline.',
+  early: 'Early days — each passed drill pushes the next review further out.',
+  'on-track': 'On track. Keep passing reviews and the gap between them keeps growing.',
+  'nearly-there': 'Nearly there — a few more strong sessions at the long interval retires this leak.',
+  mastered: 'Mastered. This leak stays quiet unless detection sees it again in your real hands.',
+};
+
+/**
+ * "Progress to resolution" — the leak visibly closing as it gets drilled.
+ * Everything shown is read from the graded review record (session history,
+ * interval, strong streak); nothing is estimated.
+ */
+function ResolutionProgressSection({ record }) {
+  const progress = resolutionProgress(record);
+  const rec = record ? migrateRecord(record) : null;
+  const tone = progressTone(progress);
+
+  const history = rec && Array.isArray(rec.history) ? rec.history : [];
+  const lastDrill = rec && rec.lastReviewedAt ? relativeDate(rec.lastReviewedAt) : null;
+
+  let nextDue = null;
+  if (rec && !progress.retired && rec.dueAt) {
+    const dueMs = new Date(rec.dueAt).getTime();
+    if (!Number.isNaN(dueMs)) {
+      nextDue = dueMs <= Date.now()
+        ? 'due now'
+        : new Date(dueMs).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  }
+
+  return (
+    <section style={styles.detailSection} aria-label="Progress to resolution">
+      <h3 style={styles.detailSectionTitle}>Progress to resolution</h3>
+
+      <div style={styles.progressHeaderRow}>
+        <span style={{ ...styles.progressPercent, ...numeric, color: tone }}>
+          {progress.retired ? 'Mastered' : `${progress.percent}%`}
+        </span>
+        {progress.trend && !progress.retired && (
+          <span style={{ ...styles.progressTrend, color: progress.trend === 'slipping' ? T.warn : T.textMuted }}>
+            {progress.trend === 'improving' ? 'Improving' : progress.trend === 'slipping' ? 'Slipping' : 'Holding steady'}
+          </span>
+        )}
+      </div>
+
+      <span
+        style={{ ...styles.progressTrack, height: 8 }}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress.percent}
+        aria-label={`Progress to resolution: ${progress.percent} percent`}
+      >
+        <span style={{ ...styles.progressFill, width: `${progress.percent}%`, background: tone }} />
+      </span>
+
+      <p style={styles.progressStageCopy}>{STAGE_COPY[progress.stage] || STAGE_COPY['not-started']}</p>
+
+      {progress.started && rec && (
+        <>
+          <div style={styles.statTileGrid}>
+            <StatTile label="Drills done" value={String(progress.sessions)} />
+            <StatTile
+              label="Strong streak"
+              value={`${Math.min(rec.strongStreak, REVIEW_RETIRE_AFTER_STRONG)}/${REVIEW_RETIRE_AFTER_STRONG}`}
+              tone={rec.strongStreak > 0 ? T.success : undefined}
+            />
+            <StatTile
+              label="Review gap"
+              value={`${rec.intervalDays}d / ${REVIEW_MAX_INTERVAL_DAYS}d`}
+            />
+          </div>
+
+          {history.length > 0 && (
+            <div style={styles.progressHistoryWrap} aria-label={`Last ${history.length} drill sessions`}>
+              <div style={styles.progressHistoryStrip}>
+                {history.map((h, i) => {
+                  const score = Math.max(0, Math.min(1, Number(h?.score) || 0));
+                  return (
+                    <span
+                      key={`${h?.at || 'session'}-${i}`}
+                      title={`${Math.round(score * 100)}% ${h?.band || ''}`.trim()}
+                      style={{
+                        ...styles.progressHistoryBar,
+                        height: `${Math.max(12, Math.round(score * 100))}%`,
+                        background: BAND_COLOR[h?.band] || T.surface3,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <span style={styles.progressHistoryCaption}>
+                Session accuracy, oldest to newest
+                {rec.lapses > 0 ? ` · ${rec.lapses} reset${rec.lapses === 1 ? '' : 's'}` : ''}
+              </span>
+            </div>
+          )}
+
+          {(lastDrill || nextDue) && (
+            <p style={styles.progressMetaLine}>
+              {lastDrill ? `Last drill ${lastDrill}` : null}
+              {lastDrill && nextDue ? ' · ' : null}
+              {nextDue ? `Next review ${nextDue}` : null}
+            </p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function LeakDetail({
   leak, onPracticeSandbox, onPracticeExample, onTrainDrills,
-  onMarkResolved, onReopen, isResolving,
+  onMarkResolved, onReopen, isResolving, reviewRecord,
 }) {
   const isDemoLeak = isDemoLeakId(leak?.id);
   const {
@@ -970,6 +1138,13 @@ function LeakDetail({
         <StatTile label="Occurrences" value={String(occ)} />
         <StatTile label="Total BB lost" value={`~${(ev * occ).toFixed(1)}`} tone={T.danger} />
       </div>
+
+      {/* Progress to resolution — real leaks only; a demo leak has no record */}
+      {!isDemoLeak && leak.status !== 'resolved' && (
+        <LeakErrorBoundary label="The progress tracker">
+          <ResolutionProgressSection record={reviewRecord} />
+        </LeakErrorBoundary>
+      )}
 
       {/* Trend */}
       <section style={styles.detailSection} aria-label="Trend">
@@ -1598,6 +1773,16 @@ export default function LeakFinderPage() {
     return Array.from(rawById.values());
   }, [reviewLocalRecords, reviewServerRecords]);
 
+  // Per-leak lookup for the progress-to-resolution surfaces (cards + detail).
+  // Keyed by String(leakId) — the same normalisation the queue uses.
+  const reviewRecordById = useMemo(() => {
+    const map = new Map();
+    for (const rec of reviewRecords) {
+      if (rec && rec.leakId) map.set(String(rec.leakId), rec);
+    }
+    return map;
+  }, [reviewRecords]);
+
   // Sample leaks are excluded: their schedule cannot be stored against an
   // account, and counting them would be a fake badge over data that is not yours.
   const reviewableLeaks = useMemo(
@@ -2047,6 +2232,9 @@ export default function LeakFinderPage() {
                             selected={String(selectedLeakId) === String(leak.id)}
                             onOpen={(l) => setSelectedLeakId(l.id)}
                             onPractice={handlePracticeSandbox}
+                            progress={(leaksAreDemo || isDemoLeakId(leak.id))
+                              ? null
+                              : resolutionProgress(reviewRecordById.get(String(leak.id)) || null)}
                           />
                         ))}
                       </ul>
@@ -2236,6 +2424,7 @@ export default function LeakFinderPage() {
                 onMarkResolved={handleMarkResolved}
                 onReopen={handleReopen}
                 isResolving={resolvingLeakId != null && String(resolvingLeakId) === String(selectedLeak.id)}
+                reviewRecord={reviewRecordById.get(String(selectedLeak.id)) || null}
               />
             )}
           </LeakErrorBoundary>
@@ -2851,6 +3040,83 @@ const styles = {
     color: T.textMuted,
     margin: `0 0 ${S.md}px`,
   },
+  // ── progress to resolution ────────────────────────────────────────────────
+  leakCardProgress: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    minWidth: 0,
+  },
+  leakCardProgressLabel: {
+    fontSize: F.caption,
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  progressTrack: {
+    display: 'block',
+    flex: 1,
+    minWidth: 0,
+    height: 6,
+    borderRadius: 999,
+    background: T.surface3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    display: 'block',
+    height: '100%',
+    borderRadius: 999,
+    transition: 'width .3s ease',
+  },
+  progressHeaderRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: S.sm,
+    marginBottom: S.xs,
+  },
+  progressPercent: {
+    fontSize: F.h2,
+    fontWeight: 700,
+  },
+  progressTrend: {
+    fontSize: F.caption,
+    fontWeight: 600,
+  },
+  progressStageCopy: {
+    fontSize: F.bodySm,
+    color: T.textMuted,
+    margin: `${S.sm}px 0 ${S.md}px`,
+    lineHeight: 1.5,
+  },
+  progressHistoryWrap: {
+    marginBottom: S.md,
+  },
+  progressHistoryStrip: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: 4,
+    height: 44,
+    padding: `0 2px`,
+  },
+  progressHistoryBar: {
+    display: 'block',
+    flex: 1,
+    maxWidth: 22,
+    minWidth: 6,
+    borderRadius: 3,
+  },
+  progressHistoryCaption: {
+    display: 'block',
+    fontSize: F.caption,
+    color: T.textDim,
+    marginTop: S.xs,
+  },
+  progressMetaLine: {
+    fontSize: F.caption,
+    color: T.textMuted,
+    margin: 0,
+  },
+
   statTileGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
