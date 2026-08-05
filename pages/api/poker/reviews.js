@@ -325,7 +325,7 @@ try {
         // Verified count
         const verified_count = statRows.filter(r => r.is_verified_player).length;
 
-        // ── LIST: sorted and paged in SQL ────────────────────────────────
+        // ── LIST: sorted and paged in SQL ────────────────────────────────────
         let listQuery = getSupabase()
           .from('venue_reviews')
           .select('id, user_id, venue_id, rating, review_text, reviewer_name, is_verified_player, helpful_count, unhelpful_count, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating, created_at, metadata')
