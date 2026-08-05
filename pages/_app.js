@@ -82,6 +82,7 @@ import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider, useAvatar } from '../src/contexts/AvatarContext';
+import useEasterEggSweep from '../src/hooks/useEasterEggSweep';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
@@ -587,6 +588,19 @@ function WelcomeModalGate() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// EASTER EGG WATCHER — makes the 67-egg catalog reachable
+// Renders nothing. Asks the server to re-check which eggs this user has earned
+// (on sign-in, and whenever a surface fires `sp-egg-check`) and toasts the
+// ones that land. Detection is entirely server-side: this never names an egg.
+// @see src/lib/rewards/eggVerifiers.js
+// ═══════════════════════════════════════════════════════════════════════════
+function EasterEggWatcher() {
+  const { user } = useAvatar();
+  useEasterEggSweep(user?.id || null);
+  return null;
+}
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -740,6 +754,9 @@ export default function App({ Component, pageProps }) {
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Welcome Modal" fallback={<></>}>
                                   <WelcomeModalGate />
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Easter Egg Watcher" fallback={<></>}>
+                                  <EasterEggWatcher />
                                 </HubErrorBoundary>
 
                               </ToastProvider>

@@ -13,19 +13,54 @@ if [ -z "$FILES" ]; then
   exit 0
 fi
 
-# Check for dangerous patterns
+# WHAT IS ACTUALLY DANGEROUS (refined 2026-08-05)
+#   The hazard is the ARGUMENT-LESS client form — supabase.auth.getUser() and
+#   supabase.auth.getSession() — which makes a network round-trip and hangs
+#   when the session is not ready. That is what authUtils.ts replaces.
+#
+#   Verifying a bearer token server-side, supabase.auth.getUser(token), is a
+#   different operation and is the sanctioned pattern for API routes: 38 route
+#   handlers under pages/api/ already do exactly that. Blocking it meant that
+#   editing any of those 38 files for an unrelated reason failed the commit and
+#   pushed people toward --no-verify, which also disables the merge-conflict
+#   marker check below — the one that prevents the April 2026 Vercel outage.
+#
+#   Inside pages/api/, only the argument-less forms are blocked. Browser code
+#   is unchanged: both forms still blocked there.
+#
+#   NOTE: scripts/pre-commit-hook.sh holds a near-duplicate of this logic and
+#   was updated to match. Only this file is wired to husky and actually runs.
 DANGEROUS=0
 for file in $FILES; do
-  if git show ":$file" 2>/dev/null | tr -d '\r' | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getUser'; then
-    echo "🚫 BLOCKED: $file contains supabase.auth.getUser()"
-    echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
-    DANGEROUS=1
-  fi
-  if git show ":$file" 2>/dev/null | tr -d '\r' | grep -v '^\s*//' | grep -v '^\s*\*' | grep -q 'supabase\.auth\.getSession'; then
-    echo "🚫 BLOCKED: $file contains supabase.auth.getSession()"
-    echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
-    DANGEROUS=1
-  fi
+  CONTENT=$(git show ":$file" 2>/dev/null | tr -d '\r' | grep -v '^[[:space:]]*//' | grep -v '^[[:space:]]*\*')
+
+  case "$file" in
+    pages/api/*)
+      if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getUser()'; then
+        echo "🚫 BLOCKED: $file contains argument-less supabase.auth.getUser()"
+        echo "   Server-side: verify the bearer token — supabase.auth.getUser(token)"
+        echo "   or use getServerUserWithFallback from '@/lib/serverAuth'"
+        DANGEROUS=1
+      fi
+      if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getSession()'; then
+        echo "🚫 BLOCKED: $file contains supabase.auth.getSession()"
+        echo "   Server-side there is no session — read the Authorization header"
+        DANGEROUS=1
+      fi
+      ;;
+    *)
+      if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getUser'; then
+        echo "🚫 BLOCKED: $file contains supabase.auth.getUser()"
+        echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
+        DANGEROUS=1
+      fi
+      if printf '%s' "$CONTENT" | grep -q 'supabase\.auth\.getSession'; then
+        echo "🚫 BLOCKED: $file contains supabase.auth.getSession()"
+        echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
+        DANGEROUS=1
+      fi
+      ;;
+  esac
 done
 
 if [ $DANGEROUS -eq 1 ]; then

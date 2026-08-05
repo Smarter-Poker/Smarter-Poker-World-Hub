@@ -43,6 +43,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
+import { createEggContext, verifyEgg } from '../../../src/lib/rewards/eggVerifiers';
 import {
     CATALOG_VERSION,
     REWARD_TIMEZONE,
@@ -272,8 +273,17 @@ export default async function handler(req, res) {
             });
         }
 
-        // Easter eggs: the amount lives on the egg, and staff-awarded eggs
-        // (verifiable:false) are not claimable from the browser at all.
+        // ── Easter eggs ───────────────────────────────────────────────────
+        // The amount lives on the egg, staff-awarded eggs (verifiable:false)
+        // are not claimable from the browser, and — the part that was missing
+        // until 2026-08-05 — the CONDITION must be proved server-side.
+        //
+        // This block used to check only that the key existed. The catalog ships
+        // in the client bundle, so every key was public and a single POST with
+        // targetId:'to_infinity' paid 500 ◆ (the whole monthly egg cap, $5 of
+        // liability) to any logged-in account that had earned nothing. Eggs
+        // now fail closed: no verifier in src/lib/rewards/eggVerifiers.js, or a
+        // verifier that says no, means no diamonds.
         let resolvedEgg = null;
         if (actionKey === 'easter_egg') {
             const egg = getEasterEgg(target.value);
@@ -287,6 +297,23 @@ export default async function handler(req, res) {
                     awarded: 0,
                     reason: 'not_eligible',
                     extra: { detail: 'This achievement is awarded by the team.' },
+                });
+            }
+
+            const eggCtx = createEggContext(supabase, userId);
+            const proof = await verifyEgg(target.value, eggCtx);
+            if (!proof.verified) {
+                console.warn(`[Claim] Egg "${target.value}" refused for ${userId}: ${proof.reason}`);
+                return respond(res, 200, {
+                    success: false,
+                    awarded: 0,
+                    reason: 'not_eligible',
+                    extra: {
+                        detail: proof.reason === 'no_verifier'
+                            ? 'This achievement is not trackable yet.'
+                            : 'You have not unlocked this achievement yet.',
+                        eggReason: proof.reason,
+                    },
                 });
             }
         }
@@ -351,7 +378,7 @@ export default async function handler(req, res) {
                     // awarded exactly 0. Resolved from EASTER_EGGS server-side;
                     // 'egg_diamonds' is a RESERVED metadata key so the spread
                     // above can never override it.
-                    ...(resolvedEgg ? { egg_diamonds: resolvedEgg.diamonds } : {}),
+                    ...(resolvedEgg ? { egg_diamonds: resolvedEgg.diamonds, egg_key: resolvedEgg.key } : {}),
                     _source: 'api/rewards/claim',
                     _catalog_version: CATALOG_VERSION,
                     _claimed_at: new Date().toISOString(),
