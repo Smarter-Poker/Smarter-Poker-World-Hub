@@ -5,6 +5,10 @@
  *
  * Methods:
  *   POST   — create a share link for the posted state_json (auth optional).
+ *   GET    — list the CALLER's share links (id, views, created_at — never
+ *            state_json, which can be 50KB per row). Auth required; guests
+ *            have no creator_id so there is nothing to list. This is what
+ *            makes links revocable outside the session that created them.
  *   DELETE — revoke a link the CALLER created. Scoped to creator_id; a link
  *            that exists but belongs to somebody else answers 404, not 403,
  *            so the endpoint cannot be used to probe which ids are real.
@@ -138,6 +142,50 @@ async function handleCreate(req, res, supabase) {
     return res.status(200).json({ success: true, shareId: data?.id, revocable: !!userId });
 }
 
+// ── GET: list the caller's links ───────────────────────────────────────────
+async function handleList(req, res, supabase) {
+    const userId = await resolveUserId(supabase, req);
+    if (!userId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    // Production stores the counter as `views`; older code paths in this file
+    // assumed `view_count`. Try reality first, fall back to the legacy name,
+    // and if neither column exists list without a counter rather than 500ing.
+    const attempts = ['id, views, created_at', 'id, view_count, created_at', 'id, created_at'];
+    let rows = null;
+    let lastError = null;
+    for (const columns of attempts) {
+        const { data, error } = await supabase
+            .from('sandbox_shared_scenarios')
+            .select(columns)
+            .eq('creator_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(100);
+        if (!error) { rows = data || []; lastError = null; break; }
+        lastError = error;
+        if (error.code === '42P01') {
+            // Table not deployed — an empty list is the truthful answer.
+            return res.status(200).json({ success: true, shares: [] });
+        }
+        if (error.code !== '42703') break; // only column-missing errors justify retrying
+    }
+
+    if (lastError) {
+        console.warn('[create-share] List error:', lastError.message);
+        return res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+
+    const shares = rows.map((r) => ({
+        id: r.id,
+        views: Number(r.views ?? r.view_count) || 0,
+        created_at: r.created_at ?? null,
+        url: `/sandbox/${r.id}`,
+    }));
+
+    return res.status(200).json({ success: true, shares });
+}
+
 // ── DELETE: revoke ─────────────────────────────────────────────────────────
 async function handleRevoke(req, res, supabase) {
     const userId = await resolveUserId(supabase, req);
@@ -241,13 +289,14 @@ export default async function handler(req, res) {
   try {
       const method = req.method;
 
-      // Writes (create/revoke) get the strict bucket; the public view beacon
-      // gets the read bucket so a busy shared link cannot exhaust it.
-      const limit = method === 'PATCH' ? (LIMITS.read || READ_LIMIT) : LIMITS.write;
+      // Writes (create/revoke) get the strict bucket; reads (the public view
+      // beacon and the authenticated list) get the read bucket so a busy
+      // shared link cannot exhaust the write budget.
+      const limit = (method === 'PATCH' || method === 'GET') ? (LIMITS.read || READ_LIMIT) : LIMITS.write;
       if (!applyRateLimit(req, res, limit)) return;
 
-      if (method !== 'POST' && method !== 'DELETE' && method !== 'PATCH') {
-          res.setHeader('Allow', 'POST, DELETE, PATCH');
+      if (method !== 'POST' && method !== 'DELETE' && method !== 'PATCH' && method !== 'GET') {
+          res.setHeader('Allow', 'GET, POST, DELETE, PATCH');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
@@ -260,6 +309,7 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Database initialization failed' });
           }
 
+          if (method === 'GET') return handleList(req, res, supabase);
           if (method === 'DELETE') return handleRevoke(req, res, supabase);
           if (method === 'PATCH') return handleViewIncrement(req, res, supabase);
           return handleCreate(req, res, supabase);
