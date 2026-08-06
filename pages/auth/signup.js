@@ -821,6 +821,7 @@ export default function SignUpPage() {
       />
 
       {step === 'info' ? (
+        <>
         <div
           style={{
             position: 'relative',
@@ -1545,6 +1546,7 @@ export default function SignUpPage() {
             </div>
           </div>
         )}
+        </>
       ) : (
         <>
           <div style={styles.container}>
