@@ -2068,12 +2068,34 @@ function UniversalDynamicTable({
         prevStreakRef.current = streak;
     }, [streak]);
 
-    // Speed tracking: reset timer on new question
+    // ONE DECISION, ONE KEY.
+    //
+    // A multi-street hand is a single question asked up to three times: flop,
+    // then turn, then river. `questionNumber` advances once per HAND (see the
+    // "questionNumber only advances once per hand" note in useGTOTrainer) and
+    // the continuation path there calls setCurrentQuestion/setCurrentStreet
+    // WITHOUT touching it. So anything keyed on `questionNumber` alone silently
+    // skips every street after the first.
+    //
+    // Measured on production (Blitz 7s, Preflop Blueprint): on the turn of a
+    // hand the clock re-armed but expiry never auto-submitted, because
+    // `selectedAnswer` still held the flop's answer and the expiry handler is
+    // guarded on `!selectedAnswer`. The hand sat there with a dead 0 on the
+    // plate and no way to act.
+    //
+    // This key changes on every DECISION -- new hand or new street -- and is
+    // the single reset signal for all per-decision state below.
+    const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
+
+    // Speed tracking: restart the clock on every new decision. Keyed on the
+    // hand alone this held the flop's start time through the turn and river,
+    // so `elapsed < 5` was never true and the speed bonus could not be earned
+    // on any street after the first.
     useEffect(() => {
         answerStartTime.current = Date.now();
         setShowWhyDrawer(false);
         setShowRangeGrid(false);
-    }, [questionNumber]);
+    }, [decisionKey]);
 
     // Swipe navigation: swipe left on feedback = Next Hand
     useEffect(() => {
@@ -2701,11 +2723,21 @@ function UniversalDynamicTable({
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
 
-    // Reset selectedAnswer + feedbackCollapsed on new question (BUG-1 fix)
+    // Reset selectedAnswer + feedbackCollapsed on every new DECISION (BUG-1 fix,
+    // widened from questionNumber to decisionKey -- see the note above). Leaving
+    // a stale `selectedAnswer` across a street boundary blocked the answer
+    // handler (`if (showFeedback || selectedAnswer) return;`), hid the action
+    // block (`!showFeedback && !selectedAnswer && question`), blocked the
+    // timer's auto-submit on expiry, and highlighted the previous street's
+    // answer as if it belonged to this one.
     React.useEffect(() => {
         setSelectedAnswer(null);
         setFeedbackCollapsed(false);
         setDeepAnalysisOpen(false);
+    }, [decisionKey]);
+
+    // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
+    React.useEffect(() => {
         try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [questionNumber]);
 
@@ -4148,8 +4180,8 @@ function UniversalDynamicTable({
                             <CountdownTimer
                                 seconds={trainerConfig?.timerSeconds || 30}
                                 questionNumber={questionNumber}
-                                // One decision = one clock. See CountdownTimer.
-                                resetKey={`${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`}
+                                // One decision = one clock. See decisionKey.
+                                resetKey={decisionKey}
                                 showFeedback={showFeedback}
                                 active={trainerConfig?.timerEnabled || false}
                                 variant="plate"
