@@ -2758,6 +2758,30 @@ function DailyChallengeBanner({ gtowScore, targetScore = 70 }) {
 // id set is kept so any persisted localStorage value still resolves.
 const TIMER_DURATIONS = { relaxed: 0, standard: 25, quick: 15, blitz: 7 };
 
+// GTOW parity #4 deleted the 60-second tier -- GTOW's longest timebank is 25s,
+// so a minute is four times the reference product's most generous setting. It
+// came back anyway, through `TIMER_DURATIONS[timerMode] || 60` at three call
+// sites. That expression is wrong twice over.
+//
+// (a) An UNKNOWN key falls through to 60. `/hub/training/multi-table` defaulted
+//     its timer to 'off', which is a value from the AUTO-ADVANCE vocabulary
+//     ('on' | 'off'), not this one. Measured on production: a direct visit to
+//     the multi-table screen ran a 60-second clock. That is the same class of
+//     bug as the three difficulty vocabularies -- two controls whose value sets
+//     look interchangeable and are not.
+// (b) `relaxed` maps to 0, which is FALSY, so even the correct no-timer key
+//     resolves to 60 here. It never showed because `timerEnabled` happened to
+//     be computed as `timerMode !== 'relaxed'` and masked it. Two bugs
+//     cancelling is not a fix; either one moving exposes the other.
+//
+// Resolve through these instead. An unrecognised mode means NO timer, never a
+// minute, and "is there a timer" is derived from the duration rather than from
+// a second string comparison that can drift away from the table above.
+const resolveTimerSeconds = (mode) => (
+  Object.prototype.hasOwnProperty.call(TIMER_DURATIONS, mode) ? TIMER_DURATIONS[mode] : 0
+);
+const isTimerEnabled = (mode) => resolveTimerSeconds(mode) > 0;
+
 function GodModeArenaInner({
   userId,
   gameId,
@@ -3249,16 +3273,30 @@ function GodModeArenaInner({
     if (typeof window !== 'undefined') localStorage.setItem('gma_difficulty', difficulty);
   }, [difficulty]);
 
-  // ●●● QW-2: TIMER MODE (relaxed/standard/blitz) ●●●
+  // ●●● QW-2: TIMER MODE (relaxed/standard/quick/blitz) ●●●
+  //
+  // Both sources are sanitised against TIMER_DURATIONS. `gma_timer` is a
+  // PERSISTED string, and every build that shipped `timer: 'off'` into this
+  // component wrote that out-of-vocabulary value straight back into it on the
+  // very next render. Reading it back unfiltered would hand a player who once
+  // opened the multi-table screen a permanently timer-less arena everywhere
+  // else too, because resolveTimerSeconds maps anything unknown to 0. So an
+  // unrecognised stored value falls back to the default tier instead of being
+  // trusted -- the stale key is repaired the first time the arena mounts.
   const [timerMode, setTimerMode] = useState(() => {
-    if (initialConfig?.timer) return initialConfig.timer;
-    if (typeof window !== 'undefined') return localStorage.getItem('gma_timer') || 'standard';
+    const known = (v) => typeof v === 'string'
+      && Object.prototype.hasOwnProperty.call(TIMER_DURATIONS, v);
+    if (known(initialConfig?.timer)) return initialConfig.timer;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('gma_timer');
+      if (known(stored)) return stored;
+    }
     return 'standard';
   });
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('gma_timer', timerMode);
   }, [timerMode]);
-  const [timerRemaining, setTimerRemaining] = useState(TIMER_DURATIONS[timerMode] || 60);
+  const [timerRemaining, setTimerRemaining] = useState(resolveTimerSeconds(timerMode));
   const timerIntervalRef = useRef(null);
 
   // Reset timer when new question loads
@@ -3267,8 +3305,8 @@ function GodModeArenaInner({
   useEffect(() => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     // Skip if UDT CountdownTimer is handling the timer (GTO trainer modes)
-    if (trainerConfig?.timerEnabled || timerMode !== 'relaxed') return;
-    const duration = TIMER_DURATIONS[timerMode];
+    if (trainerConfig?.timerEnabled || isTimerEnabled(timerMode)) return;
+    const duration = resolveTimerSeconds(timerMode);
     if (!duration || !currentQuestion || showFeedback || gameComplete) return;
     setTimerRemaining(duration);
     timerIntervalRef.current = setInterval(() => {
@@ -12833,8 +12871,8 @@ function GodModeArenaInner({
                   trainerConfig={{
                     ...trainerConfig,
                     // Merge GodModeArena timer settings if no custom config timer
-                    timerEnabled: trainerConfig?.timerEnabled || timerMode !== 'relaxed',
-                    timerSeconds: trainerConfig?.timerSeconds || TIMER_DURATIONS[timerMode] || 60,
+                    timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
+                    timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
                   }}
                 />
               ) : null}
@@ -12916,8 +12954,8 @@ function GodModeArenaInner({
             getKeyConceptReminders={getKeyConceptReminders}
             trainerConfig={{
               ...trainerConfig,
-              timerEnabled: trainerConfig?.timerEnabled || timerMode !== 'relaxed',
-              timerSeconds: trainerConfig?.timerSeconds || TIMER_DURATIONS[timerMode] || 60,
+              timerEnabled: trainerConfig?.timerEnabled || isTimerEnabled(timerMode),
+              timerSeconds: trainerConfig?.timerSeconds || resolveTimerSeconds(timerMode),
             }}
           />
         ) : null}

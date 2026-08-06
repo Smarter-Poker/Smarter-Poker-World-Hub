@@ -30,6 +30,11 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
 // GAME PRESETS FOR MULTI-TABLE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// The timebank vocabulary, mirrored from SessionSetupModal's TIMER_OPTIONS and
+// GodModeArena's TIMER_DURATIONS. Kept here as a whitelist so a stray or stale
+// `?timer=` in a bookmarked URL cannot reach the arena as an unknown key.
+const TIMER_MODES = { relaxed: 1, standard: 1, quick: 1, blitz: 1 };
+
 const MULTI_TABLE_GAMES = [
   { id: 'cash-002', name: '3-Bet Pots' },
   { id: 'cash-003', name: 'Continuation Betting' },
@@ -149,7 +154,15 @@ export default function MultiTablePage() {
   // splashes, each of which had to be dismissed before that table would deal.
   const arenaInitialConfig = useMemo(() => ({
     difficulty: typeof router.query.difficulty === 'string' ? router.query.difficulty : 'standard',
-    timer: typeof router.query.timer === 'string' ? router.query.timer : 'off',
+    // GTOW parity #4: 'off' is a value from the AUTO-ADVANCE vocabulary, not
+    // the timebank one, which runs 'relaxed' | 'standard' | 'quick' | 'blitz'.
+    // Handing it to the arena missed every entry in TIMER_DURATIONS and landed
+    // on a 60-second fallback -- four times GTOW's longest timebank, and the
+    // exact tier #4 removed. Measured live on the multi-table screen. Anything
+    // unrecognised now means no timer, which is what 'off' was reaching for.
+    timer: Object.prototype.hasOwnProperty.call(TIMER_MODES, router.query.timer)
+      ? router.query.timer
+      : 'relaxed',
     mode: 'standard',
     autoAdvance: isAutoAdvance,
     // GTOW parity #7: the hand-selection filter has to survive the hop through
