@@ -374,6 +374,19 @@ export default function LoginPage() {
                     .auth-input::placeholder {
                         color: rgba(255, 255, 255, 0.4);
                     }
+                    .login-input-box {
+                        background: rgba(0, 0, 0, 0.45) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                        border-radius: 6px !important;
+                        color: #fff !important;
+                        font-size: 14px !important;
+                        transition: border-color 0.2s, box-shadow 0.2s;
+                    }
+                    .login-input-box:focus {
+                        border-color: rgba(0, 212, 255, 0.8) !important;
+                        box-shadow: 0 0 8px rgba(0, 212, 255, 0.35) !important;
+                        outline: none !important;
+                    }
                 `}</style>
 
                 {/* 
@@ -458,14 +471,11 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
+                        className="login-input-box"
                         style={{
                             position: 'absolute', top: '66.5%', left: '29%', width: '42%', height: '4.5%',
-                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
-                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10,
-                            borderRadius: '4px'
+                            padding: '0 16px', boxSizing: 'border-box', zIndex: 10,
                         }}
-                        onFocus={(e) => { e.target.style.boxShadow = '0 0 8px 2px rgba(0, 212, 255, 0.3)'; }}
-                        onBlur={(e) => { e.target.style.boxShadow = 'none'; }}
                     />
 
                     {/* Password Input Overlay */}
@@ -476,14 +486,11 @@ export default function LoginPage() {
                         required
                         minLength={6}
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        className="login-input-box"
                         style={{
-                            position: 'absolute', top: '71.5%', left: '29%', width: '38%', height: '4.5%',
-                            background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem',
-                            padding: '0 16px', boxSizing: 'border-box', outline: 'none', zIndex: 10,
-                            borderRadius: '4px'
+                            position: 'absolute', top: '71.5%', left: '29%', width: '42%', height: '4.5%',
+                            padding: '0 16px', boxSizing: 'border-box', zIndex: 10,
                         }}
-                        onFocus={(e) => { e.target.style.boxShadow = '0 0 8px 2px rgba(0, 212, 255, 0.3)'; }}
-                        onBlur={(e) => { e.target.style.boxShadow = 'none'; }}
                     />
 
                     {/* Show Password Toggle (Positioned over the eye icon in the image) */}
