@@ -47,6 +47,11 @@ const REQUIRED_TEST_FILES = [
     // EquityEngine.js — the worker holds a generated COPY of the Monte Carlo
     // core, so drift is silent and user-visible.
     '__tests__/equity-worker-parity.test.mjs',
+    // Body-scroll locking (roadmap #47). This bug has been fixed twice and
+    // regressed once, each attempt trading one failure mode for another:
+    // recover leaked locks and you stomp live ones, refuse to stomp live ones
+    // and a leaked lock strands the app forever. The guard pins BOTH halves.
+    '__tests__/scroll-lock.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

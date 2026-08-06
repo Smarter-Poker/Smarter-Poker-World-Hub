@@ -17,6 +17,7 @@ import { getAuthUser } from '../../../../src/lib/authUtils';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 import ErrorBanner from '../../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../../src/components/training/ConnectionToast';
+import { clearBodyScrollLockIfUnheld } from '../../../../src/lib/scrollLock';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
@@ -134,6 +135,19 @@ export default function TrainingArenaPage() {
         }
         router.replace(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
     }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // roadmap #47 — defensive unlock. This route is the SECOND mount point for
+    // GodModeArena (pages/hub/training.js renders it inline as the first), and
+    // it was the one with no safety valve at all: every guard written for the
+    // scroll-lock bug lived on the other page. An arena reached by URL that
+    // failed to release its lock therefore stranded the app with nothing on
+    // this route able to notice.
+    //
+    // Runs on unmount rather than mount: while this page is mounted the arena
+    // is entitled to hold the lock, and clearBodyScrollLockIfUnheld is a no-op
+    // whenever anybody still holds one, so this can only ever free a page that
+    // is genuinely stuck.
+    useEffect(() => () => { clearBodyScrollLockIfUnheld(); }, []);
 
     // Resolve game name from TRAINING_LIBRARY
     const game = gameId ? getGameById(gameId) : null;

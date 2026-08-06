@@ -400,7 +400,8 @@ jobs:
             __tests__/build-2-deliverables.test.mjs \
             __tests__/sentry-coverage.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
-            __tests__/phase-4-deliverables.test.mjs
+            __tests__/phase-4-deliverables.test.mjs \
+            __tests__/scroll-lock.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11

@@ -98,6 +98,7 @@ import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import GlobalPiPManager from '../src/components/social/GlobalPiPManager';
+import { advanceScrollLockGeneration, sweepStaleScrollLocks, clearBodyScrollLockIfUnheld, scrollLockCount } from '../src/lib/scrollLock';
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -437,6 +438,13 @@ function NavigationGuard({ children }) {
         try { iframe.src = 'about:blank'; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       });
 
+      // roadmap #47: advance the scroll-lock generation BEFORE the incoming
+      // page mounts, so any lock it takes is stamped with the new generation
+      // and the sweep in handleComplete provably cannot touch it. Everything
+      // still stamped with the OLD generation once navigation finishes belongs
+      // to a page that no longer exists, and is therefore a leak.
+      advanceScrollLockGeneration();
+
       // Also set React state (for components that check it)
       setIsNavigating(true);
     };
@@ -459,12 +467,26 @@ function NavigationGuard({ children }) {
       // regression on mobile and desktop when components set
       // document.body.style.overflow = 'hidden' but don't reset it.
       // Also clears .reels-lock class in case Reels left it on body.
+      //
+      // roadmap #47: this used to clear `overflow` unconditionally, which made
+      // it the exact opposite of the counter-aware failsafe further down this
+      // same file — one stomped a lock a live arena legitimately held while
+      // the other refused to. Sweep the previous page's leaked locks first,
+      // then clear only if nobody is left holding one. The other properties
+      // below have no reference count and no live holder, so they stay
+      // unconditional.
       // ═══════════════════════════════════════════════════════════════════
-      document.body.style.overflow = '';
+      sweepStaleScrollLocks();
+      if (scrollLockCount() === 0) {
+        document.body.style.overflow = '';
+      }
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.touchAction = '';
       document.body.classList.remove('reels-lock');      // FIX: clear Reels class lock
+      // `documentElement` is never used as a lock target by the arena — only
+      // Reels sets it — so clearing it unconditionally is safe and is what
+      // frees a page Reels stranded.
       document.documentElement.style.overflow = '';
       document.documentElement.classList.remove('reels-lock'); // FIX: clear html lock too
     };
@@ -621,15 +643,14 @@ export default function App({ Component, pageProps }) {
     path.includes('/union')
   ) && !isPokerTool;
 
-  // Global Failsafe: Clear stranded scroll locks on route change
+  // Global Failsafe: Clear stranded scroll locks on route change.
+  // roadmap #47: kept as a second, independent pass because the handler above
+  // lives inside a large effect that other work could regress; this one does
+  // nothing unless the page is genuinely stranded (locked with no holder), so
+  // running it twice costs nothing and it cannot free a live lock.
   useEffect(() => {
     const handleRouteChange = () => {
-      if (typeof window !== 'undefined' && document.body) {
-        if (document.body.style.overflow === 'hidden' && (window.__spScrollLocks || 0) === 0) {
-          document.body.style.removeProperty('overflow');
-          console.debug('[App] Cleared stale body overflow lock on route change');
-        }
-      }
+      clearBodyScrollLockIfUnheld();
     };
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => router.events.off('routeChangeComplete', handleRouteChange);

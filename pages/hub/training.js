@@ -50,6 +50,7 @@ import DiamondEngine from '../../src/services/DiamondEngine';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
+import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -153,11 +154,8 @@ export default function TrainingPage() {
   useEffect(() => {
     if (showArena) return;              // the arena is entitled to hold the lock
     if (typeof window === 'undefined') return;
-    if ((window.__spScrollLocks || 0) > 0) return; // a live locker owns it
-    if (document.body.style.overflow === 'hidden') {
-      document.body.style.removeProperty('overflow');
-      console.debug('[Training] cleared a stale body scroll lock');
-    }
+    if (scrollLockCount() > 0) return;  // a live locker owns it
+    clearBodyScrollLockIfUnheld();
   }, [showArena]);
 
   const handleSetupStart = useCallback((prefs) => {

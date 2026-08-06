@@ -429,6 +429,7 @@ import { eventBus, EventType } from '../../engine/EventBus';
 // Extracted utilities
 import { saveSession } from './utils/saveSession';
 import { checkSpeedBonus } from './utils/achievementChecker';
+import { acquireScrollLock } from '../../lib/scrollLock';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
 const FULL_SCREEN_UI_GAMES = [
@@ -3620,15 +3621,16 @@ function GodModeArenaInner({
     // Reference-count instead: the last component to release always CLEARS the
     // property rather than restoring a possibly-stale value. Overlapping locks
     // are now safe and the page can never be stranded.
+    //
+    // 2026-08-06 (roadmap #47, second pass): the bare counter fixed stranding
+    // by a stale captured value but could itself get stuck positive — an
+    // unmount whose cleanup did not run leaves it at 1 forever, and every
+    // safety valve in the app stands down when it is positive, so the page
+    // becomes permanently unscrollable with no recovery. src/lib/scrollLock.js
+    // holds the same reference count in an auditable registry that heals
+    // itself on the next navigation. Behaviour here is otherwise identical.
     if (typeof window === 'undefined') return undefined;
-    window.__spScrollLocks = (window.__spScrollLocks || 0) + 1;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.__spScrollLocks = Math.max(0, (window.__spScrollLocks || 1) - 1);
-      if (window.__spScrollLocks === 0) {
-        document.body.style.removeProperty('overflow');
-      }
-    };
+    return acquireScrollLock('GodModeArena');
   }, []);
 
   // ●●● QW-2 / T2-2: KEYBOARD SHORTCUTS ●●●
