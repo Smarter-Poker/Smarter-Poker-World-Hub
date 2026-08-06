@@ -1,6 +1,6 @@
 /**
  * LEAK REVIEW — spaced-repetition scheduling brain for leak drilling
- * ═══════════════════════════════════════════════════════════════════════
+ * ═══════════════════════════════════════════════════════════════════════════
  * PURE. DEPENDENCY-FREE. DETERMINISTIC.
  *
  *   • no React, no fetch, no storage, no `Date.now()` inside the maths —
@@ -34,9 +34,9 @@
  * a Supabase JSON column, both of which can hand back garbage.
  */
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Bump this whenever the persisted record shape changes, and teach
@@ -78,10 +78,10 @@ const DAY_MS = 86400000;
 /** Beyond this the Date constructor produces Invalid Date. */
 const MAX_TIME_MS = 8.64e15;
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // SMALL SAFE HELPERS — every one of these exists because a real record broke
 // something. None of them throw.
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 function num(value, fallback) {
     const n = typeof value === 'number' ? value : Number(value);
@@ -169,7 +169,7 @@ function isPlainRecordish(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // LEAK -> DRILL
 // The contract is set by QuickSpotDrill.jsx, which does
 // `new URLSearchParams(customParams)` and hits
@@ -187,7 +187,7 @@ function isPlainRecordish(value) {
 // Only these three keys are emitted. URLSearchParams stringifies undefined as
 // the literal "undefined", which would filter the pool down to nothing — so no
 // key is ever emitted with a non-string-safe value.
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DRILL_STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
 export const DRILL_POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -327,9 +327,9 @@ export function leakToDrill(leak) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // RECORDS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 function blankRecord(leakId, nowMs, leakType) {
     const at = toIso(nowMs);
@@ -447,9 +447,9 @@ export function initialReview(leak, now) {
     return record;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // GRADING
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Session size weighting. A 2-spot session is weak evidence about a leak that
@@ -534,7 +534,7 @@ export function gradeReview(record, outcome, now) {
     const evNudge = hasEvDelta ? clamp(-clamp(evDeltaRaw, -100, 100) * 0.1, -0.15, 0.15) : 0;
     const ease = clamp(prev.ease + (EASE_DELTA[band] || 0) + evNudge, MIN_EASE, MAX_EASE);
 
-    // ── reps / lapses / streak ──────────────────────────────────────────────
+    // ── reps / lapses / streak ────────────────────────────────────────────
     let reps = prev.reps;
     let lapses = prev.lapses;
     let strongStreak = prev.strongStreak;
@@ -592,9 +592,9 @@ export function gradeReview(record, outcome, now) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // DUE / QUEUE
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * A retired card is not due. A card with an UNREADABLE due date IS due —
@@ -733,9 +733,9 @@ export function dueQueue(records, leaks, now) {
     return dueQueueAll(records, leaks, now).slice(0, MAX_QUEUE);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // STATS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Header numbers for the review UI.
@@ -803,9 +803,9 @@ export function reviewStats(records, now) {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // PROGRESS TO RESOLUTION
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * How far a leak is from provisional mastery, derived ONLY from graded drill

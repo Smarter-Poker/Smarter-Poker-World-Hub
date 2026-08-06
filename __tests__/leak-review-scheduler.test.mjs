@@ -1,6 +1,6 @@
 /**
  * LEAK REVIEW SCHEDULER — UNIT TESTS
- * ─────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────────
  * `src/lib/sandbox/leakReview.js` is the scheduling brain behind drilling a
  * user's own detected leaks on a spaced-repetition cadence. It is pure and
  * deterministic ON PURPOSE — no Date.now(), no fetch, no React — precisely so
@@ -681,7 +681,7 @@ test('no exported function reads the wall clock', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // THE API ROUND-TRIP
-// ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
 // Everything above tests the module against ITSELF. That is exactly why two
 // real bugs stayed invisible: the module's own signature was always honoured
 // in the tests, and the persisted row was never modelled at all.
@@ -884,7 +884,7 @@ test('the route reads and writes the mastery columns', () => {
     }
 });
 
-// ── one set of ease bounds ────────────────────────────────────────────────
+// ── one set of ease bounds ─────────────────────────────────────────────────
 
 test('the route takes its ease bounds from the scheduler, not its own literals', () => {
     for (const name of ['MIN_EASE', 'MAX_EASE', 'DEFAULT_EASE']) {
@@ -900,7 +900,7 @@ test('the route takes its ease bounds from the scheduler, not its own literals',
     assert.doesNotMatch(ROUTE_SRC, /const EASE_MIN = [\d.]+;/);
 });
 
-// ── queue totals ─────────────────────────────────────────────────────────────
+// ── queue totals ───────────────────────────────────────────────────────────
 
 test('dueQueueAll reports the true total while dueQueue caps the session', () => {
     const leaks = [];
