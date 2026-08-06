@@ -273,7 +273,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                                 <span className="tc-break-label">Gas</span>
                                 <span className="tc-break-detail">
                                     {costs.distanceKnown
-                                        ? `${costs.roundTripMiles} mi round trip · ${Math.round(costs.driveTime / 60)}h ${costs.driveTime % 60}m (straight-line)`
+                                        ? `${costs.roundTripMiles} mi round trip · ${Math.floor(costs.driveTime / 60)}h ${costs.driveTime % 60}m (straight-line)`
                                         : costs.distanceUnavailableReason}
                                 </span>
                             </div>

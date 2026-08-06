@@ -277,7 +277,20 @@ async function handler(req, res) {
               .select('*')
               .eq('data_quality', 'scraped_verified')
               .limit(100);
-          if (targetDateStr) charityQuery = charityQuery.eq('start_date', targetDateStr);
+          // Multi-day charity events carry start_date AND end_date. Matching on
+          // start_date alone made a series that runs Aug 4-8 visible only on
+          // Aug 4 — it silently vanished from the feed on every other day it was
+          // still running. Use a range overlap instead.
+          // targetDateStr is validated as strict YYYY-MM-DD above, so it is safe
+          // to interpolate into the PostgREST filter.
+          if (targetDateStr) {
+              charityQuery = charityQuery
+                  .lte('start_date', targetDateStr)
+                  // A NULL end_date means single-day, so it must still match only
+                  // its own start_date — otherwise every old open-ended row would
+                  // reappear on every future date.
+                  .or(`end_date.gte.${targetDateStr},and(end_date.is.null,start_date.eq.${targetDateStr})`);
+          }
           if (safeStateParam) charityQuery = charityQuery.ilike('state', safeStateParam);
 
           // Same as above: poker_tour_series_events has no is_active column.

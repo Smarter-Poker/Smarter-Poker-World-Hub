@@ -58,7 +58,9 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
     // 1-5 review scale (LiveGamesFeed/VenueCard both render it as "/5"). Rendering
     // it as "/100" made a top venue read "4.8/100".
     case 'trust_score': return venue.trust_score ? `${Number(venue.trust_score).toFixed(1)}/5` : '—';
-    case 'tables_count': return venue.tables_count || venue.total_tables || '—';
+    // SCHEMA FIX: neither `tables_count` nor `total_tables` exists on poker_venues — the
+    // column is `poker_tables` — so the "Total Tables" row was always an em-dash.
+    case 'tables_count': return venue.poker_tables ?? venue.tables_count ?? venue.total_tables ?? '—';
     case 'venue_type': return (venue.venue_type || 'casino').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     case 'games_offered':
       return (venue.games_offered || []).join(', ') || '—';

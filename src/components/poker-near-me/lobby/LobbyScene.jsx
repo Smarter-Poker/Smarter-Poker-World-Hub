@@ -1,6 +1,26 @@
 /**
  * LobbyScene.jsx — Cinematic 3D React Three Fiber scene for the Poker Near Me lobby.
  *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * [AUDIT] NOT MOUNTED IN PRODUCTION — DO NOT REVIVE WITHOUT READING THIS.
+ *
+ * Nothing outside src/components/poker-near-me/lobby/ imports this file. The
+ * page (pages/hub/poker-near-me/lobby.js) renders <LobbyCanvas /> — a 2D image
+ * plus CSS radar — and the barrel (./index.js) exports only LobbyCanvas and
+ * LobbyOverlay. LobbyScene, LobbyR3FScene, RadarDisc, ParticleField,
+ * ParallaxCamera and FeaturePod reference only each other, and FeaturePod /
+ * ClickDetector are additionally commented out inside LobbyR3FScene. No WebGL
+ * context is ever created on the live lobby, so questions about GL disposal,
+ * rAF leaks and low-end-mobile degradation have no production surface here.
+ *
+ * If this stack is brought back, it is already mis-wired: RadarDisc reads
+ * `liveData.userLocation`, `liveData.venues` and `liveData.radiusMiles` to place
+ * venue markers, and the page's `liveData` memo emits none of those three keys
+ * (it emits liveGameCount, liveGameLabel and dailyCount only) — `venuePositions`
+ * would resolve to [] and the radar would render with no markers. Extend the
+ * memo in lobby.js FIRST, then mount this behind a quality/opt-in flag.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * 2026 AAA-quality rendering with:
  *   - Full post-processing pipeline (Bloom, Vignette, ToneMapping)
  *   - Environment-based image lighting (IBL) via Lightformers

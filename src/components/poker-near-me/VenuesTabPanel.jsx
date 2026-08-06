@@ -41,6 +41,8 @@ export default function VenuesTabPanel({
     openVenueModal,
     checkinCounts,
     onMapVenueClick,
+    hasSearched,
+    requestGpsLocation,
 }) {
     // Defensive guard — venues may be null/undefined during initial load or after a crash
     const safeVenues = Array.isArray(venues) ? venues : [];
@@ -52,12 +54,63 @@ export default function VenuesTabPanel({
     // Math.max means a normal page-side page-in does NOT double-advance the list.
     const [localShown, setLocalShown] = React.useState(0);
     const pageShownRef = React.useRef(displayCount.venues);
+    // Set for exactly one displayCount update after a "Show More" click — see below.
+    const keepFloorRef = React.useRef(false);
     React.useEffect(() => {
-        // The page resets displayCount.venues to PAGE_SIZE on a fresh search / radius bump —
-        // drop the local floor with it so a new result set starts from the top.
-        if (displayCount.venues < pageShownRef.current) setLocalShown(0);
+        const prevShown = pageShownRef.current;
         pageShownRef.current = displayCount.venues;
-    }, [displayCount.venues]);
+        // Consume the claim on the FIRST displayCount write after the click, whatever
+        // branch the page took (the object identity changes on every setDisplayCount,
+        // even when the venues value is unchanged).
+        const claimed = keepFloorRef.current;
+        keepFloorRef.current = false;
+        if (displayCount.venues >= prevShown) return;
+        // A drop means the page started a fresh result set (new search, GPS, radius or
+        // venue-type change, clear filters) — drop the local floor with it so the new
+        // list starts from the top.
+        // BUG FIX: the one drop that must NOT wipe the floor is the one the user's own
+        // "Show More" click caused. The page's loadMore falls through to a radius
+        // expansion (which resets displayCount.venues to PAGE_SIZE) once its RAW venues
+        // array is exhausted, and that used to shrink the list the click had just grown.
+        if (claimed) return;
+        setLocalShown(0);
+    }, [displayCount]);
+
+    // The claim above must NEVER outlive the commit the click produced. The page's
+    // loadMore('venues') is a no-op whenever its RAW venues array is exhausted AND
+    // there is no next radius tier (or no GPS) — no setDisplayCount runs, the effect
+    // above never fires, and a still-armed claim would then swallow the reset for the
+    // NEXT search (leaving the new result set rendered at the old, larger count).
+    // React batches setLocalShown + the page's setDisplayCount from the same click
+    // into one commit, and effects run in declaration order, so this always clears
+    // the claim AFTER the effect above has had its chance to consume it.
+    React.useEffect(() => {
+        keepFloorRef.current = false;
+    });
+
+    // GAP FIX: clearFilters() sets venues to [] and hasSearched to false, and the page
+    // then routes straight back here — so the user landed on "No Venues Found Matching
+    // Your Criteria" with a "Clear All Filters" button for the state they were already
+    // in. A not-yet-searched view is a landing, not a dead end.
+    // (`hasSearched` is only treated as a landing signal when the page actually passes
+    // it; undefined keeps the previous behaviour.)
+    if (hasSearched === false && safeVenues.length === 0 && !venueLoading && !loading) {
+        return (
+            <div className="search-landing">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 12 }}>Find Poker Near You</p>
+                <p style={{ fontSize: 13, opacity: 0.6, marginTop: 4, maxWidth: 340, lineHeight: 1.5 }}>Search A City Above To See Card Rooms, Casinos, Charity Rooms And Home Games — Or Use Your Location For The Closest Games First.</p>
+                {requestGpsLocation && (
+                    <button
+                        onClick={requestGpsLocation}
+                        style={{ marginTop: 16, padding: '12px 24px', background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(200,214,229,0.1) 100%)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                        Use My Location
+                    </button>
+                )}
+            </div>
+        );
+    }
 
     if (safeVenues.length === 0 && !venueLoading && !loading) {
         return (
@@ -77,7 +130,11 @@ export default function VenuesTabPanel({
 
     const showMoreResults = () => {
         setLocalShown(shownCount + PAGE_SIZE);
-        loadMore('venues');
+        keepFloorRef.current = true;
+        // The rendered total is passed through so the page can choose its page-in vs
+        // radius-expand branch from the SAME list this button was rendered from
+        // (it paginates off its raw `venues` array, which is a different list).
+        loadMore('venues', sorted.length);
     };
 
     return (
@@ -197,8 +254,14 @@ export default function VenuesTabPanel({
                 </div>
                 {/* Load More / Expand Radius */}
                 {(() => {
-                    const currentRadius = Number(filters.radius) || 50;
-                    const nextTier = RADIUS_TIERS.find(r => r > currentRadius);
+                    // BUG FIX: `Number(filters.radius) || 50` turned the radius select's
+                    // "Any" option (a string, shared page state set by MapTabPanel) into 50,
+                    // so an unlimited search advertised "Expand To 100 Miles" — a button that
+                    // NARROWS the search and drops venues from the list. A non-numeric radius
+                    // is already unbounded: there is no farther tier to offer.
+                    const numericRadius = Number(filters.radius);
+                    const isUnboundedRadius = !Number.isFinite(numericRadius) || numericRadius <= 0;
+                    const nextTier = isUnboundedRadius ? undefined : RADIUS_TIERS.find(r => r > numericRadius);
                     const hasMoreToShow = remaining > 0;
                     const canExpandRadius = userLocation && nextTier && !hasMoreToShow;
                     
@@ -216,7 +279,7 @@ export default function VenuesTabPanel({
                             <div className="load-more" style={{ marginTop: '30px', textAlign: 'center' }}>
                                 <button 
                                     className="expand-radius-btn" 
-                                    onClick={() => loadMore('venues')}
+                                    onClick={() => loadMore('venues', sorted.length)}
                                 >
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <circle cx="12" cy="12" r="10" />

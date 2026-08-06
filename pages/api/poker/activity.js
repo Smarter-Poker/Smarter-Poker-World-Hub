@@ -22,6 +22,9 @@ function getSupabase() {
 const SAFE_PAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const SAFE_PAGE_TYPE = /^[A-Za-z0-9_]{1,32}$/;
 
+// page_activity.user_id is `uuid NOT NULL`.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Helper: extract verified user ID from JWT, or null */
 async function getVerifiedUserId(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -55,10 +58,26 @@ try {
         const adminSecret = req.headers['x-admin-secret'];
         const envAdminSecret = process.env.ADMIN_ROUTE_SECRET;
         const isAdmin = Boolean(envAdminSecret) && adminSecret === envAdminSecret;
-        // page_activity.user_id is NOT NULL, so admins without a JWT are attributed to 'admin'.
+        // page_activity.user_id is `uuid NOT NULL`. This used to fall back to the
+        // literal string 'admin', which Postgres rejects with 22P02
+        // ("invalid input syntax for type uuid") — so the admin-secret path, the
+        // ONLY path that can publish page activity, failed on every request.
+        // Resolve a real UUID instead: the caller's JWT, an explicit body
+        // `user_id`, or a configured system account.
         let verifiedUserId = await getVerifiedUserId(req);
         if (isAdmin) {
-          verifiedUserId = verifiedUserId || 'admin';
+          if (!verifiedUserId) {
+            const bodyUserId = typeof req.body?.user_id === 'string' ? req.body.user_id.trim() : '';
+            const systemUserId = (process.env.SYSTEM_ACTIVITY_USER_ID || '').trim();
+            if (UUID_RE.test(bodyUserId)) verifiedUserId = bodyUserId;
+            else if (UUID_RE.test(systemUserId)) verifiedUserId = systemUserId;
+          }
+          if (!verifiedUserId) {
+            return res.status(400).json({
+              success: false,
+              error: 'page_activity.user_id must be a UUID — send an Authorization bearer token, a body user_id, or configure SYSTEM_ACTIVITY_USER_ID',
+            });
+          }
         } else {
           if (!verifiedUserId) {
             return res.status(401).json({ success: false, error: 'Authentication required for posting activity' });
@@ -93,7 +112,9 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.warn('Error creating activity:', error);
+          // Log the code + message: the previous opaque log hid a hard 22P02
+          // uuid failure on every single insert.
+          console.warn('Error creating activity:', error.code, error.message);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 

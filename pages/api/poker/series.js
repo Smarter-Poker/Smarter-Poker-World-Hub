@@ -27,6 +27,21 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * ID NAMESPACING — the list path merges `tournament_series` and `poker_series`,
+ * two independent int4 sequences, and used to emit each row's own primary key
+ * as `id`. The single-series path resolves an id by trying tournament_series
+ * FIRST, so any id present in both tables always returned the tournament_series
+ * row — a poker_series card opened a completely different series' detail page.
+ *
+ * poker_series rows are now emitted with their id offset by this constant, which
+ * makes the id unambiguous while keeping it numeric (the detail page also feeds
+ * it to /api/poker/results, /api/poker/follow and /api/poker/activity).
+ * Ids BELOW the offset keep the legacy resolution order, so existing links and
+ * follow/activity rows for tournament_series pages are unaffected.
+ */
+const POKER_SERIES_ID_OFFSET = 5000000;
+
 // Map tour codes to their pre-imported event data
 const TOUR_EVENT_DATA = {
   WSOP: wsopEvents,
@@ -191,20 +206,28 @@ async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Invalid id parameter' });
         }
 
+        // Ids at or above the offset are unambiguously poker_series rows (see
+        // POKER_SERIES_ID_OFFSET). Below it, keep the legacy resolution order so
+        // links minted before this change still resolve.
+        const isNamespacedPokerSeries = numericId >= POKER_SERIES_ID_OFFSET;
+        const pokerSeriesId = isNamespacedPokerSeries ? numericId - POKER_SERIES_ID_OFFSET : numericId;
+
         let singleSeries = null;
         try {
-          // Search tournament_series first
-          const { data: ts, error: tsErr } = await getSupabase()
-            .from('tournament_series')
-            .select('*')
-            .eq('id', numericId)
-            .maybeSingle();
+          // Search tournament_series first (skipped for namespaced poker_series ids)
+          const { data: ts, error: tsErr } = isNamespacedPokerSeries
+            ? { data: null, error: null }
+            : await getSupabase()
+                .from('tournament_series')
+                .select('*')
+                .eq('id', numericId)
+                .maybeSingle();
 
           if (!tsErr && ts) {
             if (ts.is_suppressed) {
               return res.status(404).json({ success: false, error: 'Series not found' });
             }
-            singleSeries = ts;
+            singleSeries = { ...ts, source_table: 'tournament_series' };
           }
 
           // If not found in tournament_series, check poker_series
@@ -212,16 +235,20 @@ async function handler(req, res) {
             const { data: ps, error: psErr } = await getSupabase()
               .from('poker_series')
               .select('*')
-              .eq('id', numericId)
+              .eq('id', pokerSeriesId)
               .maybeSingle();
 
             if (!psErr && ps) {
               if (ps.is_suppressed) {
                 return res.status(404).json({ success: false, error: 'Series not found' });
               }
-              // Normalize poker_series fields to match tournament_series shape
+              // Normalize poker_series fields to match tournament_series shape.
+              // Echo back the id exactly as the caller sent it so the detail
+              // page's follow/activity/results keys stay stable.
               singleSeries = {
-                id: ps.id,
+                id: numericId,
+                source_table: 'poker_series',
+                source_id: ps.id,
                 name: ps.series_name || ps.name,
                 short_name: ps.tour,
                 series_uid: ps.series_uid,
@@ -386,7 +413,7 @@ async function handler(req, res) {
         if (!error && data) {
           for (const s of data) {
             const key = (s.name || s.series_name || '').toLowerCase();
-            const entry = { ...s, series_uid: s.series_uid || null };
+            const entry = { ...s, series_uid: s.series_uid || null, source_table: 'tournament_series' };
             mergedMap.set(key, entry);
             if (s.series_uid) uidMap.set(s.series_uid, entry);
           }
@@ -413,9 +440,13 @@ async function handler(req, res) {
             continue;
           }
           
-          // New series — add it
+          // New series — add it. The id is namespaced (see
+          // POKER_SERIES_ID_OFFSET) so /api/poker/series?id=<this> cannot
+          // resolve to an unrelated tournament_series row with the same int4 pk.
           const newEntry = {
-            id: ps.id,
+            id: ps.id + POKER_SERIES_ID_OFFSET,
+            source_table: 'poker_series',
+            source_id: ps.id,
             name: ps.series_name || ps.name,
             series_name: ps.series_name || ps.name,
             short_name: ps.tour,

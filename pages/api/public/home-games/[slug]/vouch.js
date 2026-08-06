@@ -42,7 +42,12 @@ async function resolvePage(slug) {
         .from('social_pages')
         .select('id, page_type, is_public, slug, name, linked_entity_id')
         .eq('slug', slug)
-        .eq('page_type', 'home_game')
+        // Match the page API (pages/api/public/home-games/[slug].js), which
+        // resolves with .in('page_type', ['home_game', 'club']). Filtering on
+        // 'home_game' alone 404'd every vouch request for a group whose social
+        // page was created with page_type='club', even though its public page
+        // renders fine.
+        .in('page_type', ['home_game', 'club'])
         .maybeSingle();
     if (error) throw error;
     if (!data) return null;

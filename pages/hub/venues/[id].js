@@ -98,7 +98,11 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
   if (scheduleCount > 0) {
     description += ' ' + scheduleCount + ' weekly tournament' + (scheduleCount === 1 ? '' : 's') + ' listed.';
   }
-  const venueBlurb = typeof venue.description === 'string' ? venue.description.replace(/\s+/g, ' ').trim() : '';
+  // poker_venues stores the operator blurb in `about` — there is no
+  // `description` column. Home-group records synthesized by /api/poker/venues
+  // do carry `description`, so both shapes are read here.
+  const rawBlurb = venue.about || venue.description || venue.tagline;
+  const venueBlurb = typeof rawBlurb === 'string' ? rawBlurb.replace(/\s+/g, ' ').trim() : '';
   if (venueBlurb) description += ' ' + venueBlurb;
   description += ' Live games, tournament schedule, hours, directions and player reviews.';
 
@@ -142,7 +146,9 @@ function buildVenueJsonLd(venue, canonical, image) {
   if (venue.phone) node.telephone = String(venue.phone);
   if (image) node.image = image;
 
-  const blurb = typeof venue.description === 'string' ? venue.description.replace(/\s+/g, ' ').trim() : '';
+  // Same as buildVenueSeo: the poker_venues blurb lives in `about`.
+  const rawBlurb = venue.about || venue.description || venue.tagline;
+  const blurb = typeof rawBlurb === 'string' ? rawBlurb.replace(/\s+/g, ' ').trim() : '';
   if (blurb) node.description = clampText(blurb, 500);
 
   const sameAs = [toAbsoluteUrl(venue.website), toAbsoluteUrl(venue.poker_atlas_url)].filter(Boolean);
@@ -248,6 +254,36 @@ async function resolveVenueViaApi(req, id) {
   }
 }
 
+// Columns of poker_venues that are safe to serialize into __NEXT_DATA__ on
+// this public, indexable page. The row is fetched with select('*') (an
+// explicit select would fail wholesale if one name drifted) and then narrowed
+// to this list before it becomes a prop. Everything omitted is operator PII or
+// internal state that the render never reads: email, primary_contact_id,
+// claimed_by / claimed_at / is_claimed, staff_pin_required, waitlist_settings,
+// tournament_settings, social_hub_page_id, registration_completed_at,
+// onboarding_step, the scrape_* / schedule_scrape_* internals, home_group_id,
+// commander_home_table_id and search_vector (a full tsvector that also bloated
+// every venue page's HTML).
+const PUBLIC_VENUE_FIELDS = [
+  'id', 'name', 'venue_type', 'address', 'city', 'state', 'country',
+  'latitude', 'longitude', 'lat', 'lng', 'phone', 'website',
+  'hours', 'hours_weekday', 'hours_weekend',
+  'poker_atlas_url', 'pokeratlas_url', 'has_tournaments',
+  'trust_score', 'is_featured', 'commander_enabled',
+  'profile_photo_url', 'cover_photo_url', 'logo_url',
+  'about', 'tagline', 'slug', 'games_offered', 'stakes_cash', 'poker_tables',
+  'follower_count', 'social_links', 'timezone',
+  'last_scraped', 'last_scraped_at',
+];
+
+function pickPublicVenueFields(row) {
+  const out = {};
+  for (const field of PUBLIC_VENUE_FIELDS) {
+    if (row[field] !== undefined) out[field] = row[field];
+  }
+  return out;
+}
+
 export async function getServerSideProps({ params, req, res }) {
   const rawId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const id = String(rawId || '').trim();
@@ -298,7 +334,10 @@ export async function getServerSideProps({ params, req, res }) {
         if (tourRows && tourRows.length > 0) {
           overrides.last_scraped = tourRows[0].last_scraped ?? null;
         }
-        venue = Object.assign({}, data, overrides);
+        // Narrow before it becomes a prop — see PUBLIC_VENUE_FIELDS. This is
+        // the point where is_suppressed (already consumed above) and the rest
+        // of the private columns are dropped.
+        venue = Object.assign({}, pickPublicVenueFields(data), overrides);
       }
     } catch (e) {
       console.warn('[venues/[id]] SSR venue fetch failed:', e?.message || e);
@@ -1165,9 +1204,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     if (!id) return;
     const _ch = supabase
       .channel(`venue-pub:${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `venue_id=eq.${id}` }, () => {
-        console.warn('[VenueDetail] Received real-time update for tables');
-      })
+      // NOTE: a binding on public.tables filtered by venue_id used to live
+      // here. public.tables keys off club_id and has no venue_id column, so
+      // Realtime rejected the filter at subscribe time and put the WHOLE
+      // channel into CHANNEL_ERROR — taking the venue_checkins binding below
+      // (Who's Here, leaderboard, activity, popular hours) down with it. Its
+      // handler was a console warning and nothing else, so it is gone.
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'venue_checkins', filter: `venue_id=eq.${id}` }, () => {
         // Refresh check-in list, Who's Here, and enhancement data when someone new checks in
         fetchCheckins();
@@ -1435,14 +1477,40 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }),
       });
 
-      // Register geofence visit for verified review eligibility
+      // Register geofence visit for verified review eligibility.
+      //
+      // /api/venues/checkin rejects a coordinate-less body with 400
+      // LOCATION_REQUIRED whenever the venue has lat/lng on file, so the row
+      // that gates the verified-review reward was never written. Ask the
+      // browser for a position first and pass it through; if it is denied or
+      // the call fails, say so instead of swallowing it.
+      var geoNote = '';
       try {
-        await fetch('/api/venues/checkin', {
+        var _ci_coords = await new Promise(function (resolve) {
+          if (typeof navigator === 'undefined' || !navigator.geolocation) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            function (position) { resolve({ lat: position.coords.latitude, lng: position.coords.longitude }); },
+            function () { resolve(null); },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          );
+        });
+        var geoBody = _ci_coords
+          ? { venue_id: id, lat: _ci_coords.lat, lng: _ci_coords.lng }
+          : { venue_id: id };
+        var geoRes = await fetch('/api/venues/checkin', {
           method: 'POST',
           headers: fetchHeaders,
-          body: JSON.stringify({ venue_id: id }),
+          body: JSON.stringify(geoBody),
         });
-      } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
+        if (!geoRes.ok) {
+          var geoJson = null;
+          try { geoJson = await geoRes.json(); } catch (_e3) { geoJson = null; }
+          geoNote = (geoJson && geoJson.error) || ('Location visit could not be recorded (' + geoRes.status + ').');
+        }
+      } catch (_e) {
+        console.warn('[App] Handled exception:', _e?.message || _e);
+        geoNote = 'Location visit could not be recorded.';
+      }
 
       if (!res.ok) {
         var errBody = null;
@@ -1453,6 +1521,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (json.success) {
         setCheckinMessage('');
         setCheckinName('');
+        // The public check-in landed; only the location-verified visit (which
+        // unlocks verified reviews) may have failed. Say which.
+        setCheckinError(geoNote ? ('Checked in. ' + geoNote + ' Verified review rewards require location access.') : '');
         await fetchCheckins();
         // Refresh Who's Here indicator
         fetch('/api/poker/checkins/whos-here?venue_id=' + id)
@@ -1642,7 +1713,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     var dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     reviews.forEach(function (r) {
       var star = Math.round(r.rating || 0);
-      if (star >= 1 && Star <= 5) dist[star]++;
+      if (star >= 1 && star <= 5) dist[star]++;
     });
     return dist;
   };
@@ -1876,9 +1947,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       </svg>
                       {friendBusy ? '...' : friendState === 'friends' ? 'Friends' : friendState === 'pending' ? 'Request Sent' : 'Add Friend'}
                     </button>
+                    {/* /hub/messages is not a route (the messenger lives at
+                        /hub/messenger and there is no rewrite for it), so this
+                        used to land on the 404 page. Matches the working call
+                        in pages/hub/home-games/[slug].js. */}
                     <button
                       className="action-btn"
-                      onClick={() => router.push(`/hub/messages?user=${venue.owner_id}`)}
+                      onClick={() => router.push(`/hub/messenger?recipientId=${venue.owner_id}`)}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -2070,9 +2145,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   </div>
                   <div className="info-content">
                     <span className="info-label">Website</span>
-                    {venue.website ? (
-                      <a href={venue.website} target="_blank" rel="noopener noreferrer" className="info-value info-link">
-                        {venue.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                    {/* Stored websites are often protocol-less ('bellagio.com').
+                        A raw href resolves relative to this page and navigates
+                        to /hub/venues/bellagio.com, a 404 — normalize first. */}
+                    {toAbsoluteUrl(venue.website) ? (
+                      <a href={toAbsoluteUrl(venue.website)} target="_blank" rel="noopener noreferrer" className="info-value info-link">
+                        {String(venue.website).replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                       </a>
                     ) : (
                       <span className="info-value muted">Not Available</span>

@@ -68,6 +68,11 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
     const isNew = s.is_new || s.is_featured;
 
+    // BUG FIX: `(s.total_guaranteed || s.main_event_guaranteed) != null` evaluated to 0
+    // when total_guaranteed was null and main_event_guaranteed was 0, and 0 != null is
+    // true — so a series with no guarantee advertised "Free GTD". Coalesce, then gate on > 0.
+    const gtd = s.total_guaranteed ?? s.main_event_guaranteed;
+
     // BUG FIX: sanitize source_url/website before using as href
     const externalUrl = safeHref(s.source_url || s.website);
 
@@ -157,7 +162,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 <div className="series-tags">
                     {(s.events_count || s.total_events) > 0 && <span className="series-tag">{s.events_count || s.total_events} Events</span>}
                     {s.main_event_buyin != null && <span className="series-tag">{formatMoney(s.main_event_buyin)} Main</span>}
-                    {(s.total_guaranteed || s.main_event_guaranteed) != null && <span className="series-tag" style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.3)' }}>{formatMoney(s.total_guaranteed || s.main_event_guaranteed)} GTD</span>}
+                    {gtd > 0 && <span className="series-tag" style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.3)' }}>{formatMoney(gtd)} GTD</span>}
                     {isNew && <span className="series-tag" style={{ color: '#00D4FF', borderColor: 'rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.1)' }}>NEW ADDITION</span>}
                 </div>
             </div>

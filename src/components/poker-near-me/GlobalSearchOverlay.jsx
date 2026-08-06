@@ -12,6 +12,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 
@@ -230,6 +231,30 @@ const MapIcon = (props) => (
     <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" /><line x1="8" y1="3" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="21" />
   </svg>
 );
+const TrophyIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 01-12 0z" /><path d="M6 6H3v2a4 4 0 004 4M18 6h3v2a4 4 0 01-4 4" />
+  </svg>
+);
+
+// Series date range, built on the file's existing local-date parser.
+function formatDateRange(startValue, endValue) {
+  const start = parseLocalDate(startValue);
+  if (!start) return '';
+  const end = parseLocalDate(endValue);
+  const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+  if (!end || end.getTime() === start.getTime()) return start.toLocaleDateString('en-US', opts);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startLabel = start.toLocaleDateString('en-US', sameYear ? { month: 'short', day: 'numeric' } : opts);
+  return `${startLabel} - ${end.toLocaleDateString('en-US', opts)}`;
+}
+
+function formatMoney(value) {
+  if (value == null || value === '') return '';
+  const num = Number(String(value).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(num) || num <= 0) return String(value);
+  return '$' + num.toLocaleString('en-US');
+}
 
 function TimeWindowLabel({ timeWindow }) {
   const labels = {
@@ -254,10 +279,25 @@ function TimeWindowLabel({ timeWindow }) {
 // ═══════════════════════════════════════════════════════════
 // DETAIL MODAL
 // ═══════════════════════════════════════════════════════════
-function DetailModal({ item, type, onClose }) {
+function DetailModal({ item, type, onClose, onNavigate }) {
   if (!item) return null;
   const isVenue = type === 'venue';
   const isTour = type === 'tour';
+  const isSeries = type === 'series';
+  // SCHEMA FIX: `is_24_hours` and `hours_of_operation` do not exist on poker_venues
+  // (real columns: `hours`, `hours_weekday`, `hours_weekend`) and /api/poker/venues
+  // never synthesises them, so the Hours row never rendered for any venue.
+  const venueHours = (item.hours === '24/7' || item.hours_weekday === '24/7')
+    ? '24/7 Open'
+    : (item.hours || item.hours_weekday || '');
+  const seriesDates = isSeries ? formatDateRange(item.start_date, item.end_date) : '';
+  // Deep link out of the overlay — result cards only ever opened this modal, so
+  // /hub/series/[id], /hub/tours/[code] and /hub/venues/[id] were unreachable from search.
+  const detailPath = isSeries
+    ? (item.id != null ? `/hub/series/${encodeURIComponent(item.id)}` : '')
+    : isTour
+    ? (item.tour_code ? `/hub/tours/${encodeURIComponent(item.tour_code)}` : '')
+    : (item.id != null ? `/hub/venues/${encodeURIComponent(item.id)}` : '');
   const typeStyle = VENUE_TYPE_STYLES[item.venue_type] || VENUE_TYPE_STYLES.card_room;
   const tourColor = isTour ? (TOUR_COLORS[item.tour_code] || '#6ee7ef') : '#6ee7ef';
   const logo = item.logo_url || item.profile_photo_url || item.cover_photo_url || '';
@@ -299,9 +339,16 @@ function DetailModal({ item, type, onClose }) {
             {address && <InfoRow icon={<MapPinIcon size={14} />} label={address} />}
             {phone && <InfoRow icon={<PhoneIcon />} label={phone} href={`tel:${phone}`} />}
             {website && <InfoRow icon={<GlobeIcon />} label={website.replace(/^https?:\/\//, '')} href={website} />}
-            {isVenue && (item.is_24_hours || item.hours_of_operation) && <InfoRow icon={<ClockIcon />} label={item.is_24_hours ? '24/7 Open' : item.hours_of_operation} />}
+            {isVenue && venueHours && <InfoRow icon={<ClockIcon />} label={venueHours} />}
             {isVenue && item.games_offered?.length > 0 && <InfoRow icon={<CardsIcon />} label={item.games_offered.slice(0, 6).join(' · ')} />}
             {isTour && item.regions?.length > 0 && <InfoRow icon={<MapIcon />} label={item.regions.join(' · ')} />}
+            {/* GAP FIX: a Series result used to open a panel with a title, a city and a
+                badge — every field /api/poker/series returns was ignored. */}
+            {isSeries && seriesDates && <InfoRow icon={<CalendarIcon />} label={seriesDates} />}
+            {isSeries && item.venue && <InfoRow icon={<MapPinIcon size={14} />} label={item.venue} />}
+            {isSeries && item.total_events > 0 && <InfoRow icon={<CardsIcon />} label={`${item.total_events} Event${item.total_events === 1 ? '' : 's'}`} />}
+            {isSeries && item.main_event_buyin && <InfoRow icon={<TrophyIcon />} label={`Main Event Buy-In: ${formatMoney(item.main_event_buyin)}`} />}
+            {isSeries && item.main_event_guaranteed && <InfoRow icon={<TrophyIcon />} label={`Main Event Guarantee: ${formatMoney(item.main_event_guaranteed)}`} />}
           </div>
           {/* Trust score */}
           {isVenue && item.trust_score > 0 && (
@@ -334,6 +381,12 @@ function DetailModal({ item, type, onClose }) {
           )}
           {/* Actions */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {detailPath && onNavigate && (
+              <button onClick={() => onNavigate(detailPath)}
+                style={{ flex: '1 1 100%', padding: '12px 16px', background: 'linear-gradient(135deg,#ffffff,#cbd5e1)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                View Full Details
+              </button>
+            )}
             {/* Directions routes through the shared device-aware helper — the
                 hardcoded maps.apple.com link sent Android and desktop users
                 through Apple Maps regardless of platform or saved preference. */}
@@ -469,6 +522,7 @@ export default function GlobalSearchOverlay({
   searchHistory = [], onHistorySelect,
   cachedFetch, trackSearchEvent,
 }) {
+  const router = useRouter();
   const inputRef = useRef(null);
   const [phase, setPhase] = useState('input'); // 'input' | 'results'
   const [localQuery, setLocalQuery] = useState('');
@@ -978,8 +1032,16 @@ export default function GlobalSearchOverlay({
         {phase === 'results' && !isLoading && venueResults.length > 0 && (
           <div style={{ height: 260, flexShrink: 0, position: 'relative', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
             <VenueMap
+              // WIRING FIX: `disableClustering` is only read inside VenueMap's
+              // initialise-map effect (deps: [mapReady]), so the value in force on the
+              // FIRST search governed every later one — a 200-result search kept the
+              // unclustered layer. Keying on the mode remounts the map when it flips.
+              key={venueResults.length < 20 ? 'gso-map-nocluster' : 'gso-map-cluster'}
               venues={venueResults}
-              userLocation={null}
+              // GAP FIX: the overlay reads GPS from localStorage and already sends it to
+              // the venue API — passing null here suppressed the "you are here" pin AND
+              // VenueMap's distance map, so no result popup could show its distance.
+              userLocation={userLocation}
               onVenueClick={v => openDetail(v, 'venue')}
               onOpenIframeModal={(url, title) => {
                 const match = url.match(/\/hub\/venues\/([^?#]+)/);
@@ -1212,7 +1274,12 @@ export default function GlobalSearchOverlay({
 
         {/* ───── DETAIL MODAL — inside overlay at z:10010 ───── */}
         {detailItem && (
-          <DetailModal item={detailItem.item} type={detailItem.type} onClose={() => setDetailItem(null)} />
+          <DetailModal
+            item={detailItem.item}
+            type={detailItem.type}
+            onClose={() => setDetailItem(null)}
+            onNavigate={(path) => { setDetailItem(null); onClose?.(); router.push(path); }}
+          />
         )}
       </div>
     </>

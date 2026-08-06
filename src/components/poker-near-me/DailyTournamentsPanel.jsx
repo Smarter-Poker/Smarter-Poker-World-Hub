@@ -91,6 +91,27 @@ function dayOfWeekMatches(rawDayOfWeek, selectedDay) {
 }
 
 /**
+ * BUG FIX: game-type chips used raw substring matching (`game_type.includes('nlh')`),
+ * but real venue_daily_tournaments.game_type values are "Hold'em", "No Limit Holdem",
+ * "Pot Limit Omaha", "HORSE" etc — none of which contain the literal chip label. Clicking
+ * NLH therefore hid nearly every hold'em tournament. This alias matcher mirrors the one in
+ * DailyTournamentsTabPanel so the two daily-tournament surfaces agree on the same data.
+ * A row with no game_type is excluded when a specific type is selected (it previously
+ * survived every filter via the `t.game_type &&` short-circuit).
+ */
+function gameTypeMatches(rawGameType, filterType) {
+  if (!filterType || filterType === 'all') return true;
+  const gt = String(rawGameType || '').toLowerCase();
+  if (!gt) return false;
+  const f = String(filterType).toLowerCase();
+  if (f === 'nlh') return gt.includes('nlh') || gt.includes('hold');
+  if (f === 'plo') return gt.includes('plo') || gt.includes('pot limit omaha') || gt.includes('omaha hi-lo');
+  if (f === 'mixed') return gt.includes('mix') || gt.includes('horse') || gt.includes('stud') || gt.includes('dealer');
+  if (f === 'omaha') return gt.includes('omaha') && !gt.includes('hi-lo');
+  return gt.includes(f);
+}
+
+/**
  * Single predicate chain shared by the card list and the Top-States chip counts.
  * `includeState: false` is used for the chips so each chip reports how many results
  * the user would ACTUALLY get by clicking it, under the filters already active.
@@ -98,7 +119,7 @@ function dayOfWeekMatches(rawDayOfWeek, selectedDay) {
 function matchesTournamentFilters(t, f, includeState) {
   if (!t.day_of_week) return false;
   if (!dayOfWeekMatches(t.day_of_week, f.selectedDay)) return false;
-  if (f.gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(f.gameType.toLowerCase())) return false;
+  if (!gameTypeMatches(t.game_type, f.gameType)) return false;
   if (includeState && f.selectedState && f.selectedState !== 'all' && (t.venue_state || t.state) !== f.selectedState) return false;
   if (f.minBuyin && t.buy_in < parseInt(f.minBuyin, 10)) return false;
   if (f.maxBuyin && t.buy_in > parseInt(f.maxBuyin, 10)) return false;
@@ -332,13 +353,33 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       .join('')
       .toUpperCase();
 
+    // BUG FIX: /api/poker/daily-tournaments unions non-venue rows whose venue_id is a
+    // deliberately non-numeric string — `charity_<id>`, `tour_event_<id>`, `home_game_<id>`.
+    // Sending those to /hub/venues/<id> produced a dead page. Route each source to the
+    // target the API already supplies and only use the venue route for real numeric ids.
     const handleCardClick = () => {
       if (t.is_clustered) {
           setExpandedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
-      } else if (t.venue_id) {
-          if (openVenueModal) openVenueModal(`/hub/venues/${t.venue_id}`);
-          else window.location.href = `/hub/venues/${t.venue_id}`;
+          return;
       }
+      const rawVenueId = t.venue_id;
+      if (rawVenueId == null || rawVenueId === '') return;
+      const idStr = String(rawVenueId);
+
+      if (idStr.startsWith('home_game_')) {
+          if (t.home_group_id) window.location.href = `/hub/commander/home-games/${encodeURIComponent(t.home_group_id)}`;
+          return;
+      }
+      if (idStr.startsWith('charity_') || idStr.startsWith('tour_event_')) {
+          const ext = safeHref(t.source_url || t.pokerAtlasUrl);
+          if (ext) window.open(ext, '_blank', 'noopener,noreferrer');
+          return;
+      }
+
+      const numericId = Number(idStr);
+      if (!Number.isFinite(numericId) || numericId <= 0) return;
+      if (openVenueModal) openVenueModal(`/hub/venues/${numericId}`);
+      else window.location.href = `/hub/venues/${numericId}`;
     };
 
     return (
@@ -507,6 +548,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           <button key={day} onClick={() => handleDayChange(day)}
             style={{
               flexShrink: 0, padding: '6px 12px', borderRadius: 8,
+              // MOBILE FIX: 44px minimum touch target (working rule 7, mobile-first).
+              minHeight: 44, minWidth: 44,
               border: selectedDay === day ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
               background: selectedDay === day ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
               color: selectedDay === day ? '#ffffff' : 'rgba(148,163,184,0.6)',
@@ -526,6 +569,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           <button key={gt} onClick={() => startTransition(() => setGameType(gt))}
             style={{
               padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              // MOBILE FIX: 44px minimum touch target
+              minHeight: 44, minWidth: 44,
               border: gameType === gt ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
               background: gameType === gt ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
               color: gameType === gt ? '#ffffff' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit',
@@ -538,19 +583,21 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       {/* Advanced Filters Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="number" placeholder="Min $" value={minBuyin} onChange={e => startTransition(() => setMinBuyin(e.target.value))}
-          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
+          style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>to</span>
         <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => startTransition(() => setMaxBuyin(e.target.value))}
-          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
+          style={{ width: 70, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => startTransition(() => setMinGuaranteed(e.target.value))}
-          style={{ width: 85, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
+          style={{ width: 85, padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <select value={sortBy} onChange={e => startTransition(() => setSortBy(e.target.value))}
-          style={{ padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }}>
+          style={{ padding: '5px 8px', minHeight: 44, borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }}>
           {SORT_OPTS.map(o => <option key={o.v} value={o.v} style={{ background: '#0d1117' }}>{o.l}</option>)}
         </select>
         <button onClick={() => startTransition(() => setGroupByState(!groupByState))}
           style={{
             padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            // MOBILE FIX: 44px minimum touch target
+            minHeight: 44, minWidth: 44,
             border: groupByState ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
             background: groupByState ? 'rgba(255,255,255,0.12)' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
             color: groupByState ? '#ffffff' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
@@ -570,7 +617,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => startTransition(() => setSelectedState('all'))}
               style={{
-                flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 border: (!selectedState || selectedState === 'all') ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
                 background: (!selectedState || selectedState === 'all') ? 'rgba(255,255,255,0.12)' : 'transparent',
                 color: (!selectedState || selectedState === 'all') ? '#ffffff' : 'rgba(148,163,184,0.5)',
@@ -578,7 +625,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             {topStates.map(([st, count]) => (
               <button key={st} onClick={() => startTransition(() => setSelectedState(st))}
                 style={{
-                  flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  flexShrink: 0, padding: '3px 10px', minHeight: 44, minWidth: 44, borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   border: selectedState === st ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
                   background: selectedState === st ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: selectedState === st ? '#ffffff' : 'rgba(148,163,184,0.5)',

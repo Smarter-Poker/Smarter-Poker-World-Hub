@@ -22,6 +22,10 @@ export default function FavoritesTabPanel({
     setActiveTab,
     router,
     openVenueModal,
+    // WIRING FIX: the Venues tab passed checkinCount into VenueCard and this one did not,
+    // so the same room showed "N Here Today" (and a crowd level) on Venues and nothing on
+    // Saved. Defaults to an empty map so an un-updated call site is still safe.
+    checkinCounts,
 }) {
     // BUG FIX: favourites used to be rendered by INTERSECTING the favourites map with
     // whatever the current search had loaded, so a saved room outside the active radius
@@ -146,6 +150,7 @@ export default function FavoritesTabPanel({
                             onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                             onNavigate={openVenueModal}
                             reviewStats={pnmReviewStatsMap[String(venue.id)]}
+                            checkinCount={checkinCounts ? (checkinCounts[String(venue.id)] || 0) : 0}
                         />
                     );
                 })}

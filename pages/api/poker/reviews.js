@@ -91,13 +91,38 @@ try {
         // Check if user is a verified player — bankroll_sessions OR user_venue_checkins
         let is_verified_player = false;
         try {
-          const { data: sessions } = await getSupabase()
-            .from('bankroll_sessions')
-            .select('id')
-            .eq('user_id', user_id)
-            .eq('venue_id', venue_id)
-            .limit(1);
-          is_verified_player = sessions && sessions.length > 0;
+          // bankroll_sessions has NO venue_id column — it stores `venue_name`.
+          // The old `.eq('venue_id', venue_id)` returned PostgREST 42703 and the
+          // error was discarded, so this primary verification path silently
+          // never fired. Resolve the venue's name first, then match on it.
+          const { data: venueRow, error: venueLookupErr } = await getSupabase()
+            .from('poker_venues')
+            .select('name')
+            .eq('id', venue_id)
+            .maybeSingle();
+          if (venueLookupErr) {
+            console.warn('[reviews] venue name lookup failed:', venueLookupErr.message);
+          }
+          const venueName = (venueRow?.name || '').trim();
+          if (venueName) {
+            // Escape only the LIKE wildcards (same as live-tables.js). Commas
+            // and parens are literal inside a plain `column=ilike.value` filter —
+            // rewriting them to spaces made the pattern stop matching the stored
+            // name for every venue with a comma or paren in it ("Horseshoe
+            // Casino, Baltimore", "Golden Nugget (Las Vegas)"), which silently
+            // re-broke the exact path this block exists to fix.
+            const namePattern = venueName.replace(/[%_]/g, '\\$&');
+            const { data: sessions, error: sessionsErr } = await getSupabase()
+              .from('bankroll_sessions')
+              .select('id')
+              .eq('user_id', user_id)
+              .ilike('venue_name', namePattern)
+              .limit(1);
+            if (sessionsErr) {
+              console.warn('[reviews] bankroll_sessions verification query failed:', sessionsErr.message);
+            }
+            is_verified_player = !!(sessions && sessions.length > 0);
+          }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Fallback: check venue check-ins if bankroll didn't match

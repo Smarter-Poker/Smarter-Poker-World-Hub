@@ -523,7 +523,12 @@ function buildPopupHtml(venue) {
     : '/hub/venues/' + encodeURIComponent(venue.id || ''));
   
   const games = (venue.games_offered || []).slice(0, 3).join(', ');
-  const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
+  // SCHEMA FIX: `is_24_hours` / `hours_of_operation` do not exist on poker_venues
+  // (the real columns are `hours`, `hours_weekday`, `hours_weekend`) and are never
+  // synthesised by /api/poker/venues, so this chip was empty on every popup.
+  const hours = (venue.hours === '24/7' || venue.hours_weekday === '24/7')
+    ? '24/7'
+    : (venue.hours || venue.hours_weekday || '');
 
   // Open status
   const openStatus = getOpenStatus(venue) || {};
@@ -550,6 +555,12 @@ function buildPopupHtml(venue) {
     ? `<div style="font-size:10px;color:rgba(148,163,184,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(venue.address)}</div>`
     : '';
 
+  // Live tables — the page merges live data onto `venue.live_data`
+  // ({ tables_running, players_waiting, games, last_updated }). The popup used to read
+  // `venue._isLive` / `venue.totalTables`, which only ever exist on LiveGamesFeed's own
+  // venue objects, so the LIVE DATA row never rendered on any map.
+  const liveTables = Number(venue.live_data && venue.live_data.tables_running) || 0;
+
   // Distance (if computed)
   const distLine = venue._distanceMi != null
     ? `<span style="font-size:10px;color:rgba(148,163,184,0.45);margin-left:auto;">${venue._distanceMi < 1 ? '<1 mi' : venue._distanceMi.toFixed(1) + ' mi'}</span>`
@@ -573,7 +584,7 @@ function buildPopupHtml(venue) {
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${escapeHtml(String(hours))}</span>` : ''}
     </div>
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${escapeHtml(games)}</div>` : ''}
-    ${venue._isLive && venue.totalTables > 0 ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span style="padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:0.4px;border:1px solid rgba(239,68,68,0.25);">LIVE DATA</span><span style="font-size:11px;color:#4ade80;font-weight:700;">${venue.totalTables} Tables Running</span></div>` : ''}
+    ${liveTables > 0 ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span style="padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:0.4px;border:1px solid rgba(239,68,68,0.25);">LIVE DATA</span><span style="font-size:11px;color:#4ade80;font-weight:700;">${liveTables} Table${liveTables === 1 ? '' : 's'} Running</span></div>` : ''}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
@@ -971,8 +982,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         const fav = isFavorited && isFavorited('venue', v.id) ? 1 : 0;
         return [
           v.id || '', v.name || '', v.latitude, v.longitude, v.venue_type || '', v.tour_code || '',
-          v.is_running ? 1 : 0, v._isLive ? 1 : 0, v.totalTables || 0, v.logo_url || '',
-          v.trust_score || '', v.is_24_hours ? 1 : 0,
+          // Live data arrives on `venue.live_data` (see the merge effect in
+          // pages/hub/poker-near-me/[pnmTab].js) — hashing `_isLive`/`totalTables`
+          // meant a room going live never invalidated its cached marker/popup.
+          v.is_running ? 1 : 0,
+          (v.live_data && v.live_data.tables_running) || 0,
+          (v.live_data && v.live_data.last_updated) || '',
+          v.logo_url || '',
+          v.trust_score || '', v.hours || '', v.hours_weekday || '',
           Array.isArray(v.games_offered) ? v.games_offered.length : 0, fav,
         ].join(':');
       }).join('|'),
@@ -1022,7 +1039,19 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #ffffff;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
           ${base.options.html}
         </div>`;
-        return L.divIcon({ ...base.options, html: favHtml, iconSize: [size + 10, size + 10] });
+        // ANCHOR NOTE: the wrapper grows to size+10 but its CONTENT does not move —
+        // the pulse ring is absolutely positioned at (-1,-1) and the base icon markup
+        // sits in normal flow at (0,0), so the visible circle's centre stays at
+        // (size/2, size/2) inside the larger box. base.options.iconAnchor is exactly
+        // that point, so it must be carried through unchanged; recentring the anchor
+        // on the padded box would draw every favourited pin 5px up-left of its real
+        // coordinates (detached from its own geofence circle).
+        const favSize = size + 10;
+        return L.divIcon({
+          ...base.options,
+          html: favHtml,
+          iconSize: [favSize, favSize],
+        });
       })() : venueIcon;
       // Pass distance via local data attr — do NOT mutate venue object
       const distMi = distanceMap.get(venue.id) ?? null;
@@ -1233,7 +1262,21 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       />
       {/* ═══ VENUE TYPE LEGEND ═══ */}
       {mapReady && !hideLegend && (
+        // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
+        // stop and keyboard activation. Kept as a div (not a button) so the existing
+        // .venue-map-legend layout and its block-level children stay valid.
         <div className="venue-map-legend" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+          aria-expanded={!legendCollapsed}
+          aria-label="Toggle venue type legend"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+              e.preventDefault();
+              e.stopPropagation();
+              setLegendCollapsed(!legendCollapsed);
+            }
+          }}
           onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
           <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
           {!legendCollapsed && legendItems.map(item => (

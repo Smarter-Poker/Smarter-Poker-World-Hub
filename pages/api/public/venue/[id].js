@@ -48,6 +48,15 @@ export default async function handler(req, res) {
       // Fetch venue with public fields only
       const { data: venue, error: venueError } = await getSupabase()
         .from('poker_venues')
+        // NOTE: every column below is verified to exist on poker_venues.
+        // Ten columns that do NOT exist (zip_code, poker_room_phone,
+        // stakes_tournament, has_bad_beat_jackpot, has_food_service,
+        // has_hotel, has_valet, has_comps, google_rating, review_count) used
+        // to be selected here — PostgREST answered the whole select with
+        // 42703, so `venue` was null on EVERY request and the handler always
+        // fell through to the social_pages fallback (404 for integer ids).
+        // `email` is deliberately NOT selected: it is operator PII and this
+        // is an unauthenticated endpoint.
         .select(`
           id,
           name,
@@ -56,33 +65,33 @@ export default async function handler(req, res) {
           city,
           state,
           country,
-          zip_code,
           latitude,
           longitude,
           phone,
           website,
-          email,
-          poker_room_phone,
           games_offered,
           stakes_cash,
-          stakes_tournament,
           poker_tables,
           hours_weekday,
           hours_weekend,
-          has_bad_beat_jackpot,
-          has_food_service,
-          has_hotel,
-          has_valet,
-          has_comps,
+          hours,
           trust_score,
-          google_rating,
-          review_count,
           is_featured,
-          commander_enabled
+          commander_enabled,
+          has_tournaments,
+          about,
+          tagline,
+          profile_photo_url,
+          cover_photo_url
         `)
         .eq('id', id)
         .eq('is_active', true)
         .maybeSingle();
+
+      if (venueError) {
+        // Never let a column drift degrade silently into a 404 again.
+        console.warn('[venue-detail] poker_venues lookup failed:', venueError.message);
+      }
 
       if (venueError || !venue) {
         // Fallback: check social_pages by UUID (clubs, charities, home games)
@@ -418,7 +427,7 @@ export default async function handler(req, res) {
         (async () => {
           if (!venue.commander_enabled) return [];
           try {
-            const { data: games } = await getSupabase()
+            const { data: games, error: gamesError } = await getSupabase()
               .from('commander_games')
               .select(`
                 id,
@@ -433,6 +442,7 @@ export default async function handler(req, res) {
               .in('status', ['running', 'waiting'])
               .order('started_at', { ascending: false })
               .limit(100);
+            if (gamesError) console.warn('[venue-detail] Commander live games query error (pv path):', gamesError.message);
             return games || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Commander live games query failed (pv path):', cmdErr.message);
@@ -444,7 +454,7 @@ export default async function handler(req, res) {
         // Upcoming + live tournaments
         (async () => {
           try {
-            const { data: tourneysData } = await getSupabase()
+            const { data: tourneysData, error: tourneysError } = await getSupabase()
               .from('commander_tournaments')
               .select(`
                 id,
@@ -462,6 +472,7 @@ export default async function handler(req, res) {
               .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
               .order('scheduled_start', { ascending: true })
               .limit(20);
+            if (tourneysError) console.warn('[venue-detail] Commander tournaments query error (pv path):', tourneysError.message);
             return tourneysData || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
@@ -473,13 +484,14 @@ export default async function handler(req, res) {
         // Daily tournament schedule
         (async () => {
           try {
-            const { data: dtData } = await getSupabase()
+            const { data: dtData, error: dtError } = await getSupabase()
               .from('venue_daily_tournaments')
               .select('*')
               .eq('venue_id', id)
               .eq('is_active', true)
               .order('day_of_week')
               .limit(100);
+            if (dtError) console.warn('[venue-detail] Daily tournaments query error (pv path):', dtError.message);
             return dtData || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
@@ -491,13 +503,18 @@ export default async function handler(req, res) {
         // Active promotions
         (async () => {
           try {
-            const { data: promosData } = await getSupabase()
+            // The real column is `promotion_type` — selecting `promo_type`
+            // made PostgREST reject the whole select with 42703, which this
+            // lambda swallowed (the error was never destructured) and every
+            // venue reported zero promotions. Keep `promo_type` in the
+            // response for existing clients by mapping it below.
+            const { data: promosData, error: promosError } = await getSupabase()
               .from('commander_promotions')
               .select(`
                 id,
                 name,
                 description,
-                promo_type,
+                promotion_type,
                 start_time,
                 end_time,
                 days_active
@@ -505,7 +522,11 @@ export default async function handler(req, res) {
               .eq('venue_id', id)
               .eq('is_active', true)
               .limit(5);
-            return promosData || [];
+            if (promosError) {
+              console.warn('[venue-detail] Promotions query error (pv path):', promosError.message);
+              return [];
+            }
+            return (promosData || []).map((p) => ({ ...p, promo_type: p.promotion_type }));
           } catch (cmdErr) {
             console.warn('[venue-detail] Promotions query failed (pv path):', cmdErr.message);
             captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });

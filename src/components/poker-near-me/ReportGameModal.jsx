@@ -43,11 +43,17 @@ const GAME_QUALITY = [
     { value: 'tough', label: 'Tough' },
 ];
 
+// WIRING FIX: these keys must match CATEGORY_KEYS in pages/api/poker/reviews.js
+// ('dealers', 'atmosphere', 'food_drinks', 'waitlist_speed', 'game_selection').
+// The old keys game_quality / rake / food matched no column, so the API silently
+// dropped those three star ratings on every submission — they never reached the
+// database, never appeared in category_averages and never rendered back in
+// VenueReviews. Mirrors CATEGORIES in VenueReviews.jsx.
 const REVIEW_CATEGORIES = [
     { key: 'dealers', label: 'Dealers' },
-    { key: 'game_quality', label: 'Game Quality' },
-    { key: 'rake', label: 'Rake' },
-    { key: 'food', label: 'Food & Drinks' },
+    { key: 'game_selection', label: 'Game Selection' },
+    { key: 'waitlist_speed', label: 'Waitlist Speed' },
+    { key: 'food_drinks', label: 'Food & Drinks' },
     { key: 'atmosphere', label: 'Atmosphere' },
 ];
 

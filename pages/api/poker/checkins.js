@@ -173,16 +173,42 @@ try {
         // Global check-ins (last 24 hours) for map count aggregation
         if (today === 'true') {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          const { data, error } = await getSupabase()
-            .from('venue_checkins')
-            .select('venue_id, id')
-            .gte('created_at', twentyFourHoursAgo);
-          if (error) {
-            console.warn('Error fetching global today checkins:', error);
-            return res.status(500).json({ success: false, error: 'Internal server error' });
+
+          // This had no .limit() and no aggregation, so PostgREST silently
+          // truncated it at the project row cap (1000). Once nationwide volume
+          // passed 1000/24h every venue card's badge under-reported with no
+          // error surfaced. Page deterministically with .range() (same pattern
+          // as checkins/global-leaderboard.js) and expose `truncated`.
+          const PAGE = 1000;
+          const MAX_PAGES = 20; // 20,000 check-ins / 24h ceiling
+          let rows = [];
+          let truncated = false;
+          for (let page = 0; page < MAX_PAGES; page++) {
+            const { data: pageRows, error } = await getSupabase()
+              .from('venue_checkins')
+              .select('venue_id, id')
+              .gte('created_at', twentyFourHoursAgo)
+              .order('created_at', { ascending: false })
+              .range(page * PAGE, (page + 1) * PAGE - 1);
+            if (error) {
+              console.warn('Error fetching global today checkins:', error);
+              return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            if (!pageRows || pageRows.length === 0) break;
+            rows = rows.concat(pageRows);
+            if (pageRows.length < PAGE) break;
+            if (page === MAX_PAGES - 1) truncated = true;
           }
+
+          // Pre-aggregated counts so callers do not have to tally rows themselves.
+          const counts = {};
+          for (const r of rows) {
+            const key = String(r.venue_id);
+            counts[key] = (counts[key] || 0) + 1;
+          }
+
           res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
-          return res.status(200).json({ success: true, data: data || [] });
+          return res.status(200).json({ success: true, data: rows, counts, total: rows.length, truncated });
         }
 
         // Venue check-ins (last 24 hours)

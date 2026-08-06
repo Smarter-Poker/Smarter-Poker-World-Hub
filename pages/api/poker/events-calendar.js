@@ -150,6 +150,41 @@ function parseTimeMinutes(timeStr) {
   return 720;
 }
 
+// TIME FLOOR GUARD — mirrors daily-tournaments.js. The scraper produces
+// 12 AM / 1 AM artifact rows that are not real tournaments; that feed hides
+// them, this one used to render them as genuine morning events.
+const SUSPICIOUS_TIME_FLOOR_MINUTES = 600; // 10:00 AM
+
+/**
+ * Strict start-time parser: minutes since midnight, or -1 when the value is
+ * absent/TBD/unparseable. Distinct from parseTimeMinutes(), which defaults
+ * unparseable values to noon and so cannot be used for the floor guard.
+ */
+function parseStartTimeStrict(timeStr) {
+  if (!timeStr) return -1;
+  const t = String(timeStr).trim();
+  let m = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?$/i);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    const mn = parseInt(m[2], 10);
+    const p = (m[3] || '').toUpperCase();
+    if (p === 'PM' && h !== 12) h += 12;
+    if (p === 'AM' && h === 12) h = 0;
+    if (h > 23 || mn > 59) return -1;
+    return h * 60 + mn;
+  }
+  m = t.match(/^(\d{1,2})\s*([AP]M)$/i);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    const p = m[2].toUpperCase();
+    if (p === 'PM' && h !== 12) h += 12;
+    if (p === 'AM' && h === 12) h = 0;
+    if (h > 23) return -1;
+    return h * 60;
+  }
+  return -1;
+}
+
 function formatMoney(amount) {
   if (!amount && amount !== 0) return null;
   if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
@@ -398,6 +433,11 @@ async function handler(req, res) {
           // cannot fail the whole query.
           .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date')
           .eq('is_active', true)
+          // Every other consumer of venue_daily_tournaments (venues.js,
+          // daily-tournaments.js, venue-tournament-calendar.js,
+          // tournament-alerts.js) treats rows below this quality bar as retired.
+          // Without it the calendar advertised events that vanish on click-through.
+          .eq('data_quality', 'scraped_verified')
           .or('is_suppressed.is.null,is_suppressed.eq.false');
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
@@ -432,6 +472,11 @@ async function handler(req, res) {
           for (const t of dtRows) {
             const tName = t.tournament_name || '';
             if (tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
+
+            // Drop pre-10AM scraper artifacts (keep TBD/unparseable times),
+            // matching the daily-tournaments feed.
+            const startMins = parseStartTimeStrict(t.start_time);
+            if (startMins >= 0 && startMins < SUSPICIOUS_TIME_FLOOR_MINUTES) continue;
 
             const venueInfo = getVenueInfo(t.venue_id, t.venue_name);
 

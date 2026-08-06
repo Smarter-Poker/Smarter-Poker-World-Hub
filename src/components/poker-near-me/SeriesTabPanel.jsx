@@ -35,8 +35,13 @@ function parseLocalDate(value) {
 
 const MONTHS_PER_PAGE = 4;
 
+const EMPTY_DAY = [];
+
 function SeriesCalendar({ series, router, openVenueModal }) {
-    const today = new Date();
+    // PERF: `new Date()` per render anchored the whole month window to a value that
+    // changed identity on every parent state change. It only needs to be read once.
+    const today = React.useMemo(() => new Date(), []);
+    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
     // IMPROVEMENT: the calendar was hard-locked to 4 months forward from today with no
     // controls, so a series running since last month was invisible and anything past the
     // window (the horizon players book WSOP/WPT travel on) could not be browsed at all.
@@ -44,11 +49,58 @@ function SeriesCalendar({ series, router, openVenueModal }) {
     // The "+N" overflow indicator is now a real control — clicking a day expands the cell.
     const [expandedDay, setExpandedDay] = React.useState(null);
 
-    const months = [];
-    for (let m = 0; m < MONTHS_PER_PAGE; m++) {
-        const d = new Date(today.getFullYear(), today.getMonth() + monthOffset + m, 1);
-        months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
-    }
+    const months = React.useMemo(() => {
+        const out = [];
+        for (let m = 0; m < MONTHS_PER_PAGE; m++) {
+            const d = new Date(today.getFullYear(), today.getMonth() + monthOffset + m, 1);
+            out.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
+        }
+        return out;
+    }, [today, monthOffset]);
+
+    // PERF: the calendar used to re-filter the WHOLE series list once per month and then
+    // again once per day cell (4 months x up to 31 days = ~124 passes), calling
+    // parseLocalDate twice per candidate and allocating two more Dates per comparison —
+    // tens of thousands of Date allocations per render on a mobile scroll surface.
+    // Parse each series' start/end exactly once...
+    const parsedSeries = React.useMemo(() => (
+        (Array.isArray(series) ? series : []).reduce((acc, s) => {
+            const start = parseLocalDate(s.start_date);
+            if (!start) return acc;
+            const end = parseLocalDate(s.end_date) || start;
+            acc.push({
+                s,
+                startMs: new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime(),
+                endMs: new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime(),
+            });
+            return acc;
+        }, [])
+    ), [series]);
+
+    // ...then bucket them into 'YYYY-M-D' -> series[] in ONE pass over the visible window.
+    // Each day cell becomes a Map lookup.
+    const dayMap = React.useMemo(() => {
+        const map = new Map();
+        if (months.length === 0) return map;
+        const first = months[0];
+        const last = months[months.length - 1];
+        const windowStart = new Date(first.year, first.month, 1).getTime();
+        const windowEnd = new Date(last.year, last.month + 1, 0).getTime();
+        parsedSeries.forEach(row => {
+            if (row.endMs < windowStart || row.startMs > windowEnd) return;
+            const from = new Date(Math.max(row.startMs, windowStart));
+            const to = Math.min(row.endMs, windowEnd);
+            // setDate() stepping is DST-safe; the loop is bounded by the visible window.
+            for (const cur = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+                cur.getTime() <= to;
+                cur.setDate(cur.getDate() + 1)) {
+                const key = `${cur.getFullYear()}-${cur.getMonth()}-${cur.getDate()}`;
+                const bucket = map.get(key);
+                if (bucket) bucket.push(row.s); else map.set(key, [row.s]);
+            }
+        });
+        return map;
+    }, [parsedSeries, months]);
 
     const shiftMonths = (delta) => {
         setExpandedDay(null);
@@ -78,15 +130,6 @@ function SeriesCalendar({ series, router, openVenueModal }) {
             {months.map((mo, mi) => {
                 const daysInMonth = new Date(mo.year, mo.month + 1, 0).getDate();
                 const firstDay = new Date(mo.year, mo.month, 1).getDay();
-                const monthSeries = series.filter(s => {
-                    if (!s.start_date) return false;
-                    const start = parseLocalDate(s.start_date);
-                    if (!start) return false;
-                    const end = parseLocalDate(s.end_date) || start;
-                    const moStart = new Date(mo.year, mo.month, 1);
-                    const moEnd = new Date(mo.year, mo.month + 1, 0);
-                    return start <= moEnd && end >= moStart;
-                });
 
                 return (
                     <div key={mi} className="calendar-month">
@@ -102,16 +145,9 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                             ))}
                             {Array.from({ length: daysInMonth }).map((_, di) => {
                                 const dayNum = di + 1;
-                                const dayDate = new Date(mo.year, mo.month, dayNum);
-                                const daySeries = monthSeries.filter(s => {
-                                    const start = parseLocalDate(s.start_date);
-                                    if (!start) return false;
-                                    const end = parseLocalDate(s.end_date) || start;
-                                    return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
-                                        dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
-                                });
-                                const isToday = dayDate.toDateString() === today.toDateString();
                                 const cellKey = `${mo.year}-${mo.month}-${dayNum}`;
+                                const daySeries = dayMap.get(cellKey) || EMPTY_DAY;
+                                const isToday = cellKey === todayKey;
                                 const isExpanded = expandedDay === cellKey;
                                 const visibleSeries = isExpanded ? daySeries : daySeries.slice(0, 2);
                                 return (

@@ -249,7 +249,17 @@ export function getOpenStatus(venue) {
     }
     
     // "Now" in the ROOM's timezone, not the viewer's. null = zone unknown/invalid.
-    const zoned = getZonedNow(venue.timezone);
+    // BUG FIX: this read venue.timezone directly, so every venue with a NULL
+    // poker_venues.timezone lost its Open/Closed pill entirely — even though the same
+    // card's hours line already resolves the zone via resolveVenueTimeZone (timezone,
+    // falling back to the state's zone). The two paths disagreed on the same venue.
+    // resolveVenueTimeZone returns null only when the venue has neither a timezone nor a
+    // state we recognise; those rows still fall through to unknownOpenStatus(). Split
+    // states resolve to the state's dominant zone (the same approximation the hours line
+    // and /api/poker/venue-predictions-batch already make), so a room in a minority zone
+    // can read up to an hour off — still better than the viewer's clock, and consistent
+    // with every other wall-clock surface on the card.
+    const zoned = getZonedNow(resolveVenueTimeZone(venue));
 
     // Pick the right hours string.
     // `hasPostedHours` tracks whether the venue posts ANY hours at all — a venue that

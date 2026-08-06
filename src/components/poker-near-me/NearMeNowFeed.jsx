@@ -154,9 +154,15 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                         type: 'live_game',
                         title: `${g.game_type || 'Cash Game'} ${g.stakes || ''}`.trim(),
                         subtitle: venue.name,
-                        detail: g.players ? `${g.players} players` : '',
+                        // SCHEMA FIX: `players` is not a live_games column (the table has
+                        // table_count and wait_time), so this detail line was always empty.
+                        detail: [
+                            g.table_count ? `${g.table_count} table${Number(g.table_count) === 1 ? '' : 's'}` : null,
+                            g.wait_time ? `${g.wait_time} waiting` : null,
+                        ].filter(Boolean).join(' - '),
                         venue,
-                        time: g.updated_at || g.created_at || new Date().toISOString(),
+                        // `updated_at` is also absent from live_games — created_at is the real column.
+                        time: g.created_at || new Date().toISOString(),
                         id: `live-${g.id || g.venue_id}`,
                     });
                 }
@@ -407,16 +413,31 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 <div className="nmf-feed-list">
                     {filteredItems.map((item, i) => {
                         const typeStyle = TYPE_COLORS[item.type] || TYPE_COLORS.live_game;
+                        // A11Y FIX: these rows were click-only divs — no role, no tabIndex, no key
+                        // handler and no accessible name — so the entire feed was unreachable
+                        // without a pointer. Matches PeakActivityHeatmap / SeasonalCalendar.
+                        const activateItem = () => {
+                            if (item.venue?.id && onNavigateVenue) {
+                                onNavigateVenue(item.venue.id);
+                            } else if (item.type === 'tournament' && onSwitchTab) {
+                                onSwitchTab('daily');
+                            } else if (onSwitchTab) {
+                                onSwitchTab('live');
+                            }
+                        };
                         return (
-                            <div key={item.id || i} className="nmf-item" onClick={() => {
-                                if (item.venue?.id && onNavigateVenue) {
-                                    onNavigateVenue(item.venue.id);
-                                } else if (item.type === 'tournament' && onSwitchTab) {
-                                    onSwitchTab('daily');
-                                } else if (onSwitchTab) {
-                                    onSwitchTab('live');
-                                }
-                            }} style={{ borderLeftColor: typeStyle.border, cursor: 'pointer' }}>
+                            <div key={item.id || i} className="nmf-item"
+                                role="button"
+                                tabIndex={0}
+                                aria-label={[item.title, item.subtitle].filter(Boolean).join(' at ')}
+                                onClick={activateItem}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                                        e.preventDefault();
+                                        activateItem();
+                                    }
+                                }}
+                                style={{ borderLeftColor: typeStyle.border, cursor: 'pointer' }}>
                                 <div className="nmf-item-icon">{FEED_ICONS[item.type]}</div>
                                 <div className="nmf-item-content">
                                     <div className="nmf-item-top">

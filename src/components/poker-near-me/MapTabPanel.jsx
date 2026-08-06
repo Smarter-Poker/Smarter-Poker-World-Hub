@@ -10,6 +10,18 @@ import { MapErrorBoundary } from './VenueMap';
 // Helper: identify tour stops — these are MTT venues, NOT cash game venues
 const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
 
+// SCHEMA FIX: the "Open 24 Hours" chip used to test `v.is_24_hours` and
+// `v.hours_of_operation`. Neither column exists on poker_venues (the real columns
+// are `hours`, `hours_weekday`, `hours_weekend`) and /api/poker/venues does not
+// synthesise them, so the predicate was always false and the chip emptied the map.
+// This is the same signal pnm-utils getOpenStatus() uses for its "Open 24/7" pill.
+const isOpen24Hours = (v) => {
+    if (!v) return false;
+    if (v.hours === '24/7' || v.hours_weekday === '24/7') return true;
+    const raw = String(v.hours || v.hours_weekday || '');
+    return /24\s*\/?\s*7|24\s*hours/i.test(raw);
+};
+
 export default function MapTabPanel({
     allVenuesForMap,
     mapFilters,
@@ -42,7 +54,8 @@ export default function MapTabPanel({
             list = list.filter(v => isTour(v) || v.has_tournaments);
         }
         if (mapFilters.is24Hours) {
-            list = list.filter(v => !isTour(v) && !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
+            // Charity rooms and home games never run 24/7 (mirrors NEVER_24_7_TYPES in pnm-utils)
+            list = list.filter(v => !isTour(v) && !['charity', 'home_game'].includes(v.venue_type) && isOpen24Hours(v));
         }
         if (mapFilters.lowStakes) {
             // Low stakes chip: tours have no stakes — exclude them

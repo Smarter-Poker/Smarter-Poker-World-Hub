@@ -115,6 +115,12 @@ async function handler(req, res) {
             .eq('venue_id', venueId)
             .eq('is_active', true)
             .eq('data_quality', 'scraped_verified')
+            // is_suppressed is an admin-only manual retirement flag. Every sibling
+            // surface (venues.js, daily-tournaments.js, events-calendar.js,
+            // tournament-alerts.js) filters it; this route did not, so a
+            // suppressed tournament stayed visible in the weekly schedule and was
+            // projected forward onto every future date by generateDatedInstances.
+            .or('is_suppressed.is.null,is_suppressed.eq.false')
             .order('buy_in', { ascending: true })
             .limit(500);
 

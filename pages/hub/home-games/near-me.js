@@ -69,6 +69,28 @@ function formatStakes(minBuyin, maxBuyin, stakes) {
   return 'Stakes TBD';
 }
 
+// Date/time from the API are raw DB values — `commander_home_games.scheduled_date`
+// is a `date` and `start_time`/`typical_time` are `time` — so they render as
+// '2026-08-12' and '19:00:00' unless formatted. Same helpers as the public
+// group page (pages/hub/home-games/[slug].js). The date is parsed with an
+// explicit T00:00:00 so it is local midnight, not UTC midnight shifted back a
+// day for western timezones.
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(String(dateStr) + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return String(dateStr);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = String(t).split(':').map(Number);
+  if (!Number.isFinite(h)) return String(t);
+  const date = new Date();
+  date.setHours(h || 0, m || 0, 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 // Every home-games page lives under /hub/home-games — there is no top-level
 // /home-games route and no rewrite for one, so a bare `/home-games/...` href
 // is a guaranteed 404.
@@ -458,7 +480,7 @@ export default function HomeGamesNearMePage() {
                       {g.typical_day && (
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-[#8B5CF6]" />
-                          <span>{g.typical_day}{g.typical_time ? ` · ${g.typical_time}` : ''}</span>
+                          <span>{g.typical_day}{g.typical_time ? ` · ${formatTime(g.typical_time)}` : ''}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
@@ -471,7 +493,7 @@ export default function HomeGamesNearMePage() {
                       <div className="mt-3 p-2 rounded-md bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5 text-[#C4B5FD] flex-shrink-0" />
                         <span className="text-xs text-[#C4B5FD] truncate">
-                          Next game: {g.next_game_date}{g.next_game_time ? ` · ${g.next_game_time}` : ''}
+                          Next game: {formatDate(g.next_game_date)}{g.next_game_time ? ` · ${formatTime(g.next_game_time)}` : ''}
                           {g.next_game_seats_left != null ? ` · ${g.next_game_seats_left} seats left` : ''}
                         </span>
                       </div>

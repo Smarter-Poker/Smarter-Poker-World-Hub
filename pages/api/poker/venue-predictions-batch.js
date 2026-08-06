@@ -320,32 +320,47 @@ export default async function handler(req, res) {
 
     // Fetch history for all these venues by name from game_live_history
     let historyData = [];
-    // Batch in chunks of 20 venue names to avoid query limits
-    for (let i = 0; i < venueNamesArray.length; i += 20) {
-      const batch = venueNamesArray.slice(i, i + 20);
-      const { data, error } = await supabase
-        .from('game_live_history')
-        .select('venue_name, game_type, tables, waiting, snapshot_time')
-        .gte('snapshot_time', fourWeeksAgo)
-        .in('venue_name', batch)
-        // DESCENDING: with ascending order the row cap discarded the most
-        // RECENT snapshots first, so once a venue set exceeded the cap inside
-        // the 28-day window "best time to go" was computed entirely from the
-        // oldest data and stopped responding to current traffic patterns.
-        .order('snapshot_time', { ascending: false })
-        .limit(10000);
+    // Batch venue names in chunks. `.limit(10000)` was silently truncated to the
+    // project's 1000-row cap, so 20 venues shared a single 1000-row budget over
+    // a 28-day window: one busy venue consumed nearly all of it and starved the
+    // other 19 into `has_data: false`. Page each chunk with .range() and halve
+    // the chunk size so every venue gets a usable share of the row budget.
+    const HISTORY_CHUNK = 10;
+    const HISTORY_PAGE_SIZE = 1000;
+    const HISTORY_MAX_PAGES = 5; // 5,000 rows per chunk of 10 venues
+    for (let i = 0; i < venueNamesArray.length; i += HISTORY_CHUNK) {
+      const batch = venueNamesArray.slice(i, i + HISTORY_CHUNK);
+      let chunkFailed = false;
 
-      if (error) {
-        if (error.code === '42P01' || error.code === '42703') {
-          // Table not ready — return empty state for all
-          const predictions = {};
-          ids.forEach(id => { predictions[id] = { has_data: false }; });
-          return res.status(200).json({ success: true, predictions });
+      for (let page = 0; page < HISTORY_MAX_PAGES; page++) {
+        const { data, error } = await supabase
+          .from('game_live_history')
+          .select('venue_name, game_type, tables, waiting, snapshot_time')
+          .gte('snapshot_time', fourWeeksAgo)
+          .in('venue_name', batch)
+          // DESCENDING: with ascending order the row cap discarded the most
+          // RECENT snapshots first, so once a venue set exceeded the cap inside
+          // the 28-day window "best time to go" was computed entirely from the
+          // oldest data and stopped responding to current traffic patterns.
+          .order('snapshot_time', { ascending: false })
+          .range(page * HISTORY_PAGE_SIZE, (page + 1) * HISTORY_PAGE_SIZE - 1);
+
+        if (error) {
+          if (error.code === '42P01' || error.code === '42703') {
+            // Table not ready — return empty state for all
+            const predictions = {};
+            ids.forEach(id => { predictions[id] = { has_data: false }; });
+            return res.status(200).json({ success: true, predictions });
+          }
+          console.warn('venue-predictions-batch: history query error:', error.message);
+          chunkFailed = true;
+          break;
         }
-        console.warn('venue-predictions-batch: history query error:', error.message);
-        continue;
+        if (!data || data.length === 0) break;
+        historyData = historyData.concat(data);
+        if (data.length < HISTORY_PAGE_SIZE) break;
       }
-      if (data) historyData = historyData.concat(data);
+      if (chunkFailed) continue;
     }
 
     // Group history by venue ID

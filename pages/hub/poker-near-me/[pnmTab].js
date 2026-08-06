@@ -105,12 +105,73 @@ const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
-const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "Load More"
+// BUG FIX: /api/poker/venues hard-caps the radius at 150mi in BOTH query paths
+// (bounding-box pre-filter and the final distance filter), so 200mi / 500mi /
+// "Any Distance" all returned exactly the 150mi result set while the UI implied
+// the search had widened — and "Load More" fired two more full 500-row requests
+// that could never return a new venue. The page now agrees with the server (and
+// with VenuesTabPanel, which already used [50, 100, 150]).
+const MAX_RADIUS_MILES = 150;
+const RADIUS_TIERS = [50, 100, 150]; // Progressive radius expansion for "Load More"
+
+// Normalize any radius value (persisted, voice-parsed or user-selected) to a
+// number the server will actually honour. 'any' is no longer offered, but old
+// localStorage blobs and old deep links still carry it.
+function normalizeRadiusMiles(value) {
+  if (String(value).toLowerCase() === 'any') return MAX_RADIUS_MILES;
+  const n = Number(value);
+  if (!isFinite(n) || n <= 0) return DEFAULT_RADIUS_MILES;
+  return Math.min(n, MAX_RADIUS_MILES);
+}
 
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
 const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
 const MORE_SUB_TABS = ['overview', 'roadtrip', 'social', 'alerts', 'nearmenow', 'tripcost'];
+
+// Venue types this page is willing to accept from localStorage, deep links and
+// voice input. NOTE: 'poker_tour' is deliberately absent — VoiceSearch emits it
+// but nothing downstream (the API, useTourMapStops, the Venue Type select)
+// recognises it, so letting it through produced a permanently blank page that
+// survived reload. See normalizeVenueType below.
+const SAFE_VENUE_TYPES = new Set([
+  'casino',
+  'card_room',
+  'poker_club',
+  'home_game',
+  'charity',
+  'tour_stop',
+]);
+
+// Map any externally-supplied venue type onto the page's real filter domain.
+// Returns null when the value is not usable.
+function normalizeVenueType(value) {
+  const raw = String(value || '').toLowerCase();
+  if (raw === 'poker_tour') return 'tour_stop';
+  if (raw === 'cardroom' || raw === 'card_room') return 'poker_club';
+  return SAFE_VENUE_TYPES.has(raw) ? raw : null;
+}
+
+// SEO FIX: the canonical tag and the deep-link writer used to derive the URL
+// slug independently, so crawled /daily-tournaments declared a canonical of
+// /daily and created a second indexable duplicate instead of consolidating.
+// Both now call this one table.
+function getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab }) {
+  if (showLiveTab) return 'live-games';
+  if (activeTab === 'map') return 'map';
+  if (activeTab === 'saved') return 'saved';
+  if (activeTab === 'more') {
+    if (activeMoreTab === 'alerts') return 'alerts';
+    if (activeMoreTab === 'roadtrip') return 'roadtrip';
+    return 'more';
+  }
+  if (activeTab === 'events') {
+    if (activeEventTab === 'daily') return 'daily-tournaments';
+    if (activeEventTab === 'calendar') return 'events-calendar';
+    return activeEventTab || 'events';
+  }
+  return 'venues';
+}
 
 // ── Safe localStorage helper — evicts large cache blobs if quota is exceeded ──
 // Priority eviction order: offline-venues (largest), map-filters, analytics
@@ -366,6 +427,23 @@ export default function PokerNearMePage() {
   const fetchVenuesRef = useRef(null);
   // Same temporal-dead-zone dodge for fetchLiveCount (declared further down).
   const fetchLiveCountRef = useRef(null);
+  // Same again for fetchAllData — handleGpsSuccess is a first-render-only
+  // useCallback and MUST go through this ref rather than capturing a stale copy.
+  const fetchAllDataRef = useRef(null);
+  // And for fetchDailyTournaments, so the post-geocode corrective refetch can
+  // re-request the schedule once the 2-letter state is finally known.
+  const fetchDailyRef = useRef(null);
+  // GlobalSearchOverlay lifts EVERY keystroke into `searchQuery`, so while the
+  // overlay is open that text is UNCOMMITTED and a background revalidation must
+  // ignore it — otherwise a poll tick swaps the underlying list for a partial-text
+  // search the user never submitted. Once the overlay closes, `searchQuery` is
+  // either '' (onClose clears it) or a COMMITTED search (VoiceSearch sets it and
+  // immediately fetches with it), and a background refresh must PRESERVE it — a
+  // blanket searchOverride:'' would silently replace the user's voice-search
+  // results with a location browse ~5 minutes later.
+  const searchOverlayOpenRef = useRef(false);
+  const backgroundFetchArgs = () =>
+    searchOverlayOpenRef.current ? { silent: true, searchOverride: '' } : { silent: true };
   // Persists the last confirmed 2-letter US state ('IL', 'NV', etc.) for GPS user.
   // Unlike gpsLocationLabel (which temporarily becomes raw coordinates when fresh GPS fires
   // before reverseGeocode resolves), this ref is never cleared — it ensures user_state=IL
@@ -391,7 +469,11 @@ export default function PokerNearMePage() {
         realtimeMountSkipRef.current = true; // mount tick — page fetches on its own
         return;
       }
-      if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+      // BUG FIX: background refreshes must NOT inherit UNCOMMITTED overlay
+      // keystrokes — that turned the 5-minute poll into a silent re-run of the
+      // half-typed search and replaced the location-browse list. See
+      // backgroundFetchArgs: a committed (voice) search is still preserved.
+      if (fetchVenuesRef.current) fetchVenuesRef.current(backgroundFetchArgs());
       if (fetchLiveCountRef.current) fetchLiveCountRef.current();
       return;
     }
@@ -536,7 +618,14 @@ export default function PokerNearMePage() {
   const [tours, setTours] = useState([]);
   const [series, setSeries] = useState([]);
   const [dailyTournaments, setDailyTournaments] = useState([]);
-  const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
+  const [dbStats, setDbStats] = useState({
+    total: 0,
+    tournaments: 0,
+    states: 0,
+    // Which day `tournaments` was counted for — the day selector lets the user
+    // move off today, and the subtitle used to label every count 'Today'.
+    tournamentsDay: null,
+  });
 
   // Live table count for map stats (fetched from live-tables API)
   const [liveTableCount, setLiveTableCount] = useState(0);
@@ -568,6 +657,8 @@ export default function PokerNearMePage() {
   const geofenceRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  // Read by backgroundFetchArgs() from timer/event callbacks that outlive this render.
+  searchOverlayOpenRef.current = showGlobalSearch;
 
   // Map fullscreen modal state
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -884,6 +975,12 @@ export default function PokerNearMePage() {
     locationEnabled: true,
     showNewcomerFriendly: true,
   });
+  // STUB FIX: the hamburger toggles were persisted but never honoured. The
+  // mount GPS auto-request fires from a `[]` effect whose timer can outrun the
+  // async Supabase preferences load, so the timer callback reads the CURRENT
+  // preferences through this ref rather than the mount-time snapshot.
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
 
   // Intro video state - ONLY show when navigated directly from World Hub card click
   // NOT when navigating via lobby pods (which add ?tab= params)
@@ -995,17 +1092,12 @@ export default function PokerNearMePage() {
       const parsed = JSON.parse(saved);
       // ENFORCE venueType=all so tour pins + all venues always show on map
       // Also sanitize stale 'undefined' string values from the ?filter=undefined bug
-      const VALID_VT = new Set([
-        'all',
-        'casino',
-        'card_room',
-        'poker_club',
-        'home_game',
-        'charity',
-        'tour_stop',
-        'poker_tour',
-      ]);
-      parsed.venueType = VALID_VT.has(parsed.venueType) ? parsed.venueType : 'all';
+      // BUG FIX: 'poker_tour' used to be whitelisted here, so one voice search for
+      // "poker tour" persisted a venue type that no filter path recognises and the
+      // page stayed permanently empty across reloads. normalizeVenueType folds it
+      // (and legacy 'card_room') onto the real domain instead.
+      parsed.venueType =
+        parsed.venueType === 'all' ? 'all' : normalizeVenueType(parsed.venueType) || 'all';
       // REMOVED gameType and stakes forced resets to allow user preference persistence.
       // Sanitize old cached 'tournaments' value back to 'all'
       if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
@@ -1021,8 +1113,12 @@ export default function PokerNearMePage() {
           : 'all';
       // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
       // Keep the user's saved radius — do NOT override it to 50mi
-      // Default to 50mi only if no saved radius exists
-      if (!parsed.radius) parsed.radius = 50;
+      // Default to 50mi only if no saved radius exists.
+      // BUG FIX: clamp saved 200/500/'any' radii down to the server's real 150mi
+      // ceiling so the select shows a value the option list actually contains and
+      // "Load More" stops expanding into tiers the API silently truncates.
+      if (!parsed.radius) parsed.radius = DEFAULT_RADIUS_MILES;
+      else parsed.radius = normalizeRadiusMiles(parsed.radius);
       parsed.gameType = parsed.gameType || 'all';
       // BUG FIX: selectedDay was persisted forever, so returning users saw a stale
       // day's daily tournaments presented as today's. Always reset it to today.
@@ -1283,8 +1379,11 @@ export default function PokerNearMePage() {
     return () => window.removeEventListener('poker-near-me-map-filters-sync', handleSync);
   }, []);
 
-  // Selected room for detail panel
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  // WIRING FIX: `selectedRoom`/`setSelectedRoom` used to live here purely to feed
+  // MapTabPanel props that MapTabPanel never destructures — no component ever
+  // implemented the "selected room detail panel", and nothing else in this file
+  // read the state. Removed along with the other six dead map props
+  // (liveTableCount, dailyTournaments, setHasSearched, fetchAllData, router).
 
   // ═══ MAP CENTER — Compute center for map zoom (GPS or city venue centroid) ═══
   const mapCenter = useMemo(() => {
@@ -1598,6 +1697,10 @@ export default function PokerNearMePage() {
         () => {
           gpsMountTimerRef.current = null;
           if (pageUnmountedRef.current) return;
+          // STUB FIX: honour the "Location Services" hamburger toggle. This is the
+          // AUTOMATIC path only — an explicit tap on the GPS button still works,
+          // because that is an unambiguous user request.
+          if (preferencesRef.current && preferencesRef.current.locationEnabled === false) return;
           if (hasSavedLocation) {
             // Silent refresh — don't show alerts, just update if GPS is available
             navigator.geolocation.getCurrentPosition(
@@ -1677,6 +1780,16 @@ export default function PokerNearMePage() {
     if (typeof window === 'undefined') return;
     if (!userLocation) return;
     if (allVenuesForMap.length === 0) return;
+    // STUB FIX: honour the "Geofence Alerts" hamburger toggle. Turning it off used
+    // to leave the GPS watcher running, still fire showVenueAlert, still render the
+    // banner and still POST arrivals to /api/venues/record-geofence. Because
+    // preferences.geofenceAlerts is now a dependency, flipping it off re-runs this
+    // effect: the previous run's cleanup stops the service, then we bail out here.
+    if (preferences && preferences.geofenceAlerts === false) {
+      setGeofenceStatus(null);
+      setGeofenceAlert(null);
+      return;
+    }
 
     // LEAK FIX: `cancelled` guards the async dynamic-import init — without it,
     // gfService.start() could fire AFTER this effect was cleaned up (or the page
@@ -1749,7 +1862,7 @@ export default function PokerNearMePage() {
         geofenceRef.current.stop();
       }
     };
-  }, [userLocation, allVenuesForMap]);
+  }, [userLocation, allVenuesForMap, preferences.geofenceAlerts]);
 
   useEffect(() => {
     if (router.isReady && router.query.q) {
@@ -1920,7 +2033,10 @@ export default function PokerNearMePage() {
         // Venue metadata changed — refresh venue list + live counts
         if (mutateDebounce) clearTimeout(mutateDebounce);
         mutateDebounce = setTimeout(() => {
-          if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+          // backgroundFetchArgs() — background revalidation must not silently re-run
+          // half-typed overlay text over the location-browse list (but it does keep
+          // a committed voice search).
+          if (fetchVenuesRef.current) fetchVenuesRef.current(backgroundFetchArgs());
           if (typeof fetchLiveCount === 'function') fetchLiveCount();
         }, 1000);
       }
@@ -1956,12 +2072,18 @@ export default function PokerNearMePage() {
 
   // --- NEW: Fetch promotion venue IDs on mount ---
   useEffect(() => {
-    fetch('/api/poker/promotions?limit=200')
+    // BUG FIX: this asked for limit=200 but /api/poker/promotions clamps to 100
+    // (Math.min(parseInt(rawLimit), 100)), so 100 of the requested rows were
+    // silently dropped — and because the request was unfiltered, tour/series
+    // promotions consumed slots in a set that is only ever compared against
+    // VENUE ids. Ask the server for venue promotions only, at its real ceiling,
+    // and still guard the page_type client-side.
+    fetch('/api/poker/promotions?page_type=venue&limit=100')
       .then((r) => r.json())
       .then((json) => {
         const ids = new Set();
         (json.promotions || json.data || []).forEach((p) => {
-          if (p.page_id) ids.add(String(p.page_id));
+          if (p.page_id && p.page_type === 'venue') ids.add(String(p.page_id));
         });
         setPromotionVenueIds(ids);
       })
@@ -2035,11 +2157,15 @@ export default function PokerNearMePage() {
       safeSetItem('sp-search-history', JSON.stringify(next));
       return next;
     });
-    // Async sync to Supabase if logged in
+    // Async sync to Supabase if logged in.
+    // WIRING FIX: this used to pass { location, filters }. The service only reads
+    // `type`/`search_type` and poker_near_me_search_history has exactly
+    // (id, user_id, search_query, search_type, searched_at) — there is nowhere to
+    // store location or filters, so both were serialized and thrown away while
+    // search_type was always written as NULL. Pass the one field that persists.
     if (userId) {
       addSearchHistoryToDb(userId, query.trim(), {
-        location: selectedCity ? selectedCity.name : null,
-        filters: filters,
+        type: 'poker_near_me_global',
       }).catch((e) => {
         console.warn('[App] Handled promise rejection:', e?.message || e);
       });
@@ -2097,7 +2223,9 @@ export default function PokerNearMePage() {
         setDisplayCount((prev) => ({ ...prev, venues: prev.venues + PAGE_SIZE }));
       } else if (userLocation) {
         // All current results shown — expand radius to next tier and re-fetch
-        const currentRadius = Number(filters.radius) || 50;
+        // RADIUS_TIERS now stops at the server's real 150mi cap, so once the user
+        // is already at 150 there is no next tier and no pointless extra request.
+        const currentRadius = normalizeRadiusMiles(filters.radius);
         const nextTier = RADIUS_TIERS.find((r) => r > currentRadius);
         if (nextTier) {
           // Update radius in state, then trigger a re-fetch
@@ -2129,12 +2257,22 @@ export default function PokerNearMePage() {
       if (!venue || !venue.id) return;
       // Close fullscreen map if it's open so the card is visible
       setMapFullscreen(false);
-      // Ensure we're on the Venues tab so cards are visible
+      // Ensure we're on the Venues tab so cards are visible.
+      // BUG FIX: renderContent short-circuits on showLiveTab, so setting activeTab
+      // alone left the live feed on screen and the card permanently invisible.
+      setShowLiveTab(false);
       if (activeTab !== 'venues') setActiveTab('venues');
 
-      // Try to find the card immediately
+      // Try to find the card immediately.
+      // BUG FIX: VenuesTabPanel renders tour stops as `tour-card-<tour_code>`, not
+      // `venue-card-<id>` (tour pins carry id 'tour-stop-<code>'), so clicking a
+      // tour pin — the flagship traveling-tours surface — always missed, expanded
+      // displayCount to the full list for nothing and left the user with no scroll
+      // and no highlight. Try both ids before falling back.
       const tryScroll = () => {
-        const cardEl = document.getElementById('venue-card-' + venue.id);
+        const cardEl =
+          document.getElementById('venue-card-' + venue.id) ||
+          (venue.tour_code ? document.getElementById('tour-card-' + venue.tour_code) : null);
         if (cardEl) {
           cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setHighlightedVenueId(venue.id);
@@ -2297,7 +2435,18 @@ export default function PokerNearMePage() {
       gpsRefetchTimerRef.current = setTimeout(() => {
         gpsRefetchTimerRef.current = null;
         if (pageUnmountedRef.current) return;
-        fetchAllData({ includeVenues: false, overrideLocation: loc });
+        // BUG FIX: handleGpsSuccess is a useCallback with [reverseGeocode] deps and
+        // reverseGeocode is [], so this closure is built ONCE on the first render.
+        // Calling `fetchAllData` directly therefore invoked render-1's copy, which
+        // closes over userLocation===null / selectedCity===null / the default
+        // filters — the state that exists before GPS resolves. That is exactly the
+        // state the daily-tournaments WIRING FIX below needs, so a GPS user always
+        // got the nationwide list (and the day chip snapped back to today). Go
+        // through the ref that is reassigned on every render, the same indirection
+        // this function already uses for fetchVenuesRef.
+        if (fetchAllDataRef.current) {
+          fetchAllDataRef.current({ includeVenues: false, overrideLocation: loc });
+        }
       }, 0);
       // Resolve city/state asynchronously and persist label
       reverseGeocode(loc.lat, loc.lng).then((label) => {
@@ -2328,7 +2477,12 @@ export default function PokerNearMePage() {
           // The initial GPS-triggered fetch runs while label is still coordinates ("41.7, -87.7"),
           // which means user_state can't be extracted and the API returns 0 local venues.
           // This corrective refetch ensures venues appear once geocoding completes (~1-2s later).
-          if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+          if (fetchVenuesRef.current) fetchVenuesRef.current(backgroundFetchArgs());
+          // BUG FIX: daily tournaments have the SAME problem — the API ignores
+          // lat/lng and keys off the 2-letter state, which is still unknown when
+          // the GPS-triggered fetch runs. Without this the "N Tournaments" figure
+          // and the Daily tab stayed on the nationwide list for every GPS user.
+          if (fetchDailyRef.current) fetchDailyRef.current();
         }
       });
     },
@@ -2491,14 +2645,11 @@ export default function PokerNearMePage() {
         if (userLocation) {
           params.set('lat', userLocation.lat.toString());
           params.set('lng', userLocation.lng.toString());
+          // BUG FIX: 'any' used to be sent as radius=5000, which the API silently
+          // clamped to 150 anyway. Send the real ceiling so the request, the
+          // "Load More" tier list and the select all agree with the server.
           const effectiveRadius = radiusOverride || filters.radius;
-          const miRadius =
-            String(effectiveRadius).toLowerCase() === 'any'
-              ? 5000
-              : isNaN(Number(effectiveRadius))
-                ? 50
-                : Number(effectiveRadius);
-          params.set('radius', String(miRadius));
+          params.set('radius', String(normalizeRadiusMiles(effectiveRadius)));
           // Determine user_state for API (ensures IL venues don't get cut off by global top-500 limit).
           // Priority: gpsStateRef (in-memory, never cleared) → gpsLocationLabel extraction → pnm_last_state localStorage
           // gpsStateRef persists the last geocoded state even when gpsLocationLabel temporarily
@@ -2772,13 +2923,16 @@ export default function PokerNearMePage() {
 
       const tournamentList = json.tournaments || [];
       setDailyTournaments(tournamentList);
-      // Update dbStats with tournament count
-      if (tournamentList.length > 0) {
-        setDbStats((prev) => ({
-          ...prev,
-          tournaments: json.stats?.total || tournamentList.length,
-        }));
-      }
+      // Update dbStats with tournament count.
+      // BUG FIX: this used to be gated on `tournamentList.length > 0`, so switching
+      // to a day with no tournaments left the PREVIOUS day's figure on screen.
+      // Write it unconditionally, and record which day it belongs to so the
+      // subtitle can stop calling every day's count "Today".
+      setDbStats((prev) => ({
+        ...prev,
+        tournaments: json.stats?.total ?? tournamentList.length,
+        tournamentsDay: dayOverride || filters.selectedDay,
+      }));
     } catch (e) {
       console.warn('Fetch daily tournaments error:', e);
       setDailyTournaments([]);
@@ -2810,33 +2964,12 @@ export default function PokerNearMePage() {
     if (typeof window === 'undefined' || !router.isReady || !paramsAbsorbed.current) return;
     if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
     deepLinkRef.current = setTimeout(() => {
-      let pathSlug = 'venues';
-      if (showLiveTab) {
-        pathSlug = 'live-games';
-      } else if (activeTab === 'map') {
-        pathSlug = 'map';
-      } else if (activeTab === 'saved') {
-        pathSlug = 'saved';
-      } else if (activeTab === 'more') {
-        pathSlug =
-          activeMoreTab === 'alerts'
-            ? 'alerts'
-            : activeMoreTab === 'roadtrip'
-              ? 'roadtrip'
-              : 'more';
-      } else if (activeTab === 'events') {
-        // BUG FIX: map internal sub-tab keys to the slugs the mount reader
-        // recognizes — it only parses 'daily-tournaments'/'events-calendar',
-        // so shared /daily or /calendar URLs silently landed on the default tab.
-        pathSlug =
-          activeEventTab === 'daily'
-            ? 'daily-tournaments'
-            : activeEventTab === 'calendar'
-              ? 'events-calendar'
-              : activeEventTab || 'events';
-      } else if (activeTab === 'venues') {
-        pathSlug = 'venues';
-      }
+      // SEO FIX: the slug table now lives in the module-scope getTabSlug helper,
+      // shared with the canonical tag below. They used to derive slugs
+      // independently ('daily' vs 'daily-tournaments'), so the crawled URL
+      // declared a canonical pointing at a DIFFERENT URL that renders the same
+      // content — creating a duplicate instead of consolidating it.
+      const pathSlug = getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab });
 
       // Keep the route-sync effect in agreement with UI-driven URL rewrites
       // (history.replaceState doesn't update router.query.pnmTab).
@@ -2846,16 +2979,10 @@ export default function PokerNearMePage() {
       if (searchQuery) {
         params.set('q', searchQuery);
       }
-      // Only write ?filter= for KNOWN valid venue types — never write 'undefined'
-      const SAFE_VENUE_TYPES = new Set([
-        'casino',
-        'card_room',
-        'poker_club',
-        'home_game',
-        'charity',
-        'tour_stop',
-        'poker_tour',
-      ]);
+      // Only write ?filter= for KNOWN valid venue types — never write 'undefined'.
+      // BUG FIX: 'poker_tour' used to be in this set, so a bad voice-search value
+      // was written to the URL and survived reload. It is gone from the shared
+      // SAFE_VENUE_TYPES for exactly that reason.
       if (SAFE_VENUE_TYPES.has(filters.venueType)) params.set('filter', filters.venueType);
       const qs = params.toString();
       const newUrl = '/hub/poker-near-me/' + pathSlug + (qs ? '?' + qs : '');
@@ -2984,19 +3111,15 @@ export default function PokerNearMePage() {
       setActiveMoreTab(subParam);
     }
 
-    // GUARD: reject 'undefined' (string) or any non-real venue type as a filter param
-    const VALID_VENUE_TYPES = new Set([
-      'all',
-      'casino',
-      'card_room',
-      'poker_club',
-      'home_game',
-      'charity',
-      'tour_stop',
-      'poker_tour',
-    ]);
-    if (filterParam && VALID_VENUE_TYPES.has(filterParam)) {
-      setFilters((prev) => ({ ...prev, venueType: filterParam }));
+    // GUARD: reject 'undefined' (string) or any non-real venue type as a filter
+    // param. Legacy links carrying ?filter=poker_tour are folded onto 'tour_stop'
+    // rather than accepted verbatim — nothing downstream understands 'poker_tour'.
+    if (filterParam) {
+      const normalizedFilter =
+        filterParam === 'all' ? 'all' : normalizeVenueType(filterParam);
+      if (normalizedFilter) {
+        setFilters((prev) => ({ ...prev, venueType: normalizedFilter }));
+      }
     }
 
     // Set unconditionally so the writer effect can activate when router is ready
@@ -3022,8 +3145,22 @@ export default function PokerNearMePage() {
     const elapsed = Date.now() - touchStartRef.current.time;
     // Must be a horizontal swipe: fast, horizontal dominant, > 80px
     if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
-      // Events tab: handle sub-tab swiping FIRST (tours/series/daily/calendar)
-      if (activeTab === 'events') {
+      // BUG FIX: renderContent short-circuits on showLiveTab and returns the Live
+      // feed regardless of activeTab, but this handler only ever SET showLiveTab —
+      // it never cleared it. So once Live Games was open (and swipe is the only
+      // in-page navigation on mobile) every further swipe silently rewrote the
+      // persisted activeTab underneath while the screen stayed on the live feed and
+      // the tab strip stayed on 'Live'. Handle the live feed first, using its real
+      // position in TAB_ORDER, and always leave it on the way out.
+      if (showLiveTab) {
+        const liveIdx = TAB_ORDER.indexOf('live');
+        const nextTab = dx < 0 ? TAB_ORDER[liveIdx + 1] : TAB_ORDER[liveIdx - 1];
+        if (nextTab) {
+          setShowLiveTab(false);
+          setActiveTab(nextTab);
+        }
+      } else if (activeTab === 'events') {
+        // Events tab: handle sub-tab swiping (tours/series/daily/calendar)
         const evtIdx = EVENTS_SUB_TABS.indexOf(activeEventTab);
         if (evtIdx !== -1) {
           if (dx < 0 && evtIdx < EVENTS_SUB_TABS.length - 1) {
@@ -3066,13 +3203,34 @@ export default function PokerNearMePage() {
     }
     touchStartRef.current = null;
     touchEndRef.current = null;
-  }, [activeTab, activeEventTab, activeMoreTab]);
+  }, [activeTab, activeEventTab, activeMoreTab, showLiveTab]);
 
   // ═══ PULL-TO-REFRESH ═══
   const pullDistanceRef = useRef(0);
+  // MOBILE FIX: `window.scrollY <= 0` was always true on phones. At max-width
+  // 640px styles/poker-near-me.css gives .pnm-page a fixed 100dvh height, and
+  // .pnm-page already sets overflow-x:hidden — so per the CSS overflow spec its
+  // overflow-y stops being visible and .pnm-page, not the document, becomes the
+  // scroll container. window.scrollY therefore stayed 0 no matter how far down
+  // the venue list the user was, and any >80px downward drag while scrolling back
+  // up armed the refresh and fired four API calls plus a full list re-render.
+  // Walk the real ancestor chain from the touch target instead.
+  const isScrolledToTop = (node) => {
+    if (typeof window === 'undefined') return false;
+    const docTop =
+      window.scrollY || (document.documentElement && document.documentElement.scrollTop) || 0;
+    if (docTop > 0) return false;
+    let el = node;
+    while (el && el.nodeType === 1 && el !== document.body) {
+      if (el.scrollTop > 0) return false;
+      el = el.parentElement;
+    }
+    return true;
+  };
+
   const handlePullStart = useCallback((e) => {
     if (e.target.closest && e.target.closest('.leaflet-container')) return;
-    if (window.scrollY <= 0) {
+    if (isScrolledToTop(e.target)) {
       pullStartRef.current = e.touches[0].clientY;
     }
   }, []);
@@ -3111,9 +3269,11 @@ export default function PokerNearMePage() {
     }
   }, []);
 
-  const fetchAllDataRef = useRef(null);
+  // fetchAllDataRef is declared with the other fetch refs near the top of the
+  // component; it is re-pointed at the current render's closure here.
   fetchAllDataRef.current = fetchAllData;
   fetchVenuesRef.current = fetchVenues;
+  fetchDailyRef.current = fetchDailyTournaments;
 
   const handlePullEnd = useCallback(() => {
     const dist = pullDistanceRef.current;
@@ -3369,15 +3529,8 @@ export default function PokerNearMePage() {
           setFilters={setFilters}
           userLocation={userLocation}
           mapCenter={mapCenter}
-          liveTableCount={liveTableCount}
-          dailyTournaments={dailyTournaments}
           onMapVenueClick={onMapVenueClick}
           requestGpsLocation={requestGpsLocation}
-          selectedRoom={selectedRoom}
-          setSelectedRoom={setSelectedRoom}
-          setHasSearched={setHasSearched}
-          fetchAllData={fetchAllData}
-          router={router}
           openVenueModal={openVenueModal}
           setIframeModal={setIframeModal}
         />
@@ -3500,11 +3653,128 @@ export default function PokerNearMePage() {
     }
   };
 
+  // ═══ SEO: canonical slug + structured data ═══
+  // Both the canonical tag and the deep-link writer read the same slug table.
+  const canonicalSlug = getTabSlug({ showLiveTab, activeTab, activeEventTab, activeMoreTab });
+
+  // SEO FIX: the highest-intent commercial query on the platform shipped a title,
+  // a meta description, an H1 and an empty shell — every content panel is
+  // dynamic({ ssr: false }) and all data is fetched after mount, so crawlers saw
+  // no venue names, no cities and no markup. SEOHead already supports a `jsonLd`
+  // prop and nothing was passing it. Emit BreadcrumbList + WebSite SearchAction
+  // (both static, so they are correct even on the very first paint) plus an
+  // ItemList of the resolved location's top venues once they have loaded.
+  // NOTE: this is the minimum viable fix. Server-rendering the first page of
+  // venue cards still requires a getServerSideProps that this page does not have.
+  const jsonLdLocationLabel = gpsLocationLabel || (selectedCity ? selectedCity.name : null);
+  // SEOHead injects the graph with dangerouslySetInnerHTML + JSON.stringify, which
+  // does NOT escape '<'. Venue names/cities are scraped third-party strings, so a
+  // literal '</script>' in one would break out of the ld+json block. Strip the two
+  // characters that can close it — nothing else is meaningful in a business name.
+  const jsonLdText = (v) => String(v == null ? '' : v).replace(/[<>]/g, '');
+  // Only real venue rows belong here. venueCardList also carries synthetic tour
+  // stops (id 'tour-stop-<code>' — see useTourMapStops), which have no
+  // /hub/venues/<id> page and are tournament series, not LocalBusinesses; emitting
+  // them would publish 404 URLs as structured data. Social pages live at /club/<id>
+  // and home games with a slug at /hub/home-games/<slug> (see VenueCard.getVenueUrl),
+  // so they are excluded rather than given the wrong URL.
+  const jsonLdVenues = (venueCardList || [])
+    .filter(
+      (v) =>
+        v &&
+        v.name &&
+        v.id != null &&
+        v.venue_type !== 'tour_stop' &&
+        !v.is_social_page &&
+        !String(v.id).startsWith('tour-stop-') &&
+        !(v.venue_type === 'home_game' && (v.slug || v.host_social_page_slug))
+    )
+    .slice(0, 10);
+  const pageJsonLd = {
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: 'Smarter.Poker',
+        url: 'https://smarter.poker',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: 'https://smarter.poker/hub/poker-near-me/venues?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Hub',
+            item: 'https://smarter.poker/hub',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Poker Near Me',
+            item: 'https://smarter.poker/hub/poker-near-me/venues',
+          },
+        ],
+      },
+      {
+        '@type': 'ItemList',
+        name: jsonLdLocationLabel
+          ? `Poker Rooms Near ${jsonLdText(jsonLdLocationLabel)}`
+          : 'Poker Rooms And Card Rooms In The United States',
+        numberOfItems: jsonLdVenues.length,
+        itemListElement: jsonLdVenues.map((v, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          item: {
+            '@type': 'LocalBusiness',
+            name: jsonLdText(v.name),
+            url: `https://smarter.poker/hub/venues/${encodeURIComponent(String(v.id))}`,
+            ...(v.city || v.state
+              ? {
+                  address: {
+                    '@type': 'PostalAddress',
+                    ...(v.city ? { addressLocality: jsonLdText(v.city) } : {}),
+                    ...(v.state ? { addressRegion: jsonLdText(v.state) } : {}),
+                    addressCountry: 'US',
+                  },
+                }
+              : {}),
+            ...(v.latitude &&
+            v.longitude &&
+            Number.isFinite(Number(v.latitude)) &&
+            Number.isFinite(Number(v.longitude))
+              ? {
+                  geo: {
+                    '@type': 'GeoCoordinates',
+                    // poker_venues.latitude/longitude are `numeric`, which PostgREST
+                    // serialises as strings — schema.org wants numbers.
+                    latitude: Number(v.latitude),
+                    longitude: Number(v.longitude),
+                  },
+                }
+              : {}),
+          },
+        })),
+      },
+    ],
+  };
+
   return (
     <>
       {/* Intro video overlay */}
       
 
+      {/* SEO FIX: the canonical used to be built from the INTERNAL sub-tab key
+          ('/daily', '/calendar') while the deep-link writer that owns the address
+          bar emitted '/daily-tournaments' and '/events-calendar'. Both now read the
+          same getTabSlug table, so the crawled URL is the canonical URL. The page
+          also shipped no structured data at all — see pageJsonLd above. */}
       <SEOHead
         title={
           showLiveTab
@@ -3516,7 +3786,8 @@ export default function PokerNearMePage() {
             ? 'Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
             : 'Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States.'
         }
-        canonical={`/hub/poker-near-me/${showLiveTab ? 'live-games' : activeTab === 'events' ? activeEventTab || 'events' : activeTab === 'more' ? (activeMoreTab === 'alerts' ? 'alerts' : activeMoreTab === 'roadtrip' ? 'roadtrip' : 'more') : activeTab}`}
+        canonical={`/hub/poker-near-me/${canonicalSlug}`}
+        jsonLd={pageJsonLd}
       />
 
       <div className="pnm-page">
@@ -3556,6 +3827,17 @@ export default function PokerNearMePage() {
             isOpen={showGlobalSearch}
             onClose={() => {
               setShowGlobalSearch(false);
+              // BUG FIX: GlobalSearchOverlay fires onSearchChange on EVERY keystroke
+              // and closing it only used to strip ?q= from the address bar. The page
+              // kept the text in `searchQuery`, which fetchVenues / fetchTours /
+              // fetchSeries / fetchDailyTournaments all apply as an implicit
+              // search=/venue= filter — so the next background refresh (5-minute
+              // poll, radius change, venue-type change, pull-to-refresh) silently
+              // replaced the user's location-browse results with search matches,
+              // with nothing on screen saying a search was active. It also let the
+              // deep-link writer re-append ?q= ~500ms after this handler cleaned it,
+              // which re-opened the overlay on the next load.
+              setSearchQuery('');
               // BUG FIX: strip only the ?q= param from the CURRENT url — this
               // previously hardcoded /lobby, rewriting the address bar away from
               // whichever tab was actually on screen (and matched ?faq=1 etc.).
@@ -3608,10 +3890,17 @@ export default function PokerNearMePage() {
                     ({Math.round(liveDataAgeMinutes / 60)}h Old)
                   </span>
                 )}
+                {/* BUG FIX: this figure is for filters.selectedDay, which the day
+                    selector lets the user change, but it always read "Today" — so
+                    after picking Saturday the header claimed that many tournaments
+                    were running today. Label it with the day it actually counts. */}
                 {dbStats.tournaments > 0 && (
                   <>
                     &nbsp;&bull;&nbsp;
-                    {dbStats.tournaments.toLocaleString()} Tournaments Today
+                    {dbStats.tournaments.toLocaleString()} Tournaments{' '}
+                    {!dbStats.tournamentsDay || dbStats.tournamentsDay === getCurrentDay()
+                      ? 'Today'
+                      : dbStats.tournamentsDay}
                   </>
                 )}
               </>
@@ -3675,7 +3964,17 @@ export default function PokerNearMePage() {
             liveFavs.length === 1
               ? `${liveFavs[0].name} Has ${liveFavs[0].live_data.tables_running} Table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} Running!`
               : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
-          return <FavLiveToast message={toastMsg} onClick={() => setActiveTab('saved')} />;
+          // BUG FIX: setActiveTab alone left the Live feed on screen — renderContent
+          // returns it whenever showLiveTab is true, regardless of activeTab.
+          return (
+            <FavLiveToast
+              message={toastMsg}
+              onClick={() => {
+                setShowLiveTab(false);
+                setActiveTab('saved');
+              }}
+            />
+          );
         })()}
 
         {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}
@@ -3743,25 +4042,23 @@ export default function PokerNearMePage() {
                   id="pnm-filter-radius"
                   aria-label="Search radius"
                   className="pnm-filter-select"
-                  value={filters.radius}
+                  value={normalizeRadiusMiles(filters.radius)}
                   onChange={(e) =>
                     setFilters((f) => ({
                       ...f,
-                      radius:
-                        String(e.target.value).toLowerCase() === 'any'
-                          ? 'any'
-                          : Number(e.target.value),
+                      radius: normalizeRadiusMiles(e.target.value),
                     }))
                   }
                 >
                   <option value={25}>25 Miles</option>
                   <option value={50}>50 Miles</option>
                   <option value={100}>100 Miles</option>
-                  <option value={200}>200 Miles</option>
-                  <option value={500}>500 Miles</option>
-                  {/* BUG FIX: value must be lowercase 'any' — that's what onChange
-                      stores; 'Any' matched no option so the select showed '25 Miles' */}
-                  <option value="any">Any Distance</option>
+                  {/* BUG FIX: 200 Miles / 500 Miles / "Any Distance" used to be
+                      offered here, but /api/poker/venues hard-caps the radius at
+                      150mi in both query paths — all three returned exactly the
+                      150mi result set while the UI implied the search had widened.
+                      150 is the real ceiling, so that is what we offer. */}
+                  <option value={150}>150 Miles (Max)</option>
                 </select>
               </div>
               <div className="pnm-filter-group">
@@ -3970,7 +4267,8 @@ export default function PokerNearMePage() {
                 ...f,
                 gameType: String(parsed.filters.gameType).toLowerCase(),
               }));
-            if (parsed.filters.radius) setFilters((f) => ({ ...f, radius: parsed.filters.radius }));
+            if (parsed.filters.radius)
+              setFilters((f) => ({ ...f, radius: normalizeRadiusMiles(parsed.filters.radius) }));
             if (parsed.filters.stakes) {
               const stakesMatch = String(parsed.filters.stakes).match(/(\d+)\s*\/\s*(\d+)/);
               if (stakesMatch) {
@@ -3979,8 +4277,26 @@ export default function PokerNearMePage() {
                 setFilters((f) => ({ ...f, stakes: normStakes }));
               }
             }
-            if (parsed.filters.venueType)
-              setFilters((f) => ({ ...f, venueType: parsed.filters.venueType }));
+            // BUG FIX: VoiceSearch emits venueType 'poker_tour' for any transcript
+            // containing "tour", and this used to apply it verbatim. Nothing
+            // downstream understands 'poker_tour' — the Venue Type select offers
+            // 'tour_stop', useTourMapStops only special-cases 'tour_stop', and
+            // /api/poker/venues matches no venue_type row — so one voice query left
+            // the user on a permanently blank map AND blank list, persisted to the
+            // URL and to localStorage. Fold it onto the real domain first.
+            if (parsed.filters.venueType) {
+              const normalizedVenueType = normalizeVenueType(parsed.filters.venueType);
+              if (normalizedVenueType) {
+                setFilters((f) => ({ ...f, venueType: normalizedVenueType }));
+              }
+            }
+            // WIRING FIX: VoiceSearch sets useMyLocation for "poker near me" /
+            // "casinos around me" — the single most natural phrase for this product
+            // — and the page ignored it entirely, so the flagship voice query never
+            // triggered GPS. This IS an explicit user request for their location.
+            if (parsed.filters.useMyLocation && !userLocation) {
+              requestGpsLocation();
+            }
             if (parsed.filters.minBuyin)
               setFilters((f) => ({ ...f, minBuyin: parsed.filters.minBuyin }));
             if (parsed.filters.maxBuyin)
@@ -4010,6 +4326,10 @@ export default function PokerNearMePage() {
               };
               const target = VOICE_TAB_SLUGS[String(parsed.filters.tab).toLowerCase()];
               if (target && TAB_ORDER.includes(target.tab)) {
+                // renderContent short-circuits on showLiveTab, so setActiveTab alone
+                // leaves the Live feed on screen (same defect as the swipe handler
+                // and the map pin handler) — clear it on the way out.
+                setShowLiveTab(false);
                 setActiveTab(target.tab);
                 if (target.sub) setActiveEventTab(target.sub);
               } else if (

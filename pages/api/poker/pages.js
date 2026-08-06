@@ -13,6 +13,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import allVenuesData from '../../../data/all-venues.json';
 import tourRegistry from '../../../data/tour-source-registry.json';
@@ -191,6 +192,35 @@ export default async function handler(req, res) {
           const sort = safeQ(req.query.sort) || 'popular';
           const limit = safeQ(req.query.limit) || 60;
 
+          // SECURITY: `is_following` / `summary.user_following` expose the complete
+          // list of venues, tours, series, clubs and home games a user follows —
+          // an interest/affiliation profile keyed to a UUID that is trivially
+          // harvested from the leaderboard and presence endpoints. This route used
+          // to hand it to anyone who supplied the id. Mirror follow.js: a JWT is
+          // required, and callers only ever get their OWN follows.
+          //
+          // A caller that sends no token at all is not rejected (the page feed
+          // itself is public) — the follow overlay is simply omitted and
+          // `follows_unavailable` says so, so the feed keeps rendering.
+          let followUserId = null;
+          let followsUnavailable = false;
+          if (user_id) {
+              const token = req.headers.authorization?.replace('Bearer ', '');
+              if (!token) {
+                  followsUnavailable = true;
+              } else {
+                  const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+                  if (authErr || !authUser) {
+                      return res.status(401).json({ success: false, error: 'Invalid token' });
+                  }
+                  if (user_id !== authUser.id) {
+                      return res.status(403).json({ success: false, error: 'Cannot read another user follow list' });
+                  }
+                  followUserId = authUser.id;
+                  res.setHeader('Cache-Control', 'private, no-store');
+              }
+          }
+
           // Build pages from each source
           let pages = [];
           if (category === 'all' || category === 'venues') {
@@ -258,18 +288,29 @@ export default async function handler(req, res) {
                   if (countData.length < FOLLOWER_PAGE) break;
               }
 
-              // Get user's follows if user_id provided (must be valid UUID for Supabase)
-              if (user_id && UUID_RE.test(user_id)) {
-                  const { data: follows } = await getSupabase()
-                      .from('page_followers')
-                      .select('page_type, page_id')
-                      .eq('user_id', user_id)
-                          .limit(100);
-
-                  if (follows) {
+              // Get the AUTHENTICATED caller's own follows (UUID column).
+              // The old .limit(100) silently truncated: a user following more
+              // than 100 pages saw the overflow render as "not following", and
+              // ?followed_only=true dropped those pages from their saved list.
+              if (followUserId && UUID_RE.test(followUserId)) {
+                  const FOLLOW_PAGE = 1000;
+                  const FOLLOW_MAX_PAGES = 10; // 10k follows per user
+                  for (let page = 0; page < FOLLOW_MAX_PAGES; page++) {
+                      const { data: follows, error: followErr } = await getSupabase()
+                          .from('page_followers')
+                          .select('page_type, page_id')
+                          .eq('user_id', followUserId)
+                          .order('id', { ascending: true })
+                          .range(page * FOLLOW_PAGE, (page + 1) * FOLLOW_PAGE - 1);
+                      if (followErr) {
+                          console.warn('[pages] user follows page', page, 'failed:', followErr.message);
+                          break;
+                      }
+                      if (!follows || follows.length === 0) break;
                       follows.forEach(f => {
                           userFollows.add(`${f.page_type}:${f.page_id}`);
                       });
+                      if (follows.length < FOLLOW_PAGE) break;
                   }
               }
           } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -340,6 +381,9 @@ export default async function handler(req, res) {
               offset: offsetNum,
               limit: limitNum,
               summary,
+              // true when a user_id was supplied without a bearer token, so the
+              // follow overlay was withheld rather than leaked.
+              follows_unavailable: followsUnavailable,
           });
 
       } catch (error) {

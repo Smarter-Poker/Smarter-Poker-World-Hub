@@ -192,6 +192,9 @@ export async function getServerSideProps({ params, res }) {
     `)
     .eq('page_type', 'home_game')
     .eq('is_public', true)
+    // social_pages.slug is nullable. A null slug produced cards and JSON-LD
+    // ListItems pointing at /hub/home-games/null, which the public API 404s.
+    .not('slug', 'is', null)
     .eq('location_state', code);
 
   if (error) {
@@ -217,6 +220,9 @@ export async function getServerSideProps({ params, res }) {
       const g = groupMap[String(p.linked_entity_id)] || null;
       // Drop pages whose group is missing, inactive, private, or auto-hidden.
       if (!isGroupPubliclyVisible(g)) return null;
+      // Belt-and-braces on the null-slug guard above: an empty-string slug
+      // would still build a dead /hub/home-games/ link and a 404 ListItem.
+      if (!p.slug) return null;
       return {
         id: p.id,
         name: p.name,
@@ -312,20 +318,28 @@ function GameCard({ game, stateSlug }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F1C]/90 via-transparent to-transparent" />
         </div>
 
-        {/* Body */}
-        <div className="p-4 space-y-2">
+        {/* Title */}
+        <div className="px-4 pt-4">
           <h3 className="font-semibold text-white leading-tight line-clamp-2">{game.name}</h3>
-          <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
-            {game.city && (
-              <Link
-                href={`/hub/home-games/in/${stateSlug}/${cityTitleToSlug(game.city)}`}
-                className="hover:text-[#C4B5FD] underline decoration-dotted"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {game.city}
-              </Link>
-            )}
-          </div>
+        </div>
+      </Link>
+
+      {/* Body — kept OUTSIDE the card link. The city link is a real anchor and
+          nesting it inside the card anchor is invalid HTML: the parser closes
+          the outer <a> early, so the SSR markup and the hydrated DOM diverge
+          and React throws a hydration error on every state page. */}
+      <div className="px-4 pb-4 pt-2 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+          {game.city && (
+            <Link
+              href={`/hub/home-games/in/${stateSlug}/${cityTitleToSlug(game.city)}`}
+              className="hover:text-[#C4B5FD] underline decoration-dotted"
+            >
+              {game.city}
+            </Link>
+          )}
+        </div>
+        <Link href={`/hub/home-games/${game.slug}`} className="block space-y-2">
           <div className="flex flex-wrap gap-1.5 pt-1">
             {stakes && (
               <span className="px-2 py-0.5 rounded bg-[#1E293B] text-xs text-[#C4B5FD]">{stakes}</span>
@@ -339,8 +353,8 @@ function GameCard({ game, stateSlug }) {
             {game.member_count > 0 && game.follower_count > 0 && <> • </>}
             {game.follower_count > 0 && <>{game.follower_count} follower{game.follower_count === 1 ? '' : 's'}</>}
           </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </article>
   );
 }

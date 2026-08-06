@@ -144,14 +144,8 @@ function SourceBadge({ source, isSimulated }) {
     );
 }
 
-// ─── GAME TYPE FILTER CHIPS ─── (Cash Games only)
-const GAME_TYPE_FILTERS = [
-    { key: 'all', label: 'All Games' },
-    { key: 'nlh', label: 'NLH' },
-    { key: 'plo', label: 'PLO' },
-    { key: 'mixed', label: 'Mixed' },
-];
-
+// PERF/DEAD-CODE FIX: GAME_TYPE_FILTERS and STAKES_FILTERS were the chip definitions for
+// filter rows that moved to the parent page; neither array had a consumer left in this file.
 function matchesGameType(gameName, filterKey) {
     if (!filterKey || filterKey === 'all') return true;
     if (filterKey === 'none') return false; 
@@ -166,15 +160,6 @@ function matchesGameType(gameName, filterKey) {
 }
 
 // ─── STAKES PARSING ───
-const STAKES_FILTERS = [
-    { key: 'any', label: 'Any Stakes' },
-    { key: '1', label: '1/2+' },
-    { key: '2', label: '2/5+' },
-    { key: '5', label: '5/10+' },
-    { key: '10', label: '10/20+' },
-    { key: '25', label: '25/50+' },
-];
-
 // parseMinStake is now imported from ./pnm-utils
 
 function venueHasStakes(games, minStake) {
@@ -329,14 +314,8 @@ function LiveGamesFeed({
     const filterStakes = computedStakes;
 
     const filterSort = internalFilterSort;
-    const setFilterRadius = (val) => {
-        if (globalFilters && setGlobalFilters) {
-            setGlobalFilters(prev => ({ ...prev, radius: String(val).toLowerCase() === 'any' ? 'any' : Number(val) }));
-        } else {
-            setInternalFilterRadius(val);
-        }
-    };
-    const setFilterSort = setInternalFilterSort;
+    // DEAD-CODE FIX: setFilterRadius / setFilterSort had no consumer — the radius change
+    // path that survives lives in the handler further down (see setGlobalFilters below).
 
     // Persist filters on change (only if internal)
     useEffect(() => {
@@ -958,6 +937,8 @@ function LiveGamesFeed({
         // data), so a closed 30-table room was scoring HOT. Only live counts are heat.
         const heat = getHeatLevel(v._isLive ? v.totalTables : 0);
         const isFav = favorites && favorites[v.id];
+        // WIRING FIX: keyed by String(id), matching VenuesTabPanel.jsx.
+        const checkinCount = (checkinCounts && Number(checkinCounts[String(v.id)])) || 0;
         // Modelled (simulated) rows must never be dressed up as a real-time scrape.
         const isModelled = !!(v.is_simulated || v.has_simulated_data);
         const initColor = getInitialsColor(v.id || 0);
@@ -1112,6 +1093,23 @@ function LiveGamesFeed({
                             )
                         )}
 
+                        {/* GAP FIX: venue-level waitlist size and the derived wait estimate were
+                            computed for every live venue in mergedVenues and then never rendered —
+                            players_waiting only surfaced inside the collapsed per-game breakdown. */}
+                        {v._isLive && v.totalWait > 0 && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                                {v.totalWait} Waiting{v.waitEstimate && v.waitEstimate.label ? ` - ${v.waitEstimate.label}` : ''}
+                            </span>
+                        )}
+
+                        {/* WIRING FIX: checkinCounts was passed by both call sites and never read,
+                            so the Live tab showed no check-in signal at all. */}
+                        {checkinCount > 0 && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.28)' }}>
+                                {checkinCount} Here Today
+                            </span>
+                        )}
+
                         {!v._isLive && (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>No Live Data</span>
                         )}
@@ -1167,6 +1165,21 @@ function LiveGamesFeed({
                                     Report
                                 </button>
                             )}
+                            {/* WIRING FIX: setSelectedVenueForReview was passed by both call sites
+                                ([pnmTab].js and lobby.js) and never used, so the Live tab had no way
+                                to open the review panel that the Venues tab exposes. */}
+                            {/* GUARD: both consumers pass this straight through as
+                                VenueReviews' `venueId`, and /api/poker/reviews filters
+                                venue_reviews.venue_id (int4) with it. Unmatched live rows
+                                fall back to a bravo_slug for v.id, which would make the
+                                panel open onto a 500 — same id test the Details button uses. */}
+                            {setSelectedVenueForReview && resolveVenueDetailId(v.id) && (
+                                <button onClick={(e) => { e.stopPropagation(); setSelectedVenueForReview(v); }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.18)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                                    Reviews
+                                </button>
+                            )}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                             {(openVenueModal || router) && resolveVenueDetailId(v.id) && (
@@ -1214,59 +1227,11 @@ function LiveGamesFeed({
         );
     };
 
-    // ─── DYNAMIC STATE OPTIONS (only show states that actually have live data) ───
-    // Uses same 4-layer matching as mergedVenues to avoid state-filter lockout
-    const availableStates = useMemo(() => {
-        // Build lookups (same as merge, but reads from unfiltered liveData to prevent lockout)
-        const bySlug = {};
-        const byName = {};
-        const byNorm = {};
-        const wordIdx = [];
-        for (const pv of venues) {
-            if (pv.bravo_slug) bySlug[pv.bravo_slug] = pv;
-            if (pv.slug) bySlug[pv.slug] = pv;
-            // AUDIT FIX: was missing pokeratlas_slug — PA-sourced venues couldn't resolve state,
-            // causing the state-filter dropdown to silently exclude PA venues from its options.
-            if (pv.pokeratlas_slug && !bySlug[pv.pokeratlas_slug]) bySlug[pv.pokeratlas_slug] = pv;
-            if (pv.name) {
-                byName[pv.name.toLowerCase()] = pv;
-                const norm = normalizeVenueName(pv.name);
-                if (norm) byNorm[norm] = pv;
-                const sw = getSignificantWords(norm);
-                if (sw.length > 0) wordIdx.push({ words: sw, venue: pv });
-            }
-        }
-        const findParent = (slug, name) => {
-            if (slug && bySlug[slug]) return bySlug[slug];
-            if (slug && slug.startsWith('pa-') && bySlug[slug.slice(3)]) return bySlug[slug.slice(3)];
-            const decoded = decodeHtmlEntities(name || '');
-            if (decoded && byName[decoded.toLowerCase()]) return byName[decoded.toLowerCase()];
-            const norm = normalizeVenueName(name);
-            if (norm && byNorm[norm]) return byNorm[norm];
-            if (norm) {
-                const qw = getSignificantWords(norm);
-                if (qw.length >= 1) {
-                    let best = null, bestS = 0;
-                    for (const e of wordIdx) {
-                        if (SERIES_PATTERN.test(e.venue.name || '')) continue;
-                        if (e.venue.venue_type === 'series' || e.venue.venue_type === 'tour') continue;
-                        const shared = qw.filter(w => e.words.includes(w)).length;
-                        const sc = shared / Math.max(qw.length, e.words.length);
-                        const minSh = qw.length >= 2 ? 2 : 1;
-                        if (shared >= minSh && sc >= 0.6 && sc > bestS) { bestS = sc; best = e.venue; }
-                    }
-                    if (best) return best;
-                }
-            }
-            return null;
-        };
-        const states = new Set();
-        Object.values(liveData || {}).forEach(v => {
-            const parent = findParent(v.bravo_slug, v.venue_name);
-            if (parent?.state) states.add(parent.state);
-        });
-        return Array.from(states).sort();
-    }, [liveData, venues]);
+    // PERF FIX: an `availableStates` useMemo used to live here. It rebuilt four lookup
+    // maps over the whole `venues` array and ran the O(liveVenues x venues) fuzzy
+    // findParent match on every live-tables poll, realtime flush and `venues` prop change —
+    // hundreds of thousands of string comparisons — to produce a value that was referenced
+    // nowhere: the state dropdown it fed was removed when filters moved to the parent page.
 
     return (
         <div style={{ padding: '0 0 40px' }}>

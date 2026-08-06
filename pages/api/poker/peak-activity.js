@@ -59,6 +59,32 @@ function getLocalParts(value, timeZone) {
   return { hour: dt.getUTCHours(), day: dt.getUTCDay() };
 }
 
+// The Supabase project row cap is 1000; `.limit(5000)` is silently truncated
+// (see live-tables.js / events-calendar.js / leaderboards.js). Combined with the
+// old ASCENDING order that meant the heatmap was built from the OLDEST 1000
+// snapshots in the 14-day window — roughly days 14-12 ago — while `data_points`
+// reported 1000 as if it were the whole window. Page with .range() over a
+// DESCENDING order so the ceiling drops stale rows, not current ones.
+const SNAPSHOT_PAGE_SIZE = 1000;
+const SNAPSHOT_MAX_PAGES = 5; // 5,000-snapshot ceiling (the old nominal limit)
+
+/**
+ * Fetch every row for a query by paging with .range().
+ * `buildQuery` must return a FRESH query builder on each call.
+ */
+async function fetchSnapshotPages(buildQuery) {
+  let rows = [];
+  for (let page = 0; page < SNAPSHOT_MAX_PAGES; page++) {
+    const { data, error } = await buildQuery()
+      .range(page * SNAPSHOT_PAGE_SIZE, (page + 1) * SNAPSHOT_PAGE_SIZE - 1);
+    if (error) return { rows, error, truncated: false };
+    if (!data || data.length === 0) return { rows, error: null, truncated: false };
+    rows = rows.concat(data);
+    if (data.length < SNAPSHOT_PAGE_SIZE) return { rows, error: null, truncated: false };
+  }
+  return { rows, error: null, truncated: true };
+}
+
 /** Best-effort venue timezone from poker_venues.state; defaults to Eastern. */
 async function resolveVenueTimezone(supabase, venueName) {
   if (!venueName) return 'America/New_York';
@@ -126,21 +152,20 @@ export default async function handler(req, res) {
       return query;
     };
 
-    let data, error;
+    let data, error, truncated = false;
 
     // If game_type is specified, use game_live_history for per-game heatmaps
     if (game_type) {
-      let query = supabase
-        .from('game_live_history')
-        .select('venue_name, game_type, tables, snapshot_time')
-        .gte('snapshot_time', twoWeeksAgo)
-        .order('snapshot_time', { ascending: true });
-
-      query = applyVenueFilter(query);
-
-      const result = await query.limit(5000);
-      data = result.data;
+      const result = await fetchSnapshotPages(() => applyVenueFilter(
+        supabase
+          .from('game_live_history')
+          .select('venue_name, game_type, tables, snapshot_time')
+          .gte('snapshot_time', twoWeeksAgo)
+          .order('snapshot_time', { ascending: false })
+      ));
+      data = result.rows;
       error = result.error;
+      truncated = result.truncated;
 
       // Filter by game type and map columns to match expected shape.
       //
@@ -170,20 +195,19 @@ export default async function handler(req, res) {
           }));
       }
     } else {
-      // Default: use venue_live_history (aggregate venue-level data)
-      let query = supabase
-        .from('venue_live_history')
-        .select('venue_name, total_tables, snapshot_time')
-        .gte('snapshot_time', twoWeeksAgo)
-        .order('snapshot_time', { ascending: true });
-      
+      // Default: use venue_live_history (aggregate venue-level data).
       // venue_live_history is keyed on bravo_slug — it has no venue_id column.
       // A numeric venue_id is resolved to the venue name above.
-      query = applyVenueFilter(query);
-
-      const result = await query.limit(5000);
-      data = result.data;
+      const result = await fetchSnapshotPages(() => applyVenueFilter(
+        supabase
+          .from('venue_live_history')
+          .select('venue_name, total_tables, snapshot_time')
+          .gte('snapshot_time', twoWeeksAgo)
+          .order('snapshot_time', { ascending: false })
+      ));
+      data = result.rows;
       error = result.error;
+      truncated = result.truncated;
     }
     
     if (error) {
@@ -295,6 +319,9 @@ export default async function handler(req, res) {
     res.status(200).json({
       venue_filter: resolvedVenueName || safeVenueId || 'all',
       data_points: data.length,
+      // true when the 5,000-snapshot page ceiling was hit — the aggregate covers
+      // only the most recent slice of the 14-day window, not all of it.
+      truncated,
       period: '14 days',
       timezone: venueTz,
       peak_hours: peakHours.slice(0, 6),

@@ -17,8 +17,12 @@ function safeHref(url) {
 }
 
 export default function SeriesCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
-    const isVenueEntry = !s.series_code && s.venue_type === 'series';
-    const detailUrl = s.series_code ? '/hub/series/' + s.series_code : '/hub/venues/' + (s.id || (index + 1));
+    const isVenueEntry = s.venue_type === 'series';
+    // BUG FIX: `series_code` is not a column on poker_series and is never produced by
+    // /api/poker/series, so the old ternary always fell through to /hub/venues/<series id>
+    // — a venue detail route keyed with a series primary key (404 / wrong venue).
+    // Mirror NewSeriesVenueCard.jsx: series detail lives at /hub/series/<poker_series.id>.
+    const detailUrl = s.id != null ? '/hub/series/' + s.id : '/hub/poker-series';
     const shortCode = s.tour_code || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
 

@@ -105,9 +105,15 @@ export default function LobbyOverlay({
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
         {/* POKER NEAR ME Title removed per user optimization for icon-only layout */}
 
-        {/* Search bar + Location row: flex row so location sits to the right of the search bar */}
+        {/* Search bar + Location row: flex row so location sits to the right of the search bar.
+            [MOBILE FIX] flexWrap is required: at <=600px `.lobby-search-form` is
+            `width: calc(100vw - 24px)`, which consumes the whole row, so a
+            non-wrapping row pushed the location pill past the viewport edge —
+            and `.pnm-lobby-page` is `overflow:hidden`, so it was clipped away
+            entirely. With wrapping the pill drops onto its own line instead. */}
         <div style={{
           display: 'flex', flexDirection: 'row', alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 12,
           width: 'min(700px, calc(100vw - 32px))',
           pointerEvents: 'auto',
@@ -212,7 +218,10 @@ export default function LobbyOverlay({
               aria-label={`Change location. Current location ${locationCity}${locationState ? `, ${locationState}` : ''}`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
-                cursor: 'pointer', pointerEvents: 'auto', flexShrink: 0,
+                cursor: 'pointer', pointerEvents: 'auto',
+                // Shrinkable + minWidth:0 so the pill can compress on narrow
+                // screens instead of overflowing the (clipped) page container.
+                flexShrink: 1, minWidth: 0, maxWidth: '100%',
                 background: 'rgba(6, 21, 37, 0.6)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(63,185,80,0.3)',
@@ -224,13 +233,16 @@ export default function LobbyOverlay({
                 textAlign: 'left',
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              <span style={{ fontSize: 18, color: '#3fb950', fontWeight: 700, letterSpacing: '-0.2px' }}>
+              <span style={{
+                fontSize: 18, color: '#3fb950', fontWeight: 700, letterSpacing: '-0.2px',
+                minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {locationCity}{locationState ? `, ${locationState}` : ''}
               </span>
-              <span style={{ fontSize: 15, color: 'rgba(200,214,229,0.45)', marginLeft: 4, fontWeight: 500 }}>Change</span>
+              <span style={{ fontSize: 15, color: 'rgba(200,214,229,0.45)', marginLeft: 4, fontWeight: 500, flexShrink: 0 }}>Change</span>
             </button>
           )}
         </div>

@@ -3145,6 +3145,16 @@
         height: 100dvh;
         min-height: 100dvh;
     }
+    /* MOBILE FIX: primary tab strip + location clear must meet the 44px touch target
+       minimum. Padding keeps the visual pill size; min-height grows the hit box. */
+    .pnm-top-tab {
+        min-height: 44px;
+    }
+    .pnm-location-clear {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0 8px;
+    }
     .pnm-hud-panel {
         padding: 0 2px;
     }

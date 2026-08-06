@@ -166,6 +166,31 @@ export default function PodHomeGames({
     params.set('limit', '100');
     if (hgState && hgState !== 'all') params.set('state', hgState);
     if (hgSearch && hgSearch.trim()) params.set('search', hgSearch.trim());
+    // [WIRING FIX] Without lat/lng the discover endpoint takes its no-GPS branch
+    // and returns the 100 largest public groups in the COUNTRY sorted by
+    // member_count, with distance_miles null on every row. Sending the user's
+    // coordinates switches it to the bounding-box + haversine + nearest-first
+    // path, which is what "Find Home Games" is supposed to mean.
+    //
+    // ONLY for the unscoped browse, though: discover.js applies `state` /
+    // `search` AND the GPS bounding box + radius filter together (see the GEO
+    // PRE-FILTER block), so attaching coordinates to an explicit "state = NY"
+    // or "search = Austin" query from a user sitting in California returns zero
+    // rows. This pod is documented as "Search for Home Games Near You OR Filter
+    // by State" — an explicit state/search is a request to look somewhere else,
+    // and it must not be silently intersected with the user's own location.
+    const hasExplicitScope = (hgState && hgState !== 'all') || !!(hgSearch && hgSearch.trim());
+    if (!hasExplicitScope && userLocation?.lat != null && userLocation?.lng != null) {
+      params.set('lat', String(userLocation.lat));
+      params.set('lng', String(userLocation.lng));
+      // No radius control exists in this pod, and home games are far sparser
+      // than commercial rooms, so the unscoped default is the widest value the
+      // rest of PNM allows (150) rather than the venue default of 50 — a
+      // tighter box would hand most users an empty list where they previously
+      // got a national one. hgRadius is honoured if a caller ever sets it.
+      const parsedRadius = parseInt(filters.hgRadius, 10);
+      params.set('radius_miles', String(!parsedRadius || isNaN(parsedRadius) ? 150 : Math.min(parsedRadius, 150)));
+    }
     const url = `/api/public/home-games/discover?${params.toString()}`;
     setLoading(true);
     cachedFetch(url)
@@ -178,7 +203,7 @@ export default function PodHomeGames({
         setPodHomeGames([]);
       })
       .finally(() => setLoading(false));
-  }, [hgSearch, hgState, setFilters, setLoading, setPodHomeGames]);
+  }, [hgSearch, hgState, filters.hgRadius, userLocation, setFilters, setLoading, setPodHomeGames]);
 
   // Unified per-card navigation: always route to the canonical
   // /hub/home-games/[slug] page, never /hub/venues/[id] (which is for
@@ -190,6 +215,14 @@ export default function PodHomeGames({
       handleVenueNavigate(`/home-game/${venue.club_code}`, venue);
     } else if (venue?.invite_code) {
       handleVenueNavigate(`/home-game/${venue.invite_code}`, venue);
+    } else if (venue?.id) {
+      // [STUB FIX] slug/club_code/invite_code are all nullable on
+      // commander_home_groups, and the discover API returns slug:null for any
+      // group with no linked social_pages row. Without this branch the whole
+      // card was rendered clickable but tapping it did nothing at all.
+      // /api/poker/venues?id=<uuid> resolves UUIDs against commander_home_groups
+      // (Phase 41), so the venue detail page renders these groups correctly.
+      handleVenueNavigate(`/hub/venues/${venue.id}`, venue);
     }
   }, [handleVenueNavigate]);
 

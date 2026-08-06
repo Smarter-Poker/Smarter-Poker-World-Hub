@@ -494,8 +494,15 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       validVenues
         .map(v => [
           v.id || v.name || '', v.venue_type || '', v.tour_code || '',
-          v.is_running ? 1 : 0, v.totalTables || 0, v.logo_url || v.profile_photo_url || '',
-          Array.isArray(v.games) ? v.games.length : 0, v.is_social_page ? 1 : 0,
+          // Live counts live on `venue.live_data` (see lobby.js's live merge) — the
+          // old `totalTables` / `games` reads were always 0 and never invalidated
+          // the marker cache when a room's live table count changed.
+          v.is_running ? 1 : 0,
+          (v.live_data && v.live_data.tables_running) || 0,
+          (v.live_data && Array.isArray(v.live_data.games) ? v.live_data.games.length : 0),
+          (v.live_data && v.live_data.last_updated) || '',
+          v.logo_url || v.profile_photo_url || '',
+          v.is_social_page ? 1 : 0,
         ].join(':'))
         .sort()
         .join('|'),
@@ -524,7 +531,12 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       } else {
         const colors = VENUE_TYPE_COLORS[v.venue_type] || DEFAULT_VENUE_COLOR;
         const typeBadge = VENUE_TYPE_LABELS[v.venue_type] || v.venue_type || '';
-        const tables = v.totalTables || 0;
+        // WIRING FIX: lobby.js merges live data onto `venue.live_data`
+        // ({ tables_running, players_waiting, games, ... }) — it never writes a
+        // top-level `games` array or `totalTables`, so the LIVE badge below was
+        // unreachable on every lobby map popup.
+        const liveGames = (v.live_data && Array.isArray(v.live_data.games)) ? v.live_data.games : [];
+        const tables = Number(v.live_data && v.live_data.tables_running) || 0;
         // SECURITY: these ids reach innerHTML inside a data-url attribute (and then
         // window.location.href) — encode them so a quote in an id cannot break out of the
         // attribute. Mirrors VenueMap.jsx.
@@ -539,10 +551,10 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         const logoBadge = `<img src="${escapeHtml(finalLogoBadgeUrl)}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;padding:0px;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;" onerror="this.src='/smarter-poker-logo-nobg.png';" />`;
 
         // Live games info
-        const gamesInfo = Array.isArray(v.games) && v.games.length
+        const gamesInfo = liveGames.length
           ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-              <span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE · ${tables} Tables</span>
-              <span style="font-size:10px;color:rgba(148,163,184,0.6);">${v.games.length} games</span>
+              <span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE · ${tables} Table${tables === 1 ? '' : 's'}</span>
+              <span style="font-size:10px;color:rgba(148,163,184,0.6);">${liveGames.length} game${liveGames.length === 1 ? '' : 's'}</span>
             </div>`
           : '';
 

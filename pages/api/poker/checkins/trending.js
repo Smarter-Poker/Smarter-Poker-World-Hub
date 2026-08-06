@@ -1,4 +1,5 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -24,6 +25,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+
     try {
         const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const limit = Math.min(parseInt(safeQ(req.query.limit), 10) || 5, 20);
@@ -33,18 +37,36 @@ export default async function handler(req, res) {
 
         // Get all check-ins in the last 24 hours
         // (created_at + user_id are needed for the 6h velocity and unique-user math)
-        const { data: checkins, error } = await getSupabase()
-            .from('venue_checkins')
-            .select('venue_id, user_id, user_name, created_at')
-            .gte('created_at', twentyFourHoursAgo);
+        //
+        // This had no .limit(), .range() or .order(): PostgREST capped the
+        // response at the project maximum (1000) and, with no ORDER BY, Postgres
+        // returned an unspecified subset — so the ranking could differ between
+        // two identical requests once volume passed 1000/day. Page
+        // deterministically (same pattern as checkins/global-leaderboard.js).
+        const PAGE = 1000;
+        const MAX_PAGES = 20; // 20,000 check-ins / 24h ceiling
+        let checkins = [];
+        let truncated = false;
+        for (let page = 0; page < MAX_PAGES; page++) {
+            const { data: pageRows, error } = await getSupabase()
+                .from('venue_checkins')
+                .select('venue_id, user_id, user_name, created_at')
+                .gte('created_at', twentyFourHoursAgo)
+                .order('created_at', { ascending: false })
+                .range(page * PAGE, (page + 1) * PAGE - 1);
 
-        if (error) {
-            console.warn('Trending checkins error:', error);
-            return res.status(500).json({ success: false, error: 'Internal server error' });
+            if (error) {
+                console.warn('Trending checkins error:', error);
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            if (!pageRows || pageRows.length === 0) break;
+            checkins = checkins.concat(pageRows);
+            if (pageRows.length < PAGE) break;
+            if (page === MAX_PAGES - 1) truncated = true;
         }
 
         if (!checkins || checkins.length === 0) {
-            return res.status(200).json({ success: true, venues: [], total: 0 });
+            return res.status(200).json({ success: true, venues: [], total: 0, truncated });
         }
 
         // Aggregate by venue_id
@@ -107,6 +129,7 @@ export default async function handler(req, res) {
             success: true,
             venues: result,
             total: checkins.length,
+            truncated,
         });
 
     } catch (err) {

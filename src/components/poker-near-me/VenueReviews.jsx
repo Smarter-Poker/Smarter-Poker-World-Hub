@@ -485,11 +485,11 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                 <StarRating rating={r.rating} size={12} />
                             </div>
                             <p className="vr-review-text">{r.review_text}</p>
-                            {r.photos && r.photos.length > 0 && (
-                                <div className="vr-review-photos">
-                                    {r.photos.map((p, pi) => <img key={pi} src={p} alt="" className="vr-review-photo" />)}
-                                </div>
-                            )}
+                            {/* STUB FIX: the review photo strip that used to render here was dead
+                                code — venue_reviews has no photos column, /api/poker/reviews never
+                                selects or stores one (the upload picker was already removed from the
+                                submit path above), so `r.photos` was always undefined. Removed along
+                                with the orphaned .vr-photo-* / .vr-review-photo* style rules. */}
                             <div className="vr-review-actions">
                                 <button className={'vr-helpful-btn' + (r.voted_helpful ? ' voted' : '')} onClick={() => !r.voted_helpful && voteReview(r.id, 'helpful')}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
@@ -549,11 +549,6 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; resize: vertical; min-height: 100px; }
         .vr-textarea:focus { outline: none; border-color: rgba(255,255,255,0.4); }
         .vr-textarea::placeholder { color: rgba(255,255,255,0.25); }
-        .vr-photo-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .vr-photo-thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; }
-        .vr-photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .vr-photo-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(239,68,68,0.9); border: none; color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .vr-photo-add { width: 60px; height: 60px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 2px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.3); }
         .vr-submit-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
         .vr-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .vr-sort-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
@@ -572,8 +567,6 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-reviewer-name { font-size: 14px; font-weight: 600; color: #fff; display: block; }
         .vr-review-date { font-size: 11px; color: rgba(255,255,255,0.3); }
         .vr-review-text { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0; }
-        .vr-review-photos { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; }
-        .vr-review-photo { width: 80px; height: 60px; border-radius: 6px; object-fit: cover; }
         .vr-review-actions { margin-top: 10px; display: flex; gap: 6px; }
         .vr-helpful-btn { padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
         .vr-helpful-btn:hover { background: rgba(255,255,255,0.08); }

@@ -36,8 +36,19 @@ export default async function handler(req, res) {
       const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const id = safeQ(req.query.id);
       const category = safeQ(req.query.category);
-      const limit = safeQ(req.query.limit) || 30;
-      const offset = safeQ(req.query.offset) || 0;
+
+      // Clamp paging to sane integers (same helper reviews.js uses).
+      // Unvalidated `parseInt` let `?limit=abc` through as NaN —
+      // `.range(NaN, NaN)` 500s with a parse error whose code is not '22P02'
+      // — and `?limit=100000` through as a request to serialize every photo
+      // a venue has.
+      const clampInt = (raw, def, min, max) => {
+        const n = parseInt(raw, 10);
+        if (!Number.isFinite(n)) return def;
+        return Math.min(Math.max(n, min), max);
+      };
+      const limit = clampInt(safeQ(req.query.limit), 30, 1, 100);
+      const offset = clampInt(safeQ(req.query.offset), 0, 0, 100000);
 
       if (!id) {
         return res.status(400).json({
@@ -63,7 +74,7 @@ export default async function handler(req, res) {
         .order('is_featured', { ascending: false })
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false })
-        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+        .range(offset, offset + limit - 1);
 
       if (category) {
         query = query.eq('category', category);
@@ -76,7 +87,7 @@ export default async function handler(req, res) {
         if (error.code === '22P02') {
           return res.status(200).json({
             success: true,
-            data: { photos: [], total: 0, limit: parseInt(limit), offset: parseInt(offset) }
+            data: { photos: [], total: 0, limit, offset }
           });
         }
         throw error;
@@ -87,8 +98,8 @@ export default async function handler(req, res) {
         data: {
           photos: photos || [],
           total: count,
-          limit: parseInt(limit),
-          offset: parseInt(offset)
+          limit,
+          offset
         }
       });
     } catch (error) {

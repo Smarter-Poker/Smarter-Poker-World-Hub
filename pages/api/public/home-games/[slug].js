@@ -157,12 +157,13 @@ export default async function handler(req, res) {
     const { data: upcomingGames, error: upcomingErr } = await supabase
       .from('commander_home_games')
       // Dan-fix/tournament-buildout: include format so the client can render
-      // tournaments distinctly from cash games. NOTE: do NOT add columns here
-      // without a matching migration — commander_home_games has no
-      // starting_stack/structure column and selecting them 42703's the whole
-      // query, silently emptying upcoming_games.
+      // tournaments distinctly from cash games, plus structure/starting_stack
+      // (both real columns on commander_home_games) so the public tournament
+      // cards stop labelling every event 'Standard'. NOTE: do NOT add columns
+      // here without confirming they exist — selecting a missing column
+      // 42703's the whole query, silently emptying upcoming_games.
       .select(
-        'id, title, description, game_type, stakes, format, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
+        'id, title, description, game_type, stakes, format, structure, starting_stack, buyin_min, buyin_max, scheduled_date, start_time, end_time, max_players, min_players, rsvp_yes, rsvp_maybe, waitlist_count, status, food_drinks, neighborhood, approximate_lat, approximate_lng'
       )
       .eq('group_id', group.id)
       .gte('scheduled_date', today)

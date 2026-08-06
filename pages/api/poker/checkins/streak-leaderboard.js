@@ -1,4 +1,5 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -23,21 +24,40 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    try {
-        // Get all check-ins grouped by user
-        const { data: checkins, error } = await getSupabase()
-            .from('venue_checkins')
-            .select('user_id, user_name, created_at')
-            .order('created_at', { ascending: false })
-            .limit(10000);
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
-        if (error) {
-            console.warn('Streak leaderboard error:', error);
-            return res.status(500).json({ success: false, error: 'Internal server error' });
+    try {
+        // Streak length is a function of consecutive DAYS across a user's whole
+        // history. The old `.limit(10000)` was silently capped at the project's
+        // 1000-row ceiling, so streaks were computed from an arbitrary recent
+        // slice: streaks starting before the window were cut short, older users
+        // vanished entirely, and the board reshuffled as unrelated check-ins
+        // pushed rows out. Page deterministically with .range() instead (same
+        // pattern as checkins/global-leaderboard.js) and expose `truncated`.
+        const PAGE = 1000;
+        const MAX_PAGES = 50; // 50k check-ins
+        let checkins = [];
+        let truncated = false;
+        for (let page = 0; page < MAX_PAGES; page++) {
+            const { data: pageRows, error } = await getSupabase()
+                .from('venue_checkins')
+                .select('user_id, user_name, created_at')
+                .order('created_at', { ascending: false })
+                .range(page * PAGE, (page + 1) * PAGE - 1);
+
+            if (error) {
+                console.warn('Streak leaderboard error:', error);
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            if (!pageRows || pageRows.length === 0) break;
+            checkins = checkins.concat(pageRows);
+            if (pageRows.length < PAGE) break;
+            if (page === MAX_PAGES - 1) truncated = true;
         }
 
         if (!checkins || checkins.length === 0) {
-            return res.status(200).json({ success: true, leaders: [] });
+            return res.status(200).json({ success: true, leaders: [], truncated });
         }
 
         // Group by user
@@ -47,7 +67,8 @@ export default async function handler(req, res) {
             if (!userMap[c.user_id]) {
                 userMap[c.user_id] = { user_id: c.user_id, user_name: c.user_name || 'Anonymous', dates: new Set() };
             }
-            userMap[c.user_id].dates.add(c.created_at.substring(0, 10));
+            if (!c.created_at) continue;
+            userMap[c.user_id].dates.add(String(c.created_at).substring(0, 10));
         }
 
         // Calculate longest streak per user
@@ -99,7 +120,7 @@ export default async function handler(req, res) {
             }
         }
 
-        return res.status(200).json({ success: true, leaders: topLeaders });
+        return res.status(200).json({ success: true, leaders: topLeaders, truncated });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Streak Leaderboard Error]', err);

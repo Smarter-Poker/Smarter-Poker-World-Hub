@@ -183,6 +183,15 @@ export default async function handler(req, res) {
                   let q = getSupabase()
                       .from('social_posts')
                       .select('author_id, created_at')
+                      // Deleted and non-public posts used to count toward a public
+                      // ranking, which made the board farmable: post, delete,
+                      // repeat, and keep the credit with no visible content.
+                      // `not.is.true` also matches NULL (the legacy default).
+                      // NULL visibility is treated as public, matching
+                      // migrations/20260422_fix_like_count_drift_and_trigger.sql.
+                      .not('is_deleted', 'is', true)
+                      .not('is_flagged', 'is', true)
+                      .or('visibility.is.null,visibility.eq.public')
                       .order('created_at', { ascending: false });
                   if (dateFilter) q = q.gte('created_at', dateFilter);
                   return q;

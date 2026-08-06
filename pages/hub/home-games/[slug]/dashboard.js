@@ -358,8 +358,24 @@ export default function HomeGameDashboard() {
         const { data: { user } } = await getSb(token).auth.getUser(token);
         if (!user) { router.replace(`/auth/login?redirect=${encodeURIComponent(`/hub/home-games/${slug}/dashboard`)}`); return; }
 
-        // Load group
-        const d = await apiFetch(`/api/commander/home-games/groups/${slug}`, token);
+        // Load group.
+        //
+        // The route param here is the social_pages slug, but every other
+        // caller of /api/commander/home-games/groups/[id] passes the
+        // commander_home_groups UUID, so passing the slug straight through
+        // rendered 'Failed to load group' for every host. Resolve the UUID
+        // first via the public page payload (which already carries
+        // data.group.id) unless the param is already a UUID.
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(slug));
+        let groupId = isUuid ? String(slug) : null;
+        if (!groupId) {
+          const pubRes = await fetch(`/api/public/home-games/${encodeURIComponent(slug)}`);
+          const pubJson = await pubRes.json().catch(() => ({}));
+          groupId = pubJson?.data?.group?.id || null;
+          if (!groupId) throw new Error('Group not found');
+        }
+
+        const d = await apiFetch(`/api/commander/home-games/groups/${groupId}`, token);
         const g = d.group || d;
         if (!g?.id) throw new Error('Group not found');
 

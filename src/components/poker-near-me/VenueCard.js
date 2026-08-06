@@ -733,13 +733,33 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             if (e.key === 'Escape') {
                 e.stopPropagation();
                 setCheckinModal(false);
+                return;
+            }
+            // A11Y FIX: trap Tab inside the panel. The modal is portalled to document.body
+            // and appended after the page content, so without this Tab walked straight out
+            // of Cancel/Post into the venue grid behind the backdrop.
+            if (e.key !== 'Tab') return;
+            const root = checkinModalRef.current;
+            if (!root) return;
+            const focusables = root.querySelectorAll(
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
             }
         };
-        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keydown', onKeyDown, true);
         const prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         return () => {
-            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keydown', onKeyDown, true);
             document.body.style.overflow = prevOverflow;
             const opener = checkinOpenerRef.current;
             if (opener && typeof opener.focus === 'function') {
@@ -750,7 +770,13 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     // Memoize wait estimate BEFORE the guard (React hooks must be unconditional)
     const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
-    const crowd = hasLiveData ? getCrowdLevel(venue, checkinCount) : { label: 'Empty', score: 0, color: '#64748b' };
+    // BUG FIX: the meter renders when `hasLiveData || checkinCount > 0`, but the level was
+    // only computed when hasLiveData was true — so a venue with no live table data and N
+    // users checked in showed a hardcoded "Empty" / 0% bar, discarding the only signal
+    // available. getCrowdLevel already null-guards venue.live_data.
+    const crowd = (hasLiveData || checkinCount > 0)
+        ? getCrowdLevel(venue, checkinCount)
+        : { label: 'Empty', score: 0, color: '#64748b' };
     const staleInfo = hasLiveData && venue.live_data.last_updated ? isStaleData(venue.live_data.last_updated) : { stale: false, age: '' };
     // BUG FIX: the wait estimate used to be fabricated — `minW + (hash(venue.id) % range)`
     // with the bracket chosen only by the crowd label. It ignored live_data.players_waiting
@@ -1133,7 +1159,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </span>
                 )}
 
-                {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>Large Room</span>}
+                {/* SCHEMA FIX: `total_tables` is not a poker_venues column (it is `poker_tables`),
+                    so this badge could never render. */}
+                {(venue.poker_tables ?? venue.total_tables) > 20 && <span className="vc3-badge" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
                         {checkinCount} Here Today
@@ -1297,14 +1325,28 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         // Determine column title dynamically
                         const charityToday = venue.venue_type === 'charity' && venue.is_today && venue.today_event;
                         const charityUpcoming = venue.venue_type === 'charity' && !venue.is_today && venue.next_event;
-                        const hasRegularToday = venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0;
+                        // WIRING FIX: the list branch of /api/poker/venues returns a FLAT array of
+                        // tournament rows, but the single-venue branch (?id=<id>, used by the Saved
+                        // tab to hydrate a venue that is not in the loaded list) returns one wrapper
+                        // object `[{ source_url, schedules: [...] }]`. Rendering that wrapper as a row
+                        // produced a single blank "Tournament / Time TBD" entry and hid the whole
+                        // schedule. Unwrap it here so both API shapes render identically.
+                        const rawDaily = Array.isArray(venue.daily_tournaments) ? venue.daily_tournaments : [];
+                        const dailyTournaments = (rawDaily.length && rawDaily[0] && Array.isArray(rawDaily[0].schedules))
+                            ? rawDaily.flatMap(w => (Array.isArray(w?.schedules) ? w.schedules : []))
+                            : rawDaily;
+                        const hasRegularToday = !!venue.has_tournaments && dailyTournaments.length > 0;
                         // For home games: check if any of the daily_tournaments are today vs upcoming
                         const homeGameTodayGames = venue.venue_type === 'home_game' && hasRegularToday
-                            ? venue.daily_tournaments.filter(t => t._is_today)
+                            ? dailyTournaments.filter(t => t._is_today)
                             : [];
                         const homeGameUpcomingGames = venue.venue_type === 'home_game' && hasRegularToday
-                            ? venue.daily_tournaments.filter(t => !t._is_today)
+                            ? dailyTournaments.filter(t => !t._is_today)
                             : [];
+                        // BUG FIX: the "+N More Today" badge counted the UNFILTERED array while the
+                        // list rendered only non-suppressed rows, so it advertised tournaments that
+                        // had just been filtered out (and could appear with nothing left to show).
+                        const visibleTourneys = dailyTournaments.filter(t => !t?.is_suppressed);
                         
                         let colTitle = 'Today\'s Tournaments';
                         if (venue.venue_type === 'home_game') {
@@ -1414,7 +1456,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     </div>
                                 ) : hasRegularToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
-                                        {venue.daily_tournaments.filter(t => !t?.is_suppressed).slice(0, 3).map((t, idx) => {
+                                        {visibleTourneys.slice(0, 3).map((t, idx) => {
                                             const tName = t?.tournament_name || t?.name || 'Tournament';
                                             // Build date label for home game entries with _days_away
                                             let daysBadgeLabel = null;
@@ -1455,9 +1497,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 </div>
                                             );
                                         })}
-                                        {venue.daily_tournaments.length > 3 && (
+                                        {visibleTourneys.length > 3 && (
                                             <div className="vc3-more-badge" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
-                                                +{venue.daily_tournaments.length - 3} More Today
+                                                +{visibleTourneys.length - 3} More Today
                                             </div>
                                         )}
                                     </div>

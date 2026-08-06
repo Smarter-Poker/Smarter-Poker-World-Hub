@@ -767,7 +767,40 @@ export default async function handler(req, res) {
                           .eq('linked_entity_type', 'home_group')
                           .eq('linked_entity_id', homeGroup.id)
                           .maybeSingle();
-                      
+
+                      // Derive stakes / games / tournaments from `settings`, the
+                      // same way fetchPublicHomeGroups does for the list. This
+                      // branch used to hardcode has_tournaments:false and never
+                      // read settings.tournaments, so a home game showing
+                      // "$40 Bounty Tournament" on Poker Near Me rendered
+                      // "schedule not yet published" on its own detail page.
+                      const hgSettings = homeGroup.settings || {};
+                      const hgStakes = [];
+                      const hgGames = [];
+                      const hgTournaments = [];
+                      if (Array.isArray(hgSettings.tables)) {
+                          hgSettings.tables.forEach(t => {
+                              const gameName = t.game_type ? String(t.game_type).toUpperCase() : 'POKER';
+                              if (!hgGames.includes(gameName)) hgGames.push(gameName);
+                              if (t.stakes) {
+                                  const stakeStr = `${t.stakes}`;
+                                  if (!hgStakes.includes(stakeStr)) hgStakes.push(stakeStr);
+                              }
+                          });
+                      }
+                      if (Array.isArray(hgSettings.tournaments)) {
+                          hgSettings.tournaments.forEach((t, i) => {
+                              hgTournaments.push({
+                                  id: 'hg-t-' + i,
+                                  tournament_name: (t.buy_in ? `$${t.buy_in} ` : '') + (t.tournament_name || t.name || 'Bounty Tournament'),
+                                  start_time: t.scheduled_time || t.time || homeGroup.typical_time || '',
+                                  buy_in: t.buy_in || 0,
+                                  guaranteed: null,
+                                  _is_today: true,
+                              });
+                          });
+                      }
+
                       venues = [{
                           id: homeGroup.id,
                           name: homeGroup.name,
@@ -801,7 +834,10 @@ export default async function handler(req, res) {
                           website: null,
                           commander_enabled: false,
                           is_suppressed: false,
-                          has_tournaments: false,
+                          stakes_cash: hgStakes,
+                          games_offered: hgGames,
+                          daily_tournaments: hgTournaments,
+                          has_tournaments: hgTournaments.length > 0,
                       }];
                   }
               } else if (!isNaN(numericId) && numericId >= 1) {
@@ -1644,13 +1680,42 @@ export default async function handler(req, res) {
           if (id && venues.length > 0) {
               const venue = venues[0];
 
+              // venue_daily_tournaments / venue_news / venue_game_schedules are all
+              // keyed on an int4 venue_id. For a UUID id (home groups) every one of
+              // these ran with parseInt(uuid,10) === NaN and errored. Resolve the
+              // numeric id once and skip the whole block when there isn't one — the
+              // home-group branch above already populated daily_tournaments from
+              // `settings`.
+              // Test the WHOLE string, not parseInt: a home-group UUID whose
+              // first eight hex chars happen to be decimal digits
+              // ("12345678-9abc-...") parses to 12345678, which would have run
+              // all three int4 queries against an unrelated venue and grafted
+              // that venue's tournaments/news/schedule onto the home game page.
+              const idStr = String(id).trim();
+              const numericVenueId = /^\d+$/.test(idStr) ? parseInt(idStr, 10) : NaN;
+              const hasNumericVenueId = !isNaN(numericVenueId) && numericVenueId >= 1;
+
+              if (!hasNumericVenueId) {
+                  if (!Array.isArray(venue.daily_tournaments)) venue.daily_tournaments = [];
+                  venue.daily_tournaments_source = venue.daily_tournaments_source || null;
+                  venue.schedule_unavailable = venue.daily_tournaments.length === 0;
+                  if (!venue.venue_news) venue.venue_news = [];
+                  if (venue.game_schedule === undefined) venue.game_schedule = null;
+                  return res.status(200).json({
+                      success: true,
+                      data: venue,
+                      total: 1,
+                      hasGpsData: hasGps,
+                  });
+              }
+
               // === LIVE DB FIRST: Query Supabase venue_daily_tournaments ===
               let usedLiveData = false;
               try {
                   const { data: liveTourn, error: ltErr } = await getSupabase()
                       .from('venue_daily_tournaments')
                       .select('*')
-                      .eq('venue_id', parseInt(id, 10))
+                      .eq('venue_id', numericVenueId)
                       .eq('is_active', true)
                       // Match daily-tournaments.js / venue-tournament-calendar.js so a
                       // venue page never shows rows those surfaces already retired.
@@ -1726,7 +1791,7 @@ export default async function handler(req, res) {
                   const { data: newsData } = await getSupabase()
                       .from('venue_news')
                       .select('id, title, content, source_url, image_url, published_at, scraped_at')
-                      .eq('venue_id', parseInt(id, 10))
+                      .eq('venue_id', numericVenueId)
                       .eq('is_active', true)
                       .order('scraped_at', { ascending: false })
                       .limit(10);
@@ -1741,7 +1806,7 @@ export default async function handler(req, res) {
                   const { data: schedData } = await getSupabase()
                       .from('venue_game_schedules')
                       .select('id, day_of_week, game_name, start_time, end_time, notes')
-                      .eq('venue_id', parseInt(id, 10))
+                      .eq('venue_id', numericVenueId)
                       .eq('is_active', true)
                       .order('day_of_week')
                       .order('start_time')

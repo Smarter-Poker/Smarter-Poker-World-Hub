@@ -18,6 +18,49 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * COLUMN MAP — `tournament_alert_preferences` really is:
+ *   id, user_id, min_buyin, max_buyin, preferred_formats(text[]),
+ *   venues_filter(text[]), notify_via_email, notify_via_push,
+ *   created_at, updated_at
+ *
+ * This route used to read/write `game_types`, `days`, `distance_mi`,
+ * `push_enabled` and `enabled`. None of those columns exist, so every POST was
+ * rejected by PostgREST and every GET matcher read `undefined` (making the
+ * game-type / day / distance filters silent no-ops).
+ *
+ * game_types -> preferred_formats and push_enabled -> notify_via_push are now
+ * mapped onto the real columns. `days`, `distance_mi` and `enabled` have no
+ * column and are NOT persisted — they stay client-side (localStorage is the
+ * primary store) and the POST response lists them in `unsynced_fields` so the
+ * failure is visible instead of silent. Adding them would need a migration.
+ */
+const UNSYNCED_PREF_FIELDS = ['days', 'distance_mi', 'enabled'];
+
+/** Present a DB row using the field names the client already speaks. */
+function toClientPrefs(row) {
+    if (!row) return null;
+    return {
+        ...row,
+        game_types: Array.isArray(row.preferred_formats) ? row.preferred_formats : [],
+        push_enabled: row.notify_via_push !== false,
+    };
+}
+
+/**
+ * True when the error means "table/column is not in the schema" rather than a
+ * transient failure. The old code string-matched `.includes('does not exist')`,
+ * which does not match PostgREST's "Could not find the 'x' column ... in the
+ * schema cache" wording, so schema drift surfaced as an opaque 500.
+ */
+function isSchemaMissing(error) {
+    if (!error) return false;
+    // 42P01 undefined_table, 42703 undefined_column,
+    // PGRST204 column not in schema cache, PGRST205 table not in schema cache.
+    return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code)
+        || /does not exist|schema cache/i.test(error.message || '');
+}
+
 /** Great-circle distance in miles. */
 function haversineMiles(lat1, lng1, lat2, lng2) {
     const R = 3959;
@@ -55,7 +98,7 @@ try {
               // If match=true, return matching tournaments
               if (match === 'true') {
                   // Fetch user prefs from Supabase (or return empty)
-                  const { data: prefs, error: prefsErr } = await getSupabase()
+                  const { data: prefsRow, error: prefsErr } = await getSupabase()
                       .from('tournament_alert_preferences')
                       .select('*')
                       .eq('user_id', userId)
@@ -67,14 +110,11 @@ try {
                       console.warn('Error fetching alert prefs:', prefsErr);
                   }
 
-                  if (!prefs) {
+                  if (!prefsRow) {
                       return res.status(200).json({ success: true, matches: [], prefs: null });
                   }
 
-                  // `enabled` is persisted by the POST below but was never read.
-                  if (prefs.enabled === false) {
-                      return res.status(200).json({ success: true, matches: [], prefs });
-                  }
+                  const prefs = toClientPrefs(prefsRow);
 
                   // Query the tournaments table DIRECTLY.
                   //
@@ -102,13 +142,18 @@ try {
                       return res.status(200).json({ success: true, matches: [], prefs, degraded: true });
                   }
 
-                  // `days` was persisted and then ignored by the matcher.
-                  const wantedDays = Array.isArray(prefs.days)
-                      ? prefs.days.map(d => String(d).toLowerCase().trim()).filter(Boolean)
-                      : [];
+                  // `days` has no column on tournament_alert_preferences (it lives
+                  // in the client's localStorage), so the caller may pass it as a
+                  // comma-separated ?days= query param instead.
+                  const safeDaysQ = req.query.days;
+                  const rawDays = Array.isArray(safeDaysQ) ? safeDaysQ.join(',') : (safeDaysQ || '');
+                  const wantedDays = String(rawDays)
+                      .split(',')
+                      .map(d => d.toLowerCase().trim())
+                      .filter(Boolean);
 
                   let matches = (tournaments || []).filter(t => {
-                      // Game type
+                      // Game type (stored in preferred_formats)
                       const gameTypes = prefs.game_types || [];
                       if (gameTypes.length > 0) {
                           const tGame = (t.game_type || t.tournament_name || '').toLowerCase();
@@ -123,12 +168,13 @@ try {
                   });
 
                   // Distance: only applicable when the caller supplies their
-                  // position. `distance_mi` was persisted but had nothing to
-                  // measure against on the server.
+                  // position. `distance_mi` has no column either, so the radius
+                  // comes from the request (?radius=) rather than the stored row.
                   const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
                   const userLat = parseFloat(safeQ(req.query.lat));
                   const userLng = parseFloat(safeQ(req.query.lng));
-                  const maxMiles = Number.isFinite(prefs.distance_mi) ? prefs.distance_mi : null;
+                  const radiusQ = parseFloat(safeQ(req.query.radius));
+                  const maxMiles = Number.isFinite(radiusQ) && radiusQ > 0 ? Math.min(radiusQ, 3000) : null;
                   let distanceApplied = false;
 
                   if (Number.isFinite(userLat) && Number.isFinite(userLng) && maxMiles) {
@@ -167,31 +213,39 @@ try {
                   .maybeSingle();
 
               // Table may not exist — handle gracefully
-              if (error && error.code !== 'PGRST116' && !error.message?.includes('does not exist')) {
+              if (error && error.code !== 'PGRST116' && !isSchemaMissing(error)) {
                   console.warn('Error fetching alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
-              return res.status(200).json({ success: true, prefs: prefs || null });
+              return res.status(200).json({ success: true, prefs: toClientPrefs(prefs) });
           }
 
           // POST: Save/update alert preferences
           if (req.method === 'POST') {
-              const { game_types, min_buyin, max_buyin, distance_mi, days, push_enabled, enabled } = req.body;
+              const { game_types, min_buyin, max_buyin, push_enabled, notify_via_email, venues_filter } = req.body;
 
+              const toNum = (v) => {
+                  const n = typeof v === 'number' ? v : parseFloat(v);
+                  return Number.isFinite(n) ? n : null;
+              };
+              const toTextArray = (v) => (Array.isArray(v)
+                  ? v.map(x => String(x).slice(0, 100)).filter(Boolean).slice(0, 50)
+                  : []);
+
+              // Only columns that actually exist on the table are written.
               const prefsData = {
                   user_id: userId,
-                  game_types: game_types || [],
-                  min_buyin: min_buyin || null,
-                  max_buyin: max_buyin || null,
-                  distance_mi: distance_mi || 50,
-                  days: days || [],
-                  push_enabled: push_enabled || false,
-                  enabled: enabled !== undefined ? enabled : true,
+                  preferred_formats: toTextArray(game_types),
+                  min_buyin: toNum(min_buyin),
+                  max_buyin: toNum(max_buyin),
+                  notify_via_push: push_enabled === undefined ? false : !!push_enabled,
                   updated_at: new Date().toISOString(),
               };
+              if (notify_via_email !== undefined) prefsData.notify_via_email = !!notify_via_email;
+              if (venues_filter !== undefined) prefsData.venues_filter = toTextArray(venues_filter);
 
-              // Upsert
+              // Upsert — tournament_alert_preferences carries UNIQUE(user_id).
               const { data, error } = await getSupabase()
                   .from('tournament_alert_preferences')
                   .upsert(prefsData, { onConflict: 'user_id' })
@@ -199,15 +253,27 @@ try {
                   .maybeSingle();
 
               if (error) {
-                  // If table doesn't exist, just return success (localStorage is primary)
-                  if (error.message?.includes('does not exist')) {
-                      return res.status(200).json({ success: true, prefs: prefsData, note: 'Saved locally only (table not created yet)' });
+                  // If the table/column is genuinely absent, say so explicitly
+                  // (localStorage is the primary store) instead of a bare 500.
+                  if (isSchemaMissing(error)) {
+                      console.warn('[tournament-alerts] schema drift on save:', error.code, error.message);
+                      return res.status(200).json({
+                          success: true,
+                          prefs: toClientPrefs(prefsData),
+                          synced: false,
+                          note: 'Saved locally only (server table not available)',
+                      });
                   }
                   console.warn('Error saving alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
-              return res.status(200).json({ success: true, prefs: data });
+              return res.status(200).json({
+                  success: true,
+                  prefs: toClientPrefs(data),
+                  synced: true,
+                  unsynced_fields: UNSYNCED_PREF_FIELDS,
+              });
           }
 
           // DELETE: Remove alert preferences
@@ -217,7 +283,7 @@ try {
                   .delete()
                   .eq('user_id', userId);
 
-              if (error && !error.message?.includes('does not exist')) {
+              if (error && !isSchemaMissing(error)) {
                   console.warn('Error deleting alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }

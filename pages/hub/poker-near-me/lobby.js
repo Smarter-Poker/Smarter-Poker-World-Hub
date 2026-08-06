@@ -15,7 +15,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
-import SEOHead from '../../../src/components/seo/SEOHead';
+import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -118,6 +118,143 @@ const GAME_TYPE_API_PARAM = {
   plo: 'hasPLO',
   mixed: 'hasMixed',
 };
+
+// ─── Crawlable destinations ────────────────────────────────────────────────
+// Both visual layers of this page (LobbyCanvas, LobbyOverlay) are ssr:false, so
+// the delivered HTML used to contain no headline and none of the twelve
+// internal links the overlay renders — on a page listed in sitemap.xml at
+// priority 0.9 / changefreq daily. This list is rendered by the PAGE (server
+// side) as a visually-hidden landmark and also feeds the ItemList JSON-LD.
+// Mirrors GRID_HOTSPOTS in src/components/poker-near-me/lobby/LobbyOverlay.jsx
+// and POD_ROUTES below — keep all three in step.
+const LOBBY_DESTINATIONS = [
+  { label: 'Poker Near Me', href: '/hub/poker-near-me/venues' },
+  { label: 'Home Games', href: '/hub/home-games' },
+  { label: 'Live Games', href: '/hub/poker-near-me/live-games' },
+  { label: 'Poker Tours', href: '/hub/poker-tours' },
+  { label: 'Map View', href: '/hub/poker-near-me/map' },
+  { label: 'Calendar', href: '/hub/events-calendar' },
+  { label: 'Poker Series', href: '/hub/poker-near-me/series' },
+  { label: 'Trip Planner', href: '/hub/poker-near-me/roadtrip' },
+  { label: 'Daily Grind', href: '/hub/daily-tournaments' },
+  { label: 'Saved Venues', href: '/hub/poker-near-me/saved' },
+  { label: 'Friends', href: '/hub/friends' },
+  { label: 'Tournament Alerts', href: '/hub/poker-near-me/alerts' },
+];
+
+const LOBBY_SITE_URL = 'https://smarter.poker';
+
+// schemas.website carries the SearchAction that targets this exact URL; the
+// ItemList exposes the twelve destinations as structured data.
+const LOBBY_JSON_LD = {
+  '@graph': [
+    schemas.website,
+    {
+      '@type': 'ItemList',
+      name: 'Poker Near Me',
+      itemListElement: LOBBY_DESTINATIONS.map((d, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: d.label,
+        url: `${LOBBY_SITE_URL}${d.href}`,
+      })),
+    },
+  ],
+};
+
+// Every "wide" venue request (GPS, saved location, deep link, pod search) asks
+// for this many rows in one shot. Kept in one place so the refresh path can
+// rebuild the same request instead of collapsing the list back to one page.
+const WIDE_VENUE_LIMIT = 200;
+
+// /api/poker/checkins/batch-counts hard-caps its incoming id list at 50, so the
+// client must chunk to the same number or the tail is silently dropped.
+const CHECKIN_BATCH_SIZE = 50;
+const CHECKIN_BATCH_MAX_IDS = 200;
+
+// Venue types /api/poker/venues actually understands. VoiceSearch can emit
+// 'poker_tour', which matches no row and would blank the results, so anything
+// outside this set is dropped rather than sent.
+const SAFE_VENUE_TYPES = new Set(['casino', 'card_room', 'poker_club', 'home_game', 'charity']);
+
+// Radius values the pod selects actually offer. A voice transcript can say
+// "within 30 miles", which is not one of them — snap up to the nearest offered
+// value so the select still shows the filter that is in force.
+const POD_RADIUS_OPTIONS = [5, 10, 25, 50, 100, 150];
+
+// Fold VoiceSearch's raw parse output onto the filter domains this page reads.
+// Returns only keys that have a real consumer; everything else is dropped
+// rather than written into the filter object as dead weight.
+function normalizeVoiceFilters(raw) {
+  const next = {};
+  if (!raw || typeof raw !== 'object') return next;
+
+  // VoiceSearch emits 'NLH' | 'PLO' | 'Mixed' | 'Stud'. fetchVenues and the pod
+  // chips are lowercase, and 'stud' has no API param / chip, so it is dropped.
+  const gameType = String(raw.gameType || '').toLowerCase();
+  if (GAME_TYPE_API_PARAM[gameType]) {
+    next.gameType = gameType;
+    next.svGameType = gameType;
+  }
+
+  // VoiceSearch emits 'poker_tour' for any transcript containing "tour", which
+  // matches no venue_type row and would blank the results.
+  const venueType = String(raw.venueType || '').toLowerCase();
+  if (SAFE_VENUE_TYPES.has(venueType)) {
+    next.venueType = venueType;
+    next.svVenueType = venueType;
+  }
+
+  const parsedRadius = parseInt(raw.radius, 10);
+  if (parsedRadius && !isNaN(parsedRadius)) {
+    const snapped = POD_RADIUS_OPTIONS.find(o => o >= parsedRadius) || 150;
+    next.radius = String(snapped);
+    next.svRadius = String(snapped);
+    next.nmRadius = String(snapped);
+  }
+
+  // Buy-in bounds are read from the PREFIXED keys by PodVenueSearchEngine
+  // (`${prefix}MinBuyin` / `${prefix}MaxBuyin`); the bare keys VoiceSearch emits
+  // are read by nothing. Write both pods' keys — the Search pod currently runs
+  // with showBuyIn={false}, the Near Me pod is where these bite.
+  const minBuyin = Number(raw.minBuyin);
+  if (raw.minBuyin != null && !isNaN(minBuyin) && minBuyin > 0) {
+    next.svMinBuyin = String(minBuyin);
+    next.nmMinBuyin = String(minBuyin);
+  }
+  const maxBuyin = Number(raw.maxBuyin);
+  if (raw.maxBuyin != null && !isNaN(maxBuyin) && maxBuyin > 0) {
+    next.svMaxBuyin = String(maxBuyin);
+    next.nmMaxBuyin = String(maxBuyin);
+  }
+
+  // `stakes` ('1/2', '2/5') and `tab` are deliberately dropped: /api/poker/venues
+  // implements no stakes filter, and the lobby routes pods rather than tabs.
+  return next;
+}
+
+// ─── Shared location key ───────────────────────────────────────────────────
+// 'sp-user-gps' is the platform-wide location key: GlobalSearchOverlay (the
+// lobby's ONLY search bar), LiveGamesFeed and /hub/poker-near-me/[pnmTab] all
+// read it. The lobby used to persist coordinates to 'pnm_last_location' only,
+// so a user who enabled GPS here still ran every search with no location —
+// results came back unsorted by distance and unfiltered by radius.
+function persistSharedGpsLocation(loc) {
+  if (typeof window === 'undefined') return;
+  if (!loc || loc.lat == null || loc.lng == null) return;
+  try {
+    localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
+    window.dispatchEvent(new Event('sp_user_gps_updated'));
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+}
+
+function clearSharedGpsLocation() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('sp-user-gps');
+    window.dispatchEvent(new Event('sp_user_gps_updated'));
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+}
 
 const POD_FEATURES = {
   search: { title: 'Search Venues', tab: 'venues' },
@@ -356,6 +493,25 @@ export default function PokerNearMeLobby() {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
+  // ─── Wide venue result tracking ───────────────────────────────────────────
+  // GPS success, saved-location restore, the ?q= deep link and the pod searches
+  // all fetch WIDE_VENUE_LIMIT venues in one request. The 5-minute background
+  // poll used to replace that list with a plain 50-row page-0 fetch, so an
+  // idling user watched the Near Me list silently shrink from 200 rows to 50.
+  // Remember the request the current list came from so the refresh can replay it.
+  const wideVenueFetchRef = useRef(null); // { url, limit } | null
+  const pageRef = useRef(0);
+  pageRef.current = page;
+
+  const applyWideVenueFetch = useCallback((url, data) => {
+    const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+    wideVenueFetchRef.current = { url, limit: WIDE_VENUE_LIMIT };
+    setVenues(newVenues);
+    setHasMore(newVenues.length >= WIDE_VENUE_LIMIT);
+    // limit=200 fetch = 4 pages of PAGE_SIZE — next loadMore must start at offset 200
+    setPage(Math.max(0, Math.ceil(WIDE_VENUE_LIMIT / PAGE_SIZE) - 1));
+  }, []);
+
   // ─── Deep Link: hydration guard ───
   // Prevents the write-back effect from clearing URL params before mount reads them
   const hasHydratedRef = useRef(false);
@@ -378,11 +534,7 @@ export default function PokerNearMeLobby() {
       const deepSeq = ++fetchSequenceRef.current;
       cachedFetch(deepUrl).then(data => {
         if (fetchSequenceRef.current !== deepSeq) return; // superseded
-        const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-        setVenues(newVenues);
-        // limit=200 fetch = 4 pages of PAGE_SIZE — next loadMore must start at offset 200
-        setHasMore(newVenues.length >= 200);
-        setPage(3);
+        applyWideVenueFetch(deepUrl, data);
         // Flip the search-pod gate so deep-linked results actually render
         setFilters(prev => ({ ...prev, svSearched: true }));
       }).catch(err => console.warn('Deep-link venue fetch failed:', err));
@@ -456,12 +608,16 @@ export default function PokerNearMeLobby() {
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false) => {
+  // `limitOverride` lets the background refresh re-request as many rows as the
+  // user currently has loaded (page 0 through `page`) in one call, instead of
+  // truncating the list back to a single page.
+  const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false, limitOverride = null) => {
     const currentSeq = ++fetchSequenceRef.current;
+    const effectiveLimit = (Number(limitOverride) > 0) ? Number(limitOverride) : PAGE_SIZE;
     setLoading(true);
     setFetchError(null);
     try {
-      let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
+      let url = `/api/poker/venues?limit=${effectiveLimit}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
       const activeLoc = userLocationRef.current;
       const activeFilters = filtersRef.current;
@@ -498,9 +654,12 @@ export default function PokerNearMeLobby() {
         setVenues(prev => [...prev, ...newVenues]);
       } else {
         setVenues(newVenues);
+        // This request now defines the visible list — it is not one of the wide
+        // GPS/pod fetches, so the refresh path must stop replaying those.
+        wideVenueFetchRef.current = null;
       }
-      setHasMore(newVenues.length >= PAGE_SIZE);
-      setPage(pageNum);
+      setHasMore(newVenues.length >= effectiveLimit);
+      setPage(effectiveLimit > PAGE_SIZE ? Math.max(0, Math.ceil(effectiveLimit / PAGE_SIZE) - 1) : pageNum);
     } catch (err) {
       if (fetchSequenceRef.current !== currentSeq) return;
       console.warn('Failed to fetch venues:', err);
@@ -601,8 +760,15 @@ export default function PokerNearMeLobby() {
       if (data?.data) setDailyTournaments(data.data);
       else if (data?.tournaments) setDailyTournaments(data.tournaments);
       else if (Array.isArray(data)) setDailyTournaments(data);
-      // Use authoritative count from API (includes venue daily + charity + tour series events)
-      if (data?.stats?.total != null) {
+      // Use authoritative count from API (includes venue daily + charity + tour series events).
+      // [BUG FIX] This used to run for every call, including the day-tab calls
+      // the Daily pod makes via onDayChange — so browsing to Saturday rewrote
+      // the lobby's headline stat with Saturday's national count while it stayed
+      // labelled "Today's Tournaments". Only an unfiltered call (or one that
+      // happens to ask for today) may update the today-count.
+      const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+      const isTodayRequest = !dayFilter || String(dayFilter).toLowerCase() === todayName.toLowerCase();
+      if (isTodayRequest && data?.stats?.total != null) {
         setTodaysTournamentCount(data.stats.total);
       }
     } catch (err) {
@@ -699,7 +865,8 @@ export default function PokerNearMeLobby() {
 
   // ─── Batch fetch check-in counts when venues change ───
   // [LB5 FIX] URL was unbounded (up to 200 IDs * 37 chars = 7,400 chars) — approaching nginx URL length limits.
-  // Cap at 100 IDs per request to stay well under the 8,192-char limit.
+  // Requests are chunked to CHECKIN_BATCH_SIZE (the server's own cap), which
+  // also keeps every URL far below the 8,192-char limit.
   const checkinCountsRef = useRef(checkinCounts);
   checkinCountsRef.current = checkinCounts;
   
@@ -709,15 +876,27 @@ export default function PokerNearMeLobby() {
     const newIds = venues
       .map(v => v.id)
       .filter(id => id && checkinCountsRef.current[String(id)] === undefined)
-      .slice(0, 100);
-      
+      .slice(0, CHECKIN_BATCH_MAX_IDS);
+
     if (newIds.length === 0) return;
-    const ids = newIds.join(',');
-    
-    fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
-      .then(r => r.json())
-      .then(j => { if (j.success && j.counts) setCheckinCounts(prev => ({ ...prev, ...j.counts })); })
-      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+
+    // [BUG FIX] This used to send up to 100 IDs in ONE request, but
+    // /api/poker/checkins/batch-counts does `.slice(0, 50)` on the incoming
+    // list — IDs 51-100 came back absent, so those cards rendered a permanent
+    // 0 check-ins badge (after a 200-venue GPS fetch, only the first 50 cards
+    // ever showed a badge). Chunk to the server's real cap instead.
+    let cancelled = false;
+    for (let i = 0; i < newIds.length; i += CHECKIN_BATCH_SIZE) {
+      const ids = newIds.slice(i, i + CHECKIN_BATCH_SIZE).join(',');
+      fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
+        .then(r => r.json())
+        .then(j => {
+          if (cancelled) return;
+          if (j.success && j.counts) setCheckinCounts(prev => ({ ...prev, ...j.counts }));
+        })
+        .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+    }
+    return () => { cancelled = true; };
   }, [venues]);
 
   // ─── Batch fetch review stats for venue cards (star ratings) ───
@@ -893,7 +1072,29 @@ export default function PokerNearMeLobby() {
     // Prefix invalidation — daily tournaments are cached per ?day= value, so an
     // exact-key delete on the bare path left every day-filtered entry stale.
     invalidateCache('/api/poker/daily-tournaments');
-    fetchVenues(searchQuery);
+    // [BUG FIX] This used to be a bare `fetchVenues(searchQuery)`, i.e.
+    // limit=50&offset=0 with `setPage(0)`. Every wide result set — GPS success,
+    // saved-location restore, the ?q= deep link, the Near Me pod search, plus
+    // anything the user paged in with "Load More Venues" — was replaced with a
+    // 50-row page 0 after at most five minutes of idling, and the scroll
+    // position landed past the end of the list. Replay the request the current
+    // list was actually built from, widened to cover the pages already loaded.
+    const pagesLoaded = Math.max(1, (pageRef.current || 0) + 1);
+    const wide = wideVenueFetchRef.current;
+    if (wide?.url) {
+      const desiredLimit = Math.max(wide.limit || WIDE_VENUE_LIMIT, pagesLoaded * PAGE_SIZE);
+      const refreshUrl = wide.url.replace(/([?&])limit=\d+/, `$1limit=${desiredLimit}`);
+      const refreshSeq = ++fetchSequenceRef.current;
+      fetchWithRetry(refreshUrl).then(data => {
+        if (fetchSequenceRef.current !== refreshSeq) return; // superseded
+        const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+        setVenues(newVenues);
+        setHasMore(newVenues.length >= desiredLimit);
+        setPage(Math.max(0, Math.ceil(desiredLimit / PAGE_SIZE) - 1));
+      }).catch(err => console.warn('Venue refresh failed:', err));
+    } else {
+      fetchVenues(searchQuery, 0, false, pagesLoaded > 1 ? pagesLoaded * PAGE_SIZE : null);
+    }
     fetchTours();
     fetchSeries();
     fetchDaily();
@@ -913,22 +1114,42 @@ export default function PokerNearMeLobby() {
 
 
   // ─── Voice search result handler ───
+  // [BUG FIX] Two problems, both fixed here:
+  //   1. Ordering — fetchVenues reads `filtersRef.current`, which React only
+  //      reassigns on the NEXT render, so the fetch used to go out with the
+  //      PREVIOUS filter state and the parsed gameType/venueType never reached
+  //      the results the user was shown. The normalised filters are now written
+  //      into the ref before the fetch as well as into state.
+  //   2. Domain — VoiceSearch's raw keys were spread in verbatim. Its
+  //      'NLH'/'PLO'/'Mixed' never matched GAME_TYPE_API_PARAM (lowercase), its
+  //      'poker_tour' venue type matches no row, and its bare
+  //      stakes/minBuyin/maxBuyin keys are read by nothing (the pods read the
+  //      prefixed `sv*` / `nm*` keys), so "tournaments under $200" silently
+  //      dropped the buy-in constraint.
   const handleVoiceResult = useCallback((result) => {
     setShowVoiceSearch(false);
-    if (result?.searchQuery) {
-      setSearchQuery(result.searchQuery);
-      fetchVenues(result.searchQuery);
+    const voiceFilters = normalizeVoiceFilters(result?.filters);
+    const hasVoiceFilters = Object.keys(voiceFilters).length > 0;
+
+    if (result?.searchQuery || hasVoiceFilters) {
+      // Keep `searchQuery` in step with the request we are about to make: a
+      // filters-only result fetches with no search term, and `loadMore` pages
+      // with `searchQuery`, so leaving a stale term behind would append
+      // name-filtered rows to an unfiltered list.
+      setSearchQuery(result?.searchQuery || '');
       // Auto-open the Search panel to show voice search results.
       // svSearched must be flipped too — the pod only renders results when
       // its `${prefix}Searched` gate is true. Clear any stale pod-search
       // results so the pod falls back to the freshly fetched `venues`.
       setPodSearchVenues(null);
-      setFilters(prev => ({ ...prev, svSearched: true }));
+      const applied = { ...voiceFilters, svSearched: true };
+      // Make the new filters visible to fetchVenues on THIS tick, not the next
+      // render — fetchVenues reads the ref, not the state.
+      filtersRef.current = { ...filtersRef.current, ...applied };
+      setFilters(prev => ({ ...prev, ...applied }));
       setActivePod('search');
       setShowPanel(true);
-    }
-    if (result?.filters) {
-      setFilters(prev => ({ ...prev, ...result.filters }));
+      fetchVenues(result?.searchQuery || '');
     }
   }, [fetchVenues]);
 
@@ -1197,6 +1418,7 @@ export default function PokerNearMeLobby() {
     try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* private browsing */ }
     try { localStorage.setItem('pnm_location_enabled', '1'); } catch { /* */ }
     try { localStorage.setItem('pnm_last_location', JSON.stringify(loc)); } catch { /* */ }
+    persistSharedGpsLocation(loc);
     const geo = await reverseGeocode(loc.lat, loc.lng);
     if (geo?.city) {
       showLocationSuccessToast(geo);
@@ -1216,14 +1438,10 @@ export default function PokerNearMeLobby() {
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
     const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
-    cachedFetch(gpsUrl).then(data => {
-      const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-      setVenues(newVenues);
-      setHasMore(newVenues.length >= 200);
-      setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-    }).catch(err => console.warn('GPS venue fetch failed:', err));
+    cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
+      .catch(err => console.warn('GPS venue fetch failed:', err));
     // GPS updates location + venues silently — user must click search to see results
-  }, [reverseGeocode, showLocationSuccessToast, userId]);
+  }, [reverseGeocode, showLocationSuccessToast, userId, applyWideVenueFetch]);
 
   // ─── GPS Click handler (2-tier: high accuracy → low accuracy fallback) ───
   const gpsErrorTimeoutRef = useRef(null);
@@ -1247,6 +1465,9 @@ export default function PokerNearMeLobby() {
       // Clear persistence — user explicitly turned it off
       try { localStorage.removeItem('pnm_location_enabled'); } catch { /* */ }
       try { localStorage.removeItem('pnm_last_location'); } catch { /* */ }
+      // Drop the shared key too, or GlobalSearchOverlay keeps searching from
+      // the location the user just turned off.
+      clearSharedGpsLocation();
       try { localStorage.removeItem('pnm_last_city'); } catch { /* */ }
       try { localStorage.removeItem('pnm_last_state'); } catch { /* */ }
       // Keep pnm_location_prompt_dismissed so we don't re-prompt
@@ -1435,33 +1656,27 @@ export default function PokerNearMeLobby() {
       // ── ONE-AND-DONE: mark prompt dismissed since user previously enabled location ──
       setLocationPromptDismissed(true);
       try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* */ }
+      persistSharedGpsLocation(restoreLoc);
       showLocationSuccessToast({
         city: restoreCity,
         state: restoreState,
       });
       // Fetch venues with saved location immediately
       const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=50`;
-      cachedFetch(gpsUrl).then(data => {
-        const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-        setVenues(newVenues);
-        setHasMore(newVenues.length >= 200);
-        setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       // Silently refresh GPS in background for accuracy (no error if it fails)
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setUserLocation(loc);
+            persistSharedGpsLocation(loc);
             const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
             if (movedSignificantly) {
               const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
-              cachedFetch(freshUrl).then(data => {
-                const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                setVenues(newVenues);
-                setHasMore(newVenues.length >= 200);
-                setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-              }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+              cachedFetch(freshUrl).then(data => applyWideVenueFetch(freshUrl, data))
+                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               if (userId) {
                 reverseGeocode(loc.lat, loc.lng).then(geo => {
                   if (geo?.city) {
@@ -1483,15 +1698,12 @@ export default function PokerNearMeLobby() {
               (pos) => {
                 const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserLocation(loc);
+                persistSharedGpsLocation(loc);
                 const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
                 if (movedSignificantly) {
                   const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
-                  cachedFetch(freshUrl).then(data => {
-                    const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                    setVenues(newVenues);
-                    setHasMore(newVenues.length >= 200);
-                    setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                  cachedFetch(freshUrl).then(data => applyWideVenueFetch(freshUrl, data))
+                    .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   if (userId) {
                     reverseGeocode(loc.lat, loc.lng).then(geo => {
                       if (geo?.city) {
@@ -1573,6 +1785,7 @@ export default function PokerNearMeLobby() {
         try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* */ }
         try { localStorage.setItem('pnm_location_enabled', '1'); } catch { /* */ }
         try { localStorage.setItem('pnm_last_location', JSON.stringify(loc)); } catch { /* */ }
+        persistSharedGpsLocation(loc);
         try { localStorage.setItem('pnm_last_city', manualCity.trim()); } catch { /* */ }
         try { localStorage.setItem('pnm_last_state', manualState || ''); } catch { /* */ }
         // Persist to Supabase (cross-device)
@@ -1589,12 +1802,8 @@ export default function PokerNearMeLobby() {
         }
         // Fetch venues near this location
         const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50`;
-        cachedFetch(gpsUrl).then(result => {
-          const newVenues = result?.data || result?.venues || (Array.isArray(result) ? result : []);
-          setVenues(newVenues);
-          setHasMore(newVenues.length >= 200);
-          setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-        }).catch(err => console.warn('Manual location venue fetch failed:', err));
+        cachedFetch(gpsUrl).then(result => applyWideVenueFetch(gpsUrl, result))
+          .catch(err => console.warn('Manual location venue fetch failed:', err));
         // Manual location set — user must click search to see results
       } else {
         setGpsError('Could not find that location — try a different city');
@@ -1609,10 +1818,7 @@ export default function PokerNearMeLobby() {
     } finally {
       setManualGeocoding(false);
     }
-  }, [manualCity, manualState, userId, showLocationSuccessToast, manualGeocoding, gpsLoading]);
-
-  // ─── Pods that require GPS to show meaningful results ───
-  const GPS_REQUIRED_PODS = new Set(['nearme', 'mapview', 'livegames']);
+  }, [manualCity, manualState, userId, showLocationSuccessToast, manualGeocoding, gpsLoading, applyWideVenueFetch]);
 
   // ─── Pod click → navigate directly to standalone pages ───
   // All 12 lobby grid icons route to their full standalone pages.
@@ -1642,18 +1848,14 @@ export default function PokerNearMeLobby() {
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch (e) { console.warn('[App] Handled exception:', e); }
   }, [bus, router]);
 
-  // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
-  // When a user clicks a GPS-required pod without GPS, we set activePod but
-  // don't open the panel (show Enable popup instead). This effect watches for
-  // GPS activation and auto-opens the panel for the pending pod.
-  const prevGpsActiveRef = useRef(gpsActive);
-  useEffect(() => {
-    if (gpsActive && !prevGpsActiveRef.current && activePod && GPS_REQUIRED_PODS.has(activePod) && !showPanel) {
-      setShowPanel(true);
-      playPanelOpenSound();
-    }
-    prevGpsActiveRef.current = gpsActive;
-  }, [gpsActive, activePod, showPanel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // [AUDIT] The "auto-open panel for GPS-gated pods" effect and its
+  // GPS_REQUIRED_PODS set lived here. They were unreachable: the effect only
+  // fires when a pod is pending with the panel closed, but handlePodClick
+  // routes to a standalone page and never sets activePod, and every remaining
+  // writer of activePod (the ?pod= deep link, the in-panel cross-links) opens
+  // the panel in the same breath. The `new Set([...])` was also reallocated on
+  // every render for a condition that could never be satisfied. Both removed;
+  // if GPS gating is wanted back, it belongs in handlePodClick.
 
   const handlePanelClose = useCallback(() => {
     playPanelCloseSound();
@@ -2000,13 +2202,9 @@ export default function PokerNearMeLobby() {
           const apiUrl = `/api/poker/venues?limit=200&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiGameParam}`;
           
           setLoading(true);
-          cachedFetch(apiUrl).then(data => {
-            const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-            setVenues(newVenues);
-            setHasMore(newVenues.length >= 200);
-            setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-          }).catch(err => console.warn('Search fetch failed:', err))
-          .finally(() => setLoading(false));
+          cachedFetch(apiUrl).then(data => applyWideVenueFetch(apiUrl, data))
+            .catch(err => console.warn('Search fetch failed:', err))
+            .finally(() => setLoading(false));
         };
 
         component = (
@@ -2167,13 +2365,29 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'calendar':
-        component = <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
+        // [WIRING FIX] `dailyTournaments` was passed but SeasonalCalendar's
+        // signature is ({ series, tours, onEventClick }) — the array was
+        // accepted and silently dropped, which read as if daily tournaments
+        // were on the calendar when they never were. Prop removed rather than
+        // left as a false signal; folding daily tournaments into the calendar
+        // needs a change inside SeasonalCalendar itself.
+        component = <SeasonalCalendar series={series} tours={tours} />;
         break;
 
       case 'roadtrip':
         component = (
           <div>
-            <RoadTripPlanner venues={venues} userLocation={userLocation} locationCity={locationCity} locationState={locationState} />
+            {/* [WIRING FIX] dailyTournaments/series were omitted, so
+                RoadTripPlanner defaulted both to [] and its "Tournaments" and
+                "Series" route sections were permanently empty. */}
+            <RoadTripPlanner
+              venues={venues}
+              userLocation={userLocation}
+              dailyTournaments={dailyTournaments}
+              series={series}
+              locationCity={locationCity}
+              locationState={locationState}
+            />
             {/* Trip Cost Calculator — accessible from Trip Planner */}
             <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(212,168,83,0.1)' }}>
               <button
@@ -2387,15 +2601,22 @@ export default function PokerNearMeLobby() {
     // VenueCards with reviewStats={undefined} until an unrelated state change
     // forced a recompute. podSearchVenues/podHomeGames only worked by accident
     // because their fetches also toggle `loading`.
-  }, [activePod, venues, tours, series, dailyTournaments, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, filters, hasMore, page, fetchDaily, loadMore, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded, checkinCounts, podSearchVenues, podHomeGames, reviewStatsMap, gpsLoading, handleGpsClick, handleVenueNavigate, locationCity, locationState, user, setPodHomeGames]);
+  }, [activePod, venues, tours, series, dailyTournaments, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, filters, hasMore, page, fetchDaily, loadMore, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded, checkinCounts, podSearchVenues, podHomeGames, reviewStatsMap, gpsLoading, handleGpsClick, handleVenueNavigate, locationCity, locationState, user, setPodHomeGames, applyWideVenueFetch]);
 
   // Keep the share-sheet title current without adding panelContent to the
   // (deliberately empty) handleShareClick dep list.
   panelTitleRef.current = panelContent?.title || '';
 
-  // ─── Live data for the 3D scene (drives visual behavior) ───
-  // ─── Contextual badge counts (not raw data totals) ───
-  // Badge semantics: show actionable/relevant counts, not misleading "99+" totals
+  // ─── Live stats bar data ───
+  // [AUDIT] This memo used to also emit venueCount, totalVenueCount,
+  // liveDataMode, tourCount, seriesCount, calendarCount, alertCount, savedCount,
+  // homeGameCount, mappableCount and lastFetchTime — plus the tours/series/
+  // venues/favorites array scans that produced them — on every change to any of
+  // nine dependencies. Its ONLY consumer is <LobbyOverlay liveData=...>, which
+  // reads liveGameCount, liveGameLabel and dailyCount; the twelve hotspots
+  // render no badges and the one component that wanted the richer shape
+  // (RadarDisc) is not mounted on this page. The unread fields and their scans
+  // are removed rather than recomputed and discarded.
   const liveData = useMemo(() => {
     const today = new Date();
     const todayDay = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
@@ -2404,21 +2625,6 @@ export default function PokerNearMeLobby() {
     // excludes events happening today for any user west of UTC.
     const toLocalDateStr = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     const todayDateStr = toLocalDateStr(today);
-    const thirtyDaysStr = toLocalDateStr(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000));
-
-    // Tours with upcoming dates (next 30 days)
-    const upcomingTours = tours.filter(t => {
-      if (!t.start_date && !t.next_event_date) return false;
-      const dStr = String(t.next_event_date || t.start_date).slice(0, 10);
-      return dStr >= todayDateStr && dStr <= thirtyDaysStr;
-    });
-
-    // Active/upcoming series
-    const activeSeries = series.filter(s => {
-      if (!s.end_date && !s.start_date) return true; // no dates = include
-      const endStr = String(s.end_date || s.start_date).slice(0, 10);
-      return endStr >= todayDateStr;
-    });
 
     // Today's tournaments — match by day_of_week OR by actual event date
     // Use local date (not UTC) — matches todayDay which uses local getDay()
@@ -2435,17 +2641,7 @@ export default function PokerNearMeLobby() {
       return false;
     });
 
-    // Nearby venues (with GPS) vs total venues (without GPS)
-    const nearbyVenues = userLocation
-      ? venues.filter(v => v.distance_mi != null && v.distance_mi <= 100)
-      : [];
-
     return {
-      // Venue count badge: only show on "Poker Near Me" pod when GPS is active
-      // Without GPS, badge is suppressed — no location = no "near me" context
-      venueCount: userLocation ? nearbyVenues.length : 0,
-      // Total loaded venues (for stats bar — always available regardless of GPS)
-      totalVenueCount: venues.length,
       liveGameCount: liveGameCount,
       // /api/poker/live-tables publishes data_mode ('live' | 'mixed' | 'estimated'
       // | 'none'). The lobby used to render the number under a hardcoded "Live
@@ -2453,30 +2649,11 @@ export default function PokerNearMeLobby() {
       liveGameLabel: (liveDataMode === 'estimated' || liveDataMode === 'mixed')
         ? 'Est. Tables'
         : 'Live Tables',
-      liveDataMode: liveDataMode,
-      tourCount: upcomingTours.length > 0 ? upcomingTours.length : (toursLoaded ? 0 : null),
-      seriesCount: activeSeries.length,
       // Daily Grind: today's tournaments — authoritative count from API
       // (includes venue daily tournaments + charity events + tour series events)
       dailyCount: todaysTournamentCount || todaysTournaments.length,
-      // Calendar: total upcoming events across all days (distinct from dailyCount)
-      calendarCount: dailyTournaments.length,
-      alertCount: upcomingTours.length, // alerts = upcoming tour events only
-      // Counts venue/series/tour saves — the Saved pod now renders all three,
-      // so the badge and the panel can no longer disagree.
-      savedCount: Object.keys(favorites || {}).filter(k => favorites[k] && /^(venue|series|tour)-/.test(k)).length,
-      // Home games live in commander_home_groups, NOT poker_venues. The
-      // podHomeGames state is populated from /api/public/home-games/discover
-      // when the tab is visited. Until then we report 0 rather than filtering
-      // `venues` (which is poker_venues-shaped and will never contain home games
-      // — enforced by the ck_poker_venues_not_home_game DB check constraint).
-      homeGameCount: Array.isArray(podHomeGames) ? podHomeGames.length : 0,
-      // Map badge: only show when GPS is active (contextual: "X venues on your map")
-      // Without GPS, map is still usable but badge count is misleading
-      mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,
-      lastFetchTime: lastFetchTime,
     };
-  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, liveDataMode, userLocation, lastFetchTime, toursLoaded, todaysTournamentCount, podHomeGames]);
+  }, [dailyTournaments, liveGameCount, liveDataMode, todaysTournamentCount]);
 
   return (
     <>
@@ -2484,9 +2661,28 @@ export default function PokerNearMeLobby() {
         title="Poker Near Me — Find Live Poker Rooms & Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me/lobby"
+        jsonLd={LOBBY_JSON_LD}
       />
 
       <div className="pnm-lobby-page">
+        {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
+            LobbyCanvas and LobbyOverlay are both ssr:false, so without this
+            block the delivered HTML has no h1 and none of the twelve internal
+            links out of the lobby. The heading stays available to assistive
+            tech; the link list is aria-hidden and not tab-focusable because it
+            duplicates the hotspot grid the overlay renders once hydrated. */}
+        <div className="pnm-lobby-seo">
+          <h1>Poker Near Me</h1>
+          <p>Find Live Poker Rooms, Casinos, Card Rooms, Home Games And Tournaments Near You.</p>
+          <nav aria-hidden="true" aria-label="Poker Near Me sections">
+            <ul>
+              {LOBBY_DESTINATIONS.map(d => (
+                <li key={d.href}><a href={d.href} tabIndex={-1}>{d.label}</a></li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+
         {/* Universal header — back button is now inside the header */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, pointerEvents: 'none' }}>
           <div style={{ pointerEvents: 'auto' }}>
@@ -2555,18 +2751,15 @@ export default function PokerNearMeLobby() {
               setUserLocation(saved);
               setGpsActive(true);
               setSortBy('distance');
+              persistSharedGpsLocation(saved);
               showLocationSuccessToast({
                 city: preferences?.lastLocationCity || '',
                 state: preferences?.lastLocationState || '',
               });
               const usedRadius = filters.radius || 50;
               const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=${usedRadius}`;
-              cachedFetch(gpsUrl).then(data => {
-                const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                setVenues(newVenues);
-                setHasMore(newVenues.length >= 200);
-                setPage(3); // limit=200 = pages 0-3; next loadMore fetches offset 200
-              }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+              cachedFetch(gpsUrl).then(data => applyWideVenueFetch(gpsUrl, data))
+                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           }}
           venueCount={totalVenueCount || venues.length}
@@ -2796,7 +2989,11 @@ export default function PokerNearMeLobby() {
                 >&times;</button>
               </div>
               <div style={{ padding: 20 }}>
-                <VoiceSearch onResult={handleVoiceResult} />
+                {/* [WIRING FIX] variant="embedded" is mandatory here: the default
+                    'floating' variant renders a position:fixed FAB + panel that
+                    escaped this modal to the viewport corner and started
+                    collapsed, so the card body was empty. */}
+                <VoiceSearch variant="embedded" onResult={handleVoiceResult} />
               </div>
             </div>
           </div>
@@ -2990,6 +3187,22 @@ export default function PokerNearMeLobby() {
 
       {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
       <style>{`
+      /* Server-rendered SEO/a11y layer: present in the HTML for crawlers and
+         screen readers, visually hidden so the cinematic lobby is unchanged.
+         Not display:none / visibility:hidden — both are treated as hidden
+         content by assistive tech and devalued by search engines. */
+      .pnm-lobby-seo {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes lobby-panelSlideUp {
         from { transform: translateY(100%); opacity: 0.5; }
