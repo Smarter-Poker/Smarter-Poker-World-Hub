@@ -1834,7 +1834,17 @@ export default function LeakFinderPage() {
       handlePracticeSandbox(target.leak);
       return;
     }
-    setReviewSession({ leakId: String(target.leakId), params });
+    // The leak's CURRENT measured EV cost rides along so the review API can
+    // diff it against the measurement stored at the previous review — that
+    // delta (negative = the leak is costing less in real hands) is the
+    // scheduler's corroborating evDelta signal. Measured by detection, not
+    // estimated here.
+    const evLossBB = Math.abs(num(target.leak.evLossBB));
+    setReviewSession({
+      leakId: String(target.leakId),
+      params,
+      evLossBB: Number.isFinite(evLossBB) && evLossBB > 0 ? evLossBB : null,
+    });
   }, [guardAction, reviewQueue, handlePracticeSandbox]);
 
   const closeReviewSession = useCallback(() => {
@@ -2389,6 +2399,7 @@ export default function LeakFinderPage() {
             <QuickSpotDrill
               customParams={reviewSession.params}
               reviewLeakId={reviewSession.leakId}
+              reviewEvLossBB={reviewSession.evLossBB ?? null}
               onClose={closeReviewSession}
             />
           </LeakErrorBoundary>
