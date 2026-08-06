@@ -948,6 +948,440 @@
     setSessionLog(prev => {
       if (prev.length === 0) return prev;
       const updated = [...prev];
+      const last = updated[updated.length - 1];
+      if (last && !last.optimalAction) {
+        updated[updated.length - 1] = {
+          ...last,
+          optimalAction: gtoLabel,
+          isCorrect: hasPick ? isCorrect : (last.isCorrect ?? null),
+          evDelta: hasPick ? delta : (last.evDelta ?? null),
+          evDeltaEstimated: hasPick ? estimated : false,
+          userPick: hasPick ? currentPick : (last.userPick ?? null),
+        };
+      }
+      return updated;
+    });
+
+    if (!hasPick) return;
+
+    setCoachEvDelta(delta);
+    setCoachEvEstimated(estimated);
+
+    if (isCorrect) {
+      const newStreak = coachStreakRef.current + 1;
+      coachStreakRef.current = newStreak;
+      setCoachStreak(newStreak);
+      if ([5, 10, 25].includes(newStreak)) {
+        try { navigator.vibrate?.([50, 30, 50, 30, 100]); } catch (e) { /* unsupported */ }
+        if (!reduceMotion) {
+          import('canvas-confetti')
+            .then(mod => mod.default?.({ particleCount: 90, spread: 70, origin: { y: 0.7 }, disableForReducedMotion: true }))
+            .catch(() => { });
+        }
+        toast.success(`${newStreak} in a row`);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sandbox-coach-streak-milestone', { detail: { streak: newStreak } }));
+        }
+      }
+    } else {
+      coachStreakRef.current = 0;
+      setCoachStreak(0);
+    }
+
+    const snapBoardFull = boardToArray(board).join(' ');
+    const handLabel = `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`;
+    setRecentResults(prev => [...prev.slice(-9), {
+      isCorrect, evDelta: delta, evDeltaEstimated: estimated, hand: handLabel,
+      position: heroPosition, street: currentStreet, userPick: currentPick,
+      optimalAction: gtoLabel, board: snapBoardFull,
+    }]);
+
+    // Spaced repetition: a miss schedules the exact spot for review.
+    scheduleReview({
+      key: `${handKeyOf(heroHand) || handLabel}|${heroPosition}|${currentStreet}|${snapBoardFull}`,
+      hand: handLabel, position: heroPosition, street: currentStreet,
+      board: snapBoardFull, gtoAction: gtoLabel,
+      heroHand: { ...heroHand },
+    }, !!isCorrect);
+
+    // Offline estimates are never worth a server row.
+    if (res.offline) return;
+    (async () => {
+      try {
+        const accessToken = getAccessToken();
+        if (!accessToken) return;
+        // Exact verdict↔hand link for the archived Hand Replay. This must be the
+        // sandbox_sessions row id that /api/assistant/sandbox/analyze created for
+        // THIS analysis and nothing else — a stand-in id would make the server
+        // attribute this verdict to someone else's hand, which is worse than the
+        // "not coached" it replaces. analyze returns it as `sessionId`; it is
+        // null for guests, cached responses and failed writes, in which case the
+        // key is omitted and the server keeps using its spot+time fallback.
+        const claimedSessionId = res?.sessionId;
+        const normalizedSessionId = typeof claimedSessionId === 'number' && Number.isSafeInteger(claimedSessionId) && claimedSessionId > 0
+          ? String(claimedSessionId)
+          : (typeof claimedSessionId === 'string' ? claimedSessionId.trim() : '');
+        const sessionId = /^[A-Za-z0-9_-]{1,64}$/.test(normalizedSessionId)
+          ? normalizedSessionId
+          : null;
+        await fetch('/api/sandbox/coach-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            hand: handLabel, position: heroPosition, street: currentStreet, board: snapBoardFull,
+            userPick: currentPick, gtoAction: gtoLabel, isCorrect, evDelta: delta,
+            evDeltaEstimated: estimated,
+            ...(sessionId ? { sessionId } : {}),
+          }),
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', { detail: { isCorrect, evDelta: delta } }));
+        }
+      } catch (e) { console.warn('[Sandbox] coach result post failed:', e?.message || e); }
+    })();
+  }, [board, heroHand, heroPosition, currentStreet, reduceMotion, scheduleReview]);
+
+  const gradeAnalysisRef = useRef(gradeAnalysis);
+  useEffect(() => { gradeAnalysisRef.current = gradeAnalysis; }, [gradeAnalysis]);
+
+  // Solver results. A position comparison must NOT re-grade (it used to
+  // double-count the streak and POST a duplicate coach-result row).
+  useEffect(() => {
+    if (!results) return;
+    if (suppressCoachEffectRef.current) { suppressCoachEffectRef.current = false; return; }
+    gradeAnalysisRef.current?.(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results]);
+
+  // Close the node-lock EV comparison once a fresh solve lands.
+  useEffect(() => {
+    const evNow = Number(results?.ev?.hero);
+    if (!Number.isFinite(evNow)) return;
+    setLockEvPreview(prev => (prev && prev.after == null ? { ...prev, after: evNow } : prev));
+  }, [results]);
+
+  // Offline-estimate results
+  const gradedOverrideRef = useRef(null);
+  useEffect(() => {
+    if (!resultsOverride?.offline) return;
+    if (gradedOverrideRef.current === resultsOverride) return;
+    gradedOverrideRef.current = resultsOverride;
+    gradeAnalysisRef.current?.(resultsOverride);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultsOverride]);
+  // Broadcast to other PA pages when a NEW analysis lands
+  const busSnapshotRef = useRef({});
+  useEffect(() => { busSnapshotRef.current = { heroPosition, heroHand, equity, quizScore }; });
+  useEffect(() => {
+    if (!results || typeof window === 'undefined') return;
+    const snap = busSnapshotRef.current;
+    window.dispatchEvent(new CustomEvent('pa-sandbox-updated', {
+      detail: {
+        heroPosition: snap.heroPosition,
+        heroHand: `${snap.heroHand?.card1 || ''}${snap.heroHand?.card2 || ''}`,
+        results: true,
+        equity: snap.equity?.heroEquity || null,
+        quizAccuracy: snap.quizScore?.total > 0 ? Math.round(snap.quizScore.correct / snap.quizScore.total * 100) : null,
+      },
+    }));
+  }, [results]);
+
+  const handleCoachPick = useCallback((action) => {
+    setCoachUserPick(action);
+    coachUserPickRef.current = action;
+    setShowCoachPicker(false);
+    runAnalysis(true, action, pendingBoard);
+  }, [runAnalysis, pendingBoard]);
+
+  const handleCoachSkip = useCallback(() => {
+    setCoachUserPick(null);
+    coachUserPickRef.current = null;
+    setShowCoachPicker(false);
+    runAnalysis(true, null, pendingBoard);
+  }, [runAnalysis, pendingBoard]);
+
+  // Deal the next street and ASK FOR A DECISION on it. The old code passed
+  // skipCoach=true, so coaching silently stopped after the flop.
+  const dealAndCoach = useCallback(() => {
+    const newBoard = dealAndAnalyze();
+    if (!newBoard) return;
+    setCoachUserPick(null);
+    coachUserPickRef.current = null;
+    setPendingBoard(newBoard);
+    setShowResults(false);
+    if (coachMode) setShowCoachPicker(true);
+    else setTimeout(() => runAnalysis(true, null, newBoard), 200);
+  }, [dealAndAnalyze, coachMode, runAnalysis]);
+
+  useEffect(() => {
+    setCoachUserPick(null);
+    setCoachEvDelta(null);
+    setCoachEvEstimated(false);
+  }, [heroHand.card1, heroHand.card2, heroPosition, board.flop.length]);
+
+  // ═══════════════════════════════════════════════════════
+  // QUIZ — graded against the curated answer when a weekly spot is loaded
+  // ═══════════════════════════════════════════════════════
+  const handleQuizGuess = useCallback((guess) => {
+    setUserGuess(guess);
+    setQuizRevealed(true);
+    const displayed = resultsOverride || results;
+    const correctLabel = activeSpot?.correct_action || displayed?.optimalAction?.label || '';
+    const isCorrect = correctLabel.length > 0 && gradeAction(guess, correctLabel);
+    setQuizScore(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1,
+      streak: isCorrect ? prev.streak + 1 : 0,
+    }));
+
+    const boardStr = boardToArray(board).join(' ');
+    scheduleReview({
+      key: `${handKeyOf(heroHand) || 'hand'}|${heroPosition}|${currentStreet}|${boardStr}`,
+      hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+      position: heroPosition, street: currentStreet, board: boardStr,
+      gtoAction: correctLabel, heroHand: { ...heroHand },
+    }, isCorrect);
+
+    try {
+      const token = getAccessToken();
+      if (!token) return;
+      const hash = activeSpot?.id
+        || `${heroHand.card1}${heroHand.card2}_${heroPosition}_${board.flop.join('')}${board.turn || ''}${board.river || ''}`;
+      fetch('/api/assistant/sandbox/sandbox-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect, spotId: activeSpot?.id || null }),
+      }).catch(e => console.warn('[Sandbox] quiz post failed:', e?.message || e));
+    } catch (e) { console.warn('[Sandbox] quiz error:', e?.message || e); }
+  }, [resultsOverride, results, activeSpot, board, heroHand, heroPosition, currentStreet, scheduleReview]);
+
+  // ═══════════════════════════════════════════════════════
+  // POSITION COMPARISON — must not re-fire the coach effect (it used to
+  // double-count the streak and POST a duplicate coach-result row)
+  // ═══════════════════════════════════════════════════════
+
+  // The suppression flag is consumed by the `results` effect, which only runs
+  // when `analyze` actually succeeds. A failed request leaves `results`
+  // untouched, so the flag has to be released here or it silently swallows the
+  // coach grading of the user's NEXT successful analysis.
+  const analyzeWithoutCoach = useCallback(async (payload) => {
+    suppressCoachEffectRef.current = true;
+    let ok = false;
+    try {
+      const data = await analyze(payload);
+      ok = !!data?.success;
+      return data;
+    } finally {
+      if (!ok) suppressCoachEffectRef.current = false;
+    }
+  }, [analyze]);
+
+  const runPositionComparison = useCallback(async (pos) => {
+    if (!comparePosition) primaryResultsRef.current = resultsOverride || results;
+    setComparePosition(pos);
+    setResultsOverride(null);
+    const data = await analyzeWithoutCoach(buildAnalyzePayload(pos));
+    if (!data?.success) toast.error('Could not compare that position — try again');
+  }, [comparePosition, resultsOverride, results, analyzeWithoutCoach, buildAnalyzePayload]);
+
+  const restorePrimaryResults = useCallback(async () => {
+    setComparePosition(null);
+    if (primaryResultsRef.current) {
+      setResultsOverride(primaryResultsRef.current);
+      primaryResultsRef.current = null;
+      return;
+    }
+    await analyzeWithoutCoach(buildAnalyzePayload());
+  }, [analyzeWithoutCoach, buildAnalyzePayload]);
+
+  // ═══════════════════════════════════════════════════════
+  // HAND PLAYOUT — terminal states, a result banner, and Next Hand
+  // ═══════════════════════════════════════════════════════
+  const handResult = useMemo(() => {
+    if (!handState.terminal) return null;
+    const invested = handState.invested?.hero || 0;
+    if (handState.terminal === 'fold') {
+      const heroWon = handState.winner === 'hero';
+      return {
+        heroWon,
+        bb: heroWon ? (handState.pot - invested) : -invested,
+        headline: heroWon ? 'Villain folded' : 'You folded',
+        detail: heroWon
+          ? `You take ${handState.pot.toFixed(1)} BB without showdown.`
+          : `You give up ${invested.toFixed(1)} BB already invested.`,
+        exact: true,
+      };
+    }
+    const eq = Number(equity?.heroEquity);
+    if (!Number.isFinite(eq)) {
+      return { heroWon: null, bb: null, headline: 'All-in', detail: 'Set both hole cards to see the expected result.', exact: false };
+    }
+    const ev = (handState.pot * (eq / 100)) - invested;
+    return {
+      heroWon: ev >= 0,
+      bb: ev,
+      headline: 'All-in',
+      detail: `${eq.toFixed(1)}% equity ${equityLabel} in a ${handState.pot.toFixed(1)} BB pot.`,
+      exact: boardToArray(board).length === 5,
+    };
+  }, [handState, equity, equityLabel, board]);
+
+  const runItOut = useCallback(() => {
+    if (board.flop.length < 3) { randomBoard(); return; }
+    const deck = freeDeck();
+    let i = 0;
+    const next = { ...board, flop: [...board.flop] };
+    if (!next.turn && deck[i]) next.turn = deck[i++];
+    if (!next.river && deck[i]) next.river = deck[i++];
+    if (next.turn === board.turn && next.river === board.river) return;
+    pushUndo();
+    setBoard(next);
+    playCardDeal();
+  }, [board, freeDeck, pushUndo, playCardDeal, randomBoard]);
+
+  const nextHand = useCallback((dealRandom = false) => {
+    // The session log, quiz score and streak deliberately survive.
+    if (handResult && handResult.bb != null) {
+      setSessionLog(prev => {
+        if (prev.length === 0) return prev;
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          resultBB: Math.round(handResult.bb * 10) / 10,
+          resultExact: handResult.exact,
+        };
+        return updated;
+      });
+      if (handResult.heroWon && !reduceMotion) {
+        import('canvas-confetti')
+          .then(mod => mod.default?.({ particleCount: 60, spread: 60, origin: { y: 0.75 }, disableForReducedMotion: true }))
+          .catch(() => { });
+      }
+    }
+    pushUndo();
+    setActionHistory([]);
+    setPotBase(1.5);
+    setBoard({ flop: [], turn: null, river: null });
+    setHeroHand({ card1: null, card2: null });
+    setReplayIndex(null);
+    setCoachUserPick(null);
+    coachUserPickRef.current = null;
+    setQuizRevealed(false);
+    setUserGuess(null);
+    setActiveSpot(null);
+    clearResults();
+    setResultsOverride(null);
+    setShowResults(false);
+    streetHistoryRef.current = [];
+    setStreetHistory([]);
+    setActiveStreet(0);
+    if (dealRandom) {
+      const deck = [];
+      RANKS.forEach(r => SUITS.forEach(s => deck.push(`${r}${s.code}`)));
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      setHeroHand({ card1: deck[0], card2: deck[1] });
+      setBoard({ flop: deck.slice(2, 5), turn: null, river: null });
+      playCardDeal();
+    }
+  }, [handResult, reduceMotion, pushUndo, clearResults, playCardDeal]);
+
+  // ═══════════════════════════════════════════════════════
+  // RESET — two-tap confirm in-page (window.confirm is blocked in several
+  // in-app browsers, and the felt button used to reset with no confirmation)
+  // ═══════════════════════════════════════════════════════
+  const resetAll = useCallback(() => {
+    setHeroHand({ card1: null, card2: null });
+    setBoard({ flop: [], turn: null, river: null });
+    setActionHistory([]);
+    setPotBase(1.5);
+    clearResults();
+    setResultsOverride(null);
+    primaryResultsRef.current = null;
+    setShowResults(false);
+    setComparePosition(null);
+    streetHistoryRef.current = [];
+    setStreetHistory([]);
+    setActiveStreet(0);
+    setEquity(null);
+    setRunoutData(null);
+    undoStackRef.current = [];
+    setQuizMode(false); setUserGuess(null); setQuizRevealed(false); setActiveSpot(null);
+    setExploitMode('gto'); setPreflopScenario('rfi');
+    setBubbleFactor(1.0);
+    setReplayIndex(null);
+    setCoachUserPick(null); coachUserPickRef.current = null;
+    setCoachEvDelta(null); setCoachEvEstimated(false);
+    setShowShareHand(false);
+    setShowSessionLog(false);
+  }, [clearResults]);
+
+  useEffect(() => () => { if (resetTimerRef.current) clearTimeout(resetTimerRef.current); }, []);
+
+  const confirmReset = useCallback(() => {
+    const hasWork = !!(results || resultsOverride || actionHistory.length > 0 || heroHand.card1 || board.flop.length);
+    if (!hasWork) { resetAll(); return; }
+    if (resetArmed) {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      setResetArmed(false);
+      resetAll();
+      toast.success('Scenario reset');
+      return;
+    }
+    setResetArmed(true);
+    try { navigator.vibrate?.(20); } catch (e) { /* unsupported */ }
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => { resetTimerRef.current = null; setResetArmed(false); }, 3500);
+    toast('Tap reset again to clear the whole scenario', { duration: 3000 });
+  }, [results, resultsOverride, actionHistory.length, heroHand.card1, board.flop.length, resetArmed, resetAll]);
+
+  // ═══════════════════════════════════════════════════════
+  // BOOKMARKS
+  // ═══════════════════════════════════════════════════════
+  const saveBookmarkLocally = useCallback((payload) => {
+    if (!payload || typeof window === 'undefined') return false;
+    try {
+      const stored = JSON.parse(safeLocal.get('sandbox_bookmarks', '[]'));
+      safeLocal.set('sandbox_bookmarks', JSON.stringify([payload, ...(Array.isArray(stored) ? stored : [])].slice(0, 100)));
+      return true;
+    } catch (e) { return false; }
+  }, []);
+
+  const saveBookmark = useCallback(async () => {
+    let payload = null;
+    try {
+      const user = getAuthUser();
+      setSaveStatus('saving');
+      payload = {
+        user_id: user?.id || null,
+        hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+        hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
+        board_flop: board.flop.join(''), board_turn: board.turn, board_river: board.river,
+        villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
+        pot_size_bb: potSize,
+        label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('') || 'preflop'}`,
+        created_at: new Date().toISOString(),
+      };
+      if (!user) { setSaveStatus(saveBookmarkLocally(payload) ? 'saved' : 'error'); return; }
+      const { error: dbError } = await supabase.from('sandbox_bookmarks').insert(payload);
+      if (dbError) {
+        console.warn('[Sandbox] Bookmark save error (table may not exist yet):', dbError.message);
+        setSaveStatus(saveBookmarkLocally(payload) ? 'saved' : 'error');
+      } else {
+        setSaveStatus('saved');
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      }
+    } catch (err) {
+      console.warn('[Sandbox] Sync error (caching offline):', err?.message || err);
+      setSaveStatus(payload && saveBookmarkLocally(payload) ? 'saved' : 'error');
+    } finally {
+      setTimeout(() => setSaveStatus(null), 2000);
+    }
+  }, [heroHand, heroPosition, heroStack, gameType, board, villains, actionHistory, potSize, saveBookmarkLocally]);
+
+  const loadSessionEntry = useCallback((entry) => {
     if (!entry) return;
     const cards = String(entry.board || '').split(' ').filter(Boolean);
     restoreScenario({
