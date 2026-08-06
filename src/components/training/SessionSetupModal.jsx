@@ -79,6 +79,19 @@ const TABLE_OPTIONS = [
   { id: '4', label: '4 Tables', desc: 'Mass multi-table' },
 ];
 
+// GTOW exposes a feedback rule (show the solver's answer after every action,
+// or only when you made a mistake) and an Auto New Hand switch. Both were
+// hardcoded in the arena, silently overriding whatever the player picked.
+const FEEDBACK_OPTIONS = [
+  { id: 'every',    label: 'Every action', desc: 'Pause each hand' },
+  { id: 'mistakes', label: 'On mistakes',  desc: 'Only when wrong' },
+];
+
+const AUTO_ADVANCE_OPTIONS = [
+  { id: 'on',  label: 'Auto new hand', desc: 'Deal automatically' },
+  { id: 'off', label: 'Manual',        desc: 'You advance' },
+];
+
 
 function readPrefs(gameId) {
   if (typeof window === 'undefined') return null;
@@ -128,6 +141,8 @@ export default function SessionSetupModal({
   const [scope,      setScope]      = useState(saved.scope      || 'full');
   const [speed,      setSpeed]      = useState(saved.speed      || 'normal');
   const [tables,     setTables]     = useState(saved.tables     || '1');
+  const [feedbackRule,  setFeedbackRule]  = useState(saved.feedbackRule  || 'mistakes');
+  const [autoAdvanceUI, setAutoAdvanceUI] = useState(saved.autoAdvanceUI || 'on');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -180,10 +195,12 @@ export default function SessionSetupModal({
       scope,
       speed,
       tables,
+      feedbackRule,
+      autoAdvanceUI,
     };
     if (gameId) writePrefs(gameId, prefs);
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, onStart]);
+  }, [game, gameId, difficulty, timer, mode, scope, speed, tables, feedbackRule, autoAdvanceUI, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -305,6 +322,18 @@ export default function SessionSetupModal({
         <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
           <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Tables</legend>
           <PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" />
+        </fieldset>
+
+        {/* FEEDBACK RULE */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Feedback</legend>
+          <PillRow options={FEEDBACK_OPTIONS} value={feedbackRule} onChange={setFeedbackRule} name="feedbackRule" />
+        </fieldset>
+
+        {/* AUTO NEW HAND */}
+        <fieldset className="sp-card sp-stack-2" style={{ border: 'none', padding: 16, margin: 0 }}>
+          <legend className="sp-h4" style={{ padding: 0, marginBottom: 8 }}>Hand advance</legend>
+          <PillRow options={AUTO_ADVANCE_OPTIONS} value={autoAdvanceUI} onChange={setAutoAdvanceUI} name="autoAdvanceUI" />
         </fieldset>
 
         {/* CTA */}

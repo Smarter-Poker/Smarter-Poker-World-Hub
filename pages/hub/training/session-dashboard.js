@@ -19,6 +19,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 // ●● Phase 3 Engine: Session tracking with trends + leak identification ●●
 import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
+import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
@@ -683,12 +684,21 @@ export default function SessionDashboard() {
   const stats = useMemo(() => {
     if (filteredSessions.length === 0) return null;
     const totalHands = filteredSessions.reduce((s, ses) => s + (Number(ses.hands_played || ses.handsPlayed) || 0), 0);
+    // GTOW parity #25: `accuracy` is always 0-100, but the gtow_score fallback
+    // is -100..+100 on any row written with score_scale = 2. Averaging the two
+    // conventions together silently under-reports every recent session, so
+    // normalise the fallback onto the 0-100 scale before it joins the pool.
+    const sessionPercent = (ses) => {
+      const acc = Number(ses.accuracy);
+      if (Number.isFinite(acc) && acc !== 0) return acc;
+      return normalizeScoreToPercent(ses.gtow_score ?? ses.gtowScore, ses.score_scale);
+    };
     const avgAccuracy = Math.round(
-      filteredSessions.reduce((s, ses) => s + (Number(ses.accuracy || ses.gtow_score || ses.gtowScore) || 0), 0) /
+      filteredSessions.reduce((s, ses) => s + sessionPercent(ses), 0) /
       filteredSessions.length
     );
     const totalEV = filteredSessions.reduce((s, ses) => s + Math.abs(Number(ses.total_ev_loss || ses.totalEVLoss) || 0), 0);
-    const wins = filteredSessions.filter((s) => (Number(s.accuracy || s.gtow_score || s.gtowScore) || 0) >= 60).length;
+    const wins = filteredSessions.filter((s) => sessionPercent(s) >= 60).length;
 
     // Engine enrichment: trend analysis + leak identification
     let trends = null;

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { formatSignedScore } from '../../engines/GTOScoreEngine';
 
 // Tooltip component for interactive data points
 function Tooltip({ children, content, visible }) {
@@ -156,7 +157,7 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
                 </svg>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span style={{ fontSize: 18, fontWeight: 'bold', color: '#fff' }}>{gtowScore}</span>
+                        <span style={{ fontSize: 18, fontWeight: 'bold', color: '#fff' }}>{formatSignedScore(gtowScore)}</span>
                         <TrendArrow current={gtowScore} previous={previousScore} showPercentage={false} />
                     </div>
                     <span style={{ fontSize: 8, color: '#94a3b8' }}>SCORE</span>
@@ -372,9 +373,11 @@ export function DailyChallengeBanner({ gtowScore }) {
         >
             <div>
                 <div style={{ fontSize: 13, fontWeight: 'bold', color: '#00d4ff' }}>Daily Study Goal</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Complete 1 session with &gt;85% score</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Complete 1 session with a +70% score</div>
             </div>
-            {gtowScore >= 85 ? (
+            {/* GTOW parity #25: the goal threshold was 85 on the legacy 0-100
+                scale. gtowScore is now signed -100..+100, where 85 maps to 70. */}
+            {gtowScore >= 70 ? (
                 <div style={{ padding: '4px 10px', background: 'rgba(34,197,94,0.2)', color: '#22c55e', borderRadius: 12, fontSize: 11, fontWeight: 'bold', border: '1px solid rgba(34,197,94,0.4)' }}>
                     ✓ COMPLETED
                 </div>

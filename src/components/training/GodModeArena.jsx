@@ -408,7 +408,7 @@ import HUSNGSolver from './HUSNGSolver';
 import SessionCoachingEngine from './SessionCoachingEngine';
 import StrategyNodeInspector from './StrategyNodeInspector';
 // ●●● Phase 3 Engines: Real-time scoring + diamond rewards ●●●
-import { calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
+import { calculateSessionDiamonds, getScoreGrade, getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1124,7 +1124,7 @@ function ClassificationDonut({ handHistory, gtowScore }) {
     r = 40,
     strokeWidth = 12;
   const circumference = 2 * Math.PI * r;
-  const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
+  const scoreColor = getArenaScoreColor(gtowScore);
 
   let dashOffset = 0;
 
@@ -2699,7 +2699,7 @@ function DrillFilters({
 // F13: DAILY CHALLENGE BANNER
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
+function DailyChallengeBanner({ gtowScore, targetScore = 70 }) {
   const achieved = gtowScore >= targetScore;
   return (
     <motion.div
@@ -2726,7 +2726,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
           >
             {achieved ? 'Daily Challenge Complete!' : 'Daily Challenge'}
           </div>
-          <div style={{ fontSize: 10, color: '#94a3b8' }}>Score {targetScore}%+ this session</div>
+          <div style={{ fontSize: 10, color: '#94a3b8' }}>Score {formatSignedScore(targetScore)}+ this session</div>
         </div>
       </div>
       <div
@@ -2781,15 +2781,21 @@ function GodModeArenaInner({
   // Trainer config state
   const [trainerConfig, setTrainerConfig] = useState(() => {
     if (initialConfig) {
+      // GTOW's Auto New Hand delay is ~3s at Normal. Fast halves it; Turbo is
+      // "as soon as the frame paints" — but 1ms gave no time to even register
+      // that the hand resolved, so Turbo is 250ms.
       let delayMs = 3000;
       if (initialConfig.speed === 'fast') delayMs = 1500;
-      if (initialConfig.speed === 'turbo') delayMs = 1;
+      if (initialConfig.speed === 'turbo') delayMs = 250;
 
+      // GTOW parity #29: these two used to sit AFTER the spread, so whatever
+      // the player chose in the setup modal was unconditionally discarded.
+      // They now come from the config, with the spread last so it wins.
       return {
-        ...initialConfig,
-        autoAdvanceDelayMs: delayMs,
         feedbackRule: 'mistakes',
         autoAdvance: true,
+        ...initialConfig,
+        autoAdvanceDelayMs: delayMs,
       };
     }
     return null;
@@ -3126,7 +3132,7 @@ function GodModeArenaInner({
           strengths,
           areasToImprove: areas,
           detailedFeedback: feedback,
-          readyForNextLevel: acc >= 85 && (gtowScore === undefined || gtowScore >= 70),
+          readyForNextLevel: acc >= 85 && (gtowScore === undefined || gtowScore >= 40),
         });
       } catch (err) {
         console.warn('[AICoaching] Fetch error:', err.message);
@@ -3274,14 +3280,21 @@ function GodModeArenaInner({
   }, [timerMode, trainerConfig, currentQuestion, showFeedback, gameComplete, submitAnswer]);
 
   // ●●● AUTO-ADVANCE FOR MULTI-TABLE BLITZ ●●●
+  // GTOW parity #29: this used to fire on a hardcoded 800ms regardless of the
+  // player's Game speed choice, and regardless of the feedback rule — so
+  // "Every action" still auto-advanced. It now defers to the resolved config
+  // and stays out of the way whenever the table's own countdown owns pacing.
   useEffect(() => {
-    if (autoAdvance && showFeedback && !gameComplete) {
-      const timerId = setTimeout(() => {
-        nextQuestion();
-      }, 800);
-      return () => clearTimeout(timerId);
-    }
-  }, [autoAdvance, showFeedback, gameComplete, nextQuestion]);
+    if (!autoAdvance || !showFeedback || gameComplete) return;
+    if (trainerConfig?.feedbackRule === 'every') return;
+    const delay = Number(trainerConfig?.autoAdvanceDelayMs) > 0
+      ? Number(trainerConfig.autoAdvanceDelayMs)
+      : 800;
+    const timerId = setTimeout(() => {
+      nextQuestion();
+    }, delay);
+    return () => clearTimeout(timerId);
+  }, [autoAdvance, showFeedback, gameComplete, nextQuestion, trainerConfig]);
 
   // Pause timer during feedback
   useEffect(() => {
@@ -3658,18 +3671,19 @@ function GodModeArenaInner({
   // UI-2: Manual advance — no auto-timer. User clicks "Next Hand →" button
   // nextQuestion is passed down as onNextHand to UniversalDynamicTable
 
-  // ●●● QW-1: Filter options by difficulty ●●●
-  const filteredOptions = useMemo(() => {
-    if (!currentQuestion?.options) return [];
-    const opts = currentQuestion.options;
-    if (difficulty === 'beginner' && opts.length > 2) {
-      // Keep correct answer + 1 wrong answer (the most common trap)
-      const correct = opts.find((o) => (o.id || o) === currentQuestion.correctAnswer);
-      const wrong = opts.filter((o) => (o.id || o) !== currentQuestion.correctAnswer);
-      return [correct, wrong[0]].filter(Boolean);
-    }
-    return opts; // standard + expert show all
-  }, [currentQuestion, difficulty]);
+  // ●●● QW-1: Options by difficulty ●●●
+  // GTOW parity #21: difficulty remaps the BUTTON VOCABULARY — it never turns
+  // the spot into a two-way multiple-guess. The old 'beginner' branch here
+  // kept only the correct answer plus one distractor, which (a) made beginner
+  // a coin flip rather than an easier read of the same spot, and (b) ran AFTER
+  // applyDifficultyToQuestion had already collapsed the tree to SIMPLE and
+  // aggregated the solver frequencies onto those buttons — so the surviving
+  // two no longer summed to 100% and every frequency shown was wrong.
+  // Simplification now happens in exactly one place: applyDifficultyToQuestion.
+  const filteredOptions = useMemo(
+    () => currentQuestion?.options || [],
+    [currentQuestion]
+  );
 
   // BUG-C FIX: Inject filteredOptions into question so GameUIRouter/UDT receives them
   const questionWithFilteredOptions = useMemo(() => {
@@ -3830,7 +3844,7 @@ function GodModeArenaInner({
 
   if (gameComplete) {
     const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-    const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
+    const scoreColor = getArenaScoreColor(gtowScore);
 
     // Count classification distribution
     const classificationCounts = {};
@@ -3885,7 +3899,7 @@ function GodModeArenaInner({
             animate={{ scale: 1, opacity: 1 }}
             style={styles.scoreHero}
           >
-            <div style={{ ...styles.scoreHeroValue, color: scoreColor }}>{gtowScore}%</div>
+            <div style={{ ...styles.scoreHeroValue, color: scoreColor }}>{formatSignedScore(gtowScore)}</div>
             <div style={styles.scoreHeroLabel}>GTOW SCORE</div>
             {/* Phase 255: Session letter grade */}
             {(() => {
@@ -4618,7 +4632,7 @@ function GodModeArenaInner({
                     {
                       label: 'GTOW Score',
                       value: gtowScore,
-                      color: gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444',
+                      color: getArenaScoreColor(gtowScore),
                       suffix: '',
                     },
                     {
@@ -11996,24 +12010,24 @@ function GodModeArenaInner({
                     const g = getSessionGrade();
                     return (
                       g?.grade ||
-                      (gtowScore >= 95
+                      (gtowScore >= 90
                         ? 'S'
-                        : gtowScore >= 80
+                        : gtowScore >= 60
                           ? 'A'
-                          : gtowScore >= 65
+                          : gtowScore >= 30
                             ? 'B'
-                            : gtowScore >= 45
+                            : gtowScore >= -10
                               ? 'C'
                               : 'D')
                     );
                   } catch {
-                    return gtowScore >= 95
+                    return gtowScore >= 90
                       ? 'S'
-                      : gtowScore >= 80
+                      : gtowScore >= 60
                         ? 'A'
-                        : gtowScore >= 65
+                        : gtowScore >= 30
                           ? 'B'
-                          : gtowScore >= 45
+                          : gtowScore >= -10
                             ? 'C'
                             : 'D';
                   }
@@ -12770,7 +12784,7 @@ function GodModeArenaInner({
   }
 
   // Default layout with header/footer for games without custom UIs
-  const headerScoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
+  const headerScoreColor = getArenaScoreColor(gtowScore);
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -12779,7 +12793,7 @@ function GodModeArenaInner({
         </button>
         <div style={styles.gameTitle}>{gameName || 'Training'}</div>
         <div style={styles.stats}>
-          <span style={{ color: headerScoreColor, fontWeight: 'bold' }}>{gtowScore}% Score</span>
+          <span style={{ color: headerScoreColor, fontWeight: 'bold' }}>{formatSignedScore(gtowScore)} Score</span>
         </div>
       </div>
 
@@ -13245,7 +13259,7 @@ function GodModeArena(props) {
       >
         {Array.from({ length: tablesCount }).map((_, i) => (
           <div key={i} style={{ position: 'relative', overflow: 'hidden' }}>
-            <GodModeArenaInner {...props} autoAdvance={true} />
+            <GodModeArenaInner {...props} autoAdvance={initialConfig?.autoAdvance !== false} />
           </div>
         ))}
       </div>

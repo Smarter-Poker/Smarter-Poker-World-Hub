@@ -25,6 +25,8 @@ import { busEmit } from '../../../engine/EventBus';
 import ActionButton from '../../poker/ActionButton';
 // TRAIN-WIRE-UDT-ACTIONBTN-1 — adoption: UDT action bar uses shared ActionButton
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
+import { toEngineDifficulty } from '../../../engines/DifficultyEngine';
+import { formatSignedScore } from '../../../engines/GTOScoreEngine';
 import { committedFor, computeDisplayPot } from './potMath';
 import { AVATAR_LIBRARY } from '../../../data/AVATAR_LIBRARY';
 
@@ -490,6 +492,28 @@ const ACTION_LABELS_SHORT = {
     'r50': 'R50%', 'r75': 'R75%', 'r100': 'RPot', 'r200': 'R200%', 'r300': 'R300%',
     'r': 'Raise', 'b': 'Bet',
 };
+
+/**
+ * GTOW parity #20 — turn a raw solver action id into something a human can
+ * read. Padded action buttons used to be labelled with the id itself, so a
+ * player saw "b33" where GTO Wizard shows "Bet 33%".
+ *
+ * Falls back to parsing the id shape (b<N> / r<N>) so sizings the lookup table
+ * doesn't enumerate still render as a percentage rather than a token.
+ */
+function formatSolverActionLabel(actionId) {
+    const id = String(actionId || '').toLowerCase();
+    if (!id) return '';
+    if (ACTION_LABELS_SHORT[id]) return ACTION_LABELS_SHORT[id];
+    const bet = id.match(/^b(\d+)$/);
+    if (bet) return `Bet ${bet[1]}%`;
+    const raise = id.match(/^r(\d+)$/);
+    if (raise) return `Raise ${raise[1]}%`;
+    if (id === 'check') return 'Check';
+    if (id === 'fold') return 'Fold';
+    if (id === 'push' || id === 'p') return 'All-In';
+    return id.charAt(0).toUpperCase() + id.slice(1);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // F11: STREAK TOAST COMPONENT
@@ -2125,7 +2149,14 @@ function UniversalDynamicTable({
     }, [gtoFrequencies, options, correctAnswer, questionNumber]);
 
     // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
-    const activeDifficultyMode = trainerConfig?.difficultyMode || 'standard';
+    // GTOW parity #21: `difficultyMode` is only ever set by TrainerConfigModal.
+    // The SessionSetupModal path sets `difficulty` in the UI vocabulary
+    // (beginner/standard/expert), which used to fall straight through to
+    // 'standard' here — so the table rendered exact solver sizings no matter
+    // which tier the player picked. Translate before use.
+    const activeDifficultyMode = toEngineDifficulty(
+        trainerConfig?.difficultyMode || trainerConfig?.difficulty
+    );
     const { groupedOptions: displayOptions, frequencyMap: displayFrequencies, actionMapping: difficultyActionMapping } = useMemo(() => {
         // BUG FIX (TRAIN-ACTIONS-COUNT-1): the source-of-truth `options` array
         // sometimes arrives with only 2 entries (e.g. ["BET 16%", "CHECK"]) on
@@ -2175,22 +2206,35 @@ function UniversalDynamicTable({
             }
         }
 
-        // Phase 2: still short — pull from computedFrequencies sorted by freq desc
-        if (padded.length < 4 && computedFrequencies) {
-            const ranked = Object.entries(computedFrequencies)
+        // Phase 2: still short — pull from the SOLVER's frequency map, sorted by
+        // freq desc.
+        //
+        // GTOW parity #20: this phase used to run against `computedFrequencies`,
+        // which falls back to simulateGTOFrequencies() when the question carries
+        // no solver data. That invented buttons for actions the solver never
+        // returned, then graded the player against them. Padding is now gated on
+        // real solver frequencies (`gtoFrequencies`) being present — with no
+        // solver data we show exactly the actions the question supplied, which
+        // is what GTO Wizard does.
+        //
+        // It also pushed `text: actionId`, so the padded button read "b33"
+        // instead of "Bet 33%". Labels now go through the same formatter the
+        // rest of the table uses.
+        if (padded.length < 4 && gtoFrequencies) {
+            const ranked = Object.entries(gtoFrequencies)
                 .filter(([k, v]) => v > 0 && !presentIds.has(String(k).toLowerCase()))
                 .sort((a, b) => b[1] - a[1]);
             for (const [actionId] of ranked) {
                 if (padded.length >= 4) break;
                 presentIds.add(String(actionId).toLowerCase());
-                padded.push({ id: actionId, text: actionId });
-                freqMap[actionId] = computedFrequencies[actionId];
+                padded.push({ id: actionId, text: formatSolverActionLabel(actionId) });
+                freqMap[actionId] = gtoFrequencies[actionId];
                 mapping[actionId] = [actionId];
             }
         }
 
         return { groupedOptions: padded, frequencyMap: freqMap, actionMapping: mapping };
-    }, [options, computedFrequencies, activeDifficultyMode]);
+    }, [options, computedFrequencies, gtoFrequencies, activeDifficultyMode]);
 
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
     const handleAnswerWithGrouping = useCallback((answerId) => {
@@ -2530,8 +2574,12 @@ function UniversalDynamicTable({
         return parts.join(' • ');
     }, [heroPosition, villainPosition, villainAction, streetLabel, scenario.context]);
 
-    // GTOW Score color
-    const scoreColor = gtowScore >= 80 ? 'var(--sp-accent-green)' : gtowScore >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
+    // GTOW Score color.
+    // GTOW parity #25: gtowScore is on the engine's SIGNED -100..+100 scale
+    // (score_scale = 2), not the legacy 0-100 one. The old 80/60 cut-offs map
+    // through v*2-100 to 60/20. Kept as CSS custom properties because every
+    // other colour on this felt is themed the same way.
+    const scoreColor = gtowScore >= 60 ? 'var(--sp-accent-green)' : gtowScore >= 20 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
 
     // TRAIN-FEEDBACK-SNAPSHOT-1 (extended): feedback-gated JSX must read the
     // question that was ANSWERED, not the live prop (which the parent may have
@@ -2737,7 +2785,7 @@ function UniversalDynamicTable({
                         cyan. */}
                     <div style={styles.xpPill}>
                         <span style={styles.xpPillIcon}>◆</span>
-                        <span style={{ ...styles.xpPillValue, color: scoreColor }}>{gtowScore}%</span>
+                        <span style={{ ...styles.xpPillValue, color: scoreColor }}>{formatSignedScore(gtowScore)}</span>
                         <span style={styles.pillCaption}>SCORE</span>
                     </div>
                     {/* CYAN PILL — the template's diamonds slot. Streak lives on

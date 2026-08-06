@@ -9,14 +9,19 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
+import { getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
 const CARD_WIDTH = 600;
 const CARD_HEIGHT = 400;
 
 function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, bestStreak, classificationCounts, sessionMistakes }) {
     const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-    const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
-    const grade = gtowScore >= 90 ? 'S' : gtowScore >= 80 ? 'A' : gtowScore >= 70 ? 'B' : gtowScore >= 60 ? 'C' : gtowScore >= 50 ? 'D' : 'F';
+    // GTOW parity #25: gtowScore is on the signed -100..+100 scale. The legacy
+    // 80/60 ramp and the 90/80/70/60/50 grade ladder were written for 0-100 and
+    // stamped an "F" onto shareable cards from perfectly good sessions. Old
+    // cut-offs map through v*2-100.
+    const scoreColor = getArenaScoreColor(gtowScore);
+    const grade = gtowScore >= 80 ? 'S' : gtowScore >= 60 ? 'A' : gtowScore >= 40 ? 'B' : gtowScore >= 20 ? 'C' : gtowScore >= 0 ? 'D' : 'F';
 
     // Classification bars
     const classKeys = ['best', 'correct', 'inaccuracy', 'wrong', 'blunder'];
@@ -72,7 +77,7 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
 
         <!-- Big score circle -->
         <circle cx="${CARD_WIDTH / 2}" cy="120" r="52" fill="rgba(0,0,0,0.4)" stroke="${scoreColor}" stroke-width="3" filter="url(#glow)"/>
-        <text x="${CARD_WIDTH / 2}" y="115" text-anchor="middle" font-family="Inter, monospace" font-size="36" font-weight="900" fill="${scoreColor}">${gtowScore}</text>
+        <text x="${CARD_WIDTH / 2}" y="115" text-anchor="middle" font-family="Inter, monospace" font-size="36" font-weight="900" fill="${scoreColor}">${formatSignedScore(gtowScore)}</text>
         <text x="${CARD_WIDTH / 2}" y="135" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#94a3b8">GTOW SCORE</text>
 
         <!-- Grade badge -->
@@ -195,7 +200,7 @@ export default function SessionShareCard({
             console.warn('[ShareCard] Clipboard copy failed:', err?.message || err);
             // Fallback: copy text to clipboard
             try {
-                await navigator.clipboard.writeText(`I scored ${gtowScore}% on smarter.poker!`);
+                await navigator.clipboard.writeText(`I scored ${formatSignedScore(gtowScore)} on smarter.poker!`);
                 setStatus('copied');
                 setTimeout(() => setStatus('ready'), 2000);
             } catch {
@@ -211,8 +216,8 @@ export default function SessionShareCard({
         }
         try {
             const shareData = {
-                title: `GTO Training - ${gtowScore}% Score`,
-                text: `I scored ${gtowScore}% in ${gameName || 'GTO Training'} on smarter.poker! ${correctCount}/${totalQuestions} correct.`,
+                title: `GTO Training - ${formatSignedScore(gtowScore)} Score`,
+                text: `I scored ${formatSignedScore(gtowScore)} in ${gameName || 'GTO Training'} on smarter.poker! ${correctCount}/${totalQuestions} correct.`,
                 url: 'https://smarter.poker',
             };
             // Try sharing with image if available

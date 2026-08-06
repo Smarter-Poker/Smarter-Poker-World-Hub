@@ -167,7 +167,12 @@ export default function TrainingPage() {
       mode: prefs.mode,
       scope: prefs.scope,
       speed: prefs.speed,
-      tables: prefs.tables
+      tables: prefs.tables,
+      // GTOW parity #29: the player's feedback rule and Auto New Hand choice
+      // must survive into the arena. These used to be dropped here and then
+      // hardcoded downstream.
+      feedbackRule: prefs.feedbackRule,
+      autoAdvance: prefs.autoAdvanceUI !== 'off'
     } : null);
     setSetupGame(null);
     setShowArena(true);

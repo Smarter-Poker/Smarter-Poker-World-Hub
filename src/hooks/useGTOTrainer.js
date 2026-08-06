@@ -25,7 +25,7 @@ import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 // ═══ Phase GTO-CLONE: SessionTracker for Supabase persistence ═══
 import { createSessionRecord, createMoveRecords, saveSession } from '../engines/SessionTracker';
 // ═══ Phase GTO-CLONE: DifficultyEngine for Simple/Grouped/Standard modes ═══
-import { simplifyActions, DIFFICULTY } from '../engines/DifficultyEngine';
+import { simplifyActions, DIFFICULTY, toEngineDifficulty } from '../engines/DifficultyEngine';
 // ═══ Phase GTO-CLONE: ActionTreeEngine for GTO action mapping + scoring ═══
 import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
 
@@ -36,7 +36,14 @@ import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
  * Standard: Full solver sizings (unchanged)
  */
 function applyDifficultyToQuestion(question, difficultyMode) {
-  if (!question || !question.options || difficultyMode === 'standard') return question;
+  if (!question || !question.options) return question;
+  // GTOW parity #21: translate the UI vocabulary (beginner/standard/expert)
+  // into the engine's (simple/grouped/standard) before doing anything. The
+  // old code compared the RAW value against 'standard', which meant the UI's
+  // middle tier skipped simplification entirely and 'expert' was simplified
+  // MORE than it should have been.
+  const engineMode = toEngineDifficulty(difficultyMode);
+  if (engineMode === DIFFICULTY.STANDARD) return question;
   try {
     const potSize = question.scenario?.pot || 10;
     // Normalize each option to the canonical action token simplifyActions matches on
@@ -59,11 +66,7 @@ function applyDifficultyToQuestion(question, difficultyMode) {
       action: tokenOf(o),
       frequency: question.gtoFrequencies?.[o.id] || 0,
     }));
-    const simplified = simplifyActions(
-      enriched,
-      difficultyMode === 'simple' ? DIFFICULTY.SIMPLE : DIFFICULTY.GROUPED,
-      potSize
-    );
+    const simplified = simplifyActions(enriched, engineMode, potSize);
     if (simplified && simplified.length > 0) {
       // simplifyActions returns { action, label, amount?, mappedFrom?, isSimplified }
       // where mappedFrom is an array of the original option objects it collapsed.

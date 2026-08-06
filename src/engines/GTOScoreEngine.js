@@ -54,6 +54,61 @@ export function getScoreColor(score) {
 }
 
 /**
+ * roadmap #25 — the arena's own colour ramp, rebased onto the signed scale.
+ *
+ * The engine emits -100..+100 but every consumer in the training UI was still
+ * comparing against 0-100 cut-offs copied before the rescale, so a +50 signed
+ * score (= 75 on the old scale, a good session) rendered red. These are the
+ * arena palette values, not getScoreColor()'s, so call sites keep the exact
+ * colours they had — only the thresholds move.
+ *
+ * Old cut-off -> signed equivalent, via the same v*2-100 transform used to
+ * backfill stored scores: 80 -> 60, 60 -> 20.
+ */
+export function getArenaScoreColor(score) {
+    const s = Number(score);
+    if (!Number.isFinite(s)) return '#ef4444';
+    if (s >= 60) return '#22c55e'; // green
+    if (s >= 20) return '#fbbf24'; // amber
+    return '#ef4444';              // red
+}
+
+/**
+ * roadmap #25 — render a signed GTOW score.
+ *
+ * GTO Wizard shows the sign explicitly, because "-40%" and "40%" are opposite
+ * verdicts and the bare number is ambiguous once the scale can go negative.
+ * A plain `${score}%` template (which is what the UI had everywhere) reads a
+ * negative session as if it were merely a low positive one.
+ */
+export function formatSignedScore(score) {
+    const s = Number(score);
+    if (!Number.isFinite(s)) return '—';
+    const rounded = Math.round(s);
+    return `${rounded > 0 ? '+' : ''}${rounded}%`;
+}
+
+/**
+ * roadmap #25 — put a persisted score onto the 0-100 scale regardless of which
+ * convention the row was written with.
+ *
+ * training_sessions / training_leaderboard rows written after the signed-score
+ * change carry `score_scale = 2` and hold a -100..+100 value; older rows have
+ * no score_scale and hold 0..100. Any consumer that averages or thresholds
+ * across BOTH generations (the session dashboard does) has to normalise first,
+ * otherwise a legacy 70 and a signed +40 — the same performance — are counted
+ * as if the newer session were far worse.
+ */
+export function normalizeScoreToPercent(score, scoreScale) {
+    const s = Number(score);
+    if (!Number.isFinite(s)) return 0;
+    if (Number(scoreScale) === 2) {
+        return Math.max(0, Math.min(100, (s + 100) / 2));
+    }
+    return Math.max(0, Math.min(100, s));
+}
+
+/**
  * Get the grade label for a GTO score.
  */
 // Signed-scale grade bands. Each is the old 0-100 cut-off mapped through the

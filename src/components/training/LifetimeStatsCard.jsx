@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { getArenaScoreColor, formatSignedScore } from '../../engines/GTOScoreEngine';
 
 function StatBox({ label, value, subValue, color = '#e2e8f0', icon, delay = 0 }) {
     return (
@@ -38,8 +39,12 @@ export default function LifetimeStatsCard({
     gamesCompleted = 0,
     handHistory = [],
 }) {
-    const scoreColor = avgGTOWScore >= 80 ? '#22c55e' : avgGTOWScore >= 60 ? '#fbbf24' : '#ef4444';
-    const bestColor = bestGTOWScore >= 80 ? '#22c55e' : bestGTOWScore >= 60 ? '#fbbf24' : '#ef4444';
+    // GTOW parity #25: these scores arrive on the engine's SIGNED -100..+100
+    // scale (training_sessions.score_scale = 2). The old 80/60 hex ramp was
+    // written for the legacy 0-100 scale and painted almost every real session
+    // red. getArenaScoreColor owns the band cut-offs for the whole app.
+    const scoreColor = getArenaScoreColor(avgGTOWScore);
+    const bestColor = getArenaScoreColor(bestGTOWScore);
 
     // Calculate Pot-type breakdown
     const potStats = {
@@ -77,9 +82,9 @@ export default function LifetimeStatsCard({
                 animate={{ scale: 1, opacity: 1 }}
                 style={styles.heroScore}
             >
-                <div style={{ ...styles.heroValue, color: scoreColor }}>{avgGTOWScore}%</div>
+                <div style={{ ...styles.heroValue, color: scoreColor }}>{formatSignedScore(avgGTOWScore)}</div>
                 <div style={styles.heroLabel}>Avg GTOW Score</div>
-                <div style={styles.heroBest}>Best: <span style={{ color: bestColor }}>{bestGTOWScore}%</span></div>
+                <div style={styles.heroBest}>Best: <span style={{ color: bestColor }}>{formatSignedScore(bestGTOWScore)}</span></div>
             </motion.div>
 
             {/* Stats grid */}

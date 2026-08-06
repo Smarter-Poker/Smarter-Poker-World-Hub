@@ -29,6 +29,38 @@ export const DIFFICULTY = {
     STANDARD: 'standard',
 };
 
+/**
+ * GTOW parity #21 — the UI difficulty vocabulary is beginner/standard/expert,
+ * the engine vocabulary is simple/grouped/standard. Nothing translated between
+ * them, so:
+ *   - 'expert' fell through to GROUPED, identical to 'beginner'
+ *   - 'standard' matched the engine's STANDARD by pure name collision
+ *   - DIFFICULTY.SIMPLE was unreachable from any UI control
+ *
+ * The ladder GTO Wizard actually presents is three DISTINCT button sets, so
+ * the three UI tiers map onto the three engine tiers one-for-one:
+ *   beginner -> SIMPLE   (bet-raise / check-call / fold)
+ *   standard -> GROUPED  (small / medium / large / overbet)
+ *   expert   -> STANDARD (exact solver sizings)
+ *
+ * Engine ids are accepted verbatim so a persisted engine-vocabulary value
+ * still resolves, and anything unrecognised lands on GROUPED.
+ */
+const UI_DIFFICULTY_TO_ENGINE = {
+    beginner: DIFFICULTY.SIMPLE,
+    standard: DIFFICULTY.GROUPED,
+    expert: DIFFICULTY.STANDARD,
+    // engine vocabulary, passed straight through
+    simple: DIFFICULTY.SIMPLE,
+    grouped: DIFFICULTY.GROUPED,
+    exact: DIFFICULTY.STANDARD,
+};
+
+export function toEngineDifficulty(uiDifficulty) {
+    const key = String(uiDifficulty || '').toLowerCase();
+    return UI_DIFFICULTY_TO_ENGINE[key] || DIFFICULTY.GROUPED;
+}
+
 export const DIFFICULTY_CONFIG = {
     [DIFFICULTY.SIMPLE]: {
         label: 'Simple',
