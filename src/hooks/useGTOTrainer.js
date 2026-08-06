@@ -461,6 +461,17 @@ export default function useGTOTrainer(
         if (trainerConfig.handClass) {
           params.set('handClass', trainerConfig.handClass);
         }
+        // GTOW parity #8 — board-texture targeting. TrainerConfigModal has
+        // offered a Board Texture row (Dry Rainbow / Monotone / Two-Tone /
+        // Paired / Connected / Broadway) since it shipped, and the value was
+        // collected, stored on trainerConfig and then dropped right here: it
+        // was the one config field never forwarded to the API, so picking
+        // "Monotone" trained you on exactly the same boards as picking
+        // nothing. The modal already normalises 'any' to null, so a plain
+        // truthiness check is the whole guard needed.
+        if (trainerConfig.boardTexture) {
+          params.set('boardTexture', trainerConfig.boardTexture);
+        }
         apiUrl = `/api/training/custom-train?${params}`;
         console.debug(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
       } else {
