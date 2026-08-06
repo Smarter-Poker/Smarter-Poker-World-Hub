@@ -242,21 +242,26 @@ export default async function handler(req, res) {
                   });
 
                   if (rpcErr) {
-                      // Fallback: direct update with current value
-                      const { data: profile } = await getSupabase()
-                          .from('profiles')
-                          .select('diamond_balance')
-                          .eq('id', userId)
-                          .maybeSingle();
-
-                      if (profile) {
-                          const { error: err_profiles_yjrym } = await getSupabase()
-                            .from('profiles')
-                            .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
-                              .eq('id', userId);
-                          if (err_profiles_yjrym) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_yjrym.message);
-                          else speedBonusAwarded = safeSpeedBonus;
-                      }
+                      // ═══════════════════════════════════════════════════════
+                      // REMOVED 2026-08-06: a "fallback" that wrote
+                      // profiles.diamond_balance directly.
+                      //
+                      // Three things were wrong with it. It wrote the VESTIGIAL
+                      // column: `diamonds` is the authoritative balance that
+                      // award_diamonds_v2, getBalance(), the header and the
+                      // store all read, and writing only diamond_balance
+                      // re-creates the exact drift that put those two columns
+                      // ~508k diamonds apart historically (see the STEP 10
+                      // comment in award_diamonds_v2, which writes both in one
+                      // UPDATE for this reason). It wrote no ledger row, so the
+                      // diamonds existed with no audit trail and were invisible
+                      // to every cap. And it then set speedBonusAwarded, so the
+                      // API told the player they had been paid.
+                      //
+                      // Failing honestly is better than paying into a column
+                      // nobody reads and claiming success.
+                      // ═══════════════════════════════════════════════════════
+                      console.warn('[SaveSession] speed bonus RPC failed, no diamonds awarded:', rpcErr.message);
                   } else {
                       speedBonusAwarded = safeSpeedBonus;
                   }
