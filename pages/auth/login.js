@@ -325,6 +325,7 @@ export default function LoginPage() {
             setError(err.message || `Failed to sign in with ${provider}`);
             setOauthLoading('');
         }
+
     };
 
     // Resume OAuth after www→apex bounce
@@ -348,31 +349,28 @@ export default function LoginPage() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: '#000', // Dark background for letterboxing
+            backgroundColor: '#000',
             overflow: 'hidden'
         }}>
-            {/* Aspect-ratio locked container to perfectly match the dynamic image */}
+            {/* Aspect-ratio locked container — image is 682×1024 (2:3) */}
             <div style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 'min(100vw, 80vh)', // Maintains 4:5 aspect ratio within viewport
-                aspectRatio: '4 / 5',
+                maxWidth: 'min(100vw, 66.6vh)',
+                aspectRatio: '682 / 1024',
                 backgroundImage: `url('/images/dynamic-login-bg.jpg')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
-                boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)' // Slight glow to blend letterboxing
+                boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)'
             }}>
                 <style>{`
                     input:-webkit-autofill,
-                    input:-webkit-autofill:hover, 
-                    input:-webkit-autofill:focus, 
+                    input:-webkit-autofill:hover,
+                    input:-webkit-autofill:focus,
                     input:-webkit-autofill:active {
                         transition: background-color 5000s ease-in-out 0s;
                         -webkit-text-fill-color: #fff !important;
-                    }
-                    .auth-input::placeholder {
-                        color: rgba(255, 255, 255, 0.4);
                     }
                     .login-input-box {
                         background: rgba(0, 0, 0, 0.45) !important;
@@ -387,17 +385,22 @@ export default function LoginPage() {
                         box-shadow: 0 0 8px rgba(0, 212, 255, 0.35) !important;
                         outline: none !important;
                     }
+                    .login-field-label {
+                        position: absolute;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 10px;
+                        font-weight: 600;
+                        letter-spacing: 0.1em;
+                        text-transform: uppercase;
+                        zIndex: 10;
+                        pointer-events: none;
+                    }
                 `}</style>
 
-                {/* 
-                  Interactive Elements Overlay 
-                  All elements are absolutely positioned with percentages to stay aligned 
-                  with the image's baked-in buttons on any screen size.
-                */}
-                
+                {/* ── Already-signed-in button row ── */}
                 {existingUser && (
                     <div style={{
-                        position: 'absolute', top: '48.5%', left: '30.5%', width: '39%', height: '3.5%',
+                        position: 'absolute', top: '47%', left: '25%', width: '50%', height: '3.2%',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10
                     }}>
                         <button
@@ -414,57 +417,58 @@ export default function LoginPage() {
                     </div>
                 )}
 
+                {/* ── OAuth buttons ── */}
                 {mode === 'login' && (
                     <>
-                        {/* Google OAuth Button Overlay */}
                         <button
                             type="button"
                             onClick={() => handleOAuthSignIn('google')}
                             disabled={!!oauthLoading}
                             title="Continue With Google"
                             style={{
-                                position: 'absolute', top: '54.5%', left: '29%', width: '42%', height: '4.5%',
-                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
-                                outline: 'none',
+                                position: 'absolute', top: '52%', left: '25%', width: '50%', height: '4.4%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
-                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(255, 255, 255, 0.5)'}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(255,255,255,0.4)'}
                             onBlur={(e) => e.target.style.boxShadow = 'none'}
                         />
-
-                        {/* Facebook OAuth Button Overlay */}
                         <button
                             type="button"
                             onClick={() => handleOAuthSignIn('facebook')}
                             disabled={!!oauthLoading}
                             title="Continue With Facebook"
                             style={{
-                                position: 'absolute', top: '60.5%', left: '29%', width: '42%', height: '4.5%',
-                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10,
-                                outline: 'none',
+                                position: 'absolute', top: '57%', left: '25%', width: '50%', height: '4.4%',
+                                background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
-                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(24, 119, 242, 0.8)'}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(24,119,242,0.7)'}
                             onBlur={(e) => e.target.style.boxShadow = 'none'}
                         />
                     </>
                 )}
 
-                {/* Main Auth Form Overlay */}
+                {/* ── Main Auth Form ── */}
                 <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="on" style={{ position: 'absolute', inset: 0, margin: 0, padding: 0 }}>
-                    
-                    {/* Error / Message Display (Positioned centrally above the form fields) */}
+
+                    {/* Error / Success banner */}
                     {(error || message) && (
                         <div style={{
-                            position: 'absolute', top: '48%', left: '25%', width: '50%',
-                            padding: '8px',
-                            background: error ? 'rgba(220, 38, 38, 0.9)' : 'rgba(34, 197, 94, 0.9)',
+                            position: 'absolute', top: '62%', left: '24%', width: '52%',
+                            padding: '7px 10px',
+                            background: error ? 'rgba(220,38,38,0.92)' : 'rgba(34,197,94,0.92)',
                             border: `1px solid ${error ? '#f87171' : '#4ade80'}`,
-                            borderRadius: 8, color: '#fff', fontSize: '0.8rem', textAlign: 'center', zIndex: 20
+                            borderRadius: 8, color: '#fff', fontSize: '0.75rem', textAlign: 'center', zIndex: 20
                         }}>
                             {error || message}
                         </div>
                     )}
 
-                    {/* Email Input Overlay */}
+                    {/* EMAIL ADDRESS label */}
+                    <span className="login-field-label" style={{ top: '63.5%', left: '25%' }}>
+                        Email Address
+                    </span>
+
+                    {/* Email input */}
                     <input
                         type="email"
                         value={email}
@@ -473,12 +477,17 @@ export default function LoginPage() {
                         autoComplete="email"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '66.5%', left: '29%', width: '42%', height: '4.5%',
-                            padding: '0 16px', boxSizing: 'border-box', zIndex: 10,
+                            position: 'absolute', top: '65.2%', left: '25%', width: '50%', height: '3.8%',
+                            padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
 
-                    {/* Password Input Overlay */}
+                    {/* PASSWORD label */}
+                    <span className="login-field-label" style={{ top: '69.5%', left: '25%' }}>
+                        Password
+                    </span>
+
+                    {/* Password input */}
                     <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
@@ -488,43 +497,46 @@ export default function LoginPage() {
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '71.5%', left: '29%', width: '42%', height: '4.5%',
-                            padding: '0 16px', boxSizing: 'border-box', zIndex: 10,
+                            position: 'absolute', top: '71.2%', left: '25%', width: '46%', height: '3.8%',
+                            padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
 
-                    {/* Show Password Toggle (Positioned over the eye icon in the image) */}
+                    {/* Show/hide password toggle */}
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '71.5%', left: '67%', width: '4%', height: '4.5%',
-                            background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11
+                            position: 'absolute', top: '71.2%', left: '71.5%', width: '3.5%', height: '3.8%',
+                            background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
+                            color: 'rgba(255,255,255,0.5)', fontSize: '14px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}
                         tabIndex={-1}
                         title={showPassword ? 'Hide Password' : 'Show Password'}
-                    />
+                    >
+                        {showPassword ? '👁' : '👁‍🗨'}
+                    </button>
 
                     {mode === 'login' && (
                         <>
-                            {/* Remember Me Checkbox Overlay */}
+                            {/* Remember Me checkbox (invisible, over baked-in checkbox) */}
                             <input
                                 type="checkbox"
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 style={{
-                                    position: 'absolute', top: '74.5%', left: '29%', width: '1.5%', height: '2%',
+                                    position: 'absolute', top: '75.5%', left: '25%', width: '2%', height: '1.8%',
                                     opacity: 0, cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Remember Me"
                             />
-
-                            {/* Forgot Password Link Overlay */}
+                            {/* Forgot Password link (invisible, over baked-in text) */}
                             <button
                                 type="button"
                                 onClick={() => router.push('/auth/forgot-password')}
                                 style={{
-                                    position: 'absolute', top: '74.5%', left: '59%', width: '12%', height: '2%',
+                                    position: 'absolute', top: '75%', left: '60%', width: '14%', height: '2%',
                                     background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Forgot Password"
@@ -532,21 +544,20 @@ export default function LoginPage() {
                         </>
                     )}
 
-                    {/* Sign In / Submit Button Overlay */}
+                    {/* Sign In button */}
                     <button
                         type="submit"
                         disabled={isLoading}
                         title={mode === 'login' ? 'Sign In' : 'Create Account'}
                         style={{
-                            position: 'absolute', top: '77.5%', left: '29%', width: '42%', height: '4.5%',
-                            background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
-                            outline: 'none',
+                            position: 'absolute', top: '77%', left: '25%', width: '50%', height: '4.4%',
+                            background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                         }}
-                        onFocus={(e) => e.target.style.boxShadow = '0 0 10px 3px rgba(0, 212, 255, 0.6)'}
+                        onFocus={(e) => e.target.style.boxShadow = '0 0 10px 3px rgba(0,212,255,0.5)'}
                         onBlur={(e) => e.target.style.boxShadow = 'none'}
                     />
 
-                    {/* Send Magic Link Button Overlay */}
+                    {/* Send Magic Link button */}
                     {mode === 'login' && (
                         <button
                             type="button"
@@ -554,17 +565,16 @@ export default function LoginPage() {
                             disabled={isLoading}
                             title="Send Magic Link"
                             style={{
-                                position: 'absolute', top: '83.5%', left: '29%', width: '42%', height: '4.5%',
-                                background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10,
-                                outline: 'none',
+                                position: 'absolute', top: '82%', left: '25%', width: '50%', height: '4.4%',
+                                background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
-                            onFocus={(e) => e.target.style.boxShadow = '0 0 10px 2px rgba(255, 215, 0, 0.5)'}
+                            onFocus={(e) => e.target.style.boxShadow = '0 0 10px 2px rgba(255,215,0,0.5)'}
                             onBlur={(e) => e.target.style.boxShadow = 'none'}
                         />
                     )}
                 </form>
 
-                {/* Mode Toggle Link Overlay (Sign Up / Sign In) */}
+                {/* Sign Up toggle (invisible overlay on "Don't Have An Account? Sign Up") */}
                 <button
                     onClick={() => {
                         setMode(mode === 'login' ? 'signup' : 'login');
