@@ -50,6 +50,7 @@ import {
     DAILY_CAP,
     MONTHLY_CAP,
     EASTER_EGG_MONTHLY_CAP,
+    biggestEggValue,
     TOTAL_WAYS_TO_EARN,
     TOTAL_EASTER_EGGS,
     EGG_CATEGORY_LABELS,
@@ -1297,7 +1298,7 @@ export default function DiamondStorePage() {
                                         <h2 style={styles.earnTitle}>Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements</h2>
                                         <p style={styles.introText}>
                                             Discover {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories.
-                                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Daily Cap, And No Single Egg Pays More Than {EASTER_EGG_MONTHLY_CAP} 💎.
+                                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays {biggestEggValue()} 💎.
                                         </p>
 
                                         {/* Performance Category */}

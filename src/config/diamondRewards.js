@@ -58,8 +58,29 @@ export const MONTHLY_CAP = { free: 3300, vip: 4500 };
  */
 export const PLATFORM_MONTHLY_BUDGET = 2500000;
 
-/** Easter eggs have their own separate monthly ceiling: 500 ◆ = $5/user/mo. */
-export const EASTER_EGG_MONTHLY_CAP = 500;
+/**
+ * Easter eggs draw on their own budget, separate from DAILY_CAP / MONTHLY_CAP:
+ * 1000 ◆ = $10/user/month. Raised from 500 on 2026-08-05 (approved by Dan)
+ * alongside migration 20260805210000, which also fixed the catalog row that
+ * had eggs counting toward the 110/150 daily cap — a 500 ◆ legendary was
+ * being clamped to the daily remainder and the excess silently discarded.
+ *
+ * Mirrored in award_diamonds_v2 as c_egg_monthly_cap. If you change one,
+ * change both, or the SQL silently wins.
+ */
+export const EASTER_EGG_MONTHLY_CAP = 1000;
+
+/**
+ * Hard ceiling on a SINGLE egg, mirrored in award_diamonds_v2 as
+ * c_egg_max_single. Was 250 while sixteen catalog eggs were priced above it,
+ * so those paid 250 and the UI promised more.
+ *
+ * No egg in EASTER_EGGS is priced above 500 today; the headroom exists so a
+ * future legendary is not silently truncated. Egg awards are all-or-nothing:
+ * one that does not fit in the remaining monthly budget is deferred whole and
+ * picked up by a later sweep, never part-paid.
+ */
+export const EASTER_EGG_MAX_SINGLE = 1000;
 
 /**
  * Share-streak multiplier tiers stored on profiles.diamond_multiplier.
@@ -558,7 +579,7 @@ export const REWARDS = {
     key: 'easter_egg',
     label: 'Hidden Achievement',
     description:
-      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map — 5 to 500 ◆ by rarity, capped at 500 ◆ of eggs per month.',
+      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map — 5 to 500 ◆ by rarity, drawing on a separate 1000 ◆ monthly egg budget that sits outside your daily cap.',
     diamonds: 0,
     maxDiamonds: 500,
     amountFrom: 'EASTER_EGGS',
@@ -1365,6 +1386,19 @@ export function listEasterEggs(category) {
 }
 
 /**
+ * The largest payout any single egg in the catalog actually offers.
+ * Derived, never typed by hand: user-facing copy that promises a number must
+ * promise THIS one, not EASTER_EGG_MAX_SINGLE (the ceiling, currently well
+ * above the catalog) and not EASTER_EGG_MONTHLY_CAP (a budget across eggs).
+ * Conflating the three is how the store came to advertise a per-egg maximum
+ * that was really the monthly budget, while SQL was truncating at 250.
+ * @returns {number}
+ */
+export function biggestEggValue() {
+  return Object.values(EASTER_EGGS).reduce((max, e) => Math.max(max, e.diamonds || 0), 0);
+}
+
+/**
  * Login streak award. THE ONLY place this formula lives in JS.
  * min(5 + (streak - 1) * 2, 25) — streak is TRUE consecutive America/Chicago
  * days, computed server-side from the ledger.
@@ -1454,8 +1488,12 @@ export function assertCatalogIntegrity() {
         `EASTER_EGGS.${key} pays ${e.diamonds} ◆, outside the ${e.rarity} band ${band.min}-${band.max}`,
       );
     }
-    if (e.diamonds > EASTER_EGG_MONTHLY_CAP) {
-      problems.push(`EASTER_EGGS.${key} pays more than EASTER_EGG_MONTHLY_CAP`);
+    // The binding ceiling on one egg is EASTER_EGG_MAX_SINGLE (c_egg_max_single
+    // in SQL). The monthly cap is a budget across eggs, not a per-egg limit —
+    // checking against it here would have wrongly passed the 16 eggs that SQL
+    // was actually truncating at 250.
+    if (e.diamonds > EASTER_EGG_MAX_SINGLE) {
+      problems.push(`EASTER_EGGS.${key} pays more than EASTER_EGG_MAX_SINGLE`);
     }
     if (typeof e.verifiable !== 'boolean') {
       problems.push(`EASTER_EGGS.${key}.verifiable must be boolean`);
