@@ -1202,7 +1202,7 @@ const styles = {
     lineHeight: 1.45,
   },
 
-  // ── Drill chunk placeholder ───────────────────────────────────────────────
+  // ── Drill chunk placeholder ───────────────────────────────────────────
   drillLoadingBackdrop: {
     position: 'fixed',
     top: 0,
@@ -1536,7 +1536,7 @@ const styles = {
     color: T.textMuted,
     margin: `0 0 ${S.md}px`,
   },
-  // ── progress to resolution ──────────────────────────────────────────────────────────
+  // ── progress to resolution ────────────────────────────────────────────────
   leakCardProgress: {
     display: 'flex',
     alignItems: 'center',
