@@ -400,7 +400,7 @@ export default function LoginPage() {
                 {/* ── Already-signed-in button row ── */}
                 {existingUser && (
                     <div style={{
-                        position: 'absolute', top: '44%', left: '25%', width: '50%', height: '3.2%',
+                        position: 'absolute', top: '47%', left: '25%', width: '50%', height: '3.2%',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10
                     }}>
                         <button
@@ -426,7 +426,7 @@ export default function LoginPage() {
                             disabled={!!oauthLoading}
                             title="Continue With Google"
                             style={{
-                                position: 'absolute', top: '49%', left: '25%', width: '50%', height: '4.4%',
+                                position: 'absolute', top: '52%', left: '25%', width: '50%', height: '4.4%',
                                 background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
                             onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(255,255,255,0.4)'}
@@ -438,7 +438,7 @@ export default function LoginPage() {
                             disabled={!!oauthLoading}
                             title="Continue With Facebook"
                             style={{
-                                position: 'absolute', top: '54%', left: '25%', width: '50%', height: '4.4%',
+                                position: 'absolute', top: '57%', left: '25%', width: '50%', height: '4.4%',
                                 background: 'transparent', border: 'none', cursor: oauthLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
                             onFocus={(e) => e.target.style.boxShadow = '0 0 8px 2px rgba(24,119,242,0.7)'}
@@ -464,7 +464,7 @@ export default function LoginPage() {
                     )}
 
                     {/* EMAIL ADDRESS label */}
-                    <span className="login-field-label" style={{ top: '60.5%', left: '25%' }}>
+                    <span className="login-field-label" style={{ top: '62.5%', left: '25%' }}>
                         Email Address
                     </span>
 
@@ -477,13 +477,13 @@ export default function LoginPage() {
                         autoComplete="email"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '62%', left: '25%', width: '50%', height: '4%',
+                            position: 'absolute', top: '64%', left: '25%', width: '50%', height: '4%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
 
                     {/* PASSWORD label */}
-                    <span className="login-field-label" style={{ top: '67%', left: '25%' }}>
+                    <span className="login-field-label" style={{ top: '69%', left: '25%' }}>
                         Password
                     </span>
 
@@ -497,7 +497,7 @@ export default function LoginPage() {
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '68.2%', left: '25%', width: '46%', height: '3.2%',
+                            position: 'absolute', top: '70.2%', left: '25%', width: '46%', height: '2.8%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
@@ -507,7 +507,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '68.2%', left: '71.5%', width: '3.5%', height: '3.2%',
+                            position: 'absolute', top: '70.2%', left: '71.5%', width: '3.5%', height: '2.8%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -526,7 +526,7 @@ export default function LoginPage() {
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 style={{
-                                    position: 'absolute', top: '72%', left: '25%', width: '2%', height: '1.8%',
+                                    position: 'absolute', top: '76%', left: '25%', width: '2%', height: '1.8%',
                                     opacity: 0, cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Remember Me"
@@ -536,7 +536,7 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={() => router.push('/auth/forgot-password')}
                                 style={{
-                                    position: 'absolute', top: '72%', left: '60%', width: '14%', height: '2%',
+                                    position: 'absolute', top: '76%', left: '60%', width: '14%', height: '2%',
                                     background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Forgot Password"
@@ -550,7 +550,7 @@ export default function LoginPage() {
                         disabled={isLoading}
                         title={mode === 'login' ? 'Sign In' : 'Create Account'}
                         style={{
-                            position: 'absolute', top: '74%', left: '25%', width: '50%', height: '4.4%',
+                            position: 'absolute', top: '77%', left: '25%', width: '50%', height: '4.4%',
                             background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                         }}
                         onFocus={(e) => e.target.style.boxShadow = '0 0 10px 3px rgba(0,212,255,0.5)'}
@@ -565,7 +565,7 @@ export default function LoginPage() {
                             disabled={isLoading}
                             title="Send Magic Link"
                             style={{
-                                position: 'absolute', top: '79%', left: '25%', width: '50%', height: '4.4%',
+                                position: 'absolute', top: '82%', left: '25%', width: '50%', height: '4.4%',
                                 background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
                             onFocus={(e) => e.target.style.boxShadow = '0 0 10px 2px rgba(255,215,0,0.5)'}
@@ -582,7 +582,7 @@ export default function LoginPage() {
                         setMessage(null);
                     }}
                     style={{
-                        position: 'absolute', top: '85.5%', left: '35%', width: '30%', height: '2%',
+                        position: 'absolute', top: '88.5%', left: '35%', width: '30%', height: '2%',
                         background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                     }}
                     title={mode === 'login' ? 'Sign Up' : 'Sign In'}
