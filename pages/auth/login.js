@@ -373,8 +373,8 @@ export default function LoginPage() {
                         -webkit-text-fill-color: #fff !important;
                     }
                     .login-input-box {
-                        background: rgba(0, 0, 0, 0.45) !important;
-                        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                        background: rgba(0, 8, 25, 0.65) !important;
+                        border: 1.5px solid rgba(0, 212, 255, 0.4) !important;
                         border-radius: 6px !important;
                         color: #fff !important;
                         font-size: 14px !important;
@@ -475,6 +475,7 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
+                        placeholder="Enter your email"
                         className="login-input-box"
                         style={{
                             position: 'absolute', top: '64%', left: '25%', width: '50%', height: '4%',
@@ -494,6 +495,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
+                        placeholder="Enter your password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         className="login-input-box"
                         style={{
