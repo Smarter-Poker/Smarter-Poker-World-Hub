@@ -2772,6 +2772,17 @@ function GodModeArenaInner({
   // The arena then starts straight into play instead of showing its own
   // splash asking for the same three things a second time.
   initialConfig = null,
+  // GTOW parity #10. Multi-tabling puts several arenas on screen at once, and
+  // two of this component's behaviours are viewport-global rather than
+  // table-local: the keyboard handler listens on `window`, and the win confetti
+  // is a position:fixed canvas. With four arenas mounted, one "1" keypress
+  // submitted an answer on all four, and one table passing its level painted
+  // 1600 confetti pieces over the other three.
+  //
+  // Defaults to true so every existing single-table caller is untouched — the
+  // one-arena case IS the focused arena. Multi-table passes false for the
+  // tables the player is not currently looking at.
+  isFocused = true,
 }) {
   // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
   // SPECIALIZED TRAINERS (Phase 14) -> Safely moved to exported wrapper
@@ -3494,6 +3505,11 @@ function GodModeArenaInner({
           perfectActionCount: correctCount,
           engineGrade,
           diamondReward,
+          // GTOW parity #10. `totalEVLoss` was already a dependency of this
+          // effect but was never put in the payload, so every consumer that
+          // wanted session EV loss — the multi-table aggregator most of all —
+          // had nothing to read and fell through to zero.
+          totalEVLoss: Number.isFinite(totalEVLoss) ? Number(totalEVLoss) : 0,
         };
 
         eventBus.emit(EventType.SESSION_END, sessionPayload, 'GodModeArena');
@@ -3637,6 +3653,10 @@ function GodModeArenaInner({
   useEffect(() => {
     const handler = (e) => {
       if (gamePhase !== 'playing') return;
+      // #10: this listener is on `window`, so in a multi-table grid every
+      // mounted arena would receive the same keypress and answer its own
+      // question with it. Only the table the player has focused may act.
+      if (!isFocused) return;
       // A mounted UniversalDynamicTable owns the keyboard. Its handler resolves
       // the digit against `displayOptions` (what is actually on screen under the
       // active difficulty), whereas this one resolves against the raw question
@@ -3661,7 +3681,7 @@ function GodModeArenaInner({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [gamePhase, showFeedback, currentQuestion, handleSubmitAnswer, handleNextQuestion]);
+  }, [gamePhase, showFeedback, currentQuestion, handleSubmitAnswer, handleNextQuestion, isFocused]);
 
   // F5: Mixed strategy adherence tracking
   const mixedStrategyScore = useMemo(() => {
@@ -3870,7 +3890,10 @@ function GodModeArenaInner({
 
     return (
       <div style={styles.reviewContainer}>
-        {levelPassed && typeof window !== 'undefined' && (
+        {/* #10: confetti is a position:fixed full-viewport canvas, so an
+            unfocused table in a multi-table grid would paint 400 pieces over
+            every other table. Only the focused arena celebrates. */}
+        {levelPassed && isFocused && typeof window !== 'undefined' && (
           <Confetti
             width={window.innerWidth}
             height={window.innerHeight}
@@ -13280,35 +13303,25 @@ function GodModeArena(props) {
   if (gameId === 'adv-011') return <SPRTrainer onExit={onExit} />;
   if (gameId === 'quiz-gauntlet') return <QuizGauntlet onExit={onExit} />;
 
-  const tablesCount = parseInt(initialConfig?.tables || '1', 10);
-
-  if (tablesCount > 1) {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const cols = tablesCount === 4 ? '1fr 1fr' : (isMobile ? '1fr' : '1fr 1fr');
-    const rows = tablesCount === 4 ? '1fr 1fr' : (isMobile ? '1fr 1fr' : '1fr');
-
-    return (
-      <div 
-        style={{
-          display: 'grid',
-          gridTemplateColumns: cols,
-          gridTemplateRows: rows,
-          height: '100vh',
-          width: '100vw',
-          overflow: 'hidden',
-          background: '#000',
-          gap: '2px'
-        }}
-      >
-        {Array.from({ length: tablesCount }).map((_, i) => (
-          <div key={i} style={{ position: 'relative', overflow: 'hidden' }}>
-            <GodModeArenaInner {...props} autoAdvance={initialConfig?.autoAdvance !== false} />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
+  // GTOW parity #10 — the multi-table branch that used to live here has been
+  // removed, not relocated. It rendered N copies of GodModeArenaInner with
+  // IDENTICAL props: same gameId, same userId, same sessionId. Every copy was a
+  // fully independent arena, so a "4 tables" session produced four separate
+  // question fetches of the SAME drill, four SESSION_END emissions carrying the
+  // same gameId, and four diamond awards for one session's work. It also
+  // stacked four position:fixed full-viewport confetti canvases and four global
+  // window keydown listeners, so one "1" keypress submitted an answer on all
+  // four tables at once.
+  //
+  // /hub/training/multi-table is the real implementation — distinct drills per
+  // table, one combined session, one save — and pages/hub/training.js now
+  // routes there when the setup modal's table count is greater than one. This
+  // wrapper renders exactly one arena, which is the only thing it was ever able
+  // to do correctly.
+  //
+  // `initialConfig.tables` is deliberately still accepted and ignored here: the
+  // setup modal keeps collecting it, and silently rendering one table is the
+  // correct degradation for any caller that has not been routed yet.
   return <GodModeArenaInner {...props} />;
 }
 

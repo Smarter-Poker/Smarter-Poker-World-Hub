@@ -67,6 +67,82 @@ export default function MultiTablePage() {
   const [showSummary, setShowSummary] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error'
   const hasSavedRef = React.useRef(false);
+  // #10: which tables have already contributed to combinedStats. See the
+  // SESSION_END listener below for why this is a ref and not derived state.
+  const reportedTablesRef = React.useRef(new Set());
+
+  // #10: exactly one table owns the keyboard and the confetti canvas at a time.
+  // Both are viewport-global in GodModeArena — the key handler is bound to
+  // `window` and the confetti is position:fixed — so without a focus owner one
+  // keypress answered every table and one table's win animation covered the
+  // rest. Clicking a table makes it the owner; the first table owns it on load
+  // so the keyboard works before the player has clicked anything.
+  const [focusedGameId, setFocusedGameId] = useState(null);
+
+  // #10: identifies one multi-table run. Each arena gets `<runId>-<gameId>` as
+  // its sessionId; previously none of them got a sessionId at all.
+  const [runId, setRunId] = useState('mt-0');
+
+  // #10: the arena needs a real user id. This page never passed one, so every
+  // table mounted with `userId` undefined — the question APIs authenticate by
+  // Bearer token so questions still loaded, but per-user progress, mastery and
+  // achievement writes had no subject.
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    try {
+      setUserId(getAuthUser()?.id || null);
+    } catch (e) {
+      setUserId(null);
+    }
+  }, []);
+
+  // #10: the setup modal on /hub/training now routes here when the player picks
+  // more than one table, and forwards the drill and preferences it collected.
+  // Honour them rather than making the player choose all over again.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query;
+    const requested = parseInt(q.tables, 10);
+    if (Number.isFinite(requested) && requested >= 2 && requested <= 4) {
+      setTableCount(requested);
+    }
+    if (q.autoAdvance === '1') setIsAutoAdvance(true);
+    if (typeof q.game === 'string' && q.game) {
+      // Lead with the drill the player actually clicked, then fill the
+      // remaining slots from the preset list without repeating it.
+      setSelectedGames((prev) => {
+        const rest = MULTI_TABLE_GAMES.map((g) => g.id).filter((id) => id !== q.game);
+        return [q.game, ...rest];
+      });
+    }
+  }, [router.isReady, router.query]);
+
+  // #10: passed to every arena so none of them shows its own splash screen
+  // asking for difficulty and timer a second time. Four tables meant four
+  // splashes, each of which had to be dismissed before that table would deal.
+  const arenaInitialConfig = useMemo(() => ({
+    difficulty: typeof router.query.difficulty === 'string' ? router.query.difficulty : 'standard',
+    timer: typeof router.query.timer === 'string' ? router.query.timer : 'off',
+    mode: 'standard',
+    autoAdvance: isAutoAdvance,
+    // Deliberately NOT `tables` — each arena here is a single table. The
+    // wrapper's own multi-table branch was removed in this same change because
+    // it rendered N identical copies of one drill.
+  }), [router.query.difficulty, router.query.timer, isAutoAdvance]);
+
+  // The tables actually on screen, and which one currently owns the keyboard
+  // and the confetti canvas. `focusedGameId` starts null so that it does not
+  // have to be re-synced every time the table count or the drill list changes;
+  // falling back to the first visible table here means the keyboard is live
+  // from the first deal, before the player has clicked anything, and a focused
+  // table that is removed from the grid hands focus back to table 1 instead of
+  // stranding it on a game nobody can see.
+  const visibleGames = useMemo(
+    () => selectedGames.slice(0, tableCount),
+    [selectedGames, tableCount],
+  );
+  const activeGameId =
+    focusedGameId && visibleGames.includes(focusedGameId) ? focusedGameId : visibleGames[0];
 
   // Listen for session-complete events from each table (NOT from ourselves)
   useEffect(() => {
@@ -76,12 +152,42 @@ export default function MultiTablePage() {
       const detail = event?.payload || event;
       const source = event?.source;
       if (source === 'MultiTable') return;
-      setCompletedTables((prev) => new Set([...prev, detail?.gameId]));
-      setCombinedStats((prev) => ({
-        totalHands: prev.totalHands + (detail?.totalQuestions || detail?.handsPlayed || 0),
-        totalCorrect: prev.totalCorrect + (detail?.correctCount || 0),
-        totalEVLoss: prev.totalEVLoss + (detail?.totalEVLoss || 0),
-        tablesCompleted: prev.tablesCompleted + 1,
+
+      const finishedId = detail?.gameId;
+      if (!finishedId) return;
+
+      // GTOW parity #10 — payload key mismatch. This block used to read
+      // `totalQuestions`, `handsPlayed` and `correctCount`, none of which
+      // GodModeArena has ever emitted: its SESSION_END payload carries
+      // `totalHands` / `questionsAnswered` and `questionsCorrect`. Every
+      // lookup fell through to the `|| 0` default, so the combined stats bar,
+      // the grade on the summary screen and the row written to
+      // training_sessions all read zero no matter how well the player did.
+      // Canonical keys first, older aliases kept as fallbacks.
+      const hands = Number(
+        detail?.totalHands ?? detail?.questionsAnswered ?? detail?.totalQuestions ?? detail?.handsPlayed ?? 0,
+      );
+      const correct = Number(detail?.questionsCorrect ?? detail?.correctCount ?? 0);
+      const evLoss = Number(detail?.totalEVLoss ?? detail?.evLoss ?? 0);
+
+      // A table that has already reported must not be counted twice.
+      // GodModeArena emits SESSION_END once, but `onExit` ALSO marks a table
+      // complete, so a player who finishes a table and then closes it hit both
+      // paths — inflating `tablesCompleted` past the table count and
+      // double-adding that table's hands. The guard is a ref rather than a
+      // check inside the setState updater because React invokes updaters more
+      // than once (StrictMode, concurrent re-render), and accumulating stats
+      // from inside one would double-count on exactly the renders that are
+      // hardest to reproduce.
+      if (reportedTablesRef.current.has(finishedId)) return;
+      reportedTablesRef.current.add(finishedId);
+
+      setCompletedTables((prev) => new Set([...prev, finishedId]));
+      setCombinedStats((s) => ({
+        totalHands: s.totalHands + (Number.isFinite(hands) ? hands : 0),
+        totalCorrect: s.totalCorrect + (Number.isFinite(correct) ? correct : 0),
+        totalEVLoss: s.totalEVLoss + (Number.isFinite(evLoss) ? evLoss : 0),
+        tablesCompleted: s.tablesCompleted + 1,
       }));
     });
     return unsub;
@@ -329,6 +435,12 @@ export default function MultiTablePage() {
                         whileTap={{ scale: 0.97 }}
                         onClick={() => {
                           setShowSummary(false);
+                          // #10: a fresh run needs a fresh run id and a fresh
+                          // reported-tables set, or the second run's tables are
+                          // all treated as already-counted and contribute
+                          // nothing to the combined stats.
+                          setRunId(`mt-${Date.now()}`);
+                          reportedTablesRef.current = new Set();
                           setCompletedTables(new Set());
                           setCombinedStats({
                             totalHands: 0,
@@ -360,6 +472,7 @@ export default function MultiTablePage() {
                         onClick={() => {
                           setShowSummary(false);
                           setIsStarted(false);
+                          reportedTablesRef.current = new Set();
                           setCompletedTables(new Set());
                           setCombinedStats({
                             totalHands: 0,
@@ -552,7 +665,15 @@ export default function MultiTablePage() {
             </div>
 
             <motion.button
-              onClick={() => setIsStarted(true)}
+              onClick={() => {
+                // #10: one run id per START press. Each arena derives its own
+                // sessionId from it, so the four tables in a run write four
+                // distinct rows instead of colliding on one, and a PLAY AGAIN
+                // starts a genuinely new run rather than appending to the last.
+                setRunId(`mt-${Date.now()}`);
+                reportedTablesRef.current = new Set();
+                setIsStarted(true);
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               style={{
@@ -605,6 +726,7 @@ export default function MultiTablePage() {
               <button
                 onClick={() => {
                   setIsStarted(false);
+                  reportedTablesRef.current = new Set();
                   setCompletedTables(new Set());
                   setCombinedStats({
                     totalHands: 0,
@@ -663,15 +785,23 @@ export default function MultiTablePage() {
                 gap: 2,
               }}
             >
-              {selectedGames.slice(0, tableCount).map((gameId, i) => (
+              {visibleGames.map((gameId, i) => (
                 <div
                   key={gameId}
+                  // #10: clicking anywhere in a table makes it the focus owner.
+                  // Capture phase, because the arena's own controls sit on top
+                  // and stop propagation on some of their handlers — without
+                  // capture, clicking an action button would answer the wrong
+                  // table's question without ever transferring focus to it.
+                  onClickCapture={() => setFocusedGameId(gameId)}
                   style={{
                     overflow: 'hidden',
                     borderRadius: 0,
                     border: completedTables.has(gameId)
                       ? '2px solid rgba(34,197,94,0.3)'
-                      : '1px solid rgba(255,255,255,0.04)',
+                      : gameId === activeGameId
+                        ? '2px solid rgba(var(--sp-accent-cyan-rgb), 0.55)'
+                        : '1px solid rgba(255,255,255,0.04)',
                     position: 'relative',
                   }}
                 >
@@ -711,6 +841,17 @@ export default function MultiTablePage() {
                       gameId={gameId}
                       gameName={MULTI_TABLE_GAMES.find((g) => g.id === gameId)?.name || gameId}
                       level={1}
+                      // #10: all four of these were missing. Without `userId`
+                      // the arena had no subject to write progress for; without
+                      // `sessionId` the tables could not be told apart; without
+                      // `initialConfig` every table showed its own difficulty /
+                      // timer splash that had to be dismissed before it dealt;
+                      // and without `isFocused` one keypress answered all four
+                      // tables at once and any table's win covered the screen.
+                      userId={userId}
+                      sessionId={`${runId}-${gameId}`}
+                      initialConfig={arenaInitialConfig}
+                      isFocused={gameId === activeGameId}
                       autoAdvance={isAutoAdvance}
                       onComplete={() => {}}
                       onExit={() => setCompletedTables((prev) => new Set([...prev, gameId]))}

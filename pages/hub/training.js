@@ -159,7 +159,36 @@ export default function TrainingPage() {
   }, [showArena]);
 
   const handleSetupStart = useCallback((prefs) => {
-    setArenaConfig(prefs ? { 
+    // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
+    // used to be handed to GodModeArena's wrapper, which rendered N copies of
+    // the arena with IDENTICAL props — same drill, same userId, same sessionId.
+    // Every copy independently fetched questions, emitted its own SESSION_END
+    // and banked its own diamond reward, so a 4-table session paid out four
+    // times for what the player experienced as one. It also stacked four
+    // full-viewport confetti canvases and four global keydown listeners, so a
+    // single "1" keypress answered all four tables at once.
+    //
+    // /hub/training/multi-table is the real implementation: distinct drills per
+    // table, one combined session, one save. Route there instead of mounting
+    // the broken inline copy. The chosen game leads so the player still gets
+    // the drill they clicked.
+    const tableCount = parseInt(prefs?.tables || '1', 10);
+    if (Number.isFinite(tableCount) && tableCount > 1 && setupGame?.id) {
+      setSetupGame(null);
+      router.push({
+        pathname: '/hub/training/multi-table',
+        query: {
+          tables: String(tableCount),
+          game: setupGame.id,
+          ...(prefs?.difficulty ? { difficulty: prefs.difficulty } : {}),
+          ...(prefs?.timer ? { timer: prefs.timer } : {}),
+          ...(prefs?.autoAdvanceUI ? { autoAdvance: prefs.autoAdvanceUI !== 'off' ? '1' : '0' } : {}),
+        },
+      });
+      return;
+    }
+
+    setArenaConfig(prefs ? {
       difficulty: prefs.difficulty, 
       timer: prefs.timer, 
       mode: prefs.mode,
@@ -174,7 +203,7 @@ export default function TrainingPage() {
     } : null);
     setSetupGame(null);
     setShowArena(true);
-  }, [setShowArena]);
+  }, [setShowArena, setupGame, router]);
 
   return (
     <PageTransition>
