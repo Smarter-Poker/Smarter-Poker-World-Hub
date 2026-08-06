@@ -96,7 +96,7 @@ function genUUID() {
 // /hub/trivia/arcade?serverGrading=1. Flip this to ['arcade'] once that
 // passes. The explicit ?serverGrading=1 query escape hatch stays
 // available for modes not yet flipped.
-const SERVER_GRADED_PAGE_MODES = new Set([]);
+const SERVER_GRADED_PAGE_MODES = new Set(['arcade', 'daily', 'history', 'rules', 'pro']);
 
 // Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
 function getYesterdayCST() {

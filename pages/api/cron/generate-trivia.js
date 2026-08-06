@@ -896,7 +896,7 @@ const SURVIVAL_QUESTIONS_PER_RUN = 200;
 
 async function buildDepthReport(supabase) {
     const perCategory = await Promise.all(CATEGORIES.map(async (cat) => {
-        const perDay = DEDICATED_MODE_CATEGORIES.has(cat.id) ? ROSTER_PER_CATEGORY : 10;
+        const perDay = CATEGORY_DAILY_DEMAND[cat.id] ?? 10;
         const report = await getPoolDepthReport(supabase, {
             category: cat.id,
             minQuality: ROSTER_MIN_QUALITY,

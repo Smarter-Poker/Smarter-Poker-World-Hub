@@ -40,18 +40,20 @@ export const config = { maxDuration: 60 };
 
 /** category -> questions that category must supply per player per day. */
 export const CATEGORY_DAILY_DEMAND = {
-    // Dedicated single-category modes (20 questions/day each).
-    rule_knowledge: 20,          // rules
-    mtt_situations: 20,          // mtt
-    cash_game_situations: 20,    // cash
-    icm_chip_ev: 20,             // icm
+    // Dedicated single-category modes (20 questions/day each)
+    // + daily (1), arcade (2), mixed (2)
+    rule_knowledge: 25,          // rules
+    mtt_situations: 25,          // mtt
+    cash_game_situations: 25,    // cash
+    icm_chip_ev: 25,             // icm
     // Multi-category modes split 20/day across their categories.
-    poker_history: 7,            // history (3 categories)
-    famous_hands: 7,             // history
-    player_profiles: 7,          // history
-    tournament_facts: 10,        // pro (2 categories)
-    gto_theory: 10,              // pro + gto
-    gto_scenarios: 10,           // gto
+    // + daily (1), arcade (2), mixed (2)
+    poker_history: 12,           // history (3 categories)
+    famous_hands: 12,            // history
+    player_profiles: 12,         // history
+    tournament_facts: 15,        // pro (2 categories)
+    gto_theory: 15,              // pro + gto
+    gto_scenarios: 15,           // gto
 };
 
 const CATEGORY_NAMES = {

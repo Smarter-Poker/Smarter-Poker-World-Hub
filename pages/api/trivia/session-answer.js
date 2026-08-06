@@ -44,7 +44,8 @@ export default async function handler(req, res) {
             res.setHeader('Allow', 'POST');
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
+        // Allow up to 60 answers per minute (a player tapping rapidly in Arcade mode)
+        if (!applyRateLimit(req, res, { max: 60, windowMs: 60 * 1000 })) return;
 
         const sb = serviceClient();
 
