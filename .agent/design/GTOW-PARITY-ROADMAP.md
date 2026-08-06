@@ -81,13 +81,58 @@ High/Low mode.
    (b) The poll then found a real defect: the clock re-armed on the turn but
    the hand HUNG there, because expiry auto-submits only when
    `!selectedAnswer` and that still held the flop's answer. See #49.
-5. **Auto New Hand delay configurable.** BUILT 2026-07-26 —
-   `trainerConfig.autoAdvanceDelayMs`, default 3s (GTOW's recommendation),
-   doubled for an inaccuracy so a near-miss gets more reading time.
-6. **Feedback rule: every action vs only-after-mistake.** BUILT 2026-07-26 —
+   (c) Re-verified 2026-08-06 in `241f2075`, and this pass found the tier
+   re-scale had been quietly UNDONE on the multi-table route by a vocabulary
+   collision. The timebank vocabulary is `relaxed | standard | quick | blitz`;
+   the auto-advance vocabulary is `on | off`. `pages/hub/training/multi-table.js`
+   defaulted its `timer` to `'off'`, which is a legal value in the WRONG
+   vocabulary — `TIMER_DURATIONS['off']` is `undefined`, and the lookup read
+   `TIMER_DURATIONS[mode] || 60`, so every multi-table session got the exact
+   60-second clock this item removed. Underneath it sat a second bug: `relaxed`
+   is `0` and `0` is falsy, so the legitimate no-timer key ALSO fell through to
+   60. It never showed only because `timerEnabled` was computed separately as
+   `timerMode !== 'relaxed'` and masked it. Two bugs cancelling is not a fix;
+   either one moving exposes the other. Fixed with `resolveTimerSeconds` /
+   `isTimerEnabled` (a `hasOwnProperty` lookup, never `||`), a module-scope
+   whitelist on the route, and — the part that matters most — a SANITIZER on
+   READ: `gma_timer` is written back from `timerMode` on the next render, so
+   every build that shipped `'off'` persisted that out-of-vocabulary value into
+   the player's localStorage. Sanitizing only on write would have left those
+   players broken forever.
+   Measured on production at 375px, four sessions, no page errors: a direct
+   visit shows no clock at all; `?timer=blitz` starts at 7 and descends;
+   `?timer=standard` starts at 25 and descends; `?timer=off` shows no clock;
+   no run ever showed a number above 25; and a deliberately planted stale
+   `gma_timer='off'` read back as `'relaxed'` after the arena mounted. The
+   probed element measured 42x42 with a 10px radius in `rgb(239, 68, 68)` at
+   fontSize 21 — `CountdownTimer`'s compact plate exactly, so the probe was
+   reading the real component and not a coincidental integer.
+5. **Auto New Hand delay configurable.** DONE — `trainerConfig.autoAdvanceDelayMs`,
+   default 3s (GTOW's recommendation), doubled for an inaccuracy so a near-miss
+   gets more reading time. Shipped for real in `ea949c6f`; the earlier
+   "BUILT 2026-07-26" status was true of the component and FALSE of the route
+   the player actually reaches — see #9 for the vocabulary hole.
+   Screen-verified 2026-08-06 on production: under `speed=turbo` a good answer
+   advanced at 268ms measured from the click, and the same run's slower samples
+   (763-1023ms) are the same 250ms delay plus next-question fetch latency.
+6. **Feedback rule: every action vs only-after-mistake.** DONE —
    `trainerConfig.feedbackRule`: 'every' (never auto-advance), 'mistakes'
    (roll through best/correct, STOP on inaccuracy and worse), 'auto' (legacy).
-   Defaults to 'every'. Blunders never auto-advance under any rule.
+   Defaults to **'mistakes'** in both `SessionSetupModal.jsx` and
+   `GodModeArena.jsx` — an earlier revision of this line said 'every', which was
+   never true of the code. Blunders never auto-advance under any rule.
+   Shipped for real in `ea949c6f`. Two defects had to close first. The rule was
+   never forwarded to `/hub/training/multi-table` at all, so every multi-table
+   session ran the default regardless of what the player picked; and
+   `GodModeArena` ran its OWN auto-advance countdown that did not implement the
+   classification rules `UniversalDynamicTable` implements, so with both mounted
+   the earlier timeout won and a blunder's feedback was yanked off the felt.
+   Two implementations of the same behaviour will diverge — mirror, don't race.
+   Screen-verified 2026-08-06 on production, both halves:
+   under `feedbackRule=every`, three consecutive hands held their feedback for
+   the full 9-second window with `Next Hand` waiting; under
+   `feedbackRule=mistakes&speed=turbo`, nine good answers all advanced inside
+   1023ms while two BLUNDERs and one INACCURACY never advanced at all.
 7. **Hand selection: filter trivial / close decisions only.** DONE — shipped
    for real in `2e970a09` and screen-verified 2026-08-06 (the "Hand selection"
    legend plus all three pills render in SessionSetupModal, and picking
@@ -108,9 +153,21 @@ High/Low mode.
 8. **Board-texture targeting.** DONE — screen-verified 2026-08-06: the label
    renders and all seven chips are present (Any Board, Dry Rainbow, Monotone,
    Two-Tone, Paired, Connected, Broadway).
-9. **Game speed Normal / Fast / Turbo.** BUILT 2026-07-26 — chosen in
-   SessionSetupModal, passed through `initialConfig.speed`; the arena maps it
-   to the auto-advance delay (fast 1500ms, turbo 1ms). Verified in source.
+9. **Game speed Normal / Fast / Turbo.** DONE — chosen in SessionSetupModal,
+   passed through `initialConfig.speed`; the arena maps it to the auto-advance
+   delay (normal 3000ms, fast 1500ms, turbo **250ms**). An earlier revision of
+   this line said turbo was 1ms; the code has never used 1ms, and 250ms is the
+   right number anyway — a 1ms advance would tear the felt off screen before
+   the classification banner painted.
+   The "verified in source" status was the problem, not the shorthand. `speed`
+   never reached `/hub/training/multi-table`: the route built its own
+   `arenaInitialConfig` and simply did not carry the key, so the arena fell back
+   to `normal` and every Turbo session ran at 3s. Fixed in `ea949c6f` by
+   forwarding `speed` (and `feedbackRule`) through the route behind a
+   module-scope whitelist, so an unknown query value degrades to the default
+   rather than propagating a fourth vocabulary collision.
+   Screen-verified 2026-08-06 on production: `?speed=turbo` advanced a good
+   answer at 268ms measured from the click, against a 3000ms `normal` baseline.
 10. **Up to 4 simultaneous tables.** DONE — screen-verified 2026-08-06 on
     production with two tables actually running, which is the only evidence
     that counts here. Table one was on 3-BET POTS with board `[Ts 4s 5h]`
@@ -352,6 +409,42 @@ Highest user-visible damage first.
 
 **Rule for every item: change the status only after loading the screen.** Four
 items above were marked shipped by an audit that never opened the page.
+
+### What a screen check must probe (learned the hard way)
+
+Every one of these cost a wasted harness run, and every one of them made a
+working build look broken or a broken build look fine.
+
+1. **The action controls concatenate label and hotkey.** `textContent` for the
+   buttons is `"Check1"`, `"Bet2"`, `"Bet1"` — there is no separator and no word
+   boundary between "k" and "1", so `/^(CHECK|BET)\b/` matches nothing. Use
+   `/^(fold|check|call|bet|raise|all[- ]?in)\s*\d*$/i`.
+2. **The manual advance control reads `"Next Hand →SPACE"`,** so an anchored
+   exact match finds nothing. Prefix-match it.
+3. **The classification tier is not readable from `textContent`.** All five
+   title-case `CLASSIFICATION_CONFIG` labels sit permanently in the DOM because a
+   legend renders every tier, so a `textContent` scan reports every tier on every
+   hand. The VISIBLE tier is the feedback panel's uppercase heading in
+   `innerText`; `MISTAKE` needs a negative lookahead because the stat row already
+   reads `MISTAKES 0`.
+4. **"Question N of M" is NOT a valid advance observable.** A multi-street hand
+   is one question asked up to three times, and `advanceToNextStreet` deliberately
+   does not touch `questionNumber` — so a correct flop answer that auto-advances
+   to the turn leaves the counter frozen and the run records a phantom "answered
+   but never advanced". Key the decision off counter AND street AND prompt. This
+   is the same law that broke five `[questionNumber]` effects in source; it
+   applies to test harnesses too.
+5. **Zero-sized buttons are the phone layout's hidden second table.** At 375px
+   the inactive felt is `display: none` (see #10), so its controls measure
+   `0x0`. Skip anything under 20px — clicking those acts on a felt the player
+   cannot see.
+6. **Wait for the felt to CLEAR before answering.** A click landing while the
+   previous hand's feedback panel is still up is swallowed, and the tier read
+   afterwards belongs to the PREVIOUS answer.
+7. **Vary the action, or you will only ever measure one side.** Ten hands of
+   "take the first legal control" came back BEST MOVE ten times, leaving the
+   "a mistake must never auto-advance" half of #6 unmeasured. Alternating
+   passive/aggressive produced two blunders and an inaccuracy in twelve hands.
 
 ---
 
