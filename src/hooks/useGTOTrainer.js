@@ -770,8 +770,23 @@ export default function useGTOTrainer(
         frequencyDiff: moveResult.frequencyDiff,
         isRealData: moveResult.isRealData || false,
         handData: {
-          // Stable per-hand id so multi-street decisions count as ONE hand
-          handId: currentQuestion.id || `q_${level}_${questionNumber}`,
+          // Stable per-hand id so multi-street decisions count as ONE hand.
+          //
+          // roadmap #28a — this used to read `currentQuestion.id` first, which
+          // looks per-hand and is not. advanceToNextStreet replaces the whole
+          // question object (`setCurrentQuestion(nextQ)` with `nextQ =
+          // data.question` straight off /api/training/next-street), so the id
+          // changes on every street. useGTOWScore.recordMove increments
+          // handsPlayed whenever that key changes, so a 20-question session
+          // whose hands ran flop->turn->river counted 34 "hands" and divided
+          // total EV loss by 34 -- while the tile beside it printed
+          // totalQuestions (20). The screen showed -5.0 EV LOSS, 20 HANDS and
+          // -0.15 EV LOSS/HAND, which is not arithmetic anyone can follow.
+          //
+          // questionNumber is the ONLY counter that advances once per hand:
+          // nextQuestion increments it and advanceToNextStreet deliberately
+          // never touches it. Key off that and nothing else.
+          handId: `q_${level}_${questionNumber}`,
           heroCards: currentQuestion.heroCards || scenario.heroHand,
           board: scenario.board,
           heroPosition: scenario.heroPosition || scenario.position,

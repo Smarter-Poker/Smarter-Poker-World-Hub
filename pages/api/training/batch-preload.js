@@ -278,8 +278,22 @@ export default async function handler(req, res) {
                   }
               }
 
+              // roadmap #16 — a genuinely PREFLOP spot has no board, and that
+              // is not a gap to be filled. This handler used to fabricate three
+              // deterministic cards for ANY boardless non-psychology question
+              // (step 2 below), and then step 5's street backfill has no
+              // `preflop` branch, so zero real board cards fell through to
+              // 'river'. Net effect: every push/fold or open/3-bet drill was
+              // served to the felt as a river decision on an invented board,
+              // with the default 12bb pot. The felt-side preflop math
+              // (committedFor crediting posted blinds) was correct and simply
+              // unreachable. Read the declared street ONCE, here, and let it
+              // veto both fabrications.
+              const declaredStreet = String(scenario.street || qData.street || '').toLowerCase();
+              const isPreflop = declaredStreet === 'preflop';
+
               // 2. Ensure boardCards
-              if (!isPsych && (!qData.boardCards || !Array.isArray(qData.boardCards) || qData.boardCards.length === 0)) {
+              if (!isPsych && !isPreflop && (!qData.boardCards || !Array.isArray(qData.boardCards) || qData.boardCards.length === 0)) {
                   const boardStr = (scenario.board || '').replace(/\s+/g, '');
                   if (boardStr.length >= 6) {
                       const cards = [];
@@ -414,13 +428,21 @@ export default async function handler(req, res) {
               if (!isPsych) {
                   if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
                   if (!scenario.villainPosition) scenario.villainPosition = 'BB';
-                  if (!scenario.pot) scenario.pot = 12;
+                  // roadmap #16 — resolve the street BEFORE the pot default,
+                  // because the correct preflop pot (blinds only) is not the
+                  // postflop one. Zero board cards means preflop; it used to
+                  // fall through to 'river'.
+                  if (!scenario.street) {
+                      const n = Array.isArray(qData.boardCards) ? qData.boardCards.length : 0;
+                      scenario.street = n === 0 ? 'preflop'
+                          : n === 3 ? 'flop'
+                          : n === 4 ? 'turn' : 'river';
+                  }
+                  if (!scenario.pot) {
+                      scenario.pot = String(scenario.street).toLowerCase() === 'preflop' ? 1.5 : 12;
+                  }
                   if (!scenario.heroStack) scenario.heroStack = 100;
                   if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
-                  if (!scenario.street) {
-                      scenario.street = qData.boardCards?.length === 3 ? 'flop'
-                          : qData.boardCards?.length === 4 ? 'turn' : 'river';
-                  }
                   // ●●● SANITIZE: Clamp pot/stacks to prevent absurd values ●●●
                   // IMP-4 FIX: Raised from 50/300 to 500/500 — solver 3bet/4bet pots easily exceed 50BB
                   scenario.pot = Math.min(Math.max(scenario.pot || 0, 0), 500);

@@ -181,6 +181,58 @@ check('the POT pill matches the chips in a multi-action 3-bet pot', () => {
     return (pot === 17.5 && chips === 17.5) || 'pot=' + pot + ' chips=' + chips;
 });
 
+// ---------------------------------------------------------------------------
+// roadmap #16 -- batch-preload.js now stamps a boardless spot as preflop with a
+// default pot of 1.5 instead of fabricating a flop and calling it a river.
+// computeDisplayPot must not let that 1.5 outrank the real chips on the felt.
+// ---------------------------------------------------------------------------
+
+check('#16 preflop: a defaulted 1.5bb pot loses to the real committed chips', () => {
+    const actions = [
+        { position: 'UTG', action: 'RAISE', amount: 2.5 },
+        { position: 'BB', action: 'CALL', amount: 2.5 },
+    ];
+    const pot = computeDisplayPot({
+        scenarioPot: 1.5, streetLabel: 'PREFLOP', seats: SEATS9, actionHistory: actions,
+    });
+    // UTG 2.5 + BB 2.5 + SB 0.5 = 5.5; the stale 1.5 must not win.
+    return pot === 5.5 || 'got ' + pot;
+});
+
+check('#16 preflop: the defaulted 1.5bb survives when nobody has acted', () => {
+    const pot = computeDisplayPot({
+        scenarioPot: 1.5, streetLabel: 'PREFLOP', seats: SEATS9, actionHistory: [],
+    });
+    return pot === 1.5 || 'got ' + pot;
+});
+
+check('#16 preflop: an explicit pot LARGER than the chips still wins', () => {
+    const actions = [{ position: 'BTN', action: 'RAISE', amount: 2 }];
+    const pot = computeDisplayPot({
+        scenarioPot: 40, streetLabel: 'PREFLOP', seats: SEATS9, actionHistory: actions,
+    });
+    return pot === 40 || 'got ' + pot;
+});
+
+check('#16 postflop: explicit ALWAYS wins -- committed covers this street only', () => {
+    const actions = [{ position: 'BTN', action: 'BET', amount: 3 }];
+    const pot = computeDisplayPot({
+        scenarioPot: 12, streetLabel: 'FLOP', seats: SEATS9, actionHistory: actions,
+    });
+    return pot === 12 || 'got ' + pot;
+});
+
+check('#16 postflop: no explicit pot still falls back to the committed sum', () => {
+    const actions = [
+        { position: 'BTN', action: 'BET', amount: 3 },
+        { position: 'BB', action: 'CALL', amount: 3 },
+    ];
+    const pot = computeDisplayPot({
+        scenarioPot: 0, streetLabel: 'FLOP', seats: SEATS9, actionHistory: actions,
+    });
+    return pot === 6 || 'got ' + pot;
+});
+
 console.log('\n---------------------------------------------');
 console.log('PASS ' + PASS + '   FAIL ' + FAIL + '   TOTAL ' + (PASS + FAIL));
 process.exit(FAIL > 0 ? 1 : 0);

@@ -92,12 +92,25 @@ export function totalCommitted(seats, actionHistory, isPreflop) {
  * 2.5bb chip stack drawn on the felt right next to it -- showed a pot of 1.5bb.
  * Sum what is actually in front of the seats instead; fall back to the blinds
  * only when nobody has acted.
+ *
+ * roadmap #16 addendum: PREFLOP takes the MAX of the explicit pot and the
+ * committed sum rather than letting explicit win outright. Postflop, explicit
+ * must win -- the committed sum only covers the CURRENT street, so trusting it
+ * would silently drop every earlier street's money. Preflop there is no earlier
+ * street, so the committed sum is complete by construction and can only be an
+ * improvement on a stale or defaulted `pot` field. batch-preload.js now stamps
+ * a boardless spot with `street: 'preflop'` and `pot: 1.5`; a spot where UTG
+ * has already opened to 2.5 must not keep showing 1.5, or every "EV loss as a
+ * percentage of pot" readout divides by the wrong number.
  */
 export function computeDisplayPot({ scenarioPot, streetLabel, seats, actionHistory }) {
     const explicit = Number(scenarioPot) || 0;
-    if (explicit > 0) return explicit;
     const isPreflop = streetLabel === 'PREFLOP';
+    if (explicit > 0 && !isPreflop) return explicit;
     const committed = totalCommitted(seats, actionHistory, isPreflop);
+    if (isPreflop && explicit > 0) {
+        return Math.max(explicit, Math.round(committed * 10) / 10);
+    }
     // One decimal: blinds are halves, bet sizings are quarters at worst, and a
     // float sum of 0.5 + 1 + 2.5 must not render as 3.9999999999999996.
     if (committed > 0) return Math.round(committed * 10) / 10;
