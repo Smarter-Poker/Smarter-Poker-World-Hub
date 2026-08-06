@@ -59,16 +59,28 @@ High/Low mode.
    had to fill in difficulty/timer/mode on two consecutive screens.
 2. **Setup choices are honoured.** DONE — `handleSetupStart` literally
    discarded its own prefs, so the arena fell back to defaults.
-3. **Game Mode: Full Hand / Spot / Street.** BUILT 2026-07-26 —
+3. **Game Mode: Full Hand / Spot / Street.** DONE — screen-verified 2026-08-06:
+   the Game Mode control renders in SessionSetupModal and the pick round-trips
+   into session prefs.
    `trainerConfig.gameMode`. We only ever played Full Hand: ANY flop or turn
    question silently began a multi-street hand, so isolated decisions could not
    be drilled at all. Now 'full' continues across streets (unchanged default),
    'spot' plays exactly one decision per hand, and 'street' additionally
    restricts the queue to `trainerConfig.targetStreet`. Street filter
    unit-tested including the never-empty fallback.
-4. **Timebank 7 / 15 / 25s.** BUILT 2026-07-26 — re-scaled to No timer /
-   25s / 15s / 7s across the setup modal and both in-arena pickers. Ours had
-   'Standard' at 60s, four times GTOW's longest tier.
+4. **Timebank 7 / 15 / 25s.** DONE — re-scaled to No timer / 25s / 15s / 7s
+   across the setup modal and both in-arena pickers. Ours had 'Standard' at
+   60s, four times GTOW's longest tier.
+   Screen-verified 2026-08-06 by polling the clock plate itself at 800ms
+   through a live Blitz session. Two lessons are worth keeping.
+   (a) A text scan could never have verified this: `variant="plate"` renders a
+   BARE number, so every earlier `/\d{1,2}s/` probe found nothing and the item
+   sat "unverified" for weeks. Probe the ELEMENT (computed colour, parent
+   rect), and if it is time-varying, POLL it — a single late sample cannot
+   tell "broken" apart from "already expired".
+   (b) The poll then found a real defect: the clock re-armed on the turn but
+   the hand HUNG there, because expiry auto-submits only when
+   `!selectedAnswer` and that still held the flop's answer. See #49.
 5. **Auto New Hand delay configurable.** BUILT 2026-07-26 —
    `trainerConfig.autoAdvanceDelayMs`, default 3s (GTOW's recommendation),
    doubled for an inaccuracy so a near-miss gets more reading time.
@@ -76,15 +88,26 @@ High/Low mode.
    `trainerConfig.feedbackRule`: 'every' (never auto-advance), 'mistakes'
    (roll through best/correct, STOP on inaccuracy and worse), 'auto' (legacy).
    Defaults to 'every'. Blunders never auto-advance under any rule.
-7. **Hand selection: filter trivial / close decisions only.** BUILT
-   2026-07-26 — `trainerConfig.handSelection`: 'all', 'no-trivial' (drops
+7. **Hand selection: filter trivial / close decisions only.** DONE — shipped
+   for real in `2e970a09` and screen-verified 2026-08-06 (the "Hand selection"
+   legend plus all three pills render in SessionSetupModal, and picking
+   "Close only" round-trips as `handSelection:"close"` into session prefs).
+   The earlier "BUILT 2026-07-26" status on this item was FALSE: only the
+   engine half existed. The filter was implemented and unit-tested, but no
+   control in any UI ever set `trainerConfig.handSelection`, so the player
+   could not reach it and it ran as 'all' in every session. This is exactly
+   the failure the Part C rule below exists to catch — a passing unit test is
+   not a loaded screen.
+   `trainerConfig.handSelection`: 'all', 'no-trivial' (drops
    spots whose top action is >=95%, i.e. being told to fold 72o), 'close'
    (keeps only spots where the top two actions are within 20 points -- the
    ones that actually decide winrate). Applied once to the preloaded batch, so
    it costs nothing per hand, and it never returns an empty queue: if a filter
    would strand the player it serves the unfiltered set. Unit-tested across all
    three modes plus the empty guard.
-8. **Board-texture targeting.** BUILT via the config modal; unverified.
+8. **Board-texture targeting.** DONE — screen-verified 2026-08-06: the label
+   renders and all seven chips are present (Any Board, Dry Rainbow, Monotone,
+   Two-Tone, Paired, Connected, Broadway).
 9. **Game speed Normal / Fast / Turbo.** BUILT 2026-07-26 — chosen in
    SessionSetupModal, passed through `initialConfig.speed`; the arena maps it
    to the auto-advance delay (fast 1500ms, turbo 1ms). Verified in source.
@@ -180,8 +203,16 @@ High/Low mode.
 
 ### RNG
 
-38. **Dice 1-100 with High/Low.** BUILT — toggle exists; behavioural parity
-    (best action changing with the roll) unverified.
+38. **Dice 1-100 with High/Low.** DONE — behavioural parity confirmed in
+    source and closed in `2154080c`: `rngTargetAction` resolves the roll
+    against the cumulative frequency ranges, `effectiveCorrectAnswer` becomes
+    that action while RNG is on, and the answer handler grades against it
+    (`gradedAgainst = rngMeta.rngTargetActionId`). The roll therefore changes
+    the correct answer, which is the whole point of the mode.
+    Corrected 2026-08-06: the roll was keyed on `questionNumber`, so on a
+    multi-street hand the turn and river reused the flop's number — the same
+    die graded against a different street's ranges. Now keyed per decision.
+    See #49.
 
 ### Reporting
 
@@ -200,8 +231,10 @@ High/Low mode.
     dashboard was cyan; both fed the same `sp-*` classes.
 46. **Numerals render in the intended face.** DONE — `font-family:'Orbitron'`
     never resolves under `next/font`.
-47. **Page scrolls.** BUILT 2026-07-26 — two defences, still awaiting one
-    on-screen confirmation before this becomes DONE.
+47. **Page scrolls.** DONE — the on-screen confirmation this was waiting for
+    landed 2026-08-06: `/hub/training` scrolls after an arena session has been
+    mounted and exited, which is the sequence that used to strand it. Two
+    defences.
     (a) `GodModeArena`'s body scroll lock was capture-and-restore: it saved
     `document.body.style.overflow` at mount and wrote that value back on
     unmount, so mounting while the body was already locked restored 'hidden'
@@ -214,7 +247,37 @@ High/Low mode.
     it never fights a live locker and never touches a clean page.
     Note the earlier claim that a lock added to `GodModeArena` fixed this item
     was addressing the ARENA; #47 is about the library page.
-48. **375px layout.** GAP — unverified since the changes.
+48. **375px layout.** DONE — measured at 375x812, two waves.
+    Wave 1 (`bd0d8fd6`) fixed seven measured collisions. Wave 2 (`c3466575`)
+    fixed the two that wave 1 introduced or missed: hero's hole cards were
+    rendering 7px wide, and the POT pill sat on top of the board cards.
+    Both re-measured clear afterwards; hero's cards now render full size
+    beside the nameplate, as the reference template shows them.
+    Two laws came out of this and are worth obeying elsewhere.
+    (a) An absolutely-positioned box at `left: 100%` has a shrink-to-fit
+    available width of exactly ZERO, so flex children inside it collapse to
+    their minimum. That is what made the hole cards 7px. Fix is
+    `width: 'max-content'` on the container plus `flexShrink: 0` on each child.
+    (b) Never position an element by its CENTRE if that requires predicting
+    its own height from constants that must stay in sync with markup
+    elsewhere. Anchor the EDGE instead.
+
+49. **A street is a decision.** DONE 2026-08-06 — found by polling production,
+    not by reading source. A multi-street hand is ONE question asked up to
+    three times, and `questionNumber` advances once per HAND; the continuation
+    path in `useGTOTrainer` sets the question and the street but deliberately
+    never touches it. Four effects in `UniversalDynamicTable` were keyed on
+    `questionNumber` alone and so silently skipped every street after the flop:
+    the countdown never re-armed; `selectedAnswer` kept the flop's answer,
+    which blocked the answer handler, hid the action block, highlighted the
+    wrong option and stopped timer expiry from auto-submitting (the hand hung
+    with a dead 0 on the clock); the speed-bonus start time never reset, so
+    `elapsed < 5` was unreachable and no bonus could be earned past the flop;
+    and the RNG die was not re-rolled. All four now key on one `decisionKey`
+    of hand:street:question. `ARENA_HAND_LOADED` stays per-hand.
+    The generalisable point: when one counter means "hand" and another means
+    "decision", every effect has to say which it wants. Grep
+    `\[questionNumber\]` before adding a fifth.
 
 ---
 

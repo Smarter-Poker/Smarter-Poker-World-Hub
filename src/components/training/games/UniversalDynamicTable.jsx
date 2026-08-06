@@ -977,6 +977,14 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
 
     if (!active || showFeedback) return null;
 
+    // A clock at 0 is not a clock. Once it has run out the decision is over --
+    // expiry auto-submits -- and the only thing a lingering 0 can do is claim
+    // the player is on the clock for a decision that has already been graded.
+    // Measured on production: after the flop's feedback closed, the felt sat
+    // for fifteen seconds showing the previous decision with a dead 0 on the
+    // plate while the next street loaded. Show nothing until the clock re-arms.
+    if (timeLeft <= 0) return null;
+
     const progress = timeLeft / seconds;
     const dashOffset = circumference * (1 - progress);
     const color = timeLeft > 30 ? 'var(--sp-accent-green)' : timeLeft > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
@@ -1995,17 +2003,41 @@ function UniversalDynamicTable({
         }
     }, [question, showFeedback]);
 
+    // ONE DECISION, ONE KEY.
+    //
+    // A multi-street hand is a single question asked up to three times: flop,
+    // then turn, then river. `questionNumber` advances once per HAND (see the
+    // "questionNumber only advances once per hand" note in useGTOTrainer) and
+    // the continuation path there calls setCurrentQuestion/setCurrentStreet
+    // WITHOUT touching it. So anything keyed on `questionNumber` alone silently
+    // skips every street after the first.
+    //
+    // Measured on production (Blitz 7s, Preflop Blueprint): on the turn of a
+    // hand the clock re-armed but expiry never auto-submitted, because
+    // `selectedAnswer` still held the flop's answer and the expiry handler is
+    // guarded on `!selectedAnswer`. The hand sat there with a dead 0 on the
+    // plate and no way to act.
+    //
+    // This key changes on every DECISION -- new hand or new street -- and is
+    // the single reset signal for every per-decision effect below.
+    const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
+
     // RNG MODE: Roll BEFORE each decision (GTO Wizard style)
     // The player sees the number and must pick the action whose cumulative
     // frequency range includes that number. e.g., Check 62% = 1-62, Bet 38% = 63-100
+    //
+    // Keyed on the DECISION, not the hand: GTOW rolls once per decision, and
+    // keyed on questionNumber the turn and river of a multi-street hand
+    // inherited the flop's roll -- the same number graded against a different
+    // street's frequency ranges.
     useEffect(() => {
         if (rngMode && !showFeedback && questionNumber) {
-            // Generate a new roll for each question
+            // Generate a new roll for each decision
             setRngRoll(Math.floor(Math.random() * 100) + 1);
         } else if (!rngMode) {
             setRngRoll(null);
         }
-    }, [rngMode, questionNumber, showFeedback]);
+    }, [rngMode, decisionKey, questionNumber, showFeedback]);
 
     // Phase 3: EV popup on answer
     useEffect(() => {
@@ -2067,25 +2099,6 @@ function UniversalDynamicTable({
         }
         prevStreakRef.current = streak;
     }, [streak]);
-
-    // ONE DECISION, ONE KEY.
-    //
-    // A multi-street hand is a single question asked up to three times: flop,
-    // then turn, then river. `questionNumber` advances once per HAND (see the
-    // "questionNumber only advances once per hand" note in useGTOTrainer) and
-    // the continuation path there calls setCurrentQuestion/setCurrentStreet
-    // WITHOUT touching it. So anything keyed on `questionNumber` alone silently
-    // skips every street after the first.
-    //
-    // Measured on production (Blitz 7s, Preflop Blueprint): on the turn of a
-    // hand the clock re-armed but expiry never auto-submitted, because
-    // `selectedAnswer` still held the flop's answer and the expiry handler is
-    // guarded on `!selectedAnswer`. The hand sat there with a dead 0 on the
-    // plate and no way to act.
-    //
-    // This key changes on every DECISION -- new hand or new street -- and is
-    // the single reset signal for all per-decision state below.
-    const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
 
     // Speed tracking: restart the clock on every new decision. Keyed on the
     // hand alone this held the flop's start time through the turn and river,
