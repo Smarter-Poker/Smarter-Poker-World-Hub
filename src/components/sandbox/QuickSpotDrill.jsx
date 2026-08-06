@@ -192,7 +192,7 @@ function ensureAnswerable(q) {
     return { ...q, options: shuffle(repaired.slice(0, 4)), correct_answer: correct };
 }
 
-export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = null }) {
+export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = null, reviewEvLossBB = null }) {
     const reduce = usePrefersReducedMotion();
 
     const [questions, setQuestions] = useState([]);
@@ -343,10 +343,17 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
             const token = getAccessToken();
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers.Authorization = `Bearer ${token}`;
+            // The leak's current measured EV cost (from detection, via the
+            // Leak Finder) rides along when known. The SERVER diffs it against
+            // the measurement stored at the previous review to produce
+            // evDelta — the client never computes or sends a delta itself.
+            const evLossBB = Number(reviewEvLossBB);
+            const outcome = { correct, total };
+            if (Number.isFinite(evLossBB) && evLossBB >= 0) outcome.evLossBB = evLossBB;
             const res = await fetch('/api/assistant/leaks/review', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ leakId: reviewLeakId, outcome: { correct, total } }),
+                body: JSON.stringify({ leakId: reviewLeakId, outcome }),
             });
             const ct = res.headers.get('content-type') || '';
             if (ct.includes('application/json')) {
@@ -411,7 +418,7 @@ export default function QuickSpotDrill({ onClose, customParams, reviewLeakId = n
                 detail: { leakId: String(reviewLeakId), intervalDays: record.intervalDays, persisted },
             }));
         }
-    }, [reviewLeakId]);
+    }, [reviewLeakId, reviewEvLossBB]);
 
     const retryReview = useCallback(() => {
         const last = lastOutcomeRef.current;
