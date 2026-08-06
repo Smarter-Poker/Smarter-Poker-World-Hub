@@ -70,8 +70,22 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
-          const { period: rawPeriod = 'all' } = req.query;
+          const { period: rawPeriod = 'all', gameId: rawGameId = '' } = req.query;
           const period = ['week', 'month', 'all'].includes(rawPeriod) ? rawPeriod : 'all';
+          // GTOW parity #39 — stats broken out by format as well as by date.
+          // game_id was already being SELECTed here and then thrown away: the
+          // route grouped everything a player had ever done into one number, so
+          // a cash-game leak and a tournament leak averaged each other out and
+          // neither was visible. `gameId` narrows the whole report to one
+          // format; `byFormat` below reports every format side by side.
+          //
+          // Deliberately not whitelisted against a catalog: there is no game-id
+          // catalog in the repo, ids are created by whatever trainer wrote the
+          // session, and this value is only ever used as an equality filter on
+          // rows already scoped to `user_id`, so an unknown id yields an empty
+          // report rather than anything unsafe. Bound the length so a huge
+          // query string cannot be pushed into the database layer.
+          const gameId = typeof rawGameId === 'string' ? rawGameId.slice(0, 64).trim() : '';
           // BUG FIX: was reading userId from query — IDOR; use JWT identity
           const userId = user.id;
 
@@ -91,12 +105,21 @@ export default async function handler(req, res) {
               // classification_breakdown are not columns on training_sessions. The
               // real ones are hands_played / correct_count / classification_counts,
               // so this select errored and the whole reports page returned 500.
-              .select('id, game_id, accuracy, hands_played, correct_count, position_stats, classification_counts, hand_history, created_at')
+              // #39 adds game_name (format label — there is no game-id catalog
+              // to look one up from), gtow_score + score_scale (the signed
+              // -100..+100 scale shipped in roadmap #25 must be identified as
+              // such before it can be averaged with anything), level and the
+              // EV-loss columns. All are needed by the `sessions` array the
+              // reports page has always tried to read and never received.
+              .select('id, game_id, game_name, gtow_score, score_scale, level, accuracy, hands_played, correct_count, mistake_count, total_ev_loss, avg_ev_loss_per_hand, position_stats, classification_counts, hand_history, created_at')
               .eq('user_id', userId)
               .order('created_at', { ascending: false });
 
           if (dateFilter) {
               query = query.gte('created_at', dateFilter);
+          }
+          if (gameId) {
+              query = query.eq('game_id', gameId);
           }
 
           const { data: sessions, error } = await query.limit(500);
@@ -144,6 +167,135 @@ export default async function handler(req, res) {
                   });
               }
           });
+
+          // ═══════════════════════════════════════════════════════════════
+          // GTOW parity #39 — breakdowns by format and by date
+          // ═══════════════════════════════════════════════════════════════
+          // Two scales of gtow_score exist in this table. Rows written before
+          // roadmap #25 hold 0..100; rows written since hold the signed
+          // -100..+100 GTOW scale and say so with score_scale = 2. Averaging
+          // them raw would silently drag every historical average downward the
+          // moment a signed row appeared. Everything downstream of this route
+          // (calculateTrends, identifyLeaks, the LeakDetector thresholds at 70
+          // / 60 / 50) is written against 0..100, so normalise onto that scale
+          // here rather than teaching four consumers about two scales.
+          const toUnitScore = (row) => {
+              const raw = Number(row?.gtow_score);
+              if (!Number.isFinite(raw)) {
+                  // No score recorded: fall back to accuracy, which every
+                  // session has, rather than emitting a 0 that reads as a
+                  // catastrophic session in the trend line.
+                  const acc = Number(row?.accuracy);
+                  return Number.isFinite(acc) ? Math.max(0, Math.min(100, acc)) : 0;
+              }
+              const unit = Number(row?.score_scale) === 2 ? (raw + 100) / 2 : raw;
+              return Math.max(0, Math.min(100, Math.round(unit)));
+          };
+
+          // Per-format aggregation. Keyed on game_id because that is the stable
+          // identifier; game_name is carried alongside purely as a display
+          // label, and the most recent non-empty one wins because sessions are
+          // ordered newest-first and a game may have been renamed.
+          const formatAgg = {};
+          // Per-day aggregation, keyed on the UTC calendar day of created_at.
+          const dateAgg = {};
+
+          (sessions || []).forEach(session => {
+              const hands = session.hands_played || 0;
+              const correct = session.correct_count || 0;
+              const blunders = (session.classification_counts && session.classification_counts.blunder) || 0;
+              const evLoss = Number(session.total_ev_loss) || 0;
+              const unitScore = toUnitScore(session);
+
+              const fid = session.game_id || 'unknown';
+              if (!formatAgg[fid]) {
+                  formatAgg[fid] = {
+                      gameId: fid,
+                      gameName: session.game_name || fid,
+                      sessions: 0, hands: 0, correct: 0, blunders: 0,
+                      evLoss: 0, scoreSum: 0, lastPlayed: session.created_at || null,
+                  };
+              }
+              const f = formatAgg[fid];
+              if (!f.gameName || f.gameName === fid) f.gameName = session.game_name || f.gameName;
+              f.sessions += 1;
+              f.hands += hands;
+              f.correct += correct;
+              f.blunders += blunders;
+              f.evLoss += evLoss;
+              f.scoreSum += unitScore;
+
+              const day = typeof session.created_at === 'string' ? session.created_at.slice(0, 10) : null;
+              if (day) {
+                  if (!dateAgg[day]) {
+                      dateAgg[day] = { date: day, sessions: 0, hands: 0, correct: 0, blunders: 0, evLoss: 0, scoreSum: 0 };
+                  }
+                  const d = dateAgg[day];
+                  d.sessions += 1;
+                  d.hands += hands;
+                  d.correct += correct;
+                  d.blunders += blunders;
+                  d.evLoss += evLoss;
+                  d.scoreSum += unitScore;
+              }
+          });
+
+          const byFormat = Object.values(formatAgg)
+              .map(f => ({
+                  gameId: f.gameId,
+                  gameName: f.gameName,
+                  sessions: f.sessions,
+                  hands: f.hands,
+                  correct: f.correct,
+                  blunders: f.blunders,
+                  accuracy: f.hands > 0 ? Math.round((f.correct / f.hands) * 100) : 0,
+                  avgScore: f.sessions > 0 ? Math.round(f.scoreSum / f.sessions) : 0,
+                  avgEvLoss: f.hands > 0 ? Number((f.evLoss / f.hands).toFixed(2)) : 0,
+                  lastPlayed: f.lastPlayed,
+              }))
+              // Most-played first: the format a player has the most data in is
+              // the one whose numbers actually mean something.
+              .sort((a, b) => b.hands - a.hands || b.sessions - a.sessions);
+
+          // Ascending by date so the client can render a series without
+          // re-sorting, matching calculateTrends' own convention.
+          const byDate = Object.values(dateAgg)
+              .map(d => ({
+                  date: d.date,
+                  sessions: d.sessions,
+                  hands: d.hands,
+                  correct: d.correct,
+                  blunders: d.blunders,
+                  accuracy: d.hands > 0 ? Math.round((d.correct / d.hands) * 100) : 0,
+                  avgScore: d.sessions > 0 ? Math.round(d.scoreSum / d.sessions) : 0,
+                  avgEvLoss: d.hands > 0 ? Number((d.evLoss / d.hands).toFixed(2)) : 0,
+              }))
+              .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+          // The format selector must keep offering every format the player has
+          // data in, including while the report is narrowed to one of them —
+          // otherwise choosing a format destroys the means of choosing another.
+          // Scoped to the same period as the report so the list never offers a
+          // format that would return an empty report.
+          let availableFormats = byFormat.map(f => ({ gameId: f.gameId, gameName: f.gameName, sessions: f.sessions }));
+          if (gameId) {
+              let fq = getSupabase()
+                  .from('training_sessions')
+                  .select('game_id, game_name')
+                  .eq('user_id', userId)
+                  .order('created_at', { ascending: false });
+              if (dateFilter) fq = fq.gte('created_at', dateFilter);
+              const { data: allRows, error: fErr } = await fq.limit(500);
+              if (!fErr && Array.isArray(allRows)) {
+                  const seen = {};
+                  allRows.forEach(r => {
+                      const k = r.game_id || 'unknown';
+                      if (!seen[k]) seen[k] = { gameId: k, gameName: r.game_name || k, sessions: 0 };
+                      seen[k].sessions += 1;
+                  });
+                  availableFormats = Object.values(seen).sort((a, b) => b.sessions - a.sessions);
+              }
+          }
 
           // ♠ Scorecard Stat Calculation (VPIP, PFR, 3Bet)
           let totalPreflopHands = 0;
@@ -230,10 +382,54 @@ export default async function handler(req, res) {
           const avgDeviation = positionsWithData > 0 ? (totalDeviation / positionsWithData) : 0;
           const gtoProximityScore = positionsWithData > 0 ? Math.max(0, Math.round(100 - avgDeviation)) : 0;
 
+          // ═══════════════════════════════════════════════════════════════
+          // The `sessions` array the reports page has always tried to read
+          // ═══════════════════════════════════════════════════════════════
+          // pages/hub/training/reports.js gates ALL of its trend and leak
+          // enrichment on `data.report?.sessions` being an array. This route
+          // has never returned that key, so calculateTrends, identifyLeaks,
+          // detectLeaks and generateDrillRecommendations have been imported,
+          // bundled and never executed — the page's entire "what should I work
+          // on" half was dead. Emit it, shaped to what those functions read
+          // (completed_at / gto_score / ev_loss_avg / hands_played / level /
+          // breakdown_blunder) rather than to the raw column names, since two
+          // of those consumers are also fed by localStorage records that use
+          // this shape.
+          const sessionSeries = (sessions || []).map(s => ({
+              id: s.id,
+              completed_at: s.created_at,
+              game_id: s.game_id || 'unknown',
+              game_name: s.game_name || s.game_id || 'unknown',
+              gto_score: toUnitScore(s),
+              ev_loss_avg: Number(s.avg_ev_loss_per_hand) || 0,
+              hands_played: s.hands_played || 0,
+              // identifyLeaks buckets by `level` and parseInt()s it; sessions
+              // saved without one default to 1, matching save-session.js.
+              level: s.level || 1,
+              breakdown_blunder: (s.classification_counts && s.classification_counts.blunder) || 0,
+          }));
+
+          // detectLeaks() reads report.positionStats ({decisions, accuracy}),
+          // report.gtoScore and report.totalDecisions — none of which existed
+          // under those names, so every one of its checks was skipped. These
+          // are views over the numbers already computed above, not new maths.
+          const positionStats = {};
+          Object.entries(positionReport || {}).forEach(([pos, data]) => {
+              positionStats[pos] = { decisions: data.total, accuracy: data.accuracy };
+          });
+
           return res.status(200).json({
               success: true,
               report: {
                   period,
+                  gameId: gameId || null,
+                  byFormat,
+                  byDate,
+                  availableFormats,
+                  sessions: sessionSeries,
+                  positionStats,
+                  gtoScore: overallAccuracy,
+                  totalDecisions: totalQuestions,
                   totalSessions,
                   totalQuestions,
                   totalCorrect,

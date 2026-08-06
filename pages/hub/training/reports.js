@@ -209,6 +209,11 @@ export default function GTOReports() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
+  // GTOW parity #39 — the report is filterable by format as well as by date.
+  // Persisted on its own key rather than folded into the period key so that
+  // changing one filter cannot silently reset the other on reload.
+  // '' means every format, which is what the API does when gameId is absent.
+  const [gameId, setGameId] = usePersistedState('sp-filters-training-reports-format', '');
   const [userId, setUserId] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
@@ -234,7 +239,9 @@ export default function GTOReports() {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`);
+      const res = await authedFetch(
+        `/api/training/gto-reports?userId=${userId}&period=${period}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`
+      );
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -265,7 +272,7 @@ export default function GTOReports() {
     } finally {
       setLoading(false);
     }
-  }, [userId, period]);
+  }, [userId, period, gameId]);
 
   useEffect(() => {
     if (userId) fetchReport();
@@ -379,6 +386,41 @@ export default function GTOReports() {
               </button>
             ))}
           </div>
+
+          {/* Format Selector (GTOW parity #39).
+              Only rendered once the report has come back with more than one
+              format in it — with a single format the control would be a
+              one-option chooser that can only ever say what the page already
+              says, and on a brand-new account it would be an empty row. */}
+          {Array.isArray(report?.availableFormats) && report.availableFormats.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {[{ gameId: '', gameName: 'All Formats' }, ...report.availableFormats].map((f) => (
+                <button
+                  key={f.gameId || 'all'}
+                  type="button"
+                  aria-pressed={gameId === f.gameId}
+                  aria-label={`Show ${f.gameName}`}
+                  onClick={() => setGameId(f.gameId)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: 'none',
+                    transition: 'all 0.2s',
+                    background:
+                      gameId === f.gameId
+                        ? 'rgba(var(--sp-accent-cyan-rgb), 0.85)'
+                        : 'rgba(255,255,255,0.06)',
+                    color: gameId === f.gameId ? '#04121a' : 'var(--sp-fg-muted)',
+                  }}
+                >
+                  {f.gameName}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -650,6 +692,127 @@ export default function GTOReports() {
                     </div>
                   ))}
                 </div>
+
+                {/* Performance by Format (GTOW parity #39).
+                    Suppressed when there is only one format, where a
+                    single-row "breakdown" repeats the headline numbers. */}
+                {Array.isArray(report.byFormat) && report.byFormat.length > 1 && (
+                  <div
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: 12,
+                      padding: 16,
+                      marginTop: 24,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: 'var(--sp-fg-muted)',
+                        letterSpacing: 1.2,
+                        textTransform: 'uppercase',
+                        marginBottom: 12,
+                      }}
+                    >
+                      Performance by Format
+                    </div>
+                    {/* Rows rather than a table: at 375px a four-column table
+                        either overflows or shrinks the numbers past reading
+                        size. Labels are carried per-value so the layout can
+                        wrap without the values losing their meaning. */}
+                    {report.byFormat.map((f) => (
+                      <div
+                        key={f.gameId}
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'baseline',
+                          gap: 10,
+                          padding: '8px 0',
+                          borderTop: '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <div style={{ flex: '1 1 120px', minWidth: 0, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
+                          {f.gameName}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                          {f.hands} hands
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                          Score <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgScore}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                          Acc <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.accuracy}%</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+                          EV loss <span style={{ color: 'var(--sp-fg)', fontWeight: 700 }}>{f.avgEvLoss}</span>bb
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Daily Trend (GTOW parity #39).
+                    Needs at least two days to be a trend rather than a dot. */}
+                {Array.isArray(report.byDate) && report.byDate.length > 1 && (() => {
+                  const days = report.byDate.slice(-30);
+                  const maxHands = Math.max(...days.map((d) => d.hands), 1);
+                  return (
+                    <div
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: 12,
+                        padding: 16,
+                        marginTop: 24,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: 'var(--sp-fg-muted)',
+                          letterSpacing: 1.2,
+                          textTransform: 'uppercase',
+                          marginBottom: 12,
+                        }}
+                      >
+                        Daily Trend
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90 }}>
+                        {days.map((d) => (
+                          <div
+                            key={d.date}
+                            title={`${d.date} - score ${d.avgScore}, ${d.hands} hands, ${d.accuracy}% accuracy`}
+                            style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}
+                          >
+                            {/* Bar height encodes the score, opacity encodes
+                                volume: a 90-score day off two hands should not
+                                look as solid as a 90-score day off two hundred. */}
+                            <div
+                              style={{
+                                height: `${Math.max(3, d.avgScore)}%`,
+                                borderRadius: '3px 3px 0 0',
+                                background: d.avgScore >= 70
+                                  ? 'rgba(74,222,128,0.9)'
+                                  : d.avgScore >= 50
+                                    ? 'rgba(251,191,36,0.9)'
+                                    : 'rgba(248,113,113,0.9)',
+                                opacity: 0.35 + 0.65 * (d.hands / maxHands),
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+                        <span>{days[0].date}</span>
+                        <span>{days[days.length - 1].date}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* ♠ GTO Scorecard: VPIP / PFR / 3Bet deviations */}
                 {report.scorecardStats && report.scorecardStats.totalAnalyzed > 0 && (
