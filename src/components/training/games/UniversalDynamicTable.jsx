@@ -1533,6 +1533,7 @@ function UniversalDynamicTable({
     // Multi-street props
     isMultiStreetActive = false,    // Whether we're mid-hand across streets
     currentStreet = 'flop',         // Current street: 'flop', 'turn', 'river'
+    dealingNextStreet = false,      // Waiting on /api/training/next-street
     handSummary = null,             // End-of-hand summary from MultiStreetHandManager
     // Quit/Back
     onExit = null,                  // Called when user clicks Quit
@@ -2021,6 +2022,26 @@ function UniversalDynamicTable({
     // This key changes on every DECISION -- new hand or new street -- and is
     // the single reset signal for every per-decision effect below.
     const decisionKey = `${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`;
+
+    // TELL THE PLAYER THE DECK IS WORKING.
+    //
+    // Between the flop and the turn the trainer waits on
+    // /api/training/next-street. Measured on production that wait was 17.4s
+    // (the route ran a leading-wildcard ILIKE across an 8M-row table -- fixed
+    // by idx_ssg_next_street) and NOTHING on the felt changed for its whole
+    // duration: the previous, already-graded decision just sat there. GTOW
+    // never leaves the table silent across a street boundary.
+    //
+    // Gated behind a short delay on purpose. With the index in place the deal
+    // is usually quick, and an indicator that flashes for 200ms is worse than
+    // no indicator at all -- so this only appears once the wait is long enough
+    // that a player would otherwise wonder whether the app had stalled.
+    const [showDealing, setShowDealing] = React.useState(false);
+    useEffect(() => {
+        if (!dealingNextStreet) { setShowDealing(false); return undefined; }
+        const t = setTimeout(() => setShowDealing(true), 450);
+        return () => clearTimeout(t);
+    }, [dealingNextStreet]);
 
     // RNG MODE: Roll BEFORE each decision (GTO Wizard style)
     // The player sees the number and must pick the action whose cumulative
@@ -4089,10 +4110,34 @@ function UniversalDynamicTable({
                             });
                         })()}
 
-                        {/* Street separator line between flop and turn/river */}
+                        {/* DEALING THE NEXT STREET — a face-down slot where the
+                            card is about to land. See the showDealing note. */}
+                        {showDealing && isMultiStreetActive && visibleBoard.length >= 3 && visibleBoard.length < 5 && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.85 }}
+                                animate={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: [0.45, 0.9, 0.45], scale: 1 }}
+                                transition={reduceMotion ? { duration: 0 } : { repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                                style={{
+                                    width: ui(50),
+                                    height: ui(70),
+                                    borderRadius: ui(6),
+                                    flexShrink: 0,
+                                    background: 'linear-gradient(180deg, rgba(9,45,34,0.9) 0%, rgba(5,26,20,0.95) 100%)',
+                                    border: '1px dashed rgba(251, 146, 60, 0.55)',
+                                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)',
+                                }}
+                            />
+                        )}
+
+                        {/* Street separator line between flop and turn/river.
+                            The denominator counts the dealing placeholder too --
+                            it is a flex child, so it widens the row, and leaving
+                            it out slid the separator off the flop/turn boundary
+                            for the whole time the next card was in flight. */}
                         {isMultiStreetActive && visibleBoard.length > 3 && (
                             <div style={{
-                                position: 'absolute', left: `${(3 / visibleBoard.length) * 100}%`,
+                                position: 'absolute',
+                                left: `${(3 / (visibleBoard.length + ((showDealing && visibleBoard.length < 5) ? 1 : 0))) * 100}%`,
                                 top: '10%', height: '80%', width: 1,
                                 background: 'rgba(251, 146, 60, 0.3)',
                                 pointerEvents: 'none',

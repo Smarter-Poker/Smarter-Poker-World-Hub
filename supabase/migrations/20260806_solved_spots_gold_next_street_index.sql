@@ -1,0 +1,60 @@
+-- Index the multi-street lookup on solved_spots_gold.
+--
+-- WHY
+-- ---
+-- pages/api/training/next-street.js -> DeterministicGTOEngine.queryNextStreet
+-- runs two queries shaped like:
+--
+--   game_type = ? AND stack_depth = ? AND street = ?
+--   AND scenario_hash ILIKE '%<board>%'
+--
+-- scenario_hash is '{street}_{game_type}_{position}_{stack}bb_{board}', so the
+-- board sits at the END of the string and the match needs a leading wildcard.
+-- That makes idx_god_mode_hash (plain btree on scenario_hash) unusable, and a
+-- prefix rewrite does not help either -- the column's collation is not C, so
+-- LIKE 'turn_cash_%' is not accepted as an index condition (measured: the
+-- planner ignored it and fell back to a bitmap scan of the 1.89M 'cash' rows).
+--
+-- The three existing single-column indexes are individually too weak, so the
+-- planner chose a full sequential scan of all 8,053,212 rows / 59 GB:
+--
+--   Limit  (cost=1000.00..497566.86 rows=2 width=66)
+--     ->  Gather
+--           ->  Parallel Seq Scan on solved_spots_gold  (cost=0.00..496566.66)
+--                 Filter: ((scenario_hash ~~* '%tc3sac%') AND (game_type = 'cash')
+--                          AND (stack_depth = 100) AND (street = 'turn'))
+--
+-- Measured on production: one /api/training/next-street call took 17,361 ms,
+-- against a worst case of 4,315 ms for every other /api/training/* endpoint.
+-- That is the ~15-second dead table a player stares at between the flop and
+-- the turn of a multi-street hand.
+--
+-- SELECTIVITY (from pg_stats)
+-- ---------------------------
+--   game_type='cash'   0.1513
+--   stack_depth=100    0.0216
+--   street='turn'      0.3913
+--   product           ~0.00128  ->  ~10,300 candidate rows, a ~780x reduction.
+--
+-- scenario_hash is the trailing column so the ILIKE recheck is evaluated
+-- against the index tuple rather than costing a heap fetch per candidate; only
+-- the handful of rows that actually match pay to read the wide strategy_matrix.
+--
+-- HOW THIS WAS APPLIED
+-- --------------------
+-- The Supabase MCP connection times out at 60s and rolls its transaction back,
+-- which discarded a first in-band attempt at 28% of the table scan. The build
+-- was therefore driven by a ONE-SHOT pg_cron job that ran it in a background
+-- worker independent of the client session, guarded by pg_try_advisory_lock so
+-- repeat firings were no-ops, and unscheduled the moment the index existed:
+--
+--   select cron.schedule('build_idx_ssg_next_street', '* * * * *', $job$ ... $job$);
+--   -- poll pg_stat_progress_create_index
+--   select cron.unschedule('build_idx_ssg_next_street');
+--
+-- This is NOT a standing pg_cron job and does not conflict with CLAUDE.md
+-- section 11 (which governs scheduled APPLICATION triggers, all of which go
+-- through Open Claw). It was scaffolding for a single DDL build and no longer
+-- exists. This file is the auditable record of the resulting schema.
+CREATE INDEX IF NOT EXISTS idx_ssg_next_street
+    ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash);

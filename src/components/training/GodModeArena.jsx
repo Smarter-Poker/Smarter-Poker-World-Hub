@@ -12824,6 +12824,7 @@ function GodModeArenaInner({
                   onNextHand={handleNextQuestion}
                   isMultiStreetActive={isMultiStreetActive}
                   currentStreet={currentStreet}
+                  dealingNextStreet={loading && isMultiStreetActive}
                   handSummary={handSummary}
                   onExit={onExit}
                   difficultyLevel={computedDifficultyLevel}
@@ -12906,6 +12907,7 @@ function GodModeArenaInner({
             }}
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
+            dealingNextStreet={loading && isMultiStreetActive}
             handSummary={handSummary}
             onExit={onExit}
             difficultyLevel={computedDifficultyLevel}
