@@ -56,6 +56,34 @@ const ACTION_LABELS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HAND-STRENGTH TOKEN VOCABULARY
+// ═══════════════════════════════════════════════════════════════════════════
+// GTOW parity #33. Two representations of "how strong is this hand" coexist in
+// this engine: categorizeHand() returns free prose for display ("top pair, top
+// kicker"), while the deeper coaching notes switch on snake_case tokens
+// ("top_pair_top_kicker"). _getHandToken() is the bridge, but it was only ever
+// applied at some call sites, so the rest silently never matched and their
+// advice was dead code.
+//
+// This set is what makes _getHandToken() idempotent: handed a value that is
+// ALREADY a token, it returns it untouched instead of running prose tests that
+// all fail on the underscores and falling through to 'air'. That property is
+// what lets the normaliser be applied everywhere without breaking the call
+// sites that were already passing tokens.
+//
+// It deliberately includes names _getHandToken never emits (second_nuts, trips,
+// third_pair, premium_pair, ...). Those are produced elsewhere and consumed by
+// the comparison arrays below; they must pass through, not be reclassified.
+const _HAND_TOKENS = new Set([
+    'nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips',
+    'two_pair', 'overpair', 'premium_pair',
+    'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker',
+    'middle_pair', 'second_pair', 'third_pair', 'bottom_pair', 'weak_pair', 'underpair',
+    'combo_draw', 'flush_draw', 'backdoor_flush_draw', 'oesd', 'gutshot', 'overcards',
+    'high_card', 'ace_high', 'missed_draw', 'air',
+]);
+
+// ═══════════════════════════════════════════════════════════════════════════
 // POSITION & GAME CONTEXT
 // ═══════════════════════════════════════════════════════════════════════════
 const POSITIONS_9MAX = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -7820,6 +7848,16 @@ export class DeterministicGTOEngine {
      */
     _getHandToken(handStrength) {
         const hc = (handStrength || '').toLowerCase();
+        // GTOW parity #33 — this normaliser converts categorizeHand()'s free
+        // prose ("top pair, top kicker") into the snake_case token the coaching
+        // notes switch on. It was NOT idempotent: handed a token that already
+        // matched, every `includes('top pair')` test failed on the underscore
+        // and the function returned 'air'. That mattered the moment the raw
+        // enum comparisons below were routed through here, because some of
+        // their callers already pass tokens. Passing a known token straight
+        // back makes the function safe to apply to either representation, which
+        // is what lets one normaliser serve every consumer.
+        if (_HAND_TOKENS.has(hc)) return hc;
         if (hc.includes('straight flush') || hc.includes('quads') || hc.includes('four of a kind')) return 'nuts';
         if (hc.includes('full house')) return 'full_house';
         if (hc.includes('flush') && !hc.includes('draw')) return 'flush';
@@ -7939,6 +7977,7 @@ export class DeterministicGTOEngine {
      * Common on boards that favor the caller's range.
      */
     _getDelayedCBetNote(optimalAction, handStrength, street, nodeType, texture) {
+        const handToken = this._getHandToken(handStrength);
         if (street !== 'turn') return '';
         const a = (optimalAction || '').toLowerCase();
         if (!this._isAggressiveAction(a)) return '';
@@ -7946,7 +7985,7 @@ export class DeterministicGTOEngine {
         if (nodeType !== 'delayed_cbet' && nodeType !== 'probe') return '';
 
         const isDrawy = texture && (texture.wet || texture.flushy || texture.monotone);
-        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair'].includes(handStrength);
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair'].includes(handToken);
 
         if (isDrawy) {
             return 'Delayed c-bet: by checking the flop and betting the turn, you represent a hand that improved or was trapping. On draw-heavy boards, this pressures opponents who floated with draws that missed.';
@@ -8107,11 +8146,12 @@ export class DeterministicGTOEngine {
      * Low SPR (≤3): commit with top pair+, high SPR (13+): speculative hands shine.
      */
     _getSPRMatrixNote(estimatedPot, stackDepth, handStrength, street) {
+        const handToken = this._getHandToken(handStrength);
         if (!estimatedPot || !stackDepth || street === 'preflop') return '';
         const spr = stackDepth / (estimatedPot || 1);
 
         if (spr <= 2) {
-            const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair', 'straight', 'flush', 'full_house'].includes(handStrength);
+            const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair', 'straight', 'flush', 'full_house'].includes(handToken);
             if (isStrong) return `SPR ≈ ${spr.toFixed(1)} (very low): with a strong hand at this SPR, you should be looking to get all-in. The pot is too large relative to stacks to slow-play.`;
             return `SPR ≈ ${spr.toFixed(1)} (very low): shallow SPR means commitment decisions are simplified. Top pair+ is often strong enough to stack off. Draws lose implied odds.`;
         }
@@ -8335,14 +8375,15 @@ export class DeterministicGTOEngine {
      * Phase 141: Suggest exploitative deviations from GTO based on opponent tendencies.
      */
     _getExploitativeSuggestion(handStrength, optimalAction, street, nodeType) {
+        const handToken = this._getHandToken(handStrength);
         // Only show when user is performing well (indicating they understand GTO)
         if (!this._sessionStats || !this._sessionStats.total || this._sessionStats.total < 10) return '';
         const accuracy = this._sessionStats.correct / this._sessionStats.total;
         if (accuracy < 0.6) return ''; // Only suggest exploits when user knows GTO
 
         const a = (optimalAction || '').toLowerCase();
-        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker'].includes(handStrength);
-        const isMedium = ['top_pair', 'middle_pair', 'second_pair'].includes(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker'].includes(handToken);
+        const isMedium = ['top_pair', 'middle_pair', 'second_pair'].includes(handToken);
 
         // Only offer exploit tips occasionally (every ~5th question when applicable)
         if (this._sessionStats.total % 5 !== 0) return '';
@@ -8919,12 +8960,13 @@ export class DeterministicGTOEngine {
      * Phase 156: Equity denial — betting to prevent villain from realizing their equity.
      */
     _getEquityDenialNote(optimalAction, handStrength, street, texture) {
+        const handToken = this._getHandToken(handStrength);
         const a = (optimalAction || '').toLowerCase();
         if (!this._isAggressiveAction(a)) return '';
         if (street === 'preflop' || street === 'river') return ''; // No equity denial on river
 
         const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
-        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker'].includes(handStrength);
+        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair', 'top_pair_weak_kicker'].includes(handToken);
 
         if (isMedium && isWet) {
             return 'Equity denial: betting forces draws to pay to continue or fold. If you check, villain gets a free card and can realize their equity for free — costing you money long-term.';
@@ -8943,13 +8985,14 @@ export class DeterministicGTOEngine {
      * Phase 157: Compare pot odds vs implied odds to explain calling decisions.
      */
     _getPotVsImpliedOddsNote(optimalAction, handStrength, street, estimatedPot, stackDepth) {
+        const handToken = this._getHandToken(handStrength);
         const a = (optimalAction || '').toLowerCase();
         if (a !== 'call') return '';
         if (street === 'preflop') return '';
-        const isDraw = ['oesd', 'flush_draw', 'combo_draw', 'gutshot'].includes(handStrength);
+        const isDraw = ['oesd', 'flush_draw', 'combo_draw', 'gutshot'].includes(handToken);
         if (!isDraw) return '';
 
-        const outs = handStrength === 'combo_draw' ? 15 : handStrength === 'flush_draw' ? 9 : handStrength === 'oesd' ? 8 : 4;
+        const outs = handToken === 'combo_draw' ? 15 : handToken === 'flush_draw' ? 9 : handToken === 'oesd' ? 8 : 4;
         const equity = street === 'flop' ? (outs * 4) : (outs * 2); // Rule of 4/2
         // Assume a ~2/3 pot bet: required equity = bet / (pot + 2 * bet)
         const bet = (estimatedPot || 10) * 0.67;
@@ -9341,9 +9384,10 @@ export class DeterministicGTOEngine {
      * Phase 172: Limp-raise trapping theory.
      */
     _getLimpRaiseNote(nodeType, optimalAction, handStrength) {
+        const handToken = this._getHandToken(handStrength);
         if (!nodeType || !nodeType.includes('limp')) return '';
         const a = (optimalAction || '').toLowerCase();
-        const isPremium = ['nuts', 'second_nuts'].includes(handStrength) || handStrength === 'premium_pair';
+        const isPremium = ['nuts', 'second_nuts'].includes(handToken) || handToken === 'premium_pair';
 
         if (a.startsWith('r') && isPremium) {
             return 'Limp-raise trap: limping in first with a premium hand, then raising over an isolator. This is an exploitative play that works against aggressive opponents who iso-raise frequently. In GTO, limping is generally avoided.';
@@ -10179,13 +10223,14 @@ export class DeterministicGTOEngine {
      * Phase 202: Track how ranges change shape street by street.
      */
     _getRangeMorphologyNote(street, nodeType, handStrength) {
+        const handToken = this._getHandToken(handStrength);
         if (street === 'preflop') return '';
 
         if (street === 'flop') {
             return 'Range shape (flop): both ranges are still wide. The PFR has an overpair/big card advantage, the caller has more suited connectors and medium pairs. Ranges begin to narrow based on the flop texture.';
         }
         if (street === 'turn') {
-            const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight'].includes(handStrength);
+            const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight'].includes(handToken);
             if (isStrong) return 'Range shape (turn): ranges have narrowed significantly. Weak hands have folded, and remaining ranges are polarized — strong hands and draws vs medium hands and bluffs.';
             return 'Range shape (turn): by the turn, ranges are much narrower. Players who continued from the flop have shown interest — expect stronger average hand strength from both sides.';
         }
@@ -10274,6 +10319,7 @@ export class DeterministicGTOEngine {
      * Phase 205: Show which blockers affect which combos.
      */
     _getBlockerMatrixNote(heroHand, board, handStrength, optimalAction) {
+        const handToken = this._getHandToken(handStrength);
         if (!heroHand || heroHand.length < 2 || !board || board.length < 3) return '';
         const a = (optimalAction || '').toLowerCase();
         const r1 = heroHand[0], r2 = heroHand.length >= 3 ? heroHand[1] : heroHand[1];
@@ -10292,7 +10338,7 @@ export class DeterministicGTOEngine {
         }
 
         if (effects.length === 0) return '';
-        if (a.startsWith('r') && ['high_card', 'ace_high', 'missed_draw', 'underpair'].includes(handStrength)) {
+        if (a.startsWith('r') && ['high_card', 'ace_high', 'missed_draw', 'underpair'].includes(handToken)) {
             return `Blocker advantage for bluffing: ${effects[0]}. This makes your bluff more effective — villain has fewer nutted hands.`;
         }
         if (a === 'call') {
@@ -10415,13 +10461,14 @@ export class DeterministicGTOEngine {
      * Phase 210: When to overbet — structured checklist.
      */
     _getOverbetChecklistNote(optimalAction, handStrength, street, texture, stackDepth, estimatedPot) {
+        const handToken = this._getHandToken(handStrength);
         const a = (optimalAction || '').toLowerCase();
         const sizePct = this._actionSizePct(a);
         if (sizePct == null || sizePct <= 100) return '';
 
         const criteria = [];
-        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
-        const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
+        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handToken);
+        const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handToken);
 
         if (isNuts) criteria.push('✓ Nutted hand — overbet for max value');
         if (isAir) criteria.push('✓ Air — overbet as a bluff to maximize fold equity');
@@ -10465,9 +10512,10 @@ export class DeterministicGTOEngine {
      * Phase 212: Break down EV contribution by street.
      */
     _getEVDecompositionNote(street, optimalAction, handStrength, estimatedPot) {
+        const handToken = this._getHandToken(handStrength);
         if (!estimatedPot || street === 'preflop') return '';
         const a = (optimalAction || '').toLowerCase();
-        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'flush', 'straight', 'full_house'].includes(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'flush', 'straight', 'full_house'].includes(handToken);
 
         if (street === 'flop') {
             if (isStrong && this._isAggressiveAction(a)) return `EV source (flop): ~30% of your total hand EV comes from flop betting. Building the pot early with strong hands sets up larger bets on later streets.`;
@@ -10617,6 +10665,7 @@ export class DeterministicGTOEngine {
      * Phase 217: Explain why solver uses size X instead of size Y.
      */
     _getMultiSizingNote(optimalAction, handActions, handStrength, street, texture) {
+        const handToken = this._getHandToken(handStrength);
         if (!handActions) return '';
         const raises = Object.entries(handActions || {}).filter(([k, f]) => k.startsWith('r') && f > 0.05);
         if (raises.length < 2) return '';
@@ -10628,7 +10677,7 @@ export class DeterministicGTOEngine {
         if (!primary || !secondary || primary.size === 0) return '';
 
         if (primary.size > secondary.size) {
-            return `Multi-sizing: solver prefers ${primary.size}% pot (${(primary.freq * 100).toFixed(0)}%) over ${secondary.size}% (${(secondary.freq * 100).toFixed(0)}%). The larger size is used with ${['nuts', 'second_nuts', 'flush', 'straight', 'set'].includes(handStrength) ? 'strong value hands and big bluffs (polarized)' : 'a polarized range to maximize fold equity'}.`;
+            return `Multi-sizing: solver prefers ${primary.size}% pot (${(primary.freq * 100).toFixed(0)}%) over ${secondary.size}% (${(secondary.freq * 100).toFixed(0)}%). The larger size is used with ${['nuts', 'second_nuts', 'flush', 'straight', 'set'].includes(handToken) ? 'strong value hands and big bluffs (polarized)' : 'a polarized range to maximize fold equity'}.`;
         }
         return `Multi-sizing: solver splits between ${primary.size}% (${(primary.freq * 100).toFixed(0)}%) and ${secondary.size}% (${(secondary.freq * 100).toFixed(0)}%). Different sizes target different parts of villain's range.`;
     }
@@ -11147,6 +11196,7 @@ export class DeterministicGTOEngine {
      * Phase 231: Optimal aggression level by spot type.
      */
     _getAggressionCoachingNote(optimalAction, handStrength, street, nodeType, texture) {
+        const handToken = this._getHandToken(handStrength);
         const a = (optimalAction || '').toLowerCase();
         const node = (nodeType || '').toLowerCase();
 
@@ -11155,7 +11205,7 @@ export class DeterministicGTOEngine {
 
         const isIP = node.includes('ip') || node.includes('btn') || node.includes('co');
         const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
-        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handStrength);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handToken);
 
         if (isIP && isWet && isStrong) {
             return 'Aggression coaching: IP on a wet board with a strong hand — maximum aggression. Bet/raise for value AND protection. Villain has draws that you need to charge.';
@@ -11174,12 +11224,13 @@ export class DeterministicGTOEngine {
      * Phase 232: Recommend optimal sizing based on hand strength and context.
      */
     recommendBetSizing(handStrength, street, texture, estimatedPot, stackDepth) {
+        const handToken = this._getHandToken(handStrength);
         if (!estimatedPot) return null;
         const isWet = texture && (texture.wet || texture.flushy || texture.monotone);
-        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
-        const isStrong = ['flush', 'straight', 'set', 'two_pair', 'overpair'].includes(handStrength);
-        const isMedium = ['top_pair_top_kicker', 'top_pair'].includes(handStrength);
-        const isBluff = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
+        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handToken);
+        const isStrong = ['flush', 'straight', 'set', 'two_pair', 'overpair'].includes(handToken);
+        const isMedium = ['top_pair_top_kicker', 'top_pair'].includes(handToken);
+        const isBluff = ['high_card', 'ace_high', 'missed_draw'].includes(handToken);
 
         let sizePct, reasoning;
 
