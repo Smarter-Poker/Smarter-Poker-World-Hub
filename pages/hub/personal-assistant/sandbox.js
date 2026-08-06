@@ -12,9 +12,9 @@
     try { navigator.vibrate?.(20); } catch (e) { /* unsupported */ }
   }, [restoreScenario]);
 
-  // ═══════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
   // DERIVED VIEW STATE
-  // ═══════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
   const historicResults = (activeStreet < streetHistory.length) ? streetHistory[activeStreet]?.results : null;
   const displayResults = historicResults || resultsOverride || results;
   const isHistoricView = !!historicResults;
