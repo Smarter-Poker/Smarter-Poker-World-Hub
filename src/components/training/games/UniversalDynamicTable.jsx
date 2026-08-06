@@ -1490,6 +1490,15 @@ function UniversalDynamicTable({
     // Phase 3: RNG Mode state
     const [rngMode, setRngMode] = React.useState(false);
     const [rngRoll, setRngRoll] = React.useState(null);
+    // GTOW parity #38 — the reference product's randomiser is not just a number
+    // on screen: it has a High/Low mode that decides which END of the 1-100
+    // range the FIRST action occupies, and it colours itself to say which mode
+    // is live (blue = Low, yellow = High). Without the mode the dice is a
+    // single fixed mapping, which is exactly what a randomiser must not be —
+    // a player who learns "low numbers mean check" has learned the tool, not
+    // the strategy. 'low' keeps the historical mapping so nothing shifts under
+    // anyone mid-session.
+    const [rngHighLow, setRngHighLow] = React.useState('low');
 
     // Phase 3: Retry Hand state
     const lastQuestionRef = useRef(null);
@@ -2284,6 +2293,73 @@ function UniversalDynamicTable({
         return { groupedOptions: padded, frequencyMap: freqMap, actionMapping: mapping };
     }, [options, computedFrequencies, gtoFrequencies, activeDifficultyMode]);
 
+    // Fix 16: single source of truth for RNG cumulative frequency ranges —
+    // built from displayOptions order so the pre-answer chips and the
+    // feedback indicator always map the roll to the same action.
+    //
+    // GTOW parity #38: the mapping now honours `rngHighLow`. In 'low' the first
+    // action owns the bottom of the dial (1..f1); in 'high' it owns the top
+    // (101-f1..100) and each subsequent action steps downward. Both modes are
+    // clamped to cover the full 1-100 dial even when the solver frequencies do
+    // not sum to exactly 100 — a roll that lands in no range at all would show
+    // the player a number with no instruction attached, which is worse than a
+    // rounding error of one point on a boundary.
+    const rngRanges = useMemo(() => {
+        const entries = [];
+        (displayOptions || []).slice(0, 9).forEach(opt => {
+            const id = opt.id || opt;
+            const freq = Number(displayFrequencies[id] ?? computedFrequencies[id] ?? 0);
+            if (!Number.isFinite(freq) || freq <= 0) return;
+            entries.push({ id, text: typeof opt === 'string' ? opt : (opt.text || ''), freq });
+        });
+        if (entries.length === 0) return [];
+
+        let ranges;
+        if (rngHighLow === 'high') {
+            let ceiling = 100;
+            ranges = entries.map(e => {
+                const end = ceiling;
+                const start = Math.max(1, Math.round(ceiling - e.freq) + 1);
+                ceiling = start - 1;
+                return { id: e.id, text: e.text, start, end };
+            });
+            // Stretch the last (lowest) band down to 1 so no roll is orphaned.
+            const last = ranges[ranges.length - 1];
+            if (last) last.start = 1;
+        } else {
+            let cumulative = 0;
+            ranges = entries.map(e => {
+                const start = Math.round(cumulative) + 1;
+                cumulative += e.freq;
+                return { id: e.id, text: e.text, start, end: Math.round(cumulative) };
+            });
+            const last = ranges[ranges.length - 1];
+            if (last) last.end = 100;
+        }
+        return ranges.filter(r => r.end >= r.start);
+    }, [displayOptions, displayFrequencies, computedFrequencies, rngHighLow]);
+
+    // GTOW parity #38 — the action the dice actually selected. The roadmap's
+    // pass condition is that "the best action changes with the roll and the
+    // chosen High/Low mode", so this value is not decoration: it is forwarded
+    // to the grader on every answer submitted while RNG mode is live, which is
+    // what stops the on-screen "→ Bet 75%" from being contradicted by a
+    // feedback banner that graded against the highest-frequency action instead.
+    const rngTargetAction = useMemo(() => {
+        if (!rngMode || rngRoll === null || rngRanges.length === 0) return null;
+        return rngRanges.find(r => rngRoll >= r.start && rngRoll <= r.end) || rngRanges[0];
+    }, [rngMode, rngRoll, rngRanges]);
+
+    // GTOW parity #38 — the reference product does not merely label the mode, it
+    // recolours the whole dice affordance so a player mid-session can tell at a
+    // glance which end of the dial the first action now sits on. Yellow is High,
+    // blue is Low. Every RNG surface in this file reads these three fields, so
+    // the badge, the range chips and the feedback indicator can never drift out
+    // of agreement with each other or with the mode that is actually live.
+    const rngTheme = rngHighLow === 'high'
+        ? { fg: '#facc15', strong: 'rgba(250,204,21,0.45)', soft: 'rgba(250,204,21,0.15)', faint: 'rgba(250,204,21,0.08)', hairline: 'rgba(250,204,21,0.3)', glow: 'rgba(250,204,21,0.4)', label: 'HIGH' }
+        : { fg: '#38bdf8', strong: 'rgba(56,189,248,0.45)', soft: 'rgba(56,189,248,0.15)', faint: 'rgba(56,189,248,0.08)', hairline: 'rgba(56,189,248,0.3)', glow: 'rgba(56,189,248,0.4)', label: 'LOW' };
+
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
     const handleAnswerWithGrouping = useCallback((answerId) => {
         // Guard against double-answers (mirrors the keyboard path's guard)
@@ -2295,9 +2371,17 @@ function UniversalDynamicTable({
         }
         setSelectedAnswer(resolvedId);
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
-        if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed });
-        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, [showFeedback, selectedAnswer, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer]);
+        // GTOW parity #38: hand the grader the action the dice selected. It is
+        // ignored entirely when RNG mode is off, so the default grading path is
+        // untouched; when RNG mode is on it is the difference between the
+        // banner agreeing with the dice and flatly contradicting it.
+        const rngMeta = rngMode && rngTargetAction
+            ? { rngRoll, rngMode: rngHighLow, rngTargetActionId: rngTargetAction.id }
+            : null;
+        if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed, ...(rngMeta || {}) });
+        const gradedAgainst = rngMeta ? rngMeta.rngTargetActionId : correctAnswer;
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === gradedAgainst }); } catch (e) { console.warn('[App] Handled exception:', e); }
+    }, [showFeedback, selectedAnswer, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer, rngMode, rngHighLow, rngRoll, rngTargetAction]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-9, F/C/R, Space/Enter)
     // Uses the SAME displayOptions list + handleAnswerWithGrouping path as the
@@ -2346,26 +2430,31 @@ function UniversalDynamicTable({
             }
         };
 
+        // Claim the number keys for this table. GodModeArena carries a second,
+        // older window-level keydown handler that resolves the pressed digit
+        // against the RAW question options rather than `displayOptions`, so
+        // under Grouped or Simple difficulty the two handlers answer DIFFERENT
+        // actions on the same keypress — and both fire. This counter lets the
+        // older handler stand down whenever a table with the unified handler is
+        // mounted, without removing keyboard play from screens that have no
+        // such table. A counter, not a boolean, so multi-table teardown of one
+        // table does not release the claim held by its siblings.
+        window.__spUnifiedKeyboard = (window.__spUnifiedKeyboard || 0) + 1;
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.__spUnifiedKeyboard = Math.max(0, (window.__spUnifiedKeyboard || 1) - 1);
+        };
     }, [showFeedback, selectedAnswer, onNextHand, displayOptions, handleAnswerWithGrouping]);
 
-    // Fix 16: single source of truth for RNG cumulative frequency ranges —
-    // built from displayOptions order so the pre-answer chips and the
-    // feedback indicator always map the roll to the same action.
-    const rngRanges = useMemo(() => {
-        let cumulative = 0;
-        const ranges = [];
-        (displayOptions || []).slice(0, 9).forEach(opt => {
-            const id = opt.id || opt;
-            const freq = displayFrequencies[id] || computedFrequencies[id] || 0;
-            if (freq <= 0) return;
-            const start = cumulative + 1;
-            cumulative += freq;
-            ranges.push({ id, text: typeof opt === 'string' ? opt : (opt.text || ''), start, end: cumulative });
-        });
-        return ranges;
-    }, [displayOptions, displayFrequencies, computedFrequencies]);
+    // GTOW parity #38 — while the dice is live it, not the solver's modal
+    // action, is what "Best" means for this hand. Every display that used to
+    // read `correctAnswer` reads this instead, so the chip that says the roll
+    // points at Bet 75% and the banner that names the best action can no
+    // longer disagree. Off, it is exactly `correctAnswer`.
+    const effectiveCorrectAnswer = (rngMode && rngTargetAction)
+        ? rngTargetAction.id
+        : correctAnswer;
 
     // Compute move classification for feedback display
     const computedClassification = useMemo(() => {
@@ -2378,14 +2467,14 @@ function UniversalDynamicTable({
             return moveClassification;
         }
         if (!showFeedback || !selectedAnswer) return null;
-        let result = classifyMove(selectedAnswer, correctAnswer, computedFrequencies);
+        let result = classifyMove(selectedAnswer, effectiveCorrectAnswer, computedFrequencies);
         // PHASE 9: Simplified Mode override for computed classification
         if (simplifiedMode && result.classification === 'inaccuracy') {
             const userFreq = computedFrequencies[selectedAnswer] || computedFrequencies[selectedAnswer?.toLowerCase()] || 0;
             if (userFreq > 0 && userFreq < 5) return 'correct';
         }
         return result.classification;
-    }, [moveClassification, showFeedback, selectedAnswer, correctAnswer, computedFrequencies, simplifiedMode]);
+    }, [moveClassification, showFeedback, selectedAnswer, effectiveCorrectAnswer, computedFrequencies, simplifiedMode]);
 
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
@@ -2528,7 +2617,7 @@ function UniversalDynamicTable({
         };
 
         if (showFeedback) {
-            const isCorrect = optionId === correctAnswer || optionId?.toLowerCase() === correctAnswer?.toLowerCase();
+            const isCorrect = optionId === effectiveCorrectAnswer || optionId?.toLowerCase() === effectiveCorrectAnswer?.toLowerCase();
             const isSelected = optionId === selectedAnswer || optionId?.toLowerCase() === selectedAnswer?.toLowerCase();
             const freq = computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
 
@@ -2763,6 +2852,28 @@ function UniversalDynamicTable({
                         >
                             RNG
                         </button>
+                        {/* GTOW parity #38 — the High/Low switch only exists while the
+                            dice does. Showing a dead mode selector next to a mode that
+                            is off is how a control panel starts lying to the player. */}
+                        {rngMode && (
+                            <button
+                                data-compact
+                                onClick={() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))}
+                                aria-pressed={rngHighLow === 'high'}
+                                aria-label={`Randomiser direction: ${rngTheme.label}`}
+                                title={rngHighLow === 'high'
+                                    ? 'High - the first action occupies the TOP of the 1-100 dial'
+                                    : 'Low - the first action occupies the BOTTOM of the 1-100 dial'}
+                                style={{
+                                    ...styles.modeButton,
+                                    color: rngTheme.fg,
+                                    background: rngTheme.soft,
+                                    borderColor: rngTheme.strong,
+                                }}
+                            >
+                                {rngTheme.label}
+                            </button>
+                        )}
                         <button
                             data-compact
                             onClick={() => setStudyMode(v => !v)}
@@ -3987,19 +4098,25 @@ function UniversalDynamicTable({
                         style={{
                             position: 'absolute', top: -50, right: 8,
                             display: 'flex', alignItems: 'center', gap: 6,
-                            background: 'rgba(168,85,247,0.2)',
-                            border: '1px solid rgba(168,85,247,0.5)',
+                            background: rngTheme.soft,
+                            border: `1px solid ${rngTheme.strong}`,
                             borderRadius: 12, padding: '4px 12px',
                             zIndex: 10,
                         }}
                     >
-                        <span style={{ fontSize: 16 }}>◆</span>
+                        <span style={{ fontSize: 16, color: rngTheme.fg }}>◆</span>
                         <span style={{
                             fontSize: 20, fontWeight: 900,
-                            color: 'var(--sp-accent-purple)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                            textShadow: '0 0 10px rgba(168,85,247,0.4)',
+                            color: rngTheme.fg, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                            textShadow: `0 0 10px ${rngTheme.glow}`,
                         }}>
                             {rngRoll}
+                        </span>
+                        <span style={{
+                            fontSize: 8, fontWeight: 800, letterSpacing: 1,
+                            color: rngTheme.fg, opacity: 0.85,
+                        }}>
+                            {rngTheme.label}
                         </span>
                     </motion.div>
                 )}
@@ -4015,16 +4132,20 @@ function UniversalDynamicTable({
                         }}
                     >
                         <span style={{
-                            fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-purple)',
-                            background: 'rgba(168,85,247,0.15)',
-                            border: '1px solid rgba(168,85,247,0.3)',
+                            fontSize: 12, fontWeight: 800, color: rngTheme.fg,
+                            background: rngTheme.soft,
+                            border: `1px solid ${rngTheme.hairline}`,
                             padding: '2px 10px', borderRadius: 8,
                         }}>
-                            ◆ {rngRoll}
+                            ◆ {rngRoll} {rngTheme.label}
                         </span>
-                        {/* Fix 16: ranges come from the shared rngRanges memo */}
+                        {/* Fix 16: ranges come from the shared rngRanges memo.
+                            #38: the winning band is the one the grader used, so it
+                            is read off rngTargetAction rather than re-derived here —
+                            two independent lookups is how the chip and the banner
+                            came to disagree in the first place. */}
                         {rngRanges.map(r => {
-                            const isTarget = rngRoll >= r.start && rngRoll <= r.end;
+                            const isTarget = rngTargetAction ? r.id === rngTargetAction.id : (rngRoll >= r.start && rngRoll <= r.end);
                             return (
                                 <span key={r.id} style={{
                                     fontSize: 9, fontWeight: 700,
@@ -4284,6 +4405,14 @@ function UniversalDynamicTable({
                                 <button onClick={() => setRngMode(!rngMode)} style={styles.settingsBtn}>
                                     {rngMode ? '◆ RNG Mode: ON': '◆ RNG Mode: OFF'}
                                 </button>
+                                {rngMode && (
+                                    <button
+                                        onClick={() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))}
+                                        style={{ ...styles.settingsBtn, color: rngTheme.fg, borderColor: rngTheme.strong }}
+                                    >
+                                        {rngHighLow === 'high' ? '◆ Dial: HIGH (first action at 100)' : '◆ Dial: LOW (first action at 1)'}
+                                    </button>
+                                )}
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                                          Quit Session
@@ -4358,7 +4487,7 @@ function UniversalDynamicTable({
                             const optId = opt?.id || opt;
                             const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
                             const freq = typeof computedFrequencies?.[optId] === 'number' ? computedFrequencies[optId] : 0;
-                            const isCorrect = optId === correctAnswer;
+                            const isCorrect = optId === effectiveCorrectAnswer;
                             const isSelected = optId === selectedAnswer;
                             const actionType = detectActionType(text);
                             const barColor = isCorrect ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : ACTION_COLORS[actionType]?.border || 'var(--sp-fg-faint)';
@@ -4430,9 +4559,9 @@ function UniversalDynamicTable({
                             }}>
                                 {feedbackResult === 'correct'? '✓': '✕'} You: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
                             </span>
-                            {selectedAnswer !== correctAnswer && (
+                            {selectedAnswer !== effectiveCorrectAnswer && (
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sp-accent-green)' }}>
-                                    ✓ Best: {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
+                                    ✓ Best: {options.find(o => o.id === effectiveCorrectAnswer)?.text || effectiveCorrectAnswer}
                                 </span>
                             )}
                         </div>
@@ -4443,19 +4572,17 @@ function UniversalDynamicTable({
                         <div style={{
                             display: 'flex', alignItems: 'center', gap: 8,
                             padding: '4px 12px', borderRadius: 6,
-                            background: 'rgba(168,85,247,0.08)',
-                            border: '1px solid rgba(168,85,247,0.2)',
+                            background: rngTheme.faint,
+                            border: `1px solid ${rngTheme.hairline}`,
                             fontSize: 11,
                         }}>
-                            <span style={{ fontWeight: 900, color: 'var(--sp-accent-purple)', fontSize: 14 }}>{rngRoll}</span>
-                            <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700, letterSpacing: 0.5 }}>RNG</span>
+                            <span style={{ fontWeight: 900, color: rngTheme.fg, fontSize: 14 }}>{rngRoll}</span>
+                            <span style={{ color: rngTheme.fg, fontWeight: 700, letterSpacing: 0.5 }}>RNG {rngTheme.label}</span>
                             <span style={{ color: 'var(--sp-fg)', fontWeight: 600 }}>
-                                {(() => {
-                                    // Fix 16: resolve the roll against the SAME cumulative
-                                    // ranges shown on the pre-answer chips (rngRanges).
-                                    const hit = rngRanges.find(r => rngRoll >= r.start && rngRoll <= r.end);
-                                    return `→ ${hit?.text || rngRanges[0]?.text || 'Check'}`;
-                                })()}
+                                {/* #38: the single source of truth for "which action did
+                                    the dice pick" is rngTargetAction — the same value the
+                                    grader was handed. */}
+                                {`→ ${rngTargetAction?.text || rngRanges[0]?.text || 'Check'}`}
                             </span>
                         </div>
                     )}
@@ -4544,7 +4671,7 @@ function UniversalDynamicTable({
                                     if (freq <= 0) return null;
                                     const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
                                     const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
-                                    const isOptimal = opt.id === correctAnswer;
+                                    const isOptimal = opt.id === effectiveCorrectAnswer;
                                     return (
                                         <motion.div
                                             key={opt.id}
@@ -4579,7 +4706,7 @@ function UniversalDynamicTable({
                                     const freq = computedFrequencies[opt.id] || computedFrequencies[opt.id?.toLowerCase()] || 0;
                                     const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
                                     const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
-                                    const isOptimal = opt.id === correctAnswer;
+                                    const isOptimal = opt.id === effectiveCorrectAnswer;
                                     return (
                                         <span key={opt.id} style={{ fontSize: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
                                             <span style={{ width: 6, height: 6, borderRadius: 2, background: colors.accent || colors.bg, display: 'inline-block' }} />
@@ -4644,7 +4771,7 @@ function UniversalDynamicTable({
                                 const minEV = Math.min(...Object.values(fq.evData.actionEVs || {}).filter(v => typeof v === 'number'));
                                 const range = maxEV - minEV || 1;
                                 const barWidth = Math.max(5, ((ev - minEV) / range) * 100);
-                                const isOptimal = optId === correctAnswer;
+                                const isOptimal = optId === effectiveCorrectAnswer;
                                 const isSelected = optId === selectedAnswer;
                                 const barColor = isOptimal ? 'var(--sp-accent-green)' : isSelected ? (classConfig?.color || 'var(--sp-accent-red)') : 'var(--sp-fg-faint)';
 

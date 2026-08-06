@@ -676,22 +676,38 @@ export default function useGTOTrainer(
    * Submit answer and show feedback
    */
   const submitAnswer = useCallback(
-    async (selectedOptionId) => {
+    async (selectedOptionId, meta) => {
       if (!currentQuestion || showFeedback) return;
 
-      const correctAnswer = currentQuestion.correctAnswer;
+      const solverCorrectAnswer = currentQuestion.correctAnswer;
       const options = currentQuestion.options || [];
       const scenario = currentQuestion.scenario || {};
       const selectedText = options.find((o) => o.id === selectedOptionId)?.text || selectedOptionId;
-      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
 
       // ═══ PREFER REAL PIO DATA, FALL BACK TO SIMULATED ═══
       const hasPIOData =
         currentQuestion.gtoFrequencies &&
         Object.keys(currentQuestion.gtoFrequencies || {}).length > 0;
+      // ORDERING MATTERS: the simulated distribution must be seeded from the
+      // SOLVER's answer, never the dice's. The table built its 1-100 bands from
+      // this exact distribution before the player acted; reseeding it here would
+      // shift the bands out from under a roll that has already been shown.
       const frequencies = hasPIOData
         ? currentQuestion.gtoFrequencies // Real PIO solver frequencies (0-100%)
-        : simulateGTOFrequencies(options, correctAnswer, level);
+        : simulateGTOFrequencies(options, solverCorrectAnswer, level);
+
+      // GTOW parity #38 — with the randomiser live, the action the dice landed
+      // on is what "Best" means for this hand; that is the entire point of the
+      // tool. The id is validated against the real option list so a stale or
+      // malformed meta can never silently redirect grading at nothing. Ignoring
+      // the dice is still safe: classifyMove awards BEST to any action the
+      // solver plays at >=20%, so following the solver is never punished.
+      const rngTargetId = meta && meta.rngTargetActionId;
+      const correctAnswer =
+        rngTargetId && options.some((o) => (o?.id ?? o) === rngTargetId)
+          ? rngTargetId
+          : solverCorrectAnswer;
+      const correctText = options.find((o) => o.id === correctAnswer)?.text || correctAnswer;
 
       // Classify the move — pass real PIO data for accurate EV loss when available
       const moveResult = classifyMove(
@@ -710,7 +726,7 @@ export default function useGTOTrainer(
       // the classification instead of exact-id match.
       const isCorrect = moveResult
         ? ['best', 'correct'].includes((moveResult.classification || '').toLowerCase())
-        : selectedOptionId === currentQuestion.correctAnswer;
+        : selectedOptionId === correctAnswer;
 
       // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
       let actionTreeScore = null;

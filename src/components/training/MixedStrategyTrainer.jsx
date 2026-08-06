@@ -75,7 +75,13 @@ export default function MixedStrategyTrainer() {
   const scenarioHistory = history.filter(h => h.scenarioId === scenario.id);
 
   const rollRng = useCallback(() => {
-    setRngValue(Math.round(Math.random() * 100));
+    // GTOW parity #38 — this used to be Math.round(Math.random() * 100), which
+    // yields 0..100: 101 outcomes over a 100-slot dial. The consumer resolves
+    // with `rngValue <= cumulative`, so 0 and 1 both land on the first action
+    // and that action is over-selected on every single roll. A randomiser with
+    // a measurable bias is worse than no randomiser, because the player trusts
+    // it. Math.floor(...*100)+1 gives exactly 1..100, uniform.
+    setRngValue(Math.floor(Math.random() * 100) + 1);
     setShowRng(true);
   }, []);
 

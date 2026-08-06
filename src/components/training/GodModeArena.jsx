@@ -3367,7 +3367,10 @@ function GodModeArenaInner({
       if (bonus > 0) {
         setSpeedBonusDiamonds((prev) => prev + bonus);
       }
-      return submitAnswer(answerId);
+      // Forward `meta` intact. The RNG randomiser (GTOW parity #38) rides in
+      // here as `rngTargetActionId`; dropping it meant the table drew a dice
+      // pointing at one action while the grader scored a different one.
+      return submitAnswer(answerId, meta);
     },
     [submitAnswer]
   );
@@ -3632,6 +3635,12 @@ function GodModeArenaInner({
   useEffect(() => {
     const handler = (e) => {
       if (gamePhase !== 'playing') return;
+      // A mounted UniversalDynamicTable owns the keyboard. Its handler resolves
+      // the digit against `displayOptions` (what is actually on screen under the
+      // active difficulty), whereas this one resolves against the raw question
+      // options — so with both live, one keypress submitted two answers and, in
+      // Grouped or Simple mode, the wrong one. Stand down when it is present.
+      if (typeof window !== 'undefined' && window.__spUnifiedKeyboard > 0) return;
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
       if (showFeedback && e.key === ' ') {
@@ -3708,7 +3717,11 @@ function GodModeArenaInner({
     },
     [importState.importedQuestion, importedFeedback]
   );
-  const fxOnAnswer = iqActive ? handleImportedAnswer : submitAnswer;
+  // This was `submitAnswer`, which bypassed handleSubmitAnswer entirely — so on
+  // the ONLY path a player actually answers from, the BUG-05 speed bonus was
+  // never accrued (handleSubmitAnswer fired solely from the keydown handler
+  // above) and the RNG meta was discarded before it could reach the grader.
+  const fxOnAnswer = iqActive ? handleImportedAnswer : handleSubmitAnswer;
   const fxShowFeedback = iqActive ? importedFeedback != null : showFeedback;
   const fxFeedbackResult = iqActive ? (importedFeedback?.result ?? null) : feedbackResult;
   const fxExplanation = iqActive ? (importedFeedback?.explanation ?? '') : explanation;
