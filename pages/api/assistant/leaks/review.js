@@ -282,7 +282,13 @@ function readLeakId(value) {
 
 /**
  * Returns { ok, outcome } — outcome is the sanitised, storable version.
- * evDelta is optional and clamped; a hostile value cannot skew the record.
+ *
+ * `evLossBB` is the leak's CURRENT measured EV cost (from detection), sent by
+ * the client so THIS endpoint can diff it against the measurement stored at
+ * the previous review. A client-supplied `evDelta` is deliberately ignored:
+ * the delta is computed server-side in handlePost, because a chosen delta is
+ * a chosen ease nudge, and the whole point of computing schedules here is
+ * that the client cannot hand itself an easier one.
  */
 function readOutcome(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false };
@@ -297,9 +303,11 @@ function readOutcome(raw) {
 
     const outcome = { correct, total, accuracy: Math.round((correct / total) * 1000) / 1000 };
 
-    if (raw.evDelta !== undefined && raw.evDelta !== null) {
-        const ev = Number(raw.evDelta);
-        if (Number.isFinite(ev)) outcome.evDelta = Math.round(Math.min(1000, Math.max(-1000, ev)) * 100) / 100;
+    if (raw.evLossBB !== undefined && raw.evLossBB !== null) {
+        const ev = Number(raw.evLossBB);
+        // A measured per-spot EV cost is non-negative and small; the clamp is
+        // a sanity ceiling, not a real bound anyone should hit.
+        if (Number.isFinite(ev) && ev >= 0) outcome.evLossBB = Math.round(Math.min(1000, ev) * 100) / 100;
     }
     outcome.at = new Date().toISOString();
     return { ok: true, outcome };
@@ -491,6 +499,21 @@ async function handlePost(req, res, userId) {
         }
     } catch (err) {
         console.warn('[leaks/review] prior state read threw:', err?.message || err);
+    }
+
+    // 1.5 evDelta — computed HERE, from two detection measurements: the EV
+    // cost the client reports now vs the one stored at the previous review.
+    // Negative means the leak is measurably costing less in real hands since
+    // last time — corroboration that the drilling is working. When detection
+    // has not re-run between reviews the two measurements are equal, the
+    // delta is 0 and the ease nudge is a no-op, which is exactly right.
+    // No baseline (first review, or older rows without evLossBB) -> no delta,
+    // never a fabricated one.
+    if (Number.isFinite(outcome.evLossBB)) {
+        const prevEv = Number(prev?.lastOutcome?.evLossBB);
+        if (Number.isFinite(prevEv)) {
+            outcome.evDelta = Math.round((outcome.evLossBB - prevEv) * 100) / 100;
+        }
     }
 
     // 2. Next state — computed here, never accepted from the client.
