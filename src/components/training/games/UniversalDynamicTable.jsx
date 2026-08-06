@@ -1694,7 +1694,13 @@ function UniversalDynamicTable({
     // Dynamic table state from question scenario
     const heroPosition = scenario.heroPosition || scenario.position || 'BTN';
     const heroStack = scenario.heroStack || scenario.stackDepth || 100;
-    const villainStack = scenario.villainStack || 100;
+    // #17: defaulting an unstated villain stack to a flat 100 misrepresents every
+    // short-stack spot — a 25BB hero was drawn facing a 100BB villain, which
+    // changes SPR, fold equity and therefore the correct answer. When the
+    // scenario does not state a villain stack the solver's assumption is that
+    // villain is at the same depth as hero, which is what batch-preload already
+    // fills in server-side; this mirrors it for the paths that do not.
+    const villainStack = scenario.villainStack || heroStack;
     const pot = scenario.pot || 0;
     const villainPosition = scenario.villainPosition || 'BB';
     const villainAction = scenario.action || scenario.villainAction || '';
@@ -2104,14 +2110,25 @@ function UniversalDynamicTable({
         return 0;
     })();
 
-    // Generate STABLE villain stacks — relative to heroStack with ±variance
-    const generateVillainStack = useMemo(() => {
-        return (seatIndex) => {
-            const seed = (questionNumber || 1) * 13 + seatIndex * 7;
-            const variance = (seed % 40) - 20; // ±20BB variance around hero stack
-            return Math.max(5, Math.round((heroStack || 100) + variance));
-        };
-    }, [questionNumber, heroStack]);
+    // GTOW parity #17 — every seat shows a REAL stack, never a fabricated one.
+    //
+    // This used to be `heroStack + ((seed % 40) - 20)`, a hash of the question
+    // number giving each unnamed seat a different depth within ±20BB. That was
+    // wrong twice over. First, it was invented data rendered with the same
+    // authority as the scenario's own numbers, so a player reading the table to
+    // judge fold equity was reading noise. Second — and worse — it contradicted
+    // the solve the question came from: a solver tree is built at ONE stack
+    // depth, so in the spot being trained every seat is at that depth by
+    // construction. A table showing 87BB, 104BB and 119BB is depicting a
+    // situation the solution does not describe.
+    //
+    // The honest render is the depth the solve assumes. That also makes the
+    // seats agree with the SPR readout, which has always been computed from
+    // effective stack rather than from these per-seat numbers.
+    const tableStackDepth = useMemo(
+        () => Math.max(1, Math.round(heroStack || 100)),
+        [heroStack]
+    );
 
     // GAP-6: Effective stack — uses the scenario's real villain stack (falls
     // back to heroStack) instead of fabricating per-seat stacks, so SPR math
@@ -2204,6 +2221,45 @@ function UniversalDynamicTable({
             : computedFrequencies;
         return { options: opts, frequencies: freqs };
     }, [infoPanelQuestion, options, computedFrequencies, showFeedback]);
+
+    // ═══ SOLVER PROVENANCE (GTOW parity #31) ═══
+    // /api/training/batch-preload already computes a `dataQuality` flag. It
+    // starts at 'SOLVER_EXACT' and degrades to 'SIMULATED' the moment the route
+    // has to fabricate hero cards, a board, or the action mix itself, and it
+    // writes the result onto every question it returns. Nothing in the app ever
+    // read it — a repo-wide search found zero consumers. The consequence is the
+    // one thing a solver trainer cannot afford: a modelled distribution was
+    // rendered in exactly the same typeface as a real PioSOLVER one, so a player
+    // memorising "the solver bets 62% here" had no way to know whether that
+    // number came from the solver or from a hash of the question id.
+    //
+    // There are two independent routes to a modelled mix and both must be
+    // caught: the API's own flag, and the local simulateGTOFrequencies()
+    // fallback in `computedFrequencies` that fires whenever no gtoFrequencies
+    // prop arrived at all. Reading only the flag would still have let the
+    // second one through silently.
+    //
+    // Snapshot-aware for the same reason as panelStrategy: through feedback the
+    // parent may already have swapped in the preloaded next hand, and the badge
+    // must describe the hand whose numbers are on screen.
+    const frequencySource = useMemo(() => {
+        const q = infoPanelQuestion;
+        const solverMix = (showFeedback && q?.gtoFrequencies) ? q.gtoFrequencies : gtoFrequencies;
+        // DeterministicGTOEngine never sets dataQuality — it tags provenance with
+        // `source` instead, and two of its four sources are not solver output.
+        // POSTFLOP_ENGINE frequencies come from PostflopScenarioGenerator's
+        // heuristics, and hand_history_import is the player's own hand with no
+        // solve behind it at all. Both were showing as though PioSOLVER had
+        // produced them.
+        const MODELLED_SOURCES = ['POSTFLOP_ENGINE', 'hand_history_import'];
+        const isModelled =
+            q?.dataQuality === 'SIMULATED' ||
+            MODELLED_SOURCES.includes(q?.source) ||
+            !solverMix;
+        return isModelled
+            ? { modelled: true, label: 'MODELLED', fg: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', title: 'Modelled distribution - this spot had no exact solver output, so the action mix is estimated. Treat the shape as directional, not exact.' }
+            : { modelled: false, label: 'SOLVER', fg: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)', title: 'Exact PioSOLVER output for this spot.' };
+    }, [infoPanelQuestion, gtoFrequencies, showFeedback]);
 
     // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
     // GTOW parity #21: `difficultyMode` is only ever set by TrainerConfigModal.
@@ -3215,11 +3271,12 @@ function UniversalDynamicTable({
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
                         const isButton = index === getButtonSeatIndex;
-                        // The named villain shows the scenario's real stack; other
-                        // seats fall back to the generated filler stack.
+                        // #17: the named villain shows the scenario's own stack;
+                        // every other seat shows the depth the solve was built at.
+                        // Nothing on this table is invented any more.
                         const stackSize = isHero
                             ? heroStack
-                            : (index === villainSeatIndex && villainStack ? villainStack : generateVillainStack(index));
+                            : (index === villainSeatIndex && villainStack ? villainStack : tableStackDepth);
                         // Determine if this villain has folded
                         // HERO-RELATIVE ring index for this ABSOLUTE seat index.
                         // Entry 0 is hero, 1 is the seat to his left, clockwise.
@@ -4354,8 +4411,27 @@ function UniversalDynamicTable({
                             exit={{ opacity: 0, height: 0 }}
                             style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
-                                GTO Strategy Distribution
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                                    GTO Strategy Distribution
+                                </div>
+                                {/* GTOW parity #31 — same provenance badge as the
+                                    Action mix strip. The Strategy tab is the surface
+                                    a player studies hardest, so it is the last place
+                                    an estimate should be able to pass as solved. */}
+                                <span
+                                    title={frequencySource.title}
+                                    style={{
+                                        fontSize: 8, fontWeight: 800, letterSpacing: 1,
+                                        color: frequencySource.fg,
+                                        background: frequencySource.bg,
+                                        border: `1px solid ${frequencySource.border}`,
+                                        borderRadius: 4, padding: '1px 6px',
+                                        whiteSpace: 'nowrap', flexShrink: 0,
+                                    }}
+                                >
+                                    {frequencySource.label}
+                                </span>
                             </div>
                             {panelStrategy.options.slice(0, 9).map(opt => {
                                 if (!opt) return null;
@@ -4654,8 +4730,27 @@ function UniversalDynamicTable({
                                 border: '1px solid rgba(255,255,255,0.04)',
                             }}
                         >
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
-                                Action mix
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                                    Action mix
+                                </div>
+                                {/* GTOW parity #31 — say where these numbers came
+                                    from. An estimated mix that looks identical to a
+                                    solved one teaches the player to trust the wrong
+                                    digits. */}
+                                <span
+                                    title={frequencySource.title}
+                                    style={{
+                                        fontSize: 8, fontWeight: 800, letterSpacing: 1,
+                                        color: frequencySource.fg,
+                                        background: frequencySource.bg,
+                                        border: `1px solid ${frequencySource.border}`,
+                                        borderRadius: 4, padding: '1px 6px',
+                                        whiteSpace: 'nowrap', flexShrink: 0,
+                                    }}
+                                >
+                                    {frequencySource.label}
+                                </span>
                             </div>
                             {/* Stacked bar */}
                             <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', gap: 1, background: 'rgba(0,0,0,0.3)' }}>
