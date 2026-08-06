@@ -26,9 +26,10 @@
  *   Verifiers run in a bounded batch against a memoised context (one profile
  *   read, one transaction read, one training read — shared across all of them),
  *   the sweep is rate limited like every other write endpoint, and
- *   EASTER_EGG_MONTHLY_CAP (500 ◆) is still enforced inside SQL, so a user who
- *   legitimately unlocks six legendary eggs in one sweep is still capped at
- *   500 ◆ for the month.
+ *   EASTER_EGG_MONTHLY_CAP (1,000 ◆) is still enforced inside SQL, so a user
+ *   who legitimately unlocks six legendary eggs in one sweep still stops at
+ *   1,000 ◆ for the month. Eggs that do not fit are deferred whole, not
+ *   part-paid, so nothing is lost — the next sweep collects them.
  *
  * @see src/lib/rewards/eggVerifiers.js — the proofs
  * @see pages/api/rewards/claim.js      — single-egg path, same verification
