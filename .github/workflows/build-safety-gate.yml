@@ -55,6 +55,25 @@ jobs:
       # secret in repo Settings → Secrets and variables → Actions to
       # activate enforcement.
       # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 9: Reward catalog matches diamondRewards.js"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # award_diamonds_v2 reads public.diamond_reward_catalog, NOT
+          # src/config/diamondRewards.js. On 2026-08-05 the two had drifted on
+          # five fields and nothing in the repo compared them, so the drift was
+          # invisible: easter eggs were being clamped to the daily cap with the
+          # excess discarded (while the store page promised the opposite),
+          # a once-ever 15 diamond bonus was repayable daily, and a 500 diamond
+          # referral action had no periodic limit at all. This check is that
+          # comparison. Dependency-free on purpose — this job does not npm install.
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — reward catalog drift is NOT enforced."
+            exit 0
+          fi
+          node scripts/check-reward-catalog-drift.mjs
+
       - name: "CHECK 7: Storage bucket file_size_limit guard (50GB minimum)"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
