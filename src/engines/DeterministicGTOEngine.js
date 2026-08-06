@@ -1258,6 +1258,20 @@ export class DeterministicGTOEngine {
         if (pot != null) {
             question.scenario.pot = pot;
             question.estimatedPot = pot;
+            // The prompt the player READS was built by buildQuestionText from the
+            // matched solver scenario's generic pot, before this override ran. On
+            // a multi-street hand that produced a table contradicting itself:
+            // measured on production, the felt's POT pill said 6BB (the real
+            // running pot of the hand) while the sentence above it said
+            // "Pot: 14bb". Same money, two numbers. Rewrite the phrase to the
+            // authoritative pot so the sentence and the felt agree.
+            if (typeof question.question === 'string') {
+                const potBB = typeof pot === 'number' ? pot.toFixed(1).replace(/\.0$/, '') : pot;
+                question.question = question.question.replace(
+                    /Pot: \d+(?:\.\d+)?bb/g,
+                    `Pot: ${potBB}bb`
+                );
+            }
         }
         if (heroPosition) question.scenario.heroPosition = heroPosition;
         if (villainPosition) question.scenario.villainPosition = villainPosition;

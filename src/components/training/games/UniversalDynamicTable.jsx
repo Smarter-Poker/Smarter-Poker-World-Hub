@@ -932,17 +932,28 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring', compact = false }) {
+function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true, onTimeExpired = null, variant = 'ring', compact = false, resetKey = null }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
     const expiredRef = React.useRef(false);
     const radius = 18;
     const circumference = 2 * Math.PI * radius;
 
-    // Reset timer on new question
+    // Reset the clock on every new DECISION, not every new question.
+    //
+    // A multi-street hand is one question that asks three times: flop, then
+    // turn, then river. `questionNumber` advances once per HAND (see the
+    // "questionNumber only advances once per hand" note in useGTOTrainer), so
+    // keying the reset on it alone meant the turn and river decisions inherited
+    // whatever the flop left behind. Measured on production: the plate ticked
+    // 7..1 on the flop, expired, and then sat frozen at 0 for every later street
+    // of that hand -- no clock, no time pressure, no auto-fold. `resetKey`
+    // carries the street (and the question identity) so each decision starts
+    // fresh. Falls back to questionNumber when the caller passes nothing.
+    const decisionKey = resetKey != null ? resetKey : questionNumber;
     React.useEffect(() => {
         setTimeLeft(seconds);
         expiredRef.current = false;
-    }, [questionNumber, seconds]);
+    }, [decisionKey, seconds]);
 
     // Countdown tick — fires onTimeExpired when hitting 0
     React.useEffect(() => {
@@ -4137,6 +4148,8 @@ function UniversalDynamicTable({
                             <CountdownTimer
                                 seconds={trainerConfig?.timerSeconds || 30}
                                 questionNumber={questionNumber}
+                                // One decision = one clock. See CountdownTimer.
+                                resetKey={`${questionNumber}:${currentStreet}:${question?.id || question?.scenario?.id || ''}`}
                                 showFeedback={showFeedback}
                                 active={trainerConfig?.timerEnabled || false}
                                 variant="plate"
