@@ -7,39 +7,39 @@
 // __PUBLISH_CSLOT_00__
   }, [restoreScenario]);
 
-// __PUBLISH_RISKY_00__
+  // ═══════════════════════════════════════════════════════════
   // DERIVED VIEW STATE
-// __PUBLISH_RISKY_01__
+  // ═══════════════════════════════════════════════════════════
   const historicResults = (activeStreet < streetHistory.length) ? streetHistory[activeStreet]?.results : null;
   const displayResults = historicResults || resultsOverride || results;
 // __PUBLISH_CSLOT_01__
       </div>
 
-// __PUBLISH_RISKY_02__
+      {/* ═══════════════════ SHEETS ═══════════════════ */}
 
       <CardPickerSheet
 // __PUBLISH_CSLOT_02__
       />
 
-// __PUBLISH_RISKY_03__
+      {/* ═══════════════════ RESULTS SHEET (tabbed) ═══════════════════ */}
       <BottomSheet
         isOpen={!!displayResults && showResults}
 // __PUBLISH_CSLOT_03__
             )}
 
-// __PUBLISH_RISKY_04__
+            {/* ─────────── VERDICT ─────────── */}
             {resultsTab === 'verdict' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
 // __PUBLISH_CSLOT_04__
             )}
 
-// __PUBLISH_RISKY_05__
+            {/* ─────────── DEEP DIVE ─────────── */}
             {resultsTab === 'deep' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
 // __PUBLISH_CSLOT_05__
             )}
 
-// __PUBLISH_RISKY_06__
+            {/* ─────────── SHARE & TRAIN ─────────── */}
             {resultsTab === 'share' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
 // __PUBLISH_CSLOT_06__
