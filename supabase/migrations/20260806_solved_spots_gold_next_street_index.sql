@@ -40,6 +40,29 @@
 -- against the index tuple rather than costing a heap fetch per candidate; only
 -- the handful of rows that actually match pay to read the wide strategy_matrix.
 --
+-- RESULT (measured after the build)
+-- ---------------------------------
+-- Miss case (board not present):
+--   Limit  (cost=0.56..11551.69 rows=1) (actual time=1.563..1.563 rows=0)
+--     ->  Index Scan using idx_ssg_next_street on solved_spots_gold
+--           Index Cond: (game_type='cash' AND stack_depth=100 AND street='turn')
+--           Buffers: shared hit=1 read=3
+--   Execution Time: 1.671 ms          (from 17,361 ms)
+--
+-- Hit case (game_type='6max_cash', stack_depth=100, street='turn',
+-- scenario_hash ilike '%2h8s7c9c%'):
+--   Index Only Scan using idx_ssg_next_street
+--   Rows Removed by Filter: 2477, Heap Fetches: 2478
+--   Execution Time: 379.021 ms        (from 17,361 ms)
+--
+-- The hit case is ~45x better but not as good as the miss case, and the reason
+-- is visible in the plan: Heap Fetches equals the rows scanned, so the
+-- visibility map has no all-visible bits for these pages yet. A VACUUM of the
+-- table would turn this into a true index-only scan and take the remaining
+-- ~380 ms with it. It is deliberately NOT done here -- vacuuming 59 GB is a
+-- large I/O event that wants a quiet window, and 379 ms is already well inside
+-- the arena's 450 ms dealing-indicator gate, so the player never sees it.
+--
 -- HOW THIS WAS APPLIED
 -- --------------------
 -- The Supabase MCP connection times out at 60s and rolls its transaction back,
@@ -52,9 +75,37 @@
 --   -- poll pg_stat_progress_create_index
 --   select cron.unschedule('build_idx_ssg_next_street');
 --
+-- READ THIS BEFORE COPYING THE ABOVE. As written it does not work, and it
+-- fails SILENTLY -- it looks like a slow build rather than a broken one.
+--
+-- A pg_cron job inherits the role's statement_timeout, which is 120 seconds
+-- here. A CREATE INDEX over 349,801 blocks takes far longer than that, so every
+-- firing was killed at the two-minute mark and the next firing restarted the
+-- scan FROM ZERO. Polling pg_stat_progress_create_index looks like progress
+-- because each fresh attempt climbs again; the giveaway is that the block count
+-- goes BACKWARDS between polls (observed: 160043, then 56107). The truth is in
+-- cron.job_run_details, which had seven consecutive
+-- "canceling statement due to statement timeout" rows, each exactly ~2 minutes
+-- long. This thrashed for ~15 minutes and made zero net progress while burning
+-- continuous I/O.
+--
+-- The job body must therefore raise its own limits before the DDL:
+--
+--   select set_config('statement_timeout','0',false),
+--          set_config('lock_timeout','0',false),
+--          set_config('idle_in_transaction_session_timeout','0',false),
+--          set_config('maintenance_work_mem','1GB',false);
+--   -- then the pg_try_advisory_lock-guarded DO block containing CREATE INDEX
+--
+-- With that prefix the build ran to completion in one firing: 593 MB.
+-- Cleanup is cron.unschedule plus pg_cancel_backend on any workers left over
+-- from the killed attempts (they do not always exit with the job).
+--
 -- This is NOT a standing pg_cron job and does not conflict with CLAUDE.md
 -- section 11 (which governs scheduled APPLICATION triggers, all of which go
 -- through Open Claw). It was scaffolding for a single DDL build and no longer
--- exists. This file is the auditable record of the resulting schema.
+-- exists -- verified with
+-- `select jobid, jobname from cron.job where jobname like '%idx_ssg%'` -> [].
+-- This file is the auditable record of the resulting schema.
 CREATE INDEX IF NOT EXISTS idx_ssg_next_street
     ON public.solved_spots_gold (game_type, stack_depth, street, scenario_hash);

@@ -79,6 +79,33 @@ export default function MultiTablePage() {
   // so the keyboard works before the player has clicked anything.
   const [focusedGameId, setFocusedGameId] = useState(null);
 
+  // #10: a phone cannot show two felts side by side.
+  //
+  // GodModeArena sizes itself from `window.innerWidth`, not from the box it is
+  // actually rendered into -- isMobile, isNarrow and the whole scale-lock in
+  // UniversalDynamicTable all read the viewport. In a 2-up grid on a 375px
+  // phone each cell is 187px wide while the arena inside it still lays out for
+  // 375. Measured on production: the board cards overlapped each other and the
+  // hero's hole cards, the pot pill sat on top of the board, the drill-name
+  // watermark ran through the cards, the EV LOSS / MISTAKES / STREAK /
+  // DIFFICULTY strip ran its four labels together with no gap, and table one's
+  // header chips were clipped by the cell boundary.
+  //
+  // Fixing this inside the arena means making a component every training game
+  // depends on measure its own container instead of the viewport -- a change
+  // with far more blast radius than this screen is worth. The real parity
+  // answer is the one GTOW uses anyway: phones do not tile felts. Below the
+  // break we show ONE table at a time and put the others behind a switcher.
+  // Every arena stays mounted, so the hidden tables keep their hand, their
+  // clock and their session; only their visibility changes.
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    const check = () => setIsPhone(window.innerWidth < 700);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // #10: identifies one multi-table run. Each arena gets `<runId>-<gameId>` as
   // its sessionId; previously none of them got a sessionId at all.
   const [runId, setRunId] = useState('mt-0');
@@ -256,8 +283,10 @@ export default function MultiTablePage() {
     }
   }, [completedTables.size, tableCount, isStarted, combinedStats]);
 
-  const gridCols = tableCount <= 2 ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)';
-  const gridRows = tableCount <= 2 ? '1fr' : 'repeat(2, 1fr)';
+  // One column on a phone -- see the isPhone note. The tiled layout is only
+  // ever used where a cell is wide enough for the arena to lay out into.
+  const gridCols = isPhone ? '1fr' : 'repeat(2, 1fr)';
+  const gridRows = isPhone || tableCount <= 2 ? '1fr' : 'repeat(2, 1fr)';
 
   return (
     <>
@@ -779,13 +808,71 @@ export default function MultiTablePage() {
               </div>
             </div>
 
+            {/* Table switcher — phones only. See the isPhone note: below the
+                break exactly one felt is on screen, so the player needs a way
+                to reach the others. A completed table keeps its slot rather
+                than disappearing, so the tab positions never shift under a
+                thumb mid-session. */}
+            {isPhone && visibleGames.length > 1 && (
+              <div
+                role="tablist"
+                aria-label="Tables"
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  padding: '6px 10px',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(0,0,0,0.25)',
+                  overflowX: 'auto',
+                }}
+              >
+                {visibleGames.map((gameId, i) => {
+                  const isActive = gameId === activeGameId;
+                  const isDone = completedTables.has(gameId);
+                  return (
+                    <button
+                      key={gameId}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setFocusedGameId(gameId)}
+                      style={{
+                        flex: '0 0 auto',
+                        minHeight: 34,
+                        padding: '6px 14px',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        background: isActive
+                          ? 'rgba(var(--sp-accent-cyan-rgb), 0.18)'
+                          : 'rgba(255,255,255,0.05)',
+                        color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
+                        border: `1px solid ${
+                          isDone
+                            ? 'rgba(34,197,94,0.45)'
+                            : isActive
+                              ? 'rgba(var(--sp-accent-cyan-rgb), 0.55)'
+                              : 'rgba(255,255,255,0.08)'
+                        }`,
+                      }}
+                    >
+                      TABLE {i + 1}
+                      {isDone ? ' - DONE' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Table Grid */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: gridCols,
                 gridTemplateRows: gridRows,
-                height: 'calc(100vh - 45px)',
+                height: `calc(100vh - ${isPhone && visibleGames.length > 1 ? 92 : 45}px)`,
                 gap: 2,
               }}
             >
@@ -799,6 +886,13 @@ export default function MultiTablePage() {
                   // table's question without ever transferring focus to it.
                   onClickCapture={() => setFocusedGameId(gameId)}
                   style={{
+                    // Hidden, not unmounted. Unmounting would restart the
+                    // hidden table's drill from question one every time the
+                    // player switched tabs; `display: none` keeps the arena's
+                    // hand, clock and session intact. The felt's ResizeObserver
+                    // ignores zero-sized entries, so it does not clobber its
+                    // measured geometry while hidden and re-measures on return.
+                    display: isPhone && gameId !== activeGameId ? 'none' : undefined,
                     overflow: 'hidden',
                     borderRadius: 0,
                     border: completedTables.has(gameId)
@@ -833,13 +927,21 @@ export default function MultiTablePage() {
                     {i + 1}
                   </div>
 
+                  {/* The 0.85 down-scale exists to fit a tiled cell. On a
+                      phone the cell IS the viewport, so scaling it down just
+                      shrinks the type for no reason -- and the arena has
+                      already sized itself for this width. */}
                   <div
-                    style={{
-                      transform: 'scale(0.85)',
-                      transformOrigin: 'top left',
-                      width: '117.6%',
-                      height: '117.6%',
-                    }}
+                    style={
+                      isPhone
+                        ? { width: '100%', height: '100%' }
+                        : {
+                            transform: 'scale(0.85)',
+                            transformOrigin: 'top left',
+                            width: '117.6%',
+                            height: '117.6%',
+                          }
+                    }
                   >
                     <GodModeArena
                       gameId={gameId}

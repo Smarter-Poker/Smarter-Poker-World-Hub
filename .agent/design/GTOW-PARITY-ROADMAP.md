@@ -111,19 +111,47 @@ High/Low mode.
 9. **Game speed Normal / Fast / Turbo.** BUILT 2026-07-26 — chosen in
    SessionSetupModal, passed through `initialConfig.speed`; the arena maps it
    to the auto-advance delay (fast 1500ms, turbo 1ms). Verified in source.
-10. **Up to 4 simultaneous tables.** GAP — and my earlier note pointing at
-    `useMultiTable` was WRONG; do not wire it. That hook is the PokerBros-style
-    club-arena cash-table manager: its slots hold
-    `{tableId, name, stakes, variant, clubName, clubId}`, it takes
+10. **Up to 4 simultaneous tables.** DONE — screen-verified 2026-08-06 on
+    production with two tables actually running, which is the only evidence
+    that counts here. Table one was on 3-BET POTS with board `[Ts 4s 5h]`
+    holding `A3s` in the BB; table two was on CONTINUATION BETTING with board
+    `[3h 7c 7s]` holding `52s` on the BTN. Each had its own ten controls, both
+    sat at `Question 1 of 20`, the header aggregated them
+    (`Hands: 0 Correct: 0 EV Loss: 0.0bb Done: 0/2`), and clicking table two's
+    number badge moved the cyan focus border off table one. No page errors.
+    My earlier note pointing at `useMultiTable` was WRONG; do not wire it.
+    That hook is the PokerBros-style club-arena cash-table manager: its slots
+    hold `{tableId, name, stakes, variant, clubName, clubId}`, it takes
     `{supabase, userId}`, and it tracks per-table chat, BBJ wins and websocket
     connection status. It manages real money tables, not training drills.
-    Connecting it to the trainer would be a category error.
-    A real implementation means N independent question queues and score
-    sessions rendered side by side. `GodModeArena` is ~13k lines and owns
-    session state, persistence and a GLOBAL body scroll lock, so four mounted
-    instances would fight over all three. This is the one remaining item that
-    is a genuine architectural build rather than a fix, and it should start by
-    extracting the per-session state out of the arena shell.
+    Connecting it to the trainer would be a category error. The shipped
+    implementation instead mounts N independent `GodModeArena` instances, each
+    with its own `sessionId`, from `pages/hub/training/multi-table.js`.
+    The lesson worth keeping is the one the TEXT probe could not tell me.
+    Every text assertion above passed while the screenshot showed a wrecked
+    felt: at 375px a 2-up grid gives each cell 187px, and
+    `UniversalDynamicTable` sizes itself from `window.innerWidth`, not from
+    the box it is rendered into — `isMobile` (<768), `isNarrow` (<480) and the
+    whole scale-lock (`Math.min(vw / 420, 1)`) all read the viewport. Only the
+    felt furniture is container-aware, via a `ResizeObserver` on `tableRef`.
+    So a 187px cell laid out for 375 and everything overlapped: board cards on
+    each other and on the hole cards, the POT pill on the board, the drill
+    watermark through the cards, the four-label stat strip run together with
+    DIFFICULTY clipped.
+    Making the arena container-aware is the pure fix but it touches a
+    component every training game depends on. The parity answer is the one
+    GTOW uses anyway: **phones do not tile felts.** Below 700px the grid is one
+    column, exactly one felt is on screen, and the others sit behind a
+    `role="tablist"` switcher. Hidden tables are `display: none`, not
+    unmounted, so each keeps its hand, its clock and its session across a
+    switch — safe because the felt's ResizeObserver ignores zero-sized
+    entries and re-measures on return. The 0.85 tiling down-scale is dropped
+    on a phone, where the cell IS the viewport.
+    Residual, tracked but not blocking: `gma_difficulty` / `gma_timer` are
+    stored unnamespaced so all tables share one preference; the
+    `BroadcastChannel('smarter_poker_bus')` traffic is not per-table; and the
+    `training_leaderboard` update is a read-modify-write, so two tables
+    finishing together can lose one increment.
 
 ### The table
 
@@ -221,7 +249,12 @@ High/Low mode.
     LifetimeStatsCard, derived from `spotType`. Verified in source.
 41. **Frequency-difference metric.** BUILT.
 42. **Leaderboard populates.** DONE — the writer targeted a table shape that
-    does not exist, so every write failed silently.
+    does not exist, so every write failed silently. Screen-verified 2026-08-06:
+    `/hub/leaderboards` renders real rows ("1 D Danimal Bekavac @danimal 4 pts,
+    2 Dan Bekavac @kingfish 2 pts"), the This Week / This Month / All Time tabs
+    are present, the footer reads "Showing 2 players", and no empty-state
+    copy appears. Small numbers, but they are OUR numbers — written by the
+    fixed writer, not seeded.
 43. **Streaks record.** DONE — no live caller, plus three missing columns.
 44. **Reports page loads.** DONE — selected four non-existent columns and 500'd.
 
@@ -278,6 +311,30 @@ High/Low mode.
     The generalisable point: when one counter means "hand" and another means
     "decision", every effect has to say which it wants. Grep
     `\[questionNumber\]` before adding a fifth.
+50. **The felt does not go silent between streets.** DONE 2026-08-06, shipped
+    in `3bc80199`. #49 stopped the hand hanging on the turn; this is the wait
+    that remained. Two halves.
+    (a) Latency. `/api/training/next-street` measured 17,361 ms in production
+    against a 4,315 ms worst case for every other `/api/training/*` route.
+    `DeterministicGTOEngine.queryNextStreet` filters
+    `game_type = ? AND stack_depth = ? AND street = ?` then
+    `scenario_hash ILIKE '%<board>%'`, and `scenario_hash` is
+    `{street}_{game_type}_{position}_{stack}bb_{board}` — the board is a
+    SUFFIX, so the match needs a leading wildcard and the existing plain btree
+    on `scenario_hash` is useless. The planner was doing a Parallel Seq Scan of
+    all 8,053,212 rows / 59 GB. A composite index on
+    `(game_type, stack_depth, street, scenario_hash)` flips it to an index
+    scan: the miss case went to 1.671 ms on four buffers, the hit case to
+    379 ms. Migration
+    `supabase/migrations/20260806_solved_spots_gold_next_street_index.sql`
+    carries the full reasoning and the two timeout laws that building it
+    taught.
+    (b) Honesty. Even a fast query is not instant, and a felt that shows the
+    OLD street's cards while fetching the next one is lying. The arena now
+    renders a dealing placeholder in the incoming card's slot behind a 450ms
+    gate, so a fast fetch shows nothing at all and a slow one shows a dealing
+    state rather than a stale board. The flop/turn separator counts the
+    placeholder in its denominator, so the count never jumps.
 
 ---
 
