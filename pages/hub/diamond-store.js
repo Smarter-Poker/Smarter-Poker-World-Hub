@@ -15,6 +15,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
+// Tiny list module on purpose — importing eggVerifiers.js here would pull 28
+// server-side database queries into the client bundle just to print a count.
+import { EARNABLE_EGG_COUNT } from '../../src/lib/rewards/eggCoverage';
 
 // God-Mode Stack
 import useCartStore from '../../src/stores/cartStore';
@@ -691,9 +694,9 @@ export default function DiamondStorePage() {
                     {/* Header */}
                     <UniversalHeader pageDepth={1} />
 
-                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* ══════════════════════════════════════════════════════ */}
                     {/* SHARED HEADER IMAGE — Shows on ALL tabs */}
-                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* ══════════════════════════════════════════════════════ */}
                     <div style={{
                         position: 'relative',
                         width: '100%',
@@ -784,9 +787,9 @@ export default function DiamondStorePage() {
                         })}
                     </div>
 
-                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* ══════════════════════════════════════════════════════ */}
                     {/* DIAMONDS TAB — Checkout image with clickable zones */}
-                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* ══════════════════════════════════════════════════════ */}
                     {activeTab === 'diamonds' && (
                         <div style={{
                             position: 'relative',
@@ -854,9 +857,9 @@ export default function DiamondStorePage() {
                         ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
                     }}>
 
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {/* VIP MEMBERSHIP TAB */}
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {activeTab === 'vip' && (
                             <>
 
@@ -1029,16 +1032,16 @@ export default function DiamondStorePage() {
                             </>
                         )}
 
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {/* MERCHANDISE TAB */}
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {activeTab === 'merch' && (
                             <MerchStore user={user} />
                         )}
 
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {activeTab === 'rewards' && (
                             <>
                                 {/* Active Diamond Multiplier Banner */}
@@ -1209,7 +1212,7 @@ export default function DiamondStorePage() {
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across {EGG_CATEGORY_COUNT} Categories.
-                                                    From Performance To Legacy Milestones — Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Cap.
+                                                    From Performance To Legacy Milestones — Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
                                                 </p>
                                             </div>
                                         </div>
@@ -1297,7 +1300,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.easterEggsSection}>
                                         <h2 style={styles.earnTitle}>Easter Eggs - {TOTAL_EASTER_EGGS} Hidden Achievements</h2>
                                         <p style={styles.introText}>
-                                            Discover {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories.
+                                            {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT} Categories — {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As Tracking Expands.
                                             Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} 💎 A Month On Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays {biggestEggValue()} 💎.
                                         </p>
 
@@ -1425,9 +1428,9 @@ export default function DiamondStorePage() {
                             </>
                         )}
 
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {/* CLUB SHOP TAB — Chip-based marketplace items from user's club */}
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* ══════════════════════════════════════════════════════════════ */}
                         {activeTab === 'club-shop' && (
                             <>
                                 {/* Success Flash */}
