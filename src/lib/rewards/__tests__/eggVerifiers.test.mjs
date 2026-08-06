@@ -30,7 +30,7 @@ import {
 } from '../eggVerifiers.js';
 import { EASTER_EGGS, DAILY_CAP } from '../../../config/diamondRewards.js';
 
-// ── fake context ───────────────────────────────────────────────────────────
+// ── fake context ──────────────────────────────────────────────────────────
 // Mirrors the shape createEggContext() returns: every field is a function
 // returning a promise, so verifiers cannot tell a stub from the real thing.
 /** Action keys that count toward the daily cap, mirroring the live catalog. */
