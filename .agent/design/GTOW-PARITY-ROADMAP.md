@@ -236,12 +236,26 @@ High/Low mode.
     `committedFor` returns 0 for a checking seat, so nobody had money in front
     of them on that street. Needs a facing-a-bet spot to observe.
 
-    Defect found while confirming, NOT yet fixed (tracked below as #14a):
-    `committedFor` returns on the FIRST matching action entry, so (i) a blind
-    seat that later acts loses its posted blind entirely — `{SB, 'CALL 3'}`
-    returns 3, not 3.5 — and (ii) a seat that raises and then calls a 3-bet
-    shows only the first amount. The same function feeds `computeDisplayPot`,
-    so both errors propagate into the pot pill.
+14a. **`committedFor` read only a seat's FIRST action.** FIXED 2026-08-06,
+    found while confirming #14. `committedFor` used `.find`, so a seat with more
+    than one recorded action on the street was read at its first entry and
+    understated — and because `computeDisplayPot` sums the same function, every
+    error landed in the POT pill as well as the chip badge. Three real shapes
+    were wrong:
+
+    - open then call a 3-bet — `[{UTG,RAISE,2.5},{BTN,RAISE,8},{UTG,CALL,8}]`
+      read UTG at 2.5 instead of 8, understating the pot by 5.5bb
+    - check then bet the same street — a check-raise read the BB at 0
+    - a blind that later acts — the posted-blind branch only ran for a seat with
+      NO entry at all, so the blind vanished the moment that seat did anything
+
+    Amounts are TOTALS-TO the way a poker log writes them, so a seat's
+    contribution is the LARGEST amount it has been recorded at, and the posted
+    blind is a FLOOR rather than an addend (an SB called to 3 has 3 in front of
+    it, not 3.5 — the 0.5 counts toward the 3). The floor now also applies to a
+    blind that FOLDS, because a posted blind is dead money that stays in the
+    middle. Five assertions added to `scripts/preflop-pot-check.js`, which now
+    runs PASS 13 FAIL 0 (was 8).
 15. **Board clamped to street** (0/3/4/5). DONE — screen-measured 2026-08-06.
     On a FLOP spot the felt renders EXACTLY three card images, all at y=494:
     `/cards/spades_2.png` (169,494), `/cards/diamonds_2.png` (201,494),
