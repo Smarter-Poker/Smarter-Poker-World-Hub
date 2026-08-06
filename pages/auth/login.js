@@ -463,9 +463,9 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Email Address label */}
-                    <span className="login-field-label" style={{ top: '61.8%', left: '25%' }}>
-                        Email Address
+                    {/* EMAIL ADDRESS label */}
+                    <span className="login-field-label" style={{ top: '64.5%', left: '25%' }}>
+                        EMAIL ADDRESS
                     </span>
 
                     {/* Email input */}
@@ -475,17 +475,16 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
-                        placeholder="Enter Your Email"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '63.2%', left: '25%', width: '50%', height: '3.2%',
+                            position: 'absolute', top: '65.8%', left: '25%', width: '50%', height: '2.5%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
 
-                    {/* Password label */}
-                    <span className="login-field-label" style={{ top: '67.5%', left: '25%' }}>
-                        Password
+                    {/* PASSWORD label */}
+                    <span className="login-field-label" style={{ top: '69.0%', left: '25%' }}>
+                        PASSWORD
                     </span>
 
                     {/* Password input */}
@@ -495,11 +494,10 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        placeholder="Password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '68.9%', left: '25%', width: '46%', height: '3.2%',
+                            position: 'absolute', top: '70.3%', left: '25%', width: '46%', height: '2.5%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                         }}
                     />
@@ -509,7 +507,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '68.9%', left: '71.5%', width: '3.5%', height: '3.2%',
+                            position: 'absolute', top: '70.3%', left: '71.5%', width: '3.5%', height: '2.5%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
