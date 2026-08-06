@@ -11,17 +11,12 @@ import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderS
 import { supabase } from '../../../../../src/lib/supabase';
 import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
 
-const parseBlinds = (raw) => {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch (e) { console.warn('[App] Handled exception:', e); } }
-  return [];
-};
-
 export default function TournamentClockDisplay() {
   const router = useRouter();
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);
+  const [clock, setClock] = useState(null);
   const [clockState, setClockState] = useState({
     currentLevel: 1,
     secondsRemaining: 0,
@@ -30,20 +25,44 @@ export default function TournamentClockDisplay() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch tournament data
+  // Fetch tournament data.
+  // Static fields (buy-in, prize pool, chips) come from the plain tournament GET;
+  // the live clock (computed time remaining + current/next blinds) comes from the
+  // dedicated public /clock endpoint, which derives seconds remaining from the
+  // persisted settings.clock_state. Both are public reads.
   const fetchTournament = useCallback(async (signal) => {
 
   if (!router.isReady) return null;
 
     if (!id) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${id}`, signal ? { signal } : {});
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
-        setTournament(data.data.tournament);
-        if (data.data.tournament.clock_state) {
-          setClockState(data.data.tournament.clock_state);
+      const opts = signal ? { signal } : {};
+      const [tRes, cRes] = await Promise.all([
+        fetch(`/api/commander/tournaments/${id}`, opts).catch(() => ({ ok: false })),
+        fetch(`/api/commander/tournaments/${id}/clock`, opts).catch(() => ({ ok: false }))
+      ]);
+
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        if (tData.success && tData.data?.tournament) {
+          setTournament(tData.data.tournament);
+        }
+      }
+
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        if (cData.success && cData.data) {
+          const c = cData.data;
+          setClock(c);
+          setClockState({
+            currentLevel: c.currentBlind?.level || ((c.tournament?.current_level || 0) + 1),
+            secondsRemaining: c.clock?.timeRemaining || 0,
+            isRunning: !!c.clock?.isRunning,
+            isOnBreak: !!c.currentBlind?.isBreak
+          });
+          // Merge the live subset (players remaining, entries, avg stack) onto the
+          // static tournament record so the footer stats stay current.
+          if (c.tournament) setTournament(prev => ({ ...(prev || {}), ...c.tournament }));
         }
       }
     } catch (err) {
@@ -96,22 +115,12 @@ export default function TournamentClockDisplay() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Get current blind level
-  function getCurrentLevel() {
-    const bs = parseBlinds(tournament?.blind_structure);
-    if (!bs || bs.length === 0) return null;
-    return bs[clockState.currentLevel - 1] || null;
-  }
-
-  // Get next level
-  function getNextLevel() {
-    const bs = parseBlinds(tournament?.blind_structure);
-    if (!bs || bs.length === 0) return null;
-    return bs[clockState.currentLevel] || null;
-  }
-
-  const currentLevel = getCurrentLevel();
-  const nextLevel = getNextLevel();
+  // Current/next blind levels come from the /clock endpoint (camelCase), mapped
+  // to the snake_case shape this display renders.
+  const cb = clock?.currentBlind;
+  const currentLevel = cb ? { small_blind: cb.smallBlind, big_blind: cb.bigBlind, ante: cb.ante } : null;
+  const nb = clock?.nextBlind;
+  const nextLevel = nb ? { small_blind: nb.smallBlind, big_blind: nb.bigBlind } : null;
 
   if (loading) {
     return (
