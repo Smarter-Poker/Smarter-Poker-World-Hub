@@ -2196,7 +2196,7 @@ function UniversalDynamicTable({
     // reasons:
     //
     //  1. It does not fix the collision. Both SEAT_CONFIGS[9] and
-    //     SEAT_CONFIGS[6] put their top row at y = 15%, and potTopPct below
+    //     SEAT_CONFIGS[6] put their top row at y = 15%, and potPlacement below
     //     already measures the gap from that same 15% row and re-centres the
     //     pill (splitting the overlap when no gap exists). Dropping three
     //     seats changes nothing the pill reacts to.
@@ -2212,7 +2212,7 @@ function UniversalDynamicTable({
     //     hand still describes his raise.
     //
     // A 9-max hand renders as 9-max at every size; the clamp in the seat block
-    // and potTopPct are what keep it on the felt (scripts/table-geometry-check.js
+    // and potPlacement are what keep it on the felt (scripts/table-geometry-check.js
     // sweeps 360x640 for exactly that).
     const playerCount = useMemo(() => {
         if (gameType === 'spins' || gameType === 'sng') return 3;
@@ -2883,7 +2883,17 @@ function UniversalDynamicTable({
     // furniture stops shrinking while the felt keeps going, the top row grows
     // as a fraction of the felt, and a fixed band walks straight into it.
     // Centre the pill in whatever gap actually exists.
-    const potTopPct = useMemo(() => {
+    // Returns BOTH the percentage and which edge of the pill that percentage
+    // names. #48 follow-up: the below-board branch used to place the pill by its
+    // CENTRE, which meant it had to predict the pill's own height, and `potH`
+    // predicted only the POT row -- it did not count the SPR/Odds row beneath
+    // it. Measured on production at 375px the real pill was 41px tall against a
+    // predicted 22px, so the centre-anchored placement sat the pill's top edge
+    // 3px INSIDE the board cards. A prediction that has to stay in sync with
+    // markup it cannot see is the wrong mechanism; anchoring the pill's TOP edge
+    // below the board removes the pill's height from the arithmetic entirely, so
+    // the clearance holds no matter what rows the pill grows later.
+    const potPlacement = useMemo(() => {
         const h = Math.max(1, feltBox.h);
         const villainBoxH = ui(52) + ui(34) - ui(8) + ui(3) + ui(35);
         const topRowBottom = 0.15 * h + villainBoxH / 2;
@@ -2897,11 +2907,12 @@ function UniversalDynamicTable({
         // was unreadable, which is a number the player has to act on. When the
         // gap above the board genuinely cannot hold the pill, move the pill
         // BELOW the board instead, where the felt is empty on every table size.
-        const boardBottom = 0.38 * h + ui(70) / 2;
-        const centre = lo > hi
-            ? boardBottom + potH / 2 + ui(6)
-            : Math.min(Math.max(0.29 * h, lo), hi);
-        return (centre / h) * 100;
+        if (lo > hi) {
+            const boardBottom = 0.38 * h + ui(70) / 2;
+            return { topPct: (boardBottom / h) * 100, belowBoard: true };
+        }
+        const centre = Math.min(Math.max(0.29 * h, lo), hi);
+        return { topPct: (centre / h) * 100, belowBoard: false };
     }, [feltBox.h, ui]);
 
     // Pot shown on the felt. Single source of truth with the per-seat chip
@@ -3703,6 +3714,24 @@ function UniversalDynamicTable({
                                             // without covering either number.
                                             marginLeft: -ui(3),
                                             display: 'flex',
+                                            // #48 follow-up, measured on production
+                                            // at 375px: hero's own hole cards were
+                                            // rendering 8px and 7px wide against an
+                                            // intended ui(46)=27px. An absolutely
+                                            // positioned box at left:100% has a
+                                            // shrink-to-fit width whose available
+                                            // space is ZERO -- the containing block
+                                            // ends exactly where the box begins --
+                                            // so the default flex-shrink:1 crushed
+                                            // both cards to their minimum. The two
+                                            // most important cards on the screen
+                                            // were slivers. width:max-content sizes
+                                            // the row to its content instead of to
+                                            // the (nonexistent) space beside the
+                                            // nameplate, and flexShrink:0 on each
+                                            // image stops the crush even if some
+                                            // future ancestor constrains it again.
+                                            width: 'max-content',
                                             alignItems: 'flex-end',
                                             zIndex: 6,
                                             borderRadius: ui(6),
@@ -3720,6 +3749,7 @@ function UniversalDynamicTable({
                                                     style={{
                                                         width: heroCardW,
                                                         height: heroCardH,
+                                                        flexShrink: 0,
                                                         borderRadius: ui(5),
                                                         transformOrigin: 'bottom center',
                                                         boxShadow: '0 10px 22px rgba(0,0,0,0.8)',
@@ -3738,6 +3768,7 @@ function UniversalDynamicTable({
                                                     style={{
                                                         width: heroCardW,
                                                         height: heroCardH,
+                                                        flexShrink: 0,
                                                         marginLeft: -ui(14),
                                                         borderRadius: ui(5),
                                                         transformOrigin: 'bottom center',
@@ -4043,9 +4074,12 @@ function UniversalDynamicTable({
                         style={{
                             ...styles.pot,
                             ...m.pot,
-                            top: `${potTopPct}%`,
+                            top: `${potPlacement.topPct}%`,
                             x: '-50%',
-                            y: '-50%',
+                            // #48 follow-up: below the board the percentage names
+                            // the pill's TOP edge, so it is nudged down by a fixed
+                            // gap instead of pulled up by half its own height.
+                            y: potPlacement.belowBoard ? ui(8) : '-50%',
                             padding: `${ui(4)}px ${ui(12)}px ${ui(5)}px`,
                             borderRadius: ui(11),
                             background: 'linear-gradient(180deg, rgba(6,11,22,0.82) 0%, rgba(3,6,14,0.88) 100%)',

@@ -268,7 +268,8 @@ for (const vp of VIEWPORTS) {
         const b = seatBox(false, felt);
         const topRowBottom = 0.15 * felt.h + b.boxH / 2;
         void b;
-        // POT pill: potTopPct centres it in the gap that actually exists.
+        // POT pill: potPlacement centres it in the gap that actually exists, or
+        // anchors its top edge below the board when no such gap exists.
         const potH = Math.max(11, ui(15)) + ui(4) + ui(5) + 6;
         const boardTop = 0.38 * felt.h - ui(70) / 2;
         const lo = topRowBottom + potH / 2 + 3;
