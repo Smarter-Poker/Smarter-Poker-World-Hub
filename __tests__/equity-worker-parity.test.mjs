@@ -114,6 +114,13 @@ const EQUITY_CASES = [
     // Whitespace inside the range string exercises the \s escape in the
     // serialised regex — a hand-edited template literal collapses it to `s`.
     { hero: 'Th9h', board: cards('8h7d2c'), sims: 1500, range: 'TT-88, AQo', seed: 31337 },
+    // MULTIWAY: the { villains: [...] } shape must survive postMessage and
+    // compute identically in the worker copy. One ranged + one random villain
+    // exercises both fill paths in the same trial loop.
+    { hero: 'AsAh', board: [], sims: 1500, range: { villains: ['QQ+, AKs', '22+, A2s+'] }, seed: 8080 },
+    { hero: 'KhQh', board: cards('Jh9h2s'), sims: 1500, range: { villains: ['TT+', ''] }, seed: 6161 },
+    // One-entry object must collapse to the exact heads-up path.
+    { hero: 'JdJc', board: cards('9h4s2c'), sims: 1500, range: { villains: ['AKs,QQ+'] }, seed: 777 },
 ];
 
 test('equity worker source evaluates and matches the synchronous engine', { skip: present ? false : 'EquityEngine/equityWorkerSource not in this checkout' }, () => {
