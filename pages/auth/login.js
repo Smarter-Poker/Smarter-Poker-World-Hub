@@ -463,6 +463,11 @@ export default function LoginPage() {
                         </div>
                     )}
 
+                    {/* Email Address label */}
+                    <span className="login-field-label" style={{ top: '61.8%', left: '25%' }}>
+                        Email Address
+                    </span>
+
                     {/* Email input */}
                     <input
                         type="email"
@@ -471,13 +476,17 @@ export default function LoginPage() {
                         required
                         autoComplete="email"
                         placeholder="Enter Your Email"
+                        className="login-input-box"
                         style={{
-                            position: 'absolute', top: '64.0%', left: '25%', width: '50%', height: '3.5%',
+                            position: 'absolute', top: '63.2%', left: '25%', width: '50%', height: '3.2%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
-                            background: 'transparent', border: 'none', outline: 'none', color: '#fff',
-                            boxShadow: 'none', fontSize: '14px'
                         }}
                     />
+
+                    {/* Password label */}
+                    <span className="login-field-label" style={{ top: '67.5%', left: '25%' }}>
+                        Password
+                    </span>
 
                     {/* Password input */}
                     <input
@@ -488,11 +497,10 @@ export default function LoginPage() {
                         minLength={6}
                         placeholder="Password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        className="login-input-box"
                         style={{
-                            position: 'absolute', top: '70.3%', left: '25%', width: '46%', height: '3.5%',
+                            position: 'absolute', top: '68.9%', left: '25%', width: '46%', height: '3.2%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
-                            background: 'transparent', border: 'none', outline: 'none', color: '#fff',
-                            boxShadow: 'none', fontSize: '14px'
                         }}
                     />
 
@@ -501,7 +509,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '70.3%', left: '71.5%', width: '3.5%', height: '3.5%',
+                            position: 'absolute', top: '68.9%', left: '71.5%', width: '3.5%', height: '3.2%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
