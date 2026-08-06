@@ -1337,6 +1337,144 @@ function EVLossTicker({ totalEVLoss, show }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// INFO PANEL SHELL — dockable / pop-out chrome (GTOW parity #37)
+// ═══════════════════════════════════════════════════════════════════════════
+// The Range and Strategy panels open UNDER the action bar, which pushes the
+// felt up and, on a laptop, off the top of the window. So studying the range
+// meant losing sight of the hand the range is about — the exact thing the
+// panel exists to help you reason over. GTO Wizard solves this by letting the
+// info panel detach into a floating window that hovers beside the table while
+// you keep acting.
+//
+// This shell is the whole mechanism: it renders its children either inline
+// (the previous behaviour, unchanged) or inside a draggable fixed-position
+// card. Both branches keep the same `key`, so AnimatePresence sees one element
+// changing shape rather than one unmounting and another mounting, and the
+// panel's own scroll position and internal state survive the toggle.
+//
+// Deliberately NOT a real browser window (window.open). A popup would be
+// blocked by default on most browsers, would lose every style in this file,
+// could not read React state without a portal bridge, and would be
+// unreachable on mobile. A dragged in-page card gives the same "keep it
+// beside the table" affordance with none of that.
+function InfoPanelShell({
+    panelKey,
+    title,
+    poppedOut,
+    canPop,
+    onTogglePop,
+    padding = '8px 12px',
+    children,
+}) {
+    // The pop / dock control. Rendered in both branches so the panel can always
+    // be put back where it came from.
+    const chrome = (
+        <button
+            type="button"
+            onClick={onTogglePop}
+            aria-pressed={poppedOut}
+            aria-label={poppedOut ? `Dock ${title} panel` : `Pop out ${title} panel`}
+            title={poppedOut
+                ? 'Dock this panel back under the table'
+                : 'Pop this panel out into a floating window you can drag beside the table'}
+            style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 4,
+                color: 'var(--sp-fg-dim)',
+                cursor: 'pointer',
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: 1,
+                padding: '2px 6px',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+            }}
+        >
+            {poppedOut ? 'Dock' : 'Pop out'}
+        </button>
+    );
+
+    if (poppedOut) {
+        return (
+            <motion.div
+                key={panelKey}
+                drag
+                dragMomentum={false}
+                // Keep the card inside the window no matter how far it is
+                // thrown. Without this a panel dragged off-screen is
+                // unrecoverable without re-docking blind.
+                dragConstraints={{ left: -600, right: 600, top: -300, bottom: 400 }}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                style={{
+                    position: 'fixed',
+                    top: 72,
+                    right: 16,
+                    zIndex: 4000,
+                    width: 320,
+                    maxWidth: 'calc(100vw - 32px)',
+                    maxHeight: 'calc(100vh - 120px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: 'rgba(10,12,16,0.97)',
+                    border: '1px solid rgba(0,212,255,0.28)',
+                    borderRadius: 10,
+                    boxShadow: '0 18px 48px rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(6px)',
+                }}
+            >
+                {/* Title bar doubles as the drag handle. cursor: move is the
+                    only affordance telling a player it can be moved at all. */}
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        padding: '7px 10px',
+                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                        cursor: 'move',
+                        flexShrink: 0,
+                    }}
+                >
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--sp-accent-cyan)' }}>
+                        {title}
+                    </span>
+                    {chrome}
+                </div>
+                <div style={{ padding, overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                    {children}
+                </div>
+            </motion.div>
+        );
+    }
+
+    return (
+        <motion.div
+            key={panelKey}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{ padding, background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+            {/* The pop-out control is hidden where it would be a trap: on a
+                375px screen a floating card covers the felt it is meant to sit
+                beside, so the inline panel is the only sensible layout and
+                offering to detach it would make the page worse. */}
+            {canPop && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                    {chrome}
+                </div>
+            )}
+            {children}
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1616,6 +1754,13 @@ function UniversalDynamicTable({
 
     // F4: In-Trainer Mode Switching Bar
     const [activeMode, setActiveMode] = React.useState('trainer');
+    // GTOW parity #37 — the Range / Strategy panel can be detached from under
+    // the action bar and floated beside the table, so studying a range no
+    // longer costs you sight of the hand. One flag for both panels: they share
+    // the same slot, only one is ever open, and a player who wants the panel
+    // floating wants it floating for whichever tab they switch to.
+    const [panelPoppedOut, setPanelPoppedOut] = React.useState(false);
+    const togglePanelPopOut = useCallback(() => setPanelPoppedOut(v => !v), []);
 
     // H2: Memoize mode bar tabs to prevent re-creates on every render
     const MODE_TABS = useMemo(() => [
@@ -4359,12 +4504,14 @@ function UniversalDynamicTable({
             {activeMode === 'range' && (() => {
                 try {
                     return (
-                        <motion.div
+                        <InfoPanelShell
                             key="mode-panel-range"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                            panelKey="mode-panel-range"
+                            title="Range"
+                            poppedOut={panelPoppedOut}
+                            canPop={!isMobile}
+                            onTogglePop={togglePanelPopOut}
+                            padding="8px 12px"
                         >
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
                                 Range Matrix {heroCards?.length === 2 && <span style={{ color: 'var(--sp-accent-cyan)' }}>• {heroCards.join('')}</span>}
@@ -4392,7 +4539,7 @@ function UniversalDynamicTable({
                                     Range data loads with solved spots.
                                 </div>
                             )}
-                        </motion.div>
+                        </InfoPanelShell>
                     );
                 } catch (err) {
                     console.warn('[UDT] Range panel render error:', err.message);
@@ -4404,12 +4551,14 @@ function UniversalDynamicTable({
             {activeMode === 'strategy' && panelStrategy.frequencies && Array.isArray(panelStrategy.options) && panelStrategy.options.length > 0 && (() => {
                 try {
                     return (
-                        <motion.div
+                        <InfoPanelShell
                             key="mode-panel-strategy"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                            panelKey="mode-panel-strategy"
+                            title="Strategy"
+                            poppedOut={panelPoppedOut}
+                            canPop={!isMobile}
+                            onTogglePop={togglePanelPopOut}
+                            padding="10px 14px"
                         >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
@@ -4455,7 +4604,7 @@ function UniversalDynamicTable({
                                     </div>
                                 );
                             })}
-                        </motion.div>
+                        </InfoPanelShell>
                     );
                 } catch (err) {
                     console.warn('[UDT] Strategy panel render error:', err.message);
