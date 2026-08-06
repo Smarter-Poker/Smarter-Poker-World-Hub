@@ -49,7 +49,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                 background: rank <= 3 ? `${rankColor}20` : 'rgba(255,255,255,0.04)',
                 color: rank <= 3 ? rankColor : '#64748b',
                 fontSize: 11, fontWeight: 800,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}>
                 {rank}
             </div>
@@ -74,7 +74,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                 <div style={{
                     fontSize: 14, fontWeight: 800,
                     color: (entry.accuracy || 0) >= 80 ? '#22c55e' : (entry.accuracy || 0) >= 60 ? '#fbbf24' : '#ef4444',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}>
                     {entry.accuracy || 0}%
                 </div>

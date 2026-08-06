@@ -111,7 +111,7 @@ const styles = {
         fontWeight: 900,
         color: '#fff',
         margin: 0,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     },
     badge: {
         fontSize: 10,
@@ -154,7 +154,7 @@ const styles = {
     accVal: {
         fontSize: 16,
         fontWeight: 900,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         color: '#ef4444',
     },
     accLabel: {
@@ -198,7 +198,7 @@ const styles = {
         fontWeight: 900,
         color: '#22c55e',
         margin: '0 0 8px 0',
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     },
     emptyText: {
         fontSize: 13,

@@ -596,7 +596,7 @@ export default function HandComparison() {
                   margin: 0,
                   fontSize: 22,
                   fontWeight: 900,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -626,7 +626,7 @@ export default function HandComparison() {
                 fontWeight: 800,
                 color: 'var(--sp-accent-green)',
                 marginBottom: 10,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               HAND A
@@ -667,7 +667,7 @@ export default function HandComparison() {
                 fontWeight: 800,
                 color: 'var(--sp-accent-cyan)',
                 marginBottom: 10,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               HAND B
@@ -708,7 +708,7 @@ export default function HandComparison() {
                 fontWeight: 800,
                 color: 'var(--sp-fg-muted)',
                 marginBottom: 10,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               BOARD{' '}
@@ -757,7 +757,7 @@ export default function HandComparison() {
               fontWeight: 900,
               fontSize: 16,
               cursor: canRun && !isRunning ? 'pointer' : 'not-allowed',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               transition: 'all 0.2s',
             }}
           >
@@ -790,7 +790,7 @@ export default function HandComparison() {
                           : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${leader === 'A' ? 'rgba(34,197,94,0.3)' : leader === 'B' ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
                     textAlign: 'center',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     fontSize: 18,
                     fontWeight: 900,
                     color: leader === 'A' ? 'var(--sp-accent-green)' : leader === 'B' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
@@ -836,7 +836,7 @@ export default function HandComparison() {
                             fontSize: 11,
                             fontWeight: 800,
                             color: row.color,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                           {row.label}
@@ -849,7 +849,7 @@ export default function HandComparison() {
                             style={{
                               fontSize: 18,
                               fontWeight: 900,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               color: row.color,
                             }}
                           >
@@ -903,7 +903,7 @@ export default function HandComparison() {
                           style={{
                             fontSize: 16,
                             fontWeight: 900,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             color: s.color,
                           }}
                         >
@@ -938,7 +938,7 @@ export default function HandComparison() {
                     fontWeight: 800,
                     fontSize: 13,
                     cursor: 'pointer',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   RE-RUN (new random run-outs)

@@ -116,7 +116,7 @@ const styles = {
         fontSize: 18,
         fontWeight: 800,
         color: '#e2e8f0',
-        fontFamily: "'Orbitron', monospace",
+        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     },
     statLabel: {
         fontSize: 9,

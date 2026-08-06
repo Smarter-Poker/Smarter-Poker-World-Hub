@@ -201,7 +201,7 @@ export default function LevelCompleteModal({
                 }
 
                 .title {
-                    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+                    font-family: var(--font-orbitron), 'Orbitron', 'Rajdhani', sans-serif;
                     font-size: 26px;
                     font-weight: 700;
                     margin: 0 0 8px;

@@ -286,7 +286,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     whiteSpace: 'nowrap',
                 }}
                 >
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 3, fontFamily: "'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 3, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                         {hand}
                     </div>
                     {classificationInfo && (
@@ -334,7 +334,7 @@ function FrequencyBar({ action, frequency, color }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div style={{
                 width: 32, fontSize: 11, fontWeight: 700, color: display.color,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}>
                 {display.short}
             </div>
@@ -400,7 +400,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                         fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}>
                         {hand}
                     </span>
@@ -443,7 +443,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
                 )}
                 {handEV !== undefined && handEV !== null && (
                     <span style={{
-                        fontSize: 12, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+                        fontSize: 12, fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                     }}>
                         {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
@@ -661,7 +661,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
                     padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
                 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', fontFamily: "'Orbitron', monospace" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                         Range: {rangeStats.rangePercent.toFixed(1)}%
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>

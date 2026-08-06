@@ -264,7 +264,7 @@ export default function QuizGauntlet({ onExit } = {}) {
       padding: '24px 20px',
       marginBottom: 16,
     },
-    orb: { fontFamily: "'Orbitron',monospace" },
+    orb: { fontFamily: "var(--font-orbitron), 'Orbitron', monospace" },
   };
 
   return (

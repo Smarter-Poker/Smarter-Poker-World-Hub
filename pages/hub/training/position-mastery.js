@@ -111,7 +111,7 @@ function TableHeatmap({ positionData }) {
         fill="rgba(255,255,255,0.15)"
         fontSize="11"
         fontWeight="700"
-        fontFamily="'Orbitron', monospace"
+        style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
       >
         SMARTER.POKER
       </text>
@@ -169,7 +169,7 @@ function TableHeatmap({ positionData }) {
               fill={color}
               fontSize="10"
               fontWeight="900"
-              fontFamily="'Orbitron', monospace"
+              style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
             >
               {acc > 0 ? `${acc}%` : '--'}
             </text>
@@ -337,7 +337,7 @@ export default function PositionMasteryPage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #06b6d4)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Position Mastery
@@ -351,7 +351,7 @@ export default function PositionMasteryPage() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(34,197,94,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 23
@@ -401,7 +401,7 @@ export default function PositionMasteryPage() {
                 textAlign: 'center',
                 padding: 40,
                 color: 'var(--sp-fg-dim)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -430,7 +430,7 @@ export default function PositionMasteryPage() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     textAlign: 'center',
                   }}
                 >
@@ -539,7 +539,7 @@ export default function PositionMasteryPage() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   Accuracy by Position
@@ -593,7 +593,7 @@ export default function PositionMasteryPage() {
                           width: 32,
                           fontSize: 11,
                           fontWeight: 900,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           color: getAccuracyColor(acc),
                         }}
                       >
@@ -650,7 +650,7 @@ export default function PositionMasteryPage() {
                           style={{
                             fontSize: 14,
                             fontWeight: 900,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             color: getAccuracyColor(acc),
                           }}
                         >
@@ -709,7 +709,7 @@ export default function PositionMasteryPage() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   About Position Mastery

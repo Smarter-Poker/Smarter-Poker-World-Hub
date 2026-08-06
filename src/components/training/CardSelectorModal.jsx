@@ -67,7 +67,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                                 margin: 0, fontSize: 18, fontWeight: 800,
                                 background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}>
                                 {title}
                             </h3>

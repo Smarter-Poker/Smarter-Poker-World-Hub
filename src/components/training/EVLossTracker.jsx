@@ -121,7 +121,7 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                         fontSize={8}
                         fontWeight={600}
                         textAnchor="end"
-                        fontFamily="'Orbitron', monospace"
+                        style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                     >
                         {v > 0 ? '+' : ''}{v.toFixed(1)}
                     </text>
@@ -139,7 +139,7 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                     fill={lineColor}
                     fontSize={10}
                     fontWeight={800}
-                    fontFamily="'Orbitron', monospace"
+                    style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                 >
                     {finalEV >= 0 ? '+' : ''}{finalEV.toFixed(2)} BB
                 </text>
@@ -193,7 +193,7 @@ function PositionHeatmap({ handHistory }) {
                     }}>
                         <div style={{
                             fontSize: 11, fontWeight: 800, color: '#e2e8f0',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}>
                             {p.position}
                         </div>
@@ -423,7 +423,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                         Total EV Lost
                     </div>
                     <div style={{
-                        fontSize: 20, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+                        fontSize: 20, fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         color: summary.totalLoss > 0 ? '#ef4444' : '#22c55e',
                     }}>
                         {summary.totalLoss > 0 ? '-' : ''}{summary.totalLoss.toFixed(2)} BB
@@ -431,19 +431,19 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                 </div>
                 <div style={{ display: 'flex', gap: 16, textAlign: 'center' }}>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {summary.avgLoss.toFixed(2)}
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b' }}>BB/hand</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {summary.accuracy.toFixed(0)}%
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b' }}>Accuracy</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {summary.worstLoss.toFixed(1)}
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b' }}>Worst</div>

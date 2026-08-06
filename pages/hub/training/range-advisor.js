@@ -631,7 +631,7 @@ export default function RangeAdvisor() {
                 background: 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron',monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Range Advisor
@@ -645,7 +645,7 @@ export default function RangeAdvisor() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(34,197,94,0.25)',
-                fontFamily: "'Orbitron',monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 27
@@ -665,7 +665,7 @@ export default function RangeAdvisor() {
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 6,
-                  fontFamily: "'Orbitron',monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 Position
@@ -687,7 +687,7 @@ export default function RangeAdvisor() {
                           ? 'linear-gradient(135deg,rgba(var(--sp-accent-green-rgb), 1),rgba(var(--sp-accent-cyan-rgb), 1))'
                           : 'rgba(255,255,255,0.06)',
                       color: position === pos ? '#000' : 'var(--sp-fg-muted)',
-                      fontFamily: "'Orbitron',monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {pos}
@@ -704,7 +704,7 @@ export default function RangeAdvisor() {
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   marginBottom: 6,
-                  fontFamily: "'Orbitron',monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 Situation
@@ -764,7 +764,7 @@ export default function RangeAdvisor() {
                     fontSize: 20,
                     fontWeight: 900,
                     color: s.color,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {s.value}
@@ -810,7 +810,7 @@ export default function RangeAdvisor() {
                   textTransform: 'uppercase',
                   letterSpacing: 1.5,
                   marginBottom: 10,
-                  fontFamily: "'Orbitron',monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 169-Hand Grid — {position} {SITUATIONS.find((s) => s.id === action)?.label}
@@ -869,7 +869,7 @@ export default function RangeAdvisor() {
                       style={{
                         fontSize: 16,
                         fontWeight: 900,
-                        fontFamily: "'Orbitron',monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         color: '#fff',
                       }}
                     >
@@ -908,7 +908,7 @@ export default function RangeAdvisor() {
                     textTransform: 'uppercase',
                     letterSpacing: 1.5,
                     marginBottom: 12,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   Top 5 Key Hands
@@ -928,7 +928,7 @@ export default function RangeAdvisor() {
                         fontWeight: 800,
                         color: 'var(--sp-accent-green)',
                         marginBottom: 3,
-                        fontFamily: "'Orbitron',monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {item.hand}
@@ -954,7 +954,7 @@ export default function RangeAdvisor() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   GTO Principle

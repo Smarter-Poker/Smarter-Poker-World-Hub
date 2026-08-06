@@ -146,7 +146,7 @@ function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
           fontSize: size * 0.35,
           fontWeight: 800,
           color,
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           animation: isWarning ? 'pulse 1s infinite' : 'none',
           zIndex: 1,
         }}
@@ -816,7 +816,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
           fontWeight: 800,
           textAlign: 'center',
           marginBottom: 20,
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -885,7 +885,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                     fontSize: 26,
                     fontWeight: 800,
                     color: s.color,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {s.value}
@@ -928,7 +928,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                     fontSize: 10,
                     color: 'var(--sp-fg-dim)',
                     width: 20,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   #{h.handNumber}
@@ -1094,7 +1094,7 @@ export default function PlayModePage() {
               background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             Play Mode
@@ -1105,7 +1105,7 @@ export default function PlayModePage() {
                 fontSize: 11,
                 color: 'var(--sp-fg-dim)',
                 marginLeft: 'auto',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Hand {game.handNumber}/{game.config.handsPerSession}
@@ -1127,7 +1127,7 @@ export default function PlayModePage() {
                   fontSize: 24,
                   fontWeight: 800,
                   marginBottom: 8,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -1188,7 +1188,7 @@ export default function PlayModePage() {
                               ? 'rgba(245,158,11,0.2)'
                               : 'rgba(255,255,255,0.04)',
                           color: game.config.stackDepth === sd ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {sd}BB
@@ -1227,7 +1227,7 @@ export default function PlayModePage() {
                               ? 'rgba(245,158,11,0.2)'
                               : 'rgba(255,255,255,0.04)',
                           color: game.config.handsPerSession === h ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {h}
@@ -1250,7 +1250,7 @@ export default function PlayModePage() {
                   cursor: 'pointer',
                   background: 'linear-gradient(135deg, #f59e0b, rgba(var(--sp-accent-red-rgb), 1))',
                   color: '#fff',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   boxShadow: '0 4px 20px rgba(245,158,11,0.3)',
                 }}
               >
@@ -1323,7 +1323,7 @@ export default function PlayModePage() {
                       fontSize: 28,
                       fontWeight: 800,
                       color: 'var(--sp-accent-amber)',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {(Number.isFinite(Number(game.pot)) ? Number(game.pot) : 0).toFixed(1)} BB
@@ -1398,7 +1398,7 @@ export default function PlayModePage() {
                             textShadow: '0 2px 10px rgba(0,0,0,0.8)',
                             zIndex: 20,
                             whiteSpace: 'nowrap',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                           ⌁ +{game.speedBonus} DIAMONDS
@@ -1411,7 +1411,7 @@ export default function PlayModePage() {
                       fontSize: 11,
                       color: 'var(--sp-fg-muted)',
                       marginTop: 6,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     Stack: {(Number.isFinite(Number(game.heroStack)) ? Number(game.heroStack) : 0).toFixed(1)} BB
@@ -1450,7 +1450,7 @@ export default function PlayModePage() {
                           fontSize: 16,
                           color: 'var(--sp-accent-red)',
                           fontWeight: 800,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {(Number.isFinite(Number(betAmount)) ? Number(betAmount) : 0).toFixed(1)} BB
@@ -1532,7 +1532,7 @@ export default function PlayModePage() {
                           border: 'none',
                           borderRadius: 10,
                           fontWeight: 800,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           cursor: 'pointer',
                         }}
                       >
@@ -1650,7 +1650,7 @@ export default function PlayModePage() {
                           fontSize: 9,
                           fontWeight: 700,
                           color: 'var(--sp-accent-purple)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}>
                           {r.width}%
                         </div>
@@ -1688,7 +1688,7 @@ export default function PlayModePage() {
                 style={{
                   fontSize: 20,
                   fontWeight: 800,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   color: game.showdownResult.heroWon ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                   marginBottom: 12,
                 }}
@@ -1704,7 +1704,7 @@ export default function PlayModePage() {
               <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 20 }}>
                 Pot:{' '}
                 <span
-                  style={{ color: 'var(--sp-accent-amber)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
+                  style={{ color: 'var(--sp-accent-amber)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                 >
                   {(Number.isFinite(Number(game.showdownResult.pot)) ? Number(game.showdownResult.pot) : 0).toFixed(1)} BB
                 </span>
@@ -1765,7 +1765,7 @@ export default function PlayModePage() {
                   cursor: 'pointer',
                   background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                   color: '#fff',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {game.handNumber >= game.config.handsPerSession ? 'VIEW RESULTS' : 'NEXT HAND →'}

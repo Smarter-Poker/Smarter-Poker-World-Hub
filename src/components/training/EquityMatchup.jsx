@@ -29,7 +29,7 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                 <span style={{
                     fontSize: 10, fontWeight: 700, color: '#64748b',
                     textTransform: 'uppercase', letterSpacing: 1,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}>
                     Range Equity
                 </span>
@@ -54,7 +54,7 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                     <span style={{
                         fontSize: 18, fontWeight: 800, color: '#00d4ff',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}>
                         {heroPercent}%
                     </span>
@@ -68,7 +68,7 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                     </span>
                     <span style={{
                         fontSize: 18, fontWeight: 800, color: '#ef4444',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}>
                         {villainPercent}%
                     </span>

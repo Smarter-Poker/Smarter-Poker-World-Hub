@@ -295,7 +295,7 @@ export default function SpotTrainerPage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Spot Trainer
@@ -309,7 +309,7 @@ export default function SpotTrainerPage() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(249,115,22,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 20
@@ -349,7 +349,7 @@ export default function SpotTrainerPage() {
                     fontSize: 20,
                     fontWeight: 900,
                     color: stat.color,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {stat.value}
@@ -475,7 +475,7 @@ export default function SpotTrainerPage() {
                 textAlign: 'center',
                 padding: 40,
                 color: 'var(--sp-fg-dim)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -511,7 +511,7 @@ export default function SpotTrainerPage() {
                         background: 'rgba(249,115,22,0.1)',
                         padding: '3px 8px',
                         borderRadius: 6,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {spot.heroPosition}
@@ -575,7 +575,7 @@ export default function SpotTrainerPage() {
                       textTransform: 'uppercase',
                       letterSpacing: 1.5,
                       marginBottom: 10,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     BOARD
@@ -606,7 +606,7 @@ export default function SpotTrainerPage() {
                       textTransform: 'uppercase',
                       letterSpacing: 1.5,
                       marginBottom: 8,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     YOUR HAND
@@ -750,7 +750,7 @@ export default function SpotTrainerPage() {
                       fontSize: 13,
                       fontWeight: 800,
                       cursor: 'pointer',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     Next Spot
@@ -778,7 +778,7 @@ export default function SpotTrainerPage() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               About Spot Trainer

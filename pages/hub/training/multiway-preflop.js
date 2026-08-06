@@ -479,7 +479,7 @@ export default function MultiwayPreflopPage() {
               background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             Multiway Preflop
@@ -665,7 +665,7 @@ export default function MultiwayPreflopPage() {
                   cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 700,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                   color: '#fff',
                 }}
@@ -696,7 +696,7 @@ export default function MultiwayPreflopPage() {
                       fontSize: 28,
                       fontWeight: 900,
                       color: 'var(--sp-fg)',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       letterSpacing: 3,
                     }}
                   >

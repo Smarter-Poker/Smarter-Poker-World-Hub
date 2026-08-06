@@ -452,7 +452,7 @@ const styles = {
   title: {
     fontSize: 22,
     fontWeight: 800,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), #fb923c)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
@@ -509,7 +509,7 @@ const styles = {
     fontSize: 12,
     cursor: 'pointer',
     fontWeight: 700,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     transition: 'all 0.2s',
   },
   stackBtnActive: {
@@ -572,7 +572,7 @@ const styles = {
   overallTitle: {
     fontSize: 14,
     fontWeight: 700,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     color: 'var(--sp-fg)',
     flex: 1,
   },
@@ -593,7 +593,7 @@ const styles = {
   overallValue: {
     fontSize: 32,
     fontWeight: 800,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     lineHeight: 1,
   },
   overallLabel: {
@@ -680,7 +680,7 @@ const styles = {
   barValue: {
     fontSize: 12,
     fontWeight: 700,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     width: 40,
     textAlign: 'right',
   },
@@ -704,7 +704,7 @@ const styles = {
   posName: {
     fontSize: 14,
     fontWeight: 800,
-    fontFamily: "'Orbitron', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     color: 'var(--sp-fg)',
     marginBottom: 4,
   },

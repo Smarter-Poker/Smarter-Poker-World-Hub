@@ -1265,7 +1265,7 @@ export default function MemoryGamesPage() {
                                         marginTop: 10,
                                         fontSize: 13, color: '#cbd5e1',
                                     }} aria-label={`Current GTO grade ${memoryDashboard.current_grade}`}>
-                                        <span style={{ fontFamily: 'Orbitron, monospace', fontWeight: 800, color: '#00D4FF' }}>
+                                        <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace", fontWeight: 800, color: '#00D4FF' }}>
                                             {memoryDashboard.current_grade}
                                         </span>
                                         <span>{memoryDashboard.rolling_accuracy_pct}% across last 30 days</span>
@@ -1309,7 +1309,7 @@ export default function MemoryGamesPage() {
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                                         <span style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981' }}>J</span>
-                                        <span style={{ fontFamily: 'Orbitron', fontSize: 16, color: '#10B981' }}>
+                                        <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 16, color: '#10B981' }}>
                                             Smart Practice
                                         </span>
                                     </div>
@@ -1696,7 +1696,7 @@ export default function MemoryGamesPage() {
                                             }}>
                                                 <span style={{ fontSize: 14 }}>{'\uD83C\uDFC6'}</span>
                                                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>YOUR BEST</span>
-                                                <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 800, fontFamily: 'Orbitron, sans-serif' }}>{personalBest.score}</span>
+                                                <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif" }}>{personalBest.score}</span>
                                                 {personalBest.grade && (
                                                     <span style={{
                                                         fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
@@ -2735,7 +2735,7 @@ export default function MemoryGamesPage() {
                                         }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                                                 <span style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981' }}>J</span>
-                                                <span style={{ fontFamily: 'Orbitron', fontSize: 14, color: '#10B981' }}>Jarvis Analysis</span>
+                                                <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 14, color: '#10B981' }}>Jarvis Analysis</span>
                                             </div>
 
                                             {coachAnalysis.loading ? (
@@ -2877,7 +2877,7 @@ export default function MemoryGamesPage() {
                                                     margin: '0 auto 24px'
                                                 }} />
                                                 <div style={{
-                                                    fontFamily: 'Orbitron, sans-serif',
+                                                    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
                                                     fontSize: 18,
                                                     color: '#00D4FF',
                                                     marginBottom: 8,
@@ -2936,7 +2936,7 @@ export default function MemoryGamesPage() {
                                                         }}>
                                                             J
                                                         </div>
-                                                        <span style={{ fontFamily: 'Orbitron', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>JARVIS</span>
+                                                        <span style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>JARVIS</span>
                                                     </div>
                                                     <div style={{
                                                         padding: '8px 20px',
@@ -2951,7 +2951,7 @@ export default function MemoryGamesPage() {
                                                                     '#00D4FF'
                                                             }`,
                                                         borderRadius: 8,
-                                                        fontFamily: 'Orbitron',
+                                                        fontFamily: "var(--font-orbitron), 'Orbitron'",
                                                         fontSize: 18,
                                                         fontWeight: 'bold',
                                                         color: explainModal.correctAction === 'raise' ? '#00ff88' :
@@ -2973,7 +2973,7 @@ export default function MemoryGamesPage() {
                                                     border: '1px solid rgba(255, 255, 255, 0.1)'
                                                 }}>
                                                     <div style={{
-                                                        fontFamily: 'Orbitron',
+                                                        fontFamily: "var(--font-orbitron), 'Orbitron'",
                                                         fontSize: 28,
                                                         color: '#fff',
                                                         marginBottom: 8,
@@ -3161,7 +3161,7 @@ const styles = {
     },
     comboText: {
         fontSize: 48,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 900,
         color: '#fff',
         textShadow: '0 0 40px rgba(255, 100, 0, 0.8), 0 0 80px rgba(255, 0, 100, 0.5)',
@@ -3187,7 +3187,7 @@ const styles = {
         animation: 'pulse 2s ease-in-out infinite',
     },
     title: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontSize: 42,
         fontWeight: 900,
         color: '#fff',
@@ -3263,7 +3263,7 @@ const styles = {
     },
     levelNumber: {
         fontSize: 11,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         color: '#00D4FF',
         marginBottom: 6,
         letterSpacing: 1,
@@ -3335,7 +3335,7 @@ const styles = {
         right: 0,
         top: 12,
         fontSize: 14,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 700,
     },
     gameHeader: {
@@ -3346,7 +3346,7 @@ const styles = {
     },
     levelBadge: {
         fontSize: 11,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         color: '#00D4FF',
         marginBottom: 4,
     },
@@ -3374,7 +3374,7 @@ const styles = {
     },
     scoreValue: {
         fontSize: 56,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 900,
         lineHeight: 1,
     },

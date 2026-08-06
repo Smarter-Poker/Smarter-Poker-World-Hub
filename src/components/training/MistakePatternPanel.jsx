@@ -274,7 +274,7 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     evLossValue: {
-        fontSize: 9, color: '#ef4444', fontFamily: "'Orbitron', monospace",
+        fontSize: 9, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     },
     severityBadge: {
         fontSize: 8, fontWeight: 700,

@@ -117,7 +117,7 @@ const styles = {
     tiltValue: {
         fontSize: 18,
         fontWeight: 900,
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     },
 
     tiltMeter: {

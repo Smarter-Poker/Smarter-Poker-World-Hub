@@ -367,7 +367,7 @@ export default function RangeBuilder() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Range Builder
@@ -381,7 +381,7 @@ export default function RangeBuilder() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(249,115,22,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 18
@@ -432,7 +432,7 @@ export default function RangeBuilder() {
                       ? 'linear-gradient(135deg, rgba(var(--sp-accent-orange-rgb), 1), rgba(var(--sp-accent-red-rgb), 1))'
                       : 'rgba(255,255,255,0.06)',
                   color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {pos}
@@ -461,7 +461,7 @@ export default function RangeBuilder() {
                 color: 'var(--sp-fg-dim)',
                 textAlign: 'center',
                 marginBottom: 8,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {isDiffMode ? 'RESULTS — GTO DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
@@ -531,7 +531,7 @@ export default function RangeBuilder() {
                         fontSize: 56,
                         fontWeight: 900,
                         color: GRADE_COLORS[result.grade?.letter] || 'var(--sp-fg)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         lineHeight: 1,
                         textShadow: `0 0 30px ${GRADE_COLORS[result.grade?.letter] || '#fff'}40`,
                       }}
@@ -652,7 +652,7 @@ export default function RangeBuilder() {
                       letterSpacing: 1.5,
                       textTransform: 'uppercase',
                       marginBottom: 12,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {position} RFI RANGE
@@ -665,7 +665,7 @@ export default function RangeBuilder() {
                         fontSize: 36,
                         fontWeight: 900,
                         color: 'var(--sp-fg)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         lineHeight: 1,
                       }}
                     >
@@ -742,7 +742,7 @@ export default function RangeBuilder() {
                       cursor: selectedHands.size > 0 ? 'pointer' : 'default',
                       fontSize: 14,
                       fontWeight: 800,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       transition: 'all 0.2s',
                     }}
                   >
@@ -774,7 +774,7 @@ function StatRow({ label, value, color }) {
       }}
     >
       <span style={{ color: 'var(--sp-fg-muted)', fontWeight: 600 }}>{label}</span>
-      <span style={{ color, fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{value}</span>
+      <span style={{ color, fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>{value}</span>
     </div>
   );
 }

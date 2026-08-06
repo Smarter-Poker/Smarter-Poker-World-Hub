@@ -308,7 +308,7 @@ export default function PreflopCharts() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Preflop Charts
@@ -322,7 +322,7 @@ export default function PreflopCharts() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(0,212,255,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 17
@@ -427,7 +427,7 @@ export default function PreflopCharts() {
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {sd}BB
@@ -489,7 +489,7 @@ export default function PreflopCharts() {
                         ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
                         : 'rgba(255,255,255,0.06)',
                     color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {pos}
@@ -581,7 +581,7 @@ export default function PreflopCharts() {
                               ? 'linear-gradient(135deg, #7c3aed, rgba(var(--sp-accent-purple-rgb), 1))'
                               : 'rgba(255,255,255,0.06)',
                           color: comparePosition === pos ? '#fff' : 'var(--sp-fg-muted)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {pos}
@@ -609,7 +609,7 @@ export default function PreflopCharts() {
                   fontSize: 12,
                   fontWeight: 800,
                   color: 'var(--sp-accent-cyan)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   marginBottom: 8,
                   padding: '4px 12px',
                   background: 'rgba(0,212,255,0.1)',
@@ -684,7 +684,7 @@ export default function PreflopCharts() {
                       fontSize: 12,
                       fontWeight: 800,
                       color: 'var(--sp-accent-purple)',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       marginBottom: 8,
                       padding: '4px 12px',
                       background: 'rgba(168,85,247,0.1)',
@@ -761,7 +761,7 @@ export default function PreflopCharts() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               About This Chart

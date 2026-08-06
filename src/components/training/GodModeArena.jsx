@@ -676,7 +676,7 @@ function HandHistoryRow({ entry, index }) {
             color: entry.evLoss > 0 ? '#ef4444' : '#22c55e',
             fontSize: 12,
             fontWeight: 'bold',
-            fontFamily: "'Orbitron', monospace",
+            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             minWidth: 60,
             textAlign: 'right',
           }}
@@ -1169,7 +1169,7 @@ function ClassificationDonut({ handHistory, gtowScore }) {
           fill={scoreColor}
           fontSize="18"
           fontWeight="bold"
-          fontFamily="'Orbitron', monospace"
+          style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
         >
           {gtowScore}
         </text>
@@ -1461,7 +1461,7 @@ function HandHistoryImportModal({
               fontSize: 16,
               fontWeight: 700,
               margin: 0,
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
             }}
           >
             Import Hand History
@@ -1777,7 +1777,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
                 fontSize: 28,
                 fontWeight: 800,
                 color: '#22c55e',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {score.knew}
@@ -1790,7 +1790,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
                 fontSize: 28,
                 fontWeight: 800,
                 color: '#f59e0b',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {score.learning}
@@ -2131,7 +2131,7 @@ function DrillMode({
                 fontSize: 32,
                 fontWeight: 800,
                 color: accuracy >= 70 ? '#22c55e' : '#f59e0b',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {accuracy}%
@@ -2144,7 +2144,7 @@ function DrillMode({
                 fontSize: 32,
                 fontWeight: 800,
                 color: '#00d4ff',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {bestStreak}
@@ -2157,7 +2157,7 @@ function DrillMode({
                 fontSize: 32,
                 fontWeight: 800,
                 color: '#a78bfa',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {correct}/{answered}
@@ -2280,7 +2280,7 @@ function DrillMode({
           fontSize: 36,
           fontWeight: 800,
           color: timerColor,
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           marginBottom: 16,
           transition: 'color 0.3s',
         }}
@@ -3783,7 +3783,7 @@ function GodModeArenaInner({
               color: '#fff',
               fontSize: 20,
               margin: '0 0 12px',
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
             }}
           >
             {isAuthError ? 'Sign In Required' : 'Connection Error'}
@@ -3882,7 +3882,7 @@ function GodModeArenaInner({
               fontSize: 11,
               color: '#64748b',
               fontWeight: 600,
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {Math.floor(sessionElapsed / 60)}:{String(sessionElapsed % 60).padStart(2, '0')}
@@ -3921,7 +3921,7 @@ function GodModeArenaInner({
                           fontSize: 28,
                           fontWeight: 900,
                           color: grade.color,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           textShadow: `0 0 12px ${grade.color}44`,
                         }}
                       >
@@ -3979,7 +3979,7 @@ function GodModeArenaInner({
                         fontSize: 18,
                         fontWeight: 900,
                         color: '#fbbf24',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       +{totalReward}
@@ -4442,7 +4442,7 @@ function GodModeArenaInner({
                             fontSize: 42,
                             fontWeight: 900,
                             color: gColor,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             lineHeight: 1,
                             marginTop: 4,
                           }}
@@ -4566,7 +4566,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 800,
                                   color: '#e2e8f0',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {s.value}
@@ -4685,7 +4685,7 @@ function GodModeArenaInner({
                           fontSize: 20,
                           fontWeight: 800,
                           color: stat.color,
-                          fontFamily: "'Orbitron', 'Inter', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', 'Inter', monospace",
                           lineHeight: 1.2,
                         }}
                       >
@@ -5939,7 +5939,7 @@ function GodModeArenaInner({
                               fontSize: 36,
                               fontWeight: 900,
                               color: tColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               lineHeight: 1,
                             }}
                           >
@@ -5981,7 +5981,7 @@ function GodModeArenaInner({
                                 style={{
                                   color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444',
                                   fontWeight: 700,
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {val}%
@@ -6037,7 +6037,7 @@ function GodModeArenaInner({
                               fontSize: 28,
                               fontWeight: 900,
                               color: tColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {gto.overall}%
@@ -6060,7 +6060,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 700,
                                   color: '#e2e8f0',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {gto.components[k]}%
@@ -6140,7 +6140,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ap.vpip}%
@@ -6153,7 +6153,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ap.aggressionPct}%
@@ -6166,7 +6166,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ap.aggressionFactor}
@@ -6591,7 +6591,7 @@ function GodModeArenaInner({
                           <span
                             style={{
                               fontSize: 10,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               color: '#e2e8f0',
                             }}
                           >
@@ -6723,7 +6723,7 @@ function GodModeArenaInner({
                                         ? '#fbbf24'
                                         : '#ef4444',
                                   fontWeight: 700,
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {cat.accuracy}%
@@ -6975,7 +6975,7 @@ function GodModeArenaInner({
                           <span
                             style={{
                               fontSize: 10,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               color: '#e2e8f0',
                             }}
                           >
@@ -7124,7 +7124,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 800,
                                   color: gradeColors[p.grade] || '#94a3b8',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                   minWidth: 18,
                                 }}
                               >
@@ -7140,7 +7140,7 @@ function GodModeArenaInner({
                                   fontSize: 10,
                                   color: gradeColors[p.grade],
                                   fontWeight: 700,
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {p.accuracy}%
@@ -7202,7 +7202,7 @@ function GodModeArenaInner({
                               fontSize: 11,
                               fontWeight: 700,
                               color: sa.currentStreakType === 'win' ? '#22c55e' : '#ef4444',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {sa.currentStreak} {sa.currentStreakType === 'win' ? 'W' : 'L'}
@@ -7221,7 +7221,7 @@ function GodModeArenaInner({
                               fontSize: 11,
                               fontWeight: 700,
                               color: '#22c55e',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {sa.longestWinStreak}
@@ -7240,7 +7240,7 @@ function GodModeArenaInner({
                               fontSize: 11,
                               fontWeight: 700,
                               color: tiltColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {sa.tiltResistance}%
@@ -7310,7 +7310,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tp.earlyAccuracy}%
@@ -7323,7 +7323,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tp.midAccuracy}%
@@ -7336,7 +7336,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tp.lateAccuracy}%
@@ -7512,7 +7512,7 @@ function GodModeArenaInner({
                                       : s.accuracy >= 50
                                         ? '#fbbf24'
                                         : '#ef4444',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {s.accuracy}%
@@ -7586,7 +7586,7 @@ function GodModeArenaInner({
                                     : a.accuracy >= 50
                                       ? '#fbbf24'
                                       : '#ef4444',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {a.accuracy}% ({a.total})
@@ -7677,7 +7677,7 @@ function GodModeArenaInner({
                               fontSize: 11,
                               fontWeight: 700,
                               color: '#e2e8f0',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {pt.consistencyScore}%
@@ -7695,7 +7695,7 @@ function GodModeArenaInner({
                             style={{
                               fontSize: 10,
                               color: '#22c55e',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {pt.peakAccuracy}% ({pt.peakAt})
@@ -7713,7 +7713,7 @@ function GodModeArenaInner({
                             style={{
                               fontSize: 10,
                               color: '#ef4444',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {pt.troughAccuracy}% ({pt.troughAt})
@@ -7790,7 +7790,7 @@ function GodModeArenaInner({
                                       : s.accuracy >= 50
                                         ? '#fbbf24'
                                         : '#ef4444',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {s.accuracy}%
@@ -7857,7 +7857,7 @@ function GodModeArenaInner({
                                   df.facingBet.defendPct >= 55 && df.facingBet.defendPct <= 75
                                     ? '#22c55e'
                                     : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {df.facingBet.defendPct}% defend
@@ -7956,7 +7956,7 @@ function GodModeArenaInner({
                               fontSize: 11,
                               fontWeight: 700,
                               color: '#e2e8f0',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {pi.polarizationScore}%
@@ -8021,7 +8021,7 @@ function GodModeArenaInner({
                               fontSize: 16,
                               fontWeight: 800,
                               color: gColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {mr.grade}
@@ -8040,7 +8040,7 @@ function GodModeArenaInner({
                               fontSize: 10,
                               fontWeight: 700,
                               color: '#e2e8f0',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {mr.avgRecoveryTime} hands
@@ -8231,7 +8231,7 @@ function GodModeArenaInner({
                           >
                             <span style={{ fontWeight: 700 }}>#{m.handNumber}</span> {m.userAction}{' '}
                             → should be {m.correctAction}{' '}
-                            <span style={{ color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>
+                            <span style={{ color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                               (-{m.evLoss} EV)
                             </span>
                           </div>
@@ -8306,7 +8306,7 @@ function GodModeArenaInner({
                                       : n.accuracy >= 50
                                         ? '#fbbf24'
                                         : '#ef4444',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {n.accuracy}%
@@ -8408,7 +8408,7 @@ function GodModeArenaInner({
                                   fontSize: 10,
                                   fontWeight: 700,
                                   color: (cr.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {cr.accuracy || 0}%
@@ -8428,7 +8428,7 @@ function GodModeArenaInner({
                                   fontSize: 10,
                                   fontWeight: 700,
                                   color: (cb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {cb.accuracy || 0}%
@@ -8494,7 +8494,7 @@ function GodModeArenaInner({
                                     : p.accuracy >= 50
                                       ? '#fbbf24'
                                       : '#ef4444',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {p.accuracy}% ({p.total})
@@ -8565,7 +8565,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {fc.earlyAccuracy}%
@@ -8592,7 +8592,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {fc.lateAccuracy}%
@@ -8796,7 +8796,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#22c55e',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {er.ipAccuracy}%
@@ -8811,7 +8811,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {er.oopAccuracy}%
@@ -8871,7 +8871,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: ms.mixedAccuracy >= 60 ? '#22c55e' : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ms.mixedAccuracy || 0}%
@@ -8886,7 +8886,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: (ms.pureAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ms.pureAccuracy || 0}%
@@ -9043,7 +9043,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tl.userFoldPct}%
@@ -9056,7 +9056,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: aColor,
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tl.solverFoldPct}%
@@ -9111,7 +9111,7 @@ function GodModeArenaInner({
                                   fontSize: 10,
                                   fontWeight: 700,
                                   color: (bs.bluffAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {bs.bluffAccuracy || 0}% ({bs.bluffAttempts})
@@ -9131,7 +9131,7 @@ function GodModeArenaInner({
                                   fontSize: 10,
                                   fontWeight: 700,
                                   color: (vb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {vb.accuracy || 0}% ({vb.valueBets})
@@ -9199,7 +9199,7 @@ function GodModeArenaInner({
                                 style={{
                                   color: intensityColors[cell.intensity],
                                   fontWeight: 700,
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {cell.accuracy}%
@@ -9262,7 +9262,7 @@ function GodModeArenaInner({
                               fontSize: 24,
                               fontWeight: 900,
                               color: gColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {rb.balanceScore}%
@@ -9353,7 +9353,7 @@ function GodModeArenaInner({
                               fontSize: 14,
                               fontWeight: 800,
                               color: gColor,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {rdq.accuracy}%
@@ -9431,7 +9431,7 @@ function GodModeArenaInner({
                                 style={{
                                   fontSize: 10,
                                   color: '#fca5a5',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {l.accuracy}%
@@ -9489,7 +9489,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: '#22c55e',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {pc.potControlRate || 0}%
@@ -9502,7 +9502,7 @@ function GodModeArenaInner({
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: pc.inflatedCount > 2 ? '#ef4444' : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {pc.inflatedCount || 0}
@@ -9562,7 +9562,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {cb.correctChecks || 0}
@@ -9575,7 +9575,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {cb.betInsteadOfCheck || 0}
@@ -9635,7 +9635,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {sd.showdownRate || 0}%
@@ -9648,7 +9648,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {sd.aggressionRate || 0}%
@@ -9712,7 +9712,7 @@ function GodModeArenaInner({
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: (tv.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {tv.accuracy || 0}% ({tv.thinValueSpots})
@@ -9729,7 +9729,7 @@ function GodModeArenaInner({
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: (pb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {pb.accuracy || 0}% ({pb.protectionSpots})
@@ -9783,7 +9783,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ob.overbetSpots}
@@ -9796,7 +9796,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: (ob.accuracy || 0) >= 50 ? '#22c55e' : '#ef4444',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {ob.accuracy || 0}%
@@ -9873,7 +9873,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 700,
                                   color: catColors[cat] || '#94a3b8',
-                                  fontFamily: "'Orbitron', monospace",
+                                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 }}
                               >
                                 {count}
@@ -9941,7 +9941,7 @@ function GodModeArenaInner({
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {db.accuracy || 0}% ({db.donkBets})
@@ -9958,7 +9958,7 @@ function GodModeArenaInner({
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: '#e2e8f0',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {mw.multiWayAccuracy || 0}% ({mw.multiWayHands})
@@ -10106,7 +10106,7 @@ function GodModeArenaInner({
                       fontSize: 14,
                       fontWeight: 700,
                       margin: 0,
-                      fontFamily: "'Orbitron', sans-serif",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
                     }}
                   >
                     Solver Decision Tree
@@ -10233,7 +10233,7 @@ function GodModeArenaInner({
                     fontWeight: 800,
                     color: '#00d4ff',
                     marginBottom: 12,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     textAlign: 'center',
                   }}
                 >
@@ -13093,7 +13093,7 @@ const styles = {
   scoreHeroValue: {
     fontSize: 64,
     fontWeight: 'bold',
-    fontFamily: "'Orbitron', 'Courier New', monospace",
+    fontFamily: "var(--font-orbitron), 'Orbitron', 'Courier New', monospace",
     lineHeight: 1,
   },
 

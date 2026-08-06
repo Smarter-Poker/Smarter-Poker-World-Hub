@@ -46,7 +46,7 @@ function HandCard({ hand, isRevealed, correctAction, userAnswer }) {
 
     const handStyle = {
         fontSize: 42,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 900,
         color: '#fff',
         textShadow: '0 0 20px rgba(0, 212, 255, 0.5)',
@@ -456,7 +456,7 @@ const styles = {
     },
     scoreValue: {
         fontSize: 32,
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 900,
         color: '#FFD700',
     },
@@ -485,7 +485,7 @@ const styles = {
         marginBottom: 20,
     },
     readyTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontSize: 36,
         fontWeight: 900,
         color: '#FFD700',
@@ -566,7 +566,7 @@ const styles = {
         marginBottom: 20,
     },
     gameOverTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontSize: 36,
         fontWeight: 900,
         color: '#ff4444',
@@ -587,7 +587,7 @@ const styles = {
         color: '#fff',
     },
     finalScore: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
         fontWeight: 900,
         color: '#FFD700',
     },

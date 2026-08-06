@@ -153,7 +153,7 @@ function ScoreBar({ label, score, color, detail }) {
         <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color, fontFamily: "'Orbitron', monospace" }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                     {score}%
                 </span>
             </div>
@@ -236,7 +236,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
             <div style={{
                 fontSize: 11, fontWeight: 700, color: '#64748b',
                 textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 display: 'flex', alignItems: 'center', gap: 8,
             }}>
                 <span>Blocker Analysis</span>
@@ -254,7 +254,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
             }}>
                 <div style={{
                     fontSize: 32, fontWeight: 900, color: compositeColor,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}>
                     {analysis.compositeScore}
                 </div>

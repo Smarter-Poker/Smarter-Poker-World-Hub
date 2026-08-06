@@ -125,7 +125,7 @@ function StatTile({ label, value, color, icon, subtitle }) {
           fontSize: 24,
           fontWeight: 900,
           color: color || 'var(--sp-accent-cyan)',
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         }}
       >
         {value}
@@ -184,7 +184,7 @@ function PerformanceTable({ sessions }) {
           fontSize: 11,
           fontWeight: 800,
           color: 'var(--sp-accent-cyan)',
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
         }}
@@ -219,20 +219,20 @@ function PerformanceTable({ sessions }) {
                 <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--sp-fg)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {g.game}
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.sessions}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "'Orbitron', monospace", fontWeight: 600 }}>{g.totalHands}</td>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", fontWeight: 600 }}>{g.sessions}</td>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", fontWeight: 600 }}>{g.totalHands}</td>
                 <td style={{ padding: '8px 12px' }}>
                   <span
                     style={{
                       fontWeight: 700,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
                     }}
                   >
                     {g.avgAccuracy}%
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "'Orbitron', monospace" }}>
+                <td style={{ padding: '8px 12px', color: 'var(--sp-accent-orange)', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                   {g.avgEV > 0 ? `-${g.avgEV}` : '0.0'}
                 </td>
               </tr>
@@ -320,7 +320,7 @@ function StreakTracker({ sessions }) {
           fontSize: 11,
           fontWeight: 800,
           color: 'var(--sp-accent-amber)',
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
           marginBottom: 12,
@@ -331,14 +331,14 @@ function StreakTracker({ sessions }) {
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', fontFamily: "'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? 'var(--sp-accent-amber)' : 'var(--sp-fg-faint)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
             {streaks.current}
           </div>
           <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Current</div>
         </div>
         <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)', fontFamily: "'Orbitron', monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
             {streaks.best}
           </div>
           <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Best</div>
@@ -487,7 +487,7 @@ function CoachingCard({ session }) {
             fontSize: 11,
             fontWeight: 800,
             color: 'var(--sp-accent-purple)',
-            fontFamily: "'Orbitron', monospace",
+            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             textTransform: 'uppercase',
             letterSpacing: 1,
           }}>
@@ -755,7 +755,7 @@ export default function SessionDashboard() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Session Dashboard
@@ -926,7 +926,7 @@ export default function SessionDashboard() {
                     fontSize: 11,
                     fontWeight: 800,
                     color: 'var(--sp-accent-cyan)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}
@@ -975,7 +975,7 @@ export default function SessionDashboard() {
                             <span style={{ color: 'var(--sp-fg)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {game}
                             </span>
-                            <span style={{ color: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>
+                            <span style={{ color: acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                               {acc}%
                             </span>
                             <span style={{ color: 'var(--sp-fg-faint)', fontSize: 9 }}>{dateStr}</span>

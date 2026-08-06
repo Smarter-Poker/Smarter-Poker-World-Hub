@@ -422,7 +422,7 @@ export default function EVTrainer() {
                   margin: 0,
                   fontSize: 22,
                   fontWeight: 900,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -469,7 +469,7 @@ export default function EVTrainer() {
                   style={{
                     fontSize: 18,
                     fontWeight: 900,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     color: stat.color,
                   }}
                 >
@@ -598,7 +598,7 @@ export default function EVTrainer() {
                           borderRadius: 12,
                           fontSize: 18,
                           fontWeight: 700,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           background: 'rgba(255,255,255,0.05)',
                           border: '1px solid rgba(255,255,255,0.1)',
                           color: 'var(--sp-fg)',
@@ -616,7 +616,7 @@ export default function EVTrainer() {
                           fontWeight: 900,
                           fontSize: 14,
                           cursor: 'pointer',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         CHECK
@@ -662,7 +662,7 @@ export default function EVTrainer() {
                             textTransform: 'uppercase',
                             letterSpacing: 1,
                             marginBottom: 10,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                            Formula Breakdown
@@ -707,7 +707,7 @@ export default function EVTrainer() {
                           fontWeight: 900,
                           fontSize: 14,
                           cursor: 'pointer',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         NEXT QUESTION →

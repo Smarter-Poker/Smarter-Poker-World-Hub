@@ -1550,7 +1550,7 @@ export default function HandHistoryUploadPage() {
                           fontSize: 14,
                           fontWeight: 800,
                           color: 'var(--sp-accent-cyan)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {session.withShowdown || 0} SD

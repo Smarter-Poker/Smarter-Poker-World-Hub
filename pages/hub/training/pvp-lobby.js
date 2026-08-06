@@ -219,7 +219,7 @@ function SeasonLeaderboard() {
               fontSize: 10,
               fontWeight: 700,
               color: 'var(--sp-accent-purple)',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               minWidth: 40,
               textAlign: 'right',
             }}
@@ -318,7 +318,7 @@ function PersonalStats() {
                 fontSize: 18,
                 fontWeight: 800,
                 color: s.color,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {s.value}
@@ -411,7 +411,7 @@ function RecentMatches() {
               fontSize: 11,
               fontWeight: 700,
               color: 'var(--sp-fg-muted)',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {m.score}
@@ -661,7 +661,7 @@ export default function PvPLobbyPage() {
               background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             PvP Arena
@@ -688,7 +688,7 @@ export default function PvPLobbyPage() {
                   style={{
                     fontSize: 20,
                     fontWeight: 800,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
@@ -811,7 +811,7 @@ export default function PvPLobbyPage() {
                   cursor: 'pointer',
                   fontSize: 16,
                   fontWeight: 800,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: isSearching
                     ? 'rgba(239,68,68,0.2)'
                     : 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
@@ -851,7 +851,7 @@ export default function PvPLobbyPage() {
                   fontSize: 14,
                   fontWeight: 700,
                   color: 'var(--sp-accent-green)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 MATCH FOUND
@@ -905,7 +905,7 @@ export default function PvPLobbyPage() {
                     cursor: 'pointer',
                     fontSize: 16,
                     fontWeight: 800,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
                     color: '#fff',
                     boxShadow: '0 4px 20px rgba(34,197,94,0.3)',
@@ -925,7 +925,7 @@ export default function PvPLobbyPage() {
                     fontSize: 14,
                     fontWeight: 700,
                     color: 'var(--sp-accent-green)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   <motion.span

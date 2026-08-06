@@ -85,7 +85,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
             fontSize: 10,
             fontWeight: 700,
             color: 'var(--sp-fg-dim)',
-            fontFamily: "'Orbitron', monospace",
+            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             width: 28,
           }}
         >
@@ -109,7 +109,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
             fontSize: 13,
             fontWeight: 800,
             color: 'var(--sp-accent-cyan)',
-            fontFamily: "'Orbitron', monospace",
+            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           }}
         >
           {handNotation || '??'}
@@ -240,7 +240,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                           fontSize: 10,
                           color: 'var(--sp-fg-dim)',
                           width: 40,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           fontWeight: 600,
                         }}
                       >
@@ -261,7 +261,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                             fontSize: 10,
                             color: 'var(--sp-fg)',
                             fontWeight: 600,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                           ${(Number.isFinite(Number(action.amount)) ? Number(action.amount) : 0).toFixed(2)}
@@ -337,7 +337,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
               >
                 Pot:{' '}
                 <span
-                  style={{ color: 'var(--sp-accent-green)', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}
+                  style={{ color: 'var(--sp-accent-green)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                 >
                   ${(Number.isFinite(Number(hand.pot)) ? Number(hand.pot) : 0).toFixed(2)}
                 </span>
@@ -419,7 +419,7 @@ function AggregateStats({ hands }) {
           fontWeight: 800,
           color: 'var(--sp-accent-cyan)',
           marginBottom: 12,
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
           textTransform: 'uppercase',
           letterSpacing: 1,
         }}
@@ -458,7 +458,7 @@ function AggregateStats({ hands }) {
                 fontSize: 22,
                 fontWeight: 800,
                 color: m.color,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {m.value}
@@ -506,7 +506,7 @@ function AggregateStats({ hands }) {
                   fontWeight: 700,
                 }}
               >
-                <span style={{ color: 'var(--sp-accent-cyan)', fontFamily: "'Orbitron', monospace" }}>{pos}</span>
+                <span style={{ color: 'var(--sp-accent-cyan)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>{pos}</span>
                 <span style={{ color: 'var(--sp-fg-dim)', marginLeft: 4 }}>{count}x</span>
               </div>
             ))}
@@ -572,7 +572,7 @@ function AggregateStats({ hands }) {
                           style={{
                             color: 'var(--sp-fg)',
                             fontWeight: 700,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             fontSize: 10,
                           }}
                         >
@@ -699,7 +699,7 @@ export default function HandAnalyzer() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Hand Analyzer
@@ -844,7 +844,7 @@ export default function HandAnalyzer() {
                     fontSize: 14,
                     fontWeight: 800,
                     color: 'var(--sp-accent-green)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {parsedHands.length} HANDS PARSED

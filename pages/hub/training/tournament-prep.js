@@ -414,7 +414,7 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: 28,
     fontWeight: 900,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     letterSpacing: 1,
     color: 'var(--sp-accent-cyan)',
   },

@@ -94,7 +94,7 @@ function DonutChart({ segments, size = 100 }) {
                     />
                 );
             })}
-            <text x="50" y="48" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="800" fontFamily="'Orbitron', monospace">
+            <text x="50" y="48" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="800" style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                 {total}
             </text>
             <text x="50" y="62" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
@@ -186,7 +186,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
             {/* Header */}
             <div style={{
                 fontSize: 12, fontWeight: 800, color: '#e2e8f0',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 marginBottom: 14, letterSpacing: 1,
                 textTransform: 'uppercase',
             }}>
@@ -213,7 +213,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                             </div>
                             <span style={{
                                 fontSize: 12, fontWeight: 800, color: info.color,
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}>
                                 {categoryData[cat] || 0}
                             </span>
@@ -252,7 +252,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                 }}>
                     <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>AVG RANGE EV</span>
                     <span style={{
-                        fontSize: 13, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+                        fontSize: 13, fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         color: avgEV >= 0 ? '#4ade80' : '#f87171',
                     }}>
                         {avgEV >= 0 ? '+' : ''}{avgEV.toFixed(2)} BB

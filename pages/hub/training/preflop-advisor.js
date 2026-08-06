@@ -432,7 +432,7 @@ export default function PreflopAdvisor() {
       padding: '20px',
       marginBottom: 14,
     },
-    orb: { fontFamily: "'Orbitron',monospace" },
+    orb: { fontFamily: "var(--font-orbitron), 'Orbitron', monospace" },
   };
 
   return (

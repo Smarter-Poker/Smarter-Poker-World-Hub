@@ -249,7 +249,7 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: 28,
     fontWeight: 900,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     letterSpacing: 1,
     color: 'var(--sp-accent-purple)', // Purple theme for theory/mixed strategy
   },
@@ -287,7 +287,7 @@ const styles = {
     fontSize: 32,
     fontWeight: 900,
     margin: '0 0 16px 0',
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
   },
   scenarioDesc: {
     fontSize: 16,
@@ -310,7 +310,7 @@ const styles = {
   statLabel: {
     fontSize: 24,
     fontWeight: 900,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
   },
   sliderContainer: {
     position: 'relative',
@@ -353,7 +353,7 @@ const styles = {
   resultValue: {
     fontSize: 24,
     fontWeight: 800,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
   },
   chartCard: {
     background: 'rgba(10, 15, 30, 0.6)',
@@ -365,7 +365,7 @@ const styles = {
     fontSize: 20,
     color: '#fff',
     margin: '0 0 8px 0',
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
   },
   chartDesc: {
     color: 'var(--sp-fg-muted)',

@@ -184,7 +184,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
           textTransform: 'uppercase',
           letterSpacing: 1,
           marginBottom: 10,
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         }}
       >
         Hand Classes
@@ -293,7 +293,7 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
           textTransform: 'uppercase',
           letterSpacing: 1,
           whiteSpace: 'nowrap',
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         }}
       >
         TREE
@@ -771,7 +771,7 @@ function SolutionsBrowserInner({ setError }) {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               GTO Solutions
@@ -858,7 +858,7 @@ function SolutionsBrowserInner({ setError }) {
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {sd}BB
@@ -918,7 +918,7 @@ function SolutionsBrowserInner({ setError }) {
                     border: 'none',
                     background: position === p ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: position === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   {p}
@@ -1033,7 +1033,7 @@ function SolutionsBrowserInner({ setError }) {
                         : 'rgba(255,255,255,0.04)',
                       color: !showBookmarksOnly ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     ALL SPOTS
@@ -1055,7 +1055,7 @@ function SolutionsBrowserInner({ setError }) {
                         : 'rgba(255,255,255,0.04)',
                       color: showBookmarksOnly ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     ★ BOOKMARKS
@@ -1117,7 +1117,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 11,
                         color: 'var(--sp-fg-dim)',
                         padding: '6px 8px',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {page} / {totalPages}
@@ -1256,7 +1256,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 18,
                         fontWeight: 800,
                         color: 'var(--sp-accent-cyan)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {spotDetail.heroPosition}
@@ -1277,7 +1277,7 @@ function SolutionsBrowserInner({ setError }) {
                           fontWeight: 700,
                           background: 'rgba(255,255,255,0.06)',
                           color: 'var(--sp-fg-muted)',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {a}
@@ -1487,7 +1487,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-cyan)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -1522,7 +1522,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-green)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -1557,7 +1557,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-purple)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -1592,7 +1592,7 @@ function SolutionsBrowserInner({ setError }) {
                         fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-red)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         marginBottom: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -1679,7 +1679,7 @@ function SolutionsBrowserInner({ setError }) {
                         textTransform: 'uppercase',
                         letterSpacing: 1,
                         marginBottom: 8,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       Navigate Action →
@@ -1703,7 +1703,7 @@ function SolutionsBrowserInner({ setError }) {
                             background: `${ACTION_COLORS[action] || '#888'}15`,
                             color: ACTION_COLORS[action] || '#888',
                             transition: 'all 0.15s',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                           {action}

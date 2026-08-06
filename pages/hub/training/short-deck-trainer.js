@@ -551,7 +551,7 @@ export default function ShortDeckTrainerPage() {
                         fontWeight: 900,
                         color: equity > 50 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         letterSpacing: -2,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {equity}%

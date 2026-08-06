@@ -190,7 +190,7 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                     fill="#64748b"
                     fontSize={8}
                     fontWeight={700}
-                    fontFamily="'Orbitron', monospace"
+                    style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                     textAnchor="start"
                 >
                     {node.frequency}%
@@ -230,10 +230,9 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                     fill={node.color || '#e2e8f0'}
                     fontSize={10}
                     fontWeight={800}
-                    fontFamily="'Orbitron', monospace"
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    style={{ pointerEvents: 'none' }}
+                    style={{ pointerEvents: 'none', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
                 >
                     {node.abbr || node.label?.slice(0, 2) || '?'}
                 </text>

@@ -80,7 +80,7 @@ function DeviationCell({ value, deviation }) {
           fontSize: 16,
           fontWeight: 800,
           color: getColor(deviation),
-          fontFamily: "'Orbitron', monospace",
+          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         }}
       >
         {value}%
@@ -340,7 +340,7 @@ export default function GTOReports() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               GTO Reports
@@ -470,7 +470,7 @@ export default function GTOReports() {
                         fontSize: 24,
                         fontWeight: 800,
                         color: stat.color,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {stat.value}
@@ -536,7 +536,7 @@ export default function GTOReports() {
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',
                     marginBottom: 14,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   Position Accuracy vs GTO Baseline
@@ -569,7 +569,7 @@ export default function GTOReports() {
                               fontSize: 11,
                               fontWeight: 800,
                               color: 'var(--sp-fg-dim)',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               marginBottom: 4,
                             }}
                           >
@@ -595,7 +595,7 @@ export default function GTOReports() {
                             fontSize: 12,
                             fontWeight: 800,
                             color: 'var(--sp-accent-cyan)',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             marginBottom: 6,
                             textAlign: 'center',
                           }}
@@ -668,7 +668,7 @@ export default function GTOReports() {
                         letterSpacing: 1,
                         textTransform: 'uppercase',
                         marginBottom: 12,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       GTO Deviation Scorecard
@@ -779,7 +779,7 @@ export default function GTOReports() {
                                 fontSize: 13,
                                 fontWeight: 800,
                                 color: 'var(--sp-fg)',
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 width: 36,
                               }}
                             >
@@ -812,7 +812,7 @@ export default function GTOReports() {
                               style={{
                                 fontSize: 12,
                                 fontWeight: 700,
-                                fontFamily: "'Orbitron', monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                                 color:
                                   w.accuracy < 40
                                     ? 'var(--sp-accent-red)'

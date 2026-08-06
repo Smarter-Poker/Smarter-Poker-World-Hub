@@ -577,7 +577,7 @@ export default function NodelockingPage() {
         <div
           style={{
             color: 'var(--sp-accent-cyan)',
-            fontFamily: 'Orbitron, sans-serif',
+            fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
             fontSize: 24,
             fontWeight: 900,
           }}
@@ -643,7 +643,7 @@ export default function NodelockingPage() {
               background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #f59e0b)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             Nodelocking
@@ -810,7 +810,7 @@ export default function NodelockingPage() {
                   border: '1px solid rgba(0,212,255,0.2)',
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 12, fontFamily: "'Orbitron', monospace" }}>Save Villain Profile</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 12, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Save Villain Profile</div>
                 <input
                   value={newProfileName}
                   onChange={(e) => setNewProfileName(e.target.value)}
@@ -913,7 +913,7 @@ export default function NodelockingPage() {
                         fontSize: 12,
                         fontWeight: 800,
                         color: val > 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {val}%
@@ -1033,7 +1033,7 @@ export default function NodelockingPage() {
                   fontSize: 28,
                   fontWeight: 900,
                   color: 'var(--sp-accent-green)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 +{totalEV} <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>BB/hand</span>

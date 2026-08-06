@@ -172,7 +172,7 @@ const styles = {
         animation: 'pulse 2s infinite'
     },
     title: {
-        fontSize: 12, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1, fontFamily: "'Orbitron', sans-serif"
+        fontSize: 12, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1, fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif"
     },
     subtitle: {
         fontSize: 10, color: '#64748b', marginTop: 2
@@ -216,10 +216,10 @@ const styles = {
         fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 0.5
     },
     actionTag: {
-        fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontFamily: "'Orbitron', sans-serif"
+        fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif"
     },
     evLabel: {
-        fontSize: 10, fontWeight: 700, textAlign: 'right', fontFamily: "'Orbitron', monospace"
+        fontSize: 10, fontWeight: 700, textAlign: 'right', fontFamily: "var(--font-orbitron), 'Orbitron', monospace"
     },
     controls: {
         display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 16,

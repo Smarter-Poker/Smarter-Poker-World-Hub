@@ -87,7 +87,7 @@ const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
         </div>
         <div style={{
             width: 35, fontSize: 10, fontWeight: 700, color: '#e2e8f0',
-            textAlign: 'right', fontFamily: "'Orbitron', monospace",
+            textAlign: 'right', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         }}>
             {(freq * 100).toFixed(0)}%
         </div>
@@ -169,7 +169,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                 {potSize > 0 && (
                     <div style={{
                         fontSize: 11, fontWeight: 700, color: '#f59e0b',
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}>
                         {potSize.toFixed(1)} BB
                     </div>
@@ -214,7 +214,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     {handData.evLoss > 0 && (
                         <div style={{
                             marginLeft: 'auto', fontSize: 11, fontWeight: 700,
-                            color: '#ef4444', fontFamily: "'Orbitron', monospace",
+                            color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}>
                             -{handData.evLoss.toFixed(2)} BB
                         </div>
@@ -271,7 +271,7 @@ const SPRBadge = memo(({ potSize, effectiveStack = 100 }) => {
             background: `${sprColor}10`, border: `1px solid ${sprColor}22`,
         }}>
             <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>SPR</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: sprColor, fontFamily: "'Orbitron', monospace" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: sprColor, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                 {spr.toFixed(1)}
             </span>
             <span style={{ fontSize: 8, color: sprColor, fontWeight: 600 }}>{sprLabel}</span>

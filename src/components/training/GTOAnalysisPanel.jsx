@@ -352,7 +352,7 @@ const styles = {
         fontWeight: 800,
         letterSpacing: 2,
         textTransform: 'uppercase',
-        fontFamily: 'Orbitron, monospace',
+        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         textShadow: '0 0 20px currentColor',
     },
     frequencyBadge: {
@@ -450,7 +450,7 @@ const styles = {
     evValue: {
         fontSize: 20,
         fontWeight: 700,
-        fontFamily: 'Orbitron, monospace',
+        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     },
     alternatesContainer: {
         display: 'flex',

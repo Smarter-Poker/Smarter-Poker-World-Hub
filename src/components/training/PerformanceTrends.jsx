@@ -212,7 +212,7 @@ function MilestoneBadge({ label, value, subValue, color = '#e2e8f0', icon }) {
             textAlign: 'center', flex: 1,
         }}>
             <div style={{ fontSize: 14, marginBottom: 2 }}>{icon}</div>
-            <div style={{ fontSize: 15, fontWeight: 'bold', color, fontFamily: "'Orbitron', monospace" }}>
+            <div style={{ fontSize: 15, fontWeight: 'bold', color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                 {value}
             </div>
             <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginTop: 1 }}>{label}</div>

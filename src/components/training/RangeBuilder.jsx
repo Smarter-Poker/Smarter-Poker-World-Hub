@@ -176,13 +176,13 @@ const RangeStats = memo(({ range, solverRange }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 8, color: '#64748b' }}>Combos</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                     {stats.combos}
                 </div>
             </div>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 8, color: '#64748b' }}>Range %</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', fontFamily: "'Orbitron', monospace" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                     {((stats.combos / 1326) * 100).toFixed(1)}%
                 </div>
             </div>
@@ -190,19 +190,19 @@ const RangeStats = memo(({ range, solverRange }) => {
                 <>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#22c55e' }}>Match</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {stats.matching}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#ef4444' }}>Missing</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {stats.missing}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#f59e0b' }}>Extra</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {stats.extra}
                         </div>
                     </div>
@@ -380,7 +380,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                     />
                     <span style={{
                         fontSize: 11, fontWeight: 700, color: '#22c55e',
-                        fontFamily: "'Orbitron', monospace", width: 35, textAlign: 'right',
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace", width: 35, textAlign: 'right',
                     }}>
                         {(brushWeight * 100).toFixed(0)}%
                     </span>

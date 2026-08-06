@@ -149,7 +149,7 @@ function StatCard({ statKey, userVal, gtoVal, index, onClick, isActive }) {
               fontSize: 28,
               fontWeight: 800,
               color: dev.text,
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {safeUser.toFixed(1)}%
@@ -243,7 +243,7 @@ function PositionHeatmap({ userByPosition }) {
                   fontWeight: 700,
                   color: 'var(--sp-fg)',
                   padding: '6px 8px',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   fontSize: 10,
                 }}
               >
@@ -510,7 +510,7 @@ export default function GTOReportsPage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               GTO Reports
@@ -559,7 +559,7 @@ export default function GTOReportsPage() {
                     fontSize: 56,
                     fontWeight: 900,
                     color: proximityColor,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     lineHeight: 1,
                   }}
                 >
@@ -804,7 +804,7 @@ export default function GTOReportsPage() {
                   border: '1px solid rgba(0,212,255,0.15)',
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 10, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 10, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
                    Recommended Drills
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>

@@ -96,7 +96,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
             }}>
                 <span style={{
                     fontSize: 14, fontWeight: 800, color: '#e2e8f0',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}>
                     RUNOUT ANALYSIS
                 </span>

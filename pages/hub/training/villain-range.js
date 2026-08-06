@@ -706,7 +706,7 @@ export default function VillainRange() {
                   margin: 0,
                   fontSize: 22,
                   fontWeight: 900,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #ec4899)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -798,7 +798,7 @@ export default function VillainRange() {
                 style={{
                   fontSize: 22,
                   fontWeight: 900,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   color: 'var(--sp-accent-purple)',
                 }}
               >
@@ -881,7 +881,7 @@ export default function VillainRange() {
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 14,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {villainPos} {action} — {rangeSize} Combos ({rangePct}%)
@@ -917,7 +917,7 @@ export default function VillainRange() {
                         style={{
                           fontSize: 22,
                           fontWeight: 900,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           color: stat.color,
                         }}
                       >
@@ -978,7 +978,7 @@ export default function VillainRange() {
                       fontWeight: 800,
                       color: 'var(--sp-accent-purple)',
                       marginBottom: 12,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                     }}
@@ -1017,7 +1017,7 @@ export default function VillainRange() {
                             fontWeight: 800,
                             fontSize: 13,
                             cursor: 'pointer',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             textTransform: 'uppercase',
                           }}
                         >
@@ -1062,7 +1062,7 @@ export default function VillainRange() {
                           fontWeight: 900,
                           fontSize: 13,
                           cursor: 'pointer',
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         NEXT BOARD →
@@ -1097,7 +1097,7 @@ export default function VillainRange() {
                           style={{
                             fontSize: 20,
                             fontWeight: 900,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             color: s.color,
                           }}
                         >
@@ -1198,7 +1198,7 @@ export default function VillainRange() {
                               fontSize: 12,
                               fontWeight: 800,
                               color: Math.abs(val - GTO_BASELINE[key]) > 10 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)',
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {key === 'aggFactor' ? (Number.isFinite(Number(val)) ? Number(val) : 0).toFixed(1) : `${val}%`}

@@ -205,7 +205,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
-                <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #A855F7, #D946EF)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff' }}>{streak}x</div>}
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{roundsPlayed}/{maxRounds}</div>
@@ -215,7 +215,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
                     <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83C\uDFB0'}</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
+                    <h1 style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>Not every decision is 100% frequency.<br />Dial in the exact GTO frequency for mixed spots.<br />Correct Frequency = Massive Points!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #A855F7, #D946EF)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
                 </div>
@@ -236,7 +236,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                     <div style={{ fontSize: 16, color: '#A855F7', marginBottom: 12, fontWeight: 600 }}>{currentScenario.title}</div>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 30 }}>{currentScenario.context}</div>
                     <div style={{ width: 140, height: 100, background: 'linear-gradient(145deg, #2e1a2e, #1a1a2e)', border: '2px solid #A855F7', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 auto 40px', boxShadow: '0 10px 30px rgba(168, 85, 247, 0.2)' }}>
-                        <div style={{ fontSize: 36, fontFamily: 'Orbitron', fontWeight: 900, color: '#fff' }}>{currentScenario.hand}</div>
+                        <div style={{ fontSize: 36, fontFamily: "var(--font-orbitron), 'Orbitron'", fontWeight: 900, color: '#fff' }}>{currentScenario.hand}</div>
                     </div>
                     <h2 style={{ fontSize: 24, marginBottom: 40 }}>Frequency of <span style={{ color: ACTION_COLORS[targetAction]?.border || '#fff', fontWeight: 900 }}>{targetAction.toUpperCase()}</span>?</h2>
                     <div style={{ position: 'relative', height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 20, marginBottom: 20 }}>
@@ -276,20 +276,20 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             border: `1px solid ${gradeColor}40`,
                             borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
                         }}>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>FREQUENCY MASTERY</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A855F7' }}>{closeCount}/{maxRounds}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#A855F7' }}>{closeCount}/{maxRounds}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>WITHIN 15%</div>
                                 </div>
                             </div>

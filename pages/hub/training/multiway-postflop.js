@@ -407,7 +407,7 @@ export default function MultiwayPostflop() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Multiway Postflop
@@ -619,7 +619,7 @@ export default function MultiwayPostflop() {
                       fontWeight: 800,
                       color: 'var(--sp-fg)',
                       marginBottom: 4,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {scenario.name}
@@ -719,7 +719,7 @@ export default function MultiwayPostflop() {
                             fontSize: 11,
                             fontWeight: 900,
                             color: player.color,
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           }}
                         >
                           {player.position}
@@ -816,7 +816,7 @@ export default function MultiwayPostflop() {
                     fontWeight: 700,
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   ✓ MARK STUDIED — NEXT SCENARIO

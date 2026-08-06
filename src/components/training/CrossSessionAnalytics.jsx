@@ -174,7 +174,7 @@ const PositionHeatmap = memo(({ sessions }) => {
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
                             {p.position}
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {(acc * 100).toFixed(0)}%
                         </div>
                         <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
@@ -221,7 +221,7 @@ const SpotTypeBreakdown = memo(({ sessions }) => {
                     <div key={spot.label} style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                             <span style={{ fontSize: 10, fontWeight: 600, color: spot.color }}>{spot.label}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                                 {(acc * 100).toFixed(0)}%
                             </span>
                         </div>
@@ -527,7 +527,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                         <div style={{
                             fontSize: 18, fontWeight: 700,
                             color: metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
-                            fontFamily: "'Orbitron', monospace",
+                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}>
                             {metrics.avgScore.toFixed(0)}
                         </div>
@@ -540,25 +540,25 @@ export default function CrossSessionAnalytics({ sessionHistory = [] }) {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {metrics.bestScore}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sessions</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {metrics.sessionCount}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#818cf8', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#818cf8', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             {metrics.totalHands}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
                             -{metrics.totalEV.toFixed(0)}
                         </div>
                     </div>

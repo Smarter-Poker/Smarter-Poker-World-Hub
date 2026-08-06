@@ -200,7 +200,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
-                <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #ff6b00, #ff0066)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff', animation: 'pulse 0.5s ease' }}>{streak}x</div>}
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{handsCompleted}/{handsRequired}</div>
@@ -210,7 +210,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
                     <div style={{ fontSize: 80, marginBottom: 20 }}></div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#ff4444', marginBottom: 16 }}>PRESSURE COOKER</h1>
+                    <h1 style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 36, color: '#ff4444', marginBottom: 16 }}>PRESSURE COOKER</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Answer 10 hands before time runs out!<br />Correct = +3 seconds<br />✗ Wrong = -5 seconds<br />
                         <span style={{ color: '#ff4444' }}>Clock Is Ticking...</span>
@@ -237,7 +237,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                         thickness={7}
                         isLow={isLowTime}
                     >
-                        <div style={{ fontSize: 14, fontFamily: 'Orbitron', fontWeight: 700, color: timerColor, marginBottom: 4 }}>{timerSec}s</div>
+                        <div style={{ fontSize: 14, fontFamily: "var(--font-orbitron), 'Orbitron'", fontWeight: 700, color: timerColor, marginBottom: 4 }}>{timerSec}s</div>
                         <div style={{
                             width: 140, height: 90,
                             background: isLowTime ? 'linear-gradient(145deg, #3a1a1a, #2e1616)' : 'linear-gradient(145deg, #1a1a2e, #16213e)',
@@ -245,7 +245,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             borderRadius: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                             boxShadow: isLowTime ? '0 0 40px rgba(255,68,68,0.4)' : '0 10px 40px rgba(0,0,0,0.5)',
                         }}>
-                            <div style={{ fontSize: 36, fontFamily: 'Orbitron', fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
+                            <div style={{ fontSize: 36, fontFamily: "var(--font-orbitron), 'Orbitron'", fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}</div>
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{handsCompleted}/{handsRequired} hands</div>
@@ -291,24 +291,24 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
                         }}>
                             <div style={{ fontSize: 14, color: '#00ff88', fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>DEFUSED!</div>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{'SCORE'}</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{timerSec}s</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{timerSec}s</div>
                                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>TIME LEFT</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
                                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctCount}/{handsCompleted}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctCount}/{handsCompleted}</div>
                                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
                                 </div>
                             </div>
@@ -424,20 +424,20 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
                         }}>
                             <div style={{ fontSize: 14, color: '#ff4444', fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>TIME'S UP!</div>
-                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{handsCompleted}/{handsRequired}</div>
+                                    <div style={{ fontFamily: "var(--font-orbitron), 'Orbitron'", fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{handsCompleted}/{handsRequired}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>COMPLETED</div>
                                 </div>
                             </div>

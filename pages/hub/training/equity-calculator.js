@@ -205,7 +205,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                   fontSize: 10,
                   color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 SELECT CARD
@@ -418,7 +418,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   fontSize: 10,
                   color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 BOARD CARD
@@ -505,7 +505,7 @@ function EquityBar({ results }) {
                 fontSize: 22,
                 fontWeight: 900,
                 color: PLAYER_COLORS[i],
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 lineHeight: 1,
               }}
             >
@@ -586,7 +586,7 @@ function EquityBar({ results }) {
                 fontSize: 10,
                 fontWeight: 700,
                 color: PLAYER_COLORS[i],
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 marginBottom: 4,
               }}
             >
@@ -783,7 +783,7 @@ export default function EquityCalculatorPage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Equity Calculator
@@ -797,7 +797,7 @@ export default function EquityCalculatorPage() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(168,85,247,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 19
@@ -837,7 +837,7 @@ export default function EquityCalculatorPage() {
                       ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
                       : 'rgba(255,255,255,0.06)',
                   color: numPlayers === n ? '#fff' : 'var(--sp-fg-muted)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {n}-Way
@@ -872,7 +872,7 @@ export default function EquityCalculatorPage() {
                     fontSize: 10,
                     fontWeight: 800,
                     color: PLAYER_COLORS[idx],
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     marginBottom: 6,
                   }}
                 >
@@ -918,7 +918,7 @@ export default function EquityCalculatorPage() {
                 cursor: canCalculate ? 'pointer' : 'default',
                 fontSize: 14,
                 fontWeight: 800,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 transition: 'all 0.2s',
               }}
             >
@@ -980,7 +980,7 @@ export default function EquityCalculatorPage() {
                     fontSize: 10,
                     fontWeight: 800,
                     color: 'var(--sp-accent-purple)',
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',
                     marginBottom: 12,
@@ -1010,7 +1010,7 @@ export default function EquityCalculatorPage() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 10,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Quick Presets
@@ -1056,7 +1056,7 @@ export default function EquityCalculatorPage() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               About This Tool

@@ -160,7 +160,7 @@ const styles = {
         background: 'rgba(0,0,0,0.2)', borderRadius: 10,
     },
     heroValue: {
-        fontSize: 36, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+        fontSize: 36, fontWeight: 800, fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
         lineHeight: 1,
     },
     heroLabel: { fontSize: 11, color: '#64748b', marginTop: 4 },
@@ -175,7 +175,7 @@ const styles = {
         textAlign: 'center',
     },
     statValue: {
-        fontSize: 16, fontWeight: 'bold', fontFamily: "'Orbitron', monospace",
+        fontSize: 16, fontWeight: 'bold', fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
     },
     statLabel: { fontSize: 9, color: '#64748b', fontWeight: 600, marginTop: 2 },
     statSub: { fontSize: 8, color: '#475569', marginTop: 1 },

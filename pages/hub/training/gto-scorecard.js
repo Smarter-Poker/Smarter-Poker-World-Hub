@@ -218,7 +218,7 @@ function DeviationCell({ userVal, gtoVal, label }) {
         border: `1px solid ${color}20`,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 800, color, fontFamily: "'Orbitron', monospace" }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
         {userVal}%
       </div>
       <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
@@ -417,7 +417,7 @@ export default function GTOScorecardPage() {
                 fontSize: 60,
                 fontWeight: 900,
                 color: scoreColor,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 lineHeight: 1,
               }}
             >

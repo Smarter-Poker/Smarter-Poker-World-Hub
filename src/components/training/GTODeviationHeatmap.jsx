@@ -51,7 +51,7 @@ export default function GTODeviationHeatmap({ label, actualPct = 0, gtoPct = 0, 
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ fontSize: 11, color: '#94a3b8' }}>GTO: <strong style={{ color: '#00d4ff' }}>{safeGto.toFixed(1)}%</strong></span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "'Orbitron', monospace" }}>{safeActual.toFixed(1)}%</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>{safeActual.toFixed(1)}%</span>
                     </div>
                 </div>
             </div>

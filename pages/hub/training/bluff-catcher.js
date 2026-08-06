@@ -308,7 +308,7 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: 28,
     fontWeight: 900,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     letterSpacing: 1,
     color: 'var(--sp-accent-red)',
   },
@@ -336,7 +336,7 @@ const styles = {
   statValue: {
     fontSize: 20,
     fontWeight: 800,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     color: '#fff',
   },
   boardArea: {
@@ -441,7 +441,7 @@ const styles = {
     color: '#fff',
     fontSize: 20,
     fontWeight: 900,
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
     cursor: 'pointer',
     boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
@@ -462,6 +462,6 @@ const styles = {
     fontSize: 16,
     fontWeight: 800,
     cursor: 'pointer',
-    fontFamily: 'Orbitron, sans-serif',
+    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
   },
 };

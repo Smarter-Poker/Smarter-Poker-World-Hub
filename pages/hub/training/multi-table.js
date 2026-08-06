@@ -219,7 +219,7 @@ export default function MultiTablePage() {
                         fontSize: 48,
                         fontWeight: 900,
                         color: gradeColor,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {grade}
@@ -230,7 +230,7 @@ export default function MultiTablePage() {
                         fontWeight: 800,
                         color: 'var(--sp-fg)',
                         marginBottom: 4,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       SESSION COMPLETE
@@ -302,7 +302,7 @@ export default function MultiTablePage() {
                               fontSize: 22,
                               fontWeight: 800,
                               color: s.color,
-                              fontFamily: "'Orbitron', monospace",
+                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                             }}
                           >
                             {s.value}
@@ -346,7 +346,7 @@ export default function MultiTablePage() {
                           cursor: 'pointer',
                           fontSize: 14,
                           fontWeight: 800,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                           color: '#fff',
                           boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
@@ -403,7 +403,7 @@ export default function MultiTablePage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Multi-Table Practice
@@ -443,7 +443,7 @@ export default function MultiTablePage() {
                       cursor: 'pointer',
                       fontSize: 22,
                       fontWeight: 800,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       background:
                         tableCount === n
                           ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))'
@@ -562,7 +562,7 @@ export default function MultiTablePage() {
                 cursor: 'pointer',
                 fontSize: 15,
                 fontWeight: 800,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
                 color: '#fff',
                 boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
@@ -631,7 +631,7 @@ export default function MultiTablePage() {
                   fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-accent-cyan)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {tableCount}-TABLE MODE
@@ -693,7 +693,7 @@ export default function MultiTablePage() {
                       fontSize: 10,
                       fontWeight: 800,
                       color: 'var(--sp-accent-cyan)',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {i + 1}

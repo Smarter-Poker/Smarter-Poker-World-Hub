@@ -425,7 +425,7 @@ export default function PotGeometry() {
                 background: 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),#eab308)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron',monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Pot Geometry
@@ -439,7 +439,7 @@ export default function PotGeometry() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(249,115,22,0.25)',
-                fontFamily: "'Orbitron',monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 27
@@ -469,7 +469,7 @@ export default function PotGeometry() {
                       ? 'linear-gradient(135deg,rgba(var(--sp-accent-orange-rgb), 1),#eab308)'
                       : 'rgba(255,255,255,0.06)',
                   color: mode === m.id ? '#000' : 'var(--sp-fg-muted)',
-                  fontFamily: "'Orbitron',monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {m.label}
@@ -513,7 +513,7 @@ export default function PotGeometry() {
                         letterSpacing: 1,
                         display: 'block',
                         marginBottom: 8,
-                        fontFamily: "'Orbitron',monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {inp.label}
@@ -534,7 +534,7 @@ export default function PotGeometry() {
                         fontSize: 20,
                         fontWeight: 800,
                         outline: 'none',
-                        fontFamily: "'Orbitron',monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     />
                   </div>
@@ -561,7 +561,7 @@ export default function PotGeometry() {
                     fontSize: 48,
                     fontWeight: 900,
                     color: cat.color,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     lineHeight: 1,
                   }}
                 >
@@ -584,7 +584,7 @@ export default function PotGeometry() {
                     fontSize: 14,
                     fontWeight: 800,
                     color: cat.color,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     marginBottom: 8,
                   }}
                 >
@@ -613,7 +613,7 @@ export default function PotGeometry() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   Commitment Threshold
@@ -642,7 +642,7 @@ export default function PotGeometry() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 10,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   Optimal Bet Sizes at this SPR
@@ -667,7 +667,7 @@ export default function PotGeometry() {
                           fontWeight: 800,
                           color: 'var(--sp-accent-orange)',
                           minWidth: 70,
-                          fontFamily: "'Orbitron',monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {b.pct}
@@ -702,7 +702,7 @@ export default function PotGeometry() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 6,
-                    fontFamily: "'Orbitron',monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   What is SPR?
@@ -754,7 +754,7 @@ export default function PotGeometry() {
                         fontSize: 18,
                         fontWeight: 900,
                         color: s.color,
-                        fontFamily: "'Orbitron',monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       {s.value}
@@ -802,7 +802,7 @@ export default function PotGeometry() {
                           textTransform: 'uppercase',
                           letterSpacing: 1.5,
                           marginBottom: 12,
-                          fontFamily: "'Orbitron',monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {drill.street} · {drill.board}
@@ -826,7 +826,7 @@ export default function PotGeometry() {
                                 fontSize: 16,
                                 fontWeight: 900,
                                 color: s.color,
-                                fontFamily: "'Orbitron',monospace",
+                                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                               }}
                             >
                               {s.value}
@@ -920,7 +920,7 @@ export default function PotGeometry() {
                           fontWeight: 900,
                           fontSize: 14,
                           cursor: 'pointer',
-                          fontFamily: "'Orbitron',monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         NEXT SCENARIO →

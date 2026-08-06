@@ -189,7 +189,7 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     accuracyValue: { fontSize: 13, fontWeight: 'bold' },
-    evValue: { fontSize: 9, color: '#ef4444', fontFamily: "'Orbitron', monospace" },
+    evValue: { fontSize: 9, color: '#ef4444', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" },
     countCol: {
         width: 32, textAlign: 'right',
         display: 'flex', flexDirection: 'column',

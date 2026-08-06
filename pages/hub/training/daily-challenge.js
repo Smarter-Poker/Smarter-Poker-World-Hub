@@ -386,7 +386,7 @@ export default function DailyChallengePage() {
                 background: 'linear-gradient(135deg, #eab308, rgba(var(--sp-accent-orange-rgb), 1))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Daily Challenge
@@ -400,7 +400,7 @@ export default function DailyChallengePage() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(234,179,8,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 24
@@ -437,7 +437,7 @@ export default function DailyChallengePage() {
                   fontSize: 24,
                   fontWeight: 900,
                   color: 'var(--sp-accent-amber)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {currentStreak}
@@ -469,7 +469,7 @@ export default function DailyChallengePage() {
                   fontSize: 24,
                   fontWeight: 900,
                   color: 'var(--sp-accent-green)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {completedDays.length}
@@ -501,7 +501,7 @@ export default function DailyChallengePage() {
                   fontSize: 24,
                   fontWeight: 900,
                   color: 'var(--sp-accent-purple)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 {DAILY_CHALLENGE_DIAMOND_REWARD}
@@ -564,7 +564,7 @@ export default function DailyChallengePage() {
                 textAlign: 'center',
                 padding: 40,
                 color: 'var(--sp-fg-dim)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -613,7 +613,7 @@ export default function DailyChallengePage() {
                       background: 'rgba(234,179,8,0.1)',
                       padding: '3px 8px',
                       borderRadius: 6,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {position}
@@ -657,7 +657,7 @@ export default function DailyChallengePage() {
                         textTransform: 'uppercase',
                         letterSpacing: 1.5,
                         marginBottom: 10,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       BOARD
@@ -691,7 +691,7 @@ export default function DailyChallengePage() {
                         textTransform: 'uppercase',
                         letterSpacing: 1.5,
                         marginBottom: 8,
-                        fontFamily: "'Orbitron', monospace",
+                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
                       YOUR HAND
@@ -927,7 +927,7 @@ export default function DailyChallengePage() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                     marginBottom: 8,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   30-Day Streak
@@ -981,7 +981,7 @@ export default function DailyChallengePage() {
                     letterSpacing: 1,
                     marginTop: 0,
                     marginBottom: 6,
-                    fontFamily: "'Orbitron', monospace",
+                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                   }}
                 >
                   About Daily Challenge

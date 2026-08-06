@@ -210,7 +210,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
                 border: 'none',
                 background: selectedBB === bb ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
                 color: selectedBB === bb ? 'var(--sp-accent-purple)' : 'var(--sp-fg-muted)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {bb}BB
@@ -281,7 +281,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
               fontSize: 16,
               fontWeight: 900,
               color: riskPremium > 1.2 ? 'var(--sp-accent-red)' : riskPremium > 1.1 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-green)',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {(Number.isFinite(Number(riskPremium)) ? Number(riskPremium) : 0).toFixed(2)}x
@@ -298,7 +298,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
               fontSize: 16,
               fontWeight: 900,
               color: 'var(--sp-accent-purple)',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {pushRange}%
@@ -315,7 +315,7 @@ function ICMPreflopRanges({ playerCount = 6, bountyFormat = 'Regular' }) {
               fontSize: 16,
               fontWeight: 900,
               color: 'var(--sp-accent-cyan)',
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
             {bountyFormat}
@@ -525,7 +525,7 @@ export default function ICMCalculatorPage() {
                 background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               ICM Calculator
@@ -539,7 +539,7 @@ export default function ICMCalculatorPage() {
                 borderRadius: 12,
                 fontWeight: 700,
                 border: '1px solid rgba(168,85,247,0.2)',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               PHASE 21
@@ -558,7 +558,7 @@ export default function ICMCalculatorPage() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               Quick Presets
@@ -611,7 +611,7 @@ export default function ICMCalculatorPage() {
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 Chip Stacks ({stacks.length} Players)
@@ -668,7 +668,7 @@ export default function ICMCalculatorPage() {
                       color: PLAYER_COLORS[i],
                       width: 14,
                       textAlign: 'center',
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     {i + 1}
@@ -723,7 +723,7 @@ export default function ICMCalculatorPage() {
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 Prize Structure ({prizes.length} Places)
@@ -823,7 +823,7 @@ export default function ICMCalculatorPage() {
                   fontSize: 10,
                   fontWeight: 700,
                   color: 'var(--sp-accent-amber)',
-                  fontFamily: "'Orbitron', monospace",
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                 }}
               >
                 POOL $
@@ -866,7 +866,7 @@ export default function ICMCalculatorPage() {
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: loading ? 'wait' : 'pointer',
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               {loading ? 'CALCULATING...' : 'Calculate ICM'}
@@ -937,7 +937,7 @@ export default function ICMCalculatorPage() {
                           fontSize: 16,
                           fontWeight: 900,
                           color: item.color,
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {item.value}
@@ -1010,7 +1010,7 @@ export default function ICMCalculatorPage() {
                           fontSize: 11,
                           fontWeight: 900,
                           color: PLAYER_COLORS[i],
-                          fontFamily: "'Orbitron', monospace",
+                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                         }}
                       >
                         {r.player}
@@ -1080,7 +1080,7 @@ export default function ICMCalculatorPage() {
                       textTransform: 'uppercase',
                       letterSpacing: 1,
                       marginBottom: 10,
-                      fontFamily: "'Orbitron', monospace",
+                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     }}
                   >
                     Chip% vs ICM% Comparison
@@ -1255,7 +1255,7 @@ export default function ICMCalculatorPage() {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
                 marginBottom: 6,
-                fontFamily: "'Orbitron', monospace",
+                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
               About ICM
