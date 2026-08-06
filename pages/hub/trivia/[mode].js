@@ -88,10 +88,15 @@ function genUUID() {
 
 // Modes this page runs through the server-authoritative grading flow
 // (session-start / session-answer / session-submit) instead of the
-// client-keyed correct_index flow. 'arcade' is live as of 2026-08-05;
-// the remaining modes adopt one at a time. The explicit ?serverGrading=1
-// query escape hatch stays available for modes not yet flipped.
-const SERVER_GRADED_PAGE_MODES = new Set(['arcade']);
+// client-keyed correct_index flow. This set ships EMPTY because the
+// server-graded arcade path has NOT yet been validated by a live
+// play-through: the routes, the migration and the RPC are all
+// production-verified, but no end-to-end browser round has ever been
+// played, so the path stays dark until someone plays one run at
+// /hub/trivia/arcade?serverGrading=1. Flip this to ['arcade'] once that
+// passes. The explicit ?serverGrading=1 query escape hatch stays
+// available for modes not yet flipped.
+const SERVER_GRADED_PAGE_MODES = new Set([]);
 
 // Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
 function getYesterdayCST() {
@@ -112,7 +117,7 @@ export default function TriviaModePage() {
     const serverRun = useServerGradedRun(mode);
     const serverGraded = serverRun.isEnabled && (SERVER_GRADED_PAGE_MODES.has(mode) || router.query.serverGrading === '1');
 
-    // ── AUDIT FIX (C1) ─────────────────────────────────────────────────
+    // ── AUDIT FIX (C1) ───────────────────────────────────────────────
     // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
     // no renderer for it (`gameState === 'playing' && mode !== 'survival'`),
     // so a direct hit on /hub/trivia/survival showed a paid lobby, charged
@@ -125,7 +130,7 @@ export default function TriviaModePage() {
     }, [isSurvivalSlug, router]);
 
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
-    // ── AUDIT FIX (M4) ─────────────────────────────────────────────────
+    // ── AUDIT FIX (M4) ───────────────────────────────────────────────
     // Ref mirror of gameState so the initialize effect (whose deps include
     // avatarUser?.id / authLoading) can tell whether a game is in progress
     // WITHOUT adding gameState to its dep list. Declared before that effect
