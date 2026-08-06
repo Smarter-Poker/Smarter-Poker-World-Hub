@@ -84,11 +84,19 @@ export default async function handler(req, res) {
         }
 
         // Skip eggs the user already owns so a sweep costs nothing to repeat.
+        //
+        // Read the LEDGER, not diamond_reward_claims. That table looks right
+        // and is not: award_diamonds_v2 never writes it, so it holds only
+        // legacy v1 rows and stopped growing on 2026-07-25. Filtering against
+        // it matched nothing, so every sweep re-ran every verifier and re-hit
+        // the RPC for eggs the user had owned for weeks. Idempotency still
+        // protected the balance; this just stops the pointless work.
         const { data: ownedRows } = await supabase
-            .from('diamond_reward_claims')
+            .from('diamond_transactions')
             .select('metadata')
             .eq('user_id', userId)
-            .eq('reward_type', 'easter_egg')
+            .eq('transaction_type', 'easter_egg')
+            .gt('amount', 0)
             .limit(200);
         const owned = new Set(
             (ownedRows || [])
@@ -104,6 +112,7 @@ export default async function handler(req, res) {
         const awarded = [];
         let totalDiamonds = 0;
         let capped = false;
+        let stopReason = null;
 
         for (const key of keys) {
             // Sequential on purpose: the memoised context means the first
@@ -155,8 +164,25 @@ export default async function handler(req, res) {
                     hint: egg.hint,
                     diamonds: Number(result.awarded),
                 });
-            } else if (result.reason === 'monthly_cap' || result.reason === 'daily_cap') {
+            } else if (
+                result.reason === 'monthly_cap'
+                || result.reason === 'daily_cap'
+                || result.reason === 'action_limit'
+                || result.reason === 'velocity'
+                || result.reason === 'budget_exhausted'
+            ) {
+                // Every one of these means the NEXT egg will be refused for the
+                // same reason, so continuing just burns RPC calls.
+                //   action_limit  — monthly egg budget spent, or the 3/day
+                //                   easter_egg limit reached
+                //   velocity      — >5 awards of one action in 60s. A first
+                //                   sweep for an established account can
+                //                   legitimately unlock more eggs than that;
+                //                   stopping here leaves the rest unclaimed and
+                //                   unburned, and the next sweep collects them.
+                //   budget_exhausted — the 2.5M platform breaker tripped.
                 capped = true;
+                stopReason = result.reason;
                 break;
             }
         }
@@ -167,6 +193,9 @@ export default async function handler(req, res) {
             totalDiamonds,
             checked: keys.length,
             capped,
+            // Anything the sweep stopped short on is still unclaimed and
+            // unburned; the next sweep picks it up.
+            stopReason,
         });
     } catch (err) {
         try { reportApiError(err, req); } catch { /* noop */ }

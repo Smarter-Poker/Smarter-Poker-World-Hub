@@ -33,10 +33,29 @@ import { EASTER_EGGS, DAILY_CAP } from '../../../config/diamondRewards.js';
 // ── fake context ──────────────────────────────────────────────────────────
 // Mirrors the shape createEggContext() returns: every field is a function
 // returning a promise, so verifiers cannot tell a stub from the real thing.
+/** Action keys that count toward the daily cap, mirroring the live catalog. */
+const CAPPED_KEYS = [
+    'daily_login', 'daily_trivia_challenge', 'birthday', 'first_training_session',
+    'follow', 'gto_chart_study', 'hand_of_the_day', 'reaction', 'share_content',
+    'social_post', 'strategy_comment', 'training_level_complete', 'venue_review',
+    'video_favorite', 'video_watch',
+];
+/** Actions that pay but are OUTSIDE the cap — eggs, referrals, VIP, profile. */
+const UNCAPPED_KEYS = [
+    'easter_egg', 'referral_qualified', 'referral_vip_conversion', 'vip_stipend',
+    'email_verified', 'phone_verified', 'profile_complete', 'profile_pic',
+    'first_purchase', 'hendonmob_link', 'referral_referee',
+];
+
 function ctxOf(overrides = {}) {
     const base = {
         supabase: null,
         userId: 'u1',
+        catalog: async () => ({
+            all: new Set([...CAPPED_KEYS, ...UNCAPPED_KEYS]),
+            capped: new Set(CAPPED_KEYS),
+        }),
+        dailyLoginDays: async () => new Set(),
         profile: async () => ({
             created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
             level: 1,
@@ -49,7 +68,6 @@ function ctxOf(overrides = {}) {
         }),
         lifetimeEarned: async () => 0,
         recentTransactions: async () => [],
-        recentClaims: async () => [],
         trainingSessions: async () => [],
         completedReferrals: async () => [],
         bankrollSessionCount: async () => 0,
@@ -129,6 +147,56 @@ describe('lifetime + milestone eggs', () => {
     test('millionaire needs 100,000 lifetime, not 99,999', async () => {
         assert.equal(await EGG_VERIFIERS.millionaire(ctxOf({ lifetimeEarned: 99999 })), false);
         assert.equal(await EGG_VERIFIERS.millionaire(ctxOf({ lifetimeEarned: 100000 })), true);
+    });
+
+    // REGRESSION: lifetimeEarned originally summed EVERY positive row. The
+    // first account to trip `millionaire` in production had a 454,229 ◆ untyped
+    // legacy row and a 45,205 ◆ admin adjustment, so a user who had earned a
+    // few thousand diamonds collected a 400 ◆ "earn 100,000 over your lifetime"
+    // achievement. Only catalog actions are earnings.
+    test('lifetimeEarned counts ONLY catalog reward actions', async () => {
+        const { createEggContext } = await import('../eggVerifiers.js');
+        const rows = [
+            { amount: 454229, transaction_type: null },            // legacy untyped
+            { amount: 45205, transaction_type: 'adjustment' },      // admin grant
+            { amount: 5000, transaction_type: 'purchase' },         // bought
+            { amount: 160, transaction_type: 'live_gift_received' },// gifted
+            { amount: 3245, transaction_type: 'daily_login' },      // EARNED
+            { amount: 50, transaction_type: 'profile_complete' },   // EARNED
+        ];
+        const supabaseStub = {
+            from: (table) => {
+                const chain = {
+                    select: () => chain,
+                    eq: () => chain,
+                    gt: () => chain,
+                    gte: () => chain,
+                    order: () => chain,
+                    limit: async () => ({
+                        data: table === 'diamond_reward_catalog'
+                            ? [...CAPPED_KEYS, ...UNCAPPED_KEYS].map((k) => ({
+                                action_key: k, counts_toward_daily_cap: CAPPED_KEYS.includes(k),
+                            }))
+                            : rows,
+                    }),
+                };
+                // the catalog loader awaits .select() directly, with no .limit()
+                if (table === 'diamond_reward_catalog') {
+                    return {
+                        select: async () => ({
+                            data: [...CAPPED_KEYS, ...UNCAPPED_KEYS].map((k) => ({
+                                action_key: k, counts_toward_daily_cap: CAPPED_KEYS.includes(k),
+                            })),
+                        }),
+                    };
+                }
+                return chain;
+            },
+        };
+        const ctx = createEggContext(supabaseStub, 'u1');
+        // 3245 + 50 = 3295, NOT 507,889.
+        assert.equal(await ctx.lifetimeEarned(), 3295);
+        assert.equal(await EGG_VERIFIERS.millionaire(ctx), false);
     });
 
     test('to_infinity needs 1,000,000 lifetime', async () => {
@@ -212,45 +280,71 @@ describe('streak + timing eggs', () => {
         assert.equal(await EGG_VERIFIERS.new_year(ctxOf()), false);
     });
 
-    test('the_ghost needs 30 CONSECUTIVE days of claims', async () => {
-        const run29 = Array.from({ length: 29 }, (_, i) => ({ claim_date: chicagoDate(new Date(Date.now() - i * 86400000)) }));
-        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ recentClaims: run29 })), false);
+    const loginDays = (n, offset = 0) => new Set(
+        Array.from({ length: n }, (_, i) => chicagoDate(new Date(Date.now() - (i + offset) * 86400000))),
+    );
 
-        const run30 = Array.from({ length: 30 }, (_, i) => ({ claim_date: chicagoDate(new Date(Date.now() - i * 86400000)) }));
-        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ recentClaims: run30 })), true);
+    test('the_ghost needs 30 CONSECUTIVE daily logins', async () => {
+        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ dailyLoginDays: loginDays(29) })), false);
+        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ dailyLoginDays: loginDays(30) })), true);
     });
 
     test('the_ghost is not fooled by 30 days with a gap in the middle', async () => {
-        const gappy = [
-            ...Array.from({ length: 15 }, (_, i) => ({ claim_date: chicagoDate(new Date(Date.now() - i * 86400000)) })),
-            // skip a day, then 15 more
-            ...Array.from({ length: 15 }, (_, i) => ({ claim_date: chicagoDate(new Date(Date.now() - (i + 16) * 86400000)) })),
-        ];
-        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ recentClaims: gappy })), false);
+        const gappy = new Set([...loginDays(15), ...loginDays(15, 16)]); // day 15 missing
+        assert.equal(await EGG_VERIFIERS.the_ghost(ctxOf({ dailyLoginDays: gappy })), false);
     });
 
     test('daily_legend needs 30 consecutive days AT the cap, not merely active', async () => {
         const cap = DAILY_CAP.free;
         const belowCap = Array.from({ length: 30 }, (_, i) => ({
-            amount: cap - 1, created_at: daysAgo(i),
+            amount: cap - 1, transaction_type: 'daily_login', created_at: daysAgo(i),
         }));
         assert.equal(await EGG_VERIFIERS.daily_legend(ctxOf({ recentTransactions: belowCap })), false);
 
         const atCap = Array.from({ length: 30 }, (_, i) => ({
-            amount: cap, created_at: daysAgo(i),
+            amount: cap, transaction_type: 'daily_login', created_at: daysAgo(i),
         }));
         assert.equal(await EGG_VERIFIERS.daily_legend(ctxOf({ recentTransactions: atCap })), true);
     });
 
+    // REGRESSION: these two summed every positive transaction, so easter eggs,
+    // referral payouts and the VIP stipend counted toward "you hit your daily
+    // cap". Those actions are excluded from the cap by definition, so they can
+    // never help fill it. After 20260805210000 took eggs out of the cap, the
+    // unfiltered version would have handed daily_legend (300 ◆) to anyone who
+    // unlocked a few eggs on thirty consecutive days.
+    test('daily_legend ignores actions that do not count toward the cap', async () => {
+        const uncappedOnly = Array.from({ length: 30 }, (_, i) => ({
+            amount: 500, transaction_type: 'easter_egg', created_at: daysAgo(i),
+        }));
+        assert.equal(await EGG_VERIFIERS.daily_legend(ctxOf({ recentTransactions: uncappedOnly })), false);
+    });
+
+    test('weekend_warrior ignores actions that do not count toward the cap', async () => {
+        // A referral payout on a Saturday and a Sunday is not "hitting your cap".
+        const referrals = Array.from({ length: 14 }, (_, i) => ({
+            amount: 500, transaction_type: 'referral_qualified', created_at: daysAgo(i),
+        }));
+        assert.equal(await EGG_VERIFIERS.weekend_warrior(ctxOf({ recentTransactions: referrals })), false);
+    });
+
     test('daily_legend uses the VIP cap for VIPs', async () => {
         const atFreeCap = Array.from({ length: 30 }, (_, i) => ({
-            amount: DAILY_CAP.free, created_at: daysAgo(i),
+            amount: DAILY_CAP.free, transaction_type: 'daily_login', created_at: daysAgo(i),
         }));
-        // A VIP earning only the free cap has not hit THEIR cap.
+        // A VIP earning only the free cap has not hit THEIR cap...
         assert.equal(await EGG_VERIFIERS.daily_legend(ctxOf({
             profile: { is_vip: true },
             recentTransactions: atFreeCap,
         })), false);
+        // ...but a non-VIP earning the same amount has. Without this second
+        // assertion the test passes even if the rows are being dropped for an
+        // unrelated reason, which is exactly what happened when the
+        // cap-counting filter landed and these rows had no transaction_type.
+        assert.equal(await EGG_VERIFIERS.daily_legend(ctxOf({
+            profile: { is_vip: false },
+            recentTransactions: atFreeCap,
+        })), true);
     });
 });
 

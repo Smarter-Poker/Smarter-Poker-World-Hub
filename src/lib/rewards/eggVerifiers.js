@@ -122,6 +122,20 @@ export function createEggContext(supabase, userId) {
         return cache.get(key);
     };
 
+    // Declared as a local so other loaders can await it, not just verifiers.
+    const catalogOf = () => once('catalog', async () => {
+        const { data } = await supabase
+            .from('diamond_reward_catalog')
+            .select('action_key, counts_toward_daily_cap');
+        const all = new Set();
+        const capped = new Set();
+        for (const r of data || []) {
+            all.add(r.action_key);
+            if (r.counts_toward_daily_cap) capped.add(r.action_key);
+        }
+        return { all, capped };
+    });
+
     return {
         supabase,
         userId,
@@ -135,23 +149,48 @@ export function createEggContext(supabase, userId) {
             return data || null;
         }),
 
-        /** Every positive diamond movement, ever. The "lifetime earned" source. */
+        /**
+         * The reward catalog, as two sets of action keys.
+         *
+         * This is the same definition award_diamonds_v2 uses for its cap
+         * accounting: a diamond movement is a REWARD only if its
+         * transaction_type is an action in diamond_reward_catalog. Everything
+         * else — purchases, admin adjustments, gifts received, transfers,
+         * refunds, and the untyped legacy rows — is money that arrived, not
+         * money that was earned.
+         */
+        catalog: catalogOf,
+
+        /**
+         * Diamonds this user has EARNED over their lifetime.
+         *
+         * Originally this summed every positive row, which was wrong in a way
+         * that cost money: the first account to trip `millionaire` had a
+         * 454,229 ◆ untyped legacy row and a 45,205 ◆ admin `adjustment`, so
+         * "earn 100,000 diamonds over your lifetime" fired for someone who had
+         * earned a few thousand. Purchased, gifted, adjusted and transferred
+         * diamonds are explicitly not earnings.
+         */
         lifetimeEarned: () => once('lifetimeEarned', async () => {
+            const { all } = await catalogOf();
             const { data } = await supabase
                 .from('diamond_transactions')
-                .select('amount')
+                .select('amount, transaction_type')
                 .eq('user_id', userId)
                 .gt('amount', 0)
                 .limit(ROW_LIMIT * 10);
             if (!Array.isArray(data)) return 0;
-            return data.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            return data.reduce(
+                (sum, r) => (all.has(r.transaction_type) ? sum + (Number(r.amount) || 0) : sum),
+                0,
+            );
         }),
 
         /** Recent transactions, for per-day spend and cap-hit questions. */
         recentTransactions: () => once('recentTransactions', async () => {
             const { data } = await supabase
                 .from('diamond_transactions')
-                .select('amount, created_at')
+                .select('amount, created_at, transaction_type')
                 .eq('user_id', userId)
                 .gte('created_at', daysAgoIso(STREAK_LOOKBACK_DAYS))
                 .order('created_at', { ascending: false })
@@ -159,16 +198,26 @@ export function createEggContext(supabase, userId) {
             return Array.isArray(data) ? data : [];
         }),
 
-        /** Reward claims, which carry claim_date and the amount awarded. */
-        recentClaims: () => once('recentClaims', async () => {
+        /**
+         * Days this user completed their daily login, from the LEDGER.
+         *
+         * This used to read public.diamond_reward_claims, which looks like the
+         * right table and is not: award_diamonds_v2 never writes it (verified
+         * against prosrc), so it holds only legacy v1 rows and stopped growing
+         * on 2026-07-25. Any streak verifier built on it would silently never
+         * fire for a currently active user. diamond_transactions is what v2
+         * actually writes, and daily_login is the row that means "showed up".
+         */
+        dailyLoginDays: () => once('dailyLoginDays', async () => {
             const { data } = await supabase
-                .from('diamond_reward_claims')
-                .select('diamonds_awarded, claim_date, claimed_at')
+                .from('diamond_transactions')
+                .select('created_at')
                 .eq('user_id', userId)
-                .gte('claimed_at', daysAgoIso(STREAK_LOOKBACK_DAYS))
-                .order('claimed_at', { ascending: false })
-                .limit(ROW_LIMIT * 5);
-            return Array.isArray(data) ? data : [];
+                .eq('transaction_type', 'daily_login')
+                .gt('amount', 0)
+                .gte('created_at', daysAgoIso(STREAK_LOOKBACK_DAYS))
+                .limit(ROW_LIMIT);
+            return new Set((data || []).map((r) => chicagoDate(new Date(r.created_at))));
         }),
 
         trainingSessions: () => once('trainingSessions', async () => {
@@ -238,6 +287,38 @@ export function createEggContext(supabase, userId) {
             return Number(data?.[0]?.like_count) || 0;
         }),
     };
+}
+
+/**
+ * The America/Chicago days on which this user actually hit their daily cap.
+ *
+ * Only transactions whose action counts toward the daily cap are summed —
+ * the same JOIN award_diamonds_v2 performs. Summing every positive row would
+ * count easter eggs, referral payouts and the VIP stipend toward "you hit your
+ * cap", which is exactly backwards: those actions are excluded from the cap,
+ * so they can never contribute to filling it. Since 20260805210000 took eggs
+ * out of the cap, an unfiltered version would have handed out `daily_legend`
+ * (300 ◆) to anyone who unlocked a few eggs.
+ *
+ * @param {object} ctx
+ * @returns {Promise<string[]>} YYYY-MM-DD strings
+ */
+async function cappedDaysFor(ctx) {
+    const [{ capped }, profile, transactions] = await Promise.all([
+        ctx.catalog(), ctx.profile(), ctx.recentTransactions(),
+    ]);
+    const cap = profile?.is_vip ? DAILY_CAP.vip : DAILY_CAP.free;
+
+    const perDay = new Map();
+    for (const t of transactions) {
+        const amount = Number(t.amount) || 0;
+        if (amount <= 0) continue;
+        if (!capped.has(t.transaction_type)) continue;
+        const day = chicagoDate(new Date(t.created_at));
+        perDay.set(day, (perDay.get(day) || 0) + amount);
+    }
+
+    return [...perDay.entries()].filter(([, total]) => total >= cap).map(([day]) => day);
 }
 
 // ── the registry ──────────────────────────────────────────────────────────
@@ -328,19 +409,7 @@ export const EGG_VERIFIERS = {
 
     /** Hit your daily diamond cap on both Saturday and Sunday. */
     weekend_warrior: async (ctx) => {
-        const p = await ctx.profile();
-        const cap = p?.is_vip ? DAILY_CAP.vip : DAILY_CAP.free;
-        const perDay = new Map();
-        for (const t of await ctx.recentTransactions()) {
-            const amt = Number(t.amount) || 0;
-            if (amt <= 0) continue;
-            const d = new Date(t.created_at);
-            const day = chicagoDate(d);
-            perDay.set(day, (perDay.get(day) || 0) + amt);
-        }
-        const cappedDays = [...perDay.entries()]
-            .filter(([, total]) => total >= cap)
-            .map(([day]) => day);
+        const cappedDays = await cappedDaysFor(ctx);
         const sat = cappedDays.filter((d) => chicagoWeekday(new Date(`${d}T12:00:00Z`)) === 'Sat');
         const sun = cappedDays.filter((d) => chicagoWeekday(new Date(`${d}T12:00:00Z`)) === 'Sun');
         // Same weekend: a Sunday that is the day after a capped Saturday.
@@ -350,29 +419,10 @@ export const EGG_VERIFIERS = {
     },
 
     /** Hit your daily cap thirty days in a row. */
-    daily_legend: async (ctx) => {
-        const p = await ctx.profile();
-        const cap = p?.is_vip ? DAILY_CAP.vip : DAILY_CAP.free;
-        const perDay = new Map();
-        for (const t of await ctx.recentTransactions()) {
-            const amt = Number(t.amount) || 0;
-            if (amt <= 0) continue;
-            const day = chicagoDate(new Date(t.created_at));
-            perDay.set(day, (perDay.get(day) || 0) + amt);
-        }
-        const capped = new Set([...perDay.entries()].filter(([, v]) => v >= cap).map(([d]) => d));
-        return longestConsecutiveRun(capped) >= 30;
-    },
+    daily_legend: async (ctx) => longestConsecutiveRun(new Set(await cappedDaysFor(ctx))) >= 30,
 
     /** Thirty straight days without missing a single daily task. */
-    the_ghost: async (ctx) => {
-        const days = new Set(
-            (await ctx.recentClaims())
-                .map((c) => c.claim_date || (c.claimed_at ? chicagoDate(new Date(c.claimed_at)) : null))
-                .filter(Boolean),
-        );
-        return longestConsecutiveRun(days) >= 30;
-    },
+    the_ghost: async (ctx) => longestConsecutiveRun(await ctx.dailyLoginDays()) >= 30,
 
     // ── REFERRALS / SOCIAL ───────────────────────────────────────────────
     /** Reach twenty qualified referrals. */
