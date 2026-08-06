@@ -55,7 +55,11 @@ export default function LifetimeStatsCard({
 
     if (handHistory && handHistory.length > 0) {
         handHistory.forEach(h => {
-            const st = h.spotType || '';
+            // Entries arrive with handData SPREAD flat (useGTOWScore.recordMove
+            // does `...handData`), but some callers pass the nested shape. Read
+            // both -- `h.spotType` alone silently matched nothing.
+            const hd = h.handData || h;
+            const st = hd.spotType || '';
             let type = 'srp';
             if (st.includes('3bet')) type = '3bp';
             else if (st.includes('4bet')) type = '4bp';

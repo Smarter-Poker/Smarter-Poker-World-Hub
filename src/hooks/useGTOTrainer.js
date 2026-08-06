@@ -786,6 +786,12 @@ export default function useGTOTrainer(
           heroHand: currentQuestion.heroHand || scenario.heroHand || null,
           street: scenario.street || null,
           scenarioHash: scenario.scenarioHash || null,
+          // roadmap #40 — spotType was derived further down this same callback
+          // and forwarded ONLY to recordAnswer (the backend write). It never
+          // reached the in-memory hand history, so every consumer that buckets
+          // by pot type -- LifetimeStatsCard's SRP / 3BP / 4BP+ breakdown above
+          // all -- read `undefined` and collapsed every hand into SRP.
+          spotType: deriveSpotType(scenario),
           // ═══ PHASE 21: EV data for RangeGrid EV overlay ═══
           evData: currentQuestion.evData || null,
           // ═══ PHASE 27: Explanation text for hand replay review ═══

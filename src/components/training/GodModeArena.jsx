@@ -3067,10 +3067,17 @@ function GodModeArenaInner({
             .length || 0;
         const acc = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 0;
 
-        // Build position stats
+        // Build position stats.
+        // roadmap #39/#40 sibling defect: useGTOWScore.recordMove stores the
+        // hand entry as `{ handNumber, classification, ..., ...handData }` --
+        // handData is SPREAD FLAT, there is no `h.handData` key. Every
+        // `h.handData?.x` read below therefore returned undefined, so every
+        // position bucketed as 'UNK' and every weak spot as 'general'. Read
+        // both shapes, the way PositionStatsPanel already does.
+        const hdOf = (h) => (h && h.handData) || h || {};
         const posStats = {};
         handHistory?.forEach((h) => {
-          const pos = h.handData?.heroPosition || 'UNK';
+          const pos = hdOf(h).heroPosition || 'UNK';
           if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0 };
           posStats[pos].total++;
           if (h.classification === 'best' || h.classification === 'correct')
@@ -3082,19 +3089,19 @@ function GodModeArenaInner({
         const spotBuckets = {};
         handHistory?.forEach((h) => {
           if (h.classification === 'best' || h.classification === 'correct') return;
-          const key = `${h.handData?.heroPosition || 'UNK'}|${h.handData?.street || 'flop'}|${h.handData?.spotType || 'general'}`;
+          const key = `${hdOf(h).heroPosition || 'UNK'}|${hdOf(h).street || 'flop'}|${hdOf(h).spotType || 'general'}`;
           if (!spotBuckets[key])
             spotBuckets[key] = {
-              position: h.handData?.heroPosition || 'UNK',
-              street: h.handData?.street || 'flop',
-              spotType: h.handData?.spotType || 'general',
+              position: hdOf(h).heroPosition || 'UNK',
+              street: hdOf(h).street || 'flop',
+              spotType: hdOf(h).spotType || 'general',
               mistakes: 0,
               total: 0,
             };
           spotBuckets[key].mistakes++;
         });
         handHistory?.forEach((h) => {
-          const key = `${h.handData?.heroPosition || 'UNK'}|${h.handData?.street || 'flop'}|${h.handData?.spotType || 'general'}`;
+          const key = `${hdOf(h).heroPosition || 'UNK'}|${hdOf(h).street || 'flop'}|${hdOf(h).spotType || 'general'}`;
           if (spotBuckets[key]) spotBuckets[key].total++;
         });
         Object.values(spotBuckets || {}).forEach((b) => {
@@ -10151,6 +10158,12 @@ function GodModeArenaInner({
                   longestStreak={bestStreak}
                   totalMistakes={sessionMistakes}
                   gamesCompleted={1}
+                  // roadmap #40 — the pot-type breakdown inside this card is
+                  // gated on `handHistory.length > 0` and the prop was never
+                  // passed, so the SRP / 3BP / 4BP+ row has never once rendered
+                  // on this screen. The audit that marked #40 "verified in
+                  // source" read the component, not the call site.
+                  handHistory={handHistory}
                 />
 
                 {/* ●●● PHASE 21: Study Streak Map — Training consistency ●●● */}

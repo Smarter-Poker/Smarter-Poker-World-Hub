@@ -215,13 +215,75 @@ High/Low mode.
 11. **The question is displayed.** DONE — `questionText` was computed and never
     rendered for the entire life of the component; you only ever saw the
     context strip.
-12. **Hero bottom-centre, villains rotated from hero.** BUILT.
+12. **Hero bottom-centre, villains rotated from hero.** DONE — screen-measured
+    2026-08-06 at 430x932 on `cash-001`/`cash-007`. Felt spans y 384..733,
+    centre (215, 558). Hero avatar 38x38 at (196, 653) — horizontally centred
+    on the felt, in its lower third; hero plate (188, 688) reads "KingFish /
+    100 bb". The single villain sits at (200, 403) — same x, opposite pole —
+    with plate (193, 430) reading "BTN / 100 bb". Rotation is therefore
+    hero-relative, not seat-index-relative.
 13. **Dealer button per the position LAW.** DONE.
-14. **Chip stack in front of every seat with money committed.** BUILT.
-15. **Board clamped to street** (0/3/4/5). BUILT.
-16. **Pot includes blinds preflop.** BUILT.
+14. **Chip stack in front of every seat with money committed.** BUILT — code
+    confirmed 2026-08-06, screen-observation deferred to a spot that can show
+    it. The renderer is real and hero is included:
+    `UniversalDynamicTable.jsx:3971-4036` maps every seat through
+    `committedFor(seat, actionHistory, isPreflopStreet)`
+    (`games/potMath.js:18`), and places the badge at
+    `CHIP_STACK_POSITIONS[key]` (`:626-636`), which has a `hero` slot
+    (47.70 / 71.82) alongside v1..v8 — so this is not villain-only. The 430x932
+    dump of `cash-001` showed NO chip badge, and that is correct behaviour, not
+    a defect: the spot was a FLOP with "Villain checks", and postflop
+    `committedFor` returns 0 for a checking seat, so nobody had money in front
+    of them on that street. Needs a facing-a-bet spot to observe.
+
+    Defect found while confirming, NOT yet fixed (tracked below as #14a):
+    `committedFor` returns on the FIRST matching action entry, so (i) a blind
+    seat that later acts loses its posted blind entirely — `{SB, 'CALL 3'}`
+    returns 3, not 3.5 — and (ii) a seat that raises and then calls a 3-bet
+    shows only the first amount. The same function feeds `computeDisplayPot`,
+    so both errors propagate into the pot pill.
+15. **Board clamped to street** (0/3/4/5). DONE — screen-measured 2026-08-06.
+    On a FLOP spot the felt renders EXACTLY three card images, all at y=494:
+    `/cards/spades_2.png` (169,494), `/cards/diamonds_2.png` (201,494),
+    `/cards/diamonds_4.png` (233,494) — matching the prompt's
+    "Flop: [2s 2d 4d]" exactly. No fourth or fifth card element exists in the
+    DOM at that street, so this is a real clamp and not an opacity trick.
+16. **Pot includes blinds preflop.** BUILT IN THE FELT, UNREACHABLE IN THE
+    CONTENT PIPELINE — established 2026-08-06 by reading the generator, and
+    this is a content gap, not a UI gap. `committedFor(..., isPreflop)` does
+    credit the blinds (`potMath.js:33-37`: SB / BTN-SB -> 0.5, BB -> 1) and
+    `computeDisplayPot` sums it, so were a preflop spot ever dealt the pot
+    would include them. **The arena cannot deal one.** The only producer of
+    `street: 'preflop'` is `DeterministicGTOEngine.generateFromLocalSolverRanges`
+    (`:705`), reachable only through the branch at `:436-442` gated on
+    `gameConfig.pioStreet === 'preflop'` — and no game config anywhere sets
+    `pioStreet`; `PIOQueryService.getGameConfig` (`:247+`) emits only
+    `{ id, sourceOfTruth, pioGameType, pioStackDepth }`. That function is also
+    unreachable from `generateBatch` (`:997`), which is what the arena calls.
+    Genuinely-preflop push/fold ICM drills are worse than absent: they arrive
+    with `boardCards: []` and `batch-preload.js:282-297` FABRICATES three
+    deterministic board cards, after which the backfill at `:420-423` stamps
+    them `'flop'`. A preflop drill is therefore served to the player as a flop
+    spot with an invented board. Closing #16 for real means making preflop
+    reachable, not touching the felt.
 17. **Villain shows a real stack, not a fabricated one.** BUILT.
-18. **Folded villains grey out rather than vanish.** BUILT.
+18. **Folded villains grey out rather than vanish.** BUILT IN THE FELT,
+    UNREACHABLE IN THE CONTENT PIPELINE — same shape as #16, established
+    2026-08-06. The grey-out is implemented three times over in
+    `UniversalDynamicTable.jsx`: `villainFolded` (`:3554-3556`) drives the seat
+    wrapper to `opacity: 0.42` (`:3672`), the avatar disc to
+    `filter: grayscale(100%) brightness(0.5)` (`:3705`), and the face-down
+    hole cards to the same filter at `opacity: 0.6` (`:3865-3880`) — visible,
+    greyed, not unmounted. **No arena scenario can ever set it.** Every
+    generator emits two scalar seats and no roster: `heroPosition` /
+    `villainPosition` at `DeterministicGTOEngine.js:537-538, 1666-1669,
+    1774-1775`, hard-mapped one-villain-per-hero at `get-question.js:404-412`,
+    and defaulted to BTN/BB at `batch-preload.js:415-419`. No scenario carries
+    `folded`, `playersInHand`, or a players array at all. `PLAYER_COUNT_MAP.js`
+    exists but `getPlayerCount` has zero importers — dead data. The squeeze
+    pool's idea of multiway is the literal STRING `villainPos: 'multiway'`
+    (`DeterministicGTOEngine.js:861-878`), inside the same dead path as #16.
+    Closing #18 for real means a multiway scenario model, not a felt change.
 19. **Avatar must not float mid-table.** BUILT 2026-07-26 — root cause was
     `tableArea` being `flex:1` + `overflow:hidden` around a `flexShrink:0`
     child with a 1/1.45 aspect ratio: opening the feedback panel CLIPPED the
@@ -236,9 +298,17 @@ High/Low mode.
 
 ### Scoring and feedback
 
-23. **Five-tier classification.** BUILT.
-24. **Best marked distinctly from merely Correct.** BUILT 2026-07-26 — Best
-    carries a double check, Correct a single one. Also renamed the tiers to
+23. **Five-tier classification.** DONE — screen-measured 2026-08-06 on
+    `/hub/training/reports`. The MOVE CLASSIFICATION DISTRIBUTION block renders
+    all five tiers with real, distinct, non-zero counts from 117 answered
+    questions: "Best: 15 (13%), Correct: 22 (19%), Inaccuracy: 5 (4%),
+    Wrong: 1 (1%), Blunder: 2 (2%)". Five tiers, five buckets, five populations
+    — the classifier is genuinely spreading moves across the whole scale rather
+    than collapsing to correct/incorrect.
+24. **Best marked distinctly from merely Correct.** DONE — screen-measured
+    2026-08-06. After answering, the feedback banner at (129,120) 135x26 reads
+    literally "OK OK Best Move" (a DOUBLE check glyph), with "0.00 EV" beside it
+    at (274,122). Correct renders a single check. Also renamed the tiers to
     GTOW's own terminology: 'Correct Move' was labelled 'Excellent', which is
     not a tier name in the reference product.
 25. **GTOW Score -100..+100.** BUILT 2026-07-26 — unblocked and done. The
@@ -271,20 +341,56 @@ High/Low mode.
     through the arena. The roadmap's original GAP status was wrong.
 29. **Feedback waits for the player.** DONE — auto-advance defaulted on at 2s,
     which is why explanations vanished before they could be read.
-30. **Feedback inline; hand stays visible.** BUILT 2026-07-26 — fixed with
-    #19; the panel is also capped at 40vh (was 48vh) to leave the felt room.
-31. **Solver frequencies per action.** BUILT.
-32. **Your action vs optimal, with EV of each.** BUILT.
-33. **Plain-language reason.** BUILT — though many deeper coaching notes were
-    dead code comparing free-text hand strength against snake_case enums.
+30. **Feedback inline; hand stays visible.** DONE — screen-measured 2026-08-06,
+    and this is the measurement that actually proves it. With the feedback panel
+    OPEN the whole felt is still on screen, merely shifted up ~48px: villain
+    avatar (200,332), hero avatar (196,347), hero hole cards (234,372) and
+    (259,372), all three board cards at y=403, pot pill (179,449), dealer button
+    (298,423), "SPR: 16.7" (187,472). Nothing is occluded and nothing unmounts.
+    Fixed with #19; the panel is also capped at 40vh (was 48vh) to leave the
+    felt room.
+31. **Solver frequencies per action.** DONE — screen-measured 2026-08-06. The
+    post-answer overlay dims the not-taken action (button at (219,546) 197x56,
+    computed `opacity: 0.3`) and prints a frequency under each control:
+    "100 %" at (96,576) and "0 %" at (308,576). The GTO Strategy list repeats
+    them as "OK Check / 100 %" and "Bet / 0 %", and the solver strip reads
+    "Action mix -> Check 100%". Per-action, not per-hand.
+32. **Your action vs optimal, with EV of each.** DONE — screen-measured
+    2026-08-06. The feedback panel renders the optimal line and the taken line
+    side by side with EV attached to each: "Best Move" (138,824), "EV:"
+    (255,825), "0.00 BB" (279,823), and directly beneath it "OK You: Check"
+    (180,859). Both halves of the comparison are on screen simultaneously.
+33. **Plain-language reason.** DONE — screen-measured 2026-08-06. Prose
+    coaching is on the felt before the answer (hint band (18,843) 394x58:
+    "On dry boards, c-bet small and frequently. O...") and after it via the
+    "FULL ANALYSIS" disclosure at (175,974). Caveat retained: many deeper
+    coaching notes are dead code comparing free-text hand strength against
+    snake_case enums, so the SHALLOW notes are what actually renders.
 34. **Mistake review at session end.** BUILT.
 
 ### Info panel
 
-35. **Range tab.** BUILT.
-36. **Strategy tab.** BUILT.
-37. **Collapsible sections / pop-out panel.** BUILT 2026-07-26 — verified
-    present in UniversalDynamicTable.
+35. **Range tab.** DONE — screen-measured 2026-08-06 on `cash-001` at 430x932.
+    The bottom tab bar ("Trainer / Range / Strategy / Settings") is real; the
+    Range tab sits at (108,888) 108x44 and opening it grows the felt's leaf
+    count from 68 to 245. It renders the header "RANGE MATRIX - AH3D",
+    "Range: 4.2% (56/1326 combos)", an action-filter row ("All / Check 0.2% /
+    Fold 83.4% / Bet 16% 0.0% / Bet 45% 4.0% / Mixed"), and the complete 13x13
+    169-cell grid from AA/AKs down through A2o..32s. Combo counts, per-action
+    weights and the full matrix — not a placeholder.
+36. **Strategy tab.** DONE — screen-measured 2026-08-06. Tab at (215,446)
+    108x44; opening it renders "GTO STRATEGY DISTRIBUTION" with a MODELLED
+    provenance badge and the per-action split for the live spot: "Bet 14% /
+    Check 86%". The MODELLED badge is correct and wanted — this spot is served
+    by the postflop generator, not a solved row, and the panel says so rather
+    than passing modelled output off as solver output.
+37. **Collapsible sections / pop-out panel.** DONE — screen-measured
+    2026-08-06 on both halves. Pop-out: the four-tab bar at the foot of the
+    felt swaps the panel in place (Trainer 68 leaves -> Range 245 -> Strategy
+    74) without unmounting the table. Collapsible: after answering, the
+    "FULL ANALYSIS" disclosure at (175,974) carries a "|>" affordance at
+    (161,976) and a "SPACE" hotkey hint at (180,977), and the expanded panel
+    closes via the control at (341,694) 67x44.
 
 ### RNG
 
@@ -301,9 +407,45 @@ High/Low mode.
 
 ### Reporting
 
-39. **Stats by format and date.** BUILT.
-40. **Pot-type breakdown.** BUILT 2026-07-26 — SRP / 3BP / 4BP+ accuracy in
-    LifetimeStatsCard, derived from `spotType`. Verified in source.
+39. **Stats by format and date.** DONE — screen-measured 2026-08-06 on
+    `/hub/training/reports`. Both breakdowns are gated on having more than one
+    bucket (`report.byFormat.length > 1` at reports.js:699,
+    `report.byDate.length > 1` at :759), and the account now clears both.
+    PERFORMANCE BY FORMAT renders three real rows — "MTT 75 hands / Score 70 /
+    Acc 88% / EV loss 0.02bb", "C-Bet Academy 40 hands / Score 48 / Acc 75% /
+    EV loss 0.08bb", "preflop-charts 2 hands / Score 100 / Acc 100% / EV loss
+    0bb" — and DAILY TREND renders an axis spanning 2026-05-07 to 2026-07-19.
+    Header aggregates alongside them: 8 SESSIONS, 117 QUESTIONS, 84% ACCURACY,
+    13% BEST RATE, 45% GTO PROXIMITY.
+40. **Pot-type breakdown.** GAP -> FIXED 2026-08-06, awaiting a rendered
+    session-summary measurement. The 2026-07-26 status said "Verified in
+    source", and reading the SOURCE is exactly how the claim survived: the
+    component was correct and had never once executed. THREE independent
+    defects were stacked:
+
+    (a) `GodModeArena.jsx` rendered `<LifetimeStatsCard>` without passing
+        `handHistory`, and the pot-type block is gated on
+        `{handHistory && handHistory.length > 0 && ...}`. The row has therefore
+        never rendered on any session since it shipped. `handHistory` was in
+        scope the whole time — the line immediately above already passes it to
+        `<PositionStatsPanel>`.
+    (b) `LifetimeStatsCard` read `h.spotType`, but `useGTOWScore.recordMove`
+        stores each entry as `{ handNumber, classification, evLoss,
+        frequencyDiff, timestamp, ...handData }` — handData is SPREAD FLAT and
+        there is no `h.handData` key either. Every read was `undefined`, so
+        every hand would have bucketed as SRP at 0%.
+    (c) `useGTOTrainer` computes `deriveSpotType(scenario)` and forwarded it
+        only to `recordAnswer` (the backend write), never to `recordMove` (the
+        in-memory history), so the field the card needed was never produced.
+
+    All three are fixed. The same flat-spread defect was found and fixed in the
+    arena's own coaching aggregation (`h.handData?.heroPosition|street|spotType`
+    around GodModeArena.jsx:3070-3100), which had been collapsing every position
+    bucket to 'UNK' and every weak spot to 'general' in the end-of-session
+    summary. `PositionStatsPanel.jsx:30` already had the correct defensive
+    pattern (`const hd = entry.handData || entry;`); the other two consumers did
+    not. Status stays short of DONE until a 20-question session is driven to the
+    summary screen and real SRP / 3BP / 4BP+ counts are read off it.
 41. **Frequency-difference metric.** BUILT.
 42. **Leaderboard populates.** DONE — the writer targeted a table shape that
     does not exist, so every write failed silently. Screen-verified 2026-08-06:
