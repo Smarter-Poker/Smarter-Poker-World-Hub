@@ -471,15 +471,12 @@ export default function LoginPage() {
                         required
                         autoComplete="email"
                         placeholder="Enter Your Email"
-                        className="login-input-box"
                         style={{
-                            position: 'absolute', top: '63.6%', left: '25%', width: '50%', height: '2.5%',
+                            position: 'absolute', top: '64.0%', left: '25%', width: '50%', height: '3.5%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                             background: 'transparent', border: 'none', outline: 'none', color: '#fff',
-                            boxShadow: 'none'
+                            boxShadow: 'none', fontSize: '14px'
                         }}
-                        onFocus={(e) => e.target.style.boxShadow = '0 0 5px 1px rgba(0,212,255,0.3)'}
-                        onBlur={(e) => e.target.style.boxShadow = 'none'}
                     />
 
                     {/* Password input */}
@@ -491,15 +488,12 @@ export default function LoginPage() {
                         minLength={6}
                         placeholder="Password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                        className="login-input-box"
                         style={{
-                            position: 'absolute', top: '69.8%', left: '25%', width: '46%', height: '2.5%',
+                            position: 'absolute', top: '70.3%', left: '25%', width: '46%', height: '3.5%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
                             background: 'transparent', border: 'none', outline: 'none', color: '#fff',
-                            boxShadow: 'none'
+                            boxShadow: 'none', fontSize: '14px'
                         }}
-                        onFocus={(e) => e.target.style.boxShadow = '0 0 5px 1px rgba(0,212,255,0.3)'}
-                        onBlur={(e) => e.target.style.boxShadow = 'none'}
                     />
 
                     {/* Show/hide password toggle */}
@@ -507,7 +501,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '69.8%', left: '71.5%', width: '3.5%', height: '2.5%',
+                            position: 'absolute', top: '70.3%', left: '71.5%', width: '3.5%', height: '3.5%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
