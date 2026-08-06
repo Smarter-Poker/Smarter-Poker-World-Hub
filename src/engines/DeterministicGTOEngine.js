@@ -702,6 +702,12 @@ export class DeterministicGTOEngine {
                     correctEV: 0,
                     worstEV: -Math.round(maxFreq * potSize * 100) / 100,
                     potSize: estimatedPot,
+                    // GTOW parity #32: every UI consumer reads
+                    // `question.evData.actionEVs` (see UniversalDynamicTable's
+                    // action-vs-optimal panel and the per-button EV chips).
+                    // This path only ever set the top-level `actionEVs`, so the
+                    // whole EV surface was dark for local-solver preflop spots.
+                    actionEVs,
                 },
                 explanation,
                 difficulty: effectiveLevel,

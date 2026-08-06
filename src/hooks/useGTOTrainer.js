@@ -118,14 +118,56 @@ function applyDifficultyToQuestion(question, difficultyMode) {
           );
         }
       }
+      // GTOW parity #32: aggregate per-action EVs onto the simplified ids too.
+      // Options, correctAnswer and gtoFrequencies were all remapped above, but
+      // actionEVs was passed through untouched by the `...question` spread —
+      // so after any Simple/Grouped simplification every EV lookup (the
+      // per-button EV chips, the action-vs-optimal panel, and
+      // calculateRealEVLoss) missed, because it was keyed by original solver
+      // ids like 'b33' while the UI now asked for 'bet'.
+      //
+      // A grouped option means "play this group's mix", so its EV is the
+      // frequency-weighted average of its members. When every member sits at
+      // 0% there is no mix to weight, and the group's value is the best you
+      // could do inside it — so fall back to the max.
+      const remapEVs = (evs) => {
+        if (!evs || typeof evs !== 'object') return evs;
+        const out = {};
+        for (const s of simplified) {
+          const key = s.id || s.action;
+          const members = memberIds(s).filter((m) => typeof evs[m] === 'number');
+          if (members.length === 0) continue;
+          let weighted = 0;
+          let totalFreq = 0;
+          let best = -Infinity;
+          for (const m of members) {
+            const f = question.gtoFrequencies?.[m] || 0;
+            weighted += evs[m] * f;
+            totalFreq += f;
+            if (evs[m] > best) best = evs[m];
+          }
+          const value = totalFreq > 0 ? weighted / totalFreq : best;
+          out[key] = Math.round(value * 100) / 100;
+        }
+        return out;
+      };
+
+      const newActionEVs = remapEVs(question.actionEVs);
+      const newEvData = question.evData
+        ? { ...question.evData, actionEVs: remapEVs(question.evData.actionEVs) }
+        : question.evData;
+
       return {
         ...question,
         options: newOptions,
         correctAnswer: newCorrect,
         gtoFrequencies: newFreqs,
+        actionEVs: newActionEVs,
+        evData: newEvData,
         _originalOptions: question.options,
         _originalCorrect: origCorrect,
         _originalFrequencies: question.gtoFrequencies,
+        _originalActionEVs: question.actionEVs,
         _difficultyApplied: difficultyMode,
       };
     }

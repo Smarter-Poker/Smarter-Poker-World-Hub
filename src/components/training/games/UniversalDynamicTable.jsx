@@ -27,6 +27,7 @@ import ActionButton from '../../poker/ActionButton';
 import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 import { toEngineDifficulty } from '../../../engines/DifficultyEngine';
 import { formatSignedScore } from '../../../engines/GTOScoreEngine';
+import { buildRangeGridData, rangeGridActions, handNotationFromCards } from '../rangeGridData';
 import { committedFor, computeDisplayPot } from './potMath';
 import { AVATAR_LIBRARY } from '../../../data/AVATAR_LIBRARY';
 
@@ -2148,6 +2149,53 @@ function UniversalDynamicTable({
         return simulateGTOFrequencies(options, correctAnswer, questionNumber);
     }, [gtoFrequencies, options, correctAnswer, questionNumber]);
 
+    // ═══ RANGE MODE MATRIX (GTOW parity #35) ═══
+    // The Range tab needs a per-HAND matrix, which only the solver's
+    // rawFrequencies carries. `computedFrequencies` is a per-ACTION summary for
+    // the current hand only and can never fill a 13x13 grid — feeding it to
+    // RangeGrid is what left the matrix blank. Prefer the live question's
+    // matrix; fall back to the answered-question snapshot so the tab keeps
+    // working through feedback.
+    //
+    // GTOW parity #36: the info panels used to be gated on `!showFeedback`, so
+    // Range/Strategy vanished the instant you acted — exactly the moment a
+    // player wants to compare what they did against the solver. They now stay
+    // mounted through feedback, which means they must read the ANSWERED
+    // question, not the live prop (the parent may already have swapped in the
+    // preloaded next hand). Same rule as `fq` further down.
+    const infoPanelQuestion = showFeedback
+        ? (lastQuestionRef.current || question)
+        : question;
+
+    const rangeModeGrid = useMemo(() => {
+        const raw = infoPanelQuestion?.rawFrequencies
+            || infoPanelQuestion?.scenario?.rawFrequencies
+            || infoPanelQuestion?.gtoData?.rawFrequencies
+            || null;
+        const gridData = buildRangeGridData(raw);
+        if (!gridData) return null;
+        const cards = infoPanelQuestion?.heroCards
+            || infoPanelQuestion?.cards
+            || heroCards;
+        return {
+            gridData,
+            actions: rangeGridActions(raw),
+            heroHand: handNotationFromCards(cards),
+        };
+    }, [infoPanelQuestion, heroCards]);
+
+    // Options + frequencies the Strategy panel draws, snapshot-aware for the
+    // same reason as above.
+    const panelStrategy = useMemo(() => {
+        const opts = Array.isArray(infoPanelQuestion?.options) && infoPanelQuestion.options.length > 0
+            ? infoPanelQuestion.options
+            : options;
+        const freqs = (showFeedback && infoPanelQuestion?.gtoFrequencies)
+            ? infoPanelQuestion.gtoFrequencies
+            : computedFrequencies;
+        return { options: opts, frequencies: freqs };
+    }, [infoPanelQuestion, options, computedFrequencies, showFeedback]);
+
     // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
     // GTOW parity #21: `difficultyMode` is only ever set by TrainerConfigModal.
     // The SessionSetupModal path sets `difficulty` in the UI vocabulary
@@ -4128,7 +4176,9 @@ function UniversalDynamicTable({
                 exit={{...}} props actually animate on unmount */}
             <AnimatePresence>
             {/* F4: RANGE MODE — Show range grid when mode is active */}
-            {activeMode === 'range' && !showFeedback && (() => {
+            {/* GTOW parity #36: no `!showFeedback` gate. The info panel is most
+                useful immediately after you act. */}
+            {activeMode === 'range' && (() => {
                 try {
                     return (
                         <motion.div
@@ -4141,22 +4191,29 @@ function UniversalDynamicTable({
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>
                                 Range Matrix {heroCards?.length === 2 && <span style={{ color: 'var(--sp-accent-cyan)' }}>• {heroCards.join('')}</span>}
                             </div>
-                            <RangeGrid
-                                gridData={(() => {
-                                    if (!computedFrequencies || !options) return null;
-                                    const gridData = {};
-                                    options.forEach(opt => {
-                                        const optId = opt?.id || opt;
-                                        const freq = typeof computedFrequencies[optId] === 'number' ? computedFrequencies[optId] : 0;
-                                        if (freq > 0) gridData[optId] = freq;
-                                    });
-                                    return gridData;
-                                })()}
-                                actions={options?.map(o => o?.id || o) || []}
-                                cellSize={18}
-                                heroHand={heroCards?.join('')}
-                                compact={true}
-                            />
+                            {/* GTOW parity #35: this used to build
+                                `{ [actionId]: freq }` from computedFrequencies —
+                                a flat, action-keyed object. RangeGrid indexes
+                                its gridData by HAND notation, so every one of
+                                the 169 cells came back undefined and the matrix
+                                rendered blank. The real per-hand matrix is the
+                                solver's rawFrequencies; buildRangeGridData owns
+                                the transpose for the whole app. */}
+                            {rangeModeGrid ? (
+                                <RangeGrid
+                                    gridData={rangeModeGrid.gridData}
+                                    actions={rangeModeGrid.actions}
+                                    cellSize={18}
+                                    heroHand={rangeModeGrid.heroHand}
+                                    compact={true}
+                                />
+                            ) : (
+                                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textAlign: 'center', padding: '12px 8px', lineHeight: 1.5 }}>
+                                    No solver range matrix for this spot.
+                                    <br />
+                                    Range data loads with solved spots.
+                                </div>
+                            )}
                         </motion.div>
                     );
                 } catch (err) {
@@ -4166,7 +4223,7 @@ function UniversalDynamicTable({
             })()}
 
             {/* F4: STRATEGY MODE — Show full strategy analysis */}
-            {activeMode === 'strategy' && !showFeedback && computedFrequencies && Array.isArray(options) && options.length > 0 && (() => {
+            {activeMode === 'strategy' && panelStrategy.frequencies && Array.isArray(panelStrategy.options) && panelStrategy.options.length > 0 && (() => {
                 try {
                     return (
                         <motion.div
@@ -4179,11 +4236,11 @@ function UniversalDynamicTable({
                             <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--sp-fg-dim)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
                                 GTO Strategy Distribution
                             </div>
-                            {options.slice(0, 9).map(opt => {
+                            {panelStrategy.options.slice(0, 9).map(opt => {
                                 if (!opt) return null;
                                 const optId = opt?.id || opt;
                                 const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
-                                const freq = typeof computedFrequencies[optId] === 'number' ? computedFrequencies[optId] : 0;
+                                const freq = typeof panelStrategy.frequencies[optId] === 'number' ? panelStrategy.frequencies[optId] : 0;
                                 const actionType = detectActionType(text);
                                 const barColor = ACTION_COLORS[actionType]?.border || 'var(--sp-fg-dim)';
                                 return (
@@ -4210,7 +4267,7 @@ function UniversalDynamicTable({
             })()}
 
             {/* F4: SETTINGS MODE */}
-            {activeMode === 'settings' && !showFeedback && (() => {
+            {activeMode === 'settings' && (() => {
                 try {
                     return (
                         <motion.div
@@ -5257,45 +5314,14 @@ function UniversalDynamicTable({
                                 })}
                             </div>
                             {fq?.rawFrequencies && (() => {
-                                const actions = Object.keys(fq.rawFrequencies || {});
-                                const gridData = {};
-                                const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-                                for (let r = 0; r < 13; r++) {
-                                    for (let c = 0; c < 13; c++) {
-                                        let hand;
-                                        if (r === c) hand = allRanks[r] + allRanks[c];
-                                        else if (r < c) hand = allRanks[r] + allRanks[c] + 's';
-                                        else hand = allRanks[c] + allRanks[r] + 'o';
-                                        const handFreqs = {};
-                                        let hasAny = false;
-                                        actions.forEach(action => {
-                                            const freq = fq.rawFrequencies[action]?.[hand];
-                                            if (freq !== undefined && freq > 0) {
-                                                handFreqs[action] = Math.round(freq * 1000) / 10;
-                                                hasAny = true;
-                                            }
-                                        });
-                                        gridData[hand] = hasAny ? handFreqs : null;
-                                    }
-                                }
-                                const hCards = fq?.heroCards || fq?.cards;
-                                let heroHand = null;
-                                if (hCards && hCards.length >= 2) {
-                                    const r1 = hCards[0]?.[0]?.toUpperCase();
-                                    const r2 = hCards[1]?.[0]?.toUpperCase();
-                                    if (r1 && r2) {
-                                        const s1 = hCards[0]?.[1];
-                                        const s2 = hCards[1]?.[1];
-                                        const ranks = 'AKQJT98765432';
-                                        const i1 = ranks.indexOf(r1);
-                                        const i2 = ranks.indexOf(r2);
-                                        if (i1 >= 0 && i2 >= 0) {
-                                            if (r1 === r2) heroHand = r1 + r2;
-                                            else if (s1 === s2) heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 's';
-                                            else heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 'o';
-                                        }
-                                    }
-                                }
+                                // GTOW parity #35: this transpose used to be
+                                // open-coded here (and wrongly in two other
+                                // places). buildRangeGridData is the single
+                                // owner and also normalizes 0-1 vs 0-100 scale.
+                                const actions = rangeGridActions(fq.rawFrequencies);
+                                const gridData = buildRangeGridData(fq.rawFrequencies);
+                                if (!gridData) return null;
+                                const heroHand = handNotationFromCards(fq?.heroCards || fq?.cards);
                                 return (
                                     <motion.div
                                         initial={{ opacity: 0, height: 0 }}

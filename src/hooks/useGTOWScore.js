@@ -192,12 +192,18 @@ export function simulateEVLoss(classification, pot = 10) {
  * @returns {number} Real EV loss in BB (0 if optimal, positive if suboptimal)
  */
 export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFrequencies, heroHand, pot = 10) {
-    if (!evData || !evData.handEVs) return null; // Signal: no real data, use simulation
+    if (!evData) return null; // Signal: no real data, use simulation
 
     // If player chose the optimal action, EV loss = 0
     if (selectedAction === optimalAction) return 0;
 
     // ═══ Use per-action EV if available (computed by engine) ═══
+    // GTOW parity #32: this branch used to be unreachable for any spot without
+    // a full `handEVs` matrix, because the guard above bailed on
+    // `!evData.handEVs` first. The local-solver preflop path produces real
+    // per-action EVs and no handEVs matrix, so its EV loss silently fell
+    // through to the frequency-based *estimate* even though exact numbers were
+    // sitting right there. actionEVs is checked before any bail-out now.
     if (evData.actionEVs) {
         const selectedEV = evData.actionEVs[selectedAction] ?? evData.actionEVs[selectedAction?.toLowerCase()];
         const optimalEV = evData.actionEVs[optimalAction] ?? evData.actionEVs[optimalAction?.toLowerCase()];
@@ -206,6 +212,10 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
             return Math.round(loss * 100) / 100;
         }
     }
+
+    // Without either a per-action EV pair or a hand-EV matrix there is no real
+    // solver data to work from — signal the caller to simulate.
+    if (!evData.handEVs) return null;
 
     // ═══ Fallback: frequency-based EV estimation ═══
     // Look up hero's frequency for the selected action (0.0-1.0 scale)

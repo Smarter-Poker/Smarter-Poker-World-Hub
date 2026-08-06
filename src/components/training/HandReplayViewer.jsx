@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import RangeGrid from './RangeGrid';
+import { buildRangeGridData } from './rangeGridData';
 import SolverLineSummary from './SolverLineSummary';
 // ═══ PHASE 21: Blocker Analysis + Equity Matchup ═══
 import BlockerScorePanel from './BlockerScorePanel';
@@ -506,22 +507,11 @@ export default function HandReplayViewer({ handHistory, onClose }) {
 function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition, heroCards, handEVs }) {
     const [expanded, setExpanded] = useState(false);
 
-    // Convert rawFrequencies to RangeGrid's gridData format
-    // rawFrequencies format from engine: { action → { hand → freq(0-1) } }
-    // RangeGrid gridData format: same — { action → { hand → freq(0-100) } }
-    const gridData = useMemo(() => {
-        if (!rawFrequencies) return {};
-        const data = {};
-        for (const [action, handFreqs] of Object.entries(rawFrequencies || {})) {
-            if (typeof handFreqs !== 'object') continue;
-            data[action] = {};
-            for (const [hand, freq] of Object.entries(handFreqs || {})) {
-                // Engine stores 0.0-1.0, RangeGrid expects 0-100
-                data[action][hand] = typeof freq === 'number' ? Math.round(freq * 100) : 0;
-            }
-        }
-        return data;
-    }, [rawFrequencies]);
+    // GTOW parity #35: the comment that used to sit here claimed the engine
+    // shape and RangeGrid's gridData shape were "the same". They are not.
+    // The engine is ACTION-first, RangeGrid indexes HAND-first, so this grid
+    // rendered 169 blank cells. buildRangeGridData owns the transpose.
+    const gridData = useMemo(() => buildRangeGridData(rawFrequencies) || {}, [rawFrequencies]);
 
     // Parse board cards for SolverLineSummary
     const boardCards = useMemo(() => {
