@@ -163,6 +163,9 @@ export default function SignUpPage() {
   const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
 
+  // Legal modal: null | 'terms' | 'privacy'
+  const [legalModal, setLegalModal] = useState(null);
+
   // Promo Code Validation State
   const [promoValid, setPromoValid] = useState(null); // null = not checked, true = valid, false = invalid
   const [promoChecking, setPromoChecking] = useState(false);
@@ -1067,7 +1070,7 @@ export default function SignUpPage() {
                   <input
                     type="email"
                     className="auth-input-styled"
-                    placeholder="Enter email address"
+                    placeholder=""
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
@@ -1080,7 +1083,7 @@ export default function SignUpPage() {
                   <input
                     type="text"
                     className="auth-input-styled"
-                    placeholder="Create a strong password"
+                    placeholder=""
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
@@ -1189,7 +1192,7 @@ export default function SignUpPage() {
                     <input
                       type="tel"
                       className="auth-input-styled"
-                      placeholder="(555) 555-5555"
+                      placeholder=""
                       value={formatPhone(formData.phone)}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       required
@@ -1307,47 +1310,50 @@ export default function SignUpPage() {
                 }}
               />
 
-              {/* Terms & Privacy */}
-              <a
-                href="/terms"
-                target="_blank"
+              {/* Terms of Service click zone */}
+              <button
+                type="button"
+                onClick={() => setLegalModal('terms')}
                 style={{
                   position: 'absolute',
-                  top: '89.5%',
-                  left: '47%',
-                  width: '5%',
-                  height: '1%',
+                  top: '89%',
+                  left: '45%',
+                  width: '8%',
+                  height: '1.5%',
                   background: 'transparent',
-                  zIndex: 10,
+                  border: 'none',
                   cursor: 'pointer',
+                  zIndex: 10,
                 }}
               />
-              <a
-                href="/terms"
-                target="_blank"
+              {/* Privacy Policy click zone */}
+              <button
+                type="button"
+                onClick={() => setLegalModal('privacy')}
                 style={{
                   position: 'absolute',
-                  top: '89.5%',
-                  left: '58%',
-                  width: '4%',
-                  height: '1%',
+                  top: '89%',
+                  left: '56%',
+                  width: '7%',
+                  height: '1.5%',
                   background: 'transparent',
-                  zIndex: 10,
+                  border: 'none',
                   cursor: 'pointer',
+                  zIndex: 10,
                 }}
               />
 
-              {/* Sign In Link */}
+              {/* Sign In Link — covers full "Already Have An Account? Sign In" row */}
               <button
                 type="button"
                 onClick={() => router.push('/auth/login')}
                 title="Sign In"
                 style={{
                   position: 'absolute',
-                  top: '94.5%',
-                  left: '56%',
-                  width: '5%',
-                  height: '1.5%',
+                  top: '93.5%',
+                  left: '25%',
+                  width: '50%',
+                  height: '2.5%',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
@@ -1357,6 +1363,188 @@ export default function SignUpPage() {
             </form>
           </div>
         </div>
+
+        {/* ─── Legal Modal ─────────────────────────────────────────────── */}
+        {legalModal && (
+          <div
+            onClick={() => setLegalModal(null)}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'linear-gradient(135deg, #0d1117 0%, #0b1929 100%)',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                borderRadius: '16px',
+                boxShadow: '0 0 40px rgba(0, 212, 255, 0.15), inset 0 0 40px rgba(0,0,0,0.4)',
+                width: '100%',
+                maxWidth: '580px',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid rgba(0, 212, 255, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal('terms')}
+                    style={{
+                      background: legalModal === 'terms' ? 'rgba(0,212,255,0.15)' : 'transparent',
+                      border: `1px solid ${legalModal === 'terms' ? 'rgba(0,212,255,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                      borderRadius: '8px',
+                      color: legalModal === 'terms' ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                    }}
+                  >Terms Of Service</button>
+                  <button
+                    type="button"
+                    onClick={() => setLegalModal('privacy')}
+                    style={{
+                      background: legalModal === 'privacy' ? 'rgba(0,212,255,0.15)' : 'transparent',
+                      border: `1px solid ${legalModal === 'privacy' ? 'rgba(0,212,255,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                      borderRadius: '8px',
+                      color: legalModal === 'privacy' ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                    }}
+                  >Privacy Policy</button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLegalModal(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '18px',
+                    width: '32px',
+                    height: '32px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                >✕</button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{
+                padding: '24px',
+                overflowY: 'auto',
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '13px',
+                lineHeight: '1.8',
+              }}>
+                {legalModal === 'terms' ? (
+                  <>
+                    <h2 style={{ color: '#00d4ff', marginTop: 0, fontSize: '18px' }}>Terms Of Service</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: January 1, 2026</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>1. Acceptance Of Terms</h3>
+                    <p>By creating an account on Smarter.Poker, you agree to be bound by these Terms of Service. If you do not agree, please do not use our platform.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>2. Eligibility</h3>
+                    <p>You must be at least 18 years of age to use Smarter.Poker. By registering, you confirm that you meet this requirement and that the information you provide is accurate and truthful.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>3. Platform Use</h3>
+                    <p>Smarter.Poker is a poker training and education platform. You agree to use the platform solely for lawful purposes and in accordance with these Terms. You may not use the platform to engage in any activity that violates applicable law.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>4. Diamonds &amp; Virtual Currency</h3>
+                    <p>Diamonds are a virtual currency used within Smarter.Poker. They hold no monetary value and cannot be exchanged for real money. Prize redemptions are subject to eligibility requirements and applicable state regulations.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>5. Restricted States</h3>
+                    <p>Prize redemptions may be restricted in certain states including Washington, Idaho, Michigan, Nevada, and California per applicable regulations. Training features remain fully available in all states.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>6. Account Security</h3>
+                    <p>You are responsible for maintaining the confidentiality of your account credentials. Notify us immediately at support@smarter.poker if you suspect unauthorized access to your account.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>7. Termination</h3>
+                    <p>We reserve the right to suspend or terminate accounts that violate these Terms of Service at our sole discretion.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>8. Contact</h3>
+                    <p>For questions about these Terms, contact us at <span style={{ color: '#00d4ff' }}>support@smarter.poker</span>.</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{ color: '#00d4ff', marginTop: 0, fontSize: '18px' }}>Privacy Policy</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: January 1, 2026</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>1. Information We Collect</h3>
+                    <p>We collect information you provide during registration (name, email, date of birth, phone number, location) and usage data generated while using the platform (game sessions, training progress, analytics).</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>2. How We Use Your Information</h3>
+                    <p>We use your information to operate the platform, personalize your training experience, send important account notifications, and improve our services. We do not sell your personal data to third parties.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>3. Phone Number</h3>
+                    <p>Your phone number is collected for account verification purposes only. We use a secure SMS verification system and do not share your number with third parties for marketing.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>4. Cookies &amp; Analytics</h3>
+                    <p>We use cookies and analytics tools (including PostHog) to understand how users interact with the platform. This data is used only for product improvement and is anonymized where possible.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>5. Data Security</h3>
+                    <p>All data is encrypted in transit using 256-bit SSL. Passwords are never stored in plain text. We use Supabase for secure, industry-standard data storage.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>6. Your Rights</h3>
+                    <p>You have the right to access, correct, or delete your personal data at any time. To exercise these rights, contact us at <span style={{ color: '#00d4ff' }}>support@smarter.poker</span>.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>7. Contact</h3>
+                    <p>For privacy-related questions, contact us at <span style={{ color: '#00d4ff' }}>privacy@smarter.poker</span>.</p>
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid rgba(0, 212, 255, 0.15)',
+                flexShrink: 0,
+                textAlign: 'center',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setLegalModal(null)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1565c0, #0288d1)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    padding: '10px 32px',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 12px rgba(0,212,255,0.3)',
+                  }}
+                >Got It</button>
+              </div>
+            </div>
+          </div>
+        )}
       ) : (
         <>
           <div style={styles.container}>

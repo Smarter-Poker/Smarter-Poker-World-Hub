@@ -133,6 +133,22 @@ describe('verifyEgg fails closed', () => {
         }
     });
 
+    test('eggCoverage.js agrees with the registry in both directions', async () => {
+        const { VERIFIED_EGG_KEYS, EARNABLE_EGG_COUNT } = await import('../eggCoverage.js');
+        const registry = new Set(verifiableEggKeys());
+        const listed = new Set(VERIFIED_EGG_KEYS);
+
+        for (const key of registry) {
+            assert.ok(listed.has(key), `${key} has a verifier but is missing from eggCoverage.js`);
+        }
+        for (const key of listed) {
+            assert.ok(registry.has(key), `${key} is listed in eggCoverage.js but has no verifier`);
+        }
+        // The store page prints this number. If it drifts, the copy lies.
+        assert.equal(EARNABLE_EGG_COUNT, registry.size);
+        assert.equal(VERIFIED_EGG_KEYS.length, new Set(VERIFIED_EGG_KEYS).size, 'duplicate key');
+    });
+
     test('every catalog egg is either verifiable or documented as not', () => {
         for (const key of Object.keys(EASTER_EGGS)) {
             const covered = hasVerifier(key)
@@ -443,6 +459,80 @@ describe('training performance eggs', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+describe('discovery eggs (database-joined)', () => {
+    /** Minimal PostgREST-shaped stub: every builder method chains, then resolves. */
+    function tableStub(rowsByTable) {
+        return {
+            from(table) {
+                const rows = rowsByTable[table] || [];
+                const chain = {
+                    select: () => chain,
+                    eq: () => chain,
+                    in: () => chain,
+                    not: () => chain,
+                    lte: () => chain,
+                    gt: () => chain,
+                    gte: () => chain,
+                    order: () => chain,
+                    limit: () => Promise.resolve({ data: rows }),
+                    then: (resolve) => resolve({ data: rows }),
+                };
+                return chain;
+            },
+        };
+    }
+
+    test('road_tripper needs three DIFFERENT states, not three reviews', async () => {
+        const sameState = tableStub({
+            venue_reviews: [
+                { poker_venues: { state: 'NV' } },
+                { poker_venues: { state: 'nv' } }, // case must not create a second state
+                { poker_venues: { state: 'NV' } },
+            ],
+        });
+        assert.equal(await EGG_VERIFIERS.road_tripper({ supabase: sameState, userId: 'u1' }), false);
+
+        const threeStates = tableStub({
+            venue_reviews: [
+                { poker_venues: { state: 'NV' } },
+                { poker_venues: { state: 'CA' } },
+                { poker_venues: { state: 'TX' } },
+            ],
+        });
+        assert.equal(await EGG_VERIFIERS.road_tripper({ supabase: threeStates, userId: 'u1' }), true);
+    });
+
+    test('the_collector counts distinct themes, not rows', async () => {
+        const sameTheme = tableStub({
+            user_theme_settings: [{ table_id: 't1' }, { table_id: 't1' }, { table_id: 't1' }],
+        });
+        assert.equal(await EGG_VERIFIERS.the_collector({ supabase: sameTheme, userId: 'u1' }), false);
+
+        const three = tableStub({
+            user_theme_settings: [{ table_id: 't1' }, { table_id: 't2' }, { table_id: 't3' }],
+        });
+        assert.equal(await EGG_VERIFIERS.the_collector({ supabase: three, userId: 'u1' }), true);
+    });
+
+    test('the_optimizer needs a resolved leak AND a first-attempt review', async () => {
+        const noResolved = tableStub({ user_leaks: [], leak_review_state: [] });
+        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: noResolved, userId: 'u1' }), false);
+
+        // Resolved, but the scheduler recorded no qualifying (reps <= 1) review.
+        const resolvedButSlow = tableStub({
+            user_leaks: [{ id: 'leak-1' }],
+            leak_review_state: [],
+        });
+        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: resolvedButSlow, userId: 'u1' }), false);
+
+        const firstTry = tableStub({
+            user_leaks: [{ id: 'leak-1' }],
+            leak_review_state: [{ leak_id: 'leak-1', reps: 1 }],
+        });
+        assert.equal(await EGG_VERIFIERS.the_optimizer({ supabase: firstTry, userId: 'u1' }), true);
+    });
+});
+
 describe('discovery eggs', () => {
     test('bankroll_builder needs 30 logged sessions', async () => {
         assert.equal(await EGG_VERIFIERS.bankroll_builder(ctxOf({ bankrollSessionCount: 29 })), false);

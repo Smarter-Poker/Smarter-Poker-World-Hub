@@ -538,6 +538,58 @@ export const EGG_VERIFIERS = {
 
     /** Run twenty distinct player or game searches. */
     the_librarian: async (ctx) => (await ctx.searchCount()) >= 20,
+
+    /** Review poker rooms in three different states. */
+    road_tripper: async (ctx) => {
+        const { data } = await ctx.supabase
+            .from('venue_reviews')
+            .select('poker_venues(state)')
+            .eq('user_id', ctx.userId)
+            .limit(ROW_LIMIT);
+        const states = new Set(
+            (data || [])
+                .map((r) => r?.poker_venues?.state)
+                .filter(Boolean)
+                .map((s) => String(s).trim().toUpperCase()),
+        );
+        return states.size >= 3;
+    },
+
+    /** Own three different table themes. */
+    the_collector: async (ctx) => {
+        const { data } = await ctx.supabase
+            .from('user_theme_settings')
+            .select('table_id')
+            .eq('user_id', ctx.userId)
+            .limit(ROW_LIMIT);
+        // Distinct felt/table designs, not distinct rows: the table stores one
+        // row per game_type, so three rows sharing a theme is one theme.
+        const tables = new Set((data || []).map((r) => r?.table_id).filter(Boolean));
+        return tables.size >= 3;
+    },
+
+    /** Close out a Leak Signal on your very first corrective attempt. */
+    the_optimizer: async (ctx) => {
+        const { data: resolved } = await ctx.supabase
+            .from('user_leaks')
+            .select('id')
+            .eq('user_id', ctx.userId)
+            .not('resolved_at', 'is', null)
+            .limit(ROW_LIMIT);
+        const ids = (resolved || []).map((r) => String(r.id)).filter(Boolean);
+        if (!ids.length) return false;
+
+        // "First attempt" = the scheduler recorded at most one review session
+        // for that leak before it was resolved. leak_review_state.leak_id is
+        // text precisely because leaks arrive from several id spaces.
+        const { data: reviews } = await ctx.supabase
+            .from('leak_review_state')
+            .select('leak_id, reps')
+            .eq('user_id', ctx.userId)
+            .in('leak_id', ids.slice(0, 200))
+            .lte('reps', 1);
+        return (reviews || []).length > 0;
+    },
 };
 
 /**
@@ -571,15 +623,12 @@ export const UNVERIFIABLE_EGGS = {
     polarizer: 'needs range-classification game telemetry',
     indifference_point: 'needs per-line indifference solve',
     small_baller: 'needs per-decision sizing log',
-    the_optimizer: 'needs leak-resolution attempt history (leak_review_state is new)',
     zero_leak: 'needs hands-since-last-leak counter',
     deep_diver: 'needs time-on-page telemetry for Charts',
     window_shopper: 'needs store page-view telemetry',
     data_miner: 'needs hand-history export logging',
     sunrise_grinder: 'needs user geolocation + sunrise calculation',
     first_blood: 'needs per-user Arena hand results (hand_history has no user_id)',
-    road_tripper: 'needs venue -> state join on venue_reviews',
-    the_collector: 'needs table-theme ownership records',
     the_finisher: 'needs a canonical training game library list',
     server_first: 'needs level release timestamps + global first-pass tracking',
     diamond_hands: 'needs daily balance snapshots',
