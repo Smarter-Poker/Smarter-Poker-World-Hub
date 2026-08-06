@@ -1282,6 +1282,20 @@ export default function VirtualSandbox() {
     villains[0]?.range || getArchetypeRangeString(villains[0]?.archetype?.id || 'gto_neutral', villains[0]?.position || 'BB')
   ), [villains]);
 
+  // MULTIWAY equity input. With one opponent this IS villainRangeStr (the
+  // heads-up path stays byte-identical); with 2+ it becomes the
+  // { villains: [...] } shape EquityEngine dispatches on, one archetype/custom
+  // range per seat. Single-villain consumers (analyze, range explorer,
+  // heatmap) intentionally keep reading villainRangeStr — the solver models
+  // the primary opponent; equity and runouts model the whole table.
+  const equityRangeInput = useMemo(() => {
+    if (villains.length <= 1) return villainRangeStr;
+    return {
+      villains: villains.map(v => v?.range
+        || getArchetypeRangeString(v?.archetype?.id || 'gto_neutral', v?.position || 'BB')),
+    };
+  }, [villains, villainRangeStr]);
+
   // ━━━ EQUITY — range-aware and progressive ━━━
   // A fast 250-sim pass paints a number immediately (cheap enough to stay on
   // the main thread); the 2000-sim refinement goes to a Web Worker so a
@@ -1294,7 +1308,7 @@ export default function VirtualSandbox() {
     if (!heroHand.card1 || !heroHand.card2) { setEquity(null); return undefined; }
     const heroCards = [heroHand.card1, heroHand.card2];
     const boardCards = boardToArray(board);
-    const range = equityVsRange ? villainRangeStr : null;
+    const range = equityVsRange ? equityRangeInput : null;
 
     let cancelled = false;
     let idleId = null;
@@ -1336,11 +1350,13 @@ export default function VirtualSandbox() {
     }, 90);
 
     return () => { cancelled = true; clearTimeout(t); cancelIdle(idleId); abort.abort(); };
-  }, [heroHand.card1, heroHand.card2, board, equityVsRange, villainRangeStr]);
+  }, [heroHand.card1, heroHand.card2, board, equityVsRange, equityRangeInput]);
 
-  const equityLabel = useMemo(() => (
-    equityVsRange ? `vs ${villains[0]?.archetype?.name || 'villain'} range` : 'vs random hand'
-  ), [equityVsRange, villains]);
+  const equityLabel = useMemo(() => {
+    if (!equityVsRange) return 'vs random hand';
+    if (villains.length > 1) return `vs ${villains.length} villain ranges`;
+    return `vs ${villains[0]?.archetype?.name || 'villain'} range`;
+  }, [equityVsRange, villains]);
 
   // ━━━ RUNOUTS ━━━
   const [runoutData, setRunoutData] = useState(null);
@@ -1351,7 +1367,7 @@ export default function VirtualSandbox() {
     const heroCards = [heroHand.card1, heroHand.card2];
     const boardCards = [...board.flop];
     if (board.turn) boardCards.push(board.turn);
-    const range = equityVsRange ? villainRangeStr : null;
+    const range = equityVsRange ? equityRangeInput : null;
 
     // ~46 candidate cards x 200 sims each — by far the heaviest thing on this
     // page. Straight to the worker; the synchronous call is the fallback.
@@ -1370,7 +1386,7 @@ export default function VirtualSandbox() {
       catch (e) { setRunoutData(null); }
     }, 220);
     return () => { cancelled = true; clearTimeout(t); abort.abort(); };
-  }, [heroHand.card1, heroHand.card2, board, equityVsRange, villainRangeStr]);
+  }, [heroHand.card1, heroHand.card2, board, equityVsRange, equityRangeInput]);
 
   // The worker is shared across both effects, so it is torn down once, on
   // unmount — never per input change (that is what abort() above is for).
