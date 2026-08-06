@@ -1046,7 +1046,7 @@ export default function SignUpPage() {
                     <input
                       type="text"
                       className="auth-input-styled"
-                      placeholder="First Name"
+                      placeholder=""
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       required
@@ -1057,7 +1057,7 @@ export default function SignUpPage() {
                     <input
                       type="text"
                       className="auth-input-styled"
-                      placeholder="Last Name"
+                      placeholder=""
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       required
@@ -1139,7 +1139,7 @@ export default function SignUpPage() {
                     <input
                       type="text"
                       className="auth-input-styled"
-                      placeholder="City"
+                      placeholder=""
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       required
@@ -1167,7 +1167,7 @@ export default function SignUpPage() {
                   <input
                     type="text"
                     className="auth-input-styled"
-                    placeholder="YourPokerName"
+                    placeholder=""
                     value={formData.pokerAlias}
                     onChange={(e) =>
                       setFormData({
@@ -1317,10 +1317,10 @@ export default function SignUpPage() {
                 onClick={() => setLegalModal('terms')}
                 style={{
                   position: 'absolute',
-                  top: '89%',
-                  left: '45%',
-                  width: '8%',
-                  height: '1.5%',
+                  top: '90.5%',
+                  left: '49%',
+                  width: '10%',
+                  height: '1.8%',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
@@ -1333,10 +1333,10 @@ export default function SignUpPage() {
                 onClick={() => setLegalModal('privacy')}
                 style={{
                   position: 'absolute',
-                  top: '89%',
-                  left: '56%',
-                  width: '7%',
-                  height: '1.5%',
+                  top: '90.5%',
+                  left: '61%',
+                  width: '9%',
+                  height: '1.8%',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
@@ -1351,7 +1351,7 @@ export default function SignUpPage() {
                 title="Sign In"
                 style={{
                   position: 'absolute',
-                  top: '93.5%',
+                  top: '96.2%',
                   left: '25%',
                   width: '50%',
                   height: '2.5%',
