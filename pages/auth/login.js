@@ -400,18 +400,20 @@ export default function LoginPage() {
                 {/* ── Already-signed-in button row ── */}
                 {existingUser && (
                     <div style={{
-                        position: 'absolute', top: '47%', left: '25%', width: '50%', height: '3.2%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10
+                        position: 'absolute', top: '47.2%', left: '22%', width: '56%', height: '3.4%',
+                        display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10
                     }}>
+                        {/* Continue To Hub — covers the blue button */}
                         <button
                             onClick={() => { sessionStorage.setItem('just_authenticated', 'true'); router.push('/hub'); }}
-                            style={{ width: '48%', height: '100%', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none' }}
+                            style={{ flex: '0 0 54%', height: '100%', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none' }}
                             title="Continue To Hub"
                         />
+                        {/* Switch Account — covers the dark button */}
                         <button
                             onClick={handleSwitchAccount}
                             disabled={isLoading}
-                            style={{ width: '48%', height: '100%', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none' }}
+                            style={{ flex: '0 0 40%', height: '100%', background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', outline: 'none' }}
                             title="Switch Account"
                         />
                     </div>
@@ -565,7 +567,7 @@ export default function LoginPage() {
                             disabled={isLoading}
                             title="Send Magic Link"
                             style={{
-                                position: 'absolute', top: '82%', left: '25%', width: '50%', height: '4.4%',
+                                position: 'absolute', top: '82.2%', left: '22%', width: '56%', height: '4.6%',
                                 background: 'transparent', border: 'none', cursor: isLoading ? 'wait' : 'pointer', zIndex: 10, outline: 'none',
                             }}
                             onFocus={(e) => e.target.style.boxShadow = '0 0 10px 2px rgba(255,215,0,0.5)'}
@@ -574,7 +576,7 @@ export default function LoginPage() {
                     )}
                 </form>
 
-                {/* Sign Up toggle (invisible overlay on "Don't Have An Account? Sign Up") */}
+                {/* Sign Up toggle — covers the cyan "Sign Up" text in the image */}
                 <button
                     onClick={() => {
                         setMode(mode === 'login' ? 'signup' : 'login');
@@ -582,13 +584,11 @@ export default function LoginPage() {
                         setMessage(null);
                     }}
                     style={{
-                        position: 'absolute', top: '88.5%', left: '35%', width: '30%', height: '2%',
+                        position: 'absolute', top: '88.2%', left: '52%', width: '22%', height: '2.2%',
                         background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                     }}
                     title={mode === 'login' ? 'Sign Up' : 'Sign In'}
-                >
-                    {/* The text is drawn in the image, so we leave the button empty or with transparent text if needed */}
-                </button>
+                />
             </div>
 
 
