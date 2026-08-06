@@ -463,11 +463,6 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* EMAIL ADDRESS label */}
-                    <span className="login-field-label" style={{ top: '60.3%', left: '25%' }}>
-                        Email Address
-                    </span>
-
                     {/* Email input */}
                     <input
                         type="email"
@@ -475,18 +470,16 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
-                        placeholder="Enter Your Email"
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '61.85%', left: '25%', width: '50%', height: '4.5%',
+                            position: 'absolute', top: '64.0%', left: '25%', width: '50%', height: '3.4%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
+                            background: 'transparent', border: 'none', outline: 'none', color: '#fff',
+                            boxShadow: 'none'
                         }}
+                        onFocus={(e) => e.target.style.boxShadow = '0 0 5px 1px rgba(0,212,255,0.3)'}
+                        onBlur={(e) => e.target.style.boxShadow = 'none'}
                     />
-
-                    {/* PASSWORD label */}
-                    <span className="login-field-label" style={{ top: '66.35%', left: '25%' }}>
-                        Password
-                    </span>
 
                     {/* Password input */}
                     <input
@@ -495,13 +488,16 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
-                        placeholder="Password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                         className="login-input-box"
                         style={{
-                            position: 'absolute', top: '67.85%', left: '25%', width: '46%', height: '2.5%',
+                            position: 'absolute', top: '70.3%', left: '25%', width: '46%', height: '3.4%',
                             padding: '0 14px', boxSizing: 'border-box', zIndex: 10,
+                            background: 'transparent', border: 'none', outline: 'none', color: '#fff',
+                            boxShadow: 'none'
                         }}
+                        onFocus={(e) => e.target.style.boxShadow = '0 0 5px 1px rgba(0,212,255,0.3)'}
+                        onBlur={(e) => e.target.style.boxShadow = 'none'}
                     />
 
                     {/* Show/hide password toggle */}
@@ -509,7 +505,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{
-                            position: 'absolute', top: '67.85%', left: '71.5%', width: '3.5%', height: '2.5%',
+                            position: 'absolute', top: '70.3%', left: '71.5%', width: '3.5%', height: '3.4%',
                             background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 11,
                             color: 'rgba(255,255,255,0.5)', fontSize: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -528,7 +524,7 @@ export default function LoginPage() {
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 style={{
-                                    position: 'absolute', top: '73.2%', left: '25%', width: '2%', height: '1.8%',
+                                    position: 'absolute', top: '74.7%', left: '25%', width: '2%', height: '1.8%',
                                     opacity: 0, cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Remember Me"
@@ -538,7 +534,7 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={() => router.push('/auth/forgot-password')}
                                 style={{
-                                    position: 'absolute', top: '73.2%', left: '60%', width: '14%', height: '2%',
+                                    position: 'absolute', top: '74.7%', left: '60%', width: '14%', height: '2%',
                                     background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10
                                 }}
                                 title="Forgot Password"
